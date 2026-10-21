@@ -10,10 +10,11 @@ $resolvedEvidenceRoot = (Resolve-Path -LiteralPath $EvidenceRoot).Path
 $indexPath = Join-Path $resolvedEvidenceRoot 'index.json'
 $index = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json
 $comparisonId = 'pdf-html-generation-net10.0'
-$expectedScenarios = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF')
+$expectedScenarios = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF', 'PdfPecker')
 $expectedScales = @('Easy', 'Medium', 'High')
 $sourceCommit = $null
 $browserCommit = $null
+$pdfPeckerPackageSha512 = $null
 
 foreach ($platform in @('windows', 'linux')) {
     $fileName = "$comparisonId-$platform-full.json"
@@ -38,9 +39,22 @@ foreach ($platform in @('windows', 'linux')) {
         [string] $result.environment.osFamily -ne (Get-Culture).TextInfo.ToTitleCase($platform) -or
         [string] $result.environment.runner -ne 'BenchmarkDotNet' -or
         [string] $result.metadata.'benchmark.workload.framework' -ne 'net10.0' -or
+        [string] $result.metadata.'benchmark.package.pdfpecker.version' -cne '1.16.0' -or
+        [string] $result.metadata.'benchmark.dependency.pdfpecker.sourceCommit' -notmatch '^[0-9a-f]{40}$' -or
+        [string] $result.metadata.'benchmark.dependency.pdfpecker.licenseSha256' -notmatch '^[0-9a-f]{64}$' -or
+        [string] $result.metadata.'benchmark.dependency.pdfpecker.thirdPartyNoticesSha256' -notmatch '^[0-9a-f]{64}$' -or
+        [string] $result.metadata.'benchmark.dependency.pdfpecker.packageSha512' -notmatch '^[A-Za-z0-9+/]{86}==$' -or
         [string] $result.metadata.runMode -ne 'full' -or
         [string] $result.metadata.gitWorktreeClean -ne 'true') {
         throw "HTML/PDF benchmark evidence has invalid environment or provenance metadata for $fileName."
+    }
+
+    $currentPackageSha512 = [string] $result.metadata.'benchmark.dependency.pdfpecker.packageSha512'
+    if ($null -eq $pdfPeckerPackageSha512) {
+        $pdfPeckerPackageSha512 = $currentPackageSha512
+    } elseif (-not [string]::Equals(
+        $pdfPeckerPackageSha512, $currentPackageSha512, [System.StringComparison]::Ordinal)) {
+        throw 'Windows and Linux HTML/PDF benchmark evidence must use the same PdfPecker package archive SHA-512.'
     }
 
     $currentSourceCommit = [string] $result.metadata.'benchmark.workload.sourceCommit'
@@ -61,7 +75,7 @@ foreach ($platform in @('windows', 'linux')) {
 
     $summary = @($result.summary)
     if ($summary.Count -ne ($expectedScenarios.Count * $expectedScales.Count)) {
-        throw "HTML/PDF benchmark evidence must contain all 12 engine/scale cases for $fileName."
+        throw "HTML/PDF benchmark evidence must contain all 15 engine/scale cases for $fileName."
     }
 
     foreach ($scenario in $expectedScenarios) {

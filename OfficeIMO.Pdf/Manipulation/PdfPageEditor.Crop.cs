@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -13,14 +14,18 @@ internal static partial class PdfPageEditor {
         double bottom,
         double right,
         double top,
-        params int[] pageNumbers) {
+        params int[] pageNumbers) =>
+        CropAndTranslatePages(pdf, left, bottom, right, top, null, default, pageNumbers);
+
+    internal static byte[] CropAndTranslatePages(byte[] pdf, double left, double bottom, double right, double top,
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         ValidatePageBoxCoordinates(left, bottom, right, top);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         int[] selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -36,6 +41,7 @@ internal static partial class PdfPageEditor {
         double height = top - bottom;
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (!selected.Contains(pageNumber)) {
                 continue;
@@ -98,7 +104,8 @@ internal static partial class PdfPageEditor {
             overrides,
             additionalObjects,
             catalogState,
-            PdfPageExtractor.GetSourceFileVersion(pdf));
+            PdfPageExtractor.GetSourceFileVersion(pdf),
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Non-destructively crops and translates selected pages from a readable stream.</summary>

@@ -196,7 +196,7 @@ public sealed class PdfRedactionPlan {
         }
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(span);
             if (span.TextObjectOrderKey != null && ignoredTextObjectKeys.Contains(span.TextObjectOrderKey) ||
                 span.TextObjectOrderKey == null && IntersectsReviewedArea(pageAreas, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
             identity.Append("|T:")

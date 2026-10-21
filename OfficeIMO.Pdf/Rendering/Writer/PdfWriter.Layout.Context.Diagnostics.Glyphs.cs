@@ -8,7 +8,8 @@ internal static partial class PdfWriter {
         private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> DiagnosticGlyphContours(RichSeg segment, string text, double x, double baseline) {
             if (string.IsNullOrWhiteSpace(text)) yield break;
             foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
-                _diagnosticFonts, DiagnosticTextOptions, cancellationToken: cancellationToken)) yield return glyph;
+                _diagnosticFonts, DiagnosticTextOptions, cancellationToken: cancellationToken,
+                glyphOutline: DiagnosticGlyphOutline, fontCacheCleared: ClearDiagnosticGlyphCache)) yield return glyph;
         }
 
         private IEnumerable<List<List<OfficePoint>>> DiagnosticDecorationContours(double left, double right, double y, OfficeTextDecorationStyle style) {

@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
         double right = double.NegativeInfinity, top = double.NegativeInfinity;
         foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, options, fontCache,
-            encodingOptions, paintCommand, cancellationToken)) {
+            encodingOptions, paintCommand, cancellationToken: cancellationToken)) {
             foreach (var contour in glyph.Contours) foreach (OfficePoint point in contour) {
                 left = Math.Min(left, point.X); bottom = Math.Min(bottom, point.Y);
                 right = Math.Max(right, point.X); top = Math.Max(top, point.Y);
@@ -22,15 +22,18 @@ internal static partial class PdfWriter {
     }
 
     /// <summary>Uses selected PDF glyphs and PDF-unit positioning, never a separately shaped approximation.</summary>
+    /// <remarks>A supplied outline resolver must return private contours for placement. Font-cache eviction also releases its dependent outlines.</remarks>
     private static IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> EnumerateGlyphPaintContours(
         RichSeg segment, string text, double x, double baseline, PdfOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
-        PdfTextShowCommand? paintCommand = null, CancellationToken cancellationToken = default) {
+        PdfTextShowCommand? paintCommand = null,
+        Func<IOfficeBoundedFontProgram, int, double, List<List<OfficePoint>>>? glyphOutline = null,
+        Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(text)) yield break;
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
             : EncodeTextShowCommand(text, segment.Font, segment.NamedFont, encodingOptions ?? options, segment.FeatureSettings,
                 segment.TextDirection, segment.FontMetricScale, preservesPaintedGlyphs: segment.PreservesPaintedGlyphs));
-        IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, options, fontCache);
+        IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, options, fontCache, fontCacheCleared);
         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
         double scale = segment.HorizontalTextScaling / 100D;
         double cursor = 0D;
@@ -67,9 +70,13 @@ internal static partial class PdfWriter {
             double offsetY = glyphs != null ? glyphs[index].OffsetY1000 * size / 1000D : 0D;
             if (glyphId > 0) {
                 // The writer's rounded PDF advances, rather than outline-engine advances, own every origin.
-                var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
-                double ascent = ((IOfficeFontBaselineMetrics)outline).BaselineOffset(size);
-                var contours = outline.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size, 65536, cancellationToken);
+                List<List<OfficePoint>> contours;
+                if (glyphOutline != null) contours = glyphOutline(outline, glyphId, size);
+                else {
+                    var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
+                    double ascent = ((IOfficeFontBaselineMetrics)outline).BaselineOffset(size);
+                    contours = outline.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size, 65536, cancellationToken);
+                }
                 double shear = options.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
                 foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) {
                     OfficePoint point = contour[p];
@@ -104,7 +111,7 @@ internal static partial class PdfWriter {
     }
 
     private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfOptions options,
-        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache) {
+        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, Action? fontCacheCleared = null) {
         byte[]? data = null;
         if (segment.NamedFont.HasValue) {
             if (options.TryGetNamedFontProgram(segment.NamedFont.Value, out var named) && named != null) data = named.FontDataForInspection;
@@ -118,7 +125,10 @@ internal static partial class PdfWriter {
         if (fontCache.TryGetValue(data, out var cached)) return cached;
         IOfficeBoundedFontProgram font = (IOfficeBoundedFontProgram?)OfficeTrueTypeFont.TryLoad(data)
             ?? OfficeOpenTypeCffFont.TryLoad(data, null, out _) ?? throw new NotSupportedException("The selected PDF font has no inspectable outline program.");
-        if (fontCache.Count >= 64) fontCache.Clear();
+        if (fontCache.Count >= 64) {
+            fontCache.Clear();
+            fontCacheCleared?.Invoke();
+        }
         fontCache.Add(data, font);
         return font;
     }

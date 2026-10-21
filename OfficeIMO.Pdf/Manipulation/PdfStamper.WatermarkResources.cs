@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -6,17 +7,19 @@ internal static partial class PdfStamper {
     // Only resources explicitly produced for editable watermarks are candidates. Usage is
     // deliberately collected across every page/form/pattern, so shared or inherited use wins.
     private static void PruneUnusedWatermarkResources(Dictionary<int, PdfIndirectObject> objects, int[] pages,
-        Dictionary<int, Dictionary<string, PdfObject>> overrides, PdfLoadOptions? readOptions) {
+        Dictionary<int, Dictionary<string, PdfObject>> overrides, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         if (!objects.Values.Any(item => ResourceDictionary(item.Value)?.Get<PdfStringObj>("OfficeIMOWatermarkResource") is not null)) return;
         var limits = PdfLoadOptions.Resolve(readOptions).Limits;
         var sequences = new List<PdfStream[]>();
         foreach (int pageNumber in pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             var page = CloneDictionary((PdfDictionary)objects[pageNumber].Value);
             if (overrides.TryGetValue(pageNumber, out var changes))
                 foreach (var change in changes) page.Items[change.Key] = change.Value;
             sequences.Add(GetPageContentStreams(objects, page, limits.MaxObjectNestingDepth).ToArray());
         }
         foreach (var item in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item.Value is PdfStream stream &&
                 (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" || stream.Dictionary.Items.ContainsKey("PatternType")))
                 sequences.Add(new[] { stream });
@@ -25,19 +28,22 @@ internal static partial class PdfStamper {
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
         try {
             foreach (var sequence in sequences) {
+                cancellationToken.ThrowIfCancellationRequested();
                 // Page streams share operand state, including a name in one stream followed
                 // by its Do/gs operator in the next. Match the reader's ordered sequence.
                 var content = new System.Text.StringBuilder();
                 foreach (var stream in sequence) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (stream.DecodingFailed) return;
                     int remaining = limits.MaxPageContentBytes - content.Length - 1;
                     if (remaining <= 0) return;
                     byte[] decoded = decodedStreamBudget.DecodeRequired(
-                        stream, objects, Math.Min(limits.MaxDecodedStreamBytes, remaining));
-                    if (content.Length > 0) content.Append('\n');
+                        stream, objects, Math.Min(limits.MaxDecodedStreamBytes, remaining), cancellationToken);
+                    if (content.Length > 0) content.Append(PdfContentStreamSequenceDecoder.Separator);
                     content.Append(PdfEncoding.Latin1GetString(decoded));
                 }
                 PdfContentStreamInterpreter.Interpret(content.ToString(), limits.MaxContentOperations, operation => {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (operation.Name is "Do" or "gs" && operation.Operands.Count > 0
                         && operation.Operands[operation.Operands.Count - 1] is string name)
                         used.Add(operation.Name + ":" + name);
@@ -49,6 +55,7 @@ internal static partial class PdfStamper {
             return;
         }
         foreach (int pageNumber in pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             var page = (PdfDictionary)objects[pageNumber].Value;
             overrides.TryGetValue(pageNumber, out var changes);
             PdfObject? value = changes != null && changes.TryGetValue("Resources", out var modified)

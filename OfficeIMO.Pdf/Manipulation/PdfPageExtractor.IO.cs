@@ -5,10 +5,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, CancellationToken cancellationToken = default) {
         ValidateWritableOutputStream(outputStream);
     
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.CopyBytes(outputStream, bytes, cancellationToken);
     }
     
     private static void ValidateWritableOutputStream(Stream outputStream) {
@@ -27,8 +27,8 @@ internal static partial class PdfPageExtractor {
         return PdfDocumentSource.FromRemainingStream(stream, options, cancellationToken).Bytes;
     }
 
-    private static byte[] ReadPath(string path) =>
-        PdfDocumentSource.FromPath(path, null).Bytes;
+    private static byte[] ReadPath(string path, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
+        PdfDocumentSource.FromPath(path, options, cancellationToken).Bytes;
     
     private static List<string> WriteSplitPages(IReadOnlyList<byte[]> pages, string outputDirectory, string? baseName) {
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
@@ -112,11 +112,11 @@ internal static partial class PdfPageExtractor {
         return (PdfPageRange[])pageRanges.Clone();
     }
     
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, CancellationToken cancellationToken = default) {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => OfficeStreamWriter.CopyBytes(stream, bytes, cancellationToken), cancellationToken);
     }
     
     private static string ValidateOutputPath(string outputPath) {

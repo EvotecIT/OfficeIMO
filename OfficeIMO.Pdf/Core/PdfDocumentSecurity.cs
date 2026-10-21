@@ -26,6 +26,32 @@ public sealed class PdfDocumentSecurity {
     public PdfOperationResult<PdfSecurityMutationResult> ReencryptResult(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption) =>
         _document.ReencryptResult(currentOwnerPassword, newEncryption);
 
+    /// <summary>Encrypts this PDF with cancellation through planning, serialization and preservation readback.</summary>
+    public PdfSecurityMutationResult Encrypt(PdfStandardEncryptionOptions encryption, System.Threading.CancellationToken cancellationToken) =>
+        _document.Encrypt(encryption, cancellationToken);
+
+    /// <summary>Attempts encryption while propagating requested cancellation and retaining the source unchanged.</summary>
+    public PdfOperationResult<PdfSecurityMutationResult> EncryptResult(PdfStandardEncryptionOptions encryption, System.Threading.CancellationToken cancellationToken) =>
+        _document.EncryptResult(encryption, cancellationToken);
+
+    /// <summary>Removes Standard password security with cancellation through rewriting and preservation readback.</summary>
+    public PdfSecurityMutationResult Decrypt(string ownerPassword, System.Threading.CancellationToken cancellationToken) =>
+        _document.Decrypt(ownerPassword, cancellationToken);
+
+    /// <summary>Attempts decryption while propagating requested cancellation and retaining the source unchanged.</summary>
+    public PdfOperationResult<PdfSecurityMutationResult> DecryptResult(string ownerPassword, System.Threading.CancellationToken cancellationToken) =>
+        _document.DecryptResult(ownerPassword, cancellationToken);
+
+    /// <summary>Replaces Standard password security with cancellation through rewriting and preservation readback.</summary>
+    public PdfSecurityMutationResult Reencrypt(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption,
+        System.Threading.CancellationToken cancellationToken) =>
+        _document.Reencrypt(currentOwnerPassword, newEncryption, cancellationToken);
+
+    /// <summary>Attempts re-encryption while propagating requested cancellation and retaining the source unchanged.</summary>
+    public PdfOperationResult<PdfSecurityMutationResult> ReencryptResult(string currentOwnerPassword, PdfStandardEncryptionOptions newEncryption,
+        System.Threading.CancellationToken cancellationToken) =>
+        _document.ReencryptResult(currentOwnerPassword, newEncryption, cancellationToken);
+
     /// <summary>Validates signature structure, byte ranges, and preservation markers.</summary>
     public PdfSignatureValidationReport ValidateSignatures(PdfLoadOptions? options = null) => _document.ValidateSignatures(options);
 

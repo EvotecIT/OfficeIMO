@@ -196,7 +196,7 @@ public static class HtmlRenderEngine {
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
-        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics, limits, cancellationToken);
         resolved.Validate();
         var operationBudget = new HtmlRenderOperationBudget();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
@@ -377,7 +377,7 @@ public static class HtmlRenderEngine {
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
-        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics, limits, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
         var operationBudget = new HtmlRenderOperationBudget();

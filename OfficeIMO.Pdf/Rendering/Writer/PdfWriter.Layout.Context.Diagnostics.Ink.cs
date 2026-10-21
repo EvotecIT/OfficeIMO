@@ -131,6 +131,10 @@ internal static partial class PdfWriter {
                     }
                     void Paint(List<List<OfficePoint>> contours, List<OfficeTextInkClip>? imageClips = null, bool nominalGlyphBounds = false) {
                         foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) contour[p] = transform.TransformPoint(contour[p]);
+                        // Containment of actual contour points proves that no filled ink can
+                        // be removed. All other cases retain the winding-aware inspection.
+                        if (imageClips == null && DiagnosticPaintContained(contours, sourceClips, targetClips,
+                            frameClip, pageClip, secondClip, transform)) return;
                         var intrinsic = new List<OfficeTextInkClip>();
                         if (imageClips != null) foreach (var imageClip in imageClips) intrinsic.Add(DiagnosticMapClip(imageClip, transform));
                         // The source already paints through these clips. Only extra target

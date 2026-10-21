@@ -5,6 +5,25 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     internal WidgetAppearanceScanBudget CreateWidgetAppearanceScanBudget() => new WidgetAppearanceScanBudget(this);
 
+    /// <summary>Visits existing viewable normal appearances without requiring content-copy authorization.</summary>
+    internal void VisitNormalAppearanceStreams(Action<PdfStream, PdfDictionary?> visit,
+        System.Threading.CancellationToken cancellationToken) {
+        if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? value) || ResolveArray(value) is not PdfArray annotations) return;
+        EnsureAnnotationBudget(annotations);
+        PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        foreach (PdfObject item in annotations.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfDictionary? annotation = ResolveDictionary(item);
+            if (annotation is null || IsHiddenAnnotation(annotation) ||
+                !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangle) ? rectangle : null, out var bounds) ||
+                !TryGetNormalAppearanceStream(annotation, out PdfStream stream) ||
+                PdfAppearancePlacement.IsKnownEmpty(stream.Dictionary, ResolveObject,
+                    bounds.X2 - bounds.X1, bounds.Y2 - bounds.Y1)) continue;
+            PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resource) ? resource : null) ?? pageResources;
+            visit(stream, resources);
+        }
+    }
+
     internal bool DoesWidgetNormalAppearancePresentAllText(
         int widgetObjectNumber,
         IReadOnlyList<string> expectedValues,

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 /// Appearances with an empty bounding box paint nothing. macOS PDFKit (and so Preview) writes them for the off state of
 /// every form widget, so a page that carries them still renders, reports diagnostics and flattens.
 /// </summary>
-public sealed class PdfEmptyAppearanceTests {
+public sealed partial class PdfEmptyAppearanceTests {
     [Theory]
     [InlineData(90)]
     [InlineData(180)]
@@ -62,17 +62,18 @@ public sealed class PdfEmptyAppearanceTests {
     }
 
     // One page with a square annotation and, when widgetOffAppearanceBox is given, a checkbox widget in its off state.
-    private static byte[] BuildPdf(string? widgetOffAppearanceBox, string squareAppearanceBox) {
+    private static byte[] BuildPdf(string? widgetOffAppearanceBox, string squareAppearanceBox,
+        string pageContent = "0 g 10 160 50 20 re f", bool widgetOn = false) {
         bool form = widgetOffAppearanceBox != null;
         string[] objects = {
             form ? "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R] >> >>" : "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 8 0 R /Annots [" + (form ? "4 0 R " : "") + "7 0 R] >>",
-            form ? "<< /Type /Annot /Subtype /Widget /FT /Btn /T (agree) /V /Off /AS /Off /Rect [20 20 40 40] /P 3 0 R /AP << /N << /Yes 5 0 R /Off 6 0 R >> >> >>" : "<< >>",
+            form ? "<< /Type /Annot /Subtype /Widget /FT /Btn /T (agree) /V " + (widgetOn ? "/Yes" : "/Off") + " /AS " + (widgetOn ? "/Yes" : "/Off") + " /Rect [20 20 40 40] /P 3 0 R /AP << /N << /Yes 5 0 R /Off 6 0 R >> >> >>" : "<< >>",
             Form("[0 0 20 20]", "0 0 1 rg 2 2 16 16 re f"),
             Form(widgetOffAppearanceBox ?? "[0 0 20 20]", ""),
             "<< /Type /Annot /Subtype /Square /Rect [100 100 140 140] /C [1 0 0] /AP << /N 9 0 R >> >>",
-            Stream("<< /Length {0} >>", "0 g 10 160 50 20 re f"),
+            Stream("<< /Length {0} >>", pageContent),
             Form(squareAppearanceBox, "1 0 0 rg 0 0 20 20 re f"),
         };
         return Assemble(objects);

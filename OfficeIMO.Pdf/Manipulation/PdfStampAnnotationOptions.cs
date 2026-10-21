@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Placement, appearance, and mutation policy for a stamp annotation added to an existing PDF page.</summary>
 public sealed class PdfStampAnnotationOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     private byte[]? _imageBytes;
     /// <summary>One-based target page number.</summary>
     public int PageNumber { get; set; } = 1;

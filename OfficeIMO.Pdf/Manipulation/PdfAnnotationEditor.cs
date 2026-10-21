@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
@@ -40,12 +41,14 @@ internal static partial class PdfAnnotationEditor {
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfAnnotationRemovalOptions effectiveOptions = options ?? new PdfAnnotationRemovalOptions();
+        var cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateRemovalOptions(effectiveOptions);
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
-            executionPreference: effectiveOptions.ExecutionPreference);
+            executionPreference: effectiveOptions.ExecutionPreference, cancellationToken: cancellationToken);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             if (!effectiveOptions.AllowResidualDataInAppendOnly) {
                 throw new NotSupportedException("Append-only annotation removal retains the original annotation bytes in prior revisions. Use a permitted full rewrite for sanitization or explicitly allow residual data.");
@@ -53,7 +56,7 @@ internal static partial class PdfAnnotationEditor {
             return RemoveAnnotationsIncrementally(pdf, effectiveOptions, mutationPlan, readOptions);
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -63,6 +66,7 @@ internal static partial class PdfAnnotationEditor {
         var removed = new HashSet<int>();
         bool changed = false;
         for (int pageIndex = 0; pageIndex < pageObjectNumbers.Count; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (effectiveOptions.PageNumber.HasValue && effectiveOptions.PageNumber.Value != pageIndex + 1) {
                 continue;
             }
@@ -79,6 +83,7 @@ internal static partial class PdfAnnotationEditor {
             }
 
             for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject item = annotations.Items[i];
                 int? annotationObjectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
                 PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
@@ -112,7 +117,7 @@ internal static partial class PdfAnnotationEditor {
 
         if (removed.Count > 0) {
             ClearRemovedPopupReferences(objects, removed);
-            DetachRemovedAnnotationRelationships(objects, removed, new HashSet<int>());
+            DetachRemovedAnnotationRelationships(objects, removed, new HashSet<int>(), cancellationToken);
         }
 
         foreach (int objectNumber in removed) {
@@ -120,12 +125,12 @@ internal static partial class PdfAnnotationEditor {
         }
 
         if (!changed && removed.Count == 0) {
-            return CreateFullRewriteResult(pdf, (byte[])pdf.Clone(), 0, mutationPlan, annotationsChanged: false, readOptions: readOptions);
+            return CreateFullRewriteResult(pdf, (byte[])pdf.Clone(), 0, mutationPlan, annotationsChanged: false, readOptions: readOptions, cancellationToken: cancellationToken);
         }
 
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out var numberMap);
-        return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true, readOptions: readOptions, objectNumberMap: numberMap);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, out var numberMap, cancellationToken);
+        return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true, readOptions: readOptions, objectNumberMap: numberMap, cancellationToken: cancellationToken);
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -147,12 +152,14 @@ internal static partial class PdfAnnotationEditor {
             throw new ArgumentOutOfRangeException(nameof(objectNumber), "Annotation object number must be positive.");
         }
 
+        var cancellationToken = options.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateUpdateOptions(options);
         mutationPlan ??= PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
-            executionPreference: options.ExecutionPreference);
+            executionPreference: options.ExecutionPreference, cancellationToken: cancellationToken);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             if (!options.AllowResidualDataInAppendOnly) {
                 throw new NotSupportedException("Append-only annotation updates retain replaced annotation data in prior revisions. Use a permitted full rewrite for sanitization or explicitly allow residual data.");
@@ -163,7 +170,7 @@ internal static partial class PdfAnnotationEditor {
             return incremental;
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -176,32 +183,32 @@ internal static partial class PdfAnnotationEditor {
         }
 
         IReadOnlyList<int> changedObjects = ApplyUpdates(objects, annotation, options);
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap, cancellationToken);
         PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
             objects,
             new[] { objectNumber }.Concat(changedObjects));
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth);
         ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
-        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions, objectNumberMap: numberMap, cancellationToken: cancellationToken);
     }
 
     private static PdfMutationPlan RequireAnnotationMutation(
         byte[] pdf,
         PdfLoadOptions? readOptions,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) =>
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic, CancellationToken cancellationToken = default) =>
         PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
-            executionPreference: executionPreference);
+            executionPreference: executionPreference, cancellationToken: cancellationToken);
 
     private static PdfDocumentInfo GetAnnotationMutationDocumentInfo(PdfMutationPlan mutationPlan) =>
         mutationPlan.Preflight.UncheckedDocumentInfo
         ?? throw new InvalidOperationException("PDF annotation metadata could not be read for the authorized mutation.");
 
-    private static PdfDocumentInfo ReadAnnotationMetadata(byte[] pdf, PdfLoadOptions? readOptions) =>
-        PdfInspector.Preflight(pdf, readOptions).UncheckedDocumentInfo
+    private static PdfDocumentInfo ReadAnnotationMetadata(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+        PdfInspector.Preflight(pdf, readOptions, cancellationToken).UncheckedDocumentInfo
         ?? throw new InvalidOperationException("PDF annotation metadata could not be read.");
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>
@@ -212,10 +219,10 @@ internal static partial class PdfAnnotationEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         PdfAnnotationEditResult result = RemoveAnnotations(
-            PdfDocumentSource.FromPath(inputPath, readOptions).Bytes,
+            PdfDocumentSource.FromPath(inputPath, readOptions, options?.CancellationToken ?? default).Bytes,
             options,
             readOptions);
-        WriteFile(fullOutputPath, result.Bytes);
+        WriteFile(fullOutputPath, result.Bytes, options?.CancellationToken ?? default);
         return result;
     }
 
@@ -225,13 +232,14 @@ internal static partial class PdfAnnotationEditor {
     /// <summary>Updates one annotation in a PDF file using explicit read limits or credentials and writes the result to another file.</summary>
     public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        Guard.NotNull(options, nameof(options));
         string fullOutputPath = ValidateOutputPath(outputPath);
         PdfAnnotationEditResult result = UpdateAnnotation(
-            PdfDocumentSource.FromPath(inputPath, readOptions).Bytes,
+            PdfDocumentSource.FromPath(inputPath, readOptions, options.CancellationToken).Bytes,
             objectNumber,
             options,
             readOptions);
-        WriteFile(fullOutputPath, result.Bytes);
+        WriteFile(fullOutputPath, result.Bytes, options?.CancellationToken ?? default);
         return result;
     }
 
@@ -643,55 +651,4 @@ internal static partial class PdfAnnotationEditor {
         return 0;
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) =>
-        RewriteAllObjects(objects, catalogObjectNumber, metadata, sourcePdf, out _);
-
-    private static byte[] RewriteAllObjects(
-        Dictionary<int, PdfIndirectObject> objects,
-        int catalogObjectNumber,
-        PdfMetadata metadata,
-        byte[] sourcePdf,
-        out IReadOnlyDictionary<int, int> rewrittenObjectNumbers) {
-        int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
-        var numberMap = new Dictionary<int, int>(sourceIds.Length);
-        for (int i = 0; i < sourceIds.Length; i++) {
-            numberMap[sourceIds[i]] = i + 1;
-        }
-
-        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
-        var rewritten = new List<byte[]>(sourceIds.Length + 1);
-        foreach (int sourceId in sourceIds) {
-            rewritten.Add(PdfPageExtractor.SerializeIndirectObject(numberMap[sourceId], objects[sourceId].Value, context));
-        }
-
-        int infoId = rewritten.Count + 1;
-        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
-
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        rewrittenObjectNumbers = numberMap;
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
-    }
-
-    private static string ValidateOutputPath(string outputPath) {
-        Guard.NotNull(outputPath, nameof(outputPath));
-        if (string.IsNullOrWhiteSpace(outputPath)) {
-            throw new ArgumentException("Output path cannot be empty or whitespace.", nameof(outputPath));
-        }
-
-        string fullPath = Path.GetFullPath(outputPath);
-        if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory) {
-            throw new ArgumentException("Output path refers to a directory; a file path is required.", nameof(outputPath));
-        }
-
-        return fullPath;
-    }
-
-    private static void WriteFile(string outputPath, byte[] bytes) {
-        string? directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        OfficeFileCommit.WriteAllBytes(outputPath, bytes);
-    }
 }

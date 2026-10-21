@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
+    private const int MaxReadTaggedContentDepth = 256;
+
     /// <summary>Tagged PDF structure metadata discovered from /MarkInfo and /StructTreeRoot.</summary>
     public PdfTaggedContentInfo? TaggedContent => ReadLogicalContent(_taggedContent);
 
@@ -120,7 +122,7 @@ public sealed partial class PdfReadDocument {
         System.Threading.CancellationToken cancellationToken,
         bool onlyStructureReferences = false) {
         var childObjectNumbers = new List<int>();
-        AddStructureChildData(obj, inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, cancellationToken);
+        AddStructureChildData(obj, inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, new HashSet<PdfObject>(), 0, cancellationToken);
         return childObjectNumbers.Count == 0 ? Array.Empty<int>() : childObjectNumbers.AsReadOnly();
     }
 
@@ -131,8 +133,11 @@ public sealed partial class PdfReadDocument {
         List<PdfMarkedContentReference> markedContentReferences,
         ref int objectReferenceCount,
         bool onlyStructureReferences,
+        HashSet<PdfObject> ancestorContainers,
+        int depth,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        RequireTaggedContentDepth(depth);
         PdfObject? resolved = ResolveObject(obj);
         if (obj is PdfReference reference && IsStructElementReference(reference)) {
             AddUnique(childObjectNumbers, reference.ObjectNumber, cancellationToken);
@@ -140,9 +145,15 @@ public sealed partial class PdfReadDocument {
         }
 
         if (resolved is PdfArray array) {
-            for (int i = 0; i < array.Items.Count; i++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                AddStructureChildData(array.Items[i], inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, cancellationToken);
+            // A repeated sibling may legitimately reuse an array; only ancestors form a cycle.
+            if (!ancestorContainers.Add(array)) return;
+            try {
+                for (int i = 0; i < array.Items.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddStructureChildData(array.Items[i], inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, ancestorContainers, depth + 1, cancellationToken);
+                }
+            } finally {
+                ancestorContainers.Remove(array);
             }
 
             return;
@@ -181,8 +192,13 @@ public sealed partial class PdfReadDocument {
         }
 
         if (dictionary.Items.TryGetValue("K", out PdfObject? nestedKids)) {
-            int? nestedPageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
-            AddStructureChildData(nestedKids, nestedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, cancellationToken);
+            if (!ancestorContainers.Add(dictionary)) return;
+            try {
+                int? nestedPageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
+                AddStructureChildData(nestedKids, nestedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences, ancestorContainers, depth + 1, cancellationToken);
+            } finally {
+                ancestorContainers.Remove(dictionary);
+            }
         }
     }
 
@@ -200,12 +216,13 @@ public sealed partial class PdfReadDocument {
 
     private IReadOnlyList<int> ReadParentTreeIndexes(PdfDictionary parentTree, System.Threading.CancellationToken cancellationToken) {
         var indexes = new List<int>();
-        AddParentTreeIndexes(parentTree, indexes, new HashSet<int>(), cancellationToken);
+        AddParentTreeIndexes(parentTree, indexes, new HashSet<int>(), 0, cancellationToken);
         return indexes.Count == 0 ? Array.Empty<int>() : indexes.AsReadOnly();
     }
 
-    private void AddParentTreeIndexes(PdfObject? treeObject, List<int> indexes, HashSet<int> visitedReferences, System.Threading.CancellationToken cancellationToken) {
+    private void AddParentTreeIndexes(PdfObject? treeObject, List<int> indexes, HashSet<int> visitedReferences, int depth, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        RequireTaggedContentDepth(depth);
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber)) {
                 return;
@@ -230,7 +247,14 @@ public sealed partial class PdfReadDocument {
 
         for (int i = 0; i < kids.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            AddParentTreeIndexes(kids.Items[i], indexes, visitedReferences, cancellationToken);
+            AddParentTreeIndexes(kids.Items[i], indexes, visitedReferences, depth + 1, cancellationToken);
+        }
+    }
+
+    /// <summary>Bounds semantic tag traversal across indirect objects as well as directly nested syntax.</summary>
+    private static void RequireTaggedContentDepth(int depth) {
+        if (depth > MaxReadTaggedContentDepth) {
+            throw new InvalidOperationException("Tagged PDF reading exceeded the structure nesting limit.");
         }
     }
 

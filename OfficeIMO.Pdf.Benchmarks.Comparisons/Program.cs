@@ -15,6 +15,19 @@ if (args.Length > 0 && string.Equals(args[0], "semantic-evidence", StringCompari
     return PdfUnderstandingEvidenceRunner.Run(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-package-evidence", StringComparison.OrdinalIgnoreCase)) {
+    string outputPath = Path.GetFullPath(ReadOption(args, "--output")
+        ?? throw new ArgumentException("html-package-evidence requires --output."));
+    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+    File.WriteAllText(outputPath, System.Text.Json.JsonSerializer.Serialize(PdfPeckerPackageEvidence.Read(),
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, WriteIndented = true }));
+    return 0;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-payload-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return PdfHtmlPayloadEvidenceRunner.Run(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "html-evidence", StringComparison.OrdinalIgnoreCase)) {
     return await HtmlPdfEvidenceRunner.RunAsync(args);
 }

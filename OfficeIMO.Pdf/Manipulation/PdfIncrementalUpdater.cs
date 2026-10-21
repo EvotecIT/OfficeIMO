@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -13,9 +14,10 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Analyzes append-only mutation support using optional password and parsing settings.</summary>
-    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfLoadOptions? readOptions) {
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
-        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions));
+        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -37,9 +39,9 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream with caller-selected read limits.</summary>
-    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input, PdfLoadOptions? readOptions) {
-        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
-        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions, cancellationToken);
+        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options, cancellationToken);
     }
 
     /// <summary>Analyzes append-only mutation support for a PDF file.</summary>
@@ -48,9 +50,9 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Analyzes append-only mutation support for a PDF file with caller-selected read limits.</summary>
-    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath, PdfLoadOptions? readOptions) {
-        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
-        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options);
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken);
+        return AnalyzeAppendOnlyMutation(source.Bytes, source.Options, cancellationToken);
     }
 
     /// <summary>
@@ -63,7 +65,7 @@ internal static partial class PdfIncrementalUpdater {
         string? subject = null,
         string? keywords = null,
         PdfLoadOptions? readOptions = null,
-        bool createXmpMetadata = false) {
+        bool createXmpMetadata = false, CancellationToken cancellationToken = default) {
         return UpdateMetadataCore(
             pdf,
             title,
@@ -72,7 +74,7 @@ internal static partial class PdfIncrementalUpdater {
             keywords,
             readOptions,
             createXmpMetadata,
-            PdfMutationOperation.UpdateMetadata);
+            PdfMutationOperation.UpdateMetadata, cancellationToken);
     }
 
     /// <summary>
@@ -86,7 +88,7 @@ internal static partial class PdfIncrementalUpdater {
         string? subject = null,
         string? keywords = null,
         PdfLoadOptions? readOptions = null,
-        bool createXmpMetadata = true) {
+        bool createXmpMetadata = true, CancellationToken cancellationToken = default) {
         return UpdateMetadataCore(
             pdf,
             title,
@@ -95,7 +97,7 @@ internal static partial class PdfIncrementalUpdater {
             keywords,
             readOptions,
             createXmpMetadata,
-            PdfMutationOperation.SynchronizeMetadata);
+            PdfMutationOperation.SynchronizeMetadata, cancellationToken);
     }
 
     private static byte[] UpdateMetadataCore(
@@ -106,13 +108,14 @@ internal static partial class PdfIncrementalUpdater {
         string? keywords,
         PdfLoadOptions? readOptions,
         bool createXmpMetadata,
-        PdfMutationOperation operation) {
+        PdfMutationOperation operation, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, operation, readOptions);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, operation, readOptions, cancellationToken: cancellationToken);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         if (!security.RootObjectNumber.HasValue) {
             throw new InvalidOperationException("PDF root catalog reference is required for an incremental metadata update.");
         }
@@ -121,7 +124,7 @@ internal static partial class PdfIncrementalUpdater {
             throw new InvalidOperationException("PDF startxref offset is required for an incremental metadata update.");
         }
 
-        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, cancellationToken), cancellationToken);
         PdfMetadata existing = documentInfo.Metadata;
         PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
         var updated = new PdfMetadata {
@@ -141,7 +144,7 @@ internal static partial class PdfIncrementalUpdater {
         SynchronizeXmpMetadata(objects, security, existingXmp, updated, createXmpMetadata, changedObjectNumbers);
         PdfStandardSecurityHandler? encryptionHandler = null;
         if (security.HasEncryption &&
-            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
+            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler, cancellationToken)) {
             throw new PdfUnsupportedEncryptionException("PDF encryption context could not be created for the incremental update.");
         }
 
@@ -152,7 +155,8 @@ internal static partial class PdfIncrementalUpdater {
             trailerRaw,
             changedObjectNumbers: changedObjectNumbers,
             infoObjectNumberOverride: newInfoObjectNumber,
-            encryptionHandler: encryptionHandler);
+            encryptionHandler: encryptionHandler,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF stream.</summary>
@@ -163,9 +167,9 @@ internal static partial class PdfIncrementalUpdater {
         string? subject = null,
         string? keywords = null,
         PdfLoadOptions? readOptions = null,
-        bool createXmpMetadata = false) {
-        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
-        return UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata);
+        bool createXmpMetadata = false, CancellationToken cancellationToken = default) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions, cancellationToken);
+        return UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata, cancellationToken);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -177,11 +181,13 @@ internal static partial class PdfIncrementalUpdater {
         string? subject = null,
         string? keywords = null,
         PdfLoadOptions? readOptions = null,
-        bool createXmpMetadata = false) {
+        bool createXmpMetadata = false, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
-        OfficeFileCommit.WriteAllBytes(outputPath, UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken);
+        byte[] output = UpdateMetadata(source.Bytes, title, author, subject, keywords, source.Options, createXmpMetadata, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeFileCommit.Write(outputPath, stream => OfficeStreamWriter.CopyBytes(stream, output, cancellationToken), cancellationToken);
     }
 
     private static void SynchronizeXmpMetadata(
@@ -242,15 +248,16 @@ internal static partial class PdfIncrementalUpdater {
         changedObjectNumbers.Add(metadataObjectNumber);
     }
 
-    internal static bool CanPreserveXmpMetadataAppendOnly(byte[] pdf, PdfLoadOptions? readOptions) {
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+    internal static bool CanPreserveXmpMetadataAppendOnly(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions, cancellationToken: cancellationToken);
         if (!security.RootObjectNumber.HasValue) return false;
-        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         if (!objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
             catalogObject.Value is not PdfDictionary catalog) return false;
         PdfReference? metadataReference = catalog.Get<PdfReference>("Metadata");
         if (metadataReference is null) return true;
-        PdfXmpMetadataInfo? existingXmp = PdfInspector.Inspect(pdf, readOptions).XmpMetadata;
+        PdfXmpMetadataInfo? existingXmp = PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, cancellationToken), cancellationToken).XmpMetadata;
         return TryGetPreservableXmpMetadata(objects, metadataReference, existingXmp, out _, out _);
     }
 

@@ -90,7 +90,7 @@ public partial class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf(string pageContentOne = "q\n/Fm1 ", string pageContentTwo = "Do\nQ") {
+    private static byte[] BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf(string pageContentOne, string pageContentTwo) {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",

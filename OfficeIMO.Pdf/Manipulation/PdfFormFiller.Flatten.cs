@@ -6,6 +6,7 @@ internal static partial class PdfFormFiller {
         PdfObject fieldObject,
         string? inheritedFieldType,
         int inheritedFlags,
+        int? inheritedQuadding,
         int? inheritedMaxLength,
         PdfDictionary? inheritedDefaultResources,
         string? inheritedDefaultAppearance,
@@ -39,6 +40,7 @@ internal static partial class PdfFormFiller {
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
@@ -78,7 +80,7 @@ internal static partial class PdfFormFiller {
             } else {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
                 PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
-                PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, inheritedMaxLength: fieldMaxLength, inheritedDefaultAppearance: defaultAppearance);
+                PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength, defaultAppearance);
                 if (isMultiSelectChoice) {
                     widgetStyle.IsMultiline = true;
                 }
@@ -98,12 +100,13 @@ internal static partial class PdfFormFiller {
 
         for (int i = 0; i < kids.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, cancellationToken);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, cancellationToken);
         }
     }
 
-    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
+    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber, PdfLoadOptions? readOptions, int firstGeneratedObject, out PdfGeneratedOutputGrowth generatedGrowth, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        var growth = new PdfFlattenedContentGrowth(objects, readOptions, firstGeneratedObject, cancellationToken);
         int flattenedWidgetCount = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -138,11 +141,14 @@ internal static partial class PdfFormFiller {
             }
 
             string content = BuildFlattenContent(objects, page, pageWidgets, cancellationToken);
+            if (content.Length == 0) continue;
             int contentObjectNumber = nextObjectNumber++;
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
-            AppendPageContent(objects, page, contentObjectNumber, cancellationToken);
+            int isolationBytes = PdfPageContentIsolation.Append(objects, page, contentObjectNumber, ref nextObjectNumber, cancellationToken);
+            growth.AddPage(page, (PdfStream)objects[contentObjectNumber].Value, isolationBytes);
         }
 
+        generatedGrowth = growth.ToGrowth();
         return flattenedWidgetCount;
     }
 
@@ -193,47 +199,4 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AppendPageContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, int contentObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var newReference = new PdfReference(contentObjectNumber, 0);
-        if (!page.Items.TryGetValue("Contents", out var contents)) {
-            page.Items["Contents"] = newReference;
-            return;
-        }
-
-        if (contents is PdfArray contentsArray) {
-            contentsArray.Items.Add(newReference);
-            return;
-        }
-
-        var array = new PdfArray();
-        AppendContentEntries(objects, array, contents, cancellationToken);
-        array.Items.Add(newReference);
-        page.Items["Contents"] = array;
-    }
-
-    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject contents, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (contents is PdfArray directArray) {
-            foreach (var item in directArray.Items) {
-                cancellationToken.ThrowIfCancellationRequested();
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        if (contents is PdfReference reference &&
-            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
-            indirect.Value is PdfArray referencedArray) {
-            foreach (var item in referencedArray.Items) {
-                cancellationToken.ThrowIfCancellationRequested();
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        target.Items.Add(contents);
-    }
 }

@@ -8,20 +8,7 @@ XML-only applications can use `OfficeIMO.Invoicing`; PDF-only applications can u
 ## Install
 
 ```powershell
-dotnet add package OfficeIMO.Invoicing.Pdf --version 3.4.4
-```
-
-## Build from source
-
-From the repository root, pack the adapter and its first-party dependencies into
-a local feed, then add the adapter package to your application:
-
-```powershell
-dotnet pack OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -o artifacts/invoice-feed
-dotnet pack OfficeIMO.Pdf/OfficeIMO.Pdf.csproj -c Release -o artifacts/invoice-feed
-dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifacts/invoice-feed
-dotnet pack OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj -c Release -o artifacts/invoice-feed
-dotnet add path/to/Application.csproj package OfficeIMO.Invoicing.Pdf --source artifacts/invoice-feed
+dotnet add package OfficeIMO.Invoicing.Pdf
 ```
 
 Targets: .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2.
@@ -196,3 +183,5 @@ The adapter accepts explicit CII contracts. Factur-X EN 16931 and EXTENDED retai
 the complete authored line model. Lower Factur-X profiles use their declared
 projection policy and therefore show only the business data retained by their XML
 contract. Peppol BIS requires UBL and cannot be embedded through this CII adapter.
+
+For contributor builds, use the repository's [build and release guide](../Docs/building-and-releasing.md).

@@ -24,7 +24,7 @@ internal sealed class PdfRedactionTextObjectScope {
                     span,
                     spanPaintOrderContext);
                 sourceGlyphs.Add(aggregate);
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.Bounds, aggregate.PreciseBounds)) {
+                if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.PreciseBounds)) {
                     reviewedIntersection = true;
                     requiresWholeObjectFallback = true;
                 } else {
@@ -36,7 +36,7 @@ internal sealed class PdfRedactionTextObjectScope {
             sourceGlyphs.AddRange(glyphs);
             for (int glyphIndex = 0; glyphIndex < glyphs.Length; glyphIndex++) {
                 PdfRedactionTextGlyphIdentity glyph = glyphs[glyphIndex];
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, glyph.Bounds, glyph.PreciseBounds)) {
+                if (reviewedAreas != null && IntersectsAny(reviewedAreas, glyph.PreciseBounds)) {
                     reviewedIntersection = true;
                 } else {
                     expectedSurvivors.Add(glyph);
@@ -120,10 +120,10 @@ internal sealed class PdfRedactionTextObjectScope {
         return true;
     }
 
-    private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds bounds, PdfTextSpanBounds preciseBounds) {
+    private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds preciseBounds) {
         for (int index = 0; index < areas.Count; index++) {
             PdfRedactionArea area = areas[index];
-            PdfTextSpanBounds tested = area.RequiresGlyphRewrite ? preciseBounds : bounds;
+            PdfTextSpanBounds tested = preciseBounds;
             if (area.IntersectsRectangle(tested.Left, tested.Bottom, tested.Width, tested.Height)) return true;
         }
         return false;

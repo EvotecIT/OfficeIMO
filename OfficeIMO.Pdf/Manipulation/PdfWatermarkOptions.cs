@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Visual text or image watermark placed in a rectangle on existing PDF pages.</summary>
 public sealed class PdfWatermarkOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Stable identifier for this watermark. Reusing it revises the existing watermark; use a new identifier to add another.</summary>
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     /// <summary>Text to draw when <see cref="ImageBytes"/> is null.</summary>

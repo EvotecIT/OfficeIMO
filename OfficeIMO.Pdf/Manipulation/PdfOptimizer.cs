@@ -36,7 +36,7 @@ internal static partial class PdfOptimizer {
             throw new NotSupportedException("Encrypted PDF files are not supported for lossless optimization by OfficeIMO.Pdf yet.");
         }
 
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Optimize, readOptions);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Optimize, readOptions, cancellationToken: cancellationToken);
 
         PdfOptimizationReport reportBefore = PdfDiagnostics.AnalyzeOptimization(pdf, readOptions, cancellationToken);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
@@ -203,30 +203,43 @@ internal static partial class PdfOptimizer {
         Optimize(pdf, PdfOptimizationOptions.Create(profile), readOptions);
 
     /// <summary>Optimizes a PDF file with lossless actions.</summary>
-    public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null) {
+    public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null) =>
+        Optimize(path, options, readOptions: null);
+
+    /// <summary>Optimizes a bounded file snapshot using caller-selected read limits and credentials.</summary>
+    internal static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
-        return Optimize(PdfDocumentSource.FromPath(path, null, cancellationToken).Bytes, options);
+        return Optimize(PdfDocumentSource.FromPath(path, readOptions, cancellationToken).Bytes, options, readOptions);
     }
 
     /// <summary>Optimizes a readable PDF stream from its current position with lossless actions.</summary>
-    public static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options = null) {
+    public static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options = null) =>
+        Optimize(stream, options, readOptions: null);
+
+    /// <summary>Optimizes remaining stream content with caller-selected limits, without closing the caller stream.</summary>
+    internal static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {
         System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
-        return Optimize(PdfDocumentSource.FromRemainingStream(stream, null, cancellationToken).Bytes, options);
+        return Optimize(PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes, options, readOptions);
     }
 
     /// <summary>Optimizes a PDF file and writes the result to another file.</summary>
-    public static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options = null) {
+    public static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options = null) =>
+        Optimize(inputPath, outputPath, options, readOptions: null);
+
+    /// <summary>Optimizes bounded file input and observes cancellation during staged output before atomic publication.</summary>
+    internal static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
-        PdfOptimizationActionResult result = Optimize(inputPath, options);
+        PdfOptimizationActionResult result = Optimize(inputPath, options, readOptions);
         string? directory = Path.GetDirectoryName(outputPath);
         if (!string.IsNullOrEmpty(directory)) {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeFileCommit.WriteAllBytes(outputPath, result.Bytes);
+        CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        OfficeFileCommit.Write(outputPath, stream => OfficeStreamWriter.CopyBytes(stream, result.Bytes, cancellationToken), cancellationToken);
         return result;
     }
 

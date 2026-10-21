@@ -757,12 +757,19 @@ public partial class PdfRedactionApplierTests {
     [Fact]
     public void Apply_ScrubsTextPositionedByTransformOperandsSplitAcrossContentStreams() {
         byte[] source = BuildSplitTransformOperandRedactionSource();
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            item => item.Text == "Split operand secret");
+        Assert.Equal(100D, span.X, 6);
+        Assert.Equal(100D, span.Y, 6);
         PdfRedactionArea area = FindAreaForText(source, "Split operand secret");
+        Assert.True(area.ContainsPoint(101D, 101D));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
 
         Assert.DoesNotContain("Split operand secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
         Assert.DoesNotContain("Split operand secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(redacted);
+        Assert.DoesNotContain("Split operand secret", independent.GetPage(1).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1010,14 +1017,21 @@ public partial class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_PreservesTokensSplitAcrossPageContentStreamsWhenLocatingForms() {
+    public void Apply_ScrubsFormTextPositionedByTransformOperandsSplitAcrossContentStreams() {
         byte[] source = BuildSplitFormTransformOperandRedactionSource();
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            item => item.Text == "Split form secret");
+        Assert.Equal(100D, span.X, 6);
+        Assert.Equal(100D, span.Y, 6);
         PdfRedactionArea area = FindAreaForText(source, "Split form secret");
+        Assert.True(area.ContainsPoint(101D, 101D));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
 
         Assert.DoesNotContain("Split form secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
         Assert.DoesNotContain("Split form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(redacted);
+        Assert.DoesNotContain("Split form secret", independent.GetPage(1).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1297,8 +1311,8 @@ public partial class PdfRedactionApplierTests {
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
-            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 1")),
-            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Split operand secret) Tj\nET\nQ\n"))
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 100")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Split operand secret) Tj\nET\nQ\n"))
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
@@ -1602,8 +1616,8 @@ public partial class PdfRedactionApplierTests {
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 7 0 R >> >> /Contents [5 0 R 6 0 R] >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
-            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 1")),
-            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\n/Fm1 Do\nQ\n")),
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 100")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("100 cm\n/Fm1 Do\nQ\n")),
             BuildStreamObject(7, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
@@ -1899,17 +1913,9 @@ public partial class PdfRedactionApplierTests {
         return new PdfRedactionArea(1, bounds.Left + 0.05D, bounds.Bottom + 0.05D, bounds.Width - 0.1D, bounds.Height - 0.1D, "partial");
     }
 
-    private static PdfRedactionArea[] FindAreasForText(byte[] pdf, string text) {
-        return PdfDocumentReadResult.Load(pdf)
-            .TextBlocks
-            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
-            .Select(static block => {
-                double x = Math.Min(block.XStart, block.XEnd) - 2D;
-                double width = Math.Abs(block.XEnd - block.XStart) + 4D;
-                return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
-            })
-            .ToArray();
-    }
+    private static PdfRedactionArea[] FindAreasForText(byte[] pdf, string text) =>
+        PdfDocument.Load(pdf).Redactions.Search(new PdfRedactionSearchOptions { MatchCase = true }
+            .AddLiteral(text)).Areas.Select(area => area.WithLabel("secret")).ToArray();
 
     private static int CountOccurrences(string value, string search) {
         int count = 0;
@@ -1922,17 +1928,8 @@ public partial class PdfRedactionApplierTests {
         return count;
     }
 
-    private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
-        PdfLogicalTextBlock block = PdfDocumentReadResult.Load(pdf)
-            .TextBlocks
-            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
-            .OrderByDescending(item => item.BaselineY)
-            .ElementAt(occurrenceFromTop);
-
-        double x = Math.Min(block.XStart, block.XEnd) - 2D;
-        double width = Math.Abs(block.XEnd - block.XStart) + 4D;
-        return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
-    }
+    private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) =>
+        FindAreasForText(pdf, text).OrderByDescending(area => area.Y).ElementAt(occurrenceFromTop);
 
     private static string BuildSingleByteToUnicodeCMap(string text) {
         var builder = new StringBuilder();

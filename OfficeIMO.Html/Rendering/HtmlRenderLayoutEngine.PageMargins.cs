@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var rendered = new List<HtmlRenderPage>(pages.Count);
         foreach (HtmlRenderPage page in pages) {
             var geometry = new HtmlCssPageGeometry(page.Width, page.Height, page.Margins, page.PrintProduction);
+            SetActivePageGeometry(geometry);
             IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber, page.PageName, geometry, _options);
             if (boxes.Count == 0) {
                 rendered.Add(page);
@@ -38,26 +39,48 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
+                if (box.Font.Size <= 0D) continue;
                 ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber, pages.Count, page.RunningStrings),
                     marginBoxSource + " generated content");
                 string text = box.Content.Render(page.PageNumber, pages.Count, page.RunningStrings);
-                double lineHeight = Math.Max(1D, box.Font.Size * _options.DefaultLineHeight);
-                if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, populatedPositions, lineHeight, out _, out _, out double availableWidth, out _)) continue;
+                if (text.Length == 0) continue;
+                ResolvePageMarginTextMetrics(box, text, out double lineHeight, out double baseline,
+                    out double linePaintHeight, out double paintTopOverflow);
+                if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, lineHeight, out _, out _, out double availableWidth, out _)) continue;
                 // Retain the generated text and alignment in the public scene,
                 // reserving enough height for its measured wrapped lines.
-                IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(text, box.Font.Size, availableWidth,
+                OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(text, box.Font.Size,
+                    availableWidth, double.MaxValue, 1D, box.Font.Size,
                     (value, _) => {
                         ChargeLayoutOperations(value?.Length ?? 0, marginBoxSource + " text measurement");
                         return MeasureText(value ?? string.Empty, box.Font, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
-                    });
-                double textHeight = Math.Max(lineHeight, lines.Count * lineHeight);
+                    }, wrap: true, forceSingleLine: false, shrinkToFit: false,
+                    overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                IReadOnlyList<OfficeTextLine> lines = measured.Lines;
+                if (measured.Clipped && _reportedMarginTextOverflow.Add(marginBoxSource + " text-layout-limit")) {
+                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                        "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
+                        HtmlDiagnosticSeverity.Warning, marginBoxSource, "text-layout-limit", OfficeConversionLossKind.Omission);
+                }
+                double textHeight = lines.Count * lineHeight;
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, textHeight, out double x, out double y, out double width, out double height)) continue;
                 _fontUsage?.Observe(text, box.Font.FamilyName, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
-                    new HtmlRenderText(text, x, y, width, height, box.Font, box.Color, box.Alignment,
-                        lineHeight, _paintOrder++, source: marginBoxSource, semanticRole: "page-margin").WithWrappedLines(lines)
+                    new HtmlRenderText(text, x, y + baseline - box.Font.Size, width,
+                        Math.Max(0.01D, (lines.Count - 1) * lineHeight + linePaintHeight),
+                        box.Font, box.Color, box.Alignment, lineHeight, _paintOrder++,
+                        linkUri: null, source: marginBoxSource, semanticRole: "page-margin", layoutY: y,
+                        semanticNodeId: null, textAdvanceWidth: null,
+                        layoutHeight: Math.Max(0.01D, textHeight), paintTopOverflow: paintTopOverflow,
+                        ordinaryLineCarrier: true).WithWrappedLines(lines)
                 };
                 if (textHeight > height + 0.0001D) {
+                    // The line advance determines admission, while the full selected-face
+                    // frame must survive until the shared clip owner constrains glyph paint.
+                    marginVisuals = new HtmlRenderVisual[] {
+                        new HtmlRenderClipGroup(x, y, width, height, false, true,
+                            marginVisuals, _paintOrder++, marginBoxSource)
+                    };
                     if (_reportedMarginTextOverflow.Add(marginBoxSource)) {
                         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
                             "Generated page-margin text exceeded the reserved margin height and was clipped.",
@@ -79,6 +102,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return rendered.AsReadOnly();
+    }
+
+    private void ResolvePageMarginTextMetrics(HtmlCssPageMarginTemplate box, string text,
+        out double lineHeight, out double baseline, out double paintHeight, out double paintTopOverflow) {
+        double computed = _styleResolver.ResolveGeneratedLineHeight(box.LineHeight, box.Font,
+            _pageRules.InitialPageWidth ?? _options.PageWidth, _pageRules.InitialPageHeight ?? _options.PageHeight,
+            out double alignmentLineHeight, out bool natural);
+        var style = new HtmlRenderBoxStyle {
+            Font = box.Font,
+            FontDescriptor = OfficeFontFaceDescriptor.FromStyle(box.Font.Style),
+            LineHeight = computed,
+            InlineAlignmentLineHeight = alignmentLineHeight,
+            UsesNaturalLineHeight = natural
+        };
+        InlineTextLineMetrics metrics = ResolveTextLineMetrics(text, style, allowShortLine: true);
+        lineHeight = metrics.Height;
+        baseline = metrics.Baseline;
+        paintHeight = Math.Max(lineHeight, box.Font.Size);
+        paintTopOverflow = 0D;
+        HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
+        if (!IsUsableTextFaceMetrics(face)) return;
+        paintHeight = Math.Max(lineHeight, box.Font.Size + face!.Value.Height - face.Value.BaselineOffset);
+        paintTopOverflow = Math.Max(0D, face.Value.BaselineOffset - box.Font.Size);
     }
 
     private void AppendRunningElementMarginBox(

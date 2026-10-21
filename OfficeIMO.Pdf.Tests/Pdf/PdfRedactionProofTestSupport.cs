@@ -35,21 +35,9 @@ internal static class PdfRedactionProofTestSupport {
             .ToBytes();
     }
 
-    private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
-        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
-            ForceSingleColumn = true
-        });
-
-        foreach (PdfLogicalTextBlock block in logical.TextBlocks) {
-            if (block.Text.IndexOf(text, StringComparison.Ordinal) >= 0) {
-                double width = Math.Max(1D, block.XEnd - block.XStart);
-                double height = Math.Max(12D, block.FontSize + 8D);
-                return new PdfRedactionArea(block.PageNumber, block.XStart - 2D, block.BaselineY - block.FontSize - 2D, width + 4D, height, "sensitive-token");
-            }
-        }
-
-        throw new InvalidOperationException("Unable to find redaction proof marker: " + text);
-    }
+    private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) =>
+        PdfDocument.Load(pdf).Redactions.Search(new PdfRedactionSearchOptions { MatchCase = true }
+            .AddLiteral(text)).Areas.Single().WithLabel("sensitive-token");
 }
 
 internal sealed class PdfRedactionProofResult {

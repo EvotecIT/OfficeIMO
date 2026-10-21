@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -13,6 +15,9 @@ public sealed class PdfPageResizeOptions {
         Guard.Positive(pageSize.Height, nameof(pageSize));
         PageSize = pageSize;
     }
+
+    /// <summary>Observes cancellation during parsing, page transforms, and rewriting.</summary>
+    public CancellationToken CancellationToken { get; set; }
 
     /// <summary>Target page size in PDF points.</summary>
     public PageSize PageSize { get; set; }

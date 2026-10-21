@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal enum HtmlPdfComparisonEngine {
     OfficeIMO,
     PeachPDF,
+    PdfPecker,
     ITextPdfHtml,
     Chromium
 }
@@ -22,6 +23,7 @@ internal static class HtmlPdfComparisonRenderers {
     internal static byte[] RenderManaged(HtmlPdfComparisonEngine engine, string html) => engine switch {
         HtmlPdfComparisonEngine.OfficeIMO => OfficeImoPdfGenerator.GenerateHtml(html),
         HtmlPdfComparisonEngine.PeachPDF => PeachPdfGenerator.Generate(html),
+        HtmlPdfComparisonEngine.PdfPecker => PdfPeckerGenerator.Generate(html),
         HtmlPdfComparisonEngine.ITextPdfHtml => ITextPdfHtmlGenerator.Generate(html),
         HtmlPdfComparisonEngine.Chromium => throw new ArgumentException("Chromium requires an HtmlTinkerX browser session.", nameof(engine)),
         _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, "Unknown HTML-to-PDF comparison engine.")

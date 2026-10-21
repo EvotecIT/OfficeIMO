@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Compares signature coverage, revision state, and structural permissions before and after a PDF mutation.</summary>
@@ -10,28 +12,31 @@ internal static class PdfSignatureMutationAnalyzer {
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? readOptions = null,
         PdfLoadOptions? afterReadOptions = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(before, nameof(before));
         Guard.NotNull(after, nameof(after));
 
-        int[] beforeRevisionEnds = FindRevisionEnds(before);
-        int[] afterRevisionEnds = FindRevisionEnds(after);
-        PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames, executionPreference);
-        PdfSignatureValidationReport beforeValidation = PdfSignatureValidator.Validate(before, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        int[] beforeRevisionEnds = FindRevisionEnds(before, cancellationToken);
+        int[] afterRevisionEnds = FindRevisionEnds(after, cancellationToken);
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames, executionPreference, cancellationToken: cancellationToken);
+        PdfSignatureValidationReport beforeValidation = PdfSignatureValidator.Validate(before, readOptions, cancellationToken);
         PdfLoadOptions effectiveAfterReadOptions = afterReadOptions ?? PdfLoadOptions.ForGeneratedOutput(
             readOptions,
             before,
             after,
             new PdfGeneratedOutputGrowth(additionalRevisions: Math.Max(0, afterRevisionEnds.Length - beforeRevisionEnds.Length)));
-        PdfSignatureValidationReport afterValidation = PdfSignatureValidator.Validate(after, effectiveAfterReadOptions);
-        Dictionary<int, PdfIndirectObject> beforeObjects = PdfSyntax.ParseObjects(before, readOptions).Map;
-        Dictionary<int, PdfIndirectObject> afterObjects = PdfSyntax.ParseObjects(after, effectiveAfterReadOptions).Map;
-        bool prefixPreserved = HasExactPrefix(after, before);
+        PdfSignatureValidationReport afterValidation = PdfSignatureValidator.Validate(after, effectiveAfterReadOptions, cancellationToken);
+        Dictionary<int, PdfIndirectObject> beforeObjects = PdfSyntax.ParseObjects(before, readOptions, out _, out _, cancellationToken).Map;
+        Dictionary<int, PdfIndirectObject> afterObjects = PdfSyntax.ParseObjects(after, effectiveAfterReadOptions, out _, out _, cancellationToken).Map;
+        bool prefixPreserved = HasExactPrefix(after, before, cancellationToken);
         bool revisionChainExtended = HasExtendedRevisionChain(beforeValidation.Security, afterValidation.Security);
         PdfSignatureMutationPermissionStatus permission = GetPermissionStatus(plan, beforeValidation.HasSignatures);
         var results = new List<PdfSignatureMutationResult>(beforeValidation.Signatures.Count);
 
         for (int i = 0; i < beforeValidation.Signatures.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfSignatureValidationResult beforeSignature = beforeValidation.Signatures[i];
             PdfSignatureValidationResult? afterSignature = FindMatchingSignature(afterValidation.Signatures, beforeSignature.Signature);
             long? beforeSignedLength = GetSignedLength(beforeSignature.Signature);
@@ -63,6 +68,7 @@ internal static class PdfSignatureMutationAnalyzer {
         }
 
         IReadOnlyList<string> diagnostics = BuildDiagnostics(plan, beforeValidation, prefixPreserved, revisionChainExtended, results);
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfSignatureMutationReport(
             plan,
             beforeValidation,
@@ -197,16 +203,18 @@ internal static class PdfSignatureMutationAnalyzer {
         return false;
     }
 
-    private static int[] FindRevisionEnds(byte[] pdf) {
+    private static int[] FindRevisionEnds(byte[] pdf, CancellationToken cancellationToken) {
         byte[] marker = Encoding.ASCII.GetBytes("%%EOF");
         var ends = new List<int>();
         for (int i = 0; i <= pdf.Length - marker.Length; i++) {
+            if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!MatchesAt(pdf, marker, i)) {
                 continue;
             }
 
             int end = i + marker.Length;
             while (end < pdf.Length && (pdf[end] == (byte)'\r' || pdf[end] == (byte)'\n')) {
+                if ((end & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 end++;
             }
 
@@ -240,12 +248,13 @@ internal static class PdfSignatureMutationAnalyzer {
             ? security.RevisionCount > coveredRevisions[coveredRevisions.Length - 1]
             : signature.UnsignedByteCount.GetValueOrDefault() > 0 || security.HasIncrementalUpdates;
 
-    private static bool HasExactPrefix(byte[] value, byte[] prefix) {
+    private static bool HasExactPrefix(byte[] value, byte[] prefix, CancellationToken cancellationToken) {
         if (value.Length < prefix.Length) {
             return false;
         }
 
         for (int i = 0; i < prefix.Length; i++) {
+            if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[i] != prefix[i]) {
                 return false;
             }

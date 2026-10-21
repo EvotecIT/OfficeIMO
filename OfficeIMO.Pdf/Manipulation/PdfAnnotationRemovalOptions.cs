@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Filters for removing PDF annotations during a safe full rewrite.</summary>
 public sealed class PdfAnnotationRemovalOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Preferred mutation mode. Automatic uses a full rewrite when safe and append-only when required.</summary>
     public PdfMutationExecutionPreference ExecutionPreference { get; set; } = PdfMutationExecutionPreference.Automatic;
 

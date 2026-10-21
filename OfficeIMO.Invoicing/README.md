@@ -7,20 +7,10 @@ The core has no external runtime dependencies and supports .NET Standard 2.0,
 ## Install
 
 ```powershell
-dotnet add package OfficeIMO.Invoicing --version 3.4.4
+dotnet add package OfficeIMO.Invoicing
 ```
 
 This package does not depend on a PDF engine or an external validation runtime.
-
-## Build from source
-
-From the repository root, pack the project into a local feed, then add that
-package to your application:
-
-```powershell
-dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifacts/invoice-feed
-dotnet add path/to/Application.csproj package OfficeIMO.Invoicing --source artifacts/invoice-feed
-```
 
 ## Create invoice XML
 
@@ -406,3 +396,5 @@ measures XML read, XML write, pinned rules validation and multilingual PDF
 generation separately over the same deterministic 25-line invoice. Correctness
 checks run outside measurement, and the suite owns explicit Windows, Linux and
 macOS elapsed/allocation ceilings.
+
+For contributor builds, use the repository's [build and release guide](../Docs/building-and-releasing.md).

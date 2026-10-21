@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -22,15 +23,22 @@ internal static partial class PdfPageEditor {
         return ResizePages(pdf, options, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        ResizePages(pdf, options, readOptions, options?.CancellationToken ?? default, pageNumbers);
+
+    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        using CancellationTokenSource? linkedCancellation = options.CancellationToken.CanBeCanceled && cancellationToken.CanBeCanceled && options.CancellationToken != cancellationToken
+            ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken, cancellationToken) : null;
+        cancellationToken = linkedCancellation?.Token ?? (cancellationToken.CanBeCanceled ? cancellationToken : options.CancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateResizeOptions(options);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -44,6 +52,7 @@ internal static partial class PdfPageEditor {
         int nextPseudoObjectNumber = -1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (!selected.Contains(pageNumber)) {
                 continue;
@@ -87,6 +96,7 @@ internal static partial class PdfPageEditor {
             overrides[pageObjectNumber] = pageOverrides;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
         PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document);
         var destinationVisitedReferences = new HashSet<int>();
@@ -100,7 +110,8 @@ internal static partial class PdfPageEditor {
             overrides,
             additionalObjects,
             catalogState,
-            fileVersion);
+            fileVersion,
+            cancellationToken: cancellationToken);
     }
 
     private static int AllocateResizePseudoObjectNumber(ref int nextPseudoObjectNumber) {

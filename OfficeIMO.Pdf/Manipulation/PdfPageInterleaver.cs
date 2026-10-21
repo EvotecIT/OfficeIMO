@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -42,6 +43,8 @@ public sealed class PdfInterleaveOptions {
     public PdfInterleaveRemainderMode RemainderMode { get; set; } = PdfInterleaveRemainderMode.Append;
     /// <summary>Document-level merge, annotation-flattening, and page-resize policy.</summary>
     public PdfMergeOptions MergeOptions { get; set; } = new PdfMergeOptions();
+    /// <summary>Cancellation observed while collecting, reading, preparing and composing sources.</summary>
+    public CancellationToken CancellationToken { get; set; }
 }
 
 /// <summary>Maps one output page to its source document and page.</summary>
@@ -98,7 +101,12 @@ public static class PdfPageInterleaver {
     /// <summary>Interleaves selected source pages and returns page provenance and merge-policy evidence.</summary>
     public static PdfInterleaveResult Interleave(IEnumerable<PdfInterleaveSource> sources, PdfInterleaveOptions? options = null) {
         Guard.NotNull(sources, nameof(sources));
-        return PdfMerger.Interleave(sources.ToArray(), options ?? new PdfInterleaveOptions());
+        options ??= new PdfInterleaveOptions();
+        CancellationToken token = options.CancellationToken;
+        token.ThrowIfCancellationRequested();
+        var captured = new List<PdfInterleaveSource>();
+        foreach (PdfInterleaveSource source in sources) { token.ThrowIfCancellationRequested(); captured.Add(source); }
+        return PdfMerger.Interleave(captured, options);
     }
 }
 
@@ -106,6 +114,8 @@ internal static partial class PdfMerger {
     internal static PdfInterleaveResult Interleave(IReadOnlyList<PdfInterleaveSource> sources, PdfInterleaveOptions options) {
         Guard.NotNull(sources, nameof(sources));
         Guard.NotNull(options, nameof(options));
+        CancellationToken cancellationToken = options.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (sources.Count < 2) throw new ArgumentException("At least two PDFs must be supplied for interleaving.", nameof(sources));
         if (sources.Any(static source => source is null)) throw new ArgumentException("Interleave sources cannot contain null entries.", nameof(sources));
         if (options.PrimarySourceIndex < 0 || options.PrimarySourceIndex >= sources.Count) throw new ArgumentOutOfRangeException(nameof(options), "Primary source index must refer to an interleave source.");
@@ -123,12 +133,15 @@ internal static partial class PdfMerger {
         var sourcePermissionPolicy = new PdfPermissionPolicy[sources.Count];
 
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfInterleaveSource input = sources[sourceIndex];
             byte[] original = input.GetBytes();
             (PdfMutationPlan plan, PdfReadDocument plannedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
                 original,
                 PdfMutationOperation.MergeDocuments,
-                input.ReadOptions);
+                input.ReadOptions, cancellationToken: cancellationToken);
+            if (PdfTaggedPageOrganizer.IsTagged(plannedDocument))
+                throw new NotSupportedException("Interleaving tagged PDFs requires a qualified reading-order policy. Use Merge to combine complete tagged documents in source order.");
             if (plannedDocument.AcroFormXfa is not null) {
                 throw new NotSupportedException("Interleaving XFA forms is not supported because their form packets cannot be preserved across page composition. Flatten or remove XFA before interleaving.");
             }
@@ -141,10 +154,10 @@ internal static partial class PdfMerger {
             if (pageNumbers.Distinct().Count() != pageNumbers.Length) throw new ArgumentException("Interleave page selections cannot contain duplicate pages.", nameof(sources));
             if (input.Reverse) Array.Reverse(pageNumbers);
 
-            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions, out PdfLoadOptions preparedReadOptions);
+            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions, out PdfLoadOptions preparedReadOptions, cancellationToken);
             PdfReadDocument preparedDocument = ReferenceEquals(prepared, original)
                 ? plannedDocument
-                : PdfReadDocument.Open(prepared, preparedReadOptions);
+                : PdfReadDocument.Open(prepared, preparedReadOptions, cancellationToken);
             sourceBytes[sourceIndex] = prepared;
             sourceDocuments[sourceIndex] = preparedDocument;
             sourceReadOptions[sourceIndex] = preparedReadOptions;
@@ -163,7 +176,9 @@ internal static partial class PdfMerger {
         var order = new List<(int SourceIndex, int PageObjectNumber)>();
         int maximumPages = selectedPageNumbers.Max(static pages => pages.Length);
         for (int pageIndex = 0; pageIndex < maximumPages; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (pageIndex >= selectedPageNumbers[sourceIndex].Length) continue;
                 order.Add((sourceIndex, selectedPageObjectNumbers[sourceIndex][pageIndex]));
                 mappings.Add(new PdfInterleavePageMapping(
@@ -177,11 +192,13 @@ internal static partial class PdfMerger {
         var outputIndexMaps = new Dictionary<int, int>[sources.Count];
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) outputIndexMaps[sourceIndex] = new Dictionary<int, int>();
         for (int outputIndex = 0; outputIndex < order.Count; outputIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             outputIndexMaps[order[outputIndex].SourceIndex][order[outputIndex].PageObjectNumber] = outputIndex;
         }
 
         var importedSources = new ImportedSource[sources.Count];
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             importedSources[sourceIndex] = ImportSource(
                 sourceBytes[sourceIndex],
                 sourceIndex,
@@ -191,14 +208,14 @@ internal static partial class PdfMerger {
                 sourceReadOptions[sourceIndex],
                 sourceDocuments[sourceIndex],
                 sourceSecurity[sourceIndex],
-                sourcePermissionPolicy[sourceIndex]);
+                sourcePermissionPolicy[sourceIndex], cancellationToken);
         }
 
         byte[] composed = WriteMerged(
             importedSources,
             options.PrimarySourceIndex,
             order.Select(static page => new OutputPageReference(page.SourceIndex, page.PageObjectNumber)).ToArray(),
-            out int composedObjectCount);
+            out int composedObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             sourceDocuments[options.PrimarySourceIndex].ReadOptions,
             sourceDocuments.Select(static document => document.ReadOptions),
@@ -210,9 +227,9 @@ internal static partial class PdfMerger {
             options.PrimarySourceIndex,
             options.MergeOptions,
             outputReadOptions,
-            order.Select(static page => page.SourceIndex).ToArray());
+            order.Select(static page => page.SourceIndex).ToArray(), cancellationToken);
         byte[] output = mergeResult.ToBytes();
-        PdfReadDocument reopened = PdfReadDocument.Open(output, PdfLoadOptions.WithMinimumInputBytes(mergeResult.ReadOptions, output.LongLength));
+        PdfReadDocument reopened = PdfReadDocument.Open(output, PdfLoadOptions.WithMinimumInputBytes(mergeResult.ReadOptions, output.LongLength), cancellationToken);
         if (reopened.Pages.Count != mappings.Count) throw new InvalidOperationException("Interleaved PDF page count does not match its provenance report.");
         return new PdfInterleaveResult(
             output,

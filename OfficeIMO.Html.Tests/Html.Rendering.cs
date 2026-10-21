@@ -1636,7 +1636,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
-        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Side");
+        Assert.Contains(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(), text => text.Text == "Side");
     }
 
     [Fact]

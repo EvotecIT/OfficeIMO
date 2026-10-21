@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
@@ -9,10 +11,14 @@ internal static partial class PdfPageEditor {
         return DuplicatePagesWithReadOptions(pdf, null, pageNumbers);
     }
 
-    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        DuplicatePagesWithReadOptions(pdf, readOptions, default, pageNumbers);
+
+    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions, cancellationToken: cancellationToken);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
@@ -22,12 +28,14 @@ internal static partial class PdfPageEditor {
 
         var duplicateCounts = new Dictionary<int, int>();
         foreach (int pageNumber in pageNumbers) {
+            cancellationToken.ThrowIfCancellationRequested();
             duplicateCounts.TryGetValue(pageNumber, out int count);
             duplicateCounts[pageNumber] = count + 1;
         }
 
         var ordered = new List<int>(document.Pages.Count + pageNumbers.Length);
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             ordered.Add(pageNumber);
 
@@ -36,11 +44,12 @@ internal static partial class PdfPageEditor {
             }
 
             for (int copy = 0; copy < count; copy++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ordered.Add(pageNumber);
             }
         }
 
-        return PdfTaggedPageOrganizer.Rewrite(pdf, document, ordered, readOptions);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, ordered, readOptions, token: cancellationToken);
     }
 
     /// <summary>

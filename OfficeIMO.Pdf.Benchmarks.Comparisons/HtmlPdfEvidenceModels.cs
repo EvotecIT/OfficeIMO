@@ -41,6 +41,7 @@ internal sealed record HtmlPdfEngineEvidence(
     string Engine,
     string Owner,
     string AssemblyVersion,
+    HtmlPdfPackageEvidence? Package,
     string ExecutionKind,
     string Status,
     int RequestedIterations,
@@ -52,6 +53,15 @@ internal sealed record HtmlPdfEngineEvidence(
     bool MemoryComparable,
     IReadOnlyList<HtmlPdfOutputEvidence> Outputs,
     IReadOnlyList<HtmlPdfAttemptFailure> Failures);
+
+internal sealed record HtmlPdfPackageEvidence(
+    string Id,
+    string Version,
+    string SourceCommit,
+    string License,
+    string LicenseSha256,
+    string ThirdPartyNoticesSha256,
+    string PackageSha512);
 
 internal sealed record HtmlPdfAttemptFailure(
     int Iteration,

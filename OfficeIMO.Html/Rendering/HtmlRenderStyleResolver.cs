@@ -706,9 +706,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             return keywordSize;
         }
 
-        return TryResolveLength(normalized, parentFontSize, parentFontSize, rootFontSize, out double size) &&
-            !double.IsNaN(size) && !double.IsInfinity(size) && size >= 0D
-            ? size
+        return TryResolveLength(normalized, parentFontSize, parentFontSize, rootFontSize, out double size, out bool calculated) &&
+            !double.IsNaN(size) && !double.IsInfinity(size) && (size >= 0D || calculated)
+            ? Math.Max(0D, size)
             : parentFontSize;
     }
 

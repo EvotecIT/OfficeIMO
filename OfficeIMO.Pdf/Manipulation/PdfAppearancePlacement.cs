@@ -42,6 +42,21 @@ internal static class PdfAppearancePlacement {
         return true;
     }
 
+    /// <summary>
+    /// Identifies a proven no-paint area without requiring preserved opaque appearances to have usable placement.
+    /// Missing or malformed geometry is not evidence of emptiness; its content still requires bounded admission.
+    /// </summary>
+    internal static bool IsKnownEmpty(PdfDictionary dictionary, Func<PdfObject, PdfObject?> resolve,
+        double width, double height) {
+        if (!dictionary.Items.ContainsKey("BBox")) return false;
+        try {
+            return !TryRead(dictionary, resolve, 0D, 0D, width, height, out _, out _);
+        } catch (InvalidOperationException) {
+            // The consuming mutation or renderer owns placement validation. Do not skip stream admission.
+            return false;
+        }
+    }
+
     private static double[] ReadNumbers(PdfObject value, int count, Func<PdfObject, PdfObject?> resolve) {
         if (resolve(value) is not PdfArray array || array.Items.Count != count)
             throw new InvalidOperationException("The appearance geometry array is invalid.");
