@@ -104,7 +104,7 @@ public sealed class IWorkKeynoteWritingTests {
         using var reopened = PowerPointPresentation.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Equal(Enumerable.Range(0, 10).Select(index => "BOX " + index),
-            reopened.Slides[0].TextBoxes.Select(box => box.Text.TrimEnd('\n')));
+            reopened.Slides[0].TextBoxes.Select(box => box.Text.TrimEnd('\r', '\n')));
     }
 
     [Fact]
