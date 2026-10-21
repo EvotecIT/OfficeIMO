@@ -53,7 +53,7 @@ public partial class Word {
         var before = FindRichNoteToken(letters, "BEFOREIMAGE");
         var after = FindRichNoteToken(letters, "AFTERIMAGE");
         FindRichNoteToken(letters, "FOLLOWINGNOTEPARAGRAPH");
-        Assert.True(before[^1].EndBaseLine.X <= image.X + .01D);
+        Assert.True(before[before.Length - 1].EndBaseLine.X <= image.X + .01D);
         Assert.True(after[0].StartBaseLine.X >= image.X + image.Width - .01D);
         Assert.Equal(before[0].StartBaseLine.Y, after[0].StartBaseLine.Y, 3);
         var bitmap = RenderFlowPicture(bytes, image.PageNumber);

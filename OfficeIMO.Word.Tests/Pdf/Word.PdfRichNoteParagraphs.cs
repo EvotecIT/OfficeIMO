@@ -95,7 +95,7 @@ public partial class Word {
         Letter[] right = FindRichNoteToken(letters, "JOINRIGHT");
         Letter[] after = FindRichNoteToken(letters, "AFTERJOIN");
         Assert.Equal(left[0].StartBaseLine.Y, right[0].StartBaseLine.Y, 3);
-        Assert.True(right[0].StartBaseLine.X > left[^1].EndBaseLine.X - .01D);
+        Assert.True(right[0].StartBaseLine.X > left[left.Length - 1].EndBaseLine.X - .01D);
         Assert.True(after[0].StartBaseLine.Y < right[0].StartBaseLine.Y - 5D,
             "The next visible paragraph boundary must remain after the joined pair.");
         Assert.Equal(original, note.OuterXml);
