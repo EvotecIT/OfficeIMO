@@ -47,13 +47,13 @@ public static partial class WordPdfConverterExtensions {
         NativeParagraphSpacing spacing = ResolveNativeParagraphSpacing(paragraph, styles, defaults, table);
         // Word uses the section's line-grid pitch even when this paragraph
         // disables snapping. Without an active grid one line unit is 12pt.
-        double unit = GetNativeSectionLineGridPitch(paragraph) ?? 12D;
+        double unit = GetNativeSectionLineGridPitch(paragraph, defaults.NoteContentSection) ?? 12D;
         return (spacing.BeforeAuto != true && spacing.BeforeLines.HasValue ? spacing.BeforeLines.Value / 100D * unit : null,
             spacing.AfterAuto != true && spacing.AfterLines.HasValue ? spacing.AfterLines.Value / 100D * unit : null);
     }
 
-    private static double? GetNativeSectionLineGridPitch(WordParagraph paragraph) {
-        W.DocGrid? grid = paragraph.GetBodySection()?._sectionProperties.GetFirstChild<W.DocGrid>();
+    private static double? GetNativeSectionLineGridPitch(WordParagraph paragraph, WordSection? sourceSection = null) {
+        W.DocGrid? grid = (sourceSection ?? paragraph.GetBodySection())?._sectionProperties.GetFirstChild<W.DocGrid>();
         return grid?.Type?.Value != null && grid.Type.Value != W.DocGridValues.Default &&
             grid.LinePitch?.Value is int pitch && pitch > 0 ? pitch / 20D : null;
     }

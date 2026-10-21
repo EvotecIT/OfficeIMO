@@ -265,7 +265,8 @@ internal static partial class PdfWriter {
                                 FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, xCol + par.XOffset, par.TextWidth,
                                 new TableCellContentFrame(xCol + par.XOffset, currentOpts.PageHeight, par.TextWidth, currentOpts.PageHeight), clipsToFrame: false,
                                 firstLineX: start == 0 ? xCol + par.FirstLineXOffset : null, firstLineWidth: start == 0 ? par.FirstLineTextWidth : null);
-                            WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage);
+                            WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage,
+                                hasFollowingParagraphLines: start + take < lines.Count);
                             MarkRichFonts(pblock.Runs);
                             yCol -= hsum; remain -= hsum; consumed += hsum; line += take;
                             if (line >= lines.Count) { double space = spacingAfter; if (space <= remain) { yCol -= space; remain -= space; consumed += space; } idx++; line = 0; }
@@ -446,7 +447,8 @@ internal static partial class PdfWriter {
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
                                 ? RegisterTextStructureElement("LBody", listItemElementIndex)
                                 : RegisterTextStructureElement("LBody", listItem.StructureElement);
-                            WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
+                            WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                                hasFollowingParagraphLines: line + take < lines.Count);
                             MarkRichFonts(listItem.Runs);
                             yCol -= hsum;
                             remain -= hsum;

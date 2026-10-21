@@ -114,6 +114,7 @@ internal static partial class PdfWriter {
                 bool forceRunningPage = pages.Count == 0 && currentPageBaseOptions.HasAnyRunningContent;
                 if (forceRunningPage) EnsurePage();
                 FlushPage(forceRunningPage || pageDirty || HasCurrentPageNonContentObjects());
+                FinishFootnoteContinuations();
 
                 var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
                 foreach (var p in pages) result.Pages.Add(p);
@@ -172,6 +173,7 @@ internal static partial class PdfWriter {
             pageHasBodyContent = false;
             PrepareAndRenderRunningContents();
             runningNonContentObjectCount = CountCurrentPageNonContentObjects();
+            StartPageFootnotes();
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
             }
@@ -208,11 +210,12 @@ internal static partial class PdfWriter {
 
         private bool HasCurrentPageNonContentObjects() => CountCurrentPageNonContentObjects() > 0;
 
-        private bool HasCurrentPageBodyContent() => pageHasBodyContent || y < yStart - .001D ||
+        private bool HasCurrentPageBodyContent() => pageHasBodyContent || HasPageFootnotes || y < yStart - .001D ||
             CountCurrentPageNonContentObjects() > runningNonContentObjectCount;
 
         private void FlushPage(bool force = false) {
             if (currentPage == null) return;
+            FlushPageFootnotes();
             if (!force && !pageDirty && !HasCurrentPageNonContentObjects()) {
                 currentPage = null;
                 sb.Clear();

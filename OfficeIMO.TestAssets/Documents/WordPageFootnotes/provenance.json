@@ -1,0 +1,390 @@
+{
+  "provenance": "OfficeIMO-owned, deterministic, synthetic OOXML; no external fixture carriers or assets. Green PNG generated from solid RGB pixels. No user documents.",
+  "producer": "Microsoft Word for Microsoft 365 16.0.20430.20182 on Windows",
+  "compatibilityMode": 15,
+  "captured": "2026-10-20",
+  "font": {
+    "family": "Arial",
+    "version": "7.06",
+    "regular_sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "bold_sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+  },
+  "export": "Read-only open, repagination, native PDF export before story/font/geometry diagnostics. Macros disabled; no repair or save. Inputs unchanged after export.",
+  "privacy": "Input ZIPs contain no docProps, VBA, external relationships, objects, altChunk, field instructions or external assets. Native PDF author/title/subject/keywords empty; creator/producer and timestamps only.",
+  "qualification": "Single-column, single-section native controls. Explicit section footnote position wins; absent section position defaults to pageBottom even when document position is beneathText.",
+  "continuation_limit": "The long-note native export is qualified for this source and export order. It does not establish a universal custom-continuation-separator selection rule.",
+  "cases": [
+    {
+      "id": "footnote-doc-beneathText-section-pageBottom",
+      "input": "footnote-doc-beneathText-section-pageBottom.docx",
+      "input_sha256": "da245b9e4be283e0670ee01fd70de81673013a1a24c4005d60377eed0092af47",
+      "schema_errors": 0,
+      "reference": "footnote-doc-beneathText-section-pageBottom.microsoft-word.pdf",
+      "reference_sha256": "230f1be2ade0fd98577cb2e579bf32ee08eacd7b36830c88e6fe407c96abf6af",
+      "pages": 1,
+      "profile": {
+        "kind": "footnote-placement",
+        "documentPosition": "beneathText",
+        "sectionPosition": "pageBottom",
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "footerDistancePt": 15,
+        "referenceBetweenTextRuns": true,
+        "bodyFont": "Arial12",
+        "noteFont": "Arial10",
+        "noteLinePt": 12
+      }
+    },
+    {
+      "id": "footnote-doc-pageBottom-section-beneathText",
+      "input": "footnote-doc-pageBottom-section-beneathText.docx",
+      "input_sha256": "1943f4ffefe1852225dc5205c2f0865a8f1b348c604a9c1ee8b2a096c56d1f95",
+      "schema_errors": 0,
+      "reference": "footnote-doc-pageBottom-section-beneathText.microsoft-word.pdf",
+      "reference_sha256": "235785712973ca649219b49de3fb057db1994184669456886c2dce67c39f1cbe",
+      "pages": 1,
+      "profile": {
+        "kind": "footnote-placement",
+        "documentPosition": "pageBottom",
+        "sectionPosition": "beneathText",
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "footerDistancePt": 15,
+        "referenceBetweenTextRuns": true,
+        "bodyFont": "Arial12",
+        "noteFont": "Arial10",
+        "noteLinePt": 12
+      }
+    },
+    {
+      "id": "fallback-doc-beneathText-section-absent",
+      "input": "fallback-doc-beneathText-section-absent.docx",
+      "input_sha256": "6b1db5bb1a2d988125861c5cd7091cc5063a18875cf29c2fc06425732682ac28",
+      "schema_errors": 0,
+      "reference": "fallback-doc-beneathText-section-absent.microsoft-word.pdf",
+      "reference_sha256": "de6afed0848088d6a2a77c05498fb2d55558e79aeb1ce2e38f0c64edc82bd907",
+      "pages": 1,
+      "profile": {
+        "kind": "footnote-placement-fallback",
+        "documentPosition": "beneathText",
+        "sectionPosition": null,
+        "sectionNumberingFormat": "decimal",
+        "sameBodyFontFooterAsInitialFive": true,
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "footerDistancePt": 15
+      }
+    },
+    {
+      "id": "fallback-doc-beneathText-sectionFootnotePr-absent",
+      "input": "fallback-doc-beneathText-sectionFootnotePr-absent.docx",
+      "input_sha256": "6aec55da4a1b357908024eef8594f2ecd8f6ab7b27ee2fbb1eb374b8fc45072c",
+      "schema_errors": 0,
+      "reference": "fallback-doc-beneathText-sectionFootnotePr-absent.microsoft-word.pdf",
+      "reference_sha256": "4eaa2db03a80302d7eb7f29cf7592365751009d159ae1d29fab0ac903d6ed035",
+      "pages": 1,
+      "profile": {
+        "kind": "footnote-placement-fallback",
+        "documentPosition": "beneathText",
+        "sectionPosition": null,
+        "sectionFootnotePropertiesPresent": false,
+        "sectionNumberingFormat": null,
+        "sameBodyFontFooterAsInitialFive": true,
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "footerDistancePt": 15
+      }
+    },
+    {
+      "id": "fallback-doc-absent-sectionFootnotePr-absent",
+      "input": "fallback-doc-absent-sectionFootnotePr-absent.docx",
+      "input_sha256": "e405fb99a1de25ab4e1cad86eb31985c61d61367eec522aadf3b72660fb11a27",
+      "schema_errors": 0,
+      "reference": "fallback-doc-absent-sectionFootnotePr-absent.microsoft-word.pdf",
+      "reference_sha256": "15421f69a48bcbc9c865749c0db0573257b4fcd8e3b915c7c947194b0090850e",
+      "pages": 1,
+      "profile": {
+        "kind": "footnote-placement-fallback",
+        "documentPosition": null,
+        "sectionPosition": null,
+        "sectionFootnotePropertiesPresent": false,
+        "sectionNumberingFormat": null,
+        "sameBodyFontFooterAsInitialFive": true,
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "footerDistancePt": 15
+      }
+    },
+    {
+      "id": "richnote-long-rich-continuation",
+      "input": "richnote-long-rich-continuation.docx",
+      "input_sha256": "43393e76b7de826bb2d1c02cc71b8fb183e6dee373d08bd8176d3784a487e263",
+      "schema_errors": 0,
+      "reference": "richnote-long-rich-continuation.microsoft-word.pdf",
+      "reference_sha256": "ba436fbce97297b43a6d7e1fb246f647269cfefbd60eafa5a44e221ade0bee76",
+      "pages": 3,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Seventy rich note paragraphs, legal continuation and distinct separator definitions",
+        "noteParagraphs": 70,
+        "referenceToken": "LONG REFERENCE",
+        "labeledSeparators": true
+      }
+    },
+    {
+      "id": "richnote-near-break-fill24",
+      "input": "richnote-near-break-fill24.docx",
+      "input_sha256": "772fbcb7476241b38c262d9bb5c892e03593867147236c2f5415d58904796340",
+      "schema_errors": 0,
+      "reference": "richnote-near-break-fill24.microsoft-word.pdf",
+      "reference_sha256": "a447c096344477c6a179bbfec4f88b673e6b2f2dc583bff5fe19f162a487f4f0",
+      "pages": 2,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Paired fit/move of reference plus three note lines near page end",
+        "fillerLines": 24,
+        "referenceToken": "NEAR REFERENCE",
+        "noteTokens": [
+          "NOTE SHORT 1",
+          "NOTE SHORT 2",
+          "NOTE SHORT 3"
+        ]
+      }
+    },
+    {
+      "id": "richnote-near-break-fill25",
+      "input": "richnote-near-break-fill25.docx",
+      "input_sha256": "dbe86fabf5f45eb4179f7f403659400885623eb3ee2dc6a1ddfc622620dad818",
+      "schema_errors": 0,
+      "reference": "richnote-near-break-fill25.microsoft-word.pdf",
+      "reference_sha256": "ecd6bd16eeea17251c24e7dd96fea5119726e553a643605c042bcdbdb57ed87b",
+      "pages": 2,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Paired fit/move of reference plus three note lines near page end",
+        "fillerLines": 25,
+        "referenceToken": "NEAR REFERENCE",
+        "noteTokens": [
+          "NOTE SHORT 1",
+          "NOTE SHORT 2",
+          "NOTE SHORT 3"
+        ]
+      }
+    },
+    {
+      "id": "richnote-near-break-fill27",
+      "input": "richnote-near-break-fill27.docx",
+      "input_sha256": "c71caf4de640db7e38023853e70047029ec11a24167c145a3eefa7d247ce3467",
+      "schema_errors": 0,
+      "reference": "richnote-near-break-fill27.microsoft-word.pdf",
+      "reference_sha256": "761d9268fd2a78c022a640353c6c009e7bca0ec2358cbb178b56ad7c37a095ff",
+      "pages": 2,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Paired fit/move of reference plus three note lines near page end",
+        "fillerLines": 27,
+        "referenceToken": "NEAR REFERENCE",
+        "noteTokens": [
+          "NOTE SHORT 1",
+          "NOTE SHORT 2",
+          "NOTE SHORT 3"
+        ]
+      }
+    },
+    {
+      "id": "richnote-picture-internal-link",
+      "input": "richnote-picture-internal-link.docx",
+      "input_sha256": "1f8a207c8dadf2137cba23de557eaf2978d99c7c31a49f67f488965fabb0b32d",
+      "schema_errors": 0,
+      "reference": "richnote-picture-internal-link.microsoft-word.pdf",
+      "reference_sha256": "433b6d83e91764bd0dc0371a34e4f79f10b0c86ef6ad24c3fd72afe645cc0684",
+      "pages": 1,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Footnote-owned inlinePNG and internal bookmark link, styled/multiparagraph note",
+        "imagePt": [
+          24,
+          12
+        ],
+        "imagePixels": [
+          32,
+          16
+        ],
+        "externalRelationships": false
+      }
+    },
+    {
+      "id": "richnote-table-late-fragment",
+      "input": "richnote-table-late-fragment.docx",
+      "input_sha256": "d0a69539df472960122bfe0b0e858e503ae20075f1776c9bc9b3ecfdacca3d08",
+      "schema_errors": 0,
+      "reference": "richnote-table-late-fragment.microsoft-word.pdf",
+      "reference_sha256": "d3cc5b13ad40164bfde0a0fcd89359467fb94d55f69d4b2d2509ff03cca710ac",
+      "pages": 2,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Reference on line34 of a42line splittable row; note belongs to actual reference fragment",
+        "tableRows": 1,
+        "cellParagraphs": 42,
+        "referenceCellLine": 34,
+        "referenceToken": "TABLE REFERENCE"
+      }
+    },
+    {
+      "id": "richnote-two-notes-one-page",
+      "input": "richnote-two-notes-one-page.docx",
+      "input_sha256": "dbb89559739775cd478ed37963fa6761acc3902de501b6789b8a9b259d10eadd",
+      "schema_errors": 0,
+      "reference": "richnote-two-notes-one-page.microsoft-word.pdf",
+      "reference_sha256": "0d2c38f894bd4b10e4f804c4bff0f0997c3605bf606706b923a247216fc6a16f",
+      "pages": 1,
+      "profile": {
+        "kind": "rich-note-pagination",
+        "pagePt": [
+          400,
+          500
+        ],
+        "bodyFramePt": [
+          50,
+          50,
+          300,
+          400
+        ],
+        "normalFont": "Arial12",
+        "normalLine240auto": true,
+        "noteFont": "Arial10",
+        "noteLineExactPt": 12,
+        "purpose": "Two source-position references and distinct notes, same physical page",
+        "noteCount": 2,
+        "referenceTokens": [
+          "FIRST REFERENCE",
+          "SECOND REFERENCE"
+        ]
+      }
+    }
+  ]
+}

@@ -8,8 +8,8 @@ internal static partial class PdfWriter {
 
         /// <summary>Allows an unused partial column to be skipped, but never retries an impossible full frame.</summary>
         private bool ShouldAdvanceForBlockHeight(double height) =>
-            height > y - currentOpts.MarginBottom + .001D &&
-            (y < GetCurrentFramePageStartY() - .001D ||
+            height > y - FootnoteBodyBottom + .001D &&
+            (HasPageFootnotes || y < GetCurrentFramePageStartY() - .001D ||
              IsPartialPhysicalColumnFrame() && height <= GetMaximumBlockContinuationHeight() + .001D &&
              GetFullPageContentHeight() < GetMaximumBlockContinuationHeight() - .001D);
 

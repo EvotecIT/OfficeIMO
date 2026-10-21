@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 Assert.Contains("Native footnote here1", allText);
-                Assert.Contains("1 Native footnote text", Regex.Replace(allText, @"\s+", " "));
+                AssertPdfFootnoteAssociation(pdf, "Native footnote here", "Native footnote text", "1");
                 Assert.Contains("Native after footnote", allText);
             }
         }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
                 Assert.Contains("Native endnote herei", allText);
-                Assert.Contains("1 Native footnote text", normalizedText);
+                AssertPdfFootnoteAssociation(pdf, "Native footnote here", "Native footnote text", "1");
                 Assert.Contains("i Native endnote text", normalizedText);
                 Assert.Contains("Native after notes", allText);
             }
@@ -141,11 +141,11 @@ namespace OfficeIMO.Tests {
 
             using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
-                string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("First section note1", allText);
                 Assert.Contains("Second section note2", allText);
-                Assert.Contains("1 First section footnote", normalizedText);
-                Assert.Contains("2 Second section footnote", normalizedText);
+                var first = AssertPdfFootnoteAssociation(pdf, "First section note", "First section footnote", "1");
+                var second = AssertPdfFootnoteAssociation(pdf, "Second section note", "Second section footnote", "2");
+                AssertPdfFootnoteSourceOrder(first, second);
                 Assert.DoesNotContain("Second section note1", allText);
             }
         }
@@ -170,10 +170,10 @@ namespace OfficeIMO.Tests {
 
             using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
-                string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Later outer note2", allText);
-                Assert.Contains("1 Nested table footnote", normalizedText);
-                Assert.Contains("2 Later outer footnote", normalizedText);
+                var nested = AssertPdfFootnoteAssociation(pdf, "Nested table note", "Nested table footnote", "1");
+                var outer = AssertPdfFootnoteAssociation(pdf, "Later outer note", "Later outer footnote", "2");
+                AssertPdfFootnoteSourceOrder(nested, outer);
                 Assert.DoesNotContain("Later outer note1", allText);
             }
         }

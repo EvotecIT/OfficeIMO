@@ -62,7 +62,7 @@ internal static partial class PdfWriter {
             double closingPadding = GetClosingContainerPadding();
             EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth), closingPadding);
             double before = ResolveTopLevelSpacingBefore(spacingBefore);
-            while (objectWidth > containerWidth + .001D || before + objectHeight + spacingAfter + closingPadding > y - currentOpts.MarginBottom + .001D) {
+            while (objectWidth > containerWidth + .001D || before + objectHeight + spacingAfter + closingPadding > y - FootnoteBodyBottom + .001D) {
                 AdvanceFixedFlowFrame(ref containerWidth);
                 before = 0D;
                 EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth), closingPadding);

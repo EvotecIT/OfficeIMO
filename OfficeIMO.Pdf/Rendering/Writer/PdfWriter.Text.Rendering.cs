@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
 
             bool lineEndsWithHardBreak = segs.Any(seg => seg.EndsWithHardBreak);
             PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
-            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && li != lines.Count - 1 && gapsCount > 0 && lineWidthUsed > baseLineW;
+            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && (li != lines.Count - 1 || hasFollowingParagraphLines) && gapsCount > 0 && lineWidthUsed > baseLineW;
             double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
             double lineWForAlign = justify ? lineWidthUsed : baseLineW;
             double dx = 0;
@@ -294,7 +294,7 @@ internal static partial class PdfWriter {
             }
             bool lineEndsWithHardBreak = segs.Any(seg => seg.EndsWithHardBreak);
             PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
-            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && li != lines.Count - 1 && gapsCount > 0 && lineWidthUsed > baseLineW;
+            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && (li != lines.Count - 1 || hasFollowingParagraphLines) && gapsCount > 0 && lineWidthUsed > baseLineW;
             double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
             // Tw applies only to single-byte code 32. Composite-font lines are positioned
             // explicitly, and several readers misapply Tw to the two-byte code 0x0020.

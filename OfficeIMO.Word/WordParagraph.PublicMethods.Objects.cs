@@ -147,6 +147,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text">The text of the note.</param>
         /// <returns>The footnote.</returns>
+        /// <exception cref="InvalidOperationException">The paragraph is in a header or footer.</exception>
         public WordParagraph AddFootNote(string text) {
             var footerWordParagraph = new WordParagraph(this._document, true, true) {
                 Text = text

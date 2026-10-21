@@ -11,18 +11,7 @@ internal static partial class PdfWriter {
             // Alignment belongs to the complete logical cell, not each page fragment.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || span.AlignmentLeadingHeight.HasValue) continue;
-                PdfCellVerticalAlign alignment = GetTableCellVerticalAlignment(style, span.Row, span.Cell.Column);
-                span.AlignmentLeadingHeight = 0D;
-                if (alignment == PdfCellVerticalAlign.Top) continue;
-                TableCellTextLayout text = rows.Lines[span.Row][span.Cell.Column];
-                double innerWidth = GetTableCellWidth(columnWidths, span.Cell.Column, span.Cell.ColumnSpan, columnGap) -
-                    GetTableCellPaddingLeft(style, span.Row, span.Cell.Column) - GetTableCellPaddingRight(style, span.Row, span.Cell.Column);
-                double logicalHeight = GetTableCellHeight(rows.Heights, span.Row, span.Cell.RowSpan, rowGap) -
-                    GetTableCellPaddingTop(style, span.Row, span.Cell.Column) - GetTableCellPaddingBottom(style, span.Row, span.Cell.Column);
-                double textHeight = MeasureTableCellContentHeight(span.Cell, text, 0, text.LineCount,
-                    rows.Leadings[span.Row], innerWidth, includeObjects: false);
-                double unusedHeight = Math.Max(0D, logicalHeight - textHeight);
-                span.AlignmentLeadingHeight = alignment == PdfCellVerticalAlign.Middle ? unusedHeight / 2D : unusedHeight;
+                span.AlignmentLeadingHeight = ResolveTableSpanAlignmentLeadingHeight(span, style, rows, columnWidths, columnGap, rowGap);
             }
             // Paint every deferred fill before any adjacent span's content or borders.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
@@ -120,14 +109,32 @@ internal static partial class PdfWriter {
             }
         }
 
+        private static double ResolveTableSpanAlignmentLeadingHeight(TableSpanCellFlow span, PdfTableStyle style,
+            PreparedFlowTableRows rows, double[] widths, double columnGap, double rowGap) {
+            if (span.AlignmentLeadingHeight.HasValue) return span.AlignmentLeadingHeight.Value;
+            PdfCellVerticalAlign alignment = GetTableCellVerticalAlignment(style, span.Row, span.Cell.Column);
+            if (alignment == PdfCellVerticalAlign.Top) return 0D;
+            TableCellTextLayout text = rows.Lines[span.Row][span.Cell.Column];
+            double innerWidth = GetTableCellWidth(widths, span.Cell.Column, span.Cell.ColumnSpan, columnGap) -
+                GetTableCellPaddingLeft(style, span.Row, span.Cell.Column) - GetTableCellPaddingRight(style, span.Row, span.Cell.Column);
+            double logicalHeight = GetTableCellHeight(rows.Heights, span.Row, span.Cell.RowSpan, rowGap) -
+                GetTableCellPaddingTop(style, span.Row, span.Cell.Column) - GetTableCellPaddingBottom(style, span.Row, span.Cell.Column);
+            double textHeight = MeasureTableCellContentHeight(span.Cell, text, 0, text.LineCount,
+                rows.Leadings[span.Row], innerWidth, includeObjects: false);
+            double unusedHeight = Math.Max(0D, logicalHeight - textHeight);
+            return alignment == PdfCellVerticalAlign.Middle ? unusedHeight / 2D : unusedHeight;
+        }
+
         private static int GetTableSpanAdmittedLineCount(TableSpanCellFlow span, PdfTableStyle style,
-            PreparedFlowTableRows rows, double fullFrameHeight, double closingPadding) {
+            PreparedFlowTableRows rows, double fullFrameHeight, double closingPadding,
+            double? fragmentHeight = null, double? processedHeight = null, double? alignmentLeadingHeight = null) {
             int row = span.Row;
             TableCellLayout cell = span.Cell;
             TableCellTextLayout lines = rows.Lines[row][cell.Column];
             double padding = GetTableCellPaddingTop(style, row, cell.Column) + GetTableCellPaddingBottom(style, row, cell.Column);
-            double leadingHeight = Math.Max(0D, (span.AlignmentLeadingHeight ?? 0D) - span.ProcessedHeight);
-            double available = Math.Max(0D, span.Height - padding - leadingHeight);
+            double leadingHeight = Math.Max(0D, (alignmentLeadingHeight ?? span.AlignmentLeadingHeight ?? 0D) -
+                (processedHeight ?? span.ProcessedHeight));
+            double available = Math.Max(0D, (fragmentHeight ?? span.Height) - padding - leadingHeight);
             int count = LimitTableCellLineCountToHeight(lines, span.ConsumedLines,
                 Math.Max(0, lines.LineCount - span.ConsumedLines), rows.Leadings[row], available);
             double fullTextHeight = Math.Max(0D, fullFrameHeight - closingPadding - padding);
