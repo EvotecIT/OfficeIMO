@@ -538,10 +538,10 @@
       }
     ],
     "limits": [
-      "04UNMATCHED: sourceenforces128pxminimumand112pxmaximumwithcentredmiddleandallowedboxoverlap; Edgeactualouter123/66/123andfivecenterlineswithoverflow. CSSPage3maxthenminnormativeusedconstraintsareownedcontract; nativegapretained.",
-      "06bottomUNMATCHED: axis-specificpercentagepaddingretains100pxcontentwidth/twolines; Edgeactualtextx124.65625andone111.123pxline. Topabsolutepadding/coloredsolidborderframeandwrappingmatchobservation.",
-      "Real-fontpositions/rasterizeredgecoveragecanvary; scenes/RGBApixelsmatchacrossNET8/10butencodedPNGcompressionbytesdifferbetweenframeworks. OwnPNG/PDFencodedbytesareexactlyequalwithineachframework.",
-      "RunningelementsandCSS-wide/cascade/budgetcasesareownedcontrols, notnewnativecapabilityacceptance. Side/cornergeometry,authoredheight/margins/box-sizing/verticalwriting/backgrounds/broaderborderstylesoutsideselectedslice.",
+      "04 UNMATCHED: source enforces 128px minimum and 112px maximum with centred middle and allowed box overlap; Edge actual outer 123/66/123 and five center lines with overflow. CSS Page 3 max-then-min normative used constraints are the owned contract; native gap retained.",
+      "06 bottom UNMATCHED: axis-specific percentage padding retains 100px content width/two lines; Edge actual text x 124.65625 and one 111.123px line. Top absolute padding/colored solid border frame and wrapping match observation.",
+      "Real-font positions/rasterizer edge coverage can vary; scenes/RGBA pixels match across NET8/10 but encoded PNG compression bytes differ between frameworks. Own PNG/PDF encoded bytes are exactly equal within each framework.",
+      "Running elements and CSS-wide/cascade/budget cases are owned controls, not new native capability acceptance. Side/corner geometry, authored height/margins/box-sizing/vertical writing/backgrounds/broader border styles are outside the selected slice.",
       "09 zero-height inset pressure: source retains full PAD scene text behind an exact zero-height clip and reports omission; Edge paints PAD. Matching outer border geometry is not text appearance equivalence."
     ],
     "supplementalGeometry": "09 body-edge anchored outer frames now x130 y-48 w100 h144(top), x130 y408 w100 h104(bottom), matching actual Edge frame. Source clips zero-height PAD content with omission diagnostic; Edge paints PAD beyond its content area. Frame agreement does not establish complete native appearance.",
@@ -1104,7 +1104,7 @@
       "bytes": 4361,
       "sha256": "059cd36e919a0f3b614b0c2738a8008551ab435bbe4b93300b9108d0762cd353"
     },
-    "correction": "Withdraw thickuniformborderentirelyomitted claim; actualraster disproved. Outerframeinvariant was real and fixed."
+    "correction": "Withdraw the claim that thick uniform borders were entirely omitted; the actual raster disproved it. The outer-frame invariant was real and fixed."
   },
   "remaining": [
     "Intrinsic width keywords, authored heights/margins/box-sizing, side/corner boxes, vertical writing, backgrounds, border radii and broader border styles remain outside this slice.",
