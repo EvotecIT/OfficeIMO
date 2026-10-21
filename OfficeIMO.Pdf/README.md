@@ -3092,6 +3092,26 @@ and page-count checks in ordinary local runs. Required-rasterizer and CI visual
 gates fail on a version mismatch; release investigations can deliberately opt
 into a cross-version comparison.
 
+## Contents for authored bookmarks
+
+Use `PdfTableOfContentsOptions.Entries` when a document already has bookmarks.
+Entries keep their authored order and hierarchy; the PDF layout engine resolves
+their page numbers after pagination, including content that wraps onto more pages.
+Omit `Entries` to keep the generated section-based contents.
+
+```csharp
+byte[] bytes = PdfDocument.Create()
+    .Compose(document => document.Content(content => content
+    .TableOfContents(new PdfTableOfContentsOptions {
+        Entries = new[] { new PdfTableOfContentsEntry("Findings", "findings") }
+    })
+    .PageBreak()
+    .Bookmark("findings")
+    .H1("Findings")
+    .Paragraph(paragraph => paragraph.Text("Evidence and recommendations."))))
+    .ToBytes();
+```
+
 ## Current state
 
 The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in Arabic-script shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.

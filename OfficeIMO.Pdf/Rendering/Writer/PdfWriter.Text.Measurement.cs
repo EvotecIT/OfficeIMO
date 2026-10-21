@@ -44,6 +44,7 @@ internal static partial class PdfWriter {
         EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
     private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, bool preservesPaintedGlyphs = false) {
+        text = WithoutOptionalBreaks(text);
         double effectiveFontSize = EffectiveRichFontSize(fontSize, baseline);
         if (!preservesPaintedGlyphs && horizontalTextScaling == 100D && characterSpacing == 0D && fontMetricScale == 1D) {
             return EstimateSimpleTextWidthForOptions(text, font, namedFont, effectiveFontSize, options, featureSettings);

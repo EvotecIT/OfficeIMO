@@ -21,6 +21,7 @@ internal static partial class PdfWriter {
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false) {
+        text = WithoutOptionalBreaks(text);
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
@@ -136,6 +137,7 @@ internal static partial class PdfWriter {
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false) {
+        text = WithoutOptionalBreaks(text);
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (namedFont.HasValue &&

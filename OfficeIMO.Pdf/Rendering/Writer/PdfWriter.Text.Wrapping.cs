@@ -7,15 +7,15 @@ internal static partial class PdfWriter {
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) =>
         WrapRichRunsCore(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, tabStopWidth, options: null);
 
-    private static PdfTabStop[]? NormalizeExplicitTabStops(System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
+    private static PdfTabStop[]? NormalizeExplicitTabStops(System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops, double frameWidth) {
         if (tabStops == null || tabStops.Count == 0) {
             return null;
         }
 
         return tabStops
             .Where(tabStop => tabStop.Position > 0 && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Select(tabStop => tabStop.ResolveFramePosition(frameWidth))
             .OrderBy(tabStop => tabStop.Position)
-            .Select(tabStop => tabStop.Clone())
             .ToArray();
     }
 
@@ -34,7 +34,7 @@ internal static partial class PdfWriter {
         var runKerning = new RichRunKerning(options);
         PdfTextRun? currentTextRun = null;
         var wordContinuations = MeasureRichWordContinuations(effectiveRuns, baseFont, fontSize, options);
-        PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
+        PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops, maxWidthPts);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;

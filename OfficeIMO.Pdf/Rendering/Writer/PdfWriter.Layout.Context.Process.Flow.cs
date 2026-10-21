@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             }
             if (!measuredHeight.HasValue &&
                 (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
-                throw new NotSupportedException("KeepTogether and non-continuing overflow behavior require flow content whose height can be determined before rendering. Remove the constraint or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the flow.");
+                throw new NotSupportedException("KeepTogether and non-continuing overflow behavior require flow content whose height can be determined before rendering. Remove the constraint or move dynamic, multi-column, deferred-table, canvas, or explicit page-boundary content outside the flow.");
             }
 
             bool cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
                                 fullPageMeasuredHeight.Value <= GetMaximumBlockContinuationHeight() + 0.001D;
             // A fit against full-page capacity in an unused partial column does not finish the width search.
             bool widthAdaptiveKeep = flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue && !fitsFullPage &&
-                PdfFlowNestingRules.IsColumnFlowSupported(flow);
+                PdfFlowNestingRules.IsColumnFlowSupported(flow, allowTableOfContents: activeColumnFlow != null);
             bool needsWidthFit = widthAdaptiveKeep && CanFlowFitAnotherFlowWidth(blocks, width);
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;

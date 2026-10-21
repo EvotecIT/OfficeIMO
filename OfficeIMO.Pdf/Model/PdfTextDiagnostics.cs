@@ -67,14 +67,14 @@ internal static partial class PdfTextDiagnostics {
         return AnalyzeWinAnsiTextCore(text, source, location, null);
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextCore(string text, string source, string location, int? runIndex) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextCore(string text, string source, string location, int? runIndex, bool generatedText = false) {
         Guard.NotNull(text, nameof(text));
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || (generatedText && ch == '\u200B')) {
                 index++;
                 continue;
             }
@@ -221,7 +221,7 @@ internal static partial class PdfTextDiagnostics {
                 TryGetWinAnsiCoveredTextElementLength);
         }
 
-        return AnalyzeWinAnsiTextCore(text, source, location, runIndex);
+        return AnalyzeWinAnsiTextCore(text, source, location, runIndex, generatedText: true);
     }
 
     /// <summary>
@@ -786,7 +786,7 @@ internal static partial class PdfTextDiagnostics {
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
-            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+            if (scalar == '\n' || scalar == '\r' || scalar == '\t' || scalar == '\u200B') {
                 previousFallbackFontIndex = -1;
                 continue;
             }
@@ -903,7 +903,7 @@ internal static partial class PdfTextDiagnostics {
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || ch == '\u200B') {
                 index++;
                 continue;
             }
@@ -936,7 +936,7 @@ internal static partial class PdfTextDiagnostics {
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || ch == '\u200B') {
                 index++;
                 continue;
             }

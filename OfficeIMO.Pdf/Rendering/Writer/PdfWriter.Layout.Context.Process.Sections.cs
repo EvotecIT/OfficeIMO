@@ -44,32 +44,35 @@ internal static partial class PdfWriter {
 
         private void RenderTableOfContentsBlock(TableOfContentsBlock tableOfContents) {
             encounteredTableOfContents = true;
+            ProcessBlocks(CreateTableOfContentsBlocks(tableOfContents), tableOfContents);
+        }
+
+        private List<IPdfBlock> CreateTableOfContentsBlocks(TableOfContentsBlock tableOfContents) {
             PdfTableOfContentsOptions options = tableOfContents.Options;
             var entries = new List<IPdfBlock>();
             if (!string.IsNullOrWhiteSpace(options.Title))
                 entries.Add(new HeadingBlock(1, options.Title!, PdfAlign.Left, color: null));
-            for (int i = 0; i < sectionDefinitions.Count; i++) {
-                SectionBlock section = sectionDefinitions[i];
-                if (!section.Options.IncludeInTableOfContents ||
-                    section.Options.Level < options.MinimumLevel ||
-                    section.Options.Level > options.MaximumLevel) {
+            IEnumerable<PdfTableOfContentsEntry> source = options.Entries ?? sectionDefinitions
+                .Where(section => section.Options.IncludeInTableOfContents)
+                .Select(section => new PdfTableOfContentsEntry(section.Title, section.DestinationName, section.Options.Level)).ToArray();
+            foreach (PdfTableOfContentsEntry entry in source) {
+                if (entry.Level < options.MinimumLevel || entry.Level > options.MaximumLevel) {
                     continue;
                 }
 
-                double leftIndent = (section.Options.Level - options.MinimumLevel) * options.IndentPerLevel;
-                double tabPosition = Math.Max(12D, width - leftIndent - 1D);
+                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel;
                 var style = new PdfParagraphStyle {
                     LeftIndent = leftIndent,
                     SpacingAfter = 2D,
                     KeepTogether = true
                 };
-                style.AddTabStop(tabPosition, PdfTabAlignment.Right, options.Leader);
-                string pageText = sectionPageNumbers.TryGetValue(section.DestinationName, out int pageNumber)
+                style.AddTabStop(1D, PdfTabAlignment.Right, options.Leader).IsFrameRightRelative = true;
+                string pageText = sectionPageNumbers.TryGetValue(entry.DestinationName, out int pageNumber)
                     ? FormatSectionPageNumber(options, pageNumber)
                     : "0000";
                 entries.Add(new RichParagraphBlock(
                     new[] {
-                        PdfTextRun.LinkToBookmark(section.Title, section.DestinationName, underline: false),
+                        PdfTextRun.LinkToBookmark(entry.Title, entry.DestinationName, underline: false, contents: entry.LinkContents),
                         PdfTextRun.Tab(options.Leader, PdfTabAlignment.Right),
                         PdfTextRun.Normal(pageText)
                     },
@@ -78,7 +81,7 @@ internal static partial class PdfWriter {
                     style));
             }
 
-            ProcessBlocks(entries, tableOfContents);
+            return entries;
         }
 
         private static string FormatSectionPageNumber(PdfTableOfContentsOptions options, int pageNumber) {
