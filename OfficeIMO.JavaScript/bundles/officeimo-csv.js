@@ -160,29 +160,44 @@ _modules.set("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e",
 return _exports;
 })();
 
-const _m3 = _modules.get("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53") ?? (() => {
+const _m3 = _modules.get("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea") ?? (() => {
+const errorBrand = Symbol.for("@evotecit/officeimo/OfficeIMOError");
+const unsupportedBrand = Symbol.for("@evotecit/officeimo/NotSupportedError");
 class OfficeIMOError extends Error {
     code;
+    static [Symbol.hasInstance](value) {
+        // Inherited checks on user subclasses must retain their own prototype identity.
+        if (this !== OfficeIMOError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[errorBrand] === true;
+    }
     constructor(code, message, options) {
         super(message, options);
         this.code = code;
+        Object.defineProperty(this, errorBrand, { value: true });
         this.name = "OfficeIMOError";
     }
 }
 class NotSupportedError extends OfficeIMOError {
     feature;
+    static [Symbol.hasInstance](value) {
+        if (this !== NotSupportedError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[unsupportedBrand] === true;
+    }
     constructor(feature) {
         super("NOT_SUPPORTED", feature + " is not supported yet.");
         this.feature = feature;
+        Object.defineProperty(this, unsupportedBrand, { value: true });
         this.name = "NotSupportedError";
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: OfficeIMOError, NotSupportedError: NotSupportedError });
-_modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53", _exports);
+_modules.set("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea", _exports);
 return _exports;
 })();
 
-const _m2 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
+const _m2 = _modules.get("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m1;
 
 const { OfficeIMOError } = _m3;
@@ -287,12 +302,34 @@ async function writeBytes(source, sink, signal) {
     });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9", _exports);
+_modules.set("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc", _exports);
 return _exports;
 })();
 
-const _m4 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
+const _m5 = _modules.get("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669") ?? (() => {
+/** Capture a structural option record before validation or asynchronous work.
+ * Own fields and supported prototype accessors are read once. Nested values remain
+ * borrowed until their owning format captures or validates them. */
+function captureFields(input, fields) {
+    const captured = { ...input };
+    for (const field of fields) {
+        if (Object.hasOwn(captured, field))
+            continue;
+        const value = input[field];
+        if (value !== undefined)
+            captured[field] = value;
+    }
+    return captured;
+}
+const _exports = Object.freeze({ captureFields: captureFields });
+_modules.set("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669", _exports);
+return _exports;
+})();
+
+const _m4 = _modules.get("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671") ?? (() => {
 const { OfficeIMOError } = _m3;
+
+const { captureFields } = _m5;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
@@ -302,10 +339,15 @@ class ExportBudget {
     reservedText = 0;
     limits;
     constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
+        if (!limits || typeof limits !== "object" || Array.isArray(limits))
+            throw new TypeError("Export limits must be an object.");
+        // Capture before validation. Supported class getters are ordinary structural
+        // options too, and an accessor must not change the ceiling after validation.
+        const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+        for (const [key, value] of Object.entries(captured))
             if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
                 throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
+        this.limits = Object.freeze(captured);
     }
     check(kind, value) {
         const maximum = this.limits[kind];
@@ -344,11 +386,11 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d", _exports);
+_modules.set("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
+const _m7 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
 /** @internal Recognize native Date values across iframe realms without trusting a string tag. */
 function isDate(value) {
     if (value === null || typeof value !== "object")
@@ -370,30 +412,53 @@ _modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04",
 return _exports;
 })();
 
-const _m7 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m8 = _modules.get("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
-    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
-        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+    if (!link || typeof link !== "object")
         throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
+    const { target, tooltip } = link;
+    if (typeof target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(target) || /[\u0000-\u0020\u007f]/.test(target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(target);
     if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
         throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+    if (tooltip !== undefined && typeof tooltip !== "string")
         throw new TypeError("Hyperlink tooltip must be text.");
-    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+    return Object.freeze({ target: url.href, ...(tooltip === undefined ? {} : { tooltip }) });
 }
 const _exports = Object.freeze({ copyExportLink: copyExportLink });
-_modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb", _exports);
+_modules.set("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832", _exports);
 return _exports;
 })();
 
-const _m5 = _modules.get("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd") ?? (() => {
-const { isDate } = _m6;
+const _m6 = _modules.get("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5") ?? (() => {
+const { isDate } = _m7;
 
-const { copyExportLink } = _m7;
+const { copyExportLink } = _m8;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -403,12 +468,13 @@ class ExportCell {
     link;
     constructor(value, options = {}) {
         this.value = value;
-        if (options.text !== undefined && typeof options.text !== "string")
+        const { text, presentation, link } = options;
+        if (text !== undefined && typeof text !== "string")
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
-        this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
-        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+        this.text = text;
+        this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+        this.link = link === undefined ? undefined : copyExportLink(link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -428,12 +494,12 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd", _exports);
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+_modules.set("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+const _m9 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
     if (!callback)
@@ -449,12 +515,14 @@ _modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f",
 return _exports;
 })();
 
-const _m9 = _modules.get("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386") ?? (() => {
-const { assertExportValue } = _m5;
+const _m10 = _modules.get("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd") ?? (() => {
+const { assertExportValue } = _m6;
 
 const { checkAbort } = _m1;
 
-const { isDate } = _m6;
+const { isDate } = _m7;
+
+const { captureFields } = _m5;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -492,27 +560,443 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
         });
     };
 }
+/** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
-        if (!workbookStyles && c?.style !== undefined)
-            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
-        if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
+        if (!c || typeof c !== "object" && typeof c !== "function")
             throw new TypeError("Each column needs a string header and an optional string key.");
-        if (c.value !== undefined && typeof c.value !== "function")
+        // Own extension metadata remains available to its format owner. Capture the
+        // supported structural fields even when a class exposes prototype getters.
+        const captured = captureFields(c, columnOptionFields);
+        if (!workbookStyles && captured.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
+        if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
+            throw new TypeError("Each column needs a string header and an optional string key.");
+        if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
-        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
-            throw new TypeError("Column groups must be an array of strings.");
-        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
+        if (captured.groups !== undefined) {
+            if (!Array.isArray(captured.groups))
+                throw new TypeError("Column groups must be an array of strings.");
+            const groups = Array.from(captured.groups);
+            if (groups.some(group => typeof group !== "string"))
+                throw new TypeError("Column groups must be an array of strings.");
+            return { ...captured, groups: Object.freeze(groups) };
+        }
+        return captured;
     });
 }
-const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386", _exports);
+const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
+_modules.set("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd", _exports);
 return _exports;
 })();
 
-const _m10 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
+const _m13 = _modules.get("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2") ?? (() => {
+const { ExportCell, assertExportValue } = _m6;
+
+const { isDate } = _m7;
+
+/** Copy portable values when an operation retains metadata or a projected row beyond its producer's turn. */
+function copyExportValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const { value: scalar, text, presentation, link } = value;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }),
+            ...(link === undefined ? {} : { link }) });
+    }
+    return value;
+}
+const _exports = Object.freeze({ copyExportValue: copyExportValue });
+_modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2", _exports);
+return _exports;
+})();
+
+const _m12 = _modules.get("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da") ?? (() => {
+const { assertExportValue } = _m6;
+
+const { copyExportValue } = _m13;
+
+/** Capture a bounded public matrix before validation or asynchronous report production can revisit its fields. */
+function captureTableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const captured = rows.map(row => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        return Object.freeze(row.map(cell => {
+            if (cell === null)
+                return null;
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const { value, columnSpan, rowSpan } = cell;
+            return Object.freeze({ value: copyExportValue(value), ...(columnSpan === undefined ? {} : { columnSpan }),
+                ...(rowSpan === undefined ? {} : { rowSpan }) });
+        }));
+    });
+    tableSpans(captured, columns);
+    return Object.freeze(captured);
+}
+/** Validate one small, rectangular heading/footer matrix before any drawing. */
+function tableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
+    return rows.map((row, level) => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        const anchors = [];
+        for (let first = 0; first < columns; first++) {
+            const cell = row[first];
+            if (covered[level][first]) {
+                if (cell !== null)
+                    throw new TypeError("Covered heading/footer cells must be null.");
+                continue;
+            }
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
+            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
+                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
+            const value = cell.value;
+            assertExportValue(value);
+            for (let r = level; r < level + rowSpan; r++)
+                for (let c = first; c < first + span; c++) {
+                    if (covered[r][c])
+                        throw new TypeError("Heading/footer spans overlap.");
+                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
+                        throw new TypeError("Covered heading/footer cells must be null.");
+                    covered[r][c] = 1;
+                }
+            anchors.push(Object.freeze({ first, span, rowSpan, value }));
+        }
+        return Object.freeze(anchors);
+    });
+}
+const _exports = Object.freeze({ captureTableSpans: captureTableSpans, tableSpans: tableSpans });
+_modules.set("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da", _exports);
+return _exports;
+})();
+
+const _m11 = _modules.get("2f5c0823847e9209017d01b2a753f36056df2a9988fae1f3a1bd5fd186545220") ?? (() => {
+const { captureTableSpans, tableSpans } = _m12;
+
+/** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
+function csvStructuredRows(rows, columns, mode) {
+    const anchors = tableSpans(captureTableSpans(rows, columns), columns), output = anchors.map(() => Array(columns).fill(""));
+    for (let row = 0; row < anchors.length; row++)
+        for (const anchor of anchors[row]) {
+            if ((anchor.span > 1 || anchor.rowSpan > 1) && mode === undefined)
+                throw new TypeError("CSV spanned headings/footers require an explicit spanMode: repeat or anchors.");
+            const value = anchor.value;
+            for (let r = row; r < row + (mode === "repeat" ? anchor.rowSpan : 1); r++)
+                for (let c = anchor.first; c < anchor.first + (mode === "repeat" ? anchor.span : 1); c++)
+                    output[r][c] = value;
+        }
+    return output;
+}
+const _exports = Object.freeze({ csvStructuredRows: csvStructuredRows });
+_modules.set("2f5c0823847e9209017d01b2a753f36056df2a9988fae1f3a1bd5fd186545220", _exports);
+return _exports;
+})();
+
+const _m14 = _modules.get("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307") ?? (() => {
+/** Compatibility display policy; hosts can supply labels without changing typed source values. */
+const defaultBooleanText = Object.freeze({ true: "True", false: "False" });
+/** @internal Capture display policy once, before source iteration or asynchronous output. */
+function captureBooleanText(input) {
+    if (input === undefined)
+        return defaultBooleanText;
+    if (!input || typeof input !== "object")
+        throw new TypeError("booleanText must contain true and false strings.");
+    const yes = input.true, no = input.false;
+    if (typeof yes !== "string" || typeof no !== "string")
+        throw new TypeError("booleanText must contain true and false strings.");
+    return Object.freeze({ true: yes, false: no });
+}
+const _exports = Object.freeze({ defaultBooleanText: defaultBooleanText, captureBooleanText: captureBooleanText });
+_modules.set("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307", _exports);
+return _exports;
+})();
+
+const _m15 = _modules.get("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208") ?? (() => {
+const { captureFields } = _m5;
+
+/** @internal Share the format's capture policy with thin adapters before they compose options. */
+function captureCsvOptions(input) {
+    if (!input || typeof input !== "object")
+        throw new TypeError("CSV options are required.");
+    return captureFields(input, ["columns", "signal", "limits", "onProgress", "valueMode", "delimiter", "lineEnding", "bom", "includeHeader", "headerRows",
+        "footer", "spanMode", "formulaInjectionProtection", "quote", "nullValue", "booleanText"]);
+}
+const _exports = Object.freeze({ captureCsvOptions: captureCsvOptions });
+_modules.set("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208", _exports);
+return _exports;
+})();
+
+const _m18 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+class NumericAggregate {
+    operation;
+    count = 0;
+    sum = 0;
+    mean = 0;
+    min = Infinity;
+    max = -Infinity;
+    constructor(operation) {
+        this.operation = operation;
+    }
+    accept(value) {
+        if (!this.operation || typeof value !== "number" || !Number.isFinite(value))
+            return;
+        this.count++;
+        if (this.operation === "sum") {
+            this.sum += value;
+            if (!Number.isFinite(this.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (this.operation === "average") {
+            const delta = value - this.mean;
+            this.mean = this.count === 1 ? value : Number.isFinite(delta) ? this.mean + delta / this.count : this.mean * ((this.count - 1) / this.count) + value / this.count;
+        }
+        else if (this.operation === "min")
+            this.min = Math.min(this.min, value);
+        else if (this.operation === "max")
+            this.max = Math.max(this.max, value);
+    }
+    value() {
+        return this.operation === "count" ? this.count : this.operation === "sum" ? this.sum : !this.count ? null : this.operation === "average" ? this.mean : this.operation === "min" ? this.min : this.max;
+    }
+}
+function createTotals(columns, totals = {}) {
+    const keys = columns.map(c => c.key ?? c.header);
+    for (const [key, operation] of Object.entries(totals)) {
+        if (keys.filter(k => k === key).length !== 1)
+            throw new TypeError("Totals need an unambiguous declared column key: " + key);
+        if (!["sum", "count", "average", "min", "max"].includes(operation))
+            throw new TypeError("Invalid total operation.");
+    }
+    return keys.map(key => new NumericAggregate(Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined));
+}
+const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotals: createTotals });
+_modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b", _exports);
+return _exports;
+})();
+
+const _m17 = _modules.get("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d") ?? (() => {
+const { ExportCell } = _m6;
+
+const { isDate } = _m7;
+
+const { checkAbort, inputRows, pause, taskYieldDue } = _m1;
+
+const { ExportBudget } = _m4;
+
+const { OfficeIMOError } = _m3;
+
+const { copyColumns, createRowProjector } = _m10;
+
+const { createTotals } = _m18;
+
+const { copyExportValue } = _m13;
+
+const sources = new WeakMap();
+/** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
+function assertGroupedReportSource(value) {
+    if (!value || typeof value !== "object" || !sources.has(value))
+        throw new TypeError("Create grouped report sources with createGroupedReport.");
+}
+/** @internal The consuming writer's signal reaches pending source reads as well as destination writes. */
+function groupedReportEvents(source, signal) {
+    assertGroupedReportSource(source);
+    return { async *[Symbol.asyncIterator]() {
+            const operation = groupedReportOperation(source, signal);
+            try {
+                yield* operation.events;
+            }
+            finally {
+                operation.dispose();
+            }
+        } };
+}
+/** @internal Share cancellation between original source reads and destination writes; callers dispose in finally. */
+function groupedReportOperation(source, signal) {
+    assertGroupedReportSource(source);
+    const factory = sources.get(source), linked = linkedSignals(factory.signal, signal);
+    return { signal: linked.signal, events: factory.events(linked.signal), dispose: linked.dispose };
+}
+function linkedSignals(source, consumer) {
+    if (!source || !consumer || source === consumer)
+        return { signal: source ?? consumer, dispose() { } };
+    const controller = new AbortController(), abortSource = () => controller.abort(source.reason), abortConsumer = () => controller.abort(consumer.reason);
+    source.addEventListener("abort", abortSource, { once: true });
+    consumer.addEventListener("abort", abortConsumer, { once: true });
+    if (source.aborted)
+        abortSource();
+    else if (consumer.aborted)
+        abortConsumer();
+    return { signal: controller.signal, dispose() { source.removeEventListener("abort", abortSource); consumer.removeEventListener("abort", abortConsumer); } };
+}
+function maximum(value, fallback, name) {
+    const result = value ?? fallback;
+    if (!Number.isSafeInteger(result) || result < 0)
+        throw new RangeError(name + " must be a nonnegative safe integer.");
+    return result;
+}
+function scalar(value) { return value instanceof ExportCell ? value.value : value; }
+function identity(value) {
+    if (value == null)
+        return { key: null, id: "null", text: "" };
+    if (isDate(value)) {
+        const time = Date.prototype.getTime.call(value);
+        if (!Number.isFinite(time))
+            throw new TypeError("A group key date must be valid.");
+        return { key: new Date(time), id: "date:" + time, text: new Date(time).toISOString() };
+    }
+    if (typeof value === "number" && !Number.isFinite(value))
+        throw new TypeError("A numeric group key must be finite.");
+    const text = String(value);
+    return { key: value, id: typeof value + ":" + text, text };
+}
+function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTime.call(value)) : value; }
+function result(aggregates) {
+    return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
+}
+/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+ * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
+ * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
+function createGroupedReport(rows, options) {
+    if (!options || typeof options !== "object")
+        throw new TypeError("Grouped report options are required.");
+    // Capture configuration before validation so accessors cannot select different columns in later stages.
+    const { columns: selected, groupBy, totals: selectedTotals, groupLabel, maxGroups: requestedGroups, maxGroupKeyCharacters: requestedCharacters, signal: sourceSignal, limits } = options;
+    if (limits !== undefined && (!limits || typeof limits !== "object" || Array.isArray(limits)))
+        throw new TypeError("Grouped source limits must be an object.");
+    if (limits !== undefined && "maxOutputBytes" in limits)
+        throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
+    if (!Array.isArray(selected) || !selected.length)
+        throw new TypeError("A grouped report needs declared columns.");
+    const columns = copyColumns(selected);
+    const keys = columns.map(column => column.key);
+    if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
+        throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
+    const groupColumn = keys.indexOf(groupBy);
+    if (typeof groupBy !== "string" || groupColumn < 0)
+        throw new TypeError("groupBy must name a declared stable column key.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    const totals = Object.freeze({ ...selectedTotals });
+    const grand = createTotals(columns, totals);
+    for (let column = 0; column < columns.length; column++)
+        if (grand[column].operation !== undefined && columns[column].type !== "number")
+            throw new TypeError("Grouped numeric totals require a column declared with type:number.");
+    const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
+    const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
+    const budget = new ExportBudget(limits);
+    const portable = Object.freeze(columns.map(column => {
+        const { value: _getter, ...metadata } = column;
+        return Object.freeze(metadata);
+    }));
+    for (const column of columns) {
+        budget.cell(column.header);
+        for (const group of column.groups ?? [])
+            budget.reserve(0, group.length);
+        Object.freeze(column);
+    }
+    let consumed = false;
+    const eventsFor = (signal) => Object.freeze({ [Symbol.asyncIterator]() {
+            if (consumed)
+                throw new TypeError("A grouped report source can be consumed only once.");
+            consumed = true;
+            return iterate(signal);
+        } });
+    const events = eventsFor(sourceSignal);
+    async function* iterate(signal) {
+        const project = createRowProjector(columns, undefined, signal);
+        const seen = new Set();
+        let characters = 0, rowCount = 0, groups = 0, currentId;
+        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        for await (const input of inputRows(rows, signal)) {
+            // Copy positional input once before the shared projector validates and inspects its values.
+            const snapshot = Array.isArray(input) ? Array.from(input) : input;
+            const projected = project(snapshot, rowCount), values = [];
+            for (let column = 0; column < columns.length; column++)
+                values.push(copyExportValue(projected[column]) ?? null);
+            checkAbort(signal);
+            const next = identity(scalar(values[groupColumn]));
+            if (next.id !== currentId) {
+                if (seen.has(next.id))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                let nextLabel = next.text;
+                if (groupLabel) {
+                    const formatted = groupLabel(eventKey(next.key));
+                    if (typeof formatted?.then === "function")
+                        void Promise.resolve(formatted).catch(() => { });
+                    if (typeof formatted !== "string")
+                        throw new TypeError("groupLabel must return synchronous text.");
+                    nextLabel = formatted;
+                }
+                checkAbort(signal);
+                const nextCharacters = characters + next.id.length + nextLabel.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, nextLabel.length);
+                if (currentId !== undefined)
+                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+                currentId = next.id;
+                key = next.key;
+                label = nextLabel;
+                groupRows = 0;
+                characters = nextCharacters;
+                seen.add(next.id);
+                groups++;
+                aggregates = createTotals(columns, totals);
+                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
+            }
+            budget.row(rowCount + 1);
+            for (let column = 0; column < values.length; column++) {
+                const value = values[column], raw = scalar(value);
+                if (grand[column].operation !== undefined && raw != null && (typeof raw !== "number" || !Number.isFinite(raw)))
+                    throw new TypeError("Grouped numeric metrics must resolve to finite numbers or null.");
+                budget.cell(raw);
+                if (value instanceof ExportCell && value.text !== undefined)
+                    budget.reserve(0, value.text.length);
+                aggregates[column].accept(raw);
+                grand[column].accept(raw);
+            }
+            checkAbort(signal);
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            rowCount++;
+            groupRows++;
+            if (taskYieldDue()) {
+                await pause();
+                checkAbort(signal);
+            }
+        }
+        checkAbort(signal);
+        if (currentId !== undefined)
+            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        checkAbort(signal);
+        yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
+    }
+    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    sources.set(source, { signal: sourceSignal, events: eventsFor });
+    return source;
+}
+const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
+_modules.set("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d", _exports);
+return _exports;
+})();
+
+const _m16 = _modules.get("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c") ?? (() => {
+
+
 
 
 
@@ -554,31 +1038,37 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m6.ExportCell, createGroupedReport: _m17.createGroupedReport, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+_modules.set("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4") ?? (() => {
+const _m0 = _modules.get("23dbdb5bb01c78086550f0e239748171f51380c09784045e396de9b2c5faadbb") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
 const { ExportBudget, boundedSink } = _m4;
 
-const { ExportCell } = _m5;
+const { ExportCell } = _m6;
 
-const { isDate } = _m6;
+const { isDate } = _m7;
 
-const { notifyProgress } = _m8;
+const { notifyProgress } = _m9;
 
-const { copyColumns, createRowProjector } = _m9;
+const { copyColumns, createRowProjector } = _m10;
+
+const { csvStructuredRows } = _m11;
+
+const { captureBooleanText } = _m14;
+
+const { captureCsvOptions } = _m15;
 
 
 
 
 
-function csvField(value, delimiter, protect, quote, nullValue) {
+function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (value == null && nullValue !== undefined)
         value = nullValue;
     let text;
@@ -587,7 +1077,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
     else if (typeof value === "boolean")
-        text = value ? "True" : "False";
+        text = booleanText[value ? "true" : "false"];
     else if (typeof value === "number")
         text = Number.isFinite(value) ? String(value) : "";
     else if (typeof value === "string")
@@ -597,18 +1087,19 @@ function csvField(value, delimiter, protect, quote, nullValue) {
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && typeof value === "string" && /^ *[=+\-@\t\r\n]/.test(text))
+    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
-    const options = configuration;
+    const options = captureCsvOptions(configuration);
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
     beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
+    const booleanText = captureBooleanText(options.booleanText);
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
     if (!["\r\n", "\n", "\r"].includes(lineEnding))
@@ -619,6 +1110,10 @@ async function write(rows, sink, options) {
         throw new RangeError("valueMode must be raw or display.");
     if (options.nullValue !== undefined && typeof options.nullValue !== "string")
         throw new TypeError("nullValue must be a string.");
+    if (options.spanMode !== undefined && options.spanMode !== "repeat" && options.spanMode !== "anchors")
+        throw new TypeError("CSV spanMode must be repeat or anchors.");
+    const headings = options.includeHeader === false ? [] : options.headerRows === undefined ? columns.length ? [columns.map(c => c.header)] : [] : csvStructuredRows(options.headerRows, columns.length, options.spanMode);
+    const footers = options.footer === undefined ? [] : csvStructuredRows(options.footer.rows, columns.length, options.spanMode);
     for (const column of columns)
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
@@ -645,9 +1140,9 @@ async function write(rows, sink, options) {
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
-            budget.cell(value);
+            budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -657,8 +1152,8 @@ async function write(rows, sink, options) {
         if (buffer.append(text + lineEnding))
             return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
     }
-    if (options.includeHeader !== false && columns.length)
-        await record(columns.map(c => c.header), true);
+    for (const heading of headings)
+        await record(heading, true);
     await consumeRows(rows, signal, row => {
         budget.row(count + 1);
         const pending = record(project(row, count));
@@ -666,13 +1161,15 @@ async function write(rows, sink, options) {
             return pending.then(() => { count++; });
         count++;
     });
+    for (const footer of footers)
+        await record(footer, true);
     await buffer.close();
     notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes });
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
 async function writeCsv(rows, configuration) {
-    const options = configuration;
+    const options = captureCsvOptions(configuration);
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
@@ -692,9 +1189,9 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4", _exports);
+const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+_modules.set("23dbdb5bb01c78086550f0e239748171f51380c09784045e396de9b2c5faadbb", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m10, csv: _m0 });
+Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });
 })(globalThis);

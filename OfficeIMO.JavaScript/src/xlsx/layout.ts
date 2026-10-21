@@ -3,6 +3,7 @@ import type { ProjectionColumn } from "../internal/columns.js";
 import { ExportCell } from "../core/presentation.js";
 import { isDate } from "../core/dates.js";
 import { Cell, cellText, columnName } from "./values.js";
+import { FormulaCell } from "./formula.js";
 import { escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { SheetOptions, TotalOperation, PrintOptions } from "./types.js";
@@ -10,18 +11,22 @@ import { MergeRegions } from "./regions.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { createTotals } from "../internal/totals.js";
 import type { NumericAggregate } from "../internal/totals.js";
+import { StructuredRows } from "./structured-rows.js";
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 export class ComputedTotal { constructor(readonly value: number | null, readonly formula: string, readonly operation: TotalOperation) {} }
 /** @internal Bounded report layout and incremental numeric aggregates. */
 export class ReportLayout {
-  readonly headings: readonly (readonly string[])[];
+  readonly headings: readonly (readonly unknown[])[];
   readonly merges: readonly string[];
   readonly headerRows: number;
   readonly firstHeaderRow: number;
   readonly regions: MergeRegions;
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
+  readonly structuredFooter: StructuredRows | undefined;
+  readonly footerRows: number;
+  readonly mergeCount: number;
   private readonly aggregates: readonly NumericAggregate[];
   constructor(readonly columns: readonly ProjectionColumn[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000, maximumSampleCells = 100000) {
     const titleRows = options.title === undefined ? 0 : 1;
@@ -32,26 +37,41 @@ export class ReportLayout {
       if (options.title.height !== undefined && (!Number.isFinite(options.title.height) || options.title.height <= 0 || options.title.height > 409)) throw new RangeError("Title height must be positive and at most 409 points.");
     }
     const depth = Math.max(0, ...columns.map(c => c.groups?.length ?? 0));
-    if (depth > 16) throw new RangeError("Grouped headings support at most 16 levels.");
-    if (depth && options.includeHeader === false) throw new TypeError("Grouped headings require leaf headers.");
-    const headings: string[][] = [], merges: string[] = [];
-    if (titleRows && columns.length > 1) merges.push("A1:" + columnName(columns.length) + "1");
-    for (let level = 0; level < depth; level++) {
-      const values = columns.map(c => c.groups?.[level] ?? "");
-      for (const value of values) cellText(value, policy);
-      for (let first = 0; first < columns.length;) {
-        let last = first;
-        const prefix = JSON.stringify(columns[first]!.groups?.slice(0, level + 1));
-        while (last + 1 < columns.length && values[first] && JSON.stringify(columns[last + 1]!.groups?.slice(0, level + 1)) === prefix) last++;
-        if (last > first) { merges.push(columnName(first + 1) + (level + 1 + titleRows) + ":" + columnName(last + 1) + (level + 1 + titleRows)); for (let i = first + 1; i <= last; i++) values[i] = ""; }
-        first = last + 1;
-      }
-      headings.push(values);
+    if (options.headerRows === undefined) {
+      if (depth > 16) throw new RangeError("Grouped headings support at most 16 levels.");
+      if (depth && options.includeHeader === false) throw new TypeError("Grouped headings require leaf headers.");
     }
-    this.headerRows = titleRows + (columns.length && options.includeHeader !== false ? depth + 1 : 0);
+    const headings: (readonly unknown[])[] = [], merges: string[] = [];
+    if (titleRows && columns.length > 1) merges.push("A1:" + columnName(columns.length) + "1");
+    if (options.headerRows !== undefined && options.includeHeader !== false) {
+      const structured = new StructuredRows(options.headerRows, columns.length);
+      if ((options.table || options.autoFilter) && !structured.matchesLeaf(columns.map(c => c.header)))
+        throw new TypeError("Native tables and autofilters require an unmerged final heading row matching the declared leaf headers.");
+      headings.push(...structured.values); merges.push(...structured.merges(titleRows));
+    } else if (options.includeHeader !== false) {
+      for (let level = 0; level < depth; level++) {
+        const values = columns.map(c => c.groups?.[level] ?? "");
+        for (const value of values) cellText(value, policy);
+        for (let first = 0; first < columns.length;) {
+          let last = first;
+          const prefix = JSON.stringify(columns[first]!.groups?.slice(0, level + 1));
+          while (last + 1 < columns.length && values[first] && JSON.stringify(columns[last + 1]!.groups?.slice(0, level + 1)) === prefix) last++;
+          if (last > first) { merges.push(columnName(first + 1) + (level + 1 + titleRows) + ":" + columnName(last + 1) + (level + 1 + titleRows)); for (let i = first + 1; i <= last; i++) values[i] = ""; }
+          first = last + 1;
+        }
+        headings.push(values);
+      }
+      if (columns.length) headings.push(columns.map(c => c.header));
+    }
+    this.headerRows = titleRows + headings.length;
     this.firstHeaderRow = columns.length && options.includeHeader !== false ? titleRows + 1 : 0;
     if (options.mergedCells !== undefined && !Array.isArray(options.mergedCells)) throw new TypeError("Merged ranges must be an array.");
-    if (options.mergedCells && options.mergedCells.length + merges.length > maximumMerges) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded.");
+    if (options.footer?.rows !== undefined && (options.footer.values !== undefined || options.footer.totals !== undefined))
+      throw new TypeError("Structured footer rows cannot accompany footer values or totals.");
+    this.structuredFooter = options.footer?.rows === undefined ? undefined : new StructuredRows(options.footer.rows, columns.length);
+    this.footerRows = this.structuredFooter?.values.length ?? (options.footer ? 1 : 0);
+    this.mergeCount = merges.length + (options.mergedCells?.length ?? 0) + (this.structuredFooter?.mergeCount ?? 0);
+    if (this.mergeCount > maximumMerges) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded.");
     this.regions = new MergeRegions([...merges, ...(options.mergedCells ?? [])], columns.length, maximumMerges);
     if (options.table) for (const ref of options.mergedCells ?? []) if (Number(ref.split(":")[1]!.match(/\d+$/)![0]) >= this.headerRows) throw new TypeError("Merged ranges cannot intersect a native table.");
     this.headings = headings; this.merges = this.regions.references;
@@ -65,11 +85,15 @@ export class ReportLayout {
     this.aggregates = createTotals(columns, options.footer?.totals);
     if (options.print) validatePrint(options.print, policy);
   }
+  /** Resolve appended footer coordinates only after the streamed data row count is known. */
+  finalRegions(rows: number, maximumMerges: number): MergeRegions {
+    return this.structuredFooter ? new MergeRegions([...this.merges, ...this.structuredFooter.merges(this.headerRows + rows)], this.columns.length, maximumMerges) : this.regions;
+  }
   sample(values: readonly unknown[]): void {
     const min = this.options.autoSize?.minWidth ?? 8, max = this.options.autoSize?.maxWidth ?? 60;
     values.forEach((value, i) => {
       if (!this.columns[i] || this.columns[i]!.width !== undefined) return;
-      const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
+      const raw = value instanceof FormulaCell ? value.cachedValue : value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
       const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
       // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
       const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));

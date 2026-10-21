@@ -1,6 +1,8 @@
 import { BlobByteSink } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportProgress } from "../../core/index.js";
 import { notifyProgress } from "../../core/progress.js";
+import { captureFields } from "../../internal/capture.js";
+import { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOptions, mergeAdapterLimits } from "../options.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writePdfTo } from "../../pdf/index.js";
@@ -13,18 +15,23 @@ export type { CanopyCapture, CanopyExportCell, CanopyExportColumn, CanopyExportR
 
 /** Write a captured CanopyX grid to a caller-owned destination; its partial bytes remain caller-owned on failure. */
 export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat, destination: OutputDestination, options: CanopyWriteOptions = {}): Promise<ExportResult> {
-  const source = createCanopyExport(capture, format, options), { signal } = options;
-  const progress = options.onProgress ? { onProgress: (event: ExportProgress) => {
-    notifyProgress(options.onProgress, { ...event, ...(source.rowCount === null ? {} : { totalRows: source.rowCount }) });
+  const selected = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "csv", "pdf", "signal", "onDiagnostic", "limits", "onProgress"]);
+  const { signal, onProgress } = selected, limits = captureCommonLimits(selected.limits);
+  const xlsx = captureXlsxOptions(format === "xlsx" ? selected.xlsx : undefined);
+  const csv = captureCsvOptions(format === "csv" ? selected.csv : undefined);
+  const pdf = capturePdfOptions(format === "pdf" ? selected.pdf : undefined);
+  const source = createCanopyExport(capture, format, { ...selected, xlsx });
+  const progress = onProgress ? { onProgress: (event: ExportProgress) => {
+    notifyProgress(onProgress, { ...event, ...(source.rowCount === null ? {} : { totalRows: source.rowCount }) });
   } } : {};
   const stream = { ...(signal ? { signal } : {}), ...progress };
-  if (format === "xlsx") return writeXlsxTo(source.rows(), destination, { ...options.xlsx, ...stream, columns: source.columns,
-    dateMode: options.xlsx?.dateMode ?? capture.request.timeZone,
-    limits: { ...options.xlsx?.limits, ...options.limits } });
-  if (format === "pdf") return writePdfTo(source.rows(), destination, { ...options.pdf, ...stream, columns: source.columns,
-    limits: { ...options.pdf?.limits, ...options.limits } });
-  return writeCsvTo(source.rows(), destination, { ...options.csv, ...stream, columns: source.columns, valueMode: capture.request.values,
-    limits: { ...options.csv?.limits, ...options.limits } });
+  if (format === "xlsx") return writeXlsxTo(source.rows(), destination, { ...xlsx, ...stream, columns: source.columns,
+    dateMode: xlsx.dateMode ?? capture.request.timeZone,
+    limits: mergeAdapterLimits(xlsx.limits, limits) });
+  if (format === "pdf") return writePdfTo(source.rows(), destination, { ...pdf, ...stream, columns: source.columns,
+    limits: mergeAdapterLimits(pdf.limits, limits) });
+  return writeCsvTo(source.rows(), destination, { ...csv, ...stream, columns: source.columns, valueMode: capture.request.values,
+    limits: mergeAdapterLimits(csv.limits, limits) });
 }
 
 /** Export an immutable native capture as a Blob without loading or registering CanopyX. */

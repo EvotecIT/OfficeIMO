@@ -167,11 +167,12 @@ test("classic scripts compose in either order without a module loader", async ()
     assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
     assert.equal(typeof context.OfficeIMO.exportCanopy, "function");
     assert.equal(typeof context.OfficeIMO.writeCanopyTo, "function");
-    assert.throws(() => new context.OfficeIMO.Workbook().addWorksheet("Pending", { dataValidation: [] }), error =>
+    assert.throws(() => new context.OfficeIMO.Workbook().addWorksheet("Pending").addChart({ type: "unsupported" }), error =>
       error instanceof context.OfficeIMO.core.NotSupportedError && error instanceof context.OfficeIMO.core.OfficeIMOError);
     vm.runInContext(await readFile(new URL("../bundles/officeimo.js", import.meta.url), "utf8"), context);
     assert.equal(context.OfficeIMO.core, core);
     assert.equal(context.OfficeIMO.Cell, context.OfficeIMO.xlsx.Cell);
+    assert.equal(context.OfficeIMO.FormulaCell, context.OfficeIMO.xlsx.FormulaCell);
   }
 });
 

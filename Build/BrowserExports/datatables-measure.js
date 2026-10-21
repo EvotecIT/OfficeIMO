@@ -87,7 +87,7 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
         mode: lane, headings: 'leaf', includeFooter: false,
         exportOptions: { modifier: { order: 'index', search: 'none', selected: null }, escapeExcelFormula: true },
         columnOptions: fullSizing ? undefined : Object.fromEntries(Array.from({ length: comparisonSpec.columns }, (_, column) => [column, { width: 20 }])),
-        sheet: { autoFilter: false, autoSize: fullSizing ? { sampleRows: comparisonSpec.rows, minWidth: 6, maxWidth: 54 } : { sampleRows: 0 } }, csv: { quote: 'all' },
+        xlsx: { sheet: { name: 'Data', autoFilter: false, autoSize: fullSizing ? { sampleRows: comparisonSpec.rows, minWidth: 6, maxWidth: 54 } : { sampleRows: 0 } } }, csv: { quote: 'all' },
         ...(fullSizing ? { limits: { maxBufferedCells: cells, maxBufferedCharacters: cells * 192 + comparisonSpec.rows * 96 } } : {}),
         ...(format === 'pdf' ? { pdf: pdfMeasurementOptions(comparisonSpec) } : {})
       });

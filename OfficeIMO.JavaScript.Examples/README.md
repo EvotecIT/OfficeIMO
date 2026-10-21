@@ -10,6 +10,14 @@ dotnet run --project OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples
 
 Open `current-view.html` or `current-view-bundle.html` in that output directory. Filter the three controllers, reverse their name order, hide Site or move it to the first/last column, then export Excel or CSV. Exports contain the current displayed rows and visible columns in their current order. Excel uses a native table, a blue header, frozen row/column, numeric latency values with two decimal places and warning highlighting above 20 ms. CSV uses a UTF-8 BOM and the package's default formula protection. An empty view exports just the visible headers.
 
-The page uses HtmlForgeX's existing default styles and a plain typed table. Its small script projects the displayed DOM; a data-grid integration should supply the grid's own current-view iterable, especially when the grid virtualizes rows. The [OfficeIMO JavaScript guide](../OfficeIMO.JavaScript/README.md) owns the writer API and limits.
+The page uses HtmlForgeX's existing default styles and a plain typed table. Its small script projects the displayed DOM using stable column fields, so translated headings do not change data types, sorting or formatting; a data-grid integration should supply the grid's own current-view iterable, especially when the grid virtualizes rows. The [OfficeIMO JavaScript guide](../OfficeIMO.JavaScript/README.md) owns the writer API and limits.
 
 This example stays outside the default solution. HtmlForgeX is an example-only dependency and is absent from the OfficeIMO.JavaScript.Assets NuGet and npm artifacts.
+
+## Grouped service reports
+
+`report-engine-job.mjs` is the shared worker job for the website's report demonstration. Its `writeOperationalReport` entry accepts `layout: "analysis"` or `"grouped"`. `operationalRowsBySite` supplies an explicitly site-ordered lazy source for grouping; a real grid host supplies its own filtered/selected capture ordered by the selected grouping field.
+
+Grouped mode writes XLSX outline controls and editable numeric subtotals, or PDF group sections with continued-page context. It preserves typed raw values and derives metrics from the entire exported capture. The example's explicit `language: "en"` and `"pl"` resource profiles own headings, summary labels, page counters and display formatting; stable column keys choose all semantic roles. CSV retains the flat analysis layout.
+
+The grouped source permits 100,000 data rows, 700,000 cells and 1,000 groups. Writer limits also cover generated summaries and cap output at 96 MiB. PDF uses host-loaded, embedding-permitted Carlito regular/bold font bytes. Grouping, metrics, formulas, pagination and byte writing remain in the OfficeIMO engine; the job supplies data, labels and report appearance.

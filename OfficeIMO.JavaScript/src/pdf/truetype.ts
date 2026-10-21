@@ -1,11 +1,12 @@
 import { NotSupportedError } from "../core/errors.js";
 import { FontReader } from "./binary.js";
 import type { FontTable } from "./binary.js";
-import { subsetTrueType } from "./truetype-subset.js";
+import { subsetTrueType, subsetTrueTypeCooperatively } from "./truetype-subset.js";
+import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 
 /** @internal Native TrueType outline profile shared with the C# PDF writer's glyph-preserving subset design. */
 export class TrueTypeFont extends FontReader {
-  readonly tables = new Map<string, FontTable>();
+  readonly tables: Map<string, FontTable>;
   readonly glyphCount: number;
   readonly units: number;
   readonly ascent: number;
@@ -15,75 +16,25 @@ export class TrueTypeFont extends FontReader {
   readonly offsets: readonly number[];
   readonly canSubset: boolean;
   private readonly cmaps: readonly FontTable[];
-  constructor(bytes: Uint8Array) {
+  constructor(bytes: Uint8Array, prepared?: ParsedFont) {
     super(bytes);
-    if (this.u32(0) !== 0x10000) throw new NotSupportedError("PDF fonts require a static TrueType .ttf with glyf outlines; collections, CFF and WOFF are unsupported.");
-    const count = this.u16(4);
-    if (!count || count > 256) throw new TypeError("Invalid TrueType table count.");
-    this.range(12, count * 16);
-    for (let i = 0; i < count; i++) {
-      const p = 12 + i * 16, tag = this.tag(p), offset = this.u32(p + 8), length = this.u32(p + 12);
-      this.range(offset, length);
-      if (this.tables.has(tag)) throw new TypeError("Duplicate TrueType table: " + tag);
-      this.tables.set(tag, { offset, length });
+    const scanner = parseFont(this);
+    let data = prepared;
+    if (!data) while (true) { const next = scanner.next(); if (next.done) { data = next.value; break; } }
+    this.tables = data.tables; this.glyphCount = data.glyphCount; this.units = data.units;
+    this.ascent = data.ascent; this.descent = data.descent; this.bbox = data.bbox;
+    this.widths = data.widths; this.offsets = data.offsets; this.canSubset = data.canSubset; this.cmaps = data.cmaps;
+  }
+  /** Parse an owned immutable snapshot while allowing cancellation and host events between bounded scans. */
+  static async create(bytes: Uint8Array, signal?: AbortSignal): Promise<TrueTypeFont> {
+    checkAbort(signal);
+    const scanner = parseFont(new FontReader(bytes));
+    while (true) {
+      const next = scanner.next();
+      if (next.done) { checkAbort(signal); return new TrueTypeFont(bytes, next.value); }
+      if (taskYieldDue()) await pause();
+      checkAbort(signal);
     }
-    if (this.tables.has("fvar")) throw new NotSupportedError("Instantiate a variable font as a static TrueType font before PDF export.");
-    const head = this.table("head", 54), maxp = this.table("maxp", 6), hhea = this.table("hhea", 36), os2 = this.table("OS/2", 10);
-    if (this.u32(head.offset + 12) !== 0x5f0f3cf5) throw new TypeError("Invalid TrueType head magic.");
-    this.glyphCount = this.u16(maxp.offset + 4); this.units = this.u16(head.offset + 18);
-    if (!this.glyphCount || this.units < 16 || this.units > 16384) throw new TypeError("Invalid TrueType metrics.");
-    const fsType = this.u16(os2.offset + 8);
-    if (fsType & 0x202) throw new NotSupportedError("The font's embedding permissions prohibit outline embedding.");
-    this.canSubset = !(fsType & 0x100);
-    const scale = 1000 / this.units;
-    this.ascent = this.i16(hhea.offset + 4) * scale; this.descent = this.i16(hhea.offset + 6) * scale;
-    this.bbox = [36, 38, 40, 42].map(p => this.i16(head.offset + p) * scale);
-    const metrics = this.u16(hhea.offset + 34);
-    if (!metrics || metrics > this.glyphCount) throw new TypeError("Invalid TrueType horizontal metric count.");
-    const hmtx = this.table("hmtx", metrics * 4 + (this.glyphCount - metrics) * 2);
-    this.widths = Array.from({ length: this.glyphCount }, (_, i) => this.u16(hmtx.offset + Math.min(i, metrics - 1) * 4) * scale);
-    const format = this.i16(head.offset + 50);
-    if (format !== 0 && format !== 1) throw new TypeError("Unsupported TrueType loca index.");
-    const loca = this.table("loca", (this.glyphCount + 1) * (format ? 4 : 2)), glyf = this.table("glyf");
-    this.offsets = Array.from({ length: this.glyphCount + 1 }, (_, i) => format ? this.u32(loca.offset + i * 4) : this.u16(loca.offset + i * 2) * 2);
-    for (let i = 0; i <= this.glyphCount; i++) if (this.offsets[i]! > glyf.length || (i && this.offsets[i]! < this.offsets[i - 1]!)) throw new TypeError("Invalid TrueType glyph offsets.");
-    const cmap = this.table("cmap", 4), maps: FontTable[] = [], validated = new Set<number>();
-    const encodings = this.u16(cmap.offset + 2);
-    if (4 + encodings * 8 > cmap.length) throw new TypeError("Invalid TrueType cmap directory.");
-    for (let i = 0; i < encodings; i++) {
-      const p = cmap.offset + 4 + i * 8, platform = this.u16(p), encoding = this.u16(p + 2), relative = this.u32(p + 4);
-      if (platform !== 0 && !(platform === 3 && (encoding === 1 || encoding === 10))) continue;
-      if (relative + 4 > cmap.length) throw new TypeError("Invalid cmap subtable offset.");
-      const offset = cmap.offset + relative, type = this.u16(offset);
-      if (type !== 4 && type !== 12) continue;
-      // Encoding records may share a Unicode subtable; validate its contents once.
-      if (validated.has(offset)) continue;
-      if (type === 12 && relative + 16 > cmap.length) throw new TypeError("Truncated cmap format 12.");
-      const length = type === 12 ? this.u32(offset + 4) : this.u16(offset + 2);
-      if (length < (type === 12 ? 16 : 16) || relative + length > cmap.length) throw new TypeError("Invalid cmap length.");
-      if (type === 12) {
-        const groups = this.u32(offset + 12);
-        if (16 + groups * 12 > length) throw new TypeError("Invalid cmap groups.");
-        let previous = -1;
-        for (let j = 0; j < groups; j++) {
-          const q = offset + 16 + j * 12, start = this.u32(q), end = this.u32(q + 4), glyph = this.u32(q + 8);
-          if (start <= previous || start > end || end > 0x10ffff || glyph + end - start >= this.glyphCount) throw new TypeError("Invalid cmap scalar/glyph group.");
-          previous = end;
-        }
-      } else {
-        const segments = this.u16(offset + 6) / 2;
-        if (!Number.isInteger(segments) || !segments || 16 + segments * 8 > length) throw new TypeError("Invalid cmap segments.");
-        let previous = -1;
-        for (let j = 0; j < segments; j++) {
-          const end = this.u16(offset + 14 + j * 2), start = this.u16(offset + 16 + segments * 2 + j * 2);
-          if (end <= previous || start > end) throw new TypeError("Invalid cmap segment ordering.");
-          previous = end;
-        }
-      }
-      validated.add(offset); maps.push({ offset, length });
-    }
-    this.cmaps = maps.sort((a, b) => this.u16(b.offset) - this.u16(a.offset));
-    if (!maps.length) throw new NotSupportedError("TrueType font needs a Unicode cmap format 4 or 12.");
   }
   table(tag: string, minimum = 0): FontTable {
     const table = this.tables.get(tag);
@@ -123,4 +74,92 @@ export class TrueTypeFont extends FontReader {
     return 0;
   }
   subset(glyphs: ReadonlySet<number>, characters: ReadonlyMap<number, number>): Uint8Array { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
+  async subsetCooperatively(glyphs: ReadonlySet<number>, characters: ReadonlyMap<number, number>, signal?: AbortSignal): Promise<Uint8Array> {
+    checkAbort(signal); return this.canSubset ? subsetTrueTypeCooperatively(this, glyphs, characters, signal) : this.bytes;
+  }
+}
+
+interface ParsedFont {
+  readonly tables: Map<string, FontTable>; readonly glyphCount: number; readonly units: number;
+  readonly ascent: number; readonly descent: number; readonly bbox: readonly number[]; readonly widths: readonly number[];
+  readonly offsets: readonly number[]; readonly canSubset: boolean; readonly cmaps: readonly FontTable[];
+}
+/** One parser serves synchronous construction and cooperative preparation. */
+function* parseFont(reader: FontReader): Generator<void, ParsedFont, undefined> {
+  const tables = new Map<string, FontTable>();
+  const table = (tag: string, minimum = 0): FontTable => {
+    const result = tables.get(tag);
+    if (!result || result.length < minimum) throw new TypeError("Missing or truncated TrueType table: " + tag);
+    return result;
+  };
+  if (reader.u32(0) !== 0x10000) throw new NotSupportedError("PDF fonts require a static TrueType .ttf with glyf outlines; collections, CFF and WOFF are unsupported.");
+  const count = reader.u16(4);
+  if (!count || count > 256) throw new TypeError("Invalid TrueType table count.");
+  reader.range(12, count * 16);
+  for (let i = 0; i < count; i++) {
+    const p = 12 + i * 16, tag = reader.tag(p), offset = reader.u32(p + 8), length = reader.u32(p + 12);
+    reader.range(offset, length);
+    if (tables.has(tag)) throw new TypeError("Duplicate TrueType table: " + tag);
+    tables.set(tag, { offset, length });
+  }
+  if (tables.has("fvar")) throw new NotSupportedError("Instantiate a variable font as a static TrueType font before PDF export.");
+  const head = table("head", 54), maxp = table("maxp", 6), hhea = table("hhea", 36), os2 = table("OS/2", 10);
+  if (reader.u32(head.offset + 12) !== 0x5f0f3cf5) throw new TypeError("Invalid TrueType head magic.");
+  const glyphCount = reader.u16(maxp.offset + 4); const units = reader.u16(head.offset + 18);
+  if (!glyphCount || units < 16 || units > 16384) throw new TypeError("Invalid TrueType metrics.");
+  const fsType = reader.u16(os2.offset + 8);
+  if (fsType & 0x202) throw new NotSupportedError("The font's embedding permissions prohibit outline embedding.");
+  const canSubset = !(fsType & 0x100);
+  const scale = 1000 / units;
+  const ascent = reader.i16(hhea.offset + 4) * scale; const descent = reader.i16(hhea.offset + 6) * scale;
+  const bbox = [36, 38, 40, 42].map(p => reader.i16(head.offset + p) * scale);
+  const metrics = reader.u16(hhea.offset + 34);
+  if (!metrics || metrics > glyphCount) throw new TypeError("Invalid TrueType horizontal metric count.");
+  const hmtx = table("hmtx", metrics * 4 + (glyphCount - metrics) * 2);
+  const widths: number[] = [];
+  for (let i = 0; i < glyphCount; i++) { widths.push(reader.u16(hmtx.offset + Math.min(i, metrics - 1) * 4) * scale); if ((i & 1023) === 1023) yield; }
+  const format = reader.i16(head.offset + 50);
+  if (format !== 0 && format !== 1) throw new TypeError("Unsupported TrueType loca index.");
+  const loca = table("loca", (glyphCount + 1) * (format ? 4 : 2)), glyf = table("glyf");
+  const offsets: number[] = [];
+  for (let i = 0; i <= glyphCount; i++) { offsets.push(format ? reader.u32(loca.offset + i * 4) : reader.u16(loca.offset + i * 2) * 2); if ((i & 1023) === 1023) yield; }
+  for (let i = 0; i <= glyphCount; i++) if (offsets[i]! > glyf.length || (i && offsets[i]! < offsets[i - 1]!)) throw new TypeError("Invalid TrueType glyph offsets.");
+  const cmap = table("cmap", 4), maps: FontTable[] = [], validated = new Set<number>();
+  const encodings = reader.u16(cmap.offset + 2);
+  if (4 + encodings * 8 > cmap.length) throw new TypeError("Invalid TrueType cmap directory.");
+  for (let i = 0; i < encodings; i++) {
+    const p = cmap.offset + 4 + i * 8, platform = reader.u16(p), encoding = reader.u16(p + 2), relative = reader.u32(p + 4);
+    if (platform !== 0 && !(platform === 3 && (encoding === 1 || encoding === 10))) continue;
+    if (relative + 4 > cmap.length) throw new TypeError("Invalid cmap subtable offset.");
+    const offset = cmap.offset + relative, type = reader.u16(offset);
+    if (type !== 4 && type !== 12) continue;
+    // Encoding records may share a Unicode subtable; validate its contents once.
+    if (validated.has(offset)) continue;
+    if (type === 12 && relative + 16 > cmap.length) throw new TypeError("Truncated cmap format 12.");
+    const length = type === 12 ? reader.u32(offset + 4) : reader.u16(offset + 2);
+    if (length < (type === 12 ? 16 : 16) || relative + length > cmap.length) throw new TypeError("Invalid cmap length.");
+    if (type === 12) {
+      const groups = reader.u32(offset + 12);
+      if (16 + groups * 12 > length) throw new TypeError("Invalid cmap groups.");
+      let previous = -1;
+      for (let j = 0; j < groups; j++) {
+        const q = offset + 16 + j * 12, start = reader.u32(q), end = reader.u32(q + 4), glyph = reader.u32(q + 8);
+        if (start <= previous || start > end || end > 0x10ffff || glyph + end - start >= glyphCount) throw new TypeError("Invalid cmap scalar/glyph group.");
+        previous = end; if ((j & 1023) === 1023) yield;
+      }
+    } else {
+      const segments = reader.u16(offset + 6) / 2;
+      if (!Number.isInteger(segments) || !segments || 16 + segments * 8 > length) throw new TypeError("Invalid cmap segments.");
+      let previous = -1;
+      for (let j = 0; j < segments; j++) {
+        const end = reader.u16(offset + 14 + j * 2), start = reader.u16(offset + 16 + segments * 2 + j * 2);
+        if (end <= previous || start > end) throw new TypeError("Invalid cmap segment ordering.");
+        previous = end; if ((j & 1023) === 1023) yield;
+      }
+    }
+    validated.add(offset); maps.push({ offset, length });
+  }
+  const cmaps = maps.sort((a, b) => reader.u16(b.offset) - reader.u16(a.offset));
+  if (!maps.length) throw new NotSupportedError("TrueType font needs a Unicode cmap format 4 or 12.");
+  return { tables, glyphCount, units, ascent, descent, bbox, widths, offsets, canSubset, cmaps };
 }

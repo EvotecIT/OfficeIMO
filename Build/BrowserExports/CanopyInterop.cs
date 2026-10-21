@@ -13,6 +13,7 @@ internal static class CanopyInterop {
         var inputs = new Dictionary<string, string>();
         foreach (string name in new[] { "canopyx-reporting.js", "canopyx-reporting.css", "canopyx-grid.js", "canopyx-grid.css", "canopyx-filter-editor.js", "canopyx-filter-editor.css" })
             inputs.Add(name, File.ReadAllText(Path.Combine(assets, name)));
+        if (args.Contains("--canopy-structured")) inputs.Add("canopyx-export.js", File.ReadAllText(Path.Combine(assets, "canopyx-export.js")));
         var hashes = inputs.ToDictionary(pair => pair.Key, pair => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(pair.Value))).ToLowerInvariant());
         string regular = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "Carlito-Regular.ttf")));
         string bold = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "Carlito-Bold.ttf")));
@@ -69,6 +70,17 @@ internal static class CanopyInterop {
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] + "\n" + inputs["canopyx-filter-editor.js"] });
             await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
+            if (args.Contains("--canopy-structured")) {
+                // Register the exact optional native part before prepareExport; no replacement loader or copied implementation.
+                await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-export.js"] });
+                JsonElement structured = await session.Page.EvaluateAsync<JsonElement>("() => runStructuredCanopyContracts()");
+                if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
+                var structuredReport = new { engine = engine.ToString(), browserVersion = session.Browser?.Version, canopy, inputs = hashes, asset = JavaScriptAssets.CanopyXScript.HashedFileName, structured, files, errors };
+                reports.Add(structuredReport);
+                File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(structuredReport, new JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine($"CanopyX {engine}: {files.Count} independently read structured exports.");
+                continue;
+            }
             JsonElement result = await session.Page.EvaluateAsync<JsonElement>("args => runCanopyContracts(args)",
                 new { regular, bold, workerScript = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.Locator("#canopy-host-export").ClickAsync();

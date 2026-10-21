@@ -23,7 +23,10 @@ internal static class DataTablesInterop {
             await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-contracts.js")) });
             await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-worker.js")) });
             JsonElement result = await session.Page.EvaluateAsync<JsonElement>("script => runDataTablesContracts(script)", JavaScriptAssets.Script.Content);
-            foreach (string workbook in Directory.GetFiles(output, "*.xlsx")) WorkbookVerifier.Verify(workbook);
+            foreach (string workbook in Directory.GetFiles(output, "*.xlsx")) {
+                WorkbookVerifier.Verify(workbook);
+                if (Path.GetFileName(workbook).StartsWith("structured-", StringComparison.Ordinal)) StructuredTableVerifier.Verify(workbook);
+            }
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
             await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "table-wide.png"), FullPage = true });
             await session.Page.SetViewportSizeAsync(420, 760);

@@ -1,5 +1,8 @@
 import type { Column, ExportValue, CellPresentation, CellValue, ColumnValueContext, StreamOptions, ExportLimits, TableSpanRows } from "../core/index.js";
 import type { PdfFont } from "./font.js";
+import type { PdfTextRun } from "./inline-types.js";
+import type { PdfTextDirection, PdfTextShaper } from "./text-shaping-types.js";
+import type { BooleanText } from "../core/value-text.js";
 
 /** PDF lengths are points (72 points per inch). */
 export interface PdfPageSize { readonly width: number; readonly height: number; }
@@ -26,6 +29,10 @@ export interface PdfLimits extends ExportLimits {
   readonly maxColumns?: number;
   /** Bounds one projected cell before wrapping; text is never truncated. */
   readonly maxCellCharacters?: number;
+  /** Captured styled runs per paragraph/cell, and in a kept paragraph group. */
+  readonly maxTextRuns?: number;
+  /** Paragraph count in a group or kept chain. */
+  readonly maxGroupBlocks?: number;
   /** Bounds one row's wrapped layout, including a row split over many pages. */
   readonly maxRowLines?: number;
   readonly maxFontBytes?: number;
@@ -36,14 +43,24 @@ export interface PdfLimits extends ExportLimits {
   readonly maxImageBytes?: number;
   /** Per-image decoded pixel ceiling, checked before allocating RGB or alpha planes. */
   readonly maxImagePixels?: number;
+  /** Optional ceiling for owned image input/decoded/scanline buffers; excludes native codec memory and compressed output. */
+  readonly maxImageWorkingBytes?: number;
   /** Total path commands across a composed document, checked before serializing a block. */
   readonly maxVectorCommands?: number;
   /** Total path, text and group elements across portable drawing blocks. */
   readonly maxDrawingElements?: number;
-  /** Logical structure elements retained by a tagged document, including Document, rows and cells. */
+  /** Total logical structure elements created across a tagged document, including Document, rows and cells. */
   readonly maxStructureElements?: number;
-  /** Cross-page content references retained by the structure tree, including continued cells. */
+  /** Total marked-content references created across the document, including continued cells. */
   readonly maxMarkedContentReferences?: number;
+  /** Section boundaries across one composed document. */
+  readonly maxSections?: number;
+  /** Native outline entries across one composed document. */
+  readonly maxBookmarks?: number;
+  /** Streamed list items across one composed document. */
+  readonly maxListItems?: number;
+  /** Captured named paragraph styles in a composed document. */
+  readonly maxParagraphStyles?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {
@@ -53,8 +70,28 @@ export interface PdfTableFooter {
   /** Structured alternative to values/totals; includes horizontal and vertical spans. */
   readonly rows?: TableSpanRows;
 }
-export interface PdfPageContext { readonly pageNumber: number; }
+export interface PdfPageContext {
+  readonly pageNumber: number;
+  /** One-based section number; an unsectioned document uses section one. */
+  readonly sectionNumber: number;
+  /** One-based physical page within the current section. */
+  readonly sectionPageNumber: number;
+  readonly sectionTitle?: string;
+}
+/** Literal text around the current/total page counts; no locale is inferred. */
+export interface PdfPageNumberLabels {
+  /** Text before the current page number. Default "Page ". Empty text is valid. */
+  readonly prefix?: string;
+  /** Text between the current and total page numbers. Default " of ". */
+  readonly separator?: string;
+  /** Text after the total page count. Default empty. */
+  readonly suffix?: string;
+}
 export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
+  /** Optional provider for composed paragraphs and table cells. Legacy decorations remain scalar text. */
+  readonly textShaper?: PdfTextShaper;
+  /** Base direction of each shaped physical paragraph; defaults to auto. */
+  readonly textDirection?: PdfTextDirection;
   readonly columns: readonly Column<T>[];
   readonly limits?: PdfLimits;
   readonly pageSize?: "A3" | "A4" | "A5" | "LETTER" | "LEGAL" | "TABLOID" | PdfPageSize;
@@ -86,8 +123,14 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   readonly pageHeader?: string | ((context: PdfPageContext) => string);
   readonly pageFooter?: string | ((context: PdfPageContext) => string);
   readonly pageNumbers?: boolean;
+  /** Captured page-number literals. English defaults preserve the existing display contract. */
+  readonly pageNumberLabels?: PdfPageNumberLabels;
+  /** Explicit boolean display labels. Defaults are the existing English True/False text. */
+  readonly booleanText?: BooleanText;
   /** Prefer ExportCell.text for presentation, then this formatter, then ISO/scalar text. */
   readonly formatValue?: (value: CellValue, context: ColumnValueContext) => string;
+  /** Styled display runs when ExportCell.text is absent; must return synchronously. */
+  readonly formatRuns?: (value: CellValue, context: ColumnValueContext) => readonly PdfTextRun[];
   /** Native deflate when available; the fallback writes valid uncompressed PDF streams. */
   readonly compression?: boolean;
 }

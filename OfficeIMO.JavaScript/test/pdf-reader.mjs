@@ -14,15 +14,20 @@ export async function inspectPdf(blob) {
     assert.equal(text.slice(offset, offset + String(id).length + 6), id + " 0 obj");
     const end = text.indexOf("\nendobj\n", offset);
     assert.ok(end > offset);
-    const body = text.slice(offset + String(id).length + 7, end), marker = body.indexOf("\nstream\n");
-    let stream;
-    if (marker >= 0) {
-      const length = Number(/\/Length (\d+)/.exec(body)[1]), begin = offset + String(id).length + 7 + marker + 8;
-      stream = bytes.subarray(begin, begin + length);
-      assert.equal(text.slice(begin + length, begin + length + 10), "\nendstream");
-      if (/\/Filter \/FlateDecode/.test(body.slice(0, marker))) stream = inflateSync(stream);
-    }
-    objects.set(id, { body, stream });
+    const body = text.slice(offset + String(id).length + 7, end);
+    objects.set(id, { body });
+  }
+  // Stream Length may be an indirect object emitted after the streamed bytes.
+  for (const [id, object] of objects) {
+    const marker = object.body.indexOf("\nstream\n");
+    if (marker < 0) continue;
+    const declared = /\/Length (\d+)( 0 R)?/.exec(object.body);
+    const length = declared[2] ? Number(objects.get(Number(declared[1])).body) : Number(declared[1]);
+    const offset = Number(xref[id + 2].slice(0, 10)), begin = offset + String(id).length + 7 + marker + 8;
+    let stream = bytes.subarray(begin, begin + length);
+    assert.equal(text.slice(begin + length, begin + length + 10), "\nendstream");
+    if (/\/Filter \/FlateDecode/.test(object.body.slice(0, marker))) stream = inflateSync(stream);
+    object.stream = stream;
   }
   const fontMaps = new Map();
   for (const [id, object] of objects) if (/\/Subtype \/Type0/.test(object.body)) {
