@@ -64,7 +64,7 @@ public sealed class MarkdownTextRun : MarkdownInline, IRenderableMarkdownInline,
         };
     }
 
-    internal string RenderMarkdown() => MarkdownEscaper.EscapeText(Text);
+    internal string RenderMarkdown() => MarkdownEscaper.EscapeTextForWriter(Text);
     internal string RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
