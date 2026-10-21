@@ -28,19 +28,31 @@ The footprint recorded for the isolated test payload was 25.32 MiB for the extra
 
 ## Run
 
+Use PowerShell 7 on Windows with Ubuntu 24.04 amd64 under WSL.
+
 Prepare an isolated environment under `Ignore/Benchmarks/OcrEngineComparison` with the layout and pinned versions in [`environment.lock.json`](environment.lock.json):
 
 ```text
 tesseract-root/   extracted Ubuntu Tesseract packages
 rapid-packages/   rapidocr and onnxruntime Python target directory
 rapid-models/     downloaded ONNX models
+fixture-packages/ Pillow 11.0.0, needed only to regenerate fixtures
 ```
 
-The exact PNG inputs and expected text are checked in under [`fixtures`](fixtures). `-RefreshFixtures` is a maintainer-only regeneration path and fails unless Pillow 11.0.0 and the pinned DejaVu font bytes match their recorded SHA-256 values.
-Install the isolated Python payload from [`requirements.lock.txt`](requirements.lock.txt); the benchmark wrapper additionally requires its complete tree to match the digest in `environment.lock.json`, so version-equivalent but modified files fail closed.
+The exact PNG inputs and expected text are checked in under [`fixtures`](fixtures). `-RefreshFixtures` is a maintainer-only regeneration path and fails unless Pillow 11.0.0 and the pinned DejaVu font bytes match their recorded SHA-256 values. Fixture regeneration uses a separate `fixture-packages` directory so the historical renderer does not constrain the current RapidOCR dependencies. Prepare it only when using `-RefreshFixtures` or rebuilding a missing fixture manifest:
 
 ```powershell
-wsl.exe -- python3 -m pip install --no-compile --target /mnt/c/path/to/rapid-packages --requirement /mnt/c/path/to/requirements.lock.txt
+wsl.exe -- python3 -m pip install --no-compile --no-deps --target /mnt/c/path/to/fixture-packages pillow==11.0.0
+```
+
+Normal comparison runs use the checked-in fixtures and do not require `fixture-packages`.
+
+Install the isolated Python payload from [`requirements.lock.txt`](requirements.lock.txt); the benchmark wrapper additionally requires its complete tree to match the digest in `environment.lock.json`, so version-equivalent but modified files fail closed.
+
+The locked Python payload was qualified in an Ubuntu 24.04 amd64 container under emulation using system Python 3.12.3 at `/usr/bin/python3`, pip 24.0, setuptools 68.1.2, and wheel 0.42.0. Use those versions when preparing this exact payload. The tree includes installer-generated command scripts and package metadata, so changing the Python executable path or installer tools can change its digest even when package versions agree. Keep the whole-tree check enabled; qualify and rebind a differently prepared payload before measuring it.
+
+```powershell
+wsl.exe -- /usr/bin/python3 -m pip install --no-compile --target /mnt/c/path/to/rapid-packages --requirement /mnt/c/path/to/requirements.lock.txt
 ```
 
 No benchmark dependency belongs in the solution or a runtime project. After preparing that ignored environment:
