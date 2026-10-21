@@ -79,7 +79,9 @@ The reference and the first legal note fragment stay on the same page. Notes res
 
 `PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
 
-Page notes require single-column body flow. Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
+Page notes require single-column body flow and statically authored references. `TableDeferred` batches and replayable `Deferred` callbacks cannot introduce note references; use ordinary tables or static `Flow` content for those references. Deferred content without note references can share pages with notes when it follows the same body-layout constraints.
+
+Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
 
 ## Literal text to PDF
 

@@ -14,6 +14,8 @@ internal static partial class PdfWriter {
             StringBuilder? pairedBorders = style.CellBorders?.Values.Any(HasPairedCellBorder) == true ? new StringBuilder() : null;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (PdfFootnoteTraversal.References(batch.Table).Any())
+                    throw new NotSupportedException("Page-associated footnote references are not supported in deferred tables. Use an eager table.");
                 RenderTableFlowBlock(
                     batch.Table,
                     batch.IsLast ? nextBlock : null,

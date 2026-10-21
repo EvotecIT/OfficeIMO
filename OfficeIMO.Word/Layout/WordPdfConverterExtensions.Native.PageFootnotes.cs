@@ -104,7 +104,7 @@ public static partial class WordPdfConverterExtensions {
             if (reference.Id?.Value is not long id) continue;
             W.Footnote? source = WordNoteResolver.FindFootnote(
                 section._document._wordprocessingDocument.MainDocumentPart, id);
-            if (source == null) throw new InvalidDataException("The footnote reference has no matching note body.");
+            if (source == null) continue;
             if (!CanProjectNativePageNoteReference(reference) ||
                 reference.Ancestors<W.SdtRun>().Any(control => !CanProjectNativePageNoteControl(control)) ||
                 reference.Ancestors<W.Paragraph>().FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() == true ||
@@ -114,6 +114,7 @@ public static partial class WordPdfConverterExtensions {
             NativeNoteKey key = GetNativeFootnoteKey(id);
             if (!sources.Any(item => item.Key == key)) sources.Add((key, source));
         }
+        if (sources.Count == 0) return true;
         if (!qualified) {
             notes.ReportPlacementFallback(bodyProfileGap ?? (!stableContinuationWidth
                 ? "A following section has a different usable page width; page-note continuation cannot yet reflow to that width."

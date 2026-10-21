@@ -58,7 +58,7 @@ public sealed partial class PdfDocument {
         foreach (IPdfBlock block in _blocks) ValidateFootnoteBodyProfile(block, _options);
     }
 
-    private static void ValidateFootnoteBodyProfile(IPdfBlock block, PdfOptions options) {
+    internal static void ValidateFootnoteBodyProfile(IPdfBlock block, PdfOptions options) {
         if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
             throw new NotSupportedException("Page-associated footnotes require single-column body flow without page-canvas content.");
         if (block is RichParagraphBlock paragraph && (paragraph.Style ?? options.DefaultParagraphStyleSnapshot)?.AnchoredCanvas != null ||
@@ -66,8 +66,9 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException("Page-associated footnotes do not support anchored canvas body content.");
         if (block is ContainerBlock { Style.AnchoredCanvas: not null })
             throw new NotSupportedException("Page-associated footnotes do not support anchored canvas body content.");
-        if (block is TableBlock table) {
-            PdfTableStyle? style = table.Style ?? options.DefaultTableStyleSnapshot;
+        if (block is TableBlock or DeferredTableBlock) {
+            PdfTableStyle? style = (block is TableBlock table ? table.Style : ((DeferredTableBlock)block).Style)
+                ?? options.DefaultTableStyleSnapshot;
             if (style?.Position != null || style?.ConsumesVerticalFlow == false)
                 throw new NotSupportedException("Page-associated footnotes do not support floating or non-flow body tables.");
         }
