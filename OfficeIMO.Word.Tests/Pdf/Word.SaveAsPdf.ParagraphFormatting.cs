@@ -971,6 +971,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reads_BiDi_Paragraph_OnOff_Value() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiOnOffValue.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiOnOffValue.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph bidiOff = document.AddParagraph("LeftBidiOffMarker");
+                (bidiOff._paragraph.ParagraphProperties ??= new ParagraphProperties()).BiDi = new BiDi { Val = false };
+                WordParagraph bidiOn = document.AddParagraph("RightBidiOnMarker");
+                (bidiOn._paragraph.ParagraphProperties ??= new ParagraphProperties()).BiDi = new BiDi();
+                document.AddParagraph("LeftPlainMarker");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
+                    Margins = PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            var bidiOffWord = Assert.Single(words, word => word.Text == "LeftBidiOffMarker");
+            var bidiOnWord = Assert.Single(words, word => word.Text == "RightBidiOnMarker");
+            var plainWord = Assert.Single(words, word => word.Text == "LeftPlainMarker");
+
+            Assert.True(Math.Abs(bidiOffWord.BoundingBox.Left - plainWord.BoundingBox.Left) < 1D, $"Expected w:bidi w:val=0 paragraph text to stay left-aligned. BiDi-off x: {bidiOffWord.BoundingBox.Left:0.##}; plain x: {plainWord.BoundingBox.Left:0.##}.");
+            Assert.True(bidiOnWord.BoundingBox.Left > plainWord.BoundingBox.Left + 90D, $"Expected w:bidi paragraph text without w:val to use Word-style right alignment. BiDi x: {bidiOnWord.BoundingBox.Left:0.##}; plain x: {plainWord.BoundingBox.Left:0.##}.");
+            Assert.Equal("R2L", PdfInspector.Inspect(bytes).ViewerPreferences?.GetValue("Direction"));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Does_Not_Set_R2L_Viewer_Direction_For_BiDi_Off_Paragraphs() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiOffViewerDirection.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiOffViewerDirection.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph bidiOff = document.AddParagraph("BidiOffMarker");
+                (bidiOff._paragraph.ParagraphProperties ??= new ParagraphProperties()).BiDi = new BiDi { Val = false };
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            }
+
+            PdfDocumentInfo info = PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
+            Assert.Null(info.ViewerPreferences?.GetValue("Direction"));
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Viewer_Direction_For_BiDi_Documents() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiConfiguredViewerDirection.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiConfiguredViewerDirection.pdf");
