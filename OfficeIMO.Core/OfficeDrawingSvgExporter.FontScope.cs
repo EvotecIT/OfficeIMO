@@ -7,11 +7,11 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    // Inline SVG styles share the host document's font namespace. Scope both
-    // registrations and references, including rich text and nested drawing groups.
+    // Font references are CSS values even in standalone SVG. Quote embedded
+    // names when necessary, and scope them for inline pages sharing a document.
     private static string ScopeEmbeddedFontFamilies(string svg, OfficeFontFaceCollection fonts,
         string prefix, CancellationToken cancellationToken) {
-        if (prefix.Length == 0 || fonts.Faces.Count == 0) return svg;
+        if (fonts.Faces.Count == 0) return svg;
         var families = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var face in fonts.Faces) {
             families[face.ResourceFamilyName] = prefix + face.ResourceFamilyName;
@@ -19,18 +19,25 @@ public static partial class OfficeDrawingSvgExporter {
         }
         // Parse only markup produced above by our renderer, never external SVG.
         var root = XElement.Parse(svg, LoadOptions.PreserveWhitespace);
+        bool changed = false;
         foreach (var element in root.DescendantsAndSelf()) {
             cancellationToken.ThrowIfCancellationRequested();
             var attribute = element.Attribute("font-family");
             if (attribute == null) continue;
-            var names = OfficeFontFamilyParser.Parse(attribute.Value).ToArray();
-            if (!names.Any(families.ContainsKey)) continue;
-            attribute.Value = string.Join(", ", names.Select(name => families.TryGetValue(name, out var scoped)
-                ? QuoteCssFamily(scoped)
-                : RequiresQuotedCssFamily(name) ? QuoteCssFamily(name) : name));
+            var names = OfficeFontFamilyParser.ParseCssReferences(attribute.Value);
+            if (!names.Any(name => families.ContainsKey(name.Name))) continue;
+            string reference = string.Join(", ", names.Select(name => {
+                if (!name.IsQuoted && IsGenericCssFamily(name.Name)) return name.Name;
+                return prefix.Length > 0 && families.TryGetValue(name.Name, out var scoped)
+                    ? QuoteCssFamily(scoped)
+                    : name.IsQuoted || RequiresQuotedCssFamily(name.Name) ? QuoteCssFamily(name.Name) : name.Name;
+            }));
+            if (string.Equals(attribute.Value, reference, StringComparison.Ordinal)) continue;
+            attribute.Value = reference;
+            changed = true;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return root.ToString(SaveOptions.DisableFormatting);
+        return changed ? root.ToString(SaveOptions.DisableFormatting) : svg;
     }
 
     private static bool RequiresQuotedCssFamily(string family) {
@@ -39,6 +46,7 @@ public static partial class OfficeDrawingSvgExporter {
 
         var identifiers = family.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (identifiers.Length == 0) return true;
+        if (!string.Equals(family, string.Join(" ", identifiers), StringComparison.Ordinal)) return true;
         for (int index = 0; index < identifiers.Length; index++) {
             if (!IsUnquotedCssIdentifier(identifiers[index]) || IsCssWideKeyword(identifiers[index])) return true;
         }
@@ -84,8 +92,18 @@ public static partial class OfficeDrawingSvgExporter {
         value.Equals("ui-monospace", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("ui-rounded", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("math", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("emoji", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("fangsong", StringComparison.OrdinalIgnoreCase);
+        IsFunctionalGenericCssFamily(value);
+
+    // CSS Fonts 4 script-specific generics are functions, not literal family names.
+    private static bool IsFunctionalGenericCssFamily(string value) {
+        if (!value.StartsWith("generic(", StringComparison.OrdinalIgnoreCase) ||
+            value[value.Length - 1] != ')') return false;
+        string argument = value.Substring(8, value.Length - 9).Trim(' ', '\t', '\r', '\n', '\f');
+        return argument.Equals("fangsong", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("kai", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("khmer-mul", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("nastaliq", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string QuoteCssFamily(string family) => "\"" + EscapeCssString(family) + "\"";
 }

@@ -8,13 +8,14 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginParserLimits_TrustedInputDoesNotAcquireAnIndependentEightMegabyteCap() {
         string declarations = "/*" + new string(' ', 8 * 1024 * 1024) + "*/font:16px/10cqw Pinned";
-        using var document = new HtmlParser().ParseDocument(PageMarginTypographySource(declarations));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(PageMarginTypographySource(declarations),
+            HtmlConversionDocumentOptions.CreateTrustedProfile());
         var options = PageMarginTypographyOptions();
+        options.PageSize = new OfficeIMO.Drawing.OfficePageSize(360D / 96D, 480D / 96D);
 
-        HtmlCssPageRuleSet rules = HtmlCssPageSettingsResolver.Apply(document, options, new HtmlDiagnosticReport());
+        HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(document, options).Pages);
 
-        Assert.Equal("10cqw", Assert.Single(rules.ResolveMarginBoxes(
-            1, null, rules.ResolveGeometry(1, null, options), options)).Value.LineHeight);
+        Assert.Equal(36D, PageMarginTypographyText(page).LineHeight, 6);
     }
 
     [Fact]

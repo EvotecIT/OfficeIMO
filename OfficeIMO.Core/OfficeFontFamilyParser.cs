@@ -17,7 +17,26 @@ internal static class OfficeFontFamilyParser {
         int maximumFamilyNameLength = DefaultMaximumFamilyNameLength,
         bool allowSemicolonSeparators = false,
         bool requirePrimaryFamily = false) {
-        var families = new List<string>();
+        var references = ParseCore(familyNames, maximumCandidates, maximumFamilyNameLength,
+            allowSemicolonSeparators, requirePrimaryFamily, preserveCssStrings: false);
+        return references.ConvertAll(reference => reference.Name);
+    }
+
+    /// <summary>Retains CSS string identity so quoted literal names cannot become generic families.</summary>
+    internal static List<FamilyReference> ParseCssReferences(string? familyNames) =>
+        ParseCore(familyNames, DefaultMaximumCandidates, DefaultMaximumFamilyNameLength,
+            allowSemicolonSeparators: false, requirePrimaryFamily: false, preserveCssStrings: true);
+
+    internal readonly struct FamilyReference {
+        internal FamilyReference(string name, bool isQuoted) { Name = name; IsQuoted = isQuoted; }
+        internal string Name { get; }
+        internal bool IsQuoted { get; }
+    }
+
+    private static List<FamilyReference> ParseCore(string? familyNames, int maximumCandidates,
+        int maximumFamilyNameLength, bool allowSemicolonSeparators, bool requirePrimaryFamily,
+        bool preserveCssStrings) {
+        var families = new List<FamilyReference>();
         if (string.IsNullOrEmpty(familyNames) || maximumCandidates < 1 || maximumFamilyNameLength < 1) {
             return families;
         }
@@ -45,19 +64,29 @@ internal static class OfficeFontFamilyParser {
                 }
                 segmentEnd++;
             }
-            string family = CleanSegment(familyNames, segmentStart, segmentEnd, maximumFamilyNameLength);
+            int nameStart = segmentStart, nameEnd = segmentEnd;
+            TrimBounds(familyNames, ref nameStart, ref nameEnd);
+            bool isQuoted = preserveCssStrings && nameEnd - nameStart >= 2 &&
+                ((familyNames[nameStart] == '"' && familyNames[nameEnd - 1] == '"') ||
+                 (familyNames[nameStart] == '\'' && familyNames[nameEnd - 1] == '\''));
+            string family = CleanSegment(familyNames, segmentStart, segmentEnd, maximumFamilyNameLength, isQuoted);
             // Strict consumers must not promote a fallback past an empty primary entry.
             if (requirePrimaryFamily && segmentStart == 0 && family.Length == 0) return families;
-            if (family.Length > 0 && seen.Add(family)) families.Add(family);
+            string identity = preserveCssStrings ? (isQuoted ? "string:" : "ident:") + family : family;
+            if (family.Length > 0 && seen.Add(identity)) families.Add(new FamilyReference(family, isQuoted));
             segmentStart = segmentEnd + 1;
         }
 
         return families;
     }
 
-    private static string CleanSegment(string value, int start, int end, int maximumLength) {
+    private static string CleanSegment(string value, int start, int end, int maximumLength,
+        bool preserveQuotedWhitespace = false) {
         TrimBounds(value, ref start, ref end);
-        while (end - start >= 2 &&
+        if (preserveQuotedWhitespace) {
+            start++;
+            end--;
+        } else while (end - start >= 2 &&
                ((value[start] == '"' && value[end - 1] == '"') ||
                 (value[start] == '\'' && value[end - 1] == '\''))) {
             start++;

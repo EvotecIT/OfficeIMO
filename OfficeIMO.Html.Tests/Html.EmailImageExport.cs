@@ -90,14 +90,16 @@ public sealed class HtmlEmailImageExportTests {
         XElement subject = text[0];
         Assert.True(double.Parse(subject.Attribute("y")!.Value, CultureInfo.InvariantCulture)
             < double.Parse(text[1].Attribute("y")!.Value, CultureInfo.InvariantCulture));
-        string family = subject.Attribute("font-family")!.Value;
-        Assert.NotEqual(family, text[1].Attribute("font-family")!.Value);
+        string familyReference = subject.Attribute("font-family")!.Value;
+        Assert.NotEqual(familyReference, text[1].Attribute("font-family")!.Value);
 
         string styles = string.Concat(svg.Descendants().Where(element => element.Name.LocalName == "style").Select(element => element.Value));
         Match rule = Assert.Single(Regex.Matches(styles, """@font-face\s*\{(?<body>[^{}]+)\}""",
             RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Cast<Match>(), match =>
-            Field(match.Groups["body"].Value, """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""") == family);
+            familyReference == "\"" + Field(match.Groups["body"].Value,
+                """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""") + "\"");
         string declarations = rule.Groups["body"].Value;
+        string family = Field(declarations, """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""");
         byte[] embedded = Convert.FromBase64String(Field(declarations,
             """(?:^|;)\s*src\s*:\s*url\(data:font/ttf;base64,(?<value>[A-Za-z0-9+/=]+)\)"""));
         int weight = int.Parse(Field(declarations, """(?:^|;)\s*font-weight\s*:\s*(?<value>\d+)"""), CultureInfo.InvariantCulture);

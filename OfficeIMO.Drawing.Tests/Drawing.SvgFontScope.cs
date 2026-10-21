@@ -7,6 +7,156 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgFontScopeTests {
     [Theory]
+    [InlineData("ABCDEF+Subset-Regular", "\"ABCDEF+Subset-Regular\"")]
+    [InlineData("3 of 9 Barcode", "\"3 of 9 Barcode\"")]
+    [InlineData("initial", "\"initial\"")]
+    [InlineData("Shared Font", "Shared Font")]
+    [InlineData("Shared  Font", "\"Shared  Font\"")]
+    public void StandaloneSvgUsesCssSafeEmbeddedFontReferences(string family, string expectedReference) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo(family, 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal(expectedReference,
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+        Assert.Contains("font-family:\"" + family + "\"",
+            svg.Descendants().Single(x => x.Name.LocalName == "style").Value);
+        Assert.Equal(family, drawing.Fonts.Faces[0].FamilyName);
+    }
+
+    [Fact]
+    public void StandaloneSvgPreservesQuotedFallbackNamesAndGenericFamilies() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ABCDEF+Subset-Regular", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"Missing, Family\", ABCDEF+Subset-Regular, sans-serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal("\"Missing, Family\", \"ABCDEF+Subset-Regular\", sans-serif",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StandaloneSvgPreservesExistingMarkupWhenFontReferencesNeedNoRewrite(bool referencedFont) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.AddPositionedText("A", 2, 2, 90, 30, new OfficeFontInfo("Shared Font", 12));
+        string withoutEmbeddedFonts = OfficeDrawingSvgExporter.ToSvg(drawing);
+        drawing.Fonts.Add(referencedFont ? "Shared Font" : "Unused Font", ManagedTextShapingTestAssets.CreateFont('A'));
+
+        string withEmbeddedFonts = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(referencedFont ? 1 : 0,
+            XElement.Parse(withEmbeddedFonts).Descendants().Count(element => element.Name.LocalName == "style"));
+        string withoutFontDefinitions = System.Text.RegularExpressions.Regex.Replace(withEmbeddedFonts,
+            "<defs><style[^>]*>.*?</style></defs>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        Assert.Equal(withoutEmbeddedFonts, withoutFontDefinitions);
+    }
+
+    [Theory]
+    [InlineData("serif")]
+    [InlineData("math")]
+    [InlineData("Shared  Font")]
+    public void StandaloneSvgKeepsLiteralQuotedEmbeddedFamilyNames(string family) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo(OfficeFontFamilyParser.Quote(family), 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal(OfficeFontFamilyParser.Quote(family),
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData("fangsong", "fangsong")]
+    [InlineData("fangsong", "FaNgSoNg")]
+    [InlineData("emoji", "emoji")]
+    [InlineData("emoji", "EmOjI")]
+    public void InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(string family, string request) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo(request + ", generic(fangsong), serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-" + family + "\", generic(fangsong), serif",
+            svg.Descendants().Single(e => e.Name.LocalName == "text").Attribute("font-family")!.Value);
+        Assert.Contains("font-family:\"page-1-" + family + "\";",
+            svg.Descendants().Single(e => e.Name.LocalName == "style").Value, StringComparison.Ordinal);
+        Assert.Equal(family, drawing.Fonts.Faces[0].FamilyName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("page-1-")]
+    public void SvgKeepsLiteralAndGenericFallbacksDistinct(string prefix) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ABCDEF+Subset-Regular", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"serif\", ABCDEF+Subset-Regular, serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, prefix));
+
+        Assert.Equal("\"serif\", \"" + prefix + "ABCDEF+Subset-Regular\", serif",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData("serif")]
+    [InlineData("math")]
+    public void InlineSvgScopesOnlyTheLiteralEmbeddedFamilyWhenItsNameIsGeneric(string family) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo(OfficeFontFamilyParser.Quote(family) + ", " + family, 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-" + family + "\", " + family,
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData("", "generic(fangsong)")]
+    [InlineData("page-1-", "generic(fangsong)")]
+    [InlineData("page-1-", "generic(kai)")]
+    [InlineData("page-1-", "generic(khmer-mul)")]
+    [InlineData("page-1-", "generic(nastaliq)")]
+    [InlineData("page-1-", "GeNeRiC( FANGSONG )")]
+    public void SvgPreservesFunctionalGenericFallbacksWhenRewritingEmbeddedFamilies(string prefix, string fallback) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ABCDEF+Subset-Regular", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("ABCDEF+Subset-Regular, " + fallback + ", serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, prefix));
+
+        Assert.Equal("\"" + prefix + "ABCDEF+Subset-Regular\", " + fallback + ", serif",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Fact]
+    public void InlineSvgScopesOnlyTheQuotedLiteralFamilyNamedLikeAGenericFunction() {
+        const string family = "generic(fangsong)";
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo(OfficeFontFamilyParser.Quote(family) + ", " + family, 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-generic(fangsong)\", generic(fangsong)",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
     [InlineData("\"ACME, Sans\", Arial", "ACME, Sans", "Arial")]
     [InlineData("'ACME, Sans', Arial", "ACME, Sans", "Arial")]
     [InlineData("ACME\\, Sans, Arial", "ACME, Sans", "Arial")]

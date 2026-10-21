@@ -253,8 +253,9 @@ internal static partial class HtmlCssPageSettingsResolver {
             FindTopLevelDeclarationWithPriority(body, "bleed", IsValidBleed),
             FindTopLevelDeclarationWithPriority(body, "marks", IsValidMarks));
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics, fontBudget, cancellationToken);
-        if (marginBoxes.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
-            pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder));
+        IReadOnlyList<HtmlGeneratedStyleDeclaration> styleDeclarations = ReadContextStyleDeclarations(body, fontBudget, cancellationToken);
+        if (marginBoxes.Count > 0 || styleDeclarations.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
+            pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder, styleDeclarations));
         }
     }
 
@@ -374,17 +375,8 @@ internal static partial class HtmlCssPageSettingsResolver {
                 diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, authoredContent.Value);
             }
 
-            ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
-            IReadOnlyDictionary<string, HtmlCssPageDeclaration> fontDeclarations = ReadMarginFontDeclarations(marginBody, fontBudget, cancellationToken);
-            var marginRule = new HtmlCssPageMarginRule(
-                content,
-                ReadMarginFontDeclaration(fontDeclarations, "font-family", cursor),
-                ReadMarginFontDeclaration(fontDeclarations, "font-size", cursor),
-                ReadMarginFontDeclaration(fontDeclarations, "font-weight", cursor),
-                ReadMarginFontDeclaration(fontDeclarations, "font-style", cursor),
-                ReadMarginFontDeclaration(fontDeclarations, "line-height", cursor),
-                ReadStyleDeclaration(style, marginBody, "color", cursor),
-                ReadStyleDeclaration(style, marginBody, "text-align", cursor));
+            var marginRule = new HtmlCssPageMarginRule(content,
+                ReadContextStyleDeclarations(marginBody, fontBudget, cancellationToken));
             if (!marginRule.IsEmpty) {
                 boxes[position] = boxes.TryGetValue(position, out HtmlCssPageMarginRule? earlier)
                     ? HtmlCssPageMarginRule.Merge(earlier, marginRule)
@@ -399,14 +391,7 @@ internal static partial class HtmlCssPageSettingsResolver {
     private static bool IsRevertLayer(string value) =>
         string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase);
 
-    private static HtmlCssPageDeclaration ReadStyleDeclaration(ICssStyleDeclaration? style, string body, string propertyName, int order) {
-        HtmlCssPageDeclaration authored = FindTopLevelDeclarationWithPriority(body, propertyName);
-        if (IsRevertLayer(authored.Value)) return authored;
-        if (style == null) return new HtmlCssPageDeclaration(string.Empty, false, order);
-        string value = style.GetPropertyValue(propertyName);
-        bool important = string.Equals(style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase);
-        return new HtmlCssPageDeclaration(value, important, order);
-    }
+
 
     internal static OfficeTextAlignment ResolveMarginAlignment(HtmlCssPageMarginPosition position, string value) {
         if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;

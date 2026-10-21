@@ -27,7 +27,14 @@ public class PdfEmbeddedFontRenderingTests {
         string familyName = System.Text.RegularExpressions.Regex.Replace(face.FamilyName, "^[A-Z]{6}\\+", string.Empty);
         Assert.StartsWith("ManagedEmbedded-", familyName, StringComparison.Ordinal);
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.font-substitution");
-        Assert.Contains($"font-family=\"{face.FamilyName}\"", System.Text.Encoding.UTF8.GetString(result.Bytes!), StringComparison.Ordinal);
+        var svg = System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(result.Bytes!));
+        // A PDF subset tag contains '+', so its SVG reference must be a CSS
+        // string selecting the same embedded face, after XML decoding.
+        string reference = "\"" + face.FamilyName + "\"";
+        Assert.Contains(svg.Descendants(), element => element.Name.LocalName == "text"
+            && element.Attribute("font-family")?.Value == reference);
+        Assert.Contains(svg.Descendants(), element => element.Name.LocalName == "style"
+            && element.Value.IndexOf("font-family:" + reference, StringComparison.Ordinal) >= 0);
     }
 
     [Fact]

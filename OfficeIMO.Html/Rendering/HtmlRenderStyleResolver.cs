@@ -181,14 +181,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
             : double.NaN;
         string fontTag = pseudoElement ? string.Empty : tag;
-        string defaultFamily = !_fontDefaults.HasValue && !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
-            ? "Consolas"
+        string defaultFamily = !pseudoElement && UsesDocumentMonospaceFamily(tag, _options)
+            ? ResolveInitialFontFamily(tag, _options)
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         // Explicit CSS inheritance uses the parent's surviving family, including
         // Document mode's code tags whose unstyled fallback remains monospace.
         if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
             defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options));
         if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
         HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
             ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)

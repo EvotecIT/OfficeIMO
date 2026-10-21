@@ -103,6 +103,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    /// <summary>Keeps specialized image and native control sizing ahead of authored table display, matching element layout.</summary>
+    private static bool UsesTableIntrinsicSizing(IElement element, HtmlRenderBoxStyle style) =>
+        style.Display is "table" or "inline-table"
+        && !IsReplacedImageElement(element)
+        && (!IsFormControlElement(element.LocalName) || UsesButtonChildLayout(element));
+
     /// <summary>Measures a table as one atomic box using source columns, without painting or feeding layout widths back into measurement.</summary>
     private (double Minimum, double Maximum) ResolveIntrinsicTableOuterWidths(IElement table,
         HtmlRenderBoxStyle style, double availableWidth, int depth) {
@@ -182,11 +188,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<IntrinsicTextRun> runs;
         if (cell.Nodes == null) {
             runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(cell.Element, style, 0), containingWidth, depth,
-                skipSizedNestedTables: true, includeDescendantInsets: true);
+                includeDescendantInsets: true);
         } else {
             var rawRuns = new List<IntrinsicTextRun>();
             AppendInFlowIntrinsicTextRuns(cell.Element, style, containingWidth, depth, rawRuns,
-                skipSizedNestedTables: true, includeDescendantInsets: true, sourceNodes: cell.Nodes);
+                includeDescendantInsets: true, sourceNodes: cell.Nodes);
             runs = NormalizeIntrinsicTextRuns(rawRuns);
         }
         double insets = style.HorizontalInsets;

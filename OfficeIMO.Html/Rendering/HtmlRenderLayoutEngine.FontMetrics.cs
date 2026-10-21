@@ -54,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ChargeLayoutOperations(2L * _pageRules.RuleCount, "page-margin font rule matching");
                 HtmlCssPageGeometry geometry = _pageRules.ResolveGeometry(pageNumber, pageName, _options);
                 foreach (HtmlCssPageMarginTemplate box in _pageRules.ResolveMarginBoxes(
-                             pageNumber, pageName, geometry, _options).Values) {
+                             pageNumber, pageName, geometry, _options, _styleResolver).Values) {
                     CheckCancellation();
                     if (box.Content.TryGetRunningElement(out string elementName, out _)) {
                         elementKeys.Add(HtmlCssRunningElementKeys.ForName(elementName));

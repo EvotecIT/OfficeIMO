@@ -735,7 +735,9 @@ public static partial class HtmlComputedStyleEngine {
         if (customPropertyRegistrations == null || customPropertyRegistrations.Count == 0) return;
         foreach (CustomPropertyRegistration registration in customPropertyRegistrations.Values) {
             bool locallySpecified = specifiedProperties.Contains(registration.Name);
-            if (locallySpecified && raw.TryGetValue(registration.Name, out string? authoredValue)) {
+            // Explicit CSS inheritance applies even when the registration disables implicit inheritance.
+            if ((locallySpecified || inheritedProperties.Contains(registration.Name))
+                && raw.TryGetValue(registration.Name, out string? authoredValue)) {
                 bool resolved = HtmlCssCustomPropertyResolver.TryResolve(
                     authoredValue,
                     name => raw.TryGetValue(name, out string? customValue) ? customValue : null,

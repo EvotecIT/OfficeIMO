@@ -1,55 +1,34 @@
-using AngleSharp.Css.Parser;
 using OfficeIMO.Html.Css;
 using System.Threading;
 
 namespace OfficeIMO.Html;
 
 internal static partial class HtmlCssPageSettingsResolver {
-    /// <summary>Replays the font family before the retained parser can collapse or discard declarations.</summary>
-    private static IReadOnlyDictionary<string, HtmlCssPageDeclaration> ReadMarginFontDeclarations(string body,
+    /// <summary>Retains authored context declarations for the shared computed cascade, including shorthand order.</summary>
+    private static IReadOnlyList<HtmlGeneratedStyleDeclaration> ReadContextStyleDeclarations(string body,
         HtmlCssProcessingBudget budget, CancellationToken cancellationToken) {
-        var result = new Dictionary<string, HtmlCssPageDeclaration>(StringComparer.OrdinalIgnoreCase);
-        int order = 0;
         HtmlCssStyleBlock block;
         try { block = HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
         catch (HtmlCssSyntaxLimitException exception) { throw budget.TranslateSyntaxLimit(exception); }
+        var result = new List<HtmlGeneratedStyleDeclaration>();
         var boundedTokens = new HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
+        int order = 0;
         foreach (HtmlCssDeclaration declaration in block.Declarations) {
             cancellationToken.ThrowIfCancellationRequested();
-            string name = declaration.Name.ToLowerInvariant();
-            if (name != "font" && name != "font-size" && name != "line-height" && name != "font-family"
-                && name != "font-weight" && name != "font-style") { order++; continue; }
-            string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
-                HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
-            if (name == "font") {
-                if (HtmlComputedStyleEngine.TryExpandFontShorthand(value, out IReadOnlyList<KeyValuePair<string, string>> expanded)) {
-                    foreach (KeyValuePair<string, string> item in expanded) Consider(item.Key, item.Value, declaration.IsImportant);
-                }
-            } else if (name == "font-size" || name == "line-height") {
-                if (IsRevertLayer(value) || IsValidMarginFontLength(name, value)) Consider(name, value, declaration.IsImportant);
-            } else if (name == "font-family" || name == "font-weight" || name == "font-style") {
-                string parsed = new CssParser().ParseDeclaration(name + ":" + value)?.GetPropertyValue(name) ?? string.Empty;
-                if (IsRevertLayer(value)) parsed = value;
-                if (parsed.Length > 0) Consider(name, parsed, declaration.IsImportant);
+            string name = declaration.Name;
+            if (name.StartsWith("--", StringComparison.Ordinal) || name.Equals("font", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("font-size", StringComparison.OrdinalIgnoreCase) || name.Equals("font-family", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("font-weight", StringComparison.OrdinalIgnoreCase) || name.Equals("font-style", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("font-stretch", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("line-height", StringComparison.OrdinalIgnoreCase) || name.Equals("color", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)) {
+                string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
+                    HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
+                if (value.Length > 0) result.Add(new HtmlGeneratedStyleDeclaration(name, value,
+                    declaration.IsImportant, 0, 0, null, order));
             }
             order++;
         }
         return result;
-
-        void Consider(string name, string value, bool important) {
-            if (!result.TryGetValue(name, out HtmlCssPageDeclaration earlier) || important || !earlier.IsImportant)
-                result[name] = new HtmlCssPageDeclaration(value, important, order);
-        }
     }
-
-    private static bool IsValidMarginFontLength(string name, string value) {
-        // Keep ordinary keywords/provider grammar, and accept owned lengths only
-        // through the same validator used by computed font longhands.
-        return HtmlComputedStyleEngine.IsSupportedDeclarationValue(name, value);
-    }
-
-    private static HtmlCssPageDeclaration ReadMarginFontDeclaration(
-        IReadOnlyDictionary<string, HtmlCssPageDeclaration> declarations, string name, int order) =>
-        declarations.TryGetValue(name, out HtmlCssPageDeclaration declaration)
-            ? declaration : new HtmlCssPageDeclaration(string.Empty, false, order);
 }

@@ -440,7 +440,7 @@ public static partial class HtmlComputedStyleEngine {
                 budget, environment, environment.Width, environment.Height, Array.Empty<ContainerQueryContext>());
         }
 
-        return new HtmlComputedStyleSet(computed, pseudoElements, environment.FontDefaults);
+        return new HtmlComputedStyleSet(computed, pseudoElements, environment.FontDefaults, customPropertyRegistrations, budget);
     }
 
     /// <summary>

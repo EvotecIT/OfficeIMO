@@ -14,7 +14,7 @@ public static partial class HtmlComputedStyleEngine {
         HtmlRenderingFontDefaults? fontDefaults = null) {
         foreach (string property in resetProperties) {
             if (originRevertedProperties.Contains(property)) continue;
-            string? initial = property is "font-weight" or "font-style" ? "normal"
+            string? initial = property is "font-weight" or "font-style" or "font-stretch" ? "normal"
                 : property == "font-family" && fontDefaults.HasValue ? fontDefaults.Value.StandardFamily
                 : null;
             if (initial == null) continue;

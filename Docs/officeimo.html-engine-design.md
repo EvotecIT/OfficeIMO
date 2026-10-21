@@ -209,6 +209,10 @@ Use one selector implementation for queries and style matching, with different c
 
 The render environment explicitly fixes screen/print media, viewport, device scale, page geometry, language, direction, font set and relevant preference/media values. Container queries require style/layout dependency handling and bounded convergence; they cannot be finalized entirely before layout. Freeze animation/time for static output using an explicit policy. Do not invent hover, scroll or animation state to make a page appear complete.
 
+Paged text uses separate root, page and margin computed contexts without synthetic DOM elements. Page matching remains with the paged-rule owner; declaration cascade, CSS-wide values, custom-property registrations and used font metrics remain with their shared owners. The final element-style set supplies the root context and registration budget. Font discovery, PDF preparation and margin painting use the same matched page/margin contexts, so inherited faces and leading are prepared before authoritative layout.
+
+Horizontal margin widths resolve once per page from the generated content's intrinsic contributions, preserving a centred middle box with asymmetric peers. Text and running elements consume the same assigned geometry; running elements retain source-based intrinsic measurement and relayout. Existing text, native control, replaced-image, table and grid owners supply the contributions. Images and native form controls retain their specialized sizing when CSS selects table display; actual table boxes contribute their complete source-column grid, including through nested flex wrappers. The operation budget and cancellation cover additional measurement, while Core retains generated text admission, hard lines, tab expansion and wrapping.
+
 ### Rendering intent and output profiles
 
 Rendering intent is a public input, not an output-format side effect. A caller selecting PDF must not silently select print CSS, and a caller selecting PNG must not silently choose a viewport height. Define a render request through independent axes:
