@@ -70,6 +70,21 @@ public sealed class DrawingSvgFontScopeTests {
     }
 
     [Theory]
+    [InlineData("serif")]
+    [InlineData("math")]
+    public void InlineSvgScopesOnlyTheLiteralEmbeddedFamilyWhenItsNameIsGeneric(string family) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo(OfficeFontFamilyParser.Quote(family) + ", " + family, 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-" + family + "\", " + family,
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
     [InlineData("\"ACME, Sans\", Arial", "ACME, Sans", "Arial")]
     [InlineData("'ACME, Sans', Arial", "ACME, Sans", "Arial")]
     [InlineData("ACME\\, Sans, Arial", "ACME, Sans", "Arial")]

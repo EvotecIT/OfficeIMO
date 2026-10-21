@@ -25,9 +25,12 @@ public static partial class OfficeDrawingSvgExporter {
             if (attribute == null) continue;
             var names = OfficeFontFamilyParser.ParseCssReferences(attribute.Value);
             if (!names.Any(name => families.ContainsKey(name.Name))) continue;
-            attribute.Value = string.Join(", ", names.Select(name => prefix.Length > 0 && families.TryGetValue(name.Name, out var scoped)
-                ? QuoteCssFamily(scoped)
-                : name.IsQuoted || RequiresQuotedCssFamily(name.Name) ? QuoteCssFamily(name.Name) : name.Name));
+            attribute.Value = string.Join(", ", names.Select(name => {
+                if (!name.IsQuoted && IsGenericCssFamily(name.Name)) return name.Name;
+                return prefix.Length > 0 && families.TryGetValue(name.Name, out var scoped)
+                    ? QuoteCssFamily(scoped)
+                    : name.IsQuoted || RequiresQuotedCssFamily(name.Name) ? QuoteCssFamily(name.Name) : name.Name;
+            }));
         }
         cancellationToken.ThrowIfCancellationRequested();
         return root.ToString(SaveOptions.DisableFormatting);
