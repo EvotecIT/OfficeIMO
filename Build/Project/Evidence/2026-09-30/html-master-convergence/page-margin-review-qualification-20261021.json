@@ -1,0 +1,918 @@
+{
+  "schema": "officeimo.html.page-margin-review-master-composition-qualification/v1",
+  "status": "QUALIFIED_LOCAL_CHECKPOINT_CI_REVIEW_PENDING",
+  "collectedUtc": "2026-10-21T07:03:32.038222+00:00",
+  "sourceHead": "51e6abbf62bc2500f39542687c5f6926694b5ac1",
+  "sourceSeal": {
+    "path": "$COMPOSITION_ROOT/source-seal-51e6abb.json",
+    "bytes": 12183089,
+    "sha256": "728f23052576c23fbd7668d47ac3878412f9f63b5a1a5520ab79df1ccc5e4614"
+  },
+  "sourceInputs": 58328,
+  "artifactRoots": {
+    "$COMPOSITION_ROOT": "$TASK_ROOT/master-convergence-review-wave1",
+    "$WAVE_ROOT": "$TASK_ROOT/ci-review-wave1"
+  },
+  "qualifiedReviewWave47": {
+    "originalPortable": {
+      "path": "$WAVE_ROOT/portable-review-qualification-wave1.json",
+      "bytes": 18950,
+      "sha256": "860bc99d4c090aa8cbea3118d4ba25aa4f9d9e02dbc00e88b1678903fd759539"
+    },
+    "originalBytes": 18950,
+    "originalSha256": "860bc99d4c090aa8cbea3118d4ba25aa4f9d9e02dbc00e88b1678903fd759539",
+    "qualification": {
+      "schema": "officeimo.html.page-margin-review-qualification/v1",
+      "status": "QUALIFIED_LOCAL_CHECKPOINT_CI_REVIEW_PENDING",
+      "collectedUtc": "2026-10-21T06:38:01.243669+00:00",
+      "sourceHead": "47a42dd7a3c2dc323b6ea9592989689f5e9d53a8",
+      "sourceSeal": {
+        "path": "$WAVE_ROOT/source-seal-47a42dd.json",
+        "bytes": 12168170,
+        "sha256": "6400a709dd1260313116b0561aa5c3cbd3ac3c2c1c0847c91750009c659fa0d1"
+      },
+      "sourceInputs": 58257,
+      "priorQualification": {
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-auto-sizing-20261020.json",
+        "bytes": 223519,
+        "sha256": "4f2ab9bd595fffa2131f8f34dc63e1a5dcd9b88103123f02b68967322b7328a4",
+        "productionSource": "55dc957a9067ca60300ef05a900f3e41b48661fe"
+      },
+      "tests": [
+        {
+          "role": "wave1-full-html-net80",
+          "passed": 7686,
+          "existingSkipped": 0,
+          "existingSkippedCases": [],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-html-net80/wave1-full-html-net80.trx",
+            "bytes": 11985606,
+            "sha256": "0d392bd65224619ae9194633f30de17cda70eaae1df25b8dcbb23259a9d7e265"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-html-net80-execution.json",
+            "bytes": 1771,
+            "sha256": "35555a3c83b54fa4080c156a7df05fd4a27f87968f925de920a66f9c7121f540"
+          },
+          "guards": [
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_GeneratedContextsShareTheRegisteredPropertyFanoutBudget",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+              "Passed"
+            ]
+          ]
+        },
+        {
+          "role": "wave1-full-html-net100",
+          "passed": 7686,
+          "existingSkipped": 0,
+          "existingSkippedCases": [],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-html-net100/wave1-full-html-net100.trx",
+            "bytes": 12000979,
+            "sha256": "0a2421c24c23e613f9fce5fdfdb1172922ebc74c227e646bcedb1f1343e2c460"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-html-net100-execution.json",
+            "bytes": 1778,
+            "sha256": "e38997e23cefb99b6879e7959d0b5a3512308a27e7452ea10b8f7a1b8acf8970"
+          },
+          "guards": [
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_GeneratedContextsShareTheRegisteredPropertyFanoutBudget",
+              "Passed"
+            ],
+            [
+              "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+              "Passed"
+            ]
+          ]
+        },
+        {
+          "role": "wave1-full-drawing-net80",
+          "passed": 6065,
+          "existingSkipped": 5,
+          "existingSkippedCases": [
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops"
+          ],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-drawing-net80/wave1-full-drawing-net80.trx",
+            "bytes": 9426794,
+            "sha256": "fdebc5acf1a357f43199195d2cfaadeb0542e2530793dc897f204c796cddbc29"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-drawing-net80-execution.json",
+            "bytes": 1790,
+            "sha256": "b25f4148ef1dcfe9c3cb91284c1656abc360eb8274bb925790c8b32f94e5bee3"
+          },
+          "guards": []
+        },
+        {
+          "role": "wave1-full-drawing-net100",
+          "passed": 6065,
+          "existingSkipped": 5,
+          "existingSkippedCases": [
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork"
+          ],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-drawing-net100/wave1-full-drawing-net100.trx",
+            "bytes": 9438935,
+            "sha256": "f072393cbc870c202e301ad37c22f9cbba6320e908aa02965b19e9343713dc46"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-drawing-net100-execution.json",
+            "bytes": 1795,
+            "sha256": "a4dbd33a92f720ee84cf7c418b252510a76bf8683283d2e233d737cf974ecb02"
+          },
+          "guards": []
+        },
+        {
+          "role": "wave1-full-pdf-net80",
+          "passed": 11888,
+          "existingSkipped": 0,
+          "existingSkippedCases": [],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-pdf-net80/wave1-full-pdf-net80.trx",
+            "bytes": 18346487,
+            "sha256": "8852062c91b51079dd08e8df1d6a1dac6f934478b117ca4d028a504d0ade8b4c"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-pdf-net80-execution.json",
+            "bytes": 1772,
+            "sha256": "aa975829ba0110bdff46ec0b6a96bb18cbfa08f9eb024418d827d9f9a1d930f7"
+          },
+          "guards": []
+        },
+        {
+          "role": "wave1-full-pdf-net100",
+          "passed": 11888,
+          "existingSkipped": 0,
+          "existingSkippedCases": [],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-pdf-net100/wave1-full-pdf-net100.trx",
+            "bytes": 18370264,
+            "sha256": "755c1dda7927d3dafd443f55544cfce16af5786f0b446828ff551bd3f708ac71"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-pdf-net100-execution.json",
+            "bytes": 1772,
+            "sha256": "439ef550bb77293bbc99526a98f16381de1e7eab0c40b2167b9a6dc148dc6437"
+          },
+          "guards": []
+        },
+        {
+          "role": "wave1-full-excel-net80",
+          "passed": 7136,
+          "existingSkipped": 5,
+          "existingSkippedCases": [
+            "OfficeIMO.Tests.Excel.OfficeInteroperability_CompatibilityCorpusSourcesAndConversionsOpenInDesktopExcelWhenRequested",
+            "OfficeIMO.Tests.Excel.LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested",
+            "OfficeIMO.Tests.Excel.LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested",
+            "OfficeIMO.Tests.Excel.Test_CellValuesParallel_WithConcurrentCellValue",
+            "OfficeIMO.Tests.Excel.Test_GoogleSheetsLive_CreateReadExportAndDelete"
+          ],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-excel-net80/wave1-full-excel-net80.trx",
+            "bytes": 10840643,
+            "sha256": "135167fd0e987f3b61edbf4b96b9a0bed3a8f90821ae099baf3895f8d1b4d553"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-excel-net80-execution.json",
+            "bytes": 1784,
+            "sha256": "3f88a89c6ed0fef73696042f3981bc2c30aa57031d41706a006ca246928eb04b"
+          },
+          "guards": []
+        },
+        {
+          "role": "wave1-full-excel-net100",
+          "passed": 7136,
+          "existingSkipped": 5,
+          "existingSkippedCases": [
+            "OfficeIMO.Tests.Excel.Test_GoogleSheetsLive_CreateReadExportAndDelete",
+            "OfficeIMO.Tests.Excel.Test_CellValuesParallel_WithConcurrentCellValue",
+            "OfficeIMO.Tests.Excel.OfficeInteroperability_CompatibilityCorpusSourcesAndConversionsOpenInDesktopExcelWhenRequested",
+            "OfficeIMO.Tests.Excel.LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested",
+            "OfficeIMO.Tests.Excel.LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested"
+          ],
+          "trx": {
+            "path": "$WAVE_ROOT/trx/wave1-full-excel-net100/wave1-full-excel-net100.trx",
+            "bytes": 10854926,
+            "sha256": "4792bc2b8844bda5c0d6d05fcc6c3a9710c3845e282be3355aeddf980038a05e"
+          },
+          "execution": {
+            "path": "$WAVE_ROOT/wave1-full-excel-net100-execution.json",
+            "bytes": 1783,
+            "sha256": "83a7c23759adebea015eed02bf39d8f34d98fccd706df41d1f3813161a2178b8"
+          },
+          "guards": []
+        }
+      ],
+      "net472": {
+        "executions": [
+          {
+            "path": "$WAVE_ROOT/wave1-compile-html-net472-execution.json",
+            "bytes": 1561,
+            "sha256": "946dd4171840c33ec095064d9f535f98ed491a8e6866d009801573005fdfba88"
+          },
+          {
+            "path": "$WAVE_ROOT/wave1-compile-drawing-net472-execution.json",
+            "bytes": 1573,
+            "sha256": "b964e00abe1112d5377ca567b2cca8a1db99824dd32350863c5cede3077ce833"
+          },
+          {
+            "path": "$WAVE_ROOT/wave1-compile-pdf-net472-execution.json",
+            "bytes": 1563,
+            "sha256": "dca83b3c7966cf4b4c1e9c0c5b8cc3c320553e8717a737884d2763043272ca83"
+          }
+        ],
+        "boundary": "Compilation only; no Windows runtime or profiling claim."
+      },
+      "beforeFixed": {
+        "margin-context-public": {
+          "before": {
+            "path": "$WAVE_ROOT/margin-context-public/before-results/summary.json",
+            "bytes": 4967,
+            "sha256": "253c45196785e6930b8dd2bc8dddb0da2f76e11d1c8813e0afd12e2e0491a546"
+          },
+          "fixed": {
+            "path": "$WAVE_ROOT/margin-context-public/fixed47-results/summary.json",
+            "bytes": 9541,
+            "sha256": "5b9121bbad9e89028b0431d198860349f7ccb6d66c2036d978c55d6d2f4705c5"
+          },
+          "observationsEach": 3,
+          "beforeCheckoutBoundary": "Retained55 direct DLL execution; original dirty checkout recorded honestly."
+        },
+        "svg-functional-generic": {
+          "before": {
+            "path": "$WAVE_ROOT/svg-functional-generic/before-results/summary.json",
+            "bytes": 6889,
+            "sha256": "83139c6b178d8a69376bf3573b287f6fa24c112a29a6223faab910de137eaf8c"
+          },
+          "fixed": {
+            "path": "$WAVE_ROOT/svg-functional-generic/fixed-results/summary.json",
+            "bytes": 6782,
+            "sha256": "548d71c8730c2541954ac04c4d597c29a65ae078c9a7bd9412e36ad497313d52"
+          },
+          "observationsEach": 7,
+          "beforeCheckoutBoundary": "Retained55 direct DLL execution; original dirty checkout recorded honestly."
+        }
+      },
+      "comparison": {
+        "path": "$WAVE_ROOT/comparison-current-vs55/comparison.json",
+        "bytes": 228349,
+        "sha256": "3c72444ccaf394881fa17eddaaa6cad85d1812d865f2bb5ae6ff3f5a97b5929d"
+      },
+      "mainSourceObservations": 40,
+      "svgSourceObservations": 40,
+      "rootApproval": {
+        "path": "$WAVE_ROOT/root-render-acceptance-wave1.json",
+        "bytes": 13491,
+        "sha256": "0cb4e39319df5107fc7a60e425b3e863a42e63ac6905ded1855237fc1d03c3f1"
+      },
+      "ownedCacheReplay": {
+        "observations": [
+          {
+            "framework": "net8",
+            "summary": {
+              "path": "$WAVE_ROOT/margin-context-visual/owned-net8/summary.json",
+              "bytes": 403643,
+              "sha256": "369203314944f04fb4abadaf57fe72ee8afed2ea5286b73f10059aa670b442fc"
+            },
+            "profiles": 2,
+            "pagesPerProfile": 12,
+            "bodyWordsPerProfile": 120,
+            "ownPagedPngPdfEqual": true
+          },
+          {
+            "framework": "net10",
+            "summary": {
+              "path": "$WAVE_ROOT/margin-context-visual/owned-net10/summary.json",
+              "bytes": 403700,
+              "sha256": "93b09298587c55a0e68a238cf76de89f1ee285c3d4d545eb96e4db79f0599132"
+            },
+            "profiles": 2,
+            "pagesPerProfile": 12,
+            "bodyWordsPerProfile": 120,
+            "ownPagedPngPdfEqual": true
+          }
+        ],
+        "actual48PngPdfPairsEqual": true,
+        "crossFrameworkContract": {
+          "path": "$WAVE_ROOT/margin-context-visual/owned-native-cache-contract.json",
+          "bytes": 54192,
+          "sha256": "025be2140b04c7b5ebb9e8d650d1231e4393221579bf511a26e698f39a801e20"
+        },
+        "encodedCrossFrameworkIdentityClaimed": false
+      },
+      "nativeCache": {
+        "analysis": {
+          "path": "$WAVE_ROOT/margin-context-visual/analysis-v2/execution.json",
+          "bytes": 56050,
+          "sha256": "6d60fbf8977c2aff8ca5f05ac1612e67b77fed2302769ebefcc243fe5dbfd1cc"
+        },
+        "originalFailedCapture": {
+          "path": "$WAVE_ROOT/margin-context-visual/native/execution.json",
+          "bytes": 11931,
+          "sha256": "9338ed0c1c6911a86d0e461dbac36aa58fb909eb6d23a12c79e58fa1cefb299c"
+        },
+        "originalCapturePassed": false,
+        "originalFailure": {
+          "type": "ValueError",
+          "message": "Authored PDF paper or96dpi raster geometry differs.",
+          "traceback": "Traceback (most recent call last):\n  File \"$WAVE_ROOT/prep/margin-context-visual/capture.py\", line 56, in <module>\n    if abs(float(page.attrib['width'])-225)>0.01 or abs(float(page.attrib['height'])-180)>0.01 or pixels!=[300,240]:raise ValueError('Authored PDF paper or96dpi raster geometry differs.')\nValueError: Authored PDF paper or96dpi raster geometry differs.\n"
+        },
+        "observations": [
+          {
+            "media": "print",
+            "actualTotalNativePages": 13,
+            "sourcePublicPages": 12,
+            "pageCountParity": false,
+            "bodyOccupiedPages": 12,
+            "bodyWordTotal": 120,
+            "bodyEmptyFooterOnlyTailPages": [
+              13
+            ]
+          },
+          {
+            "media": "screen",
+            "actualTotalNativePages": 13,
+            "sourcePublicPages": 12,
+            "pageCountParity": false,
+            "bodyOccupiedPages": 12,
+            "bodyWordTotal": 120,
+            "bodyEmptyFooterOnlyTailPages": [
+              13
+            ]
+          }
+        ],
+        "countParityClaimed": false,
+        "boundary": "Native13 total/source12 and footer-only13 remain UNMATCHED. Owned PNG/PDF equality proved separately; no Edge pixel identity or functional-generic font-selection claim."
+      },
+      "packages": {
+        "privateVersion": "3.5.19",
+        "owners": [
+          "OfficeIMO.Core",
+          "OfficeIMO.Pdf",
+          "OfficeIMO.Html.Core",
+          "OfficeIMO.Html.AngleSharp",
+          "OfficeIMO.Html"
+        ],
+        "freshAssets": 20,
+        "reusedAssets": 0,
+        "packageBinding": {
+          "path": "$WAVE_ROOT/packages/auto-sizing-wave1/package-binding.json",
+          "bytes": 25040,
+          "sha256": "e8ca588a9f8521c5d912e43f31d9487e3b86d6c92772003e70d2aa5dc2b3b8d8"
+        },
+        "consumerBinding": {
+          "path": "$WAVE_ROOT/packages/auto-sizing-wave1/consumer-binding.json",
+          "bytes": 62044,
+          "sha256": "12935e2da7e782a86a537b159271510d99ad4afdc58404cbde2a7fecd7f7634f"
+        },
+        "consumers": [
+          {
+            "lane": "net8",
+            "framework": ".NET 8.0.23",
+            "result": {
+              "path": "$WAVE_ROOT/packages/auto-sizing-wave1/results/net8/result.json",
+              "bytes": 156989,
+              "sha256": "68e7a3d14e4311835223c0966066a91588f3fb2db7d06274bc41753da94e8c6f"
+            },
+            "mainObservations": 20,
+            "svgObservations": 1,
+            "actualArm64NativeAot": false
+          },
+          {
+            "lane": "net10",
+            "framework": ".NET 10.0.13",
+            "result": {
+              "path": "$WAVE_ROOT/packages/auto-sizing-wave1/results/net10/result.json",
+              "bytes": 157061,
+              "sha256": "be8bb669d51ce7aabc9e28ac6abafe7166cd0830671b85aa1de3501f995e52b7"
+            },
+            "mainObservations": 20,
+            "svgObservations": 1,
+            "actualArm64NativeAot": false
+          },
+          {
+            "lane": "aot",
+            "framework": ".NET 10.0.13",
+            "result": {
+              "path": "$WAVE_ROOT/packages/auto-sizing-wave1/results/aot/result.json",
+              "bytes": 155114,
+              "sha256": "f20a6cb6d85a2b05959161f1e42cec960374be4a2a5d1562b45839b4f086229c"
+            },
+            "mainObservations": 20,
+            "svgObservations": 1,
+            "actualArm64NativeAot": true
+          }
+        ]
+      },
+      "review": {
+        "freshCacheOwnerPass": {
+          "path": "$WAVE_ROOT/cache-contract-review.json",
+          "bytes": 1466,
+          "sha256": "dc21d6872643044b645be3f1d56ec100c2efaf1401eb8d165aaf070c81712abe"
+        },
+        "findings": 0,
+        "priorOwnerCoverage": "Original inheritance/sizing and Core SVG full/targeted reviews remain at original source bindings in priorQualification; no repeated full review for metadata SHA."
+      },
+      "storage": {
+        "cleanup": {
+          "path": "$WAVE_ROOT/cleanup-result.json",
+          "bytes": 27400,
+          "sha256": "9ef2188a8ca6642718dfbeb2a78389a4feabc02714750be4bc10d247c4013138"
+        },
+        "logicalBytesRemoved": 7285190602,
+        "readback": {
+          "path": "$WAVE_ROOT/prep/cleanup-wave1/archive-readback.json",
+          "bytes": 792515,
+          "sha256": "54c18b788121638334348384a2fc252c6bf6c7e32acf64efd97a807394f3a3f4"
+        },
+        "archives": [
+          {
+            "category": "identities",
+            "file": {
+              "path": "$WAVE_ROOT/retained/wave1-identities-47a42dd.zip",
+              "bytes": 26360112,
+              "sha256": "c17ef5da378ca1936ae37ec7cb4e0a79672fb78b6181c8efa681076e00c685e5"
+            },
+            "members": 32
+          },
+          {
+            "category": "metadata",
+            "file": {
+              "path": "$WAVE_ROOT/retained/wave1-metadata-47a42dd.zip",
+              "bytes": 86343787,
+              "sha256": "0f287d5fe15b767c75621c9888a84690da8214def7f5108936f68821b8b2b196"
+            },
+            "members": 801
+          }
+        ],
+        "ledgerAppend": {
+          "path": "$WAVE_ROOT/storage-ledger-append-receipt.json",
+          "bytes": 3033,
+          "sha256": "7430396525d16ae845b6b6e859ba16ef868f074bc726f22394505293d6ac6919"
+        },
+        "centralLedgerPreflight": {
+          "checkedUtc": "2026-10-21T06:38:01.243669+00:00",
+          "bytes": 4077851,
+          "sha256": "b2d394e2766e1598fdacc847abcd6f406f171f5150d8162986b2ebe49350db0d",
+          "rows": 5200,
+          "exactCleanupRowOccurrences": 1
+        }
+      },
+      "limits": [
+        "Runtime/provider forks remain separate on feature/html-engine.",
+        "Windows profiling deferred; ordinary correctness CI remains a later publication gate.",
+        "Separate Excel save-recovery owner is another approved chat; no repair here.",
+        "No package publication, release, merge or hosted review request is asserted."
+      ]
+    },
+    "boundary": "Embedded exactly once as parsed original47 JSON; all embedded $WAVE_ROOT paths retain47 scope. Its original223KB predecessor is referenced only by repository path/SHA."
+  },
+  "composition": {
+    "review": {
+      "path": "$COMPOSITION_ROOT/master-interaction-review.json",
+      "bytes": 3228,
+      "sha256": "699dc2f041ed9be9ab27e0cdc7425dd1f589521f38bb5f2df4af34cfef674890"
+    },
+    "findings": 0,
+    "unchangedOwnerTrees": [
+      {
+        "repositoryPath": "OfficeIMO.Core",
+        "priorTree": "bd5413815567e9393997ca931f59001e0756089d",
+        "currentTree": "bd5413815567e9393997ca931f59001e0756089d"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html",
+        "priorTree": "5e59662edf8d606b521159443be5eb1855bc219e",
+        "currentTree": "5e59662edf8d606b521159443be5eb1855bc219e"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html.Core",
+        "priorTree": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+        "currentTree": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html.AngleSharp",
+        "priorTree": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+        "currentTree": "2b7f2b16754df243579efea6e88a9c35e0dce3a6"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Drawing.Tests",
+        "priorTree": "bd296e052a8ddc359c16f90ac43a50f8d7233752",
+        "currentTree": "bd296e052a8ddc359c16f90ac43a50f8d7233752"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Excel.Tests",
+        "priorTree": "63154fcba8c63bd213df8ddb9a66febe437bb2c6",
+        "currentTree": "63154fcba8c63bd213df8ddb9a66febe437bb2c6"
+      }
+    ],
+    "correctnessSummary": {
+      "path": "$COMPOSITION_ROOT/correctness-summary.json",
+      "bytes": 14065,
+      "sha256": "3da51c8ddb690cadd409768af1c3790570c883d42a067ba0584b1b28ce743f5e"
+    },
+    "actualTests": [
+      {
+        "role": "mc-full-html-net80",
+        "scope": "full",
+        "outcomeCounts": {
+          "Passed": 7686
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-full-html-net80/mc-full-html-net80.trx",
+          "bytes": 12231558,
+          "sha256": "40712386896e36b7377b4381bb3fbb78b134a90a2412a1f28038b7a9b1ece208"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-full-html-net80-execution.json",
+          "bytes": 1824,
+          "sha256": "2ff66fb17538b12c7fb6b2da7dd926f9f3b4f8a3ba48f9ef8243ce5837d2259e"
+        },
+        "cacheAndExistingBudgetGuards": [
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"--n:30px;\", expectedPageSize: 30)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"\", expectedPageSize: 12)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_GeneratedContextsShareTheRegisteredPropertyFanoutBudget",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"--n:red;\", expectedPageSize: 12)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+            "outcome": "Passed"
+          }
+        ]
+      },
+      {
+        "role": "mc-full-html-net100",
+        "scope": "full",
+        "outcomeCounts": {
+          "Passed": 7686
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-full-html-net100/mc-full-html-net100.trx",
+          "bytes": 12246931,
+          "sha256": "fa5d49e6643497e5c766ab2c436af581a341c78750fd5e03211375ab984ccd2e"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-full-html-net100-execution.json",
+          "bytes": 1830,
+          "sha256": "fad8ae61dd06b8ba03fb8028d66e11fea80b2bed1d214bb588eb20ab2e1fa28e"
+        },
+        "cacheAndExistingBudgetGuards": [
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_GeneratedContextsShareTheRegisteredPropertyFanoutBudget",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"--n:red;\", expectedPageSize: 12)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"\", expectedPageSize: 12)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginInheritance_RegisteredNonInheritedValuesResetInEachGeneratedContext(pageDeclaration: \"--n:30px;\", expectedPageSize: 30)",
+            "outcome": "Passed"
+          }
+        ]
+      },
+      {
+        "role": "mc-full-pdf-net80",
+        "scope": "full",
+        "outcomeCounts": {
+          "Passed": 11939
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-full-pdf-net80/mc-full-pdf-net80.trx",
+          "bytes": 18809247,
+          "sha256": "5e863f8aca7a0d4f5154b3460cab5293df31be096dde5f32c41b0df7841ab340"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-full-pdf-net80-execution.json",
+          "bytes": 1818,
+          "sha256": "5ee04c0be297379a501d0e974f1dc8672849cb2e3e291eb586f1e1b5b1b668eb"
+        },
+        "cacheAndExistingBudgetGuards": []
+      },
+      {
+        "role": "mc-full-pdf-net100",
+        "scope": "full",
+        "outcomeCounts": {
+          "Passed": 11939
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-full-pdf-net100/mc-full-pdf-net100.trx",
+          "bytes": 18833126,
+          "sha256": "cd93ea4fac535e5f30c0900b98e518fb6afec8ed98245cd2e6ef8a63dcaba4c1"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-full-pdf-net100-execution.json",
+          "bytes": 1829,
+          "sha256": "ff57d05d6ea973437621f208d75b9cf5f8522469077605886d73d89235e87cc6"
+        },
+        "cacheAndExistingBudgetGuards": []
+      },
+      {
+        "role": "mc-focused-drawing-net80",
+        "scope": "focused",
+        "outcomeCounts": {
+          "Passed": 30
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-focused-drawing-net80/mc-focused-drawing-net80.trx",
+          "bytes": 50296,
+          "sha256": "2e249f861741f22e68d3f071baddad96f05e2a723c27db6aade78d9549aa4e8a"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-focused-drawing-net80-execution.json",
+          "bytes": 1869,
+          "sha256": "2e27c6d794ee66a205218a0928c9c1c9a0aa4449eba8c3e144c524e1803cef9a"
+        },
+        "cacheAndExistingBudgetGuards": []
+      },
+      {
+        "role": "mc-focused-drawing-net100",
+        "scope": "focused",
+        "outcomeCounts": {
+          "Passed": 30
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-focused-drawing-net100/mc-focused-drawing-net100.trx",
+          "bytes": 50357,
+          "sha256": "558d0e80d39955f35b7cd81aa645708d4011dcd107728538df3233bef0b730ce"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-focused-drawing-net100-execution.json",
+          "bytes": 1880,
+          "sha256": "4b5420478d829ce32a28f35bf92b5447f853ed613c9a55228cdd4c72c12b4412"
+        },
+        "cacheAndExistingBudgetGuards": []
+      },
+      {
+        "role": "mc-focused-excel-net80",
+        "scope": "focused",
+        "outcomeCounts": {
+          "Passed": 24
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-focused-excel-net80/mc-focused-excel-net80.trx",
+          "bytes": 38346,
+          "sha256": "f943f74b9d465075664cf9a9f645ae2e753948155f9d7f5b6b43f2b91c80438c"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-focused-excel-net80-execution.json",
+          "bytes": 1870,
+          "sha256": "5955175e79fcedb74d7015797df0ce6ee5230c620c35c718ca9fe3de98f2d056"
+        },
+        "cacheAndExistingBudgetGuards": []
+      },
+      {
+        "role": "mc-focused-excel-net100",
+        "scope": "focused",
+        "outcomeCounts": {
+          "Passed": 24
+        },
+        "trx": {
+          "path": "$COMPOSITION_ROOT/trx/mc-focused-excel-net100/mc-focused-excel-net100.trx",
+          "bytes": 38395,
+          "sha256": "bd3513bfad748b71b16b87dbf7591aa7643be958c291f5bbef45a218973be190"
+        },
+        "execution": {
+          "path": "$COMPOSITION_ROOT/mc-focused-excel-net100-execution.json",
+          "bytes": 1869,
+          "sha256": "442b174a9634d814cd07a882ab29ca987490765a67ca984ec5d19a12b41bb27c"
+        },
+        "cacheAndExistingBudgetGuards": []
+      }
+    ],
+    "net472Compiles": [
+      {
+        "path": "$COMPOSITION_ROOT/mc-compile-html-net472-execution.json",
+        "bytes": 1603,
+        "sha256": "345881cedc835ad577413d76eda84852a19265965e7548f516083a96021b2bbc"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/mc-compile-pdf-net472-execution.json",
+        "bytes": 1605,
+        "sha256": "fed0342f96ad3733472db7d5a6470e2992ec3d8974d53795ce71fc73760472af"
+      }
+    ],
+    "sourceExecutions": [
+      {
+        "path": "$COMPOSITION_ROOT/composition-stage-source-reference-execution.json",
+        "bytes": 1369,
+        "sha256": "8b1f4c7446530bd937211ddc86d08a0be978ef8e4443d676c52edc2834cd07c0"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-source-net8-build-execution.json",
+        "bytes": 2203,
+        "sha256": "4396c8484f8103c01682cf774c2202c1a3aa53e92b964431dc467f6515a6d8e9"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-source-net8-run-execution.json",
+        "bytes": 1624,
+        "sha256": "317de84e73bdc2f6cfce42b9c54128c36e23767496c1787d00372a7d3cefcd2a"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-source-net10-build-execution.json",
+        "bytes": 2210,
+        "sha256": "43434a30b594f1e6a1a8f70e392f954591666cccb446f9b2d36dba213139e238"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-source-net10-run-execution.json",
+        "bytes": 1636,
+        "sha256": "d21d7340ff35a75444f8120219ed9d327b1878ca13c6f47857e2a5531ed5062c"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-bind-svg-net8-execution.json",
+        "bytes": 1358,
+        "sha256": "73ba6cd7f4d87ac7ab6ec1d9a47ef7f2ae0389c1a758d5772525987bf80e30a8"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-svg-net8-build-execution.json",
+        "bytes": 2193,
+        "sha256": "18754ea6c2e26fc9bed092665be7e9f8ab44965b4c5b8b31b28f720e190ec03e"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-svg-net8-run-execution.json",
+        "bytes": 1643,
+        "sha256": "0085a4ee57dfe1e8180bcd8f35694807bd5abb375ae0e60c1af961a66b83a19e"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-bind-svg-net10-execution.json",
+        "bytes": 1369,
+        "sha256": "822d01f2259165fd1d00991feb381a008a9d375528c8285086b34ddfb685d34b"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-svg-net10-build-execution.json",
+        "bytes": 2193,
+        "sha256": "f748f2567baa40a97e73a760461668d2dc27f546762f84f46df02d60862449da"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-svg-net10-run-execution.json",
+        "bytes": 1649,
+        "sha256": "c1ce83e96a9b05e71430c29801dd8e068fa0d555366574b759641f568f8b113e"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-cache-owned-net8-execution.json",
+        "bytes": 1682,
+        "sha256": "1e7719be560018145493ab902135dc2991b71b4caf769dc5d9342bd859ae6b7f"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-cache-owned-net10-execution.json",
+        "bytes": 1680,
+        "sha256": "23d670d3608980ad51f8fc3d909a23f4068044e08adc919051af6a1962ec734c"
+      },
+      {
+        "path": "$COMPOSITION_ROOT/composition-compare-current-vs47-execution.json",
+        "bytes": 1358,
+        "sha256": "e2c30ea511e04c432595461382d8fe94de113e2016243cc8d7bd3d0235ad6ea4"
+      }
+    ],
+    "comparison": {
+      "path": "$COMPOSITION_ROOT/comparison-current-vs47/comparison.json",
+      "bytes": 296972,
+      "sha256": "a80aa69b42fff721c5fb8b0fd5829dc321e01e6d350ffa6a4e3ada94eecf8bdd"
+    },
+    "rootApproval": {
+      "path": "$COMPOSITION_ROOT/root-render-acceptance-composition.json",
+      "bytes": 5191,
+      "sha256": "aade2d51157fc15da077eb347d6ca7f933fa61adf8fad669548c7f44193f0863"
+    },
+    "sourceObservations": 40,
+    "svgObservations": 40,
+    "actualOwnedCacheProfiles": 4,
+    "actualOwnedPngPdfPairsEqual": 48,
+    "newNativeCapture": false,
+    "currentPrivatePackageOrAotClaimed": false,
+    "retainedPackageBoundary": "Prior47 actual5privatepackages/20assets/3consumer lanes includingNativeAOT remain47-bound. The3.5.20 package preparation is deliberately unexecuted; currentPdf/Word master composition is covered by actualcurrent tests/replay and non-overlapping read-only interaction review."
+  },
+  "storage": {
+    "cleanup": {
+      "path": "$COMPOSITION_ROOT/cleanup-result.json",
+      "bytes": 13675,
+      "sha256": "e94e62c905cd43dff08b5f1b940034cd2ba1a37ef20ade9f7e38f0ec0921633c"
+    },
+    "logicalBytesRemoved": 5543714605,
+    "archiveReadback": {
+      "path": "$COMPOSITION_ROOT/prep/cleanup-master-composition/archive-readback.json",
+      "bytes": 637002,
+      "sha256": "eb137ddd243fcda882de6331a55854a9b2d234872bb5f145d1d29879944fe972"
+    },
+    "archives": [
+      {
+        "category": "identities",
+        "file": {
+          "path": "$COMPOSITION_ROOT/retained/master-composition-identities-51e6abb.zip",
+          "bytes": 25184226,
+          "sha256": "92cfe2a1d7bcb9b186dd51b4cf8daff3e762ec3802b3a99e240b96e20ac5a2d2"
+        },
+        "members": 30
+      },
+      {
+        "category": "metadata",
+        "file": {
+          "path": "$COMPOSITION_ROOT/retained/master-composition-metadata-51e6abb.zip",
+          "bytes": 15645740,
+          "sha256": "99528cf9a33af1fa31d29a5fab2754ee15b1a43476e052857695a05ad18e2fdb"
+        },
+        "members": 677
+      }
+    ],
+    "ledgerAppend": {
+      "path": "$COMPOSITION_ROOT/storage-ledger-append-receipt.json",
+      "bytes": 3220,
+      "sha256": "611236d53a3e74275114bfb32317d0f0f2d88d07a4db34f43800df7d7d59c819"
+    },
+    "centralLedgerPreflight": {
+      "checkedUtc": "2026-10-21T07:03:32.038222+00:00",
+      "bytes": 4078860,
+      "sha256": "67f49e0383d0e5e2d9d2ddebd4d2e5d030b21b887a533abfb516e6d055de016b",
+      "rows": 5201,
+      "exactCleanupRowOccurrences": 1
+    }
+  },
+  "limits": [
+    "Edge13total versus owned12 and footer-only13 remain UNMATCHED; current owned48PNG/PDF byte pairs are a separate observation, not Edge pixel identity.",
+    "No functional-generic native font-face selection, newNative capture, currentM package/AOT, release or package publication claim.",
+    "Runtime/provider forks remain separate on feature/html-engine; Windows profiling deferred.",
+    "Separate Excel save-recovery remains owned by another approved chat; no repair here."
+  ]
+}
