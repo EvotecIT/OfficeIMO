@@ -1,0 +1,1237 @@
+{
+  "schema": "officeimo.html.page-margin-geometry-qualification/v1",
+  "status": "qualified-bounded-static-checkpoint",
+  "recordedUtc": "2026-10-21T16:57:06.196307+00:00",
+  "qualifiedSourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+  "recordedWorktreeHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+  "base": "64571f1a8ff6e94c9c15a8cba40e82dcaecbea14",
+  "proposedRepositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-geometry-20261021.json",
+  "scope": [
+    "Horizontal top/bottom content-box length/percentage width/min/max, padding, rectangular solid borders and necessary automatic height.",
+    "Shared generated/running content, explicit geometry omissions, exact zero clips, counters and empty-versus-none semantics.",
+    "No public API, production dependency or provider changes."
+  ],
+  "source": {
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-qualified.json",
+      "bytes": 12195996,
+      "sha256": "2c3f5f7c53e3c2a48ca92102b45e41c6cec51ed64287b45e315afbf083e4fb72"
+    },
+    "trackedSourceInputs": 58390,
+    "gitTree": "e7d67b19a02eece0247717764b6bee4ea2119def"
+  },
+  "sourceTests": [
+    {
+      "name": "geometry-qualified-focused-html-net80",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-focused-html-net80-execution.json",
+        "bytes": 1765,
+        "sha256": "d2f46dde47ab53332d24a6583e8c90d824b687ee8fe70c3c5b4b2576d6e88e7f"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-focused-html-net80.log",
+        "bytes": 7386,
+        "sha256": "3549bd15766c56abb8a9afa805471dde0bc846531c2e092c39bcbf733943616d"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 63.544439417,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-focused-html-net80/geometry-qualified-focused-html-net80.trx",
+        "bytes": 338040,
+        "sha256": "58d5c621c9c9b394d2328fe2adde49eda81f36af467bfc819f2fc5ca913fc656"
+      },
+      "total": 212,
+      "passed": 212,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net8.0"
+    },
+    {
+      "name": "geometry-qualified-focused-html-net100",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-focused-html-net100-execution.json",
+        "bytes": 1771,
+        "sha256": "2d08b946fdf8e1fd6d84de69815cc3ca8a111105f668aabbf639cdf7de19fc4e"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-focused-html-net100.log",
+        "bytes": 7426,
+        "sha256": "618c681e41ada839fef749c9d83ba0590292598937cab431596a05878a8aba08"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 114.424637625,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-focused-html-net100/geometry-qualified-focused-html-net100.trx",
+        "bytes": 338465,
+        "sha256": "b0f356a1aedd77b5d45266d888fd8990f31de7eaaf72c44f8669b577efd2432a"
+      },
+      "total": 212,
+      "passed": 212,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0"
+    },
+    {
+      "name": "geometry-qualified-full-html-net80",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-full-html-net80-execution.json",
+        "bytes": 1746,
+        "sha256": "974d2b7653924a9b169e8fa50b7dca9c201388201f9276abbb76b06b50ced0bf"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-full-html-net80.log",
+        "bytes": 5869,
+        "sha256": "c960c7489a6cb56fbbb506e6697b324ae911944e5d909c3058e37d97c0cad711"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 125.472890083,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-full-html-net80/geometry-qualified-full-html-net80.trx",
+        "bytes": 11758453,
+        "sha256": "9159a1a225e532bafef98ee27fe26fcd49ede1571d94fe867c205ad51fd91186"
+      },
+      "total": 7727,
+      "passed": 7727,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net8.0"
+    },
+    {
+      "name": "geometry-qualified-full-html-net100",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-full-html-net100-execution.json",
+        "bytes": 1750,
+        "sha256": "1ef9004697faa8de7820c7d044d9315d6b3241642b4a62e664e6c0bc09d6c73d"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-full-html-net100.log",
+        "bytes": 5905,
+        "sha256": "9bc3b83f0a9da8bcb9414f788317fadd7cd13829ba975469023c1edfd22c2bad"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 75.130611333,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-full-html-net100/geometry-qualified-full-html-net100.trx",
+        "bytes": 11773908,
+        "sha256": "e8a7bbf4662f8f755f124afd3e6f3e9842489603f3046277c2467b89075cb7d8"
+      },
+      "total": 7727,
+      "passed": 7727,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0"
+    },
+    {
+      "name": "geometry-qualified-full-pdf-net80",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-full-pdf-net80-execution.json",
+        "bytes": 1745,
+        "sha256": "dd7090d42a53f50885c8f843ab4a39618717faec13b77ab6f3ae01a4a13a9da2"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-full-pdf-net80.log",
+        "bytes": 21886,
+        "sha256": "e31ce90eb8fbd1b78d072aa9315d1d36767078e0c31f5a9fc7ae55cbdbc1226c"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 147.29841841599998,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-full-pdf-net80/geometry-qualified-full-pdf-net80.trx",
+        "bytes": 18063509,
+        "sha256": "ead6788ec9f25fac7dfe3efc0d038f2a78b4dbf456fd2c50e41476c14d557d23"
+      },
+      "total": 11998,
+      "passed": 11998,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net8.0"
+    },
+    {
+      "name": "geometry-qualified-full-pdf-net100",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-full-pdf-net100-execution.json",
+        "bytes": 1744,
+        "sha256": "00582bcef08b509dac40087a24514e01bb4327b2d9e71bbbbc13b68c16987936"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-full-pdf-net100.log",
+        "bytes": 17929,
+        "sha256": "059e9900e4549064621fc575816cc8d5ad342d1270482df6baf6c55d5e9e2fae"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 108.75091675,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-full-pdf-net100/geometry-qualified-full-pdf-net100.trx",
+        "bytes": 18087506,
+        "sha256": "51212ee648f885db51f766fbfd0c2c8f88a6263a62b358b48f134ba3c0d43bd2"
+      },
+      "total": 11998,
+      "passed": 11998,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0"
+    },
+    {
+      "name": "geometry-qualified-decoration-net80",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-decoration-net80-execution.json",
+        "bytes": 1792,
+        "sha256": "ce0cf339bb1d06430a4c276a580ebf5259b76a3cdabadcbd76562256067b6b4d"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-decoration-net80.log",
+        "bytes": 10734,
+        "sha256": "8e16877344454569de9407f7e2c41bf8052a5eef985874afcd65c0411d4918d2"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 12.690440749999999,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-decoration-net80/geometry-qualified-decoration-net80.trx",
+        "bytes": 33136,
+        "sha256": "d26698ec079a8cf4d4d5d582054085bbe960cafae8aaf7dbb505be9ce615fe23"
+      },
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net8.0"
+    },
+    {
+      "name": "geometry-qualified-decoration-net100",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-decoration-net100-execution.json",
+        "bytes": 1797,
+        "sha256": "bf6d4bfda50773b5ed8a5a5888c2d504f37c2eab1fd06987b8d1ee64bc5dbb73"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-decoration-net100.log",
+        "bytes": 10601,
+        "sha256": "8675e2b4875ca876fd6359ad91070f8c7d8f061157def1f40925d33217c8fa60"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 11.944934125000001,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-qualified-decoration-net100/geometry-qualified-decoration-net100.trx",
+        "bytes": 33175,
+        "sha256": "85288d269cb298fbcf3cd82c9571a88642fe8a42dd4fb589a04a70724ed3dff3"
+      },
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "framework": "net10.0"
+    }
+  ],
+  "net472Compilation": [
+    {
+      "name": "geometry-qualified-compile-html-net472",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-compile-html-net472-execution.json",
+        "bytes": 1523,
+        "sha256": "cbfc50dbc295ac2f8f7d498984a3a9eba58605b2604fccd9bb9d3bf045bcef5e"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-compile-html-net472.log",
+        "bytes": 13759,
+        "sha256": "a0bd56fa49c83c4badde3ec553781545bf6aa61b46968b9a23f12df62528bcc7"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 40.87179
+    },
+    {
+      "name": "geometry-qualified-compile-pdf-net472",
+      "execution": {
+        "path": "$TASK_ROOT/geometry-qualified-compile-pdf-net472-execution.json",
+        "bytes": 1529,
+        "sha256": "b7c1b3d1be005c067682a251aa2b1b38e2c84050ed6de1ae4777725d2f88a3d0"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-qualified-compile-pdf-net472.log",
+        "bytes": 30495,
+        "sha256": "df4568c53fc757ed5ffedfe325b51dcdadcd1e1f7ef2aa4c48a25390edd7b94d"
+      },
+      "exitCode": 0,
+      "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+      "elapsedSeconds": 18.788293166000003
+    }
+  ],
+  "sourceWarnings": "Existing source/compiler warnings are retained in the actual bound logs; no zero-warning claim.",
+  "sourceRendering": {
+    "lanes": [
+      {
+        "framework": "net8",
+        "main": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/net8/summary.json",
+            "bytes": 361475,
+            "sha256": "03eae57452a1785a939e1219cf34d255745be89d2982bd7315d9e50fbf13092d"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 16,
+          "pages": 18,
+          "ownEncodedPngPdfPairsEqual": 18,
+          "lossBearingObservations": 0
+        },
+        "insets": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/supplemental-net8/summary.json",
+            "bytes": 32988,
+            "sha256": "25885fd71c28a48340ec1e0b7a56293a344f195cb61ec0e09d35f8a9a0cc8272"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 2,
+          "pages": 2,
+          "ownEncodedPngPdfPairsEqual": 2,
+          "lossBearingObservations": 2
+        },
+        "loss": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/loss-net8/summary.json",
+            "bytes": 52417,
+            "sha256": "4f90a181ae5c5e5dda638e7c835ad5b83a74f2e151fb63587ed36c4b834398d8"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 6,
+          "pages": 6,
+          "ownEncodedPngPdfPairsEqual": 6,
+          "lossBearingObservations": 4
+        }
+      },
+      {
+        "framework": "net10",
+        "main": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/net10/summary.json",
+            "bytes": 361534,
+            "sha256": "850f2a39997b8d5d630477e46189769506ff8da6f877ee318c6d3dc6afd65efd"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 16,
+          "pages": 18,
+          "ownEncodedPngPdfPairsEqual": 18,
+          "lossBearingObservations": 0
+        },
+        "insets": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/supplemental-net10/summary.json",
+            "bytes": 33001,
+            "sha256": "f3785c340ef470c93be571da057bb1f448ab660d19b61e988ae181bbdfdc4de7"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 2,
+          "pages": 2,
+          "ownEncodedPngPdfPairsEqual": 2,
+          "lossBearingObservations": 2
+        },
+        "loss": {
+          "summary": {
+            "path": "$TASK_ROOT/qualified/loss-net10/summary.json",
+            "bytes": 52442,
+            "sha256": "94f83572448b54917c6a94ecdb8a4637a2d5337fc2fa0e987d0ec54c4eb846e3"
+          },
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "observations": 6,
+          "pages": 6,
+          "ownEncodedPngPdfPairsEqual": 6,
+          "lossBearingObservations": 4
+        }
+      }
+    ],
+    "ownEncodedPngPdfPairsEqual": 52,
+    "executions": [
+      {
+        "name": "geometry-qualified-net8-build",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-net8-build-execution.json",
+          "bytes": 1814,
+          "sha256": "2894255c24da9e5bf0aa2ba6bb00a672e74e9bddc052681bff2eb56c9674f9b1"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-net8-build.log",
+          "bytes": 1756,
+          "sha256": "43221ba4e584484a9a3dbc2f9075bb62c53a415025f47c71a9ea934c573d056a"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 26.249085625
+      },
+      {
+        "name": "geometry-qualified-net8-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-net8-run-execution.json",
+          "bytes": 1491,
+          "sha256": "34a4e77c0139e9123b0a9b5ade697a437c77224346b585146d02067e6a800ca1"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-net8-run.log",
+          "bytes": 116,
+          "sha256": "14878d31414454ea43f2c5e4e49f5dcb49e28c0a06c9f353cd46bdeef3305837"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 4.717554333
+      },
+      {
+        "name": "geometry-qualified-net10-build",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-net10-build-execution.json",
+          "bytes": 1820,
+          "sha256": "19e178f8fa5ae901c8cf4bd3dfc90eeb7ef0f1759fcfb19b44ace2c03bff8dff"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-net10-build.log",
+          "bytes": 1769,
+          "sha256": "1eabe770a69b4a68e93c26468962dc1320ab8ea98fb1c9740897fd5b5ddfc0ee"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 33.923653625
+      },
+      {
+        "name": "geometry-qualified-net10-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-net10-run-execution.json",
+          "bytes": 1503,
+          "sha256": "6e86c6c683d9784dd6da6851512cdbc178f952e9553827f347b055413ac301b4"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-net10-run.log",
+          "bytes": 117,
+          "sha256": "c229ff3210e7f91d2839284430905ea06ba8dac5278e58dd8ffcfb920893c965"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.9156177500000002
+      },
+      {
+        "name": "geometry-qualified-insets-net8-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-insets-net8-run-execution.json",
+          "bytes": 1589,
+          "sha256": "a9c7f61dd775f6f8e3fbcc09609deaaee3ebb4c520b09392b501c0b3c29c1f41"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-insets-net8-run.log",
+          "bytes": 115,
+          "sha256": "4a9496bdb8e121ed2f3ba044700217b1b473bd37103a53e21a0379af6dd72860"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 0.9848644160000001
+      },
+      {
+        "name": "geometry-qualified-loss-net8-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-loss-net8-run-execution.json",
+          "bytes": 1518,
+          "sha256": "06f1b2099e85beb61f9da17d35d19343617463d5c7b157129ec06f17064f3e5d"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-loss-net8-run.log",
+          "bytes": 115,
+          "sha256": "70ea1003910f784c727ac97f6f6602fb9f9a32c7e23c0d451624d9286c63247f"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.1707670000000001
+      },
+      {
+        "name": "geometry-qualified-insets-net10-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-insets-net10-run-execution.json",
+          "bytes": 1587,
+          "sha256": "db70b9c832c144f2cbba08f64fb4f7d778a6b2a6ba70b04a6d1d2a0101528726"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-insets-net10-run.log",
+          "bytes": 116,
+          "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 0.859652166
+      },
+      {
+        "name": "geometry-qualified-loss-net10-run",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-loss-net10-run-execution.json",
+          "bytes": 1513,
+          "sha256": "2fdc63c3fdb270661fcd1fbb306d9d8294b5f3f1ee91d68634a5761c3ede3b3e"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-loss-net10-run.log",
+          "bytes": 116,
+          "sha256": "abfdebf516e108fc21b7cf2bff47f1367c25db333672812c9c78500c4d99433d"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.046584
+      }
+    ],
+    "visualAcceptance": {
+      "path": "$TASK_ROOT/root-render-acceptance-qualified.json",
+      "bytes": 6108,
+      "sha256": "626a727b3e469018f7ba7cda55ddd1d30dfa275e356ff55e10a27a08fa71fe4a"
+    },
+    "crossFramework": {
+      "path": "$TASK_ROOT/qualified/cross-framework-observations.json",
+      "bytes": 2713,
+      "sha256": "9b5bc9fee3400ac745308d08a8b14221806dfaeeab1bfde5719ba6bbb41f12b4"
+    },
+    "crossFrameworkDecodedRgbaPairsEqual": 18,
+    "crossFrameworkEncodedPngPairsEqual": 0,
+    "printScreenEquivalence": {
+      "path": "$TASK_ROOT/qualified/print-screen-observations.json",
+      "bytes": 2456,
+      "sha256": "b916f95c9af7c11fe0ecc144328bc22aee1fa97a1f7c692af6a0b20b13c7665d"
+    }
+  },
+  "native": {
+    "engine": "Microsoft Edge (Chromium) via retained HtmlTinkerX comparison host",
+    "captures": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/native/execution.json",
+          "bytes": 123331,
+          "sha256": "ab44f7158ac4697f42ae63c575ccdfdfaa17fe296770dd26ee9d303f982f3281"
+        },
+        "observations": 16,
+        "pages": 18,
+        "originalRuntimeBuildBinding": {
+          "path": "$PRIOR_PAGE_MARGIN_ROOT/prep/runtime-bindings.json",
+          "bytes": 60774,
+          "sha256": "9e0ad9941dcef00ba07fb1ec193229aa5756ceecd3c8505d9a612021de0c7dca"
+        },
+        "browser": {
+          "path": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          "bytes": 88560,
+          "sha256": "6d803495f9c3ce70c9d89001d968863925dd17317160f2d96b357f7c1872b61b"
+        }
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/native-overconstraint/execution.json",
+          "bytes": 18068,
+          "sha256": "d4a7f1d478324cfc74c00a5a2426db8f3ef029e269e41747117bcc3961632e87"
+        },
+        "observations": 2,
+        "pages": 2,
+        "originalRuntimeBuildBinding": {
+          "path": "$PRIOR_PAGE_MARGIN_ROOT/prep/runtime-bindings.json",
+          "bytes": 60774,
+          "sha256": "9e0ad9941dcef00ba07fb1ec193229aa5756ceecd3c8505d9a612021de0c7dca"
+        },
+        "browser": {
+          "path": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          "bytes": 88560,
+          "sha256": "6d803495f9c3ce70c9d89001d968863925dd17317160f2d96b357f7c1872b61b"
+        }
+      }
+    ],
+    "limits": [
+      "04UNMATCHED: sourceenforces128pxminimumand112pxmaximumwithcentredmiddleandallowedboxoverlap; Edgeactualouter123/66/123andfivecenterlineswithoverflow. CSSPage3maxthenminnormativeusedconstraintsareownedcontract; nativegapretained.",
+      "06bottomUNMATCHED: axis-specificpercentagepaddingretains100pxcontentwidth/twolines; Edgeactualtextx124.65625andone111.123pxline. Topabsolutepadding/coloredsolidborderframeandwrappingmatchobservation.",
+      "Real-fontpositions/rasterizeredgecoveragecanvary; scenes/RGBApixelsmatchacrossNET8/10butencodedPNGcompressionbytesdifferbetweenframeworks. OwnPNG/PDFencodedbytesareexactlyequalwithineachframework.",
+      "RunningelementsandCSS-wide/cascade/budgetcasesareownedcontrols, notnewnativecapabilityacceptance. Side/cornergeometry,authoredheight/margins/box-sizing/verticalwriting/backgrounds/broaderborderstylesoutsideselectedslice.",
+      "09 zero-height inset pressure: source retains full PAD scene text behind an exact zero-height clip and reports omission; Edge paints PAD. Matching outer border geometry is not text appearance equivalence."
+    ],
+    "supplementalGeometry": "09 body-edge anchored outer frames now x130 y-48 w100 h144(top), x130 y408 w100 h104(bottom), matching actual Edge frame. Source clips zero-height PAD content with omission diagnostic; Edge paints PAD beyond its content area. Frame agreement does not establish complete native appearance.",
+    "boundary": "Frame/line observations are bounded; no universal pixel, glyph-ink or native text appearance equivalence."
+  },
+  "privatePackages": {
+    "version": "3.5.25",
+    "freshPackages": 5,
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "packageBinding": {
+      "path": "$TASK_ROOT/packages/geometry-qualified/package-binding.json",
+      "bytes": 24514,
+      "sha256": "b82b8f8688b76d7dcc7aa0866aeb2f11d9f16f29002a5349dba5388be0d40d9f"
+    },
+    "consumerBinding": {
+      "path": "$TASK_ROOT/packages/geometry-qualified/consumer-schema-v2/consumer-binding.json",
+      "bytes": 64834,
+      "sha256": "4b2971bd07ee37ca305417c8b17b644e06299b846d6abd5a14917448cb4ae26b"
+    },
+    "producerPlan": {
+      "path": "$TASK_ROOT/prep/package-qualification-qualified/plan.json",
+      "bytes": 35278,
+      "sha256": "3600b9ddcd98523d9d0c1c5db4349553d1c39a5319fba352130c600925750daf"
+    },
+    "consumerPlan": {
+      "path": "$TASK_ROOT/prep/package-consumer-schema-v2/plan.json",
+      "bytes": 14371,
+      "sha256": "b386c025ef17cfef93e9c8a3db493fc56169a2693434f96138c03e2a94b28176"
+    },
+    "consumerOnlyAmendment": {
+      "schemaRepair": {
+        "originalProgram": {
+          "path": "$TASK_ROOT/prep/package-qualification-qualified/consumer/Program.cs",
+          "bytes": 28370,
+          "sha256": "69f106e59516658f2b6d918f5be737db1383f9643105d0c19f74f9a37a46e9d9"
+        },
+        "consumerProgram": {
+          "path": "$TASK_ROOT/prep/package-consumer-schema-v2/consumer/Program.cs",
+          "bytes": 28380,
+          "sha256": "e82d3c39a82717ef8bc6729b6be051e101bbfe5dd97de6255c1a47ee5aa6b9b1"
+        },
+        "onlyCSharpChange": {
+          "from": "officeimo.html.margin-geometry-package-acceptance/v1",
+          "to": "officeimo.html.margin-geometry-qualified-package-acceptance/v1",
+          "occurrences": 1,
+          "allOtherBytesIdentical": true
+        },
+        "resultSchemaUnchanged": "officeimo.html.margin-geometry-package-result/v1",
+        "reason": "Scratch schema-name drift only; original producer packages/cache/ROOT acceptance remain exact and unchanged."
+      },
+      "producerRebuilt": false,
+      "repacked": false,
+      "supersededConsumerHarness": {
+        "acceptedConsumerProof": false,
+        "buildReceipt": {
+          "execution": {
+            "path": "$TASK_ROOT/geometry-qualified-package-net8-build-execution.json",
+            "bytes": 2368,
+            "sha256": "f5e857112ea3e803ce766f4f766e680db1371ac084af38101c6d1f45a271f637"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/geometry-qualified-package-net8-build.log",
+            "bytes": 415,
+            "sha256": "143d51233a45ef99bbbe58a410f202e62ffeb6cab96c3640c844d86c56e145c3"
+          },
+          "exitCode": 0,
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "elapsedSeconds": 2.03892425
+        },
+        "runFailureReceipt": {
+          "execution": {
+            "path": "$TASK_ROOT/geometry-qualified-package-net8-run-execution.json",
+            "bytes": 1999,
+            "sha256": "56e49ffa8965567838261e53c15b179ff6a4893d80fc6f34f3c4a68563fcf431"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/geometry-qualified-package-net8-run.log",
+            "bytes": 510,
+            "sha256": "b9283a6a878aa5db3a9b1d178ab303c3027a219f4bb19e630caeb3a3d8be723e"
+          },
+          "exitCode": -6,
+          "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+          "elapsedSeconds": 0.30323
+        },
+        "disposition": "Original NET8 scratch consumer built, then rejected a valid qualified acceptance schema before producing output. Neither role substitutes for the new consumer acceptance gates; unexecuted original consumer roles are not required."
+      }
+    },
+    "executions": [
+      {
+        "name": "geometry-qualified-package-preflight",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-preflight-execution.json",
+          "bytes": 1666,
+          "sha256": "d74c99847c68fdc5c14c1a40c2b997676823e74de3d27974bfcc99b2e971dba0"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-preflight.log",
+          "bytes": 89,
+          "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 0.19757945800000032
+      },
+      {
+        "name": "geometry-qualified-package-source-restore",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-source-restore-execution.json",
+          "bytes": 2561,
+          "sha256": "c0c737f23761e32635e308d855c467d19011927aeadcfb33e3c12562624d5977"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-source-restore.log",
+          "bytes": 769,
+          "sha256": "a1a0fc2f60249b7e80e92f73a06b4753bfc7fbcab9effe4e7a692178cd25e30e"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 3.816110459
+      },
+      {
+        "name": "geometry-qualified-package-source-build",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-source-build-execution.json",
+          "bytes": 2573,
+          "sha256": "6e112bfbf7a8aa2a800efed3f377d7c0b6d778ccdcd310929c7c0e602f8ee6b0"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-source-build.log",
+          "bytes": 3661,
+          "sha256": "917615b9373978740366eeebaec6c20275d99ab89e0311a63123883d9acf7e4b"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 95.70150825
+      },
+      {
+        "name": "geometry-qualified-package-pack-officeimo-core",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-pack-officeimo-core-execution.json",
+          "bytes": 2604,
+          "sha256": "bf577e5a2a14d11fa9e9c713ee71d5955f7ccfaed1856ea6df0231dd89719f24"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-pack-officeimo-core.log",
+          "bytes": 158,
+          "sha256": "15a7a6b6d52dfb7ef26bca4c5cf97de72fa383a61d47b2b820d8ad84239441fb"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 2.0309842500000004
+      },
+      {
+        "name": "geometry-qualified-package-pack-officeimo-pdf",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-pack-officeimo-pdf-execution.json",
+          "bytes": 2600,
+          "sha256": "b09f1552795ae5e55ed0ed0d5977a67ef4a803efd9b2c9c62430e91d40af66ca"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-pack-officeimo-pdf.log",
+          "bytes": 157,
+          "sha256": "8aaebaca22d8e210360e63ae9e75c66c806eb0a676ff24b8c273897b38733c36"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 3.6017921659999996
+      },
+      {
+        "name": "geometry-qualified-package-pack-officeimo-html-core",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-pack-officeimo-html-core-execution.json",
+          "bytes": 2617,
+          "sha256": "df615c6c251adcfd6d28b64b96db299e0a1405f300cce51647044d512324d201"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-pack-officeimo-html-core.log",
+          "bytes": 163,
+          "sha256": "fb4c2594b27580cfe6e378744ac4b454f021b10278745f1c3ff957b2d852245b"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.093374625
+      },
+      {
+        "name": "geometry-qualified-package-pack-officeimo-html-anglesharp",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-pack-officeimo-html-anglesharp-execution.json",
+          "bytes": 2641,
+          "sha256": "02c466a7e17762652439c081c8d633742c654486279179a336c44086bc105b6d"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-pack-officeimo-html-anglesharp.log",
+          "bytes": 169,
+          "sha256": "2d0ae7aeca1a10deb284636972ce6032211e3e33ed259612f86c3148da7dc4b8"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.105411667
+      },
+      {
+        "name": "geometry-qualified-package-pack-officeimo-html",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-pack-officeimo-html-execution.json",
+          "bytes": 2597,
+          "sha256": "a8ab28abfbdcc6a9ae855f5ced4171f120279e0150d3319e8d14dd4f770f73c8"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-pack-officeimo-html.log",
+          "bytes": 158,
+          "sha256": "24de0bbebf428d2ca13fb2976d3cc113fd18d46ac4621411ba514df2f03a44b4"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 2.023819208
+      },
+      {
+        "name": "geometry-qualified-package-inspect-packages",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-inspect-packages-execution.json",
+          "bytes": 1671,
+          "sha256": "1f777c06145553f4eb2274c7110d91e28ee18c1c851be7884f88a399297e7c7d"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-inspect-packages.log",
+          "bytes": 81,
+          "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 0.408327958
+      },
+      {
+        "name": "geometry-qualified-package-bind-acceptance",
+        "role": "original-qualified-producer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-package-bind-acceptance-execution.json",
+          "bytes": 1669,
+          "sha256": "cc90a1d4e9608555f47ba28958534db125dc2b8e991ca0b915384094be6b7a8e"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-package-bind-acceptance.log",
+          "bytes": 98,
+          "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 0.16488879200000003
+      },
+      {
+        "name": "geometry-qualified-schema-v2-net8-build",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-net8-build-execution.json",
+          "bytes": 2401,
+          "sha256": "acc258f7c67d15a2c25dca6794375492c35311b29c4935f15a4a55699d2d0440"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-net8-build.log",
+          "bytes": 429,
+          "sha256": "a5b10f109de885614fca68ee3a330e1aec623b29acc3c65b2bb5bd3c9c536d2f"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 2.608168666
+      },
+      {
+        "name": "geometry-qualified-schema-v2-net8-run",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-net8-run-execution.json",
+          "bytes": 2044,
+          "sha256": "1658a91bc03a2d7571c011b1d6b7b5e4e8482e3e7b6615034570ab47b479a70d"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-net8-run.log",
+          "bytes": 152,
+          "sha256": "aa6d46d1af484f6b97b111aba4eacf5eda188c0ea4c0c90c7d669dd991592524"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 2.089151625
+      },
+      {
+        "name": "geometry-qualified-schema-v2-net10-build",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-net10-build-execution.json",
+          "bytes": 2406,
+          "sha256": "60c277aa08cbdb6e7a9b79fdc5a5bf765dcac2ba67819bf3df45a4ae11192891"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-net10-build.log",
+          "bytes": 431,
+          "sha256": "c4d50b16305129038ac068a390cf8c9c5c709f2964eea2f6386071c681376384"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.706011292
+      },
+      {
+        "name": "geometry-qualified-schema-v2-net10-run",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-net10-run-execution.json",
+          "bytes": 2049,
+          "sha256": "a24c63b0be98f03a5b359936ff4b74efc66797621ddb2569ffcfc9eaee4c587b"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-net10-run.log",
+          "bytes": 152,
+          "sha256": "aa6d46d1af484f6b97b111aba4eacf5eda188c0ea4c0c90c7d669dd991592524"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 2.437318042
+      },
+      {
+        "name": "geometry-qualified-schema-v2-aot-build",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-aot-build-execution.json",
+          "bytes": 2468,
+          "sha256": "ff9d5db8e0dee4b848f64f224dc1d90ccc88123e6b422c0b084d94ed9e6bb63f"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-aot-build.log",
+          "bytes": 552,
+          "sha256": "ef35bfd5aad44eb7d21339793307f871add50e34b434cc7b62d7f7f0e35a86ed"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 38.803477208000004
+      },
+      {
+        "name": "geometry-qualified-schema-v2-aot-run",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-aot-run-execution.json",
+          "bytes": 1991,
+          "sha256": "b1af36ef031c0302f817ec5e5e8f0e59c342d777c1f02729dddcee95d156ca22"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-aot-run.log",
+          "bytes": 152,
+          "sha256": "aa6d46d1af484f6b97b111aba4eacf5eda188c0ea4c0c90c7d669dd991592524"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.105121625
+      },
+      {
+        "name": "geometry-qualified-schema-v2-inspect",
+        "role": "schema-v2-consumer",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-qualified-schema-v2-inspect-execution.json",
+          "bytes": 1646,
+          "sha256": "fb5e019058dbaf2cf77c1524490eca0a0ea92d35435a31906dbf935359cbfbbc"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-qualified-schema-v2-inspect.log",
+          "bytes": 133,
+          "sha256": "41aa3f1ffde6f99a7789fba9bf54086d8b2c4112e17830b41ba0361dce63618b"
+        },
+        "exitCode": 0,
+        "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+        "elapsedSeconds": 1.754677416
+      }
+    ],
+    "consumers": [
+      {
+        "label": "net8",
+        "framework": ".NET 8.0.23",
+        "result": {
+          "path": "$TASK_ROOT/packages/geometry-qualified/consumer-schema-v2/results/net8/result.json",
+          "bytes": 316132,
+          "sha256": "6ac157063b1be8f88e535a5b0a7c3bb15c445a54d3e57282caf9c5f557df8535"
+        },
+        "observations": 16,
+        "pages": 18,
+        "ownPngPdfPairsEqual": 18,
+        "sameFrameworkSourcePngEqual": 18,
+        "dynamicCodeSupported": true,
+        "architecture": "Arm64"
+      },
+      {
+        "label": "net10",
+        "framework": ".NET 10.0.13",
+        "result": {
+          "path": "$TASK_ROOT/packages/geometry-qualified/consumer-schema-v2/results/net10/result.json",
+          "bytes": 316193,
+          "sha256": "9799ef7c69c66f33723621d8bc0b709c383ceea0fc734358f3ca969af755569f"
+        },
+        "observations": 16,
+        "pages": 18,
+        "ownPngPdfPairsEqual": 18,
+        "sameFrameworkSourcePngEqual": 18,
+        "dynamicCodeSupported": true,
+        "architecture": "Arm64"
+      },
+      {
+        "label": "aot",
+        "framework": ".NET 10.0.13",
+        "result": {
+          "path": "$TASK_ROOT/packages/geometry-qualified/consumer-schema-v2/results/aot/result.json",
+          "bytes": 314261,
+          "sha256": "4526b9740681e7f951dccff3ee1c9d3a59d5451a9a2e2634357e2dc55dc20c5f"
+        },
+        "observations": 16,
+        "pages": 18,
+        "ownPngPdfPairsEqual": 18,
+        "sameFrameworkSourcePngEqual": 18,
+        "dynamicCodeSupported": false,
+        "architecture": "Arm64"
+      }
+    ],
+    "boundary": "Original eight fixtures only; supplemental 09 and loss controls remain source/test evidence."
+  },
+  "localReview": {
+    "fullPass": {
+      "path": "$TASK_ROOT/review-ledger.json",
+      "bytes": 3611,
+      "sha256": "ed30581785e731f6a66f16f46b32d997e9f6db37e3fa45ad784dc2a4d1adcd11"
+    },
+    "targetedConfirmation": {
+      "path": "$TASK_ROOT/review-targeted-confirmation.json",
+      "bytes": 1192,
+      "sha256": "276a3bc9956bb5c909a69dfda8d86f02ef4a2170ce265212248589416b5db24b"
+    },
+    "knownValidatedInScopeFindingRemaining": false,
+    "mode": "One full read-only pass and one targeted confirmation."
+  },
+  "reviewReproductions": {
+    "before": {
+      "execution": {
+        "path": "$TASK_ROOT/geometry-remediation-before-net8-test-execution.json",
+        "bytes": 1922,
+        "sha256": "fa33920ac2415f5d6e3fb24483a4af9021933acbaac06b5d8d6a32fda733f146"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/geometry-remediation-before-net8-test.log",
+        "bytes": 17681,
+        "sha256": "eff4710fa896358a081d9be94eb4d99ed27ceee3aad750e6732581fb7871e66d"
+      },
+      "exitCode": 1,
+      "sourceHead": "0d84ee984e39fa0c20c6d1b6ac61e7137d640190",
+      "elapsedSeconds": 12.983458791,
+      "trx": {
+        "path": "$TASK_ROOT/trx/geometry-remediation-before-net8/geometry-remediation-before-net8.trx",
+        "bytes": 40505,
+        "sha256": "2b854d4ddcda5d62ae66cebf23432191c08709e0f8a6c4ac1b70f552e1e201cf"
+      },
+      "total": 12,
+      "passed": 3,
+      "failed": 9,
+      "skipped": 0,
+      "framework": "net8.0"
+    },
+    "sourceTestWasUncommittedDuringBefore": true,
+    "originalSourceBefore": {
+      "summary": {
+        "path": "$TASK_ROOT/before/net8/summary.json",
+        "bytes": 202339,
+        "sha256": "6c0892f27772b37a07b8faa1384c4e089af1d5cf975ee9fbc9da169efb670056"
+      },
+      "sourceHead": "70c5baec8fa80a13f5b9edacff627a69728ea396",
+      "observations": 16,
+      "pages": 18,
+      "ownEncodedPngPdfPairsEqual": 18,
+      "lossBearingObservations": 0,
+      "executions": [
+        {
+          "execution": {
+            "path": "$TASK_ROOT/geometry-before-net8-build-v2-execution.json",
+            "bytes": 1814,
+            "sha256": "93486a25cfe33d776b3aca6d860bdfdad3468ad092222ee8bb55d7255dcc82ee"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/geometry-before-net8-build-v2.log",
+            "bytes": 926,
+            "sha256": "9442660062e6a31c95013ecd64f959793fbb2bcdde92b4f40e2f8ed92611a30f"
+          },
+          "exitCode": 0,
+          "sourceHead": "70c5baec8fa80a13f5b9edacff627a69728ea396",
+          "elapsedSeconds": 6.4111730840000005
+        },
+        {
+          "execution": {
+            "path": "$TASK_ROOT/geometry-before-net8-run-v2-execution.json",
+            "bytes": 1485,
+            "sha256": "661a2f446b1f5abcd9a8ad49793f0249eabe5d945a57d349663498ca4acb8a96"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/geometry-before-net8-run-v2.log",
+            "bytes": 116,
+            "sha256": "14878d31414454ea43f2c5e4e49f5dcb49e28c0a06c9f353cd46bdeef3305837"
+          },
+          "exitCode": 0,
+          "sourceHead": "70c5baec8fa80a13f5b9edacff627a69728ea396",
+          "elapsedSeconds": 3.307637875
+        }
+      ]
+    },
+    "earlierFailedAttempts": [
+      {
+        "name": "geometry-before-net8-build",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-before-net8-build-execution.json",
+          "bytes": 1802,
+          "sha256": "41dafbcd3341f756e5daf69a1d60cf92adaa38b71e7ce9a94cdbfc27f9731441"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-before-net8-build.log",
+          "bytes": 5434,
+          "sha256": "85a7d0b366a8d8496cad2d5a02655b5e768d4fb378d90f0e8e129e244f499106"
+        },
+        "exitCode": 1,
+        "sourceHead": "70c5baec8fa80a13f5b9edacff627a69728ea396",
+        "elapsedSeconds": 23.257517709
+      },
+      {
+        "name": "geometry-focused-html-net80",
+        "execution": {
+          "path": "$TASK_ROOT/geometry-focused-html-net80-execution.json",
+          "bytes": 1730,
+          "sha256": "ba7c0df6a635b3c485ff1c431308ae4f8809472cfc5ce82eb6c9e6bcb6a289ee"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/geometry-focused-html-net80.log",
+          "bytes": 14036,
+          "sha256": "9a83007f4d9b9c2fca428b159a164757133a639ca656900c9ac6e0a23aa60eff"
+        },
+        "exitCode": 1,
+        "sourceHead": "f3e376b87a59f48f29eae6ecf47df35837b5e61c",
+        "elapsedSeconds": 82.22110895899999,
+        "trx": {
+          "path": "$TASK_ROOT/trx/geometry-focused-html-net80/geometry-focused-html-net80.trx",
+          "bytes": 312509,
+          "sha256": "93608a562b3aa8850d2624e5bfcdc3bf98acb70dab5b6b79d4eba9aadae1b8ce"
+        },
+        "total": 194,
+        "passed": 192,
+        "failed": 2,
+        "skipped": 0,
+        "framework": "net8.0"
+      }
+    ],
+    "findingPacket": {
+      "path": "$TASK_ROOT/remediation-before-findings.json",
+      "bytes": 4361,
+      "sha256": "059cd36e919a0f3b614b0c2738a8008551ab435bbe4b93300b9108d0762cd353"
+    },
+    "correction": "Withdraw thickuniformborderentirelyomitted claim; actualraster disproved. Outerframeinvariant was real and fixed."
+  },
+  "remaining": [
+    "Intrinsic width keywords, authored heights/margins/box-sizing, side/corner boxes, vertical writing, backgrounds, border radii and broader border styles remain outside this slice.",
+    "Native04 minimum redistribution, native06 percentage padding and native09 zero-height text appearance differences remain explicit.",
+    "Runtime/provider forks remain separate; Windows profiling deferred."
+  ],
+  "storage": {
+    "status": "verified-retention-and-cleanup-complete",
+    "cleanupReceipts": [
+      {
+        "path": "$TASK_ROOT/storage-interim/cleanup-result.json",
+        "bytes": 3206,
+        "sha256": "7b0fa410ee9c0440a3491926369ec36c906038050299f566892c57c4ddda6823"
+      },
+      {
+        "path": "$TASK_ROOT/storage-source-closure/cleanup-result.json",
+        "bytes": 5028,
+        "sha256": "7d704c3e79ef4ac2b50f8a66abd5f973e450cdcb11b7c07bed6ed4a6c536a3f2"
+      },
+      {
+        "path": "$TASK_ROOT/storage-package-closure/cleanup-result.json",
+        "bytes": 8146,
+        "sha256": "10da214431385891fad01e45d9b95968226d34fd6b7a234b87d33ca5a52e045a"
+      }
+    ],
+    "removedLogicalBytes": 7766555727,
+    "retainedLogicalBytesObservedBeforeFinalMetadata": 669725194,
+    "archives": [
+      {
+        "path": "$TASK_ROOT/storage-interim/retired-source-graph-metadata.zip",
+        "bytes": 142942,
+        "sha256": "903efb61f0a538700099897f2c4526ea2713add0303c87a5ef22317d879eb7f3",
+        "entries": 90,
+        "allEntryCRCAndBytesVerified": true
+      },
+      {
+        "path": "$TASK_ROOT/storage-source-closure/source-runtime-metadata-compact.zip",
+        "bytes": 81119413,
+        "sha256": "0df09bc9d96410052e68c78f1e4eda63633299ed9ff273f9e21fd334a318c47a",
+        "entries": 690,
+        "pathMappings": 3154,
+        "allCRCBytesHashModeReadbackVerified": true
+      },
+      {
+        "path": "$TASK_ROOT/storage-package-closure/package-runtime-metadata.zip",
+        "bytes": 58629470,
+        "sha256": "211674b10473acbc1d36053a2d081bb4c58443214a3c51508c8a8db4fade4aaa",
+        "entries": 157,
+        "pathMappings": 304,
+        "allCRCBytesHashModeReadbackVerified": true
+      }
+    ],
+    "storageManifest": {
+      "path": "$TASK_ROOT/storage-manifest.json",
+      "bytes": 1709,
+      "sha256": "b3ca93db9c87577aaf132c06ae6d106dcb27cf873c306233e415ff37c0c5da34"
+    },
+    "storageLedger": {
+      "path": "$TASK_ROOT/prep/storage-final/storage-ledger-receipt.json",
+      "bytes": 4988,
+      "sha256": "24a724e96d9825b97e43948d20035ee47615f54c9b2576028b57c4c3445f86fa"
+    },
+    "allPriorLedgerRowsPreserved": true,
+    "rerunBoundary": "Retired graphs cannot be used with no-build or frozen collectors. A remediation needs a fresh graph.",
+    "boundary": "Logical removed bytes are not a measured volume-free-space or deduplicated-extent claim. Protected source/history/shared caches remain unchanged."
+  },
+  "delivery": {
+    "checkpointBranch": "feature/html-page-margin-geometry",
+    "prOpenedByCollector": false,
+    "merge": "Separate authorized current-head CI/review gates.",
+    "packagePublication": "Not performed or authorized by this collector.",
+    "readyForPr": true,
+    "currentHeadGates": "New PR head CI, automatic review, delayed feedback and authorized merge/cleanup still required; no package publication."
+  },
+  "preCleanupQualification": {
+    "path": "$TASK_ROOT/portable-page-margin-geometry-schema-v2-qualified.json",
+    "bytes": 45691,
+    "sha256": "3dc60d191de8078d3ed8ab701162d315ac8bb278ebf280a6b6f26a1470665a95"
+  },
+  "documentationComposition": {
+    "qualifiedProductionHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+    "documentationHead": "c61ef5eac727386e2d06051e15a0915f114ae5a7",
+    "changedPaths": [
+      "Docs/ROADMAP.md",
+      "Docs/officeimo.html-engine-design.md",
+      "OfficeIMO.Html/README.md"
+    ],
+    "allOtherTrackedSourceInputsUnchanged": true,
+    "actualCurrentMaster": "64571f1a8ff6e94c9c15a8cba40e82dcaecbea14",
+    "providerLocalAndRemote": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "noPackagePublication": true,
+    "windowsProfilingDeferred": true,
+    "bindingBoundary": "Source/tests/renders/privatepackages retain dc5f812 original binding; documentation-only commit is not claimed as a newly built package.",
+    "binding": {
+      "path": "$TASK_ROOT/documentation-composition.json",
+      "bytes": 684,
+      "sha256": "8ff2e25754124cf7f8c8018841a3924897c8c4464a683ad1800fa0aab7f1c5b3"
+    }
+  },
+  "unitContextClarification": {
+    "sourceHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+    "disposition": "Existing documented unit-owner contract reused; initial 170px expected value contradicted caller-configured A4 fallback, not a new geometry defect",
+    "contract": "Horizontal page-margin viewport/container fallback uses caller PageSize before authored @page size; no last-body query-container leakage",
+    "publicOwner": {
+      "repositoryPath": "OfficeIMO.Html/PDF.md",
+      "bytes": 35835,
+      "sha256": "385f268cae00f2c555995a7106daff7016090b6e5f1b895dee7d962d2a6b8e86"
+    },
+    "ownerLines": "359",
+    "controls": {
+      "repositoryPath": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginContainerUnits.cs",
+      "bytes": 5514,
+      "sha256": "8f8188bb7c79ff74ea3bb663f9b7a6335b77b60d34b4ffe1d5881156dad3dc81"
+    },
+    "controlLines": "42-64 configure360/600px versus authored300px output",
+    "priorNativeProof": {
+      "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-cqw-20261020.json",
+      "bytes": 256823,
+      "sha256": "c301c6c51c9698f89c2825c09b2b69b9404cced87c45972ed636d9495d9feb50"
+    },
+    "priorProductionHead": "cd449872d529de031519510a0ba38748042b125a",
+    "qualifiedNativeBasis": "Prior font/line-height cqw controls discriminate configured paper from authored page. Fresh fixture02 width evidence configures and authors360px.",
+    "limit": "No new independent A4-versus340px native width-property observation is claimed; this milestone reuses the prior shared fallback owner.",
+    "binding": {
+      "path": "$TASK_ROOT/cqw-context-clarification.json",
+      "bytes": 1500,
+      "sha256": "c3c72ccd0483f1cb82299217da276ab509dc0f424f85055ea228eba40a577026"
+    }
+  }
+}
