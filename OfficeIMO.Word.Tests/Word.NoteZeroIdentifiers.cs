@@ -47,13 +47,27 @@ public partial class Word {
         // This path uses the package and PDF directly. A failing public note
         // Paragraphs getter must not prevent observing a conversion omission.
         var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
-        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        byte[] bytes = result.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in new[] { ZeroNotePrefix, ZeroNoteSuffix, ZeroNoteBody, ZeroNoteFollowingBody })
             Assert.Single(Regex.Matches(visible, Regex.Escape(token)));
         AssertZeroNoteInlineReferencePosition(pdf);
         Assert.Contains(ZeroNotePrefix + "1" + ZeroNoteSuffix, visible, StringComparison.Ordinal);
-        if (endnote) AssertZeroEndnoteFlowBodyAssociation(pdf);
+        if (endnote) {
+            AssertZeroEndnoteFlowBodyAssociation(pdf);
+            PdfDocumentInfo navigation = PdfInspector.Inspect(bytes);
+            PdfLinkAnnotation annotation = Assert.Single(navigation.LinkAnnotations,
+                link => link.DestinationName == "OfficeIMO.Endnote.0");
+            Assert.True(annotation.IsNamedDestinationLink);
+            Assert.True(annotation.Width > 0D && annotation.Height > 0D);
+            Assert.Equal(Assert.Single(pdf.GetPages(), page => page.Text.Contains(ZeroNotePrefix, StringComparison.Ordinal)).Number,
+                annotation.PageNumber);
+            PdfNamedDestination destination = Assert.Single(navigation.NamedDestinations,
+                item => item.Name == "OfficeIMO.Endnote.0");
+            Assert.Equal(Assert.Single(pdf.GetPages(), page => page.Text.Contains(ZeroNoteBody, StringComparison.Ordinal)).Number,
+                destination.PageNumber);
+        }
         else AssertPdfFootnoteAssociation(pdf, ZeroNotePrefix, ZeroNoteBody, "1");
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
 
@@ -153,15 +167,15 @@ public partial class Word {
 
     private static void AssertZeroEndnoteFlowBodyAssociation(PdfPigDocument pdf) {
         Page page = Assert.Single(pdf.GetPages(), item => item.Text.Contains(ZeroNoteBody, StringComparison.Ordinal));
-        Assert.Contains("1 " + ZeroNoteBody, Regex.Replace(page.Text, @"\s+", " "), StringComparison.Ordinal);
         Letter[] body = AnchoredRunningLetters(page, ZeroNoteBody);
-        // Endnote flow emits its label followed by a space. It does not use
-        // the qualified page-footnote label's direct-adjacency contract.
+        // The source authors a marker directly before the supplied note text;
+        // association must not require a space invented by flattened output.
         Letter label = Assert.Single(page.Letters, letter => letter.Value == "1" &&
             letter.StartBaseLine.X < body[0].StartBaseLine.X &&
             letter.StartBaseLine.Y >= body[0].StartBaseLine.Y &&
             letter.StartBaseLine.Y - body[0].StartBaseLine.Y < body[0].PointSize);
         Assert.True(label.EndBaseLine.X <= body[0].StartBaseLine.X);
+        Assert.True(label.PointSize < body[0].PointSize);
         Page following = Assert.Single(pdf.GetPages(), item => item.Text.Contains(ZeroNoteFollowingBody, StringComparison.Ordinal));
         Assert.True(following.Number <= page.Number);
         if (following.Number == page.Number)
