@@ -23,11 +23,11 @@ public static partial class OfficeDrawingSvgExporter {
             cancellationToken.ThrowIfCancellationRequested();
             var attribute = element.Attribute("font-family");
             if (attribute == null) continue;
-            var names = OfficeFontFamilyParser.Parse(attribute.Value).ToArray();
-            if (!names.Any(families.ContainsKey)) continue;
-            attribute.Value = string.Join(", ", names.Select(name => prefix.Length > 0 && families.TryGetValue(name, out var scoped)
+            var names = OfficeFontFamilyParser.ParseCssReferences(attribute.Value);
+            if (!names.Any(name => families.ContainsKey(name.Name))) continue;
+            attribute.Value = string.Join(", ", names.Select(name => prefix.Length > 0 && families.TryGetValue(name.Name, out var scoped)
                 ? QuoteCssFamily(scoped)
-                : RequiresQuotedCssFamily(name) ? QuoteCssFamily(name) : name));
+                : name.IsQuoted || RequiresQuotedCssFamily(name.Name) ? QuoteCssFamily(name.Name) : name.Name));
         }
         cancellationToken.ThrowIfCancellationRequested();
         return root.ToString(SaveOptions.DisableFormatting);
@@ -39,6 +39,7 @@ public static partial class OfficeDrawingSvgExporter {
 
         var identifiers = family.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (identifiers.Length == 0) return true;
+        if (!string.Equals(family, string.Join(" ", identifiers), StringComparison.Ordinal)) return true;
         for (int index = 0; index < identifiers.Length; index++) {
             if (!IsUnquotedCssIdentifier(identifiers[index]) || IsCssWideKeyword(identifiers[index])) return true;
         }

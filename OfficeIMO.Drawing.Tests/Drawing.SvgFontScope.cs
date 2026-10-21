@@ -11,6 +11,7 @@ public sealed class DrawingSvgFontScopeTests {
     [InlineData("3 of 9 Barcode", "\"3 of 9 Barcode\"")]
     [InlineData("initial", "\"initial\"")]
     [InlineData("Shared Font", "Shared Font")]
+    [InlineData("Shared  Font", "\"Shared  Font\"")]
     public void StandaloneSvgUsesCssSafeEmbeddedFontReferences(string family, string expectedReference) {
         var drawing = new OfficeDrawing(100, 40);
         drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
@@ -35,6 +36,36 @@ public sealed class DrawingSvgFontScopeTests {
         var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
 
         Assert.Equal("\"Missing, Family\", \"ABCDEF+Subset-Regular\", sans-serif",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData("serif")]
+    [InlineData("math")]
+    [InlineData("Shared  Font")]
+    public void StandaloneSvgKeepsLiteralQuotedEmbeddedFamilyNames(string family) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo(OfficeFontFamilyParser.Quote(family), 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal(OfficeFontFamilyParser.Quote(family),
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("page-1-")]
+    public void SvgKeepsLiteralAndGenericFallbacksDistinct(string prefix) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ABCDEF+Subset-Regular", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"serif\", ABCDEF+Subset-Regular, serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing, 1, OfficeSvgSizeUnit.Point, null, prefix));
+
+        Assert.Equal("\"serif\", \"" + prefix + "ABCDEF+Subset-Regular\", serif",
             svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
     }
 
