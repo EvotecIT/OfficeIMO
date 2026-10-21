@@ -20,7 +20,7 @@
       <header class="imo-report-lab__intro">
         <p class="imo-section__eyebrow">OfficeIMO.JavaScript · runs on your device</p>
         <h1>Make the report.<br />Keep the detail.</h1>
-        <p>One operational dataset. Editable Excel analysis, hierarchical totals and detail, a composed PDF, or clean CSV. Try the engine with a few rows, then give it a larger workload.</p>
+        <p>One operational dataset. Editable Excel analysis, hierarchical totals and detail, readable wide PDF tables, or clean CSV. Try the engine with a few rows, then give it a larger workload.</p>
       </header>
       <section class="imo-report-lab__workbench" aria-labelledby="report-workbench-title">
         <div class="imo-report-lab__controls">
@@ -45,6 +45,7 @@
               <option value="analysis">Editable analysis / composed report</option>
               <option value="grouped">Group by site · totals and detail</option>
               <option value="hierarchical">Hierarchical analysis</option>
+              <option value="wide">Wide analysis · 16 operational fields</option>
             </select>
             <label for="report-language">Report language</label>
             <select id="report-language" name="language">
@@ -52,18 +53,21 @@
               <option value="pl">Polski</option>
             </select>
             <div class="imo-report-lab__actions">
+              <a id="report-download" class="imo-btn imo-btn-primary" aria-describedby="report-status report-measurement" hidden>Download report</a>
               <button id="report-generate" class="imo-btn imo-btn-primary" type="submit" disabled>Generate report</button>
-              <button id="report-cancel" class="imo-btn imo-btn-ghost" type="button" disabled>Cancel</button>
+              <button id="report-cancel" class="imo-btn imo-btn-ghost" type="button" disabled hidden>Cancel</button>
             </div>
           </form>
-          <progress id="report-progress" max="100" value="0" aria-label="Report rows processed"></progress>
-          <p id="report-status" role="status" aria-live="polite">Loading the report controls…</p>
-          <a id="report-download" class="imo-btn imo-btn-primary" hidden>Download report</a>
-          <p id="report-measurement" class="imo-report-lab__measurement"></p>
+          <div class="imo-report-lab__result">
+            <progress id="report-progress" max="100" value="0" aria-label="Report rows processed"></progress>
+            <p id="report-status" role="status" aria-live="polite">Loading the report controls…</p>
+            <p id="report-measurement" class="imo-report-lab__measurement" hidden></p>
+          </div>
           <noscript><p>Enable JavaScript to generate a report. The API guide below remains available.</p></noscript>
         </div>
         <div class="imo-report-lab__preview">
           <div class="imo-report-lab__preview-heading"><h2>Inside the report</h2><span id="report-preview-count">First 8 of 100 services</span></div>
+          <p id="report-preview-scope" class="imo-report-lab__preview-scope" hidden></p>
           <div class="imo-report-lab__table-scroll" tabindex="0" role="region" aria-label="Service data preview, scroll for more columns">
             <table><caption>Illustrative service health data</caption><thead><tr><th scope="col">Service</th><th scope="col">Site</th><th scope="col">Status</th><th scope="col">Latency</th></tr></thead><tbody id="report-preview"></tbody></table>
           </div>

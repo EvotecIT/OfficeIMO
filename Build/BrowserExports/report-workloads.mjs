@@ -20,24 +20,32 @@ const fixtures = [
   { name: "assessment-xlsx-10000-blob", format: "xlsx", rows: 10000, delivery: "blob", styled: true },
   { name: "inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: false },
   { name: "inventory-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: false },
+  { name: "wide-inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", kind: "wide", currentOnly: true },
   { name: "assessment-pdf-10000-blob", format: "pdf", rows: 10000, delivery: "blob", styled: true },
   { name: "tagged-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true },
   { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true },
   ...groupedFixtures, ...analyticalFixtures
 ];
 const titles = ["ID", "Asset", "Owner", "Status", "Amount", "Seen"];
+const wideTitles = [...titles, "Protocol", "Version", "Region", "CPU", "Memory", "Storage", "Requests", "Errors", "TLS", "Backup", "Ticket", "Policy", "Zone", "Health"];
 function row(index) {
   return ["N" + String(index).padStart(6, "0"), "node-" + String(index).padStart(6, "0"), "ops-" + index % 17,
     ["Pass", "Warning", "Critical"][index % 3], index + 0.5, new Date("2026-01-" + String(index % 28 + 1).padStart(2, "0") + "T00:00:00Z")];
 }
+function wideRow(index) { return [...row(index), ...Array.from({ length: 14 }, (_, column) => "M" + (column + 6) + "-" + String(index).padStart(6, "0"))]; }
 function* rows(api, fixture) {
   for (let index = 0; index < fixture.rows; index++) {
-    const values = row(index);
+    const values = fixture.kind === "wide" ? wideRow(index) : row(index);
     if (fixture.styled) values[3] = new api.ExportCell(values[3], { presentation: { background: ["E2F0D9", "FFF2CC", "FCE4D6"][index % 3], bold: index % 3 === 2 } });
     yield values;
   }
 }
 function settings(fixture) {
+  if (fixture.kind === "wide") return { columns: wideTitles.map(header => ({ header })), pageSize: "A3", orientation: "landscape",
+    fontSize: 8, padding: 2, pageNumbers: false, compression: true, columnWidths: wideTitles.map(() => 100),
+    wideTable: { mode: "bands", repeatColumns: [0, 1], minimumColumnWidth: 100 },
+    limits: { maxTableBands: 4, maxTableWindowRows: 64, maxRows: fixture.rows, maxPages: 2000, maxCells: 1000000, maxOutputBytes: 128000000 },
+    formatValue: value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? "") };
   const columns = titles.map((header, index) => ({ header, width: [14, 20, 12, 15, 14, 18][index], ...(index === 4 ? { type: "number", format: "0.0" } : index === 5 ? { type: "date", format: "yyyy-mm-dd" } : {}) }));
   if (fixture.format === "pdf") return { columns, pageSize: "A3", orientation: "landscape", fontSize: 8, padding: 2,
     pageNumbers: false, compression: true, formatValue: value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? ""), ...(fixture.tagged ? { tagged: { language: "en-US" } } : {}),
@@ -97,7 +105,7 @@ async function run() {
   // Blob copying and all validation are outside the measured interval. Sink file acceptance is inside it.
   if (blob) { const bytes = new Uint8Array(await blob.arrayBuffer()); outputBytes = bytes.length; await file.writeFile(bytes); }
   await file.close();
-  const columns = fixture.kind === "grouped-analysis" || composed ? 7 : titles.length;
+  const columns = fixture.kind === "wide" ? wideTitles.length : fixture.kind === "grouped-analysis" || composed ? 7 : titles.length;
   if (analytical && (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.columns !== columns || result.bytes !== outputBytes))
     throw Error("Analytical report did not complete its one-pass source and delivery contract.");
   const bytes = await readFile(output);
@@ -106,6 +114,7 @@ async function run() {
     inputScope: composed ? "Canonical lazy analyticalRows and writeAnalyticalReport included: three hidden grouping dimensions, typed values/nulls/UTC dates, ancestor/grand aggregates, composed sections and native XLSX editing rules/chart. No retained source matrix. Imports/font intake excluded; current-only diagnostics, no baseline ranking."
       : fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
+      : fixture.kind === "wide" ? "Lazy 20-column deterministic inventory with two repeated identifiers and 100-point widths. Complete horizontal-band output; current-only diagnostics, no baseline ranking. No retained source matrix."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
     ...(analytical ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
       acknowledgementOverlapWrites, maxRowsAdvancedDuringAcknowledgement, nativeCompressionMayReadAhead: true } } : {}),
@@ -143,6 +152,32 @@ async function validate(output = required("output")) {
     }
     const extracted = spawnSync(required("pdftotext"), ["-layout", output, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     if (extracted.status !== 0) throw Error("Poppler extraction failed.");
+    if (fixture.kind === "wide") {
+      // A3 landscape has 1,118 printable points: two 100-point IDs plus nine data columns per band.
+      // The oracle is independent Poppler text, checked against every source value and complete page windows.
+      const bands = [[0, 1, ...Array.from({ length: 9 }, (_, index) => index + 2)], [0, 1, ...Array.from({ length: 9 }, (_, index) => index + 11)]];
+      const orders = bands.map(() => []), windows = new Map();
+      for (const page of extracted.stdout.split("\f")) {
+        const lines = page.split(/[\r\n]+/).map(line => line.trim()).filter(line => /^N\d{6}\s/.test(line));
+        if (!lines.length) continue;
+        let pageBand = -1;
+        const ids = [];
+        for (const line of lines) {
+          const actual = line.split(/\s+/), index = Number(actual[0].slice(1)), expected = wideRow(index).map(value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value));
+          if (index >= fixture.rows) throw Error("Wide PDF invented an input row.");
+          const band = bands.findIndex(columns => columns.map(column => expected[column]).join("|") === actual.join("|"));
+          if (band < 0 || pageBand >= 0 && pageBand !== band) throw Error("Wide PDF value/order/band differs: " + line);
+          pageBand = band; orders[band].push(index); ids.push(index);
+        }
+        const key = ids.join(","), covered = windows.get(key) ?? new Set();
+        if (covered.has(pageBand)) throw Error("Wide PDF duplicated a band/window.");
+        covered.add(pageBand); windows.set(key, covered);
+      }
+      if (orders.some(order => order.length !== fixture.rows || order.some((value, index) => value !== index)) || [...windows.values()].some(covered => covered.size !== bands.length))
+        throw Error("Wide PDF omitted a row/identifier or misaligned its horizontal windows.");
+      return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { rows: fixture.rows, columns: wideTitles.length, bands: bands.length,
+        windows: windows.size, everyCell: true, repeatedIdentifiers: true, alignedWindows: true, qpdf: true, poppler: true } };
+    }
     const lines = extracted.stdout.split(/[\r\n\f]+/).map(line => line.trim()).filter(line => /^N\d{6}\s/.test(line));
     if (lines.length !== fixture.rows) throw Error("PDF row count differs: " + lines.length);
     for (let index = 0; index < lines.length; index++) if (lines[index].split(/\s+/).join("|") !== row(index).map(value => value instanceof Date ? value.toISOString().slice(0, 10) : value).join("|")) throw Error("PDF cell/order mismatch at row " + index + ": " + lines[index]);

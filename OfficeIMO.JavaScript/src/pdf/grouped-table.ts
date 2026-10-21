@@ -3,6 +3,7 @@ import type { GroupedReportSource } from "../core/grouped-report.js";
 import type { PdfGroupedTableBlock } from "./document-types.js";
 import type { GroupedPdfTableOptions } from "./grouped-types.js";
 import { captureFields } from "../internal/capture.js";
+import { captureWideTable } from "./settings.js";
 import { presentation } from "./presentation-settings.js";
 
 /** @internal Capture schemas shared by the block factory and standalone convenience writers. */
@@ -31,7 +32,7 @@ export function captureGroupedPdfTableOptions(configuration: GroupedPdfTableOpti
     if (typeof value !== "function") throw new TypeError(name + " must be a synchronous text callback.");
   if (continuationLabel !== undefined && typeof continuationLabel !== "function") throw new TypeError("continuationLabel must be a synchronous text callback.");
   if (includeGrandTotal !== undefined && typeof includeGrandTotal !== "boolean") throw new TypeError("includeGrandTotal must be boolean.");
-  return Object.freeze({ ...captured, labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
+  return Object.freeze({ ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable)! }), labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
     ...(captured.columnWidths === undefined ? {} : { columnWidths: Object.freeze([...captured.columnWidths]) }),
     ...(captured.headerPresentation === undefined ? {} : { headerPresentation: presentation(captured.headerPresentation) }),
     ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });

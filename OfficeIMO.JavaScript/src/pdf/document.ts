@@ -5,7 +5,7 @@ import { notifyProgress } from "../core/progress.js";
 import type { ExportResult, ExportValue, OutputDestination } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { captureFields } from "../internal/capture.js";
-import { settings } from "./settings.js";
+import { settings, captureWideTable } from "./settings.js";
 import { pdfNumber as n } from "./objects.js";
 import { PdfTableLayout } from "./table-layout.js";
 import { PdfWriteSession } from "./session.js";
@@ -209,5 +209,6 @@ function graphicAlignment(value: string | undefined): "left" | "center" | "right
 function captureTableOptions<T>(options: PdfTableOptions<T>): PdfTableOptions<T> {
   if (!options || typeof options !== "object" || Object.keys(options).some(key => !(tableOptionFields as readonly string[]).includes(key)))
     throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
-  return captureFields(options, tableOptionFields);
+  const captured = captureFields(options, tableOptionFields);
+  return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable)! }) };
 }

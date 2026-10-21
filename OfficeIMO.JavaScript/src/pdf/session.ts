@@ -30,7 +30,8 @@ export class PdfWriteSession {
   }
   async start(): Promise<void> {
     await this.objects.text("%PDF-1.7\n"); await this.objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
-    if (this.layout) await this.pages.start(true);
+    if (this.layout?.bands) await this.pages.beginTable(this.layout);
+    else if (this.layout) await this.pages.start(true);
   }
   async finish(): Promise<void> {
     const { options } = this.settings, { objects, fonts, pages } = this;

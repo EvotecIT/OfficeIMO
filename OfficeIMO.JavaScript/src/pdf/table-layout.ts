@@ -10,6 +10,9 @@ import type { PdfSettings } from "./settings.js";
 import { presentation, positive } from "./settings.js";
 import { displayText } from "./text.js";
 import { capturePdfText, wrapPdfText } from "./inline-text.js";
+import { planTableBands, projectBandRows, alignBandBlocks } from "./table-band-plan.js";
+import type { PdfTableBand } from "./table-band-plan.js";
+import type { PdfCapturedText } from "./inline-text.js";
 import type { PdfInlineLine } from "./inline-text.js";
 import type { PdfText } from "./inline-types.js";
 
@@ -24,10 +27,13 @@ export interface PdfLayoutCell {
   readonly rowSpan?: number;
   readonly height?: number;
   readonly link?: Readonly<ExportLink>;
+  /** Captured once for band span projection; ordinary layouts do not retain it. */
+  readonly captured?: PdfCapturedText;
 }
 export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly lineHeight: number; readonly height: number; readonly structured?: boolean; }
 interface HeadingCell { readonly first: number; readonly span: number; readonly text: string; }
 export class PdfTableLayout {
+  readonly bands: readonly PdfTableBand[] | undefined;
   readonly widths: readonly number[];
   readonly lefts: readonly number[];
   readonly lineHeight: number;
@@ -37,11 +43,13 @@ export class PdfTableLayout {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
     let digit: number | undefined;
     if (options.columnWidths && options.columnWidths.length !== columns.length) throw new RangeError("columnWidths must declare one point width per column.");
-    const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length :
+    const minimum = typeof options.wideTable === "object" ? options.wideTable.minimumColumnWidth ?? 72 : 0;
+    const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? Math.max(minimum, column.width === undefined ? available / columns.length :
       positive(column.width, "Column width", 255) * (digit ??= fonts.select().width(48) * fontSize / 1000) + padding * 2), "PDF column width"));
     const sum = widths.reduce((n, w) => n + w, 0);
     if (sum > available + .001 && options.wideTable === "reject") throw new RangeError("Table widths exceed the printable page width.");
-    this.widths = sum > available ? widths.map(w => w * available / sum) : widths;
+    this.bands = planTableBands(widths, settings);
+    this.widths = !this.bands && sum > available ? widths.map(w => w * available / sum) : widths;
     let left = margins.left;
     this.lefts = this.widths.map(width => { const position = left; left += width; return position; });
     if (this.widths.some(w => w <= padding * 2)) throw new RangeError("Page is too narrow for this many columns and the requested padding.");
@@ -87,10 +95,11 @@ export class PdfTableLayout {
     if (options.tagged && link && !captured.text.trim()) throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
     if (link && captured.runs.some(run => run.link))
       throw new TypeError("A PDF cell link cannot be combined with inline run links.");
-    budget.cell(captured.text, captured.text.length);
+    if (this.bands) budget.release(1, captured.text.length);
+    else budget.cell(captured.text, captured.text.length);
     const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
     return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
-      ...(link ? { link } : {}),
+      ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),
       lines };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
@@ -131,6 +140,13 @@ export class PdfTableLayout {
     }));
     return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
       lines: Math.max(1, Math.ceil((heights[r]! - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r]!, structured: true }));
+  }
+  /** Project already captured table cells; data widths stay invariant across every band. */
+  async bandRows(rows: readonly PdfLayoutRow[], structured = false): Promise<readonly (readonly PdfLayoutRow[])[]> {
+    if (!this.bands) throw new Error("Horizontal bands were not planned.");
+    const projected = [];
+    for (const band of this.bands) projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
+    return structured ? alignBandBlocks(projected, this.settings) : projected;
   }
   async data(values: readonly ExportValue[], index: number, footer = false): Promise<PdfLayoutRow> {
     const { options } = this.settings;

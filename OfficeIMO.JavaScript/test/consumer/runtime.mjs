@@ -38,6 +38,14 @@ const composed = await pdf.writePdfDocument([{ kind: "paragraph", text: "Packed 
   { kind: "image", image: { format: "rgb", width: 1, height: 1, data: Uint8Array.of(0, 128, 255) }, width: 20, height: 20 }]);
 assert.equal(composed.type, "application/pdf");
 await writeFile("packed-document.pdf", new Uint8Array(await composed.arrayBuffer()));
+const wideColumns = Array.from({ length: 12 }, (_, index) => ({ header: index === 0 ? "Service" : "Metric " + index }));
+const wideRows = [["WEB-000001", ...Array.from({ length: 11 }, (_, index) => "Value-" + (index + 1))]];
+const wideOptions = { columns: wideColumns, wideTable: { mode: "bands", minimumColumnWidth: 100, repeatColumns: [0] } };
+const wideReport = await pdfModule.writePdfDocument([pdfModule.pdfTable(wideRows, wideOptions)],
+  { pageNumbers: false, compression: false, limits: { maxTableBands: 10, maxTableWindowRows: 4 } });
+const wideText = await wideReport.text();
+assert.match(wideText, /\/Type \/Pages \/Count [2-9]/, "Packed wide tables create multiple readable physical bands");
+await writeFile("packed-wide-report.pdf", new Uint8Array(await wideReport.arrayBuffer()));
 // Independently produced Pillow RGB PNG; no DOM or canvas participates in decoding.
 const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAwAAAAICAIAAABChommAAAAJklEQVR42mP8ICLCgApULqEJMDAxEAGop4hFheE6mtD1b5oD6yYA4aYFETss/rAAAAAASUVORK5CYII=", "base64"));
 const richBlocks = [

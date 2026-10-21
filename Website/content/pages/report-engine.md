@@ -1,6 +1,6 @@
 ---
 title: JavaScript report workbench
-description: "Generate typed Excel, PDF and CSV service reports locally. Try hierarchical groups, editable analysis, worker execution, progress and cancellation."
+description: "Generate typed Excel, PDF and CSV service reports locally. Try readable wide PDF tables, hierarchical groups, editable analysis, worker execution, progress and cancellation."
 layout: report-engine
 ---
 
@@ -11,6 +11,8 @@ The analysis layout keeps numbers and dates typed in Excel and adds a native tab
 Choose **Group by site** for a report with each site's detail, a subtotal and an overall total. Excel adds collapsible outline rows and editable subtotal formulas. PDF repeats the site label and column headings when a group continues onto another page. The grouped report language selects English or Polish headings, labels and PDF page numbers; the workbench controls remain in English. This layout groups an explicitly ordered source without sorting or retaining every row in memory. It does not add an Excel table, filter, chart or PDF tags.
 
 Choose **Hierarchical analysis** for a selected-view report grouped by portfolio, environment and owner. Excel includes report context, three collapsible grouping levels, parent totals and an editable overview chart. Status rules and allowed-value lists apply to detail rows. PDF places the grouped appendix between its opening context and recommendations, repeats the full group path and column headings, and keeps closing totals with their last detail row when they fit on a page. This layout supports English or Polish headings, report labels and page numbers; its PDF has no logical document tags. CSV remains a flat export of the visible values.
+
+Choose **Wide analysis** to add request volume, error rate, resource usage, certificate expiry, version and incident fields. Excel keeps all 16 typed detail columns together. PDF keeps readable column widths by splitting the same row window into consecutive column bands, repeating service IDs and group context in each band. It consumes the ordered source once; the report does not sort or replay records for each band. English and Polish report resources are available. Its grouped PDF has no logical document tags. Selecting CSV restores the ordinary flat six-field export.
 
 The dataset is illustrative and generated as rows are requested. Document bytes stay in this tab. The download buffers the completed file with a 96 MiB limit; bounded transport does not make the entire export constant-memory. PDF tags in the analysis layout describe the supported report structure and do not assert PDF/UA conformance or screen-reader acceptance.
 

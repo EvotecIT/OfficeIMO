@@ -7,6 +7,8 @@ import { Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, s
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
 import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText } from "@evotecit/officeimo/pdf";
 import type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode, PdfTaggedOptions } from "@evotecit/officeimo/pdf";
+import type { PdfTableBands } from "@evotecit/officeimo/pdf";
+import type { PdfTableBands as RootPdfTableBands } from "@evotecit/officeimo";
 import type { PdfDrawing, PdfDrawingBlock, PdfDrawingElement, PdfDrawingFont } from "@evotecit/officeimo/pdf";
 import type { PdfPngImage } from "@evotecit/officeimo/pdf";
 import type { PdfPngImage as RootPdfPngImage } from "@evotecit/officeimo";
@@ -168,6 +170,30 @@ async function exportPdfDocument() {
   await writePdfDocument([{ kind: "vector", width: 20, height: 20, commands: [{ op: "svg", text: "<svg/>" }] }]);
 }
 void exportPdfDocument;
+
+async function exportWidePdfReports() {
+  const rows = [{ service: "WEB-000001", owner: "Operations", latency: 4.9 }];
+  const columns = [
+    { header: "Service", key: "service" },
+    { header: "Owner", key: "owner" },
+    { header: "Latency", key: "latency", type: "number" }
+  ] as const;
+  const wideTable: PdfTableBands = { mode: "bands", minimumColumnWidth: 250, repeatColumns: [0] };
+  const rootPolicy: RootPdfTableBands = wideTable;
+  void rootPolicy;
+  const limits = { maxRows: 100, maxPages: 20, maxTableBands: 4, maxTableWindowRows: 8 };
+  await writePdf(rows, { columns, wideTable, limits });
+  await writePdfTo(rows, new WritableStream<Uint8Array>(), { columns, wideTable, limits });
+  await writePdfDocument([
+    { kind: "paragraph", text: "Service inventory" },
+    pdfTable(rows, { columns, wideTable })
+  ], { limits });
+  // @ts-expect-error horizontal pagination has one explicit band policy
+  pdfTable(rows, { columns, wideTable: { mode: "shrink", repeatColumns: [0] } });
+  // @ts-expect-error repeated columns are zero-based indices, not displayed labels
+  pdfTable(rows, { columns, wideTable: { mode: "bands", repeatColumns: ["Service"] } });
+}
+void exportWidePdfReports;
 
 interface RecordRow { readonly name: string; readonly seen: Date; }
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column<RecordRow>[];

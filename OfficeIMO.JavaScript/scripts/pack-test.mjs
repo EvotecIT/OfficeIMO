@@ -46,6 +46,7 @@ await copyFile(join(consumer, "packed-node-stream.xlsx"), join(output, "packed-n
 await copyFile(join(consumer, "packed-worker.xlsx"), join(output, "packed-worker.xlsx"));
 await copyFile(join(consumer, "packed-consumer.pdf"), join(output, "packed-consumer.pdf"));
 await copyFile(join(consumer, "packed-document.pdf"), join(output, "packed-document.pdf"));
+await copyFile(join(consumer, "packed-wide-report.pdf"), join(output, "packed-wide-report.pdf"));
 await copyFile(join(consumer, "packed-rich-report.pdf"), join(output, "packed-rich-report.pdf"));
 for (const name of ["packed-grouped.xlsx", "packed-grouped.pdf"]) await copyFile(join(consumer, name), join(output, name));
 await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 8, strictTypeScript: "5.9.3", archive: manifest[0].filename,
