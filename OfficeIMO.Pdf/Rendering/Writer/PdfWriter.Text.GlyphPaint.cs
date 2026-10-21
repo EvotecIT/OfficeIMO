@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
         double right = double.NegativeInfinity, top = double.NegativeInfinity;
         foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, options, fontCache,
-            encodingOptions, paintCommand, cancellationToken)) {
+            encodingOptions, paintCommand, cancellationToken: cancellationToken)) {
             foreach (var contour in glyph.Contours) foreach (OfficePoint point in contour) {
                 left = Math.Min(left, point.X); bottom = Math.Min(bottom, point.Y);
                 right = Math.Max(right, point.X); top = Math.Max(top, point.Y);
@@ -26,9 +26,9 @@ internal static partial class PdfWriter {
     private static IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> EnumerateGlyphPaintContours(
         RichSeg segment, string text, double x, double baseline, PdfOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
-        PdfTextShowCommand? paintCommand = null, CancellationToken cancellationToken = default,
+        PdfTextShowCommand? paintCommand = null,
         Func<IOfficeBoundedFontProgram, int, double, List<List<OfficePoint>>>? glyphOutline = null,
-        Action? fontCacheCleared = null) {
+        Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(text)) yield break;
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
             : EncodeTextShowCommand(text, segment.Font, segment.NamedFont, encodingOptions ?? options, segment.FeatureSettings,
