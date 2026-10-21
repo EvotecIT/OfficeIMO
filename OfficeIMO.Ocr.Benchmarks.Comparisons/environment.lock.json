@@ -30,8 +30,8 @@
   "rapidOcr": {
     "version": "3.9.2",
     "onnxRuntimeVersion": "1.29.0",
-    "payloadSha256": "0b63f93d82979104ffb6862849877773ee3d7f1204344bc4fbf3abd43794bd48",
-    "payloadEntryCount": 2162,
+    "payloadSha256": "c5e05a11655451ae6770fda80a978b38cdf6e37a3c024245ad2be29ee9ded59c",
+    "payloadEntryCount": 2161,
     "distributions": {
       "PyYAML": "6.0.3",
       "antlr4-python3-runtime": "4.9.3",
@@ -45,7 +45,7 @@
       "onnxruntime": "1.29.0",
       "opencv-python": "5.0.0.93",
       "packaging": "26.3",
-      "pillow": "12.3.0",
+      "pillow": "13.0.0",
       "protobuf": "7.36.1",
       "pyclipper": "1.4.0",
       "rapidocr": "3.9.2",
