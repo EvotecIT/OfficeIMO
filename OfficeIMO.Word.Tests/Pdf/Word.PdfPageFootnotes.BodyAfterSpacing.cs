@@ -26,6 +26,12 @@ public partial class WordPdfPageFootnoteTests {
         Assert.Equal("160", inherited.After!.Value);
         Assert.Equal("259", inherited.Line!.Value);
         Assert.Equal(W.LineSpacingRuleValues.Auto, inherited.LineRule!.Value);
+        W.RunFonts defaultFonts = main.StyleDefinitionsPart.Styles.DocDefaults.RunPropertiesDefault!
+            .RunPropertiesBaseStyle!.GetFirstChild<W.RunFonts>()!;
+        Assert.Equal(W.ThemeFontValues.MinorHighAnsi, defaultFonts.AsciiTheme!.Value);
+        Assert.Equal(W.ThemeFontValues.MinorHighAnsi, defaultFonts.HighAnsiTheme!.Value);
+        string defaultFamily = main.ThemePart!.Theme.ThemeElements!.FontScheme!.MinorFont!.LatinFont!.Typeface!.Value!;
+        Assert.Equal("Calibri", defaultFamily);
         string bodyBefore = main.Document.OuterXml;
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string stylesBefore = main.StyleDefinitionsPart.Styles.OuterXml;
@@ -45,7 +51,8 @@ public partial class WordPdfPageFootnoteTests {
             compact.IndexOf("Thequietriver", StringComparison.Ordinal));
         Assert.Equal(2, Regex.Matches(compact, "FINALWORDS\\.").Count);
 
-        var qualification = QualifyPageFootnoteNativeArial(id, actual, result.Warnings);
+        var qualification = QualifyPageFootnoteNativeArial(id, actual, result.Warnings,
+            declaredSourceFontFamilies: new[] { "Arial", defaultFamily });
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_REQUIRE_NATIVE_ARIAL") == "1")
             Assert.True(qualification.Qualified, "Required native profile unavailable: " + qualification.Qualification);
         if (qualification.Qualified) {

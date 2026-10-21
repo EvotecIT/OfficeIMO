@@ -84,23 +84,31 @@ public partial class WordPdfPageFootnoteTests {
     }
 
     private (bool Qualified, string Qualification, PdfConversionWarning[] Substitutions) QualifyPageFootnoteNativeArial(
-        string id, byte[] actual, IReadOnlyList<PdfConversionWarning> warnings) {
+        string id, byte[] actual, IReadOnlyList<PdfConversionWarning> warnings,
+        IReadOnlyCollection<string>? declaredSourceFontFamilies = null) {
         using var rendered = PdfPigDocument.Open(actual);
         string[] faces = rendered.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName ?? string.Empty)
             .Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         PdfConversionWarning[] substitutions = warnings.Where(warning =>
             warning.Code is "NativeFontFamilySubstituted" or "font-family-substitution").ToArray();
+        IReadOnlyCollection<string> sourceFamilies = declaredSourceFontFamilies ?? new[] { "Arial" };
         foreach (PdfConversionWarning warning in substitutions) {
-            Assert.Equal("Arial", warning.Details["fontFamily"]);
+            _output.WriteLine("{0}: font degradation: code={1}; source={2}; loss={3}; {4}; details={5}",
+                id, warning.Code, warning.Source, warning.LossKind, warning.Message,
+                string.Join(", ", warning.Details.Select(detail => detail.Key + "=" + detail.Value)));
+        }
+        foreach (PdfConversionWarning warning in substitutions) {
+            string sourceFamily = warning.Details["fontFamily"];
+            Assert.Contains(sourceFamily, sourceFamilies);
+            Assert.Equal(warning.Code == "font-family-substitution" ? "font:" + sourceFamily : "word:font[" + sourceFamily + "]",
+                warning.Source);
+            Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
             Assert.True(warning.Details.ContainsKey("fallbackSlot") || warning.Details.ContainsKey("resolvedFontFamily"));
             if (warning.Code == "font-family-substitution") {
-                Assert.Equal("font:Arial", warning.Source);
                 Assert.Equal("OfficeDocumentFonts", warning.Details["substitutionPolicy"]);
                 Assert.Equal("NotPerformed", warning.Details["fontMetricsVerification"]);
             }
-            _output.WriteLine("{0}: font degradation: {1}; details={2}", id, warning.Message,
-                string.Join(", ", warning.Details.Select(detail => detail.Key + "=" + detail.Value)));
         }
         bool declaredArial = faces.All(face => face.IndexOf("Arial", StringComparison.OrdinalIgnoreCase) >= 0);
         bool familyAvailable = PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfEmbeddedFontFamily? family);
