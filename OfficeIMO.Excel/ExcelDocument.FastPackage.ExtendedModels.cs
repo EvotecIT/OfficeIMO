@@ -78,7 +78,9 @@ namespace OfficeIMO.Excel {
 
                 foreach (var child in document.Parts) {
                     var rootPart = child.OpenXmlPart;
-                    if (ReferenceEquals(rootPart, workbookPart) || rootPart is ExtendedFilePropertiesPart) {
+                    if (ReferenceEquals(rootPart, workbookPart)
+                        || rootPart is CoreFilePropertiesPart
+                        || rootPart is ExtendedFilePropertiesPart) {
                         continue;
                     }
 

@@ -223,7 +223,7 @@ namespace OfficeIMO.Excel {
                 worksheetDrawing.Save();
                 WorksheetRoot.Save();
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, _excelDocument);
+                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
             });
 
             return image!;
@@ -276,7 +276,7 @@ namespace OfficeIMO.Excel {
                 worksheetDrawing.Save();
                 WorksheetRoot.Save();
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, _excelDocument);
+                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
             });
 
             return image!;

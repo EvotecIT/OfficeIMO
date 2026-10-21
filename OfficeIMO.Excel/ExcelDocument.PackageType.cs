@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
             if (_spreadSheetDocument.DocumentType == target) return;
 
             var previousParts = CaptureActiveSheetPartsForReload();
+            var drawingHandles = CaptureDrawingHandlesForReload(previousParts);
             // The SDK copies persisted main-part bytes, so save its DOM before replacing it.
             WorkbookPartRoot.Workbook?.Save();
             _spreadSheetDocument.ChangeDocumentType(target);
@@ -15,6 +16,7 @@ namespace OfficeIMO.Excel {
             _cachedSheets = null;
             _sheetCacheDirty = true;
             RebindSheetWrappersAfterPackageReload(previousParts, packageWasSaved: false);
+            RebindDrawingHandlesAfterPackageReload(drawingHandles);
         }
     }
 }
