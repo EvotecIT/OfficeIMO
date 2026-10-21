@@ -115,11 +115,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
     }
 
-    private bool ApplySingle(List<GlyphToken> glyphs, int index, int subtable) {
+    private bool ApplySingle(List<GlyphToken> glyphs, int index, int subtable, ref int operations) {
         Ensure(subtable, 6);
         int format = _reader.ReadUInt16(subtable);
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
-        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
+        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId, ref operations);
         if (coverageIndex < 0) return false;
         int replacement;
         if (format == 1) {
@@ -136,11 +136,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return true;
     }
 
-    private bool ApplyAlternate(List<GlyphToken> glyphs, int index, int subtable, int featureValue) {
+    private bool ApplyAlternate(List<GlyphToken> glyphs, int index, int subtable, int featureValue, ref int operations) {
         Ensure(subtable, 6);
         if (_reader.ReadUInt16(subtable) != 1) return false;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
-        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
+        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId, ref operations);
         int setCount = _reader.ReadUInt16(subtable + 4);
         if (setCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= setCount) return false;
         Ensure(subtable + 6, checked(setCount * 2));
@@ -158,7 +158,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         Ensure(subtable, 6);
         if (_reader.ReadUInt16(subtable) != 1) return false;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
-        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
+        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId, ref operations);
         int setCount = _reader.ReadUInt16(subtable + 4);
         if (setCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= setCount) return false;
         Ensure(subtable + 6, checked(setCount * 2));
@@ -220,7 +220,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         operations += count;
     }
 
-    private int CoverageIndex(int coverage, int glyphId) {
+    private int CoverageIndex(int coverage, int glyphId, ref int operations) {
         Ensure(coverage, 4);
         int format = _reader.ReadUInt16(coverage);
         int count = _reader.ReadUInt16(coverage + 2);
@@ -230,6 +230,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             int low = 0;
             int high = count - 1;
             while (low <= high) {
+                ChargeOperations(ref operations, 1);
                 int middle = low + (high - low) / 2;
                 int candidate = _reader.ReadUInt16(coverage + 4 + middle * 2);
                 if (glyphId < candidate) high = middle - 1;
@@ -241,6 +242,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (format == 2) {
             Ensure(coverage + 4, checked(count * 6));
             for (int rangeIndex = 0; rangeIndex < count; rangeIndex++) {
+                ChargeOperations(ref operations, 1);
                 int range = coverage + 4 + rangeIndex * 6;
                 int start = _reader.ReadUInt16(range);
                 int end = _reader.ReadUInt16(range + 2);
