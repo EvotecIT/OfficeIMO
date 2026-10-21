@@ -1,0 +1,598 @@
+{
+  "schema": "officeimo.core-output-composition-proof/v1",
+  "createdUtc": "2026-10-21T13:03:18.862096+00:00",
+  "sourceHead": "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+  "privateVersion": "3.5.22",
+  "sourceSeal": {
+    "path": "$POST_LANDING_ROOT/source-seal-981a132.json",
+    "bytes": 9599,
+    "sha256": "dd811ad1e2fd5a2abf5ec1508c85958947422c30dc2752e3f094f2aa0b0159dd"
+  },
+  "htmlCheckpoint": "107ddda07d2106cef2f98ab35bd8d4187f324671",
+  "composition": {
+    "wholeCoreTreeUnchanged": false,
+    "tenOwnerAndRepairBlobsVerified": 10,
+    "verification": {
+      "path": "$POST_LANDING_ROOT/owner-matrix.json",
+      "bytes": 12276,
+      "sha256": "a4c675ee70499e3ba2c5df05c75ec72561a442c64a213235184a0bd824a14cd9"
+    },
+    "unchangedRepairSourceAndTests": true,
+    "additionalCoreFontParserChangesAdoptedThroughQualifiedHtml": true,
+    "newPublicApi": false,
+    "newProductionDependencies": false
+  },
+  "actualCombinedConsumer": {
+    "role": "core-postlanding-full-ps-net8",
+    "passed": 66,
+    "failed": 0,
+    "skipped": 0,
+    "includesFocusedCases": 21,
+    "actualFilter": null,
+    "trx": {
+      "path": "$POST_LANDING_ROOT/trx/core-postlanding-full-ps-net8/core-postlanding-full-ps-net8.trx",
+      "bytes": 100815,
+      "sha256": "20498c1eff1189b302fd8aca8363e0493c0f67a822f5eef3c96d153d18285f5e"
+    },
+    "actualTestmoduleCodeBases": [
+      "$POST_LANDING_ROOT/build-tests/bin/PSWriteOffice.Tests/release/PSWriteOffice.Tests.dll"
+    ]
+  },
+  "actualNet472ModuleCompile": {
+    "role": "core-postlanding-ps-net472-crossbuild",
+    "targetFramework": "net472",
+    "globalTargetFrameworksOverride": "net472",
+    "warnings": 0,
+    "errors": 0,
+    "elapsedSeconds": 116.084920166,
+    "compileOnly": true,
+    "windowsRuntimeExecutionClaim": false
+  },
+  "package": {
+    "privateVersion": "3.5.22",
+    "publicRelease": false,
+    "package": {
+      "path": "$POST_LANDING_ROOT/private-package/feed/OfficeIMO.Core.3.5.22.nupkg",
+      "bytes": 8770835,
+      "sha256": "f20e9bbc212092d73ceb4914c4554d27d2a40e0ba2641b2530f9877b9c22aa71"
+    },
+    "inspection": {
+      "path": "$POST_LANDING_ROOT/private-package/package-inspection-final.json",
+      "bytes": 2808,
+      "sha256": "1f2694ffbf77c8ae204876667ee745bca6ff3326531fc22e51cdc2568ecf12b9"
+    },
+    "assets": [
+      {
+        "entry": "lib/net472/OfficeIMO.Core.dll",
+        "path": "$POST_LANDING_ROOT/private-package/assets/net472/OfficeIMO.Core.dll",
+        "bytes": 4978688,
+        "sha256": "cbbd8fabea0b9cb10599aca5999fe643e7e9bbf04fcb5ba86f0067a651fa6778"
+      },
+      {
+        "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "path": "$POST_LANDING_ROOT/private-package/assets/netstandard2.0/OfficeIMO.Core.dll",
+        "bytes": 4977664,
+        "sha256": "2e829ebc3acf3e584601bbd369d329f35948299b816fa9982716ff2b20511017"
+      },
+      {
+        "entry": "lib/net8.0/OfficeIMO.Core.dll",
+        "path": "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
+      },
+      {
+        "entry": "lib/net10.0/OfficeIMO.Core.dll",
+        "path": "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
+      }
+    ],
+    "packageDependencies": [],
+    "frameworkAssemblies": [
+      {
+        "assemblyName": "System.IO.Compression",
+        "targetFramework": ".NETFramework4.7.2"
+      },
+      {
+        "assemblyName": "System.Net.Http",
+        "targetFramework": ".NETFramework4.7.2"
+      },
+      {
+        "assemblyName": "System.Numerics",
+        "targetFramework": ".NETFramework4.7.2"
+      }
+    ],
+    "packageSignaturePresent": false
+  },
+  "actualPackagedInternalOwnerRuns": [
+    {
+      "role": "core-postlanding-probe-net8-128-bursts",
+      "summary": {
+        "path": "$POST_LANDING_ROOT/package-bursts/net8/summary.json",
+        "bytes": 5055,
+        "sha256": "373532c504f61ee5ea5fd7f0dcfe219c695befdd09c4ac9aa0dd9753860f0c2a"
+      },
+      "subjectCore": {
+        "path": "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
+      },
+      "deployedCore": {
+        "path": "$POST_LANDING_ROOT/package-probe-runtime/net8/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
+      },
+      "coreMvid": "d550c31e-2fb1-4eb2-9180-94315b096686",
+      "coreInformationalVersion": "3.5.1+981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+      "runtime": ".NET 8.0.23",
+      "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
+      "architecture": "Arm64",
+      "totalBursts": 128,
+      "failedBursts": 0,
+      "lanes": [
+        {
+          "lane": "helper-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "helper-unique",
+          "rounds": 32,
+          "successfulWrites": 384,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-unique",
+          "rounds": 32,
+          "successfulWrites": 207,
+          "failedBursts": 0
+        }
+      ]
+    },
+    {
+      "role": "core-postlanding-probe-net10-128-bursts",
+      "summary": {
+        "path": "$POST_LANDING_ROOT/package-bursts/net10/summary.json",
+        "bytes": 4983,
+        "sha256": "0a78cb8848d2189034c12f8dbc4358cbfafeef503ac796fe0f39f0ef008f04f6"
+      },
+      "subjectCore": {
+        "path": "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
+      },
+      "deployedCore": {
+        "path": "$POST_LANDING_ROOT/package-probe-runtime/net10/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
+      },
+      "coreMvid": "127c1676-bd00-4202-a823-71d1deb5af8b",
+      "coreInformationalVersion": "3.5.1+981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+      "runtime": ".NET 10.0.13",
+      "os": "macOS 27.0.1",
+      "architecture": "Arm64",
+      "totalBursts": 128,
+      "failedBursts": 0,
+      "lanes": [
+        {
+          "lane": "helper-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "helper-unique",
+          "rounds": 32,
+          "successfulWrites": 384,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-unique",
+          "rounds": 32,
+          "successfulWrites": 199,
+          "failedBursts": 0
+        }
+      ]
+    }
+  ],
+  "actualExecutions": [
+    {
+      "role": "core-postlanding-full-ps-net8",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-full-ps-net8-execution.json",
+        "bytes": 1773,
+        "sha256": "ddf3a49b095983870748a669e9214bd1674cf0315b7bb07408afddd046ffdabe"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-full-ps-net8.log",
+        "bytes": 41826,
+        "sha256": "efa8b246a347938d10669c5a6afb6c978c30603baf545bb74b54be9c9a0aa149"
+      },
+      "elapsedSeconds": 328.28971075,
+      "actualArgv": [
+        "$USER_HOME/.dotnet/dotnet",
+        "test",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/PSWriteOffice.Tests.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net8.0",
+        "-m:3",
+        "-nr:false",
+        "--artifacts-path",
+        "$POST_LANDING_ROOT/build-tests",
+        "-p:UseSharedCompilation=false",
+        "-p:NuGetAudit=false",
+        "--logger",
+        "trx;LogFileName=core-postlanding-full-ps-net8.trx",
+        "--results-directory",
+        "$POST_LANDING_ROOT/trx/core-postlanding-full-ps-net8"
+      ],
+      "endUtc": "2026-10-21T13:04:38.669815+00:00"
+    },
+    {
+      "role": "core-postlanding-ps-net472-crossbuild",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-ps-net472-crossbuild-execution.json",
+        "bytes": 1597,
+        "sha256": "de3d0561fc338be770259f9ee57d9596cebfbd3f142bac797e47a7fed63effa5"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-ps-net472-crossbuild.log",
+        "bytes": 35205,
+        "sha256": "4f82cc87e368e3f57d16e4e839233febcf7294c676c9380f9414dd208a57ade9"
+      },
+      "elapsedSeconds": 116.084920166,
+      "actualArgv": [
+        "$USER_HOME/.dotnet/dotnet",
+        "build",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net472",
+        "-p:TargetFrameworks=net472",
+        "-m:3",
+        "-nr:false",
+        "--artifacts-path",
+        "$POST_LANDING_ROOT/build-ps-net472",
+        "-p:UseSharedCompilation=false",
+        "-p:NuGetAudit=false"
+      ],
+      "endUtc": "2026-10-21T13:06:35.452807+00:00"
+    },
+    {
+      "role": "core-postlanding-four-framework-pack",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-four-framework-pack-execution.json",
+        "bytes": 2475,
+        "sha256": "8a418bec6feb3f73a824bbe97c1f54a0d045b6310658baada296d24e52509ea1"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-four-framework-pack.log",
+        "bytes": 1012,
+        "sha256": "fc7782c17258cef2f22a33074faef206d5827c2d2997b2bd8ed2442d5b61f645"
+      },
+      "elapsedSeconds": 25.902446375,
+      "actualArgv": [
+        "/usr/bin/env",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
+        "DOTNET_PROCESSOR_COUNT=3",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "pack",
+        "OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "-c",
+        "Release",
+        "-m:3",
+        "-nr:false",
+        "--artifacts-path",
+        "$POST_LANDING_ROOT/build-package",
+        "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+        "-p:PackageVersion=3.5.22",
+        "-p:RepositoryCommit=981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+        "-p:SourceRevisionId=981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+        "-p:UseSharedCompilation=false",
+        "-p:NuGetAudit=false",
+        "-o",
+        "$POST_LANDING_ROOT/private-package/feed",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
+        "-p:RestoreFallbackFolders="
+      ],
+      "endUtc": "2026-10-21T13:07:01.850408+00:00"
+    },
+    {
+      "role": "core-postlanding-package-inspect-extract",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-package-inspect-extract-execution.json",
+        "bytes": 1698,
+        "sha256": "90ef7e6b4bdbdbe0019d7fa36d8608a06d308c31451a21374ee9c1adb261aa7f"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-package-inspect-extract.log",
+        "bytes": 318,
+        "sha256": "2b39ca1067bca51a8bb5d6565d5d771401c30d8428cf17e97507cf2b59ac9fe3"
+      },
+      "elapsedSeconds": 0.14455900000000002,
+      "actualArgv": [
+        "python3",
+        "$POST_LANDING_ROOT/prep/qualification/inspect-private-package.py",
+        "$POST_LANDING_ROOT/private-package/feed/OfficeIMO.Core.3.5.22.nupkg",
+        "$POST_LANDING_ROOT/private-package/assets",
+        "$POST_LANDING_ROOT/private-package/package-inspection-final.json"
+      ],
+      "endUtc": "2026-10-21T13:07:02.405099+00:00"
+    },
+    {
+      "role": "core-postlanding-probe-net8-build",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net8-build-execution.json",
+        "bytes": 2493,
+        "sha256": "3540ddf2ce47329d6e2555168dd676c1c8c0ad060d36fb970cb8965d77cec7aa"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net8-build.log",
+        "bytes": 422,
+        "sha256": "14d45023e46ae7fc50661df02b264ec438e04007a5e4b84eb5d08f779856eb39"
+      },
+      "elapsedSeconds": 2.743395791,
+      "actualArgv": [
+        "/usr/bin/env",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
+        "DOTNET_PROCESSOR_COUNT=3",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "build",
+        "$POST_LANDING_ROOT/prep/qualification/net8/CoreOutputRaceProbe.csproj",
+        "-c",
+        "Release",
+        "-m:3",
+        "-nr:false",
+        "--artifacts-path",
+        "$POST_LANDING_ROOT/build-package-probe-net8",
+        "-p:SubjectCore=$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "-p:UseSharedCompilation=false",
+        "-p:NuGetAudit=false",
+        "-o",
+        "$POST_LANDING_ROOT/package-probe-runtime/net8",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
+        "-p:RestoreFallbackFolders="
+      ],
+      "endUtc": "2026-10-21T13:07:05.499902+00:00"
+    },
+    {
+      "role": "core-postlanding-probe-net8-128-bursts",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net8-128-bursts-execution.json",
+        "bytes": 2101,
+        "sha256": "c45fe289347d0652c66d8126a67d98248a9b1126a790d12221e1438026f38f0b"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net8-128-bursts.log",
+        "bytes": 222,
+        "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
+      },
+      "elapsedSeconds": 20.404866667,
+      "actualArgv": [
+        "/usr/bin/env",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
+        "DOTNET_PROCESSOR_COUNT=3",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "$POST_LANDING_ROOT/package-probe-runtime/net8/CoreOutputRaceProbe.dll",
+        "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/package-bursts/net8",
+        "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+        "32",
+        "12"
+      ],
+      "endUtc": "2026-10-21T13:07:26.349710+00:00"
+    },
+    {
+      "role": "core-postlanding-probe-net10-build",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net10-build-execution.json",
+        "bytes": 2519,
+        "sha256": "da75c6e4953f9e7099925672d5ecec3040f5a20f7ec4e72c6b90a198152771f5"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net10-build.log",
+        "bytes": 409,
+        "sha256": "6da906342b6ae6f353ae89e9f6e86a5ad7915c1f02ef96dba9c9c6e78f395fe2"
+      },
+      "elapsedSeconds": 2.994853958,
+      "actualArgv": [
+        "/usr/bin/env",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
+        "DOTNET_PROCESSOR_COUNT=3",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "build",
+        "$POST_LANDING_ROOT/prep/probe/CoreOutputRaceProbe.csproj",
+        "-c",
+        "Release",
+        "-m:3",
+        "-nr:false",
+        "-p:TargetFramework=net10.0",
+        "--artifacts-path",
+        "$POST_LANDING_ROOT/build-package-probe-net10",
+        "-p:SubjectCore=$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "-p:UseSharedCompilation=false",
+        "-p:NuGetAudit=false",
+        "-o",
+        "$POST_LANDING_ROOT/package-probe-runtime/net10",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
+        "-p:RestoreFallbackFolders="
+      ],
+      "endUtc": "2026-10-21T13:07:29.854468+00:00"
+    },
+    {
+      "role": "core-postlanding-probe-net10-128-bursts",
+      "execution": {
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net10-128-bursts-execution.json",
+        "bytes": 2112,
+        "sha256": "c792c35552999185e33d82fcafe1e293242a7a45d2591a4703cefce3e5439d09"
+      },
+      "log": {
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net10-128-bursts.log",
+        "bytes": 222,
+        "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
+      },
+      "elapsedSeconds": 11.692255166999999,
+      "actualArgv": [
+        "/usr/bin/env",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
+        "DOTNET_PROCESSOR_COUNT=3",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "$POST_LANDING_ROOT/package-probe-runtime/net10/CoreOutputRaceProbe.dll",
+        "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/package-bursts/net10",
+        "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+        "32",
+        "12"
+      ],
+      "endUtc": "2026-10-21T13:07:42.026809+00:00"
+    }
+  ],
+  "independentOwnerReview": {
+    "qualifiedOwnerSource": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+    "existingReadOnlyPassFindings": 0,
+    "tenPublicationOwnerRepairBlobsUnchanged": true,
+    "noNewReviewSolelyForSha": true
+  },
+  "retentionPlan": "$POST_LANDING_ROOT/prep/retention/retention-plan.template.json",
+  "archiveReadback": [
+    {
+      "path": "$POST_LANDING_ROOT/retained/postlanding-test-runtime-metadata.json",
+      "bytes": 10525,
+      "sha256": "9a0cee653fb36afb33af29644c7ac7136bd3d9a938565232fc97cfd0f0a53a6d"
+    },
+    {
+      "path": "$POST_LANDING_ROOT/retained/postlanding-net472-module-metadata.json",
+      "bytes": 6982,
+      "sha256": "32666eb454319f40db0cb6d5023d8cfb1d5ee3ac422d9f4300da746b1c10b77a"
+    },
+    {
+      "path": "$POST_LANDING_ROOT/retained/postlanding-package-build-metadata.json",
+      "bytes": 9178,
+      "sha256": "64f2ebcf1fa2e211c37440d432abd1f78e3c2084c4a43c34173eaaf452863739"
+    }
+  ],
+  "activitySnapshot": {
+    "path": "$POST_LANDING_ROOT/prep/retention/candidate-idle-snapshot-final.json",
+    "bytes": 4582,
+    "sha256": "3e9d015da1203373bfc0c3088db2c8bb5137d0e03b9910e1bfd69264aa118a1f"
+  },
+  "priorReceipt": {
+    "path": "Build/Project/Evidence/2026-10-20/core-output-publication.json",
+    "bytes": 28386,
+    "sha256": "29f9e82cb226d3dc78cd9c19cec7194a64973082ebbf7fbc7376e8d0545b73a6"
+  },
+  "state": "QUALIFIED_FINAL_POST_HTML_COMPOSITION",
+  "finalizedUtc": "2026-10-21T13:10:58.004516+00:00",
+  "actualLandedMaster": "107ddda07d2106cef2f98ab35bd8d4187f324671",
+  "ownerMatrix": {
+    "path": "$POST_LANDING_ROOT/owner-matrix.json",
+    "bytes": 12276,
+    "sha256": "a4c675ee70499e3ba2c5df05c75ec72561a442c64a213235184a0bd824a14cd9"
+  },
+  "cleanupPerformed": true,
+  "preparedOnlyNoArchiveDeleteOrJournal": false,
+  "noDeletionOrLedgerPerformed": false,
+  "storage": {
+    "cleanup": {
+      "path": "$POST_LANDING_ROOT/cleanup-result.json",
+      "bytes": 4360,
+      "sha256": "6efbf8e9e290b87259fb2edad0812e431d8c21703521295abc3d49acd531a97c"
+    },
+    "safeLedgerAppend": {
+      "path": "$POST_LANDING_ROOT/prep/storage-ledger/append-receipt.json",
+      "bytes": 3171,
+      "sha256": "82cf4eb6eea593fedf262781464efea0089b338be0b2f172b0d6fbfeee466852"
+    },
+    "logicalBytesRemovedThisPass": 5337516499,
+    "retained": [
+      {
+        "path": "$POST_LANDING_ROOT/private-package/feed",
+        "logicalBytes": 8770835,
+        "reason": "Exact private3.5.22 nupkg; not public release"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/private-package/assets",
+        "logicalBytes": 20004864,
+        "reason": "Four exact inspected DLL assets"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/private-package/package-inspection-final.json",
+        "logicalBytes": 2808,
+        "reason": "Actual package4assets/nuspec/commit/dependencies/hash inspection"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/package-probe-runtime",
+        "logicalBytes": 10382596,
+        "reason": "Two actual executed NET8/NET10 runtime folders and all their DLL/deps/runtimeconfig identities"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/package-bursts",
+        "logicalBytes": 178572,
+        "reason": "Both actual result summaries and small successful payload observations; retain this generation rather than deleting outcome payloads"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/trx",
+        "logicalBytes": 100815,
+        "reason": "Actual complete full PS TRX; preserve failures if any"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/logs",
+        "logicalBytes": 79636,
+        "reason": "All eight actual execution logs"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/prep",
+        "logicalBytes": 221442,
+        "reason": "Frozen runner/plan/probe/config/source seal and this compact metadata"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/retained",
+        "logicalBytes": 13521473,
+        "reason": "Future54entry narrow archives and every-entry readback receipts"
+      }
+    ],
+    "boundary": "Current task-owned graphs only. Retained package, four assets, two executed runtimes, actual TRX/logs and 54 CRC/hash/mode-verified metadata entries. Shared caches, source, worktrees and prior evidence are preserved."
+  },
+  "retentionMaterialization": {
+    "path": "$POST_LANDING_ROOT/prep/retention/materialization-result.json",
+    "bytes": 2956,
+    "sha256": "9a33050997009c157cca7d45ed2039228c5ffe33fa8396a414c4261cb5e93809"
+  },
+  "limits": [
+    "Private packaged internal-owner bursts and the full PS source-consumer suite are separate actual proofs.",
+    "NET472/netstandard2.0 assets are compile proof; no Windows runtime execution or profiling is claimed.",
+    "This receipt proves local source/package behavior, not hosted CI, merge, public package publication or release.",
+    "Prior history is referenced by the existing repository receipt and retains its original source bindings."
+  ]
+}

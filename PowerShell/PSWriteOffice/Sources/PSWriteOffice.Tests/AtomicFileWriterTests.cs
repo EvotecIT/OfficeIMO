@@ -1,12 +1,100 @@
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 using System.Text;
-using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Tests;
 
 public sealed class AtomicFileWriterTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WriteUnique_preserves_each_competing_writers_payload(bool includeCanonicalWriters)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
+        try
+        {
+            for (var round = 0; round < 2; round++)
+            {
+                var saved = await WriteCompetingOutputs(Path.Combine(root, round.ToString()),
+                    unique: true, includeCanonicalWriters);
+                Assert.Equal(includeCanonicalWriters ? 6 : 12,
+                    saved.Count(result => !includeCanonicalWriters || result.Index % 2 == 0));
+                if (includeCanonicalWriters)
+                {
+                    Assert.InRange(saved.Count(result => result.Index % 2 == 1), 0, 1);
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Write_without_overwrite_preserves_the_only_successful_writers_payload(bool includeCanonicalWriters)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
+        try
+        {
+            for (var round = 0; round < 2; round++)
+            {
+                var saved = await WriteCompetingOutputs(Path.Combine(root, round.ToString()),
+                    unique: false, includeCanonicalWriters);
+                Assert.Single(saved);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Output_respects_a_destination_claim_owned_by_a_canonical_writer(bool unique)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var destination = Path.Combine(directory, "report.txt");
+            var uniquePath = Path.Combine(directory, "report-2.txt");
+            var writeCount = 0;
+            Action<string> serialize = temporaryPath =>
+            {
+                writeCount++;
+                File.WriteAllText(temporaryPath, "new-payload");
+            };
+
+            using (OfficeFileCommitClaim.Acquire(destination))
+            {
+                if (unique)
+                {
+                    Assert.Equal(uniquePath, OfficeFileOutput.WriteUnique(directory, "report.txt", serialize));
+                    Assert.Equal("new-payload", File.ReadAllText(uniquePath));
+                }
+                else
+                {
+                    Assert.Throws<IOException>(() => OfficeFileOutput.Write(destination, overwrite: false, serialize));
+                }
+                Assert.False(File.Exists(destination));
+                Assert.Equal(1, writeCount);
+            }
+
+            Assert.Equal(unique ? new[] { uniquePath } : Array.Empty<string>(), Directory.GetFileSystemEntries(directory));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public void FailedStagingPreservesExistingOutputAndRemovesPartialFile() {
         var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
@@ -244,5 +332,77 @@ public sealed class AtomicFileWriterTests
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static async Task<(int Index, string Path)[]> WriteCompetingOutputs(
+        string directory, bool unique, bool includeCanonicalWriters)
+    {
+        const int writers = 12;
+        Directory.CreateDirectory(directory);
+        var destination = Path.Combine(directory, "report.bin");
+        var payloads = Enumerable.Range(0, writers).Select(index => new byte[] { (byte)index, 1, 2, 3 }).ToArray();
+        var writeCounts = new int[writers];
+        using var ready = new CountdownEvent(writers);
+        using var start = new ManualResetEventSlim(false);
+        Task<(int Index, string? Path)>[] attempts = Enumerable.Range(0, writers).Select(index =>
+            Task.Factory.StartNew(() =>
+            {
+                var canonical = includeCanonicalWriters && index % 2 == 1;
+                void WaitForPublication()
+                {
+                    Interlocked.Increment(ref writeCounts[index]);
+                    ready.Signal();
+                    if (!start.Wait(TimeSpan.FromSeconds(20)))
+                        throw new TimeoutException("The output publication barrier was not released.");
+                }
+
+                try
+                {
+                    if (canonical)
+                    {
+                        OfficeFileCommit.Write(destination, stream =>
+                        {
+                            stream.Write(payloads[index], 0, payloads[index].Length);
+                            WaitForPublication();
+                        }, OfficeFileCommit.ConflictPolicy.FailIfExists);
+                        return (Index: index, Path: (string?)destination);
+                    }
+
+                    Action<string> serialize = temporaryPath =>
+                    {
+                        File.WriteAllBytes(temporaryPath, payloads[index]);
+                        WaitForPublication();
+                    };
+                    if (unique)
+                        return (Index: index, Path: (string?)OfficeFileOutput.WriteUnique(directory, "report.bin", serialize));
+                    OfficeFileOutput.Write(destination, overwrite: false, serialize);
+                    return (Index: index, Path: (string?)destination);
+                }
+                catch (IOException) when (canonical || !unique)
+                {
+                    return (Index: index, Path: (string?)null);
+                }
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+
+        bool allWritersReady;
+        try
+        {
+            allWritersReady = ready.Wait(TimeSpan.FromSeconds(15));
+        }
+        finally
+        {
+            start.Set();
+        }
+        var results = await Task.WhenAll(attempts);
+        Assert.True(allWritersReady, "All serializers must reach the publication barrier.");
+        Assert.All(writeCounts, count => Assert.Equal(1, count));
+        var saved = results.Where(result => result.Path != null)
+            .Select(result => (result.Index, Path: result.Path!)).ToArray();
+        Assert.Equal(saved.Length, saved.Select(result => result.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        foreach (var result in saved)
+            Assert.Equal(payloads[result.Index], File.ReadAllBytes(result.Path));
+        Assert.Equal(saved.Select(result => result.Path).OrderBy(path => path, StringComparer.OrdinalIgnoreCase),
+            Directory.GetFileSystemEntries(directory).OrderBy(path => path, StringComparer.OrdinalIgnoreCase));
+        return saved;
     }
 }

@@ -47,14 +47,9 @@ internal static class OfficeFileOutput
                     ? safeName
                     : CreateCollisionCandidateName(stem, extension, index);
                 var candidatePath = Path.Combine(directory, candidateName);
-                try
+                if (OfficeFileCommit.TryCommitTemporaryFileIfAbsent(temporaryPath, candidatePath))
                 {
-                    File.Move(temporaryPath, candidatePath);
                     return candidatePath;
-                }
-                catch (IOException) when (File.Exists(candidatePath))
-                {
-                    // Another writer won this name. Retry with the next deterministic suffix.
                 }
             }
         }
@@ -94,14 +89,8 @@ internal static class OfficeFileOutput
                 throw new IOException($"The output writer did not create temporary file '{temporaryPath}'.");
             }
 
-            if (!overwrite)
-            {
-                File.Move(temporaryPath, fullPath);
-                return;
-            }
-
             OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, fullPath,
-                OfficeFileCommit.ConflictPolicy.Replace);
+                overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
         }
         finally
         {
