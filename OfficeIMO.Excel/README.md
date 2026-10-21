@@ -792,9 +792,10 @@ picture.HyperlinkUri = null; // Remove the click link.
 ```
 
 Image bytes, anchors, and shared drawing relationships are preserved. Read-only
-workbooks support inspection but reject mutation. A save that reloads the package
-invalidates existing picture handles; obtain current images from
-`document.Sheets` after that save. Removed worksheets cannot be rebound by name.
+workbooks support inspection but reject mutation. Picture handles remain usable
+after saving while the picture belongs to the workbook. Removing the picture or
+its worksheet invalidates its handles; a new worksheet with the same name does
+not restore them.
 SVG image export preserves targets allowed by the shared safe-link policy and
 reports unsupported interactive targets. Raster output retains the picture
 without click behavior.
