@@ -14,7 +14,7 @@ internal static class HtmlRenderSystemFontLoader {
 
     internal static void Load(IHtmlDocument document, HtmlComputedStyleSet styles,
         OfficeFontFaceCollection fonts, HtmlRenderOptions options, HtmlResourceSession resources,
-        HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+        HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken, HtmlCssPageRuleSet? pageRules = null) {
         if (!options.AllowSystemFontFallback) return;
         var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>();
         var attempted = new Dictionary<(string Family, int Weight, OfficeFontSlant Slant), bool>();
@@ -27,16 +27,21 @@ internal static class HtmlRenderSystemFontLoader {
                 && inherited.TryGetValue(element.ParentElement, out var found)
                 ? found : (options.DefaultFontFamily, OfficeFontFaceDescriptor.Regular);
             string tag = element.TagName.ToLowerInvariant();
-            string fallback = tag is "code" or "pre" or "kbd" or "samp" ? "Consolas" : parent.Families;
-            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback);
+            string fallback = HtmlRenderStyleResolver.UsesDocumentMonospaceFamily(tag, options) ? HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options) : parent.Families;
+            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback, HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options));
             OfficeFontFaceDescriptor descriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(tag, computed, parent.Descriptor);
             inherited[element] = (families, descriptor);
             LoadList(families, descriptor);
             foreach (HtmlPseudoElementKind kind in Pseudos) {
                 if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudo)) continue;
-                LoadList(HtmlRenderCssValues.FontFamilyList(pseudo.GetValue("font-family"), families),
+                LoadList(HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, pseudo, families, options.DefaultFontFamily),
                     HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, pseudo, descriptor));
             }
+        }
+
+        if (pageRules != null && document.DocumentElement is IElement root && styles.Elements.TryGetValue(root, out HtmlComputedStyle? rootStyle)) {
+            foreach (var request in pageRules.EnumerateMarginFontRequests(rootStyle, styles, options, cancellationToken))
+                LoadList(request.Families, request.Descriptor);
         }
 
         void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor) {

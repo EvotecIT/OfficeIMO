@@ -239,7 +239,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
             if (image == null) {
                 return false;
             }
@@ -251,11 +251,12 @@ namespace OfficeIMO.Word.Pdf {
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
-                    anchorStyle, anchoredCanvas, anchorParagraph, options, source)) return false;
+                    anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection)) return false;
             if (image._Image?.Anchor != null && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
-            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align));
+            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align,
+                CreateNativeImageStyle(image, options, source)));
             return true;
         }
 

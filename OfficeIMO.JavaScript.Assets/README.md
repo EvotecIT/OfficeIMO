@@ -6,6 +6,10 @@ The TypeScript package owns XLSX/CSV/PDF behavior, public core/ZIP/XML/OPC layer
 
 The XLSX assets support [live conditional formatting](../OfficeIMO.JavaScript/README.md#live-excel-conditional-formatting), including threshold/formula highlights, color scales and gradient data bars. Rules use bounded workbook metadata and preserve existing number/date formats unless an override is supplied.
 
+The XLSX assets also write [native editable Excel charts](../OfficeIMO.JavaScript/README.md#native-editable-excel-charts): clustered columns/bars, lines and pies with cached values and one hidden source worksheet per chart. These use Excel's chart drawing and editing; PNG images retain an existing rendering, and PDF graphics use the portable drawing contract.
+
+The [grouped report writers](../OfficeIMO.JavaScript/README.md#grouped-analytical-reports) consume explicitly group-ordered rows through one shared aggregation source. XLSX provides editable subtotals and native outlines; PDF provides group sections and continued-page context. Hosts supply translated labels and display policies.
+
 ## Use embedded assets
 
 ```csharp
@@ -23,10 +27,12 @@ Each `JavaScriptAsset` exposes `FileName`, `Content`, `ContentHash` and `HashedF
 | `XlsxScript` | Classic XLSX plus core/ZIP/XML/OPC/XLSX namespaces |
 | `CsvScript` | Classic CSV plus core/CSV namespaces |
 | `PdfScript` | Classic PDF document writer plus core/PDF namespaces |
+| `ExecutionScript` | Optional classic worker handoff; load beside the selected writer |
 | `Module` | Combined standalone ES module |
 | `XlsxModule` | Standalone XLSX ES module |
 | `CsvModule` | Standalone CSV ES module |
 | `PdfModule` | Standalone PDF ES module |
+| `ExecutionModule` | Standalone worker handoff ES module |
 | `DataTablesScript` | Optional classic DataTables/Buttons bridge with XLSX/CSV/PDF writers |
 | `DataTablesModule` | Optional standalone DataTables bridge ES module |
 | `CanopyXScript` | Optional classic CanopyX record capture adapter with XLSX/CSV/PDF writers |
@@ -36,7 +42,11 @@ Classic scripts compose in either order and work in a plain `file://` page or a 
 
 The [offline current-view example](../OfficeIMO.JavaScript.Examples/README.md) produces an inline HTML report and an HTML/script bundle. Both export filtered, sorted, reordered and visible table data without a server. Full-dataset Excel generation at report-build time remains on OfficeIMO.Excel. Grid, iframe, CSP and download policy belong to the host integration.
 
-The PDF assets provide paginated tables, repeated headings, totals, paragraphs, bounded images and vector paths, page decorations and native TrueType subsetting. Supply embedding-permitted font bytes for Unicode text; no fonts or font loader are embedded in the package. The [PDF contract](../OfficeIMO.JavaScript/README.md#pdf-tables) owns supported text/layout profiles and resource limits, including [composed reports](../OfficeIMO.JavaScript/README.md#compose-a-pdf-report).
+The PDF assets provide paginated tables, repeated headings, totals, styled text runs and links, paragraph keep controls, bounded paragraph groups, images and vector paths, page decorations and native TrueType subsetting. Supply embedding-permitted font bytes for Unicode text; no fonts or font loader are embedded in the package. The [PDF contract](../OfficeIMO.JavaScript/README.md#pdf-tables) owns supported text/layout profiles and resource limits, including [composed reports](../OfficeIMO.JavaScript/README.md#compose-a-pdf-report). Tagged output provides the supported logical structure and link associations; assistive-technology acceptance and PDF/UA conformance remain separate qualification.
+
+`PdfFont.create(bytes, { signal })` prepares an immutable font cooperatively; glyph subsetting also observes cancellation during finalization. Optional `maxImageWorkingBytes` bounds owned image snapshots, decoded planes and scanlines before allocation. It excludes caller input, completed output and native compression/inflation memory; the TypeScript owner documents its exact scope.
+
+The execution assets expose `executeWorkerExport` on the page and `handleWorkerExports` in a host-created worker. They copy bounded projected row batches, reconstruct portable cells and Dates, and acknowledge output bytes before the next chunk. Progress, cancellation and failure use the same transport. The host owns worker construction, URL/CSP policy, source I/O, partial destination output and final termination. Configuration carries portable data rather than functions, live grids or font objects. See the [worker example and limits](../OfficeIMO.JavaScript/README.md#workers-and-paged-sources).
 
 The DataTables assets expose `registerDataTablesButtons`, `createDataTablesExport`, `exportDataTable` and `writeDataTableTo`. They use an already installed DataTables/Buttons host and do not embed DataTables, jQuery or a third-party document writer. Loading an asset does not register buttons automatically. The [JavaScript integration guide](../OfficeIMO.JavaScript/README.md#datatables-excel-csv-and-pdf-exports) owns options and compatibility limits.
 

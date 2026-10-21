@@ -13,7 +13,7 @@ public static partial class OfficeDrawingPortableExporter {
                 if (families.Count == 0 || !string.Equals(families[0], Options.FontFamily, StringComparison.OrdinalIgnoreCase))
                     Fail("DRAWING_FONT_FAMILY_UNSUPPORTED", "Every text run must use the explicitly selected font family.", location);
             }
-            if (text.WrapText || text.ShrinkToFit || text.StackedText || text.HasFrameTransform || text.HasPadding || text.HasParagraphIndent ||
+            if (text.WrapText || text.ShrinkToFit || text.StackedText || text.HasFrameTransform || text.GlyphTransform.HasValue || text.HasPadding || text.HasParagraphIndent ||
                 text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.Baseline != OfficeTextBaseline.Normal ||
                 text.BaselineLevel != 0 || text.BaselineScale != 1 || text.BaselineOffset != 0 || text.FontMetricScale != 1 ||
                 text.TextDirection != OfficeTextDirection.Auto && text.TextDirection != OfficeTextDirection.LeftToRight ||

@@ -10,6 +10,7 @@ public static partial class WordPdfConverterExtensions {
             style.BorderFrame?.Border != null ||
             table._tableProperties?.TablePositionProperties != null) return;
 
+        ApplyNativeLegacyPercentageTableDefaultIndent(table, layout, style, defaults);
         int firstColumn = GetNativeTableRowStartColumn(layout, 0);
         PdfCore.PdfAlign alignment = MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults));
         double firstMargin = GetNativeTableCellHorizontalMargin(style, 0, firstColumn, right: false);

@@ -160,6 +160,7 @@ internal static partial class PdfWriter {
             y = yStart;
             currentPage = new LayoutResult.Page {
                 Options = currentOpts, PageGroupId = currentPageGroupId,
+                OperationCancellationToken = cancellationToken,
                 // The section at the page start owns its running fields even
                 // when it is empty and a continuous successor supplies the body.
                 RunningContentSectionId = currentRunningSectionId,

@@ -4,9 +4,10 @@ import { pdfNumber, unicodeHex } from "./objects.js";
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
-export function linkAnnotation(link: ExportLink, x: number, bottom: number, width: number, height: number, maxBytes: number): string {
+export function linkAnnotation(link: ExportLink, x: number, bottom: number, width: number, height: number, maxBytes: number, structParent?: number, page?: number): string {
   const prefix = "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [" +
-    [x, bottom, x + width, bottom + height].map(pdfNumber).join(" ") + "] /A << /S /URI /URI <";
+    [x, bottom, x + width, bottom + height].map(pdfNumber).join(" ") + "]" +
+    (structParent === undefined ? "" : " /StructParent " + structParent) + (page === undefined ? "" : " /P " + page + " 0 R") + " /A << /S /URI /URI <";
   const suffix = "> >>" + (link.tooltip === undefined ? "" : " /Contents <feff") + " >>";
   const fixedBytes = prefix.length + suffix.length + (link.tooltip === undefined ? 0 : link.tooltip.length * 4 + 1);
   const limit = (): never => { throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded."); };

@@ -63,10 +63,13 @@ public static partial class WordPdfConverterExtensions {
         double textLeft = margins.Left + paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
         double textWidth = 0D;
         foreach (WordParagraph run in surrounding) {
-            double? measured = fontMap.MeasureText(CreateNativeCellTextRun(run.Text, run,
-                NativeTableStyleDefaults.Empty, defaults, fontMap));
-            if (!measured.HasValue) return false;
-            textWidth += measured.Value;
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(run, paragraph, nativeDefaults: defaults, nativeFontMap: fontMap);
+            foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(run.Text, textStyle)) {
+                double? measured = fontMap.MeasureText(CreateNativeCellTextRun(segment.Text, run,
+                    NativeTableStyleDefaults.Empty, defaults, fontMap, segment.Style));
+                if (!measured.HasValue) return false;
+                textWidth += measured.Value;
+            }
         }
         double contentWidth = defaults.RunningContentContext?.ContentWidth ?? pageSize.Width - margins.Left - margins.Right;
         if (textLeft + textWidth > margins.Left + contentWidth - paragraphStyle.RightIndent) return false;

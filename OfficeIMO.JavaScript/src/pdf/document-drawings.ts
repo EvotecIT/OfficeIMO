@@ -22,7 +22,7 @@ function record(value: unknown, keys: readonly string[], name: string): Record<s
   return value as Record<string, unknown>;
 }
 export function checkDrawingBlock(value: unknown): void {
-  record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative"], "drawing block");
+  record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative", "caption"], "drawing block");
 }
 function coordinate(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1000000)

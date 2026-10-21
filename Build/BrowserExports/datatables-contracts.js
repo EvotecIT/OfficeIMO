@@ -43,7 +43,7 @@ globalThis.runDataTablesContracts = async function (workerScript) {
     const text = await csv.text();
     check(text === "Identity and amount,,State\r\nName,Amount,Status\r\nvisible-c,7.5,Łódź 🧪\r\nvisible-a,12.5,'=status\r\nTotals,20,Checked\r\n", mode + ' CSV value contract');
     await deliver(mode + '.csv', csv);
-    const book = await O.exportDataTable(D, table, 'xlsx', { ...options, mode, sheet: { table: { style: 'TableStyleMedium2' }, print: { repeatHeaders: true } } });
+    const book = await O.exportDataTable(D, table, 'xlsx', { ...options, mode, xlsx: { sheet: { table: { style: 'TableStyleMedium2' }, print: { repeatHeaders: true } } } });
     await deliver(mode + '.xlsx', book); reports.push({ mode, rows: source.rowCount, columns: source.columns.length });
   }
   // A real column reorder and explicit selected:null must also work without relying on cell-array ordering.
@@ -110,7 +110,29 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,workerTable,{headings:'leaf',includeFooter:false}),workerScript,'store',65);
   check(cancelledWorker.failure?.includes('worker cancelled'),'worker cancellation');
   workerTable.destroy(); workerElement.remove();
-  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 25 };
+  document.body.innerHTML = '<table id="structured"><thead><tr><th rowspan="2">ID</th><th colspan="2">Metrics</th><th rowspan="2">Internal</th></tr><tr><th>Amount</th><th>Seen</th></tr></thead><tfoot><tr><th rowspan="2">Totals</th><th>15.5</th><th>Approved</th><th>Hidden</th></tr><tr><th colspan="2">Finance</th><th>Hidden</th></tr></tfoot></table>';
+  const structured = new D('#structured', { data: [['0001',12.5,'2026-01-01T00:00:00Z','private'],['0002',7.5,'2026-01-02T00:00:00Z','private'],['0003',3,'2026-01-03T00:00:00Z','private']],
+    columns: [{type:'string'},{type:'num'},{type:'string'},{visible:false}], select:true,colReorder:true,order:[[1,'asc']],layout:{topStart:null} });
+  try {
+    structured.search('000').draw(); structured.rows([0,2]).select();
+    const settings = {headings:'structured',xlsx:{dateMode:'utc'},exportOptions:{columns:':visible'},columnOptions:{1:{type:'number',format:'0.00'},2:{type:'date',format:'yyyy-mm-dd'}},
+      project:(value,context)=>context.sourceColumnIndex===2?new Date(value):value};
+    for(const mode of ['batched','compatibility']) {
+      const workbook=await O.exportDataTable(D,structured,'xlsx',{...settings,mode,xlsx:{...settings.xlsx,sheet:{autoFilter:false,freezeHeader:true,print:{repeatHeaders:true}}}});
+      await deliver('structured-'+mode+'.xlsx',workbook);
+      for(const spanMode of ['anchors','repeat']) {
+        const csv=await O.exportDataTable(D,structured,'csv',{...settings,mode,csv:{spanMode}}), repeated=spanMode==='repeat';
+        const expected='ID,Metrics,'+(repeated?'Metrics':'')+'\r\n'+(repeated?'ID':'')+',Amount,Seen\r\n0003,3,2026-01-03T00:00:00.000Z\r\n0001,12.5,2026-01-01T00:00:00.000Z\r\nTotals,15.5,Approved\r\n'+(repeated?'Totals':'')+',Finance,'+(repeated?'Finance':'')+'\r\n';
+        check(await csv.text()===expected,mode+'/'+spanMode+' rectangular CSV preserves physical rows, selection, order, dates and IDs');
+        await deliver('structured-'+mode+'-'+spanMode+'.csv',csv);
+      }
+    }
+    structured.colReorder.order([2,0,1,3]);
+    const reordered=await O.exportDataTable(D,structured,'csv',{headings:'leaf',includeFooter:false,exportOptions:{columns:':visible'},
+      columnOptions:{0:{type:'date'}},project:(value,context)=>context.sourceColumnIndex===0?new Date(value):value});
+    check(await reordered.text()==='Seen,ID,Amount\r\n2026-01-03T00:00:00.000Z,0003,3\r\n2026-01-01T00:00:00.000Z,0001,12.5\r\n','reordered typed capture uses current DataTables indexes');
+  } finally {structured.destroy();}
+  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 31 };
   async function deliver(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer()); let binary = '';
     for (let first = 0; first < bytes.length; first += 8192) binary += String.fromCharCode(...bytes.subarray(first, first + 8192));

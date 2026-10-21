@@ -3,6 +3,11 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTaggedPageOrganizer {
+    /// <summary>Bounds semantic traversal across indirect objects as well as directly nested syntax.</summary>
+    private static void RequireStructureDepth(int depth) {
+        if (depth > 256) throw new InvalidOperationException("Tagged page organization exceeded the structure nesting limit.");
+    }
+
     private static string UniqueStructureIdPrefix(Dictionary<int, PdfIndirectObject> objects, string preferred) {
         var existing = objects.Values.Select(item => item.Value).OfType<PdfDictionary>()
             .Where(dictionary => dictionary.Items.ContainsKey("ID"))
@@ -19,17 +24,19 @@ internal static partial class PdfTaggedPageOrganizer {
     private static void RemapStructureDestinations(Dictionary<int, PdfIndirectObject> objects, IEnumerable<int> numbers,
         Dictionary<string, PdfStringObj> ids, CancellationToken token) {
         var visited = new HashSet<PdfObject>();
-        void Visit(PdfObject value) {
-            token.ThrowIfCancellationRequested(); if (!visited.Add(value)) return;
-            if (value is PdfArray array) { foreach (var item in array.Items) Visit(item); return; }
-            if (value is PdfStream stream) { Visit(stream.Dictionary); return; }
+        void Visit(PdfObject value, int depth) {
+            token.ThrowIfCancellationRequested();
+            RequireStructureDepth(depth);
+            if (!visited.Add(value)) return;
+            if (value is PdfArray array) { foreach (var item in array.Items) Visit(item, depth + 1); return; }
+            if (value is PdfStream stream) { Visit(stream.Dictionary, depth + 1); return; }
             if (value is not PdfDictionary dictionary) return;
             if (dictionary.Get<PdfName>("S")?.Name == "GoTo" && dictionary.Items.TryGetValue("SD", out var destination) &&
                 PdfObjectLookup.Resolve(objects, destination) is PdfStringObj id && ids.TryGetValue(Convert.ToBase64String(id.RawBytes), out var mapped))
                 dictionary.Items["SD"] = mapped;
-            foreach (var child in dictionary.Items.Values) if (child is not PdfReference) Visit(child);
+            foreach (var child in dictionary.Items.Values) if (child is not PdfReference) Visit(child, depth + 1);
         }
-        foreach (int number in numbers) Visit(objects[number].Value);
+        foreach (int number in numbers) Visit(objects[number].Value, 0);
     }
 
     internal static void PruneStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
@@ -65,11 +72,12 @@ internal static partial class PdfTaggedPageOrganizer {
         }
         if (root.Items.TryGetValue("IDTree", out var ids)) {
             var pairs = new List<(PdfObject Key, PdfObject Value)>(); var seen = new HashSet<PdfDictionary>();
-            CollectIds(ids); var names = new PdfArray();
+            CollectIds(ids, 0); var names = new PdfArray();
             foreach (var pair in pairs) { names.Items.Add(pair.Key); names.Items.Add(pair.Value); }
             var replacement = new PdfDictionary(); replacement.Items["Names"] = names; root.Items["IDTree"] = replacement;
-            void CollectIds(PdfObject tree) {
+            void CollectIds(PdfObject tree, int depth) {
                 token.ThrowIfCancellationRequested();
+                RequireStructureDepth(depth);
                 if (PdfObjectLookup.Resolve(objects, tree) is not PdfDictionary dictionary || !seen.Add(dictionary))
                     throw new InvalidOperationException("The tagged ID tree is cyclic or unreadable.");
                 if (dictionary.Items.TryGetValue("Names", out var values) && PdfObjectLookup.Resolve(objects, values) is PdfArray array) {
@@ -79,13 +87,13 @@ internal static partial class PdfTaggedPageOrganizer {
                             pairs.Add((array.Items[index], array.Items[index + 1]));
                 }
                 if (dictionary.Items.TryGetValue("Kids", out var children) && PdfObjectLookup.Resolve(objects, children) is PdfArray childArray)
-                    foreach (var child in childArray.Items) CollectIds(child);
+                    foreach (var child in childArray.Items) CollectIds(child, depth + 1);
             }
         }
 
         PdfObject? Prune(PdfObject item, int? inheritedPage, int depth) {
             token.ThrowIfCancellationRequested();
-            if (depth > 256) throw new InvalidOperationException("Tagged page organization exceeded the structure nesting limit.");
+            RequireStructureDepth(depth);
             var resolved = PdfObjectLookup.Resolve(objects, item);
             if (resolved is PdfArray array) {
                 var remaining = new PdfArray(); foreach (var child in array.Items) { var result = Prune(child, inheritedPage, depth + 1); if (result != null) remaining.Items.Add(result); }
@@ -116,9 +124,10 @@ internal static partial class PdfTaggedPageOrganizer {
     }
 
     private static SortedDictionary<int, PdfObject> ReadNumberTree(Dictionary<int, PdfIndirectObject> objects, PdfObject value, CancellationToken token) {
-        var result = new SortedDictionary<int, PdfObject>(); var visited = new HashSet<PdfDictionary>(); Visit(value); return result;
-        void Visit(PdfObject tree) {
+        var result = new SortedDictionary<int, PdfObject>(); var visited = new HashSet<PdfDictionary>(); Visit(value, 0); return result;
+        void Visit(PdfObject tree, int depth) {
             token.ThrowIfCancellationRequested();
+            RequireStructureDepth(depth);
             if (PdfObjectLookup.Resolve(objects, tree) is not PdfDictionary dictionary || !visited.Add(dictionary))
                 throw new InvalidOperationException("The tagged parent tree is cyclic or unreadable.");
             if (dictionary.Items.TryGetValue("Nums", out var nums) && PdfObjectLookup.Resolve(objects, nums) is PdfArray array) {
@@ -131,7 +140,7 @@ internal static partial class PdfTaggedPageOrganizer {
                 }
             }
             if (dictionary.Items.TryGetValue("Kids", out var kids) && PdfObjectLookup.Resolve(objects, kids) is PdfArray children)
-                foreach (var child in children.Items) Visit(child);
+                foreach (var child in children.Items) Visit(child, depth + 1);
         }
     }
     private static int CheckedKey(PdfNumber key) {
@@ -142,7 +151,8 @@ internal static partial class PdfTaggedPageOrganizer {
 
     private static void RebuildStructureIds(Dictionary<int, PdfIndirectObject> objects, PdfDictionary root, CancellationToken token) {
         var pairs = new List<(PdfStringObj Id, PdfReference Element)>(); var visited = new HashSet<int>();
-        if (root.Items.TryGetValue("K", out var kids)) Visit(kids);
+        var activeArrays = new HashSet<PdfArray>();
+        if (root.Items.TryGetValue("K", out var kids)) Visit(kids, 0);
         if (pairs.Count == 0) { root.Items.Remove("IDTree"); return; }
         pairs.Sort((left, right) => CompareBytes(left.Id.RawBytes, right.Id.RawBytes));
         var names = new PdfArray();
@@ -152,13 +162,19 @@ internal static partial class PdfTaggedPageOrganizer {
             names.Items.Add(pairs[index].Id); names.Items.Add(pairs[index].Element);
         }
         var tree = new PdfDictionary(); tree.Items["Names"] = names; root.Items["IDTree"] = tree;
-        void Visit(PdfObject value) {
+        void Visit(PdfObject value, int depth) {
             token.ThrowIfCancellationRequested();
+            RequireStructureDepth(depth);
             var resolved = PdfObjectLookup.Resolve(objects, value);
-            if (resolved is PdfArray array) { foreach (var item in array.Items) Visit(item); return; }
+            if (resolved is PdfArray array) {
+                if (!activeArrays.Add(array)) throw new InvalidOperationException("The tagged structure tree contains a cyclic child array.");
+                foreach (var item in array.Items) Visit(item, depth + 1);
+                activeArrays.Remove(array);
+                return;
+            }
             if (resolved is not PdfDictionary dictionary || value is not PdfReference reference || !visited.Add(reference.ObjectNumber)) return;
             if (dictionary.Items.TryGetValue("ID", out var id) && PdfObjectLookup.Resolve(objects, id) is PdfStringObj text) pairs.Add((text, reference));
-            if (dictionary.Items.TryGetValue("K", out var children)) Visit(children);
+            if (dictionary.Items.TryGetValue("K", out var children)) Visit(children, depth + 1);
         }
         static int CompareBytes(byte[] left, byte[] right) {
             for (int index = 0; index < Math.Min(left.Length, right.Length); index++) { int order = left[index].CompareTo(right[index]); if (order != 0) return order; }

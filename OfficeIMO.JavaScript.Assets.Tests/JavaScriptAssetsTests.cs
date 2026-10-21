@@ -18,6 +18,8 @@ public sealed class JavaScriptAssetsTests {
     [InlineData("officeimo-csv.mjs")]
     [InlineData("officeimo-pdf.js")]
     [InlineData("officeimo-pdf.mjs")]
+    [InlineData("officeimo-execution.js")]
+    [InlineData("officeimo-execution.mjs")]
     [InlineData("officeimo-datatables.js")]
     [InlineData("officeimo-datatables.mjs")]
     [InlineData("officeimo-canopyx.js")]
@@ -26,7 +28,8 @@ public sealed class JavaScriptAssetsTests {
         JavaScriptAsset asset = new[] { JavaScriptAssets.Script, JavaScriptAssets.XlsxScript, JavaScriptAssets.CsvScript,
             JavaScriptAssets.Module, JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvModule,
             JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule, JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule,
-            JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule }.Single(a => a.FileName == name);
+            JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule,
+            JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule }.Single(a => a.FileName == name);
         byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", name));
         byte[] actual = new UTF8Encoding(false).GetBytes(asset.Content);
         Assert.Equal(expected, actual);

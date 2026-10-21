@@ -8,6 +8,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfHeaderFooterImage {
     private readonly byte[] _data;
     private readonly PdfWriter.PdfImageStream? _preparedStream;
+    private readonly PdfImageStyle _style;
 
     /// <summary>Creates a header/footer image.</summary>
     public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)
@@ -20,27 +21,33 @@ public sealed class PdfHeaderFooterImage {
     }
 
     /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)
+        : this(data, width, height, align, new PdfImageStyle { Fit = fit, AlternativeText = alternativeText }) {
+    }
+
+    /// <summary>Creates a header/footer image with source crop, rotation, mirrors and alternate text from a reusable style.</summary>
+    /// <remarks>The style is copied; the explicit alignment controls the image's position in its running-story group.</remarks>
+    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, PdfImageStyle style) {
         Guard.NotNullOrEmpty(data, nameof(data));
+        Guard.NotNull(style, nameof(style));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
-        PdfDocument.ValidateImageFit(fit, nameof(fit));
-        if (alternativeText != null) {
-            Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
-        }
+        _style = style.Clone();
+        _style.Align = align;
+        PdfDocument.ValidateImageStyleForBox(_style, width, height, nameof(style));
 
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
-        PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
+        PdfDocument.ValidateImageFitDimensions(prepared.Info, _style.Fit, nameof(style));
 
         _data = prepared.Data;
         _preparedStream = prepared.PreparedStream;
         Width = width;
         Height = height;
         Align = align;
-        Fit = fit;
+        Fit = _style.Fit;
         Info = prepared.Info;
-        AlternativeText = alternativeText;
+        AlternativeText = _style.AlternativeText;
     }
 
     /// <summary>Image payload.</summary>
@@ -67,6 +74,7 @@ public sealed class PdfHeaderFooterImage {
     private PdfHeaderFooterImage(PdfHeaderFooterImage source) {
         _data = (byte[])source._data.Clone();
         _preparedStream = source._preparedStream;
+        _style = source._style.Clone();
         Width = source.Width;
         Height = source.Height;
         Align = source.Align;
@@ -77,9 +85,6 @@ public sealed class PdfHeaderFooterImage {
 
     internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(this);
 
-    internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width, Height, Info, new PdfImageStyle {
-        Align = Align,
-        Fit = Fit,
-        AlternativeText = AlternativeText
-    }, useDataSnapshot: true, preparedStream: _preparedStream);
+    internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width, Height, Info, _style,
+        useDataSnapshot: true, preparedStream: _preparedStream);
 }

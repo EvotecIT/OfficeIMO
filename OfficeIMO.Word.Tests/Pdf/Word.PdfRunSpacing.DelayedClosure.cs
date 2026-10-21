@@ -32,7 +32,7 @@ public partial class Word {
         using var pdf = OpenJoinedParagraphPdf(document);
         var text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X" or "m" or "x").ToArray();
         Assert.Equal("MMMMX", string.Concat(text.Select(letter => letter.Value)));
-        Assert.InRange(Math.Abs(text[4].StartBaseLine.X - text[0].StartBaseLine.X - 83.968D), 0D, 0.03D);
+        Assert.InRange(Math.Abs(text[4].StartBaseLine.X - text[0].StartBaseLine.X - (smallCaps ? 67.308D : 83.968D)), 0D, 0.03D);
         Assert.Contains(pdf.GetPage(1).Letters, letter => letter.Value == "1");
     }
 }

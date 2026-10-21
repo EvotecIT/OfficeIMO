@@ -50,6 +50,7 @@ public static partial class WordPdfConverterExtensions {
         internal string GetLabel(int token) => labelsByToken[token];
 
         internal string Add(long key, bool endnote) {
+            bool reportFootnotePlacement = !endnote && !hasFootnotes;
             int number = (endnote ? nextEndnote : nextFootnote) ?? 1;
             if (endnote) { nextEndnote = checked(number + 1); hasEndnotes = true; }
             else { nextFootnote = checked(number + 1); hasFootnotes = true; }
@@ -78,6 +79,9 @@ public static partial class WordPdfConverterExtensions {
             int token = tokensById.Count + 1;
             tokensById.Add(key, token);
             labelsByToken.Add(token, label);
+            if (reportFootnotePlacement && options != null)
+                AddNativeExportWarning(options, "NativeFootnotePlacementApproximated", "footnotes",
+                    "Footnotes are rendered as plain text in document flow after their section's body content. Page-associated placement and original note formatting are approximated.");
             return label;
         }
     }

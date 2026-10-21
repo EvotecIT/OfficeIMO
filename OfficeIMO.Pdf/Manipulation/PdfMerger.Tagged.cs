@@ -17,7 +17,7 @@ internal static partial class PdfMerger {
     /// </summary>
     private static byte[] CompleteTaggedMerge(byte[] merged, IReadOnlyList<ImportedSource> sources,
         int primarySourceIndex, int pagesId, int catalogId, int infoId, PdfFileVersion fileVersion,
-        CancellationToken cancellationToken) {
+        ref int outputObjectCount, CancellationToken cancellationToken) {
         if (!sources.Any(source => PdfTaggedPageOrganizer.IsTagged(source.Document))) return merged;
         cancellationToken.ThrowIfCancellationRequested();
         if (sources[primarySourceIndex].Document.UncheckedXmpMetadata?.HasPdfUaIdentification == true &&
@@ -58,6 +58,9 @@ internal static partial class PdfMerger {
             cancellationToken.ThrowIfCancellationRequested();
             serialized.Add(PdfPageExtractor.SerializeIndirectObjectForAssembly(pair.Key, pair.Value.Value, context));
         }
+        // Class-list preservation can add shared indirect clones after the initial assembly.
+        // Composed readback must admit those engine-created objects without relaxing input budgets.
+        outputObjectCount = objects.Count;
         return PdfPageExtractor.Assemble(serialized, catalogId, infoId, fileVersion, cancellationToken);
     }
 

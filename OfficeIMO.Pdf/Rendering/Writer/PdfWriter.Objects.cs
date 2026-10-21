@@ -157,6 +157,8 @@ internal static partial class PdfWriter {
             internal SearchableFontSet SearchableFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
+            public Dictionary<byte[], OfficeIMO.Drawing.IOfficeBoundedFontProgram> InlineFormGlyphFonts { get; } = new();
+            public System.Threading.CancellationToken OperationCancellationToken { get; set; }
             public int? StructParentIndex { get; set; }
             public int NextMarkedContentId { get; set; }
             public int NextInlineImageTokenId { get; set; }
@@ -245,6 +247,10 @@ internal static partial class PdfWriter {
         public string Value { get; set; } = string.Empty;
         public string? AppearanceValue { get; set; }
         public PdfFormFieldStyle? AppearanceStyle { get; set; }
+        public PdfInlineFormField? InlineField { get; set; }
+        public InlineFormAppearance? InlineAppearance { get; set; }
+        public double? InlineWidgetBaseline { get; set; }
+        public double InlineWidgetTextX { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
         // Keep appearance streams in authored coordinates; the widget rectangle scales them.

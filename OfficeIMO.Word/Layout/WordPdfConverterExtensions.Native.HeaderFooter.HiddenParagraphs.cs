@@ -52,7 +52,15 @@ public static partial class WordPdfConverterExtensions {
             text.Append(GetNativeHeaderFooterParagraphText((WordParagraph)elements[current], listMarkers, out _));
         string joinedText = text.ToString();
         IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = null;
-        if (visibleStyle.HasValue && (HasNativeTextSpacing(visibleStyle.Value.TextSpacing) ||
+        if (visibleStyle?.SmallCaps == true) {
+            var casedReplacements = new List<NativeHeaderFooterStyledReplacement>();
+            for (int current = index; current <= end; current++) {
+                var paragraph = (WordParagraph)elements[current];
+                foreach (var run in GetNativeHeaderFooterVisibleTextRuns(paragraph))
+                    casedReplacements.AddRange(CreateNativeHeaderFooterSpacingReplacements(paragraph, run.Run, run.Text, run.IsField, fontMap));
+            }
+            replacements = casedReplacements;
+        } else if (visibleStyle.HasValue && (HasNativeTextSpacing(visibleStyle.Value.TextSpacing) ||
             HasNativeTextSpacing(ResolveNativeTextRunStyle(first, nativeFontMap: fontMap).TextSpacing))) {
             replacements = new[] { new NativeHeaderFooterStyledReplacement(joinedText,
                 CreateNativeHeaderFooterStyledTextRun(joinedText, visibleStyle.Value, 0D)) };

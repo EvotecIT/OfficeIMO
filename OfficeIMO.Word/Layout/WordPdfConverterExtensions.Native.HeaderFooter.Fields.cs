@@ -153,10 +153,13 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (hidden) continue;
                 if (child is W.Text text) {
-                    string visibleText = ApplyNativeTextTransform(WordParagraph.ReadVisibleText(text), sourceRun, state.Paragraph);
+                    string sourceText = WordParagraph.ReadVisibleText(text);
+                    string visibleText = ApplyNativeTextTransform(sourceText, sourceRun, state.Paragraph);
                     builder.Append(visibleText);
-                    state.SerializedRuns?.Add((run, visibleText, false, child, null));
-                } else if (child is W.TabChar) {
+                    // Keep source case until styled replacement segmentation has
+                    // distinguished original capitals from synthetic small caps.
+                    state.SerializedRuns?.Add((run, sourceText, false, child, null));
+                } else if (child is W.TabChar or W.PositionalTab) {
                     builder.Append('\t');
                     state.SerializedRuns?.Add((run, "\t", false, child, null));
                 } else if (child is W.Break) {

@@ -68,7 +68,7 @@ internal static partial class WordRunFormatting {
 
             TableLook? look = table.GetFirstChild<TableProperties>()?.TableLook;
             Mask = look == null ? 0 : WordTable.GetTableLookMask(look);
-            TableRow[] rows = table.Elements<TableRow>().ToArray();
+            TableRow[] rows = WordTableContent.Rows(table).ToArray();
             bool inHeader = true;
             int maximumColumns = 0;
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
@@ -78,7 +78,7 @@ internal static partial class WordRunFormatting {
                 if (inHeader && header != null && WordTableRow.ReadOnOff(header)) HeaderRows++;
                 else inHeader = false;
                 int column = Math.Max(0, row.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0);
-                foreach (TableCell cell in row.Elements<TableCell>()) {
+                foreach (TableCell cell in WordTableContent.Cells(row)) {
                     if ((Cells.Count & 255) == 0) token.ThrowIfCancellationRequested();
                     Cells.Add(cell, (rowIndex, column, WordTableCellSpanResolver.GetColumnSpan(cell)));
                     column = checked(column + Math.Max(1, cell.TableCellProperties?.GridSpan?.Val?.Value ?? 1));

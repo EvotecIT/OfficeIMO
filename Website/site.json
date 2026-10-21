@@ -18,6 +18,11 @@
   "Sources": [],
   "StaticAssets": [
     { "Source": "static" },
+    { "Source": "../OfficeIMO.JavaScript/bundles", "Destination": "assets/officeimo" },
+    { "Source": "../OfficeIMO.JavaScript.Examples/report-engine-job.mjs", "Destination": "js/report-engine-job.mjs" },
+    { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "Destination": "assets/report-fonts/Carlito-Regular.ttf" },
+    { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf", "Destination": "assets/report-fonts/Carlito-Bold.ttf" },
+    { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt", "Destination": "assets/report-fonts/OFL-Carlito.txt" },
     { "Source": "data/pdf_corpus_report.json", "Destination": "data/corpus/pdf-quality-windows.json" },
     { "Source": "data/pdf_corpus_publication.json", "Destination": "data/corpus/pdf-quality-windows.provenance.json" },
     { "Source": "Apps/OfficeIMO.Web.Converter/wwwroot/samples/business-summary.docx", "Destination": "downloads/samples/business-summary.docx" },
@@ -906,6 +911,10 @@
     {
       "Name": "footer-resources",
       "Items": [
+        {
+          "Title": "Report workbench",
+          "Url": "/report-engine/"
+        },
         {
           "Title": "Browser converter",
           "Url": "/convert/"

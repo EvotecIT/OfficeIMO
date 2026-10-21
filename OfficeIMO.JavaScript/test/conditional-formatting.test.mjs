@@ -126,3 +126,49 @@ test("literal formulas and thresholds escape XML while preserving formula semant
   assert.match(xml, /type="formula" val="&apos;Rate_x005F_x0041_&apos;!B2"/);
   assert.match(xml, /<formula>-1<\/formula><formula>1<\/formula>/);
 });
+
+test("live text equality uses final grouped data ranges and quoted literals alongside numeric rules", async () => {
+  const hostile = '=IF(A1="</formula><evil>&",1,0) _x0041_ Łódź 🧪';
+  for (const streamed of [false, true]) {
+    const chunks = [], book = new Workbook({ compression: "store", invalidCharacterPolicy: "strip",
+      ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
+    const sheet = book.addWorksheet("Status", { columns: [{ header: "Status", key: "status", groups: ["Assessment", "Health"] },
+      { header: "Amount", key: "amount", type: "number", groups: ["Assessment", "Health"] }],
+      title: { text: "Service review" }, footer: { values: ["End"], totals: { amount: "sum" } }, conditionalFormats: [
+        { type: "cellIs", range: { column: "status" }, operator: "equal", value: "Offline", style: { fill: { color: "FF0000" } } },
+        { type: "cellIs", range: { column: "status" }, operator: "notEqual", value: hostile, style: { font: { bold: true } } },
+        { type: "cellIs", range: { column: "amount" }, operator: "greaterThan", value: 10, style: { font: { color: "008000" } } }
+      ] });
+    await sheet.addRows([["Offline", 5]]); await sheet.addRows([[hostile, 12.5]]);
+    let blob; if (streamed) { await book.finish(); blob = new Blob(chunks); } else blob = await book.toBlob();
+    const xml = (await readZip(blob)).get("xl/worksheets/sheet1.xml").content;
+    assert.match(xml, /sqref="A5:A6"><cfRule[^>]*operator="equal"><formula>&quot;Offline&quot;<\/formula>/);
+    const literal = '&quot;=IF(A1=&quot;&quot;&lt;/formula&gt;&lt;evil&gt;&amp;&quot;&quot;,1,0) _x0041_ Łódź 🧪&quot;';
+    assert.ok(xml.includes('operator="notEqual"><formula>' + literal + '</formula>'));
+    assert.match(xml, /sqref="B5:B6"><cfRule[^>]*operator="greaterThan"><formula>10<\/formula>/);
+    assert.match(xml, /r="B6"[^>]*><v>12.5<\/v>/);
+    assert.doesNotMatch(xml, /<evil>/);
+  }
+});
+
+test("text comparisons reject other operators, XML changes and encoded formulas above the Excel ceiling", async () => {
+  const base = { type: "cellIs", range: { column: "status" }, operator: "equal", value: "Offline", style: { font: { bold: true } } };
+  const columns = [{ header: "Status", key: "status" }];
+  for (const patch of [
+    ...["lessThan", "greaterThan", "lessThanOrEqual", "greaterThanOrEqual"].map(operator => ({ operator })),
+    { value: "\u0001" }, { value: "\ud800" }, { value: "x".repeat(8191) }, { value: '"'.repeat(4096) },
+    { operator: "between", values: ["A", "Z"], value: undefined },
+    { operator: "notBetween", values: ["A", "Z"], value: undefined }
+  ]) {
+    const book = new Workbook({ invalidCharacterPolicy: "strip", limits: { maxConditionalFormats: 1, maxDifferentialStyles: 1 } });
+    const rule = { ...base, ...patch };
+    if ("values" in patch) delete rule.value;
+    assert.throws(() => book.addWorksheet("Recover", { columns, conditionalFormats: [rule] }));
+    assert.equal(book.addWorksheet("Recover", { columns, conditionalFormats: [base] }).name, "Recover");
+    await book.finish();
+  }
+  const edge = new Workbook();
+  await edge.addWorksheet("Bound", { columns, conditionalFormats: [{ ...base, value: '"'.repeat(4095) }, { ...base, operator: "notEqual", value: "" }] }).addRows([["value"]]);
+  const xml = (await readZip(await edge.toBlob())).get("xl/worksheets/sheet1.xml").content;
+  assert.match(xml, /operator="notEqual"><formula>&quot;&quot;<\/formula>/);
+});

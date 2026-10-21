@@ -13,6 +13,7 @@ internal static class CanopyExportVerifier {
     internal static object Verify(string path) {
         using var expected = JsonDocument.Parse(File.ReadAllText(path + ".json"));
         JsonElement contract = expected.RootElement;
+        if (contract.TryGetProperty("structured", out var structured) && structured.GetBoolean()) return StructuredTableVerifier.VerifyCanopy(path, contract.GetProperty("values").GetString()!);
         JsonElement[] rows = contract.GetProperty("rows").EnumerateArray().ToArray(), columns = contract.GetProperty("columns").EnumerateArray().ToArray();
         string values = contract.GetProperty("values").GetString()!;
         if (path.EndsWith(".pdf", StringComparison.Ordinal)) {

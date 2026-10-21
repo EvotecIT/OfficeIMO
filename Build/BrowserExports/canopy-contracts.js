@@ -185,3 +185,35 @@ globalThis.runOrdinaryCanopyContracts = async function ({ regular, bold }) {
   for (const format of ['csv', 'xlsx', 'pdf']) await canopySave('ordinary', capture, format, { ...options, unsupportedPresentation: 'text' });
   grid.destroy(); return { ordinaryTextCapture: true, explicitVisualFallback: true };
 };
+
+// A bounded report-intent fixture through the real native capture; no package adoption is involved.
+globalThis.runStructuredCanopyContracts = async function () {
+  const view = { protocol:'canopyx/2',type:'grid',id:'structured-capture',label:'Assessment',source:{kind:'inline'},
+    rowHeight:30,pageSize:7,presentation:'paged',pageLength:5,selection:'multiple',reporting:{selectionControls:true},columns:[
+      {id:'id',title:'ID',kind:'text',width:150},{id:'amount',title:'Amount',kind:'number',width:120,sortable:true},
+      {id:'when',title:'Seen',kind:'datetime',width:220}],rows:[
+      {id:'asset-one',tone:'critical',cells:{id:{value:'0001',text:'Asset 0001'},amount:{value:12.5,text:'12.50 USD'},when:{value:'2026-01-01T00:00:00Z',text:'1 Jan 2026'}}},
+      {id:'asset-two',tone:'pass',cells:{id:{value:'0003',text:'Asset 0003'},amount:{value:3,text:'3.00 USD'},when:{value:'2026-01-03T00:00:00Z',text:'3 Jan 2026'}}}
+    ]};
+  const grid = await canopyMount(view);
+  try {
+    const headerRows = [[{value:'ID',rowSpan:2},{value:'Metrics',columnSpan:2},null],[null,{value:'Amount'},{value:'Seen'}]],
+      footer = {rows:[[{value:'Totals',rowSpan:2},{value:'15.5'},{value:'Approved'}],[null,{value:'Finance',columnSpan:2},null]]};
+    const options = {tones:{critical:{background:'FCE4D6',bold:true},pass:{background:'E2F0D9'}},
+      columnOptions:{amount:{format:'0.00'},when:{format:'yyyy-mm-dd'}},
+      xlsx:{dateMode:'utc',sheet:{headerRows,footer,autoFilter:false,freezeHeader:true,print:{repeatHeaders:true}}},
+      csv:{headerRows,footer,spanMode:'anchors'}};
+    const reports = [];
+    for(const values of ['raw','display']) {
+      const capture = grid.prepareExport({scope:'all',values,locale:'en-US',timeZone:'utc'}), rows = await canopyCollect(capture);
+      canopyAssert(rows.map(row=>row.id).join('|')==='asset-one|asset-two','Structured capture retains native stable IDs and order.');
+      for(const format of ['xlsx','csv']) {
+        const blob = await OfficeIMO.exportCanopy(capture,format,options), bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary='';for(let first=0;first<bytes.length;first+=32768)binary+=String.fromCharCode(...bytes.subarray(first,first+32768));
+        await writeCanopyFixture('structured-'+values+'.'+format,btoa(binary),JSON.stringify({structured:true,values,columns:capture.request.columns,rows}));
+        reports.push({format,values,rows:rows.length,bytes:bytes.length});
+      }
+    }
+    return {reports,nativeCapture:true,namedTones:['critical','pass'],stableIds:true};
+  } finally {grid.destroy();}
+};

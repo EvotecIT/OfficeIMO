@@ -7,9 +7,9 @@ import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, Canop
 export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): CanopyExport {
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
   if (!capture || typeof capture.rows !== "function" || !capture.request) throw new TypeError("A portable CanopyX capture with request and rows() is required.");
-  const { request } = capture, signal = options.signal;
+  const { request } = capture, signal = options.signal, values = request.values;
   if (!Array.isArray(request.columns) || !request.columns.length || (request.recordCount !== null && (!Number.isSafeInteger(request.recordCount) || request.recordCount < 0)) ||
-    (request.values !== "raw" && request.values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
+    (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
     throw new TypeError("Invalid portable CanopyX capture metadata.");
   const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), dateMode = options.datetime ?? "preserve", notify = options.onDiagnostic;
   const clock = options.xlsx?.dateMode ?? request.timeZone;
@@ -54,11 +54,12 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
     const override = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
     for (const key of Object.keys(override)) if (!["width", "format", "wrapText", "alignment", "groups"].includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
     return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze({ ...override, key: column.id, header: column.title,
+      ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
       ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
       ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }),
       ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
   });
-  const values = request.values, rowCount = request.recordCount;
+  const rowCount = request.recordCount;
   return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
     checkAbort(signal); let count = 0;
     for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {

@@ -162,6 +162,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
         HtmlRenderBoxStyle style = item.Style;
+        // Controls own their value/option/column sizing and UA box edges even
+        // when they are the root of an intrinsic request rather than a child run.
+        if (item.Element != null && IsFormControlElement(item.TagName) && !UsesButtonChildLayout(item.Element)) {
+            contribution = ResolveFormControlIntrinsicOuterWidth(item.Element, style, availableSize);
+            return true;
+        }
         if (style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));

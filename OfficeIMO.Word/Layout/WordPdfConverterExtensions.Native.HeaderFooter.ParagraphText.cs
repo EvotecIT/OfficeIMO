@@ -324,7 +324,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (W.SdtRun formField in formFields) {
                 string? value;
                 if (IsNativeDatePickerControl(formField)) {
-                    value = GetNativeDatePickerValue(formField);
+                    value = GetNativeContentControlDisplayValue(formField);
                 } else {
                     IReadOnlyList<string> options = GetNativeChoiceFieldOptions(formField);
                     value = GetNativeChoiceFieldValue(formField, options);

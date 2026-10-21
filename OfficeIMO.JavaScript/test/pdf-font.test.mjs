@@ -80,6 +80,26 @@ test("PDF preflight reports the first writer text issue at the original UTF-16 i
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A\t" }], { fonts: missingSpace, pageNumbers: false }), { message: new NotSupportedError(tab.message).message });
 });
 
+test("PDF rich text rejects presentation boundaries inside a supplementary scalar", async () => {
+  const program = new TrueTypeFont(source), font = withCharacters([[0x1f9ea, program.glyph(65)]]);
+  const options = { fonts: { regular: font }, pageNumbers: false, compression: false };
+  for (const [first, second] of [
+    [{ color: "ff0000" }, { color: "0000ff" }], [{}, { bold: true }],
+    [{}, { link: { target: "https://example.com/remediation" } }],
+    [{ link: { target: "https://example.com/first" } }, { link: { target: "https://example.com/second" } }]
+  ]) {
+    const split = [{ text: "\ud83e", ...first }, { text: "\uddea", ...second }];
+    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: split }], options), /presentation boundary.*UTF-16 scalar/);
+    await assert.rejects(writePdf([["🧪"]], { ...options, columns: [{ header: "", key: "value" }], includeHeader: false,
+      formatRuns: () => split }), /presentation boundary.*UTF-16 scalar/);
+  }
+  for (const text of ["🧪", [{ text: "\ud83e" }, { text: "" }, { text: "\uddea", color: "111827" }],
+    [{ text: "\ud83e", color: "ff0000" }, { text: "\uddea", color: "#FF0000" }],
+    [{ text: "\ud83e" }, { text: "\uddea", font }],
+    [{ text: "\ud83e", link: { target: "https://example.com/action" } }, { text: "\uddea", link: { target: "https://example.com/action" } }]])
+    assert.equal((await inspectPdf(await writePdfDocument([{ kind: "paragraph", text }], options))).text, "🧪");
+});
+
 test("PDF preflight and table headings select the same exact and synthetic emphasis faces", async () => {
   const program = new TrueTypeFont(source), face = scalar => withCharacters([[scalar, program.glyph(scalar)]]);
   const fonts = { regular: face(65), bold: face(66), italic: face(67), boldItalic: face(68) };

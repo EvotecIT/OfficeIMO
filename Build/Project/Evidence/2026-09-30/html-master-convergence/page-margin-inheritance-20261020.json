@@ -1,0 +1,340 @@
+{
+  "schema": "officeimo.html.page-margin-inheritance-qualification/v1",
+  "status": "qualified-bounded-static-checkpoint",
+  "recordedUtc": "2026-10-20T19:58:34.264960+00:00",
+  "qualifiedSourceHead": "0d4e30160ad4977ec811913a85e90502c60be7ba",
+  "base": "2a045677fb46a93bb85ef6b428af5010f8799799",
+  "scope": [
+    "Root to matching page to margin typography through the existing computed-style and used-value owners.",
+    "CSS-wide resets, font descriptors, registered custom inheritance and generic font preparation share canonical policy.",
+    "No new public API or production dependency."
+  ],
+  "source": {
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-final-inheritance.json",
+      "bytes": 12091647,
+      "sha256": "5c1f5d975688aeb45db4ffce0833fe0651cceda43aded44199536491d5b37fc8"
+    },
+    "trackedSourceInputs": 57876,
+    "gitTree": "b2cbb52e0762332af729fbab88b0c5ce08e68e6c"
+  },
+  "fullHtmlTests": [
+    {
+      "framework": "net8",
+      "passed": 7638,
+      "failed": 0,
+      "skipped": 0,
+      "trx": {
+        "path": "$TASK_ROOT/trx/full-html-final-net8/full-html-final-net8.trx",
+        "bytes": 11664025,
+        "sha256": "652f54b0fa013eb1a8d44522c04ca2a6a595eb9a05adfa5ff535f1f9869d0a44"
+      },
+      "execution": {
+        "path": "$TASK_ROOT/full-html-final-net8-execution.json",
+        "bytes": 1623,
+        "sha256": "18aa58ca4136063fa512c25942034746e4ce33859c191ed9925b70a874507877"
+      }
+    },
+    {
+      "framework": "net10",
+      "passed": 7638,
+      "failed": 0,
+      "skipped": 0,
+      "trx": {
+        "path": "$TASK_ROOT/trx/full-html-final-net10/full-html-final-net10.trx",
+        "bytes": 11679302,
+        "sha256": "0dc5a1bf07c21f7b8898e5b5f9ed08a855126fa2fc1dca0c66ca5eec0fd388d1"
+      },
+      "execution": {
+        "path": "$TASK_ROOT/full-html-final-net10-execution.json",
+        "bytes": 1628,
+        "sha256": "9219b5954972136bdecd05a8e1f07cdd7e809e5143315a583d87e5750f34d1e9"
+      }
+    }
+  ],
+  "sourceRendering": {
+    "observationsPerFramework": 24,
+    "ownPngPdfReplayEqualPerFramework": 24,
+    "crossFrameworkDecodedRgbaEqual": 24,
+    "crossFrameworkSceneSavedTextEqual": 24,
+    "crossFrameworkEncodedPngEqual": 0,
+    "crossFrameworkReceipt": {
+      "path": "$TASK_ROOT/inheritance-comparison-final-v2/cross-framework-equivalence.json",
+      "bytes": 25989,
+      "sha256": "66c1fe697ac5b809e7d9e922583e3f1250dce1f47d010690c83c8ca2ae7a30a3"
+    },
+    "net8": {
+      "path": "$TASK_ROOT/package-source-net8/summary.json",
+      "bytes": 245775,
+      "sha256": "59b90637afe4f035ea8c98ccd8275ec3a2fe74cd92d307a73f15a03044788dde"
+    },
+    "net10": {
+      "path": "$TASK_ROOT/package-source-net10/summary.json",
+      "bytes": 245854,
+      "sha256": "8eb863bf8c4ef0dc40af5dd9c446402b3193ff0d2f47ee260357355807212b13"
+    },
+    "targetAssertionsPerFramework": 200
+  },
+  "native": {
+    "engine": "Microsoft Edge155.0.4283.62 Chromium; HtmlTinkerX3.0.4",
+    "actualPinnedFontPdfObservations": 28,
+    "sameInputTypographyAndCompleteTextMatches": 20,
+    "knownDifferenceObservations": 4,
+    "explicitLiteralControlObservations": 4,
+    "noBrowserErrors": true,
+    "ownedSessionsClosed": true,
+    "comparison": {
+      "path": "$TASK_ROOT/inheritance-comparison-final-v2/native-comparison.json",
+      "bytes": 274018,
+      "sha256": "7b9526d72975fa3ea3dd38408b26bb680b8eef863874e798de68777096a1ce48"
+    },
+    "nativeApproval": {
+      "path": "$TASK_ROOT/root-native-approval.json",
+      "bytes": 2187,
+      "sha256": "46c7a498b0d83ad7ab81ab018ed7d87a9cb712118826382ee809fc1954754482"
+    },
+    "visualApproval": {
+      "path": "$TASK_ROOT/root-visual-approval.json",
+      "bytes": 2905,
+      "sha256": "d48449755f39b97ac9838b47444be7e9d9624589e2fc217277c3930b228fa4f0"
+    },
+    "boundaries": [
+      "Native appearance is bounded to this horizontal typography corpus, not pixel or universal CSS equivalence.",
+      "Original rem fixture: Edge uses page font basis; owned rem uses document root basis.",
+      "Original local page/margin custom-property fixture: Edge ignores scoped declarations; owned scoped computed-context contract resolves them.",
+      "Expanded literal controls qualify typography. Centre string still wraps in owned fixed-thirds allocation, reproduced before this change; separately approved next milestone after checkpoint.",
+      "Unprimed native captures are historical diagnostics only; not font-equivalence evidence.",
+      "Native nominal PDF FontSize is under a 0.75 transform; independent Poppler physical font metadata and positions retained."
+    ]
+  },
+  "privatePackages": {
+    "version": "3.5.8",
+    "freshPackages": 5,
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "packageBinding": {
+      "path": "$TASK_ROOT/packages/inheritance-v1/package-binding.json",
+      "bytes": 23691,
+      "sha256": "a5ba62df3caadcd2f0ada10121c40aa008b2f728ed2e85836e3ababed466bea7"
+    },
+    "consumerBinding": {
+      "path": "$TASK_ROOT/packages/inheritance-v1/consumer-binding.json",
+      "bytes": 61047,
+      "sha256": "eb1401c1beb972ad8fd6ba1a3673884a7f1fd9af078eb26fba5ffbf153a8c10d"
+    },
+    "consumers": [
+      {
+        "label": "net8",
+        "framework": ".NET 8.0.23",
+        "observations": 24,
+        "passed": true,
+        "ownPngPdfReplayEqual": 24,
+        "matchingFrameworkSourcePngEqual": 24,
+        "result": {
+          "path": "$TASK_ROOT/packages/inheritance-v1/results/net8/result.json",
+          "bytes": 131730,
+          "sha256": "4be168b44888ecf69c2764766f851f16253f7a27b2f03688a85b3640c402e08f"
+        },
+        "executedBinary": {
+          "path": "/Users/przemyslawklys/.dotnet/dotnet",
+          "bytes": 141392,
+          "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+        },
+        "dynamicCodeSupported": true,
+        "architecture": "Arm64"
+      },
+      {
+        "label": "net10",
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "passed": true,
+        "ownPngPdfReplayEqual": 24,
+        "matchingFrameworkSourcePngEqual": 24,
+        "result": {
+          "path": "$TASK_ROOT/packages/inheritance-v1/results/net10/result.json",
+          "bytes": 131811,
+          "sha256": "a8690c3435aa759614c61e398006250377a78bbef66f0c8ca982fca6c00e6582"
+        },
+        "executedBinary": {
+          "path": "/Users/przemyslawklys/.dotnet/dotnet",
+          "bytes": 141392,
+          "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+        },
+        "dynamicCodeSupported": true,
+        "architecture": "Arm64"
+      },
+      {
+        "label": "aot",
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "passed": true,
+        "ownPngPdfReplayEqual": 24,
+        "matchingFrameworkSourcePngEqual": 24,
+        "result": {
+          "path": "$TASK_ROOT/packages/inheritance-v1/results/aot/result.json",
+          "bytes": 129962,
+          "sha256": "7a2dcd1d768acbdd117514e3f866430b35530dfbad66d969f188cf1f7e89e8e1"
+        },
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/inheritance-v1/out/aot/PageMarginInheritancePackageaot",
+          "bytes": 34312768,
+          "sha256": "458547fea4af37bdd45feff93e82e32730e229704d75f6693541f18f961a55e8"
+        },
+        "dynamicCodeSupported": false,
+        "architecture": "Arm64"
+      }
+    ],
+    "actualStageExecutions": [
+      {
+        "path": "$TASK_ROOT/inheritance-package-preflight-execution.json",
+        "bytes": 1656,
+        "sha256": "7aae9008bddc4713056324460c9db91f1886c783e74e4db6cc61849977a2437a"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-source-restore-execution.json",
+        "bytes": 2524,
+        "sha256": "6ac62c0b0a4c40e5a64d5aa66d4e690fe78dd01088267c2144302e051ee0dfea"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-source-build-execution.json",
+        "bytes": 2558,
+        "sha256": "72317c30d49f403a10b339e4acf5ca72f2fb5db85409455fe864b3cff7d8e3e6"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-pack-officeimo-core-execution.json",
+        "bytes": 2580,
+        "sha256": "384bd2e37f34610a0ae1a17de738b6da076e3aaaa667056d954e06615130be56"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-pack-officeimo-pdf-execution.json",
+        "bytes": 2576,
+        "sha256": "92cd1c7ff997c51240e00fd0778a4d888b19b82d23e175a47438e03cf96a5599"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-pack-officeimo-html-core-execution.json",
+        "bytes": 2599,
+        "sha256": "8f4f485cbdc65c16a13257bb7dc6d07bdc2ba79493bd551ff51126f04695e979"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-pack-officeimo-html-anglesharp-execution.json",
+        "bytes": 2624,
+        "sha256": "f140a62bd6f1a178ce3df1130afe30370448936242e2473ca04c9a81796eb3f0"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-pack-officeimo-html-execution.json",
+        "bytes": 2580,
+        "sha256": "22b168ce0fd3c7b411051c2078bc343db9ad5ac5054c21be6e1e0a36a3b78304"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-inspect-packages-execution.json",
+        "bytes": 1669,
+        "sha256": "d0664d0b496af8992eeac490124b545623453df958e20210590d18d304a70d41"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-aot-publish-execution.json",
+        "bytes": 2414,
+        "sha256": "6eb588a51f293fb89ff9289cccaef63a38c9addd0472d9be95f774a7b4faa5b0"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-aot-run-execution.json",
+        "bytes": 1950,
+        "sha256": "5b5391bdbe50ec184f1c8087a2d3ac7e4566cf4a5eb75bf480db2ebcf05a7fe6"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-net8-build-execution.json",
+        "bytes": 2343,
+        "sha256": "cb901ecaa6962500b6944ef37d6b95180ea8a6c8745f9c4bb356e8e18de3ae99"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-net8-run-execution.json",
+        "bytes": 2004,
+        "sha256": "f5dd2ec6d7d4976374340c509ed1ab65d4d490e550b7ba454077ab93a1d1b8c2"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-net10-build-execution.json",
+        "bytes": 2347,
+        "sha256": "83813454506005e26018a0b128f611420fd692a8f6a29f0c05070a5653dbb27c"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-net10-run-execution.json",
+        "bytes": 2006,
+        "sha256": "60c99e6238fca69cbdf337b495505cdbbbb97173ad2e158daaa8ce60df1081ad"
+      },
+      {
+        "path": "$TASK_ROOT/inheritance-package-inspect-consumers-execution.json",
+        "bytes": 1672,
+        "sha256": "f12cd0bae7ad8c28a310032955fb334d31119ed689e2e5112269e9b77f62f5f7"
+      }
+    ],
+    "publicRelease": false
+  },
+  "localReview": {
+    "fullReadOnlyPass": "32484c2; three reproduced P2s fixed",
+    "targetedConfirmation": "4bd222b; original findings fixed, additional pseudo initial-family discovery reproduced and fixed at final source",
+    "closure": "199 focused passes and both complete final HTML suites; existing Document monospace defaults preserved",
+    "knownValidatedInScopeFindingRemaining": false
+  },
+  "remaining": [
+    "Automatic horizontal margin-box widths still use fixed thirds with three generated boxes; before-code reproduced, separately approved next milestone after checkpoint.",
+    "Vertical inherited page-margin styles and full authored margin-box dimensions remain open roadmap scope.",
+    "Converge with landed PDF-workflow consolidation before selected static PR.",
+    "Windows profiling deferred; runtime/provider forks remain separate."
+  ],
+  "storage": {
+    "status": "passed",
+    "cumulativeRemovedLogicalBytes": 3886732227,
+    "retainedLogicalBytesAtCleanup": 528101839,
+    "cleanup": {
+      "path": "$TASK_ROOT/cleanup-result.json",
+      "bytes": 17826,
+      "sha256": "a1e1a2cedb391a84d8b02523cccf5dc3d5e4aa0a7f032d72680cd71a8beda828"
+    },
+    "ledgerAppend": {
+      "path": "$TASK_ROOT/storage-ledger-receipt.json",
+      "bytes": 2987,
+      "sha256": "76e766e94caba2b400a6527127ba6605b084c517e24de3540c8946294cc164d4"
+    },
+    "archive": {
+      "path": "$TASK_ROOT/retained/inheritance-source-runtime-metadata.zip",
+      "bytes": 14797665,
+      "sha256": "eb60556c27a9e6461db05f62254cf7cbf2f1f238d31b72e659a9a72c6743649b"
+    },
+    "archiveReadback": {
+      "path": "$TASK_ROOT/retained/inheritance-source-runtime-metadata.json",
+      "bytes": 220216,
+      "sha256": "9c5b07c90fb332c3a9d288e0cf27bef9a087e30c9e472d7e452615584d751dc6"
+    },
+    "archivedEntries": 456,
+    "allDirectRetiringGraphBindingsCovered": true,
+    "allTwentyBuiltDllsPreservedInPackages": true,
+    "retainedPurpose": "Exact packages, deployed consumers/NativeAOT, actual TRX, source/native rendering and archived before runtime/restore metadata for integration and approved next sizing milestone.",
+    "retiredGraphs": "Do not rerun frozen collectors or no-build commands against retired source/private-package graphs."
+  },
+  "delivery": {
+    "checkpointBranch": "fix/html-page-margin-inheritance",
+    "prOpened": false,
+    "merge": "authorized only after normal current-head CI/review gates",
+    "packagePublication": "not authorized"
+  },
+  "reviewReproductions": {
+    "beforeFix": {
+      "cases": 16,
+      "failed": 14,
+      "passed": 2,
+      "trx": {
+        "path": "$TASK_ROOT/trx/review-repros-net10/review-repros-net10.trx",
+        "bytes": 60064,
+        "sha256": "e1b4a1fede73cc334391961e4a3b2471f3c4f7d974ae23a892ca696d4eddeee8"
+      }
+    },
+    "pseudoFontDiscovery": {
+      "actualMacFailedBeforeFix": 1,
+      "closureFocusedPassed": 199,
+      "closureTrx": {
+        "path": "$TASK_ROOT/trx/owner-closure-focused-net10/owner-closure-focused-net10.trx",
+        "bytes": 325411,
+        "sha256": "9fd1cbe42451c057c374ba7794d3cf66da694cab3c7b5af3dfbef1700f09d943"
+      }
+    }
+  }
+}

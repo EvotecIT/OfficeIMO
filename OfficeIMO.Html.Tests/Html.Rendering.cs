@@ -1791,10 +1791,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, rendered.Pages.Count);
         string[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
         string[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
-        Assert.Contains("ChapterAlpha", string.Concat(firstPageText), StringComparison.Ordinal);
-        Assert.Contains("ChapterAlpha", string.Concat(secondPageText), StringComparison.Ordinal);
-        Assert.Contains("ChapterBeta", string.Concat(secondPageText), StringComparison.Ordinal);
-        Assert.DoesNotContain("ChapterBeta", string.Concat(firstPageText), StringComparison.Ordinal);
+        Assert.Contains("Chapter Alpha", string.Join(" ", firstPageText), StringComparison.Ordinal);
+        Assert.Contains("Chapter Alpha", string.Join(" ", secondPageText), StringComparison.Ordinal);
+        Assert.Contains("Chapter Beta", string.Join(" ", secondPageText), StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Beta", string.Join(" ", firstPageText), StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Alpha", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Beta", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("First body", rendered.Text, StringComparison.Ordinal);

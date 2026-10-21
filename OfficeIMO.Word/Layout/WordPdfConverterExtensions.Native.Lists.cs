@@ -512,21 +512,21 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfAlign? MapNativeListMarkerAlign(WordListLevelAlignment? value) =>
             MapNativeListMarkerAlign(value.ToOpenXml());
 
-        private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph) {
+        private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph, bool includeInlineContentControls = false) {
             if (paragraph._paragraph == null) {
                 return new List<WordParagraph>();
             }
 
             var runs = new List<WordParagraph>();
             var fieldVisibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
-            AddNativeVisibleRuns(runs, paragraph, paragraph._paragraph, null, fieldVisibility);
+            AddNativeVisibleRuns(runs, paragraph, paragraph._paragraph, null, fieldVisibility, includeInlineContentControls);
 
             return runs;
         }
 
         private static void AddNativeVisibleRuns(List<WordParagraph> runs, WordParagraph paragraph,
             DocumentFormat.OpenXml.OpenXmlCompositeElement container, W.Hyperlink? hyperlink,
-            WordComplexFieldRunVisibility fieldVisibility) {
+            WordComplexFieldRunVisibility fieldVisibility, bool includeInlineContentControls = false) {
             const int maxDepth = 128;
             const int maxElements = 1_000_000;
             int visited = 0;
@@ -561,7 +561,13 @@ namespace OfficeIMO.Word.Pdf {
                         else
                             fieldVisibility.ObserveDescendantRuns(simpleField);
                     } else if (element is W.SdtRun sdtRun) {
-                        if (!IsNativeSimpleTextContentControl(sdtRun)) {
+                        if (includeInlineContentControls && CanProjectNativeInlineContentControl(sdtRun)) {
+                            if (fieldVisibility.IsVisible) {
+                                if (GetNativeSdtText(sdtRun) == null && !IsNativeCheckBoxControl(sdtRun))
+                                    runs.Add(CreateNativeInlineControlFallbackRun(paragraph, sdtRun, frame.Hyperlink));
+                                else nested = sdtRun.SdtContentRun;
+                            } else fieldVisibility.ObserveDescendantRuns(sdtRun);
+                        } else if (!IsNativeSimpleTextContentControl(sdtRun)) {
                             fieldVisibility.ObserveDescendantRuns(sdtRun);
                         } else if (sdtRun.Descendants<W.FieldChar>().Any()) {
                             nested = sdtRun.SdtContentRun;

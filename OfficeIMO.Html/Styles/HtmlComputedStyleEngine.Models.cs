@@ -229,7 +229,7 @@ public static partial class HtmlComputedStyleEngine {
         internal string Value { get; }
     }
 
-    private sealed class CustomPropertyRegistration {
+    internal sealed class CustomPropertyRegistration {
         internal CustomPropertyRegistration(string name, string syntax, bool inherits, string? initialValue) {
             Name = name;
             Syntax = syntax;

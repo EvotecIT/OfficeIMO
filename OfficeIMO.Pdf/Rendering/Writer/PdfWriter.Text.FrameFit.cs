@@ -10,7 +10,14 @@ internal static partial class PdfWriter {
         bool hasDescent = false;
         foreach (RichSeg segment in line) {
             if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null) continue;
-            if (segment.InlineElement is { } inline) {
+            if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget) {
+                if (segment.ContributesLineBoxDescent) {
+                    GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing,
+                        out _, out double runDescent);
+                    descent = Math.Max(descent, runDescent);
+                    hasDescent = true;
+                }
+            } else if (segment.InlineElement is { } inline) {
                 descent = Math.Max(descent, -inline.BaselineOffset);
                 hasDescent = true;
             } else if (segment.ContributesLineBoxDescent) {

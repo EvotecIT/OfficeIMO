@@ -286,8 +286,10 @@ internal static partial class PdfWriter {
 
             if (style.KeepWithNext && nextBlock != null && style.Position == null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, tableHeight);
-                double keepHeight = tableHeight + nextHeight;
+                bool restoresFlow = RestoresMeasuredTableFlow(style, tableHeight, y - TableBottom());
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width,
+                    currentOpts.DefaultFontSize, restoresFlow ? 0D : tableHeight);
+                double keepHeight = restoresFlow ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < TableBottom()) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;

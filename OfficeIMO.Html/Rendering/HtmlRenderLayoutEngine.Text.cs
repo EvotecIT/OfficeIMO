@@ -232,6 +232,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             measured = 0D;
             return false;
         }
+        ChargeIntrinsicTextMeasurement(text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
         if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, out measured)) return true;
 
@@ -373,6 +374,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || category == UnicodeCategory.OtherPunctuation;
 
     private double MeasureText(string value, OfficeFontInfo font, OfficeFontFaceDescriptor descriptor) {
+        ChargeIntrinsicTextMeasurement(value);
         _fontUsage?.Observe(value, font.FamilyName, descriptor);
         if (_fonts.TryMeasureText(value, font.Size, font.FamilyName, font.Style, out double scopedWidth)) {
             return scopedWidth;
@@ -415,6 +417,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : MeasureInlineText(value, style);
 
     private double MeasurePreparedInlineText(string value, HtmlRenderBoxStyle style, OfficePreparedTextShaping prepared) {
+        ChargeIntrinsicTextMeasurement(value);
         _fontUsage?.Observe(value, style.Font.FamilyName, style.FontDescriptor);
         return prepared.Measure(GetEffectiveTextFont(style).Size);
     }
