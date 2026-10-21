@@ -28,15 +28,25 @@ The footprint recorded for the isolated test payload was 25.32 MiB for the extra
 
 ## Run
 
+Use PowerShell 7 on Windows with Ubuntu 24.04 amd64 under WSL.
+
 Prepare an isolated environment under `Ignore/Benchmarks/OcrEngineComparison` with the layout and pinned versions in [`environment.lock.json`](environment.lock.json):
 
 ```text
 tesseract-root/   extracted Ubuntu Tesseract packages
 rapid-packages/   rapidocr and onnxruntime Python target directory
 rapid-models/     downloaded ONNX models
+fixture-packages/ Pillow 11.0.0, needed only to regenerate fixtures
 ```
 
-The exact PNG inputs and expected text are checked in under [`fixtures`](fixtures). `-RefreshFixtures` is a maintainer-only regeneration path and fails unless Pillow 11.0.0 and the pinned DejaVu font bytes match their recorded SHA-256 values.
+The exact PNG inputs and expected text are checked in under [`fixtures`](fixtures). `-RefreshFixtures` is a maintainer-only regeneration path and fails unless Pillow 11.0.0 and the pinned DejaVu font bytes match their recorded SHA-256 values. Fixture regeneration uses a separate `fixture-packages` directory so the historical renderer does not constrain the current RapidOCR dependencies. Prepare it only when using `-RefreshFixtures` or rebuilding a missing fixture manifest:
+
+```powershell
+wsl.exe -- python3 -m pip install --no-compile --no-deps --target /mnt/c/path/to/fixture-packages pillow==11.0.0
+```
+
+Normal comparison runs use the checked-in fixtures and do not require `fixture-packages`.
+
 Install the isolated Python payload from [`requirements.lock.txt`](requirements.lock.txt); the benchmark wrapper additionally requires its complete tree to match the digest in `environment.lock.json`, so version-equivalent but modified files fail closed.
 
 ```powershell

@@ -84,8 +84,12 @@ function ConvertTo-WslPath {
 }
 
 if ($RefreshFixtures.IsPresent -or -not (Test-Path -LiteralPath $fixtureManifest -PathType Leaf)) {
+    $fixturePackages = Join-Path $EnvironmentRoot 'fixture-packages'
+    if (-not (Test-Path -LiteralPath $fixturePackages -PathType Container)) {
+        throw "OCR fixture renderer was not found at '$fixturePackages'. Install the separately pinned fixture packages described in README.md before regenerating fixtures."
+    }
     [void] (New-Item -ItemType Directory -Force -Path $fixtures)
-    $pythonPath = ConvertTo-WslPath $requiredPaths.RapidPackages
+    $pythonPath = ConvertTo-WslPath $fixturePackages
     $preparePath = ConvertTo-WslPath $prepareScript
     $fixturePath = ConvertTo-WslPath $fixtures
     & wsl.exe -- env "PYTHONPATH=$pythonPath" "PYTHONDONTWRITEBYTECODE=1" python3 $preparePath $fixturePath
