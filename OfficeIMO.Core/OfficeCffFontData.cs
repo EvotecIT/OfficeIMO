@@ -7,7 +7,7 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validated CFF1/CFF2 table model used by the first-party OpenType outline program.</summary>
-internal sealed class OfficeCffFontData {
+internal sealed partial class OfficeCffFontData {
     private const int MaximumIndexObjects = 1_000_000;
     private readonly CffIndex _charStrings;
     private readonly CffIndex _globalSubroutines;
@@ -51,17 +51,18 @@ internal sealed class OfficeCffFontData {
             }
 
             int tableEnd = data.Length;
+            var parse = new CffParseContext(data, tableEnd);
             if (isCff2) {
                 int topLength = ReadUInt16(data, 3, tableEnd);
                 int topOffset = data[2];
                 if (topLength <= 0) return false;
                 EnsureRange(topOffset, topLength, 0, tableEnd, "The CFF2 Top DICT is truncated.");
-                CffDictionary topDictionary = CffDictionary.Parse(data, topOffset, topLength);
+                CffDictionary topDictionary = parse.ReadDictionary(topOffset, topLength);
                 int cursor = checked(topOffset + topLength);
-                CffIndex cff2GlobalSubroutines = CffIndex.Read(data, ref cursor, tableEnd, countSize: 4);
-                CffIndex cff2CharStrings = ReadNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4);
+                CffIndex cff2GlobalSubroutines = parse.ReadIndex(ref cursor, 4);
+                CffIndex cff2CharStrings = ReadNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4, parse);
                 CffIndex localSubroutines = topDictionary.TryGetPair(18, out int privateSize, out int privateOffset)
-                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: true)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: true, parse)
                     : CffIndex.Empty(data);
                 ValidateCharStrings(
                     isCff2: true,
@@ -75,13 +76,13 @@ internal sealed class OfficeCffFontData {
 
             if (data[3] < 1 || data[3] > 4) return false;
             int cff1Cursor = data[2];
-            CffIndex names = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
-            CffIndex topDictionaries = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
+            CffIndex names = parse.ReadIndex(ref cff1Cursor, 2);
+            CffIndex topDictionaries = parse.ReadIndex(ref cff1Cursor, 2);
             if (names.Count != 1 || topDictionaries.Count != 1) return false;
-            _ = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
-            CffIndex globalSubroutines = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
+            _ = parse.ReadIndex(ref cff1Cursor, 2);
+            CffIndex globalSubroutines = parse.ReadIndex(ref cff1Cursor, 2);
             CffSlice top = topDictionaries[0];
-            CffDictionary cff1TopDictionary = CffDictionary.Parse(data, top.Offset, top.Length);
+            CffDictionary cff1TopDictionary = parse.ReadDictionary(top.Offset, top.Length);
             bool isCidKeyed = cff1TopDictionary.ContainsOperation(0x0C1E);
             if (requireCidKeyed.HasValue &&
                 isCidKeyed != requireCidKeyed.Value) return false;
@@ -90,10 +91,10 @@ internal sealed class OfficeCffFontData {
                 tableEnd,
                 cff1TopDictionary,
                 cff1Cursor,
-                countSize: 2);
+                countSize: 2, parse);
             if (!isCidKeyed) {
                 CffIndex localSubroutines = cff1TopDictionary.TryGetPair(18, out int privateSize, out int privateOffset)
-                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false, parse)
                     : CffIndex.Empty(data);
                 int charset = cff1TopDictionary.TryGetInteger(15, out int selectedCharset) ? selectedCharset : 0;
                 int[] standardEncodingGlyphs = OfficeCffCharset.BuildStandardEncodingGlyphMap(
@@ -115,14 +116,14 @@ internal sealed class OfficeCffFontData {
                 !cff1TopDictionary.TryGetInteger(0x0C24, out int fdArrayOffset) ||
                 !cff1TopDictionary.TryGetInteger(0x0C25, out int fdSelectOffset) ||
                 fdArrayOffset < cff1Cursor || fdSelectOffset < cff1Cursor) return false;
-            CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset, tableEnd, countSize: 2);
+            CffIndex fdArray = parse.ReadIndexAt(fdArrayOffset, countSize: 2);
             if (fdArray.Count <= 0 || fdArray.Count > 256) return false;
             var localSubroutinesByDictionary = new CffIndex[fdArray.Count];
             for (int index = 0; index < fdArray.Count; index++) {
                 CffSlice fontDictionary = fdArray[index];
-                CffDictionary dictionary = CffDictionary.Parse(data, fontDictionary.Offset, fontDictionary.Length);
+                CffDictionary dictionary = parse.ReadDictionary(fontDictionary.Offset, fontDictionary.Length);
                 localSubroutinesByDictionary[index] = dictionary.TryGetPair(18, out int privateSize, out int privateOffset)
-                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false, parse)
                     : CffIndex.Empty(data);
             }
             int[] fontDictionaryByGlyph = ReadFdSelect(
@@ -189,13 +190,13 @@ internal sealed class OfficeCffFontData {
         int tableEnd,
         CffDictionary topDictionary,
         int minimumOffset,
-        int countSize) {
+        int countSize, CffParseContext parse) {
         int charStringsOffset = topDictionary.GetRequiredInteger(17, "CharStrings");
         if (charStringsOffset < minimumOffset) {
             throw new InvalidDataException("The CFF CharStrings INDEX overlaps preceding data.");
         }
         EnsureRange(charStringsOffset, countSize, 0, tableEnd, "The CFF CharStrings INDEX offset is invalid.");
-        CffIndex charStrings = CffIndex.ReadAt(data, charStringsOffset, tableEnd, countSize);
+        CffIndex charStrings = parse.ReadIndexAt(charStringsOffset, countSize);
         if (charStrings.Count <= 0) throw new InvalidDataException("The CFF CharStrings INDEX is empty.");
         return charStrings;
     }
@@ -209,6 +210,7 @@ internal sealed class OfficeCffFontData {
         }
         byte[] data = reader.Data;
         int tableEnd = checked(tableOffset + tableLength);
+        var parse = new CffParseContext(data, tableEnd);
         if (tableLength < (isCff2 ? 5 : 4)) throw new InvalidDataException("The CFF table header is truncated.");
         int major = data[tableOffset];
         int headerSize = data[tableOffset + 2];
@@ -223,25 +225,25 @@ internal sealed class OfficeCffFontData {
             int topLength = ReadUInt16(data, tableOffset + 3, tableEnd);
             int topOffset = checked(tableOffset + headerSize);
             EnsureRange(topOffset, topLength, tableOffset, tableEnd, "The CFF2 Top DICT is truncated.");
-            topDictionary = CffDictionary.Parse(data, topOffset, topLength);
+            topDictionary = parse.ReadDictionary(topOffset, topLength);
             int cursor = checked(topOffset + topLength);
-            globalSubroutines = CffIndex.Read(data, ref cursor, tableEnd, countSize: 4);
+            globalSubroutines = parse.ReadIndex(ref cursor, 4);
         } else {
             int cursor = checked(tableOffset + headerSize);
-            CffIndex names = CffIndex.Read(data, ref cursor, tableEnd, countSize: 2);
+            CffIndex names = parse.ReadIndex(ref cursor, 2);
             if (names.Count != 1) throw new NotSupportedException("Only single-font CFF1 tables are supported.");
-            CffIndex topDictionaries = CffIndex.Read(data, ref cursor, tableEnd, countSize: 2);
+            CffIndex topDictionaries = parse.ReadIndex(ref cursor, 2);
             if (topDictionaries.Count != 1) throw new InvalidDataException("The CFF1 Top DICT INDEX is invalid.");
             CffSlice top = topDictionaries[0];
-            topDictionary = CffDictionary.Parse(data, top.Offset, top.Length);
-            _ = CffIndex.Read(data, ref cursor, tableEnd, countSize: 2); // String INDEX
-            globalSubroutines = CffIndex.Read(data, ref cursor, tableEnd, countSize: 2);
+            topDictionary = parse.ReadDictionary(top.Offset, top.Length);
+            _ = parse.ReadIndex(ref cursor, 2); // String INDEX
+            globalSubroutines = parse.ReadIndex(ref cursor, 2);
         }
 
         int charStringsRelative = topDictionary.GetRequiredInteger(17, "CharStrings");
         int charStringsOffset = checked(tableOffset + charStringsRelative);
         EnsureRange(charStringsOffset, 1, tableOffset, tableEnd, "The CFF CharStrings INDEX offset is invalid.");
-        CffIndex charStrings = CffIndex.ReadAt(data, charStringsOffset, tableEnd, isCff2 ? 4 : 2);
+        CffIndex charStrings = parse.ReadIndexAt(charStringsOffset, isCff2 ? 4 : 2);
         if (charStrings.Count <= 0 || charStrings.Count != reader.GlyphCount) {
             throw new InvalidDataException("The CFF CharStrings count does not match the OpenType glyph count.");
         }
@@ -277,18 +279,18 @@ internal sealed class OfficeCffFontData {
         int[]? fontDictionaryByGlyph = null;
         if (topDictionary.TryGetPair(18, out int privateSize, out int privateRelative)) {
             localSubroutines = new[] {
-                ReadLocalSubroutines(data, tableOffset, tableEnd, privateSize, privateRelative, isCff2)
+                ReadLocalSubroutines(data, tableOffset, tableEnd, privateSize, privateRelative, isCff2, parse)
             };
         } else if (topDictionary.TryGetInteger(0x0C24, out int fdArrayRelative)) {
             int fdArrayOffset = checked(tableOffset + fdArrayRelative);
-            CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset, tableEnd, isCff2 ? 4 : 2);
+            CffIndex fdArray = parse.ReadIndexAt(fdArrayOffset, isCff2 ? 4 : 2);
             if (fdArray.Count <= 0 || fdArray.Count > 256) throw new InvalidDataException("The CFF FDArray is invalid.");
             localSubroutines = new CffIndex[fdArray.Count];
             for (int index = 0; index < fdArray.Count; index++) {
                 CffSlice dictionaryBytes = fdArray[index];
-                CffDictionary dictionary = CffDictionary.Parse(data, dictionaryBytes.Offset, dictionaryBytes.Length);
+                CffDictionary dictionary = parse.ReadDictionary(dictionaryBytes.Offset, dictionaryBytes.Length);
                 localSubroutines[index] = dictionary.TryGetPair(18, out int size, out int relative)
-                    ? ReadLocalSubroutines(data, tableOffset, tableEnd, size, relative, isCff2)
+                    ? ReadLocalSubroutines(data, tableOffset, tableEnd, size, relative, isCff2, parse)
                     : CffIndex.Empty(data);
             }
             if (topDictionary.TryGetInteger(0x0C25, out int fdSelectRelative)) {
@@ -344,15 +346,15 @@ internal sealed class OfficeCffFontData {
         int tableEnd,
         int privateSize,
         int privateRelative,
-        bool isCff2) {
+        bool isCff2, CffParseContext parse) {
         if (privateSize < 0 || privateRelative < 0) throw new InvalidDataException("The CFF Private DICT range is invalid.");
         int privateOffset = checked(tableOffset + privateRelative);
         EnsureRange(privateOffset, privateSize, tableOffset, tableEnd, "The CFF Private DICT is truncated.");
-        CffDictionary dictionary = CffDictionary.Parse(data, privateOffset, privateSize);
+        CffDictionary dictionary = parse.ReadDictionary(privateOffset, privateSize);
         if (!dictionary.TryGetInteger(19, out int subrRelative)) return CffIndex.Empty(data);
         int subrOffset = checked(privateOffset + subrRelative);
         EnsureRange(subrOffset, 1, privateOffset, tableEnd, "The CFF local Subr INDEX offset is invalid.");
-        return CffIndex.ReadAt(data, subrOffset, tableEnd, isCff2 ? 4 : 2);
+        return parse.ReadIndexAt(subrOffset, isCff2 ? 4 : 2);
     }
 
     private static int[] ReadFdSelect(
@@ -479,25 +481,23 @@ internal sealed class OfficeCffFontData {
 
         internal static CffIndex Empty(byte[] data) => new(data, Array.Empty<int>(), 0);
 
-        internal static CffIndex ReadAt(byte[] data, int offset, int end, int countSize) {
-            int cursor = offset;
-            return Read(data, ref cursor, end, countSize);
-        }
-
-        internal static CffIndex Read(byte[] data, ref int cursor, int end, int countSize) {
+        internal static CffIndex Read(byte[] data, ref int cursor, int end, int countSize, ref int remainingEntries, ref int remainingMetadataBytes) {
             if (countSize != 2 && countSize != 4) throw new ArgumentOutOfRangeException(nameof(countSize));
             EnsureRange(cursor, countSize, 0, end, "The CFF INDEX count is truncated.");
             uint countValue = countSize == 2
                 ? (uint)ReadUInt16(data, cursor, end)
                 : ReadUInt32(data, cursor, end);
             cursor += countSize;
+            ChargeParseBudget(ref remainingMetadataBytes, countSize);
             if (countValue == 0) return Empty(data);
             if (countValue > MaximumIndexObjects || countValue > int.MaxValue) throw new InvalidDataException("The CFF INDEX object count is invalid.");
             int count = (int)countValue;
+            ChargeParseBudget(ref remainingEntries, count + 1);
             EnsureRange(cursor, 1, 0, end, "The CFF INDEX offSize is truncated.");
             int offSize = data[cursor++];
             if (offSize < 1 || offSize > 4) throw new InvalidDataException("The CFF INDEX offSize is invalid.");
             EnsureRange(cursor, checked((count + 1) * offSize), 0, end, "The CFF INDEX offsets are truncated.");
+            ChargeParseBudget(ref remainingMetadataBytes, checked(1 + (count + 1) * offSize));
             var offsets = new int[count + 1];
             for (int index = 0; index <= count; index++) {
                 uint value = 0;
@@ -536,6 +536,7 @@ internal sealed class OfficeCffFontData {
                     values[operation] = operands.ToArray();
                     operands.Clear();
                 } else {
+                    if (operands.Count >= 513) throw new InvalidDataException("The CFF DICT operand stack exceeds the managed limit.");
                     operands.Add(ReadNumber(data, ref offset, end, charString: false));
                 }
             }
@@ -621,6 +622,7 @@ internal sealed class OfficeCffFontData {
         bool done = false;
         while (!done) {
             EnsureRange(offset, 1, 0, end, "A CFF real number is truncated.");
+            if (text.Length > 128) throw new InvalidDataException("A CFF real number exceeds the managed length limit.");
             int value = data[offset++];
             done = AppendNibble(text, value >> 4) || AppendNibble(text, value & 0x0F);
         }

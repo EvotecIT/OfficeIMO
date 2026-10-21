@@ -136,18 +136,16 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class SavePayload {
-            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties, bool documentClosed, bool normalizeContentTypes, bool applyPackageProperties) {
+            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties, bool documentClosed, bool applyPackageProperties) {
                 PackageBytes = packageBytes;
                 Properties = properties;
                 DocumentClosed = documentClosed;
-                NormalizeContentTypes = normalizeContentTypes;
                 ApplyPackageProperties = applyPackageProperties;
             }
 
             public byte[] PackageBytes { get; }
             public PackagePropertiesSnapshot Properties { get; }
             public bool DocumentClosed { get; }
-            public bool NormalizeContentTypes { get; }
             public bool ApplyPackageProperties { get; }
         }
     }
