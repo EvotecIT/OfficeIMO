@@ -647,8 +647,8 @@ _modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2",
 return _exports;
 })();
 
-const _m8 = _modules.get("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d") ?? (() => {
-const { ExportCell } = _m5;
+const _m8 = _modules.get("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e") ?? (() => {
+const { ExportCell, assertScalar } = _m5;
 
 const { isDate } = _m6;
 
@@ -726,7 +726,52 @@ function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTim
 function result(aggregates) {
     return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
 }
-/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+function groupingLevels(input, keys, groupLabel) {
+    const selected = typeof input === "string" ? [input] : Array.isArray(input) ? Array.from(input) : undefined;
+    if (!selected || selected.length < 1 || selected.length > 4)
+        throw new TypeError("groupBy must declare between one and four grouping levels.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    if (groupLabel && selected.length !== 1)
+        throw new TypeError("groupLabel is only available for one grouping level; use descriptor labels for a hierarchy.");
+    const seen = new Set();
+    return Object.freeze(selected.map(level => {
+        if (typeof level !== "string" && (!level || typeof level !== "object" || Array.isArray(level)))
+            throw new TypeError("A grouping level must name a stable column key or provide a descriptor.");
+        // Supported structural fields, including prototype accessors, are captured once.
+        const { key, value, label } = typeof level === "string" ? { key: level, value: undefined, label: undefined } : level;
+        if (typeof key !== "string" || !key.length || seen.has(key))
+            throw new TypeError("Grouping levels need unique, nonempty stable keys.");
+        seen.add(key);
+        if (value !== undefined && typeof value !== "function")
+            throw new TypeError("Grouping value getters must be synchronous functions.");
+        if (label !== undefined && typeof label !== "function")
+            throw new TypeError("Grouping labels must be synchronous functions.");
+        if (label && groupLabel)
+            throw new TypeError("Specify either groupLabel or the grouping descriptor label.");
+        const column = keys.indexOf(key);
+        if (column >= 0 && value !== undefined)
+            throw new TypeError("A declared grouping column reuses its projected value; do not provide another value getter.");
+        if (column < 0 && value === undefined)
+            throw new TypeError("groupBy must name a declared stable column key; hidden grouping fields need an explicit value getter.");
+        return Object.freeze({ key, column, value, label: label ?? groupLabel });
+    }));
+}
+/** Copy date keys on every event so a consumer cannot mutate later hierarchy decisions. */
+function groupPath(active) {
+    return Object.freeze(active.map(({ group }) => Object.freeze({ ...group, key: eventKey(group.key) })));
+}
+function labelText(format, key, fallback) {
+    if (!format)
+        return fallback;
+    const formatted = format(eventKey(key));
+    if (typeof formatted?.then === "function")
+        void Promise.resolve(formatted).catch(() => { });
+    if (typeof formatted !== "string")
+        throw new TypeError("Grouping labels must return synchronous text.");
+    return formatted;
+}
+/** Group a preordered row source once. Closed-group recurrence within the same parent rejects.
  * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
  * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
 function createGroupedReport(rows, options) {
@@ -744,11 +789,7 @@ function createGroupedReport(rows, options) {
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
-    const groupColumn = keys.indexOf(groupBy);
-    if (typeof groupBy !== "string" || groupColumn < 0)
-        throw new TypeError("groupBy must name a declared stable column key.");
-    if (groupLabel !== undefined && typeof groupLabel !== "function")
-        throw new TypeError("groupLabel must be a synchronous function.");
+    const levels = groupingLevels(groupBy, keys, groupLabel);
     const totals = Object.freeze({ ...selectedTotals });
     const grand = createTotals(columns, totals);
     for (let column = 0; column < columns.length; column++)
@@ -777,9 +818,8 @@ function createGroupedReport(rows, options) {
     const events = eventsFor(sourceSignal);
     async function* iterate(signal) {
         const project = createRowProjector(columns, undefined, signal);
-        const seen = new Set();
-        let characters = 0, rowCount = 0, groups = 0, currentId;
-        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        const seen = new Set(), active = [];
+        let characters = 0, rowCount = 0, groups = 0;
         for await (const input of inputRows(rows, signal)) {
             // Copy positional input once before the shared projector validates and inspects its values.
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
@@ -787,39 +827,13 @@ function createGroupedReport(rows, options) {
             for (let column = 0; column < columns.length; column++)
                 values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
-            const next = identity(scalar(values[groupColumn]));
-            if (next.id !== currentId) {
-                if (seen.has(next.id))
-                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
-                if (groups === maxGroups)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
-                let nextLabel = next.text;
-                if (groupLabel) {
-                    const formatted = groupLabel(eventKey(next.key));
-                    if (typeof formatted?.then === "function")
-                        void Promise.resolve(formatted).catch(() => { });
-                    if (typeof formatted !== "string")
-                        throw new TypeError("groupLabel must return synchronous text.");
-                    nextLabel = formatted;
-                }
+            const next = levels.map((level, index) => {
                 checkAbort(signal);
-                const nextCharacters = characters + next.id.length + nextLabel.length;
-                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
-                budget.reserve(0, nextLabel.length);
-                if (currentId !== undefined)
-                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
-                currentId = next.id;
-                key = next.key;
-                label = nextLabel;
-                groupRows = 0;
-                characters = nextCharacters;
-                seen.add(next.id);
-                groups++;
-                aggregates = createTotals(columns, totals);
-                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
-            }
+                const value = level.column >= 0 ? scalar(values[level.column]) : level.value(snapshot, Object.freeze({ rowIndex: rowCount, level: index, key: level.key }));
+                assertScalar(value);
+                checkAbort(signal);
+                return identity(value);
+            });
             budget.row(rowCount + 1);
             for (let column = 0; column < values.length; column++) {
                 const value = values[column], raw = scalar(value);
@@ -828,35 +842,78 @@ function createGroupedReport(rows, options) {
                 budget.cell(raw);
                 if (value instanceof ExportCell && value.text !== undefined)
                     budget.reserve(0, value.text.length);
-                aggregates[column].accept(raw);
+            }
+            let common = 0;
+            while (common < active.length && active[common].id === next[common].id)
+                common++;
+            const pending = [];
+            for (let level = common; level < levels.length; level++) {
+                const value = next[level], parent = pending.at(-1) ?? active[level - 1];
+                // Parent indexes are generated integers, so scalar strings containing delimiters cannot collide.
+                const scopedId = (parent?.group.groupIndex ?? -1) + ":" + value.id;
+                if (seen.has(scopedId))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again within the same parent.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                const label = labelText(levels[level].label, value.key, value.text);
+                checkAbort(signal);
+                const nextCharacters = characters + scopedId.length + label.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, label.length);
+                pending.push({ id: value.id, group: Object.freeze({ groupIndex: groups, key: value.key, label, level }),
+                    rows: 0, aggregates: createTotals(columns, totals) });
+                characters = nextCharacters;
+                seen.add(scopedId);
+                groups++;
+            }
+            while (active.length > common) {
+                checkAbort(signal);
+                const path = groupPath(active), ending = active.pop();
+                yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+            }
+            for (const opening of pending) {
+                checkAbort(signal);
+                active.push(opening);
+                const path = groupPath(active);
+                yield Object.freeze({ kind: "groupStart", ...path.at(-1), path });
+            }
+            for (let column = 0; column < values.length; column++) {
+                const raw = scalar(values[column]);
+                for (const group of active)
+                    group.aggregates[column].accept(raw);
                 grand[column].accept(raw);
             }
+            for (const group of active)
+                group.rows++;
             checkAbort(signal);
-            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount,
+                groupIndex: active.at(-1).group.groupIndex, path: groupPath(active) });
             rowCount++;
-            groupRows++;
             if (taskYieldDue()) {
                 await pause();
                 checkAbort(signal);
             }
         }
         checkAbort(signal);
-        if (currentId !== undefined)
-            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        while (active.length) {
+            checkAbort(signal);
+            const path = groupPath(active), ending = active.pop();
+            yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+        }
         checkAbort(signal);
         yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
     }
-    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    const source = Object.freeze({ columns: portable, groupBy: Object.freeze(levels.map(level => level.key)), totals, events });
     sources.set(source, { signal: sourceSignal, events: eventsFor });
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d", _exports);
+_modules.set("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c") ?? (() => {
+const _m1 = _modules.get("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6") ?? (() => {
 
 
 
@@ -901,7 +958,7 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m2.OfficeIMOError, NotSupportedError: _m2.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m5.ExportCell, createGroupedReport: _m8.createGroupedReport, checkAbort: _m4.checkAbort, withAbort: _m4.withAbort, inputRows: _m4.inputRows, pause: _m4.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c", _exports);
+_modules.set("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6", _exports);
 return _exports;
 })();
 
@@ -1680,7 +1737,7 @@ _modules.set("34b448ff5052fe659ccb250d80fc2a0b13ab82890f50132ef5c9e51da369a582",
 return _exports;
 })();
 
-const _m29 = _modules.get("53914e4230a60c806e87bf93d0dd4b81a2231a3164338132ddecf451fd85622d") ?? (() => {
+const _m29 = _modules.get("cc7c3953e35bb436d0f5fe5c35a60b7e97a00d2e729df52d219d9e246f326b32") ?? (() => {
 
 
 const { EntryWriter, zipSize } = _m30;
@@ -1728,6 +1785,8 @@ class ZipWriter {
     active;
     state = "open";
     options;
+    lifetime = new AbortController();
+    disposal;
     constructor(sink, options = {}) {
         const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
         const { compression, maxOutputBytes } = captured;
@@ -1739,11 +1798,25 @@ class ZipWriter {
         this.owned = sink ? undefined : new BlobByteSink();
         this.sink = sink ?? this.owned;
     }
+    /** Pending header/directory writes and source reads must also stop on explicit discard. */
+    async acceptance(operation) {
+        const signal = this.options.signal;
+        const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        signal?.addEventListener("abort", abort, { once: true });
+        try {
+            checkAbort(signal);
+            checkAbort(this.lifetime.signal);
+            return await withAbort(Promise.resolve(operation()), this.lifetime.signal);
+        }
+        finally {
+            signal?.removeEventListener("abort", abort);
+        }
+    }
     async emit(bytes) {
         if (this.options.maxOutputBytes !== undefined && this.offset + bytes.length > this.options.maxOutputBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
         this.offset = zipSize(this.offset + bytes.length);
-        await withAbort(Promise.resolve(this.sink.write(bytes)), this.options.signal);
+        await this.acceptance(() => this.sink.write(bytes));
     }
     reserve(name) {
         checkAbort(this.options.signal);
@@ -1789,7 +1862,7 @@ class ZipWriter {
             await this.emit(this.local(encoded, entry, true));
             const writer = entry;
             let busy = false, closed = false, completion;
-            const discard = async (error) => { closed = true; this.state = "failed"; await writer.discard(error); this.owned?.discard(); this.active = undefined; };
+            const discard = async (error) => { closed = true; this.state = "failed"; this.lifetime.abort(error); await writer.discard(error); this.owned?.discard(); this.active = undefined; };
             return this.active = {
                 write: async (bytes) => {
                     if (busy || closed || this.state !== "writing")
@@ -1844,9 +1917,9 @@ class ZipWriter {
         const entry = await this.openEntry(name);
         try {
             if (typeof source === "function")
-                await withAbort(Promise.resolve(source(entry)), this.options.signal);
+                await this.acceptance(() => source(entry));
             else
-                await writeBytes(source, entry, this.options.signal);
+                await this.acceptance(() => writeBytes(source, entry, this.lifetime.signal));
             await entry.close();
         }
         catch (error) {
@@ -1856,7 +1929,11 @@ class ZipWriter {
     }
     get bytesWritten() { return this.offset; }
     /** Drop owned output and release the active compressor. Caller-owned partial bytes remain with the caller. */
-    async discard(error) { this.state = "failed"; await this.active?.discard(error); this.owned?.discard(); }
+    discard(error) {
+        this.state = "failed";
+        this.lifetime.abort(error);
+        return this.disposal ??= (async () => { await this.active?.discard(error); this.owned?.discard(); })();
+    }
     /** @internal Buffered worksheet compression stays in the format owner. */
     async addPrepared(name, entry) {
         const encoded = this.reserve(name), offset = this.offset;
@@ -1916,11 +1993,11 @@ class ZipWriter {
     }
 }
 const _exports = Object.freeze({ Crc32: _m30.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
-_modules.set("53914e4230a60c806e87bf93d0dd4b81a2231a3164338132ddecf451fd85622d", _exports);
+_modules.set("cc7c3953e35bb436d0f5fe5c35a60b7e97a00d2e729df52d219d9e246f326b32", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("dc23f0d0e5a5985b964144b5fd24837da22b6ecbe931d10fe07f51e3febab88c") ?? (() => {
+const _m25 = _modules.get("c982e9efabd891df539c26c513a3e9cf5a644ae13516f48f9d19f7ed6b584c06") ?? (() => {
 
 
 
@@ -2165,7 +2242,7 @@ class OpcPackage {
     }
 }
 const _exports = Object.freeze({ partUri: _m26.partUri, relationshipPartUri: _m26.relationshipPartUri, relativePartTarget: _m26.relativePartTarget, corePropertiesXml: _m27.corePropertiesXml, appPropertiesXml: _m27.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("dc23f0d0e5a5985b964144b5fd24837da22b6ecbe931d10fe07f51e3febab88c", _exports);
+_modules.set("c982e9efabd891df539c26c513a3e9cf5a644ae13516f48f9d19f7ed6b584c06", _exports);
 return _exports;
 })();
 
@@ -2714,7 +2791,7 @@ _modules.set("45bcbd0fd875662d537921217d5e747170e665dedc70927041f59d5782ed21b0",
 return _exports;
 })();
 
-const _m39 = _modules.get("165b3a61497fba06033e6c64a54725acaff72d6a6a7e1cc8214801fd4e01acf8") ?? (() => {
+const _m39 = _modules.get("7e3adf1ed8ebd3d36cf5e10c55f94387f7044e585e7a1e14fbf597db4e2e4fea") ?? (() => {
 const { ChunkedTextSink } = _m3;
 
 const { escapeXml, xmlDeclaration } = _m28;
@@ -2823,11 +2900,11 @@ async function writeChartXml(chart, destination, policy, signal) {
     await text.close();
 }
 const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentType: chartContentType, chartAnchorXml: chartAnchorXml, writeChartXml: writeChartXml });
-_modules.set("165b3a61497fba06033e6c64a54725acaff72d6a6a7e1cc8214801fd4e01acf8", _exports);
+_modules.set("7e3adf1ed8ebd3d36cf5e10c55f94387f7044e585e7a1e14fbf597db4e2e4fea", _exports);
 return _exports;
 })();
 
-const _m38 = _modules.get("232333a881bfaad6580cd5835046a353f3fab7bfca3c797fca3e4000fdd32a35") ?? (() => {
+const _m38 = _modules.get("2a8fdd646d18edd986a29c54b3860ff16650da92d97b03a7cdd3cacd843c5246") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m28;
 
 const { copyExportLink } = _m7;
@@ -2901,11 +2978,11 @@ function drawingXml(images, policy, charts = []) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("232333a881bfaad6580cd5835046a353f3fab7bfca3c797fca3e4000fdd32a35", _exports);
+_modules.set("2a8fdd646d18edd986a29c54b3860ff16650da92d97b03a7cdd3cacd843c5246", _exports);
 return _exports;
 })();
 
-const _m41 = _modules.get("6229467971176c70a1fbce7478a6ae748f9a7d27fe28ca5ed1cc32e309f7015f") ?? (() => {
+const _m41 = _modules.get("dbb48ba4ffa2659e2972a395c603d203c11ea8addb71c38103c006d6d7937506") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { cellPosition } = _m38;
@@ -3006,7 +3083,7 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("6229467971176c70a1fbce7478a6ae748f9a7d27fe28ca5ed1cc32e309f7015f", _exports);
+_modules.set("dbb48ba4ffa2659e2972a395c603d203c11ea8addb71c38103c006d6d7937506", _exports);
 return _exports;
 })();
 
@@ -3047,7 +3124,7 @@ _modules.set("b9d400aa8d995edccef22cef96a0e14cb28ce2071c42d8cf29de94d74fe82355",
 return _exports;
 })();
 
-const _m40 = _modules.get("98f80eeeab810a44b2d0f978b1183fde285255c94afda8d2d74a267be10a9479") ?? (() => {
+const _m40 = _modules.get("26966342ea634f631f6b1e684842fb8d3a01e38fe33cac9b74261ba9ff4c11cb") ?? (() => {
 const { ExportCell } = _m5;
 
 const { isDate } = _m6;
@@ -3244,7 +3321,7 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("98f80eeeab810a44b2d0f978b1183fde285255c94afda8d2d74a267be10a9479", _exports);
+_modules.set("26966342ea634f631f6b1e684842fb8d3a01e38fe33cac9b74261ba9ff4c11cb", _exports);
 return _exports;
 })();
 
@@ -3279,18 +3356,65 @@ _modules.set("4d984092c5be653d0d5c8c910638fe0c0d560f8e74ea34c1a7b52b24be29fbf5",
 return _exports;
 })();
 
-const _m43 = _modules.get("48b4301c9dec7056858870ed8eddd4eabb388d4e3271b0e46ac1aff31ed28091") ?? (() => {
+const _m45 = _modules.get("216c77d37374c34583daebcedae5d725280614b84266d0048b25fc94d816bbad") ?? (() => {
+const { OfficeIMOError } = _m2;
+
+const { columnName } = _m35;
+
+const scopes = new WeakMap();
+/** @internal A format adapter owns this bounded list until worksheet completion. */
+function retainDataRowRanges(worksheet, ranges) { scopes.set(worksheet, ranges); }
+/** @internal Ordinary worksheets retain their contiguous data-column contract. */
+function dataRowRanges(worksheet) { return scopes.get(worksheet); }
+/** @internal Count accepted details while preserving physical row counts for native references. */
+function dataRowCount(worksheet, headerRows, serializedRows) {
+    const ranges = scopes.get(worksheet);
+    if (ranges === undefined)
+        return serializedRows;
+    const lastSerialized = headerRows + serializedRows;
+    let rows = 0;
+    for (const range of ranges) {
+        if (range.firstRow > lastSerialized)
+            break;
+        rows += Math.min(range.lastRow, lastSerialized) - range.firstRow + 1;
+    }
+    return rows;
+}
+/** @internal Native editing rules share one finite, bounded space-separated reference. */
+function dataRowReference(firstColumn, lastColumn, headerRows, dataRows, ranges) {
+    if (ranges === undefined)
+        return dataRows ? columnName(firstColumn) + (headerRows + 1) + ":" + columnName(lastColumn) + (headerRows + dataRows) : undefined;
+    const first = columnName(firstColumn), last = columnName(lastColumn);
+    let reference = "", previous = headerRows;
+    for (const range of ranges) {
+        if (!Number.isSafeInteger(range.firstRow) || !Number.isSafeInteger(range.lastRow) || range.firstRow <= previous ||
+            range.lastRow < range.firstRow || range.lastRow > headerRows + dataRows)
+            throw new RangeError("Detail editing ranges must be ordered within serialized worksheet rows.");
+        const next = first + range.firstRow + ":" + last + range.lastRow;
+        if (reference.length + (reference ? 1 : 0) + next.length > 32767)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Detail editing references exceed 32,767 UTF-16 characters; split the worksheet.");
+        reference += (reference ? " " : "") + next;
+        previous = range.lastRow;
+    }
+    return reference || undefined;
+}
+const _exports = Object.freeze({ retainDataRowRanges: retainDataRowRanges, dataRowRanges: dataRowRanges, dataRowCount: dataRowCount, dataRowReference: dataRowReference });
+_modules.set("216c77d37374c34583daebcedae5d725280614b84266d0048b25fc94d816bbad", _exports);
+return _exports;
+})();
+
+const _m43 = _modules.get("a1fdc34474873603d9907928d65684efabe0bfce470a26305f49b46b5fb5b12a") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m28;
 
 const { cellPosition } = _m38;
-
-const { columnName } = _m35;
 
 const { colorArgb } = _m33;
 
 const { fields, optionalBoolean, differentialXml } = _m34;
 
 const { resolveDataColumn } = _m44;
+
+const { dataRowReference } = _m45;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -3433,23 +3557,23 @@ class ConditionalFormats {
             xml: '<cfRule type="' + rule.type + '" priority="' + (i + 1) + '"' + (rule.style ? ' dxfId="' + differential[styleIndex++] + '"' : "") + rule.attributes + '>' + rule.body + '</cfRule>' }));
     }
     get count() { return this.rules.length; }
-    *xml(headerRows, dataRows, totalRows) {
+    *xml(headerRows, dataRows, totalRows, ranges) {
         for (const rule of this.rules) {
             if (rule.target.bottom !== undefined && rule.target.bottom > totalRows)
                 throw new RangeError("Conditional ranges must stay within exported rows.");
-            if (!rule.target.reference && !dataRows)
+            const reference = rule.target.reference ?? dataRowReference(rule.target.first, rule.target.last, headerRows, dataRows, ranges);
+            if (!reference)
                 continue;
-            const reference = rule.target.reference ?? columnName(rule.target.first) + (headerRows + 1) + ':' + columnName(rule.target.last) + (headerRows + dataRows);
             yield '<conditionalFormatting sqref="' + reference + '">' + rule.xml + '</conditionalFormatting>';
         }
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("48b4301c9dec7056858870ed8eddd4eabb388d4e3271b0e46ac1aff31ed28091", _exports);
+_modules.set("a1fdc34474873603d9907928d65684efabe0bfce470a26305f49b46b5fb5b12a", _exports);
 return _exports;
 })();
 
-const _m45 = _modules.get("d756157c87f3ee2012c15039b50585f6a4ed48bd472dee5716e6092cc4b01f07") ?? (() => {
+const _m46 = _modules.get("082c5d69b3ae3fbd0b4477ae5cfd07155401158d890162c4a223eb67ffeb489b") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -3458,9 +3582,9 @@ const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m28;
 
 const { fields, optionalBoolean } = _m34;
 
-const { columnName } = _m35;
-
 const { resolveDataColumn } = _m44;
+
+const { dataRowReference } = _m45;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -3538,22 +3662,22 @@ function prepareDataValidations(rules, columns, availableCount = 1000, available
     return Object.freeze({ rules: Object.freeze(prepared), count, textCharacters });
 }
 /** @internal Empty sources do not create validation over headings, totals or an artificial blank row. */
-function* dataValidationsXml(prepared, headerRows, dataRows) {
-    if (!prepared.count || !dataRows)
+function* dataValidationsXml(prepared, headerRows, dataRows, ranges) {
+    if (!prepared.count || !dataRows || ranges?.length === 0)
         return;
     yield '<dataValidations count="' + prepared.count + '">';
     for (const rule of prepared.rules) {
-        const column = columnName(rule.column), reference = column + (headerRows + 1) + ":" + column + (headerRows + dataRows);
+        const reference = dataRowReference(rule.column, rule.column, headerRows, dataRows, ranges);
         yield '<dataValidation' + rule.attributes + ' sqref="' + reference + '"><formula1>' + escapeXml(rule.formula, "reject") + '</formula1></dataValidation>';
     }
     yield '</dataValidations>';
 }
 const _exports = Object.freeze({ prepareDataValidations: prepareDataValidations, dataValidationsXml: dataValidationsXml });
-_modules.set("d756157c87f3ee2012c15039b50585f6a4ed48bd472dee5716e6092cc4b01f07", _exports);
+_modules.set("082c5d69b3ae3fbd0b4477ae5cfd07155401158d890162c4a223eb67ffeb489b", _exports);
 return _exports;
 })();
 
-const _m37 = _modules.get("23bfde122ce39db8a8c797af4b897804424e07bab1d2ebd81b1a4f4cfc4544aa") ?? (() => {
+const _m37 = _modules.get("5d200c22b866a7be40782b9b348f2ad3b781abd8434f420d780e89aa65ede587") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -3588,9 +3712,11 @@ const { isDate } = _m6;
 
 const { FormulaCell, formulaXml, isSubtotalFormula } = _m36;
 
-const { prepareDataValidations, dataValidationsXml } = _m45;
+const { prepareDataValidations, dataValidationsXml } = _m46;
 
 const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m44;
+
+const { dataRowRanges, dataRowCount } = _m45;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -4085,15 +4211,23 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved && !this.chartData)
-        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.reportRowCount, sheetName: this.name }); }
     get rowCount() { return this.count; }
-    /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+    /** A finite formula reference to a completed data column, excluding report decorations.
+     * Empty data returns undefined; discontiguous grouped details require explicit detailRanges instead. */
     dataRange(column) {
         if (this.failed)
             throw this.error;
         if (!this.completed)
             throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
         const selected = resolveDataColumn(this.columns, column);
+        const ranges = dataRowRanges(this);
+        if (ranges !== undefined) {
+            if (ranges.length > 1)
+                throw new OfficeIMOError("INVALID_STATE", "Grouped details are discontiguous; use the grouped result's detailRanges for explicit formula references.");
+            const range = ranges[0];
+            return range ? qualifiedColumnRange(this.name, selected, range.firstRow, range.lastRow - range.firstRow + 1) : undefined;
+        }
         return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
     }
     /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
@@ -4109,7 +4243,7 @@ class Worksheet {
     /** @internal Only the workbook may attach a preflighted, bounded source observer. */
     retainChartBinding(binding) { this.chartSources.push(binding); }
     /** @internal Preservation records are metadata, not report data rows. */
-    get reportRowCount() { return this.preserved || this.chartData ? 0 : this.count; }
+    get reportRowCount() { return this.preserved || this.chartData ? 0 : dataRowCount(this, this.headerRows, this.count); }
     /** @internal Chart data is editable through Excel's Unhide worksheet command. */
     get hidden() { return this.chartData; }
     /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
@@ -4234,9 +4368,10 @@ class Worksheet {
                     await this.buffer.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
                 if (regions.references.length)
                     await this.buffer.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
-                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
+                const detailRanges = dataRowRanges(this);
+                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows, detailRanges))
                     await this.buffer.write(xml);
-                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count))
+                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
@@ -4264,11 +4399,11 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("23bfde122ce39db8a8c797af4b897804424e07bab1d2ebd81b1a4f4cfc4544aa", _exports);
+_modules.set("5d200c22b866a7be40782b9b348f2ad3b781abd8434f420d780e89aa65ede587", _exports);
 return _exports;
 })();
 
-const _m46 = _modules.get("33e4ac8191b8bb277db33b18533495a9ab488b7fb778277f3b3cee259763b780") ?? (() => {
+const _m47 = _modules.get("87ebdbcd48a4e7d39257ef5bdfe726a889dbf5eaf3cd3f51a0205bf65090f6cf") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m28;
 
 const { cellText, columnName } = _m35;
@@ -4311,11 +4446,11 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("33e4ac8191b8bb277db33b18533495a9ab488b7fb778277f3b3cee259763b780", _exports);
+_modules.set("87ebdbcd48a4e7d39257ef5bdfe726a889dbf5eaf3cd3f51a0205bf65090f6cf", _exports);
 return _exports;
 })();
 
-const _m47 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
+const _m48 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { cleanXml } = _m28;
@@ -4383,7 +4518,7 @@ _modules.set("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4",
 return _exports;
 })();
 
-const _m49 = _modules.get("bd66b325c9055258132735218be91a78281910aaac042bcac4c5b0f594e35379") ?? (() => {
+const _m50 = _modules.get("bd66b325c9055258132735218be91a78281910aaac042bcac4c5b0f594e35379") ?? (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4515,7 +4650,7 @@ _modules.set("bd66b325c9055258132735218be91a78281910aaac042bcac4c5b0f594e35379",
 return _exports;
 })();
 
-const _m48 = _modules.get("c612a6a257977bbdb9b2adfbfdd93f74ffc4531cb7f0b2c6707f2d081b07c360") ?? (() => {
+const _m49 = _modules.get("1a72338dda567009c435c547ffc3b6a8e798369b5455bb94c629f8fab0771eb7") ?? (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4526,7 +4661,7 @@ const { copyDrawingAnchor } = _m38;
 
 const { captureFields } = _m10;
 
-const { captureChartRange, prepareChartBinding } = _m49;
+const { captureChartRange, prepareChartBinding } = _m50;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -4682,11 +4817,11 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
         points, textCharacters });
 }
 const _exports = Object.freeze({ prepareChart: prepareChart });
-_modules.set("c612a6a257977bbdb9b2adfbfdd93f74ffc4531cb7f0b2c6707f2d081b07c360", _exports);
+_modules.set("1a72338dda567009c435c547ffc3b6a8e798369b5455bb94c629f8fab0771eb7", _exports);
 return _exports;
 })();
 
-const _m24 = _modules.get("16816e2efd4566bee592e868e7b3218ffde9ffdcf2ac9c476012c0119f884970") ?? (() => {
+const _m24 = _modules.get("ae55b8ef5a8ee860d084264e4184cae35d6b359c73b70c059503e435df68f397") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -4715,15 +4850,15 @@ const { assertExportValue } = _m5;
 
 const { Worksheet } = _m37;
 
-const { defineTable, tableXml } = _m46;
+const { defineTable, tableXml } = _m47;
 
 const { copyHyperlink, drawingXml, drawingContentType } = _m38;
 
-const { TextOverflow } = _m47;
+const { TextOverflow } = _m48;
 
 const { captureWorkbookOptions, sheetOptionFields } = _m22;
 
-const { prepareChart } = _m48;
+const { prepareChart } = _m49;
 
 const { qualifiedColumnRange, resolveDataColumn } = _m44;
 
@@ -5053,7 +5188,7 @@ class Workbook {
         this.state = "finalizing";
         this.completion = (async () => {
             try {
-                const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
+                const rows = this.rowCount;
                 for (let i = 0; i < this.sheets.length; i++) {
                     const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
                     await sheet.finish();
@@ -5161,11 +5296,11 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("16816e2efd4566bee592e868e7b3218ffde9ffdcf2ac9c476012c0119f884970", _exports);
+_modules.set("ae55b8ef5a8ee860d084264e4184cae35d6b359c73b70c059503e435df68f397", _exports);
 return _exports;
 })();
 
-const _m51 = _modules.get("89111eab1f3857529c2d0cd849f16598097e62bd73841211b9c66ccc7b1b7ca2") ?? (() => {
+const _m52 = _modules.get("89111eab1f3857529c2d0cd849f16598097e62bd73841211b9c66ccc7b1b7ca2") ?? (() => {
 const { ExportCell, assertScalar } = _m5;
 
 const { captureWorkbookOptions, sheetOptionFields } = _m22;
@@ -5218,14 +5353,14 @@ _modules.set("89111eab1f3857529c2d0cd849f16598097e62bd73841211b9c66ccc7b1b7ca2",
 return _exports;
 })();
 
-const _m50 = _modules.get("4d0b66295c22dd414cade48765cccb969f03c746746304d566219b6070aca3e3") ?? (() => {
+const _m51 = _modules.get("d4f8b447d0a2834af0ecb5f89766e5402a65980c89f3a4973b4493cac65051b4") ?? (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
 
 const { Workbook } = _m24;
 
-const { portableSheet, portableWorkbook } = _m51;
+const { portableSheet, portableWorkbook } = _m52;
 
 const { captureFields } = _m10;
 
@@ -5273,36 +5408,68 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("4d0b66295c22dd414cade48765cccb969f03c746746304d566219b6070aca3e3", _exports);
+_modules.set("d4f8b447d0a2834af0ecb5f89766e5402a65980c89f3a4973b4493cac65051b4", _exports);
 return _exports;
 })();
 
-const _m52 = _modules.get("6aeafa4afa90af51d1497ee76eb0b06f3c04bfbd10727705e9bfcf4376a397c1") ?? (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m8;
-
-const { withDestination } = _m3;
-
-const { Workbook } = _m24;
-
-const { FormulaCell } = _m36;
-
-const { columnName } = _m35;
-
-const { copyStylePatch } = _m32;
-
-const { portableSheet } = _m51;
+const _m54 = _modules.get("1c910dc1be8cd6844c1384524ba7c64dc75d80ff09de2fbd5a4752b9cdfd943b") ?? (() => {
+const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
 
-const { sheetOptionFields, workbookOptionFields } = _m22;
+const { OfficeIMOError } = _m2;
 
+const { fields } = _m34;
+
+const { sheetOptionFields } = _m22;
+
+const { portableSheet } = _m52;
+
+const { resolveDataColumn } = _m44;
+
+const { copyStylePatch } = _m32;
+
+/** @internal */
+const groupedOptionFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle", "conditionalFormats", "dataValidation"];
 const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
-const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
-function prepare(report, configuration) {
+function detailColumn(report, selector) {
+    return resolveDataColumn(report.columns, selector, "Grouped detail") + 1;
+}
+function conditionalRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("conditionalFormats must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "range", "style", "stopIfTrue", "operator", "value", "values", "formula", "stops", "color", "minimum", "maximum", "showValue"]);
+        const inputRange = rule.range;
+        if (typeof inputRange === "string")
+            throw new TypeError("Grouped conditional formats require detail-column selectors rather than A1 or generated-row ranges.");
+        fields(inputRange, ["column", "through"], "grouped conditional range");
+        const range = captureFields(inputRange, ["column", "through"]);
+        return { ...rule, range: { column: detailColumn(report, range.column), ...(range.through === undefined ? {} : { through: detailColumn(report, range.through) }) } };
+    });
+}
+function validationRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("dataValidation must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxDataValidations exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "column", "items", "allowBlank", "showErrorMessage", "errorStyle", "errorTitle", "errorMessage"]);
+        return { ...rule, column: detailColumn(report, rule.column) };
+    });
+}
+/** @internal Capture options before creating a worksheet or touching a one-pass source. */
+function prepareGroupedSheet(report, configuration, maxConditionalFormats = 1000, maxDataValidations = 1000) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped XLSX options require host-authored labels.");
-    const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"]);
+    const options = captureFields(configuration, groupedOptionFields);
     const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"]);
     if (!options.labelColumn || typeof options.labelColumn !== "object")
         throw new TypeError("Grouped XLSX needs a leading label column.");
@@ -5320,19 +5487,46 @@ function prepare(report, configuration) {
             throw new TypeError("Grouped XLSX owns worksheet " + key + ".");
     if (sheet.autoFilter !== undefined && sheet.autoFilter !== false)
         throw new TypeError("Grouped summary rows cannot use a native table or autofilter.");
-    if (options.sink !== undefined || options.cellValueWriters !== undefined)
-        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
     for (const style of [options.groupStyle, options.subtotalStyle, options.grandTotalStyle])
         if (style !== undefined)
             portableSheet({ alternatingRowStyle: style });
     for (const column of report.columns)
         if (Object.prototype.hasOwnProperty.call(report.totals, column.key) && column.type !== "number")
             throw new TypeError("Editable grouped totals require explicitly numeric columns.");
+    const conditionalFormats = conditionalRules(report, options.conditionalFormats, maxConditionalFormats), dataValidation = validationRules(report, options.dataValidation, maxDataValidations);
     return { ...options, labelColumn, sheet: portableSheet(sheet),
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
         ...(options.groupStyle ? { groupStyle: copyStylePatch(options.groupStyle) } : {}),
         ...(options.subtotalStyle ? { subtotalStyle: copyStylePatch(options.subtotalStyle) } : {}),
         ...(options.grandTotalStyle ? { grandTotalStyle: copyStylePatch(options.grandTotalStyle) } : {}) };
 }
+const _exports = Object.freeze({ groupedOptionFields: groupedOptionFields, prepareGroupedSheet: prepareGroupedSheet });
+_modules.set("1c910dc1be8cd6844c1384524ba7c64dc75d80ff09de2fbd5a4752b9cdfd943b", _exports);
+return _exports;
+})();
+
+const _m53 = _modules.get("59f736fd5084497af8fb6fd211c910f5980174a39d31641216eda50f6d78bb63") ?? (() => {
+const { groupedReportOperation } = _m8;
+
+const { checkAbort, withAbort } = _m4;
+
+const { withDestination } = _m3;
+
+const { captureFields } = _m10;
+
+const { Workbook } = _m24;
+
+const { FormulaCell } = _m36;
+
+const { columnName } = _m35;
+
+const { captureWorkbookLimits, workbookOptionFields } = _m22;
+
+const { retainDataRowRanges } = _m45;
+
+const { groupedOptionFields, prepareGroupedSheet } = _m54;
+
+const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
 function label(value) {
     if (typeof value?.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -5340,61 +5534,131 @@ function label(value) {
         throw new TypeError("Grouped summary labels must return strings.");
     return value;
 }
-/** SUBTOTAL ignores nested subtotal formulas; functions 1..11 include collapsed outline details. */
+/** SUBTOTAL ignores nested subtotal expressions; functions 1..11 include collapsed outline details. */
 function subtotal(operation, letter, first, last, cached) {
     const range = letter + first + ":" + letter + last;
     const expression = "SUBTOTAL(" + subtotalOperations[operation] + "," + range + ")";
     return new FormulaCell(operation === "average" || operation === "min" || operation === "max"
         ? "IF(SUBTOTAL(2," + range + ")=0,\"\"," + expression + ")" : expression, cached, operation === "count" ? 0 : undefined);
 }
-async function write(report, options, sink) {
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, onProgress, ...settings } = options;
-    const operation = groupedReportOperation(report, settings.signal);
-    let rows = 0, currentKind = "groupStart";
-    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
-    let book;
-    try {
-        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
-        const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
-        const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
-        const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
-        const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
-            maxOutlineLevel: 1,
-            rowStyle: () => currentKind === "row" ? undefined : styles[currentKind],
-            rowOutline: () => currentKind === "row" ? { level: 1, hidden: collapseGroups ?? false } : currentKind === "groupEnd" && collapseGroups ? { collapsed: true } : undefined });
-        const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
-        let firstDetail = 0, firstAnyDetail = 0, lastDetail = 0;
-        async function* values() {
-            for await (const event of operation.events) {
-                currentKind = event.kind;
-                if (event.kind === "groupStart") {
-                    firstDetail = sheet.rowCount + sheet.headerRowCount + 2;
-                    yield [event.label, ...report.columns.map(() => null)];
+async function append(book, report, options, operation, accepted) {
+    checkAbort(operation.signal);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, conditionalFormats, dataValidation } = options;
+    let rows = 0, current;
+    const groups = [], stack = [], detailRanges = [];
+    let firstDetail = 0, lastDetail = 0, grandTotalRow;
+    let grandSummary;
+    const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
+    const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
+    const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
+    const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
+        maxOutlineLevel: report.groupBy.length,
+        rowStyle: () => current && current.kind !== "row" ? styles[current.kind] : undefined,
+        rowOutline: () => {
+            if (!current || current.kind === "complete")
+                return undefined;
+            const level = current.kind === "row" ? current.path.length : current.level;
+            return { level, hidden: !!collapseGroups && level > 0, collapsed: !!collapseGroups && current.kind === "groupEnd" };
+        } });
+    retainDataRowRanges(sheet, detailRanges);
+    const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
+    async function* values() {
+        for await (const event of operation.events) {
+            current = event;
+            const worksheetRow = sheet.rowCount + sheet.headerRowCount + 1;
+            if (event.kind === "groupStart") {
+                const group = { groupIndex: event.groupIndex, level: event.level, key: event.key, label: event.label, path: event.path,
+                    rows: 0, totals: Object.freeze([]), startRow: worksheetRow, firstDetailRow: 0, lastDetailRow: 0, summaryRow: 0 };
+                groups.push(group);
+                stack.push(group);
+                yield [event.label, ...report.columns.map(() => null)];
+            }
+            else if (event.kind === "row") {
+                rows++;
+                accepted?.(rows);
+                firstDetail ||= worksheetRow;
+                lastDetail = worksheetRow;
+                const previous = detailRanges.at(-1);
+                if (previous && previous.lastRow + 1 === worksheetRow)
+                    previous.lastRow = worksheetRow;
+                else
+                    detailRanges.push({ firstRow: worksheetRow, lastRow: worksheetRow });
+                for (const group of stack) {
+                    group.firstDetailRow ||= worksheetRow;
+                    group.lastDetailRow = worksheetRow;
                 }
-                else if (event.kind === "row") {
-                    rows++;
-                    lastDetail = sheet.rowCount + sheet.headerRowCount + 1;
-                    firstAnyDetail ||= lastDetail;
-                    yield [null, ...event.values];
-                }
-                else if (event.kind === "groupEnd") {
-                    yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : null)];
-                }
-                else if (includeGrandTotal !== false) {
-                    // Empty exports still retain a labelled numeric sum/count and blank average/min/max.
+                yield [null, ...event.values];
+            }
+            else if (event.kind === "groupEnd") {
+                const group = stack.pop();
+                group.summaryRow = worksheetRow;
+                group.rows = event.rows;
+                group.totals = event.totals;
+                yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
+                        ? subtotal(operation, columnName(index + 2), group.firstDetailRow, group.lastDetailRow, event.totals[index]) : null)];
+            }
+            else {
+                grandSummary = Object.freeze({ rows: event.rows, groups: event.groups, totals: event.totals });
+                if (includeGrandTotal !== false) {
+                    grandTotalRow = worksheetRow;
+                    // An empty source still retains numeric sum/count and blank average/min/max.
                     yield [label(grandTotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? firstAnyDetail ? subtotal(operation, columnName(index + 2), firstAnyDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
+                            ? firstDetail ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
                 }
             }
         }
-        await sheet.addRows(values());
+    }
+    try {
+        checkAbort(operation.signal);
+        await withAbort(sheet.addRows(values()), operation.signal);
+        // Grouped coordinates and native editing ranges cannot change after the result is returned.
+        await withAbort(sheet.close(), operation.signal);
+        return Object.freeze({ worksheet: sheet, rows, columns: columns.length,
+            detailRanges: Object.freeze(detailRanges.map(range => Object.freeze({ ...range }))),
+            groups: Object.freeze(groups.map(group => Object.freeze({ ...group }))), grandSummary: grandSummary,
+            ...(grandTotalRow === undefined ? {} : { grandTotalRow }) });
+    }
+    catch (error) {
+        await book.discard(error);
+        throw error;
+    }
+}
+/** Add one ordered analysis worksheet, preserving the workbook's styles, budgets, destination and sibling sheets.
+ * The returned worksheet is closed; finalize the workbook only after adding any remaining sheets. */
+async function addGroupedXlsx(book, report, options) {
+    const prepared = prepareGroupedSheet(report, options, book.settings.limits?.maxConditionalFormats ?? 1000, book.availableDataValidations), operation = groupedReportOperation(report, book.settings.signal);
+    try {
+        return await append(book, report, prepared, operation);
+    }
+    finally {
+        operation.dispose();
+    }
+}
+function prepare(report, configuration) {
+    if (!configuration || typeof configuration !== "object")
+        throw new TypeError("Grouped XLSX options require host-authored labels.");
+    const options = captureFields(configuration, [...workbookOptionFields, ...groupedOptionFields]);
+    if (options.sink !== undefined || options.cellValueWriters !== undefined)
+        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
+    const limits = options.limits === undefined ? undefined : captureWorkbookLimits(options.limits);
+    return { ...options, ...(limits === undefined ? {} : { limits }),
+        ...prepareGroupedSheet(report, options, limits?.maxConditionalFormats ?? 1000, limits?.maxDataValidations ?? 1000) };
+}
+async function write(report, options, sink) {
+    const { labelColumn: _labelColumn, subtotalLabel: _subtotalLabel, grandTotalLabel: _grandTotalLabel, includeGrandTotal: _includeGrandTotal, collapseGroups: _collapseGroups, sheet: _sheet, groupStyle: _groupStyle, subtotalStyle: _subtotalStyle, grandTotalStyle: _grandTotalStyle, conditionalFormats: _conditionalFormats, dataValidation: _dataValidation, onProgress, ...settings } = options;
+    const operation = groupedReportOperation(report, settings.signal);
+    let rows = 0, book;
+    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
+    try {
+        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
+        const result = await append(book, report, options, operation, accepted => { rows = accepted; });
         if (sink) {
             const completion = await book.finish();
-            return { result: { rows, columns: report.columns.length + 1, bytes: completion.bytes } };
+            return { result: { rows, columns: result.columns, bytes: completion.bytes } };
         }
         const blob = await book.toBlob();
-        return { blob, result: { rows, columns: report.columns.length + 1, bytes: blob.size } };
+        return { blob, result: { rows, columns: result.columns, bytes: blob.size } };
     }
     catch (error) {
         await book?.discard(error);
@@ -5413,19 +5677,19 @@ async function writeGroupedXlsxTo(report, destination, options) {
     const prepared = prepare(report, options);
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
-const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
-_modules.set("6aeafa4afa90af51d1497ee76eb0b06f3c04bfbd10727705e9bfcf4376a397c1", _exports);
+const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
+_modules.set("59f736fd5084497af8fb6fd211c910f5980174a39d31641216eda50f6d78bb63", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("176d56338a4a3570dbf164451df1fc3c51e9019746a9f71acee527e6b254263c") ?? (() => {
+const _m23 = _modules.get("5f2337c50c0e9b88b7a8095f5b5df2f3fde33723e3115223465178731cfab42d") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m50.writeXlsx, writeXlsxTo: _m50.writeXlsxTo, writeGroupedXlsx: _m52.writeGroupedXlsx, writeGroupedXlsxTo: _m52.writeGroupedXlsxTo, createGroupedReport: _m8.createGroupedReport, Worksheet: _m37.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("176d56338a4a3570dbf164451df1fc3c51e9019746a9f71acee527e6b254263c", _exports);
+const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m51.writeXlsx, writeXlsxTo: _m51.writeXlsxTo, writeGroupedXlsx: _m53.writeGroupedXlsx, writeGroupedXlsxTo: _m53.writeGroupedXlsxTo, addGroupedXlsx: _m53.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m37.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+_modules.set("5f2337c50c0e9b88b7a8095f5b5df2f3fde33723e3115223465178731cfab42d", _exports);
 return _exports;
 })();
 
-const _m54 = _modules.get("2f5c0823847e9209017d01b2a753f36056df2a9988fae1f3a1bd5fd186545220") ?? (() => {
+const _m56 = _modules.get("2f5c0823847e9209017d01b2a753f36056df2a9988fae1f3a1bd5fd186545220") ?? (() => {
 const { captureTableSpans, tableSpans } = _m18;
 
 /** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
@@ -5447,7 +5711,7 @@ _modules.set("2f5c0823847e9209017d01b2a753f36056df2a9988fae1f3a1bd5fd186545220",
 return _exports;
 })();
 
-const _m53 = _modules.get("23dbdb5bb01c78086550f0e239748171f51380c09784045e396de9b2c5faadbb") ?? (() => {
+const _m55 = _modules.get("9c3d47f5bb21af4555c6ad7b10e216b7c957f2e71027f576989d75e7cf563d1d") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -5462,7 +5726,7 @@ const { notifyProgress } = _m14;
 
 const { copyColumns, createRowProjector } = _m11;
 
-const { csvStructuredRows } = _m54;
+const { csvStructuredRows } = _m56;
 
 const { captureBooleanText } = _m21;
 
@@ -5594,11 +5858,11 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("23dbdb5bb01c78086550f0e239748171f51380c09784045e396de9b2c5faadbb", _exports);
+_modules.set("9c3d47f5bb21af4555c6ad7b10e216b7c957f2e71027f576989d75e7cf563d1d", _exports);
 return _exports;
 })();
 
-const _m58 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
+const _m60 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -5749,7 +6013,7 @@ _modules.set("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c",
 return _exports;
 })();
 
-const _m62 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
+const _m64 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -5779,8 +6043,8 @@ _modules.set("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c",
 return _exports;
 })();
 
-const _m63 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
-const { align4 } = _m62;
+const _m65 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
+const { align4 } = _m64;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6004,12 +6268,12 @@ _modules.set("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681",
 return _exports;
 })();
 
-const _m61 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
+const _m63 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m62;
+const { FontReader } = _m64;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m63;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m65;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6249,8 +6513,8 @@ _modules.set("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891",
 return _exports;
 })();
 
-const _m60 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
-const { TrueTypeFont } = _m61;
+const _m62 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
+const { TrueTypeFont } = _m63;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -6313,7 +6577,7 @@ _modules.set("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2",
 return _exports;
 })();
 
-const _m65 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
+const _m67 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -6636,12 +6900,12 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m64 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
+const _m66 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m60;
+const { PdfFont, fontProgram } = _m62;
 
-const { helveticaWidths } = _m65;
+const { helveticaWidths } = _m67;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -6705,14 +6969,14 @@ _modules.set("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde",
 return _exports;
 })();
 
-const _m59 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
+const _m61 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m60;
+const { fontProgram } = _m62;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m64;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m66;
 
-const { pdfNumber, unicodeHex } = _m58;
+const { pdfNumber, unicodeHex } = _m60;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6917,7 +7181,7 @@ _modules.set("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4",
 return _exports;
 })();
 
-const _m67 = _modules.get("4201fbf42dfbfff0db44c5296d810e8eb98e2be18116bac5c8dc4b6046f72e71") ?? (() => {
+const _m69 = _modules.get("4201fbf42dfbfff0db44c5296d810e8eb98e2be18116bac5c8dc4b6046f72e71") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -7024,7 +7288,7 @@ _modules.set("4201fbf42dfbfff0db44c5296d810e8eb98e2be18116bac5c8dc4b6046f72e71",
 return _exports;
 })();
 
-const _m69 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
+const _m71 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7237,7 +7501,7 @@ _modules.set("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775",
 return _exports;
 })();
 
-const _m68 = _modules.get("6654f65ef9c7d94436440b18d8ce8648608576d47ecc20e3bf1c37914cb93a00") ?? (() => {
+const _m70 = _modules.get("6654f65ef9c7d94436440b18d8ce8648608576d47ecc20e3bf1c37914cb93a00") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
@@ -7246,9 +7510,9 @@ const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { presentation, color } = _m17;
 
-const { wrapShapedPdfText } = _m69;
+const { wrapShapedPdfText } = _m71;
 
-const { PdfFont } = _m60;
+const { PdfFont } = _m62;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -7391,7 +7655,7 @@ _modules.set("6654f65ef9c7d94436440b18d8ce8648608576d47ecc20e3bf1c37914cb93a00",
 return _exports;
 })();
 
-const _m66 = _modules.get("74e3c62a5e1bf436f2a1e5e8f0c4dca4a25c6a037076ce5e251e8630aa81d54f") ?? (() => {
+const _m68 = _modules.get("74e3c62a5e1bf436f2a1e5e8f0c4dca4a25c6a037076ce5e251e8630aa81d54f") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -7402,9 +7666,9 @@ const { createTotals } = _m12;
 
 const { presentation, positive } = _m17;
 
-const { displayText } = _m67;
+const { displayText } = _m69;
 
-const { capturePdfText, wrapPdfText } = _m68;
+const { capturePdfText, wrapPdfText } = _m70;
 
 class PdfTableLayout {
     settings;
@@ -7556,10 +7820,10 @@ _modules.set("74e3c62a5e1bf436f2a1e5e8f0c4dca4a25c6a037076ce5e251e8630aa81d54f",
 return _exports;
 })();
 
-const _m71 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
+const _m73 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m58;
+const { pdfNumber, unicodeHex } = _m60;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -7602,10 +7866,10 @@ _modules.set("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a",
 return _exports;
 })();
 
-const _m72 = _modules.get("93a48e0c780b5ff91a51fef40169622179fe47eb3f3bd159989ce92f83b57b80") ?? (() => {
+const _m74 = _modules.get("93a48e0c780b5ff91a51fef40169622179fe47eb3f3bd159989ce92f83b57b80") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { unicodeHex } = _m58;
+const { unicodeHex } = _m60;
 
 const { captureFields } = _m10;
 
@@ -7651,7 +7915,7 @@ _modules.set("93a48e0c780b5ff91a51fef40169622179fe47eb3f3bd159989ce92f83b57b80",
 return _exports;
 })();
 
-const _m73 = _modules.get("bd6e2b0a0d1886f342c5cdf4cd11957c5a170fb74b52ef3df7954270a846c549") ?? (() => {
+const _m75 = _modules.get("bd6e2b0a0d1886f342c5cdf4cd11957c5a170fb74b52ef3df7954270a846c549") ?? (() => {
 const { settings } = _m17;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -7670,24 +7934,24 @@ _modules.set("bd6e2b0a0d1886f342c5cdf4cd11957c5a170fb74b52ef3df7954270a846c549",
 return _exports;
 })();
 
-const _m70 = _modules.get("710b572817c32272baffeb3ebf805910ba783002ef7601dc3b35480d67d05a25") ?? (() => {
+const _m72 = _modules.get("c8400b14a50639719f313800f6a60913e864f605b1708235af79256dda2fdb27") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m58;
+const { pdfNumber } = _m60;
 
 const { color } = _m17;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m67;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m69;
 
-const { linkAnnotation } = _m71;
+const { linkAnnotation } = _m73;
 
-const { unicodeHex } = _m58;
+const { unicodeHex } = _m60;
 
-const { captureSection, captureBookmark } = _m72;
+const { captureSection, captureBookmark } = _m74;
 
-const { sectionSettings } = _m73;
+const { sectionSettings } = _m75;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -8005,6 +8269,18 @@ class PdfPages {
         }
         await this.structure?.completeRow(elements);
     }
+    /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
+     * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
+    async keptRows(rows, allowFirstFragment = false) {
+        const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
+        const fits = height <= this.continuationTop - bottom + .001;
+        if (fits && height > this.y - bottom + .001) {
+            await this.finishPage();
+            await this.start();
+        }
+        for (const [index, row] of rows.entries())
+            await this.row(row, !fits && index === 0 && allowFirstFragment);
+    }
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         await this.ensureStarted();
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
@@ -8082,14 +8358,18 @@ class PdfPages {
         }
     }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption) {
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
         await this.ensureStarted();
         this.layout = layout;
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
         this.tableElement = this.structure?.element("Table");
         this.tableHeadingsDrawn = false;
-        const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+        const headings = preparedHeadings ?? await layout.headers();
+        // A closing summary can share the preceding table's headings on the current page.
+        // Its own headings remain available when it moves or splits onto a fresh page.
+        const initialHeadings = headingsOnNewPageOnly && this.bodyAdded ? [] : headings;
+        const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
             await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
@@ -8099,8 +8379,8 @@ class PdfPages {
             await this.start(true, headings);
             return;
         }
-        this.continuationTop = this.settings.page.height - this.settings.margins.top - height - (continuationCaption?.height ?? 0);
-        await this.drawHeadings(headings);
+        this.continuationTop = this.settings.page.height - this.settings.margins.top - headings.reduce((n, row) => n + row.height, 0) - (continuationCaption?.height ?? 0);
+        await this.drawHeadings(initialHeadings);
         this.dataTop = this.y;
     }
     async endTable() {
@@ -8192,11 +8472,11 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("710b572817c32272baffeb3ebf805910ba783002ef7601dc3b35480d67d05a25", _exports);
+_modules.set("c8400b14a50639719f313800f6a60913e864f605b1708235af79256dda2fdb27", _exports);
 return _exports;
 })();
 
-const _m75 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
+const _m77 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -8259,14 +8539,14 @@ _modules.set("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887",
 return _exports;
 })();
 
-const _m74 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
+const _m76 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { unicodeHex } = _m58;
+const { unicodeHex } = _m60;
 
-const { PdfParentTree } = _m75;
+const { PdfParentTree } = _m77;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -8439,12 +8719,12 @@ _modules.set("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91",
 return _exports;
 })();
 
-const _m76 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
+const _m78 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber, unicodeHex } = _m58;
+const { pdfNumber, unicodeHex } = _m60;
 
 /** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
 class PdfOutlines {
@@ -8498,18 +8778,18 @@ _modules.set("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6",
 return _exports;
 })();
 
-const _m57 = _modules.get("577f9336ea16ce7e309fc3206d6dd9986868be5d7757ef0484595b2860c439fe") ?? (() => {
-const { PdfObjects, unicodeHex } = _m58;
+const _m59 = _modules.get("96b28b959f864a7b3a84df764b7b3d87c2a69c888afb12d9ae71a736f390bae9") ?? (() => {
+const { PdfObjects, unicodeHex } = _m60;
 
-const { PdfFontResources } = _m59;
+const { PdfFontResources } = _m61;
 
-const { PdfTableLayout } = _m66;
+const { PdfTableLayout } = _m68;
 
-const { PdfPages } = _m70;
+const { PdfPages } = _m72;
 
-const { PdfStructure } = _m74;
+const { PdfStructure } = _m76;
 
-const { PdfOutlines } = _m76;
+const { PdfOutlines } = _m78;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -8559,11 +8839,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("577f9336ea16ce7e309fc3206d6dd9986868be5d7757ef0484595b2860c439fe", _exports);
+_modules.set("96b28b959f864a7b3a84df764b7b3d87c2a69c888afb12d9ae71a736f390bae9", _exports);
 return _exports;
 })();
 
-const _m56 = _modules.get("29d1e04582c6a197294867c371604f1b99831a93136abcf5bc46cfb39579ac7d") ?? (() => {
+const _m58 = _modules.get("00cbffa20cb62b463c63f1353e87b8c7b3d36a1cd71ecd54f084f1e18b5f1b1b") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -8574,7 +8854,7 @@ const { createRowProjector } = _m11;
 
 const { settings } = _m17;
 
-const { PdfWriteSession } = _m57;
+const { PdfWriteSession } = _m59;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -8626,11 +8906,11 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("29d1e04582c6a197294867c371604f1b99831a93136abcf5bc46cfb39579ac7d", _exports);
+_modules.set("00cbffa20cb62b463c63f1353e87b8c7b3d36a1cd71ecd54f084f1e18b5f1b1b", _exports);
 return _exports;
 })();
 
-const _m80 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
+const _m82 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -8853,12 +9133,12 @@ _modules.set("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e",
 return _exports;
 })();
 
-const _m79 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
+const _m81 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m80;
+const { pngPixels } = _m82;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -8987,14 +9267,14 @@ _modules.set("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654",
 return _exports;
 })();
 
-const _m81 = _modules.get("2d51a16a36f9569605cd7a6d17b9923ea2139d8a53db79d59e119afc0a1e48c8") ?? (() => {
+const _m83 = _modules.get("2d51a16a36f9569605cd7a6d17b9923ea2139d8a53db79d59e119afc0a1e48c8") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m17;
 
-const { pdfNumber: n } = _m58;
+const { pdfNumber: n } = _m60;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -9074,14 +9354,14 @@ _modules.set("2d51a16a36f9569605cd7a6d17b9923ea2139d8a53db79d59e119afc0a1e48c8",
 return _exports;
 })();
 
-const _m82 = _modules.get("8f3e1598cfefafb094c62cfd5246d96939aabf02f4f0904cc6ebc5f5e38c1c16") ?? (() => {
+const _m84 = _modules.get("8f3e1598cfefafb094c62cfd5246d96939aabf02f4f0904cc6ebc5f5e38c1c16") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m17;
 
-const { pdfNumber: n } = _m58;
+const { pdfNumber: n } = _m60;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -9321,16 +9601,16 @@ _modules.set("8f3e1598cfefafb094c62cfd5246d96939aabf02f4f0904cc6ebc5f5e38c1c16",
 return _exports;
 })();
 
-const _m83 = _modules.get("98a2b1f621ee4c6824b26cd046c9e029abc842f2553a99928a6a98fd37f3c3e5") ?? (() => {
+const _m85 = _modules.get("98a2b1f621ee4c6824b26cd046c9e029abc842f2553a99928a6a98fd37f3c3e5") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m68;
+const { capturePdfText, wrapPdfText } = _m70;
 
 const { positive } = _m17;
 
 const { resolveParagraphStyle } = _m19;
 
-const { captureBookmark } = _m72;
+const { captureBookmark } = _m74;
 
 const { captureFields } = _m10;
 
@@ -9399,10 +9679,10 @@ _modules.set("98a2b1f621ee4c6824b26cd046c9e029abc842f2553a99928a6a98fd37f3c3e5",
 return _exports;
 })();
 
-const _m84 = _modules.get("1e620e7c6c8244fd6eed09ceff142b1576e5f72bec01433f4f90d0316bcce408") ?? (() => {
-const { capturePdfText, wrapPdfText } = _m68;
+const _m86 = _modules.get("1e620e7c6c8244fd6eed09ceff142b1576e5f72bec01433f4f90d0316bcce408") ?? (() => {
+const { capturePdfText, wrapPdfText } = _m70;
 
-const { captureParagraph, prepareParagraph } = _m83;
+const { captureParagraph, prepareParagraph } = _m85;
 
 const { resolveParagraphStyle } = _m19;
 
@@ -9457,7 +9737,207 @@ _modules.set("1e620e7c6c8244fd6eed09ceff142b1576e5f72bec01433f4f90d0316bcce408",
 return _exports;
 })();
 
-const _m78 = _modules.get("94006d75d5e43e51ab51c37ed2a3e4b74cb8cec52518978d6eb626217e88a39d") ?? (() => {
+const _m88 = _modules.get("c68a6f2381daab841ffa7a5a2439f40be509d04f90e22764af9240180abf1916") ?? (() => {
+const { assertGroupedReportSource } = _m8;
+
+const { captureFields } = _m10;
+
+const { presentation } = _m20;
+
+/** @internal Capture schemas shared by the block factory and standalone convenience writers. */
+const groupedPdfLabelFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
+/** @internal A grouped table may override presentation but not its document's resource/lifetime policy. */
+const groupedPdfTableFields = ["includeHeader", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns", ...groupedPdfLabelFields];
+/** Capture an analytical table without opening its row iterator or attaching cancellation listeners.
+ * Ownership begins when the document reaches the block; unused blocks leave their sources unconsumed. */
+function pdfGroupedTable(report, options) {
+    assertGroupedReportSource(report);
+    return Object.freeze({ kind: "groupedTable", report, options: captureGroupedPdfTableOptions(options) });
+}
+/** @internal Capture the same public table contract for factory-created and structural document blocks. */
+function captureGroupedPdfTableOptions(configuration) {
+    if (!configuration || typeof configuration !== "object" || Array.isArray(configuration) ||
+        Object.keys(configuration).some(key => !groupedPdfTableFields.includes(key)))
+        throw new TypeError("Grouped PDF table options support table presentation and labels; document settings belong on writePdfDocument.");
+    const captured = captureFields(configuration, groupedPdfTableFields);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, continuationLabel } = captured;
+    if (!labelColumn || typeof labelColumn !== "object")
+        throw new TypeError("Grouped PDF needs a leading labelColumn.");
+    const { header, width } = labelColumn;
+    if (typeof header !== "string")
+        throw new TypeError("The grouped label column header must be text.");
+    for (const [name, value] of [["subtotalLabel", subtotalLabel], ["grandTotalLabel", grandTotalLabel]])
+        if (typeof value !== "function")
+            throw new TypeError(name + " must be a synchronous text callback.");
+    if (continuationLabel !== undefined && typeof continuationLabel !== "function")
+        throw new TypeError("continuationLabel must be a synchronous text callback.");
+    if (includeGrandTotal !== undefined && typeof includeGrandTotal !== "boolean")
+        throw new TypeError("includeGrandTotal must be boolean.");
+    return Object.freeze({ ...captured, labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
+        ...(captured.columnWidths === undefined ? {} : { columnWidths: Object.freeze([...captured.columnWidths]) }),
+        ...(captured.headerPresentation === undefined ? {} : { headerPresentation: presentation(captured.headerPresentation) }),
+        ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });
+}
+const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, groupedPdfTableFields: groupedPdfTableFields, pdfGroupedTable: pdfGroupedTable, captureGroupedPdfTableOptions: captureGroupedPdfTableOptions });
+_modules.set("c68a6f2381daab841ffa7a5a2439f40be509d04f90e22764af9240180abf1916", _exports);
+return _exports;
+})();
+
+const _m87 = _modules.get("4ee9e048042e141e2cbecad1918e8a01e799da421296a7aa97421bb0bd61d31c") ?? (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m8;
+
+const { consumeRows } = _m4;
+
+const { ExportCell } = _m5;
+
+const { captureGroupedPdfTableOptions } = _m88;
+
+const { settings } = _m17;
+
+const { PdfTableLayout } = _m68;
+
+const { captureCaption, prepareParagraph } = _m85;
+
+const { synchronousText } = _m69;
+
+/** @internal Render one analytical source in the existing document session. Retain one detail row and
+ * at most four closing subtotals. All captions, rows, pages, bytes and fonts use the document owners. */
+async function renderGroupedPdfTable(block, context) {
+    const { report } = block, { pages, fonts, prepared, controller } = context;
+    assertGroupedReportSource(report);
+    if (prepared.options.tagged)
+        throw new TypeError("Tagged grouped PDF reports are unsupported.");
+    const captured = captureGroupedPdfTableOptions(block.options);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captured;
+    const columns = Object.freeze([Object.freeze({ ...labelColumn }), ...report.columns]);
+    let rowIndex = -1;
+    const sourceContext = (value) => ({ rowIndex,
+        columnIndex: value.columnIndex - 1, column: report.columns[value.columnIndex - 1] });
+    const table = settings({ ...pages.settings.options, ...input, columns, includeHeader: input.includeHeader ?? true,
+        ...(input.formatValue === undefined ? {} : { formatValue: (value, position) => input.formatValue(value, sourceContext(position)) }),
+        ...(input.formatRuns === undefined ? {} : { formatRuns: (value, position) => input.formatRuns(value, sourceContext(position)) }) });
+    const sharedTable = { ...table, budget: prepared.budget }, layout = new PdfTableLayout(sharedTable, fonts);
+    context.acceptColumns(columns.length);
+    const operation = groupedReportOperation(report, controller.signal), abort = () => controller.abort(operation.signal?.reason);
+    operation.signal?.addEventListener("abort", abort, { once: true });
+    if (operation.signal?.aborted)
+        abort();
+    try {
+        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+        let path = [], started = false, firstFragment = false, firstBundleOversized = false;
+        let pending;
+        const closing = [];
+        const summaryValues = (label, values) => Object.freeze([
+            new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
+            ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
+        ]);
+        const flushLastDetail = async () => {
+            if (pending) {
+                if (!started)
+                    await startLeaf(pending);
+                if (closing.length && !firstBundleOversized)
+                    await pages.keptRows([pending, ...closing], firstFragment);
+                else if (closing.length) {
+                    await pages.row(pending, firstFragment);
+                    for (const row of closing)
+                        await pages.row(row);
+                }
+                else
+                    await pages.row(pending, firstFragment);
+            }
+            else
+                for (const row of closing)
+                    await pages.row(row);
+            pending = undefined;
+            closing.length = 0;
+            firstFragment = false;
+            firstBundleOversized = false;
+        };
+        const finishLeaf = async () => {
+            if (!started && !pending)
+                return;
+            await flushLastDetail();
+            await pages.endTable();
+            started = false;
+        };
+        const startLeaf = async (row) => {
+            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
+                    synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
+            const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
+            firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
+            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+            await context.flushParagraphs(caption.height + headingHeight + minimum);
+            await pages.beginTable(layout, headings, minimum, caption, continuation);
+            started = true;
+            firstFragment = caption.lines.length > 0;
+        };
+        const complete = async (summary) => {
+            await finishLeaf();
+            if (!includeGrandTotal && summary.rows !== 0)
+                return;
+            const completeColumns = summary.rows === 0 ? columns : columns.map(column => {
+                const { groups: _groups, ...leaf } = column;
+                return leaf;
+            });
+            const completeTable = settings({ ...table.options, columns: completeColumns,
+                includeHeader: input.includeHeader ?? true });
+            const completeLayout = summary.rows === 0 ? layout : new PdfTableLayout({ ...completeTable, budget: prepared.budget }, fonts);
+            const completeHeadings = summary.rows === 0 ? headings : await completeLayout.headers();
+            rowIndex = -1;
+            let total;
+            if (includeGrandTotal) {
+                context.acceptRow(false);
+                total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
+            }
+            if (!completeHeadings.length && !total)
+                return;
+            const minimum = total ? total.lineHeight + table.padding * 2 : 0;
+            await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+            await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
+            if (total)
+                await pages.row(total);
+            await pages.endTable();
+        };
+        await consumeRows(operation.events, operation.signal, async (event) => {
+            switch (event.kind) {
+                case "groupStart":
+                    await finishLeaf();
+                    path = Object.freeze([...path.slice(0, event.level), event]);
+                    break;
+                case "row": {
+                    if (pending)
+                        await flushLastDetail();
+                    rowIndex = event.rowIndex;
+                    context.acceptRow(true);
+                    const row = await layout.data([new ExportCell("", { text: "" }), ...event.values], event.rowIndex);
+                    pending = row;
+                    break;
+                }
+                case "groupEnd":
+                    rowIndex = -1;
+                    context.acceptRow(false);
+                    closing.push(await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true));
+                    break;
+                case "complete":
+                    await complete(event);
+                    break;
+            }
+        });
+    }
+    finally {
+        operation.signal?.removeEventListener("abort", abort);
+        operation.dispose();
+    }
+}
+const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
+_modules.set("4ee9e048042e141e2cbecad1918e8a01e799da421296a7aa97421bb0bd61d31c", _exports);
+return _exports;
+})();
+
+const _m80 = _modules.get("fe3813a4f7c3fbe72c7505e6daa8aa67fe949448f7c49b13ebc01c5c04e8c97f") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -9472,25 +9952,27 @@ const { captureFields } = _m10;
 
 const { settings } = _m17;
 
-const { pdfNumber: n } = _m58;
+const { pdfNumber: n } = _m60;
 
-const { PdfTableLayout } = _m66;
+const { PdfTableLayout } = _m68;
 
-const { PdfWriteSession } = _m57;
+const { PdfWriteSession } = _m59;
 
-const { PdfDocumentImages } = _m79;
+const { PdfDocumentImages } = _m81;
 
-const { vectorCommands } = _m81;
+const { vectorCommands } = _m83;
 
-const { graphicAlternative } = _m74;
+const { graphicAlternative } = _m76;
 
-const { checkDrawingBlock, prepareDrawing } = _m82;
+const { checkDrawingBlock, prepareDrawing } = _m84;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m83;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m85;
 
-const { captureListOptions, prepareListItem } = _m84;
+const { captureListOptions, prepareListItem } = _m86;
 
-const { captureSection } = _m72;
+const { captureSection } = _m74;
+
+const { renderGroupedPdfTable } = _m87;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -9510,209 +9992,229 @@ async function writePdfDocument(blocks, options = {}) {
         throw error;
     }
 }
-/** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
+/** Stream composed pages with backpressure. Rows sum table source rows; columns reports the widest table.
+ * Analytical subtotals/grand totals also consume the cumulative maxRows output budget. */
 async function writePdfDocumentTo(blocks, destination, configuration = {}) {
-    const prepared = settings(configuration, true), { options, budget } = prepared;
-    beginTask();
-    checkAbort(options.signal);
-    return withDestination(destination, async (sink) => {
-        const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-        let rows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
-        let pending = [];
-        const flushParagraphs = async (nextHeight = 0) => {
-            const paragraphs = [];
-            for (const paragraph of pending)
-                paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
-            pending = [];
-            await pages.paragraphs(paragraphs, nextHeight);
-        };
-        const enqueueParagraph = async (block) => {
-            const paragraph = captureParagraph(block, pages.settings, fonts);
-            if (!paragraph.text.text)
-                return;
-            if (pending.length || paragraph.keepWithNext) {
-                pending.push(paragraph);
-                checkParagraphBuffer(pending, pages.settings);
-                if (!paragraph.keepWithNext)
-                    await flushParagraphs();
-            }
-            else
-                await pages.paragraphs([await prepareParagraph(paragraph, pages.settings, fonts)]);
-        };
-        const prepareCaption = async (captured) => captured === undefined ? undefined : prepareParagraph(captured, pages.settings, fonts);
-        const snapshotCaption = (caption) => caption === undefined ? undefined : captureCaption(caption, pages.settings, fonts);
-        await session.start();
-        await consumeRows(blocks, options.signal, async (block) => {
-            if (!block || typeof block !== "object")
-                throw new TypeError("PDF document blocks must be objects.");
-            switch (block.kind) {
-                case "section": {
-                    const capturedSection = captureSection(block, prepared);
-                    await flushParagraphs();
-                    const section = await pages.beginSection(capturedSection);
-                    if (section.includeHeading)
-                        await enqueueParagraph({ kind: "paragraph", text: section.title,
-                            headingLevel: section.level, ...(section.headingStyle === undefined ?
-                                { fontSize: pages.settings.fontSize * 1.5, presentation: { bold: true } } : { style: section.headingStyle }),
-                            keepTogether: true, keepWithNext: true,
-                            ...(section.bookmark ? { bookmark: { title: section.title, level: section.level } } : {}) });
-                    else if (section.bookmark)
-                        pages.addBookmark({ title: section.title, level: section.level });
-                    break;
+    const captured = settings(configuration, true), controller = new AbortController();
+    const parentSignal = captured.options.signal, abort = () => controller.abort(parentSignal?.reason);
+    parentSignal?.addEventListener("abort", abort, { once: true });
+    if (parentSignal?.aborted)
+        abort();
+    const prepared = { ...captured, options: { ...captured.options, signal: controller.signal } }, { options, budget } = prepared;
+    try {
+        beginTask();
+        checkAbort(options.signal);
+        return await withDestination(destination, async (sink) => {
+            const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
+            let rows = 0, budgetRows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
+            let pending = [];
+            const flushParagraphs = async (nextHeight = 0) => {
+                const paragraphs = [];
+                for (const paragraph of pending)
+                    paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
+                pending = [];
+                await pages.paragraphs(paragraphs, nextHeight);
+            };
+            const enqueueParagraph = async (block) => {
+                const paragraph = captureParagraph(block, pages.settings, fonts);
+                if (!paragraph.text.text)
+                    return;
+                if (pending.length || paragraph.keepWithNext) {
+                    pending.push(paragraph);
+                    checkParagraphBuffer(pending, pages.settings);
+                    if (!paragraph.keepWithNext)
+                        await flushParagraphs();
                 }
-                case "paragraph":
-                    await enqueueParagraph(block);
-                    break;
-                case "list": {
-                    const captured = captureListOptions(block, pages.settings);
-                    let count = 0, owner;
-                    await consumeRows(captured.items, options.signal, async (item) => {
-                        if (++listItems > prepared.limits.maxListItems)
-                            throw new OfficeIMOError("RESOURCE_LIMIT", "maxListItems exceeded.");
-                        const laidOut = await prepareListItem(item, count++, captured, pages.settings, fonts);
-                        if (count === 1) {
-                            await flushParagraphs(laidOut.paragraph.keepTogether ? laidOut.paragraph.height : laidOut.paragraph.firstHeight);
-                            owner = session.structure?.element("L");
-                        }
-                        await pages.listItem(laidOut, owner);
-                        if (taskYieldDue())
-                            await pause();
-                        checkAbort(options.signal);
-                    });
-                    await session.structure?.complete(owner);
-                    break;
-                }
-                case "group": {
-                    const blocks = block.blocks, keepTogether = block.keepTogether;
-                    if (!Array.isArray(blocks))
-                        throw new TypeError("PDF paragraph group blocks must be an array.");
-                    if (keepTogether !== undefined && typeof keepTogether !== "boolean")
-                        throw new TypeError("PDF paragraph group keepTogether must be boolean.");
-                    if (blocks.length > prepared.limits.maxGroupBlocks)
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
-                    const captured = [];
-                    for (const paragraph of blocks) {
-                        captured.push(captureParagraph(paragraph, pages.settings, fonts));
-                        checkParagraphBuffer(captured, prepared);
-                    }
-                    if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
-                        throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
-                    const paragraphs = [];
-                    for (const paragraph of captured)
-                        paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
-                    if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
+                else
+                    await pages.paragraphs([await prepareParagraph(paragraph, pages.settings, fonts)]);
+            };
+            const prepareCaption = async (captured) => captured === undefined ? undefined : prepareParagraph(captured, pages.settings, fonts);
+            const snapshotCaption = (caption) => caption === undefined ? undefined : captureCaption(caption, pages.settings, fonts);
+            await session.start();
+            await consumeRows(blocks, options.signal, async (block) => {
+                if (!block || typeof block !== "object")
+                    throw new TypeError("PDF document blocks must be objects.");
+                switch (block.kind) {
+                    case "section": {
+                        const capturedSection = captureSection(block, prepared);
+                        await flushParagraphs();
+                        const section = await pages.beginSection(capturedSection);
+                        if (section.includeHeading)
+                            await enqueueParagraph({ kind: "paragraph", text: section.title,
+                                headingLevel: section.level, ...(section.headingStyle === undefined ?
+                                    { fontSize: pages.settings.fontSize * 1.5, presentation: { bold: true } } : { style: section.headingStyle }),
+                                keepTogether: true, keepWithNext: true,
+                                ...(section.bookmark ? { bookmark: { title: section.title, level: section.level } } : {}) });
+                        else if (section.bookmark)
+                            pages.addBookmark({ title: section.title, level: section.level });
                         break;
-                    await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
-                    await pages.paragraphs(paragraphs, 0, keepTogether !== false);
-                    break;
-                }
-                case "pageBreak":
-                    await flushParagraphs();
-                    await pages.pageBreak();
-                    break;
-                case "table": {
-                    const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
-                    const tableOptions = captureTableOptions(inputTableOptions);
-                    const capturedCaption = snapshotCaption(inputCaption);
-                    if (inputContinuationCaption !== undefined && options.tagged)
-                        throw new TypeError("Tagged PDF table continuation captions are unsupported.");
-                    const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
-                    const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
-                    const caption = await prepareCaption(capturedCaption);
-                    const continuationCaption = await prepareCaption(capturedContinuationCaption);
-                    const project = createRowProjector(table.options.columns, undefined, options.signal);
-                    let count = 0, started = false;
-                    columns = Math.max(columns, table.options.columns.length);
-                    const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
-                    await consumeRows(source, options.signal, async (row) => {
-                        budget.row(rows + 1);
-                        const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
+                    }
+                    case "paragraph":
+                        await enqueueParagraph(block);
+                        break;
+                    case "list": {
+                        const captured = captureListOptions(block, pages.settings);
+                        let count = 0, owner;
+                        await consumeRows(captured.items, options.signal, async (item) => {
+                            if (++listItems > prepared.limits.maxListItems)
+                                throw new OfficeIMOError("RESOURCE_LIMIT", "maxListItems exceeded.");
+                            const laidOut = await prepareListItem(item, count++, captured, pages.settings, fonts);
+                            if (count === 1) {
+                                await flushParagraphs(laidOut.paragraph.keepTogether ? laidOut.paragraph.height : laidOut.paragraph.firstHeight);
+                                owner = session.structure?.element("L");
+                            }
+                            await pages.listItem(laidOut, owner);
+                            if (taskYieldDue())
+                                await pause();
+                            checkAbort(options.signal);
+                        });
+                        await session.structure?.complete(owner);
+                        break;
+                    }
+                    case "group": {
+                        const blocks = block.blocks, keepTogether = block.keepTogether;
+                        if (!Array.isArray(blocks))
+                            throw new TypeError("PDF paragraph group blocks must be an array.");
+                        if (keepTogether !== undefined && typeof keepTogether !== "boolean")
+                            throw new TypeError("PDF paragraph group keepTogether must be boolean.");
+                        if (blocks.length > prepared.limits.maxGroupBlocks)
+                            throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
+                        const captured = [];
+                        for (const paragraph of blocks) {
+                            captured.push(captureParagraph(paragraph, pages.settings, fonts));
+                            checkParagraphBuffer(captured, prepared);
+                        }
+                        if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
+                            throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
+                        const paragraphs = [];
+                        for (const paragraph of captured)
+                            paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
+                        if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
+                            break;
+                        await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
+                        await pages.paragraphs(paragraphs, 0, keepTogether !== false);
+                        break;
+                    }
+                    case "pageBreak":
+                        await flushParagraphs();
+                        await pages.pageBreak();
+                        break;
+                    case "groupedTable":
+                        await renderGroupedPdfTable(block, { prepared, pages, fonts, controller, flushParagraphs,
+                            acceptColumns: count => { columns = Math.max(columns, count); },
+                            acceptRow: source => {
+                                budget.row(++budgetRows);
+                                if (source && ++rows % 256 === 0)
+                                    notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+                            } });
+                        break;
+                    case "table": {
+                        const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
+                        const tableOptions = captureTableOptions(inputTableOptions);
+                        const capturedCaption = snapshotCaption(inputCaption);
+                        if (inputContinuationCaption !== undefined && options.tagged)
+                            throw new TypeError("Tagged PDF table continuation captions are unsupported.");
+                        const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
+                        const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
+                        const caption = await prepareCaption(capturedCaption);
+                        const continuationCaption = await prepareCaption(capturedContinuationCaption);
+                        const project = createRowProjector(table.options.columns, undefined, options.signal);
+                        let count = 0, started = false;
+                        columns = Math.max(columns, table.options.columns.length);
+                        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+                        await consumeRows(source, options.signal, async (row) => {
+                            budget.row(++budgetRows);
+                            const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
+                            if (!started) {
+                                const minimum = laidOut.lineHeight + table.padding * 2;
+                                await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
+                                await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
+                                started = true;
+                            }
+                            await pages.row(laidOut, keptHeading);
+                            count++;
+                            rows++;
+                            if (rows % 256 === 0)
+                                notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+                            if (taskYieldDue())
+                                await pause();
+                            checkAbort(options.signal);
+                        });
+                        const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                         if (!started) {
-                            const minimum = laidOut.lineHeight + table.padding * 2;
+                            if (!headings.length && !footer?.length)
+                                break;
+                            const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
+                                footer[0].lineHeight + table.padding * 2 : 0;
                             await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                             await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
-                            started = true;
                         }
-                        await pages.row(laidOut, keptHeading);
-                        count++;
-                        rows++;
-                        if (rows % 256 === 0)
-                            notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
-                        if (taskYieldDue())
-                            await pause();
-                        checkAbort(options.signal);
-                    });
-                    const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
-                    if (!started) {
-                        if (!headings.length && !footer?.length)
-                            break;
-                        const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-                            footer[0].lineHeight + table.padding * 2 : 0;
-                        await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
-                        await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
+                        if (footer) {
+                            if (table.options.footer?.rows)
+                                await pages.block(footer);
+                            else
+                                await pages.row(footer[0], keptFooterHeading);
+                        }
+                        await pages.endTable();
+                        break;
                     }
-                    if (footer) {
-                        if (table.options.footer?.rows)
-                            await pages.block(footer);
-                        else
-                            await pages.row(footer[0], keptFooterHeading);
+                    case "image": {
+                        const { width: displayWidth, height: displayHeight, image: inputImage, caption: inputCaption } = block;
+                        const capturedCaption = snapshotCaption(inputCaption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const image = await images.prepare(inputImage), caption = await prepareCaption(capturedCaption);
+                        const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+                        const height = displayHeight ?? width * image.height / image.width;
+                        if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
+                            throw new RangeError("Image display dimensions must be finite and positive.");
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(width, height));
+                        pages.registerXObject(image.name, image.id);
+                        await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative, caption);
+                        break;
                     }
-                    await pages.endTable();
-                    break;
+                    case "vector": {
+                        const capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const path = await vectorCommands(block, pages.settings, commands), caption = await prepareCaption(capturedCaption);
+                        commands += path.count;
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(path.width, path.height));
+                        await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
+                            " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative, caption);
+                        break;
+                    }
+                    case "drawing": {
+                        checkDrawingBlock(block);
+                        const inputDrawing = block.drawing, capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const drawing = await prepareDrawing(inputDrawing, pages.settings, fonts, { commands, elements: drawingElements }), caption = await prepareCaption(capturedCaption);
+                        commands += drawing.commands;
+                        drawingElements += drawing.elements;
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(drawing.width, drawing.height));
+                        await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
+                            " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative, caption);
+                        break;
+                    }
+                    default: throw new TypeError("Unsupported PDF document block.");
                 }
-                case "image": {
-                    const { width: displayWidth, height: displayHeight, image: inputImage, caption: inputCaption } = block;
-                    const capturedCaption = snapshotCaption(inputCaption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const image = await images.prepare(inputImage), caption = await prepareCaption(capturedCaption);
-                    const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
-                    const height = displayHeight ?? width * image.height / image.width;
-                    if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
-                        throw new RangeError("Image display dimensions must be finite and positive.");
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(width, height));
-                    pages.registerXObject(image.name, image.id);
-                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative, caption);
-                    break;
-                }
-                case "vector": {
-                    const capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const path = await vectorCommands(block, pages.settings, commands), caption = await prepareCaption(capturedCaption);
-                    commands += path.count;
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(path.width, path.height));
-                    await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative, caption);
-                    break;
-                }
-                case "drawing": {
-                    checkDrawingBlock(block);
-                    const inputDrawing = block.drawing, capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const drawing = await prepareDrawing(inputDrawing, pages.settings, fonts, { commands, elements: drawingElements }), caption = await prepareCaption(capturedCaption);
-                    commands += drawing.commands;
-                    drawingElements += drawing.elements;
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(drawing.width, drawing.height));
-                    await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative, caption);
-                    break;
-                }
-                default: throw new TypeError("Unsupported PDF document block.");
-            }
-            if (taskYieldDue())
-                await pause();
+                if (taskYieldDue())
+                    await pause();
+                checkAbort(options.signal);
+            });
+            await flushParagraphs();
+            if (options.messageBottom)
+                await pages.paragraph(options.messageBottom);
+            await session.finish();
+            notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes });
             checkAbort(options.signal);
+            return { rows, columns, bytes: objects.bytes };
         });
-        await flushParagraphs();
-        if (options.messageBottom)
-            await pages.paragraph(options.messageBottom);
-        await session.finish();
-        notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes });
-        checkAbort(options.signal);
-        return { rows, columns, bytes: objects.bytes };
-    });
+    }
+    finally {
+        parentSignal?.removeEventListener("abort", abort);
+    }
 }
 function graphicAlignment(value) {
     if (value !== undefined && !["left", "center", "right"].includes(value))
@@ -9726,29 +10228,27 @@ function captureTableOptions(options) {
     return captureFields(options, tableOptionFields);
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("94006d75d5e43e51ab51c37ed2a3e4b74cb8cec52518978d6eb626217e88a39d", _exports);
+_modules.set("fe3813a4f7c3fbe72c7505e6daa8aa67fe949448f7c49b13ebc01c5c04e8c97f", _exports);
 return _exports;
 })();
 
-const _m77 = _modules.get("047b0bc57f601d332b626a20aaab29175737304a222a88edac48bfc5c1e76a4d") ?? (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m8;
+const _m79 = _modules.get("bdc14bd1d9fba0d84e7aa88b0096bfae52247b3f8850c7907d3651dc7791d4fe") ?? (() => {
+const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
 
-const { notifyProgress } = _m14;
+const { writePdfDocumentTo } = _m80;
 
-const { ExportCell } = _m5;
-
-const { pdfTable, writePdfDocumentTo } = _m78;
-
-const { settings, pdfOptionFields } = _m17;
-
-const { synchronousText } = _m67;
+const { pdfOptionFields } = _m17;
 
 const { captureFields } = _m10;
 
-const groupedOptionFields = [...pdfOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
-/** Stream contiguous analytical groups through the ordinary PDF document/table writer. No group body is retained. */
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m88;
+
+
+
+const groupedOptionFields = [...pdfOptionFields, ...groupedPdfLabelFields];
+/** Stream analytical groups through the composed document owner. No group body is retained. */
 async function writeGroupedPdf(report, configuration) {
     const sink = new BlobByteSink();
     try {
@@ -9760,121 +10260,33 @@ async function writeGroupedPdf(report, configuration) {
         throw error;
     }
 }
-/** Rows/progress count source data only. Generated labels/subtotals still consume ordinary PDF row/cell/text limits.
- * Tagged grouped reports are unsupported; leaf-table tagging alone does not qualify group semantics. */
+/** Result/progress rows count source data. Generated subtotals and grand totals also consume maxRows.
+ * Tagged group associations are unsupported; oversized detail/subtotal bundles use ordinary row pagination. */
 async function writeGroupedPdfTo(report, destination, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped PDF options are required.");
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captureFields(configuration, groupedOptionFields);
-    if (!labelColumn || typeof labelColumn !== "object")
-        throw new TypeError("Grouped PDF needs a leading labelColumn.");
-    const { header, width } = labelColumn;
-    if (typeof header !== "string")
-        throw new TypeError("The grouped label column header must be text.");
-    for (const [name, value] of [["subtotalLabel", subtotalLabel], ["grandTotalLabel", grandTotalLabel]])
-        if (typeof value !== "function")
-            throw new TypeError(name + " must be a synchronous text callback.");
-    if (continuationLabel !== undefined && typeof continuationLabel !== "function")
-        throw new TypeError("continuationLabel must be a synchronous text callback.");
-    if (typeof includeGrandTotal !== "boolean")
-        throw new TypeError("includeGrandTotal must be boolean.");
-    if (input.tagged !== undefined)
+    const captured = captureFields(configuration, groupedOptionFields);
+    if (captured.tagged !== undefined)
         throw new TypeError("Tagged grouped PDF reports are unsupported.");
-    const operation = groupedReportOperation(report, input.signal);
-    try {
-        const columns = Object.freeze([Object.freeze({ header, ...(width === undefined ? {} : { width }) }), ...report.columns]);
-        // Reuse the normal capture/validation owner before consuming any event or invoking display callbacks.
-        const captured = settings({ ...input, ...(operation.signal === undefined ? {} : { signal: operation.signal }), columns }).options;
-        const { columns: _columns, includeHeader, headerRows: _headers, footer: _footer, headerPresentation, footerPresentation, alternateRowColor, columnWidths, wideTable, formatValue, formatRuns, onProgress, ...documentOptions } = captured;
-        let dataRows = 0, currentRowIndex = -1, summary;
-        const sourceContext = (context) => ({ rowIndex: currentRowIndex,
-            columnIndex: context.columnIndex - 1, column: report.columns[context.columnIndex - 1] });
-        const tableOptions = {
-            columns, ...(includeHeader === undefined ? {} : { includeHeader }),
-            ...(headerPresentation === undefined ? {} : { headerPresentation }),
-            ...(alternateRowColor === undefined ? {} : { alternateRowColor }),
-            ...(columnWidths === undefined ? {} : { columnWidths }), ...(wideTable === undefined ? {} : { wideTable }),
-            ...(formatValue === undefined ? {} : { formatValue: (value, context) => formatValue(value, sourceContext(context)) }),
-            ...(formatRuns === undefined ? {} : { formatRuns: (value, context) => formatRuns(value, sourceContext(context)) })
-        };
-        const summaryValues = (label, values) => Object.freeze([
-            new ExportCell(label, { text: label, presentation: footerPresentation ?? { bold: true, background: "eef2f6" } }),
-            ...values.map(value => new ExportCell(value, { presentation: footerPresentation ?? { bold: true, background: "eef2f6" } }))
-        ]);
-        async function* blocks() {
-            const cursor = operation.events[Symbol.asyncIterator]();
-            try {
-                while (true) {
-                    const item = await cursor.next();
-                    if (item.done)
-                        break;
-                    const event = item.value;
-                    if (event.kind === "groupStart") {
-                        const continued = continuationLabel === undefined ? event.label : synchronousText(continuationLabel(event), "continuationLabel");
-                        async function* rows() {
-                            while (true) {
-                                const next = await cursor.next();
-                                if (next.done)
-                                    throw new TypeError("Grouped report ended before its group summary.");
-                                const value = next.value;
-                                if (value.kind === "row") {
-                                    currentRowIndex = value.rowIndex;
-                                    dataRows = value.rowIndex + 1;
-                                    yield [new ExportCell("", { text: "" }), ...value.values];
-                                }
-                                else if (value.kind === "groupEnd") {
-                                    currentRowIndex = -1;
-                                    yield summaryValues(synchronousText(subtotalLabel(value), "subtotalLabel"), value.totals);
-                                    return;
-                                }
-                                else
-                                    throw new TypeError("Unexpected grouped report event inside a group.");
-                            }
-                        }
-                        yield { ...pdfTable(rows(), tableOptions),
-                            caption: { text: event.label, presentation: { bold: true }, spaceAfter: 4 },
-                            continuationCaption: { text: continued, presentation: { bold: true }, spaceAfter: 4 } };
-                    }
-                    else if (event.kind === "complete") {
-                        summary = event;
-                        if (includeGrandTotal || event.rows === 0) {
-                            currentRowIndex = -1;
-                            // A heading-free grand summary has no group-heading hierarchy. Keep the original
-                            // source metadata for formatting contexts and for an empty report's visible schema.
-                            const completeColumns = event.rows === 0 ? columns : columns.map(column => {
-                                const { groups: _groups, ...leaf } = column;
-                                return leaf;
-                            });
-                            yield pdfTable(includeGrandTotal ? [summaryValues(synchronousText(grandTotalLabel(event), "grandTotalLabel"), event.totals)] : [], { ...tableOptions, columns: completeColumns, includeHeader: event.rows === 0 ? includeHeader ?? true : false });
-                        }
-                        break;
-                    }
-                    else
-                        throw new TypeError("Unexpected grouped report event outside a group.");
-                }
-            }
-            finally {
-                await cursor.return?.();
-            }
-        }
-        const result = await writePdfDocumentTo(blocks(), destination, { ...documentOptions,
-            onProgress: progress => notifyProgress(onProgress, { ...progress, rows: progress.phase === "complete" ? summary?.rows ?? dataRows : dataRows }) });
-        return { ...result, rows: summary?.rows ?? dataRows, columns: columns.length };
-    }
-    finally {
-        operation.dispose();
-    }
+    const tableOptions = Object.fromEntries(groupedPdfTableFields.filter(name => Object.hasOwn(captured, name)).map(name => [name, captured[name]]));
+    const documentOptions = { ...captured };
+    for (const name of groupedPdfTableFields)
+        delete documentOptions[name];
+    delete documentOptions.columns;
+    delete documentOptions.headerRows;
+    delete documentOptions.footer;
+    return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("047b0bc57f601d332b626a20aaab29175737304a222a88edac48bfc5c1e76a4d", _exports);
+const _exports = Object.freeze({ pdfGroupedTable: _m88.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+_modules.set("bdc14bd1d9fba0d84e7aa88b0096bfae52247b3f8850c7907d3651dc7791d4fe", _exports);
 return _exports;
 })();
 
-const _m85 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
-const { fontProgram } = _m60;
+const _m89 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
+const { fontProgram } = _m62;
 
-const { resolveScalar, selectFont, validateFonts } = _m64;
+const { resolveScalar, selectFont, validateFonts } = _m66;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -9911,14 +10323,14 @@ _modules.set("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9",
 return _exports;
 })();
 
-const _m55 = _modules.get("ee1f59f8e7704ea6061f281e511fec1330de5a5329195ec512a34496ba8a1bc4") ?? (() => {
+const _m57 = _modules.get("98af7655f5db8dbed7b30a6fcfcc6cbeba0130cd020281a3d7eafd315282c53b") ?? (() => {
 
-const _exports = Object.freeze({ writePdf: _m56.writePdf, writePdfTo: _m56.writePdfTo, writeGroupedPdf: _m77.writeGroupedPdf, writeGroupedPdfTo: _m77.writeGroupedPdfTo, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m78.writePdfDocument, writePdfDocumentTo: _m78.writePdfDocumentTo, pdfTable: _m78.pdfTable, PdfFont: _m60.PdfFont, preflightPdfText: _m85.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("ee1f59f8e7704ea6061f281e511fec1330de5a5329195ec512a34496ba8a1bc4", _exports);
+const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m79.writeGroupedPdf, writeGroupedPdfTo: _m79.writeGroupedPdfTo, pdfGroupedTable: _m79.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m80.writePdfDocument, writePdfDocumentTo: _m80.writePdfDocumentTo, pdfTable: _m80.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m89.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+_modules.set("98af7655f5db8dbed7b30a6fcfcc6cbeba0130cd020281a3d7eafd315282c53b", _exports);
 return _exports;
 })();
 
-const _m87 = _modules.get("c0aee2c5df0df3e62ca31fc685243cdd4b449f083834e8d28cf92c20dfa7b27f") ?? (() => {
+const _m91 = _modules.get("c0aee2c5df0df3e62ca31fc685243cdd4b449f083834e8d28cf92c20dfa7b27f") ?? (() => {
 /** @internal Typed conversion follows declared datetime intent, never localized display text. */
 function datetime(value, mode, clock) {
     if (mode === "text")
@@ -9958,10 +10370,10 @@ _modules.set("c0aee2c5df0df3e62ca31fc685243cdd4b449f083834e8d28cf92c20dfa7b27f",
 return _exports;
 })();
 
-const _m86 = _modules.get("13e23ee93f634ac11f4226f21f7ab3b3fd44cea9460c77505a0bf4676b960178") ?? (() => {
+const _m90 = _modules.get("20013c352d57841d53f13cbdd4e143293f2233f5ae601646738aab07e3d4043e") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
-const { datetime } = _m87;
+const { datetime } = _m91;
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
@@ -10078,11 +10490,11 @@ function createCanopyExport(capture, format, options = {}) {
         } });
 }
 const _exports = Object.freeze({ createCanopyExport: createCanopyExport });
-_modules.set("13e23ee93f634ac11f4226f21f7ab3b3fd44cea9460c77505a0bf4676b960178", _exports);
+_modules.set("20013c352d57841d53f13cbdd4e143293f2233f5ae601646738aab07e3d4043e", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("72985214949aa2fa87783bc644da1e772ae1a00ba18ee1f00f90da7427c7d6a2") ?? (() => {
+const _m0 = _modules.get("35a0ff3142334ffc9ead44d37efcd6fc81c030dcad45a61f950416cefc18d7d0") ?? (() => {
 const { BlobByteSink } = _m1;
 
 const { notifyProgress } = _m14;
@@ -10093,11 +10505,11 @@ const { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOp
 
 const { writeXlsxTo } = _m23;
 
-const { writeCsvTo } = _m53;
+const { writeCsvTo } = _m55;
 
-const { writePdfTo } = _m55;
+const { writePdfTo } = _m57;
 
-const { createCanopyExport } = _m86;
+const { createCanopyExport } = _m90;
 
 
 
@@ -10139,8 +10551,8 @@ async function exportCanopy(capture, format, options = {}) {
         throw error;
     }
 }
-const _exports = Object.freeze({ createCanopyExport: _m86.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m60.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("72985214949aa2fa87783bc644da1e772ae1a00ba18ee1f00f90da7427c7d6a2", _exports);
+const _exports = Object.freeze({ createCanopyExport: _m90.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m62.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+_modules.set("35a0ff3142334ffc9ead44d37efcd6fc81c030dcad45a61f950416cefc18d7d0", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

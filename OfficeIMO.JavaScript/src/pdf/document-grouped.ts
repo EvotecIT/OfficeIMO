@@ -1,0 +1,132 @@
+import { assertGroupedReportSource, groupedReportOperation } from "../core/grouped-report.js";
+import type { GroupedReportEvent, GroupedReportSummary } from "../core/grouped-report.js";
+import { consumeRows } from "../core/iteration.js";
+import { ExportCell } from "../core/presentation.js";
+import type { Column, ColumnValueContext, ExportValue } from "../core/index.js";
+import type { PdfGroupedTableBlock } from "./document-types.js";
+import { captureGroupedPdfTableOptions } from "./grouped-table.js";
+import type { PdfSettings } from "./settings.js";
+import { settings } from "./settings.js";
+import { PdfTableLayout } from "./table-layout.js";
+import type { PdfLayoutRow } from "./table-layout.js";
+import type { PdfPages } from "./pages.js";
+import type { PdfFontResources } from "./font-resources.js";
+import { captureCaption, prepareParagraph } from "./paragraph-layout.js";
+import { synchronousText } from "./text.js";
+
+type GroupStart = Extract<GroupedReportEvent, { readonly kind: "groupStart" }>;
+interface GroupedPdfContext {
+  readonly prepared: PdfSettings;
+  readonly pages: PdfPages;
+  readonly fonts: PdfFontResources;
+  readonly controller: AbortController;
+  readonly flushParagraphs: (minimumHeight?: number) => Promise<void>;
+  /** Generated rows consume the shared output budget but do not add source rows to progress/results. */
+  readonly acceptRow: (source: boolean) => void;
+  readonly acceptColumns: (columns: number) => void;
+}
+
+/** @internal Render one analytical source in the existing document session. Retain one detail row and
+ * at most four closing subtotals. All captions, rows, pages, bytes and fonts use the document owners. */
+export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context: GroupedPdfContext): Promise<void> {
+  const { report } = block, { pages, fonts, prepared, controller } = context;
+  assertGroupedReportSource(report);
+  if (prepared.options.tagged) throw new TypeError("Tagged grouped PDF reports are unsupported.");
+  const captured = captureGroupedPdfTableOptions(block.options);
+  const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captured;
+  const columns = Object.freeze([Object.freeze({ ...labelColumn }), ...report.columns]);
+  let rowIndex = -1;
+  const sourceContext = (value: ColumnValueContext): ColumnValueContext => ({ rowIndex,
+    columnIndex: value.columnIndex - 1, column: report.columns[value.columnIndex - 1]! });
+  const table = settings({ ...pages.settings.options, ...input, columns, includeHeader: input.includeHeader ?? true,
+    ...(input.formatValue === undefined ? {} : { formatValue: (value, position) => input.formatValue!(value, sourceContext(position)) }),
+    ...(input.formatRuns === undefined ? {} : { formatRuns: (value, position) => input.formatRuns!(value, sourceContext(position)) }) });
+  const sharedTable = { ...table, budget: prepared.budget }, layout = new PdfTableLayout(sharedTable, fonts);
+  context.acceptColumns(columns.length);
+  const operation = groupedReportOperation(report, controller.signal), abort = () => controller.abort(operation.signal?.reason);
+  operation.signal?.addEventListener("abort", abort, { once: true });
+  if (operation.signal?.aborted) abort();
+  try {
+    const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+    let path: readonly GroupStart[] = [], started = false, firstFragment = false, firstBundleOversized = false;
+    let pending: PdfLayoutRow | undefined;
+    const closing: PdfLayoutRow[] = [];
+    const summaryValues = (label: string, values: readonly (number | null)[]): readonly ExportValue[] => Object.freeze([
+      new ExportCell(label, { text: label, presentation: table.options.footerPresentation! }),
+      ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation! }))
+    ]);
+    const flushLastDetail = async (): Promise<void> => {
+      if (pending) {
+        if (!started) await startLeaf(pending);
+        if (closing.length && !firstBundleOversized) await pages.keptRows([pending, ...closing], firstFragment);
+        else if (closing.length) {
+          await pages.row(pending, firstFragment);
+          for (const row of closing) await pages.row(row);
+        }
+        else await pages.row(pending, firstFragment);
+      } else for (const row of closing) await pages.row(row);
+      pending = undefined; closing.length = 0; firstFragment = false; firstBundleOversized = false;
+    };
+    const finishLeaf = async (): Promise<void> => {
+      if (!started && !pending) return;
+      await flushLastDetail(); await pages.endTable(); started = false;
+    };
+    const startLeaf = async (row: PdfLayoutRow): Promise<void> => {
+      const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+        presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+      const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
+        synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+      const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
+      const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
+      firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
+      const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+      await context.flushParagraphs(caption.height + headingHeight + minimum);
+      await pages.beginTable(layout, headings, minimum, caption, continuation);
+      started = true; firstFragment = caption.lines.length > 0;
+    };
+    const complete = async (summary: GroupedReportSummary): Promise<void> => {
+      await finishLeaf();
+      if (!includeGrandTotal && summary.rows !== 0) return;
+      const completeColumns = summary.rows === 0 ? columns : columns.map(column => {
+        const { groups: _groups, ...leaf } = column as Column<readonly ExportValue[]>; return leaf;
+      });
+      const completeTable = settings({ ...table.options, columns: completeColumns,
+        includeHeader: input.includeHeader ?? true });
+      const completeLayout = summary.rows === 0 ? layout : new PdfTableLayout({ ...completeTable, budget: prepared.budget }, fonts);
+      const completeHeadings = summary.rows === 0 ? headings : await completeLayout.headers();
+      rowIndex = -1;
+      let total: PdfLayoutRow | undefined;
+      if (includeGrandTotal) {
+        context.acceptRow(false);
+        total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
+      }
+      if (!completeHeadings.length && !total) return;
+      const minimum = total ? total.lineHeight + table.padding * 2 : 0;
+      await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+      await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
+      if (total) await pages.row(total);
+      await pages.endTable();
+    };
+    await consumeRows(operation.events, operation.signal, async event => {
+      switch (event.kind) {
+        case "groupStart":
+          await finishLeaf();
+          path = Object.freeze([...path.slice(0, event.level), event]);
+          break;
+        case "row": {
+          if (pending) await flushLastDetail();
+          rowIndex = event.rowIndex; context.acceptRow(true);
+          const row = await layout.data([new ExportCell("", { text: "" }), ...event.values], event.rowIndex);
+          pending = row; break;
+        }
+        case "groupEnd":
+          rowIndex = -1; context.acceptRow(false);
+          closing.push(await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true));
+          break;
+        case "complete": await complete(event); break;
+      }
+    });
+  } finally {
+    operation.signal?.removeEventListener("abort", abort); operation.dispose();
+  }
+}

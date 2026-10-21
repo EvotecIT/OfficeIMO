@@ -2,12 +2,13 @@ import type { ProjectionColumn } from "../internal/columns.js";
 import { cleanXml, escapeXml, escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { cellPosition } from "./attachments.js";
-import { columnName } from "./values.js";
 import { colorArgb } from "./style-xml.js";
 import { fields, optionalBoolean, differentialXml } from "./differential-styles.js";
 import type { ConditionalFormat, ConditionalRange, ConditionalStyle, ConditionalThreshold } from "./conditional-types.js";
 import type { StyleRegistry } from "./styles.js";
 import { resolveDataColumn } from "./ranges.js";
+import { dataRowReference } from "./data-row-ranges.js";
+import type { DataRowRange } from "./data-row-ranges.js";
 
 interface Target { readonly first: number; readonly last: number; readonly reference?: string; readonly bottom?: number; }
 /** @internal Validated metadata, without workbook registrations. */
@@ -121,11 +122,11 @@ export class ConditionalFormats {
       xml: '<cfRule type="' + rule.type + '" priority="' + (i + 1) + '"' + (rule.style ? ' dxfId="' + differential[styleIndex++] + '"' : "") + rule.attributes + '>' + rule.body + '</cfRule>' }));
   }
   get count(): number { return this.rules.length; }
-  *xml(headerRows: number, dataRows: number, totalRows: number): Iterable<string> {
+  *xml(headerRows: number, dataRows: number, totalRows: number, ranges?: readonly DataRowRange[]): Iterable<string> {
     for (const rule of this.rules) {
       if (rule.target.bottom !== undefined && rule.target.bottom > totalRows) throw new RangeError("Conditional ranges must stay within exported rows.");
-      if (!rule.target.reference && !dataRows) continue;
-      const reference = rule.target.reference ?? columnName(rule.target.first) + (headerRows + 1) + ':' + columnName(rule.target.last) + (headerRows + dataRows);
+      const reference = rule.target.reference ?? dataRowReference(rule.target.first, rule.target.last, headerRows, dataRows, ranges);
+      if (!reference) continue;
       yield '<conditionalFormatting sqref="' + reference + '">' + rule.xml + '</conditionalFormatting>';
     }
   }

@@ -153,7 +153,7 @@ test("XLSX cancels mid-stream and never finalizes a partial workbook", async () 
 
 test("classic scripts compose in either order without a module loader", async () => {
   for (const order of [["canopyx", "datatables", "xlsx", "csv", "pdf"], ["pdf", "csv", "xlsx", "datatables", "canopyx"]]) {
-    const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException });
+    const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException, AbortController });
     let core;
     for (const kind of order) {
       vm.runInContext(await readFile(new URL("../bundles/officeimo-" + kind + ".js", import.meta.url), "utf8"), context);

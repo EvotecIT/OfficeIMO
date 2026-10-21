@@ -889,7 +889,7 @@ Workbook limits include `maxFormulaCharacters` (1,000,000 authored UTF-16 units)
 
 ## Grouped analytical reports
 
-`createGroupedReport` supplies one shared, single-use stream to the XLSX or PDF grouped writer. It consumes rows already ordered into contiguous groups, such as a grid sorted by site. Every column has a unique stable `key`; translated or reordered headings never choose the grouping field or a metric. A closed group appearing again is rejected. The engine does not sort or retain all report rows.
+`createGroupedReport` supplies one shared, single-use analytical stream to XLSX and PDF. It consumes rows already ordered into contiguous groups, with one through four levels from outermost to innermost. Every visible column has a unique stable `key`; translated or reordered headings never choose the grouping field or a metric. A closed group recurring under the same parent is rejected; the same child key under another parent is valid. The engine does not sort or retain all report rows.
 
 ```ts
 import { createGroupedReport, writeGroupedXlsx, saveBlob } from "@evotecit/officeimo/xlsx";
@@ -920,15 +920,67 @@ const file = await writeGroupedXlsx(report, {
 saveBlob(file, "grouped-services.xlsx");
 ```
 
-The leading label column preserves every original typed column, including a numeric first column. `sum`, `count`, `average`, `min` and `max` operate on explicitly numeric columns and accept finite numbers or null values. `count` counts numeric cells; `group.rows` and `summary.rows` count all records. Empty sum/count results are zero; empty average/min/max results are blank. Grand averages use all numeric records, including unequal group sizes, rather than averaging group averages.
+The leading label column preserves every original typed column, including a numeric first column. `sum`, `count`, `average`, `min` and `max` operate on explicitly numeric columns and accept finite numbers or null values. `count` counts numeric cells; `group.rows` and `summary.rows` count all records. Empty sum/count results are zero; empty average/min/max results are blank. Every ancestor and the grand summary aggregate accepted numeric records directly, so unequal child sizes do not distort averages.
 
 XLSX emits native outline controls and finite `SUBTOTAL` formulas with initial caches. Excel recalculates them after detail edits; manually collapsed rows remain included. Grouped sheets do not enable an Excel table or autofilter: filtering/selection belongs to the host capture before export. `includeGrandTotal: false` omits the final summary. Group labels, subtotal labels and grand labels are host-authored strings, so applications supply their own translations and terminology.
 
-For PDF, create a fresh source and call `writeGroupedPdf` or `writeGroupedPdfTo` from the same `/pdf` entry. It accepts the same required `labelColumn`, `subtotalLabel` and `grandTotalLabel`; ordinary PDF fonts, layout and display options apply. Each group repeats its captured label and leaf headings on continued pages. A subtotal can flow onto the next page under that repeated context; it is not kept with the last detail row. `continuationLabel` can supply explicit text such as `${group.label} — continued`. Empty reports retain requested headings with or without a grand total. The shared source computes the same metrics for both formats. Tagged grouped PDF output is explicitly unsupported while its group/table associations remain unqualified.
+For PDF, create a fresh source and call `writeGroupedPdf` or `writeGroupedPdfTo` from the same `/pdf` entry. These convenience writers use the same composed-document owner as `pdfGroupedTable`. The required `labelColumn`, `subtotalLabel` and `grandTotalLabel` remain host-authored; ordinary PDF fonts, layout and display options apply. Continued pages repeat the full active ancestor path and leaf headings. The last detail row and its closing subtotals stay together when the bundle fits a fresh page; oversized bundles use ordinary row splitting under repeated context. `continuationLabel` supplies display text for each active group. Empty reports retain requested headings with or without a grand total. Tagged grouped PDF output remains explicitly unsupported while its group/table associations are unqualified.
 
-`writeGroupedXlsxTo` and `writeGroupedPdfTo` await caller-owned destinations. Source and writer cancellation reach pending reads and writes; progress/result `rows` count data records. Generated group and summary rows still consume the format writer's row/cell/text budgets. Source `limits` cover only rows, cells and text; set `maxOutputBytes` on the selected writer. `maxGroups` defaults to 1,000 and `maxGroupKeyCharacters` to 1,000,000 retained UTF-16 units. The engine retains group identifiers for recurrence detection, aggregate state and one boundary lookahead, rather than group bodies.
+`writeGroupedXlsxTo` and `writeGroupedPdfTo` await caller-owned destinations. Source and writer cancellation reach pending reads and writes; progress/result `rows` count data records. Generated group and summary rows still consume the format writer's row/cell/text budgets. Source `limits` cover only rows, cells and text; set `maxOutputBytes` on the selected writer. `maxGroups` defaults to 1,000 across all opened nodes, and `maxGroupKeyCharacters` to 1,000,000 retained UTF-16 units. The engine retains parent-scoped identifiers for recurrence detection, depth-bounded aggregate state and one boundary lookahead, rather than group bodies.
 
-Group identity is locale independent: strings compare exactly, numbers and booleans keep their types, dates compare UTC milliseconds, and null/undefined share one empty group. Default date labels use ISO UTC text; use `groupLabel` for localized display. Use the factory and writer from the same package entry or standalone bundle. A source is consumed once; create another source, with a new iterable when necessary, for a second format. CSV remains a flat typed-record export.
+Group identity is locale independent: strings compare exactly, numbers and booleans keep their types, dates compare UTC milliseconds, and null/undefined share one empty group. Default date labels use ISO UTC text; use a level descriptor's `label` for localized display, or the single-level `groupLabel` shorthand. Use the factory and writer from the same package entry or standalone bundle. A source is consumed once; create another source, with a new iterable when necessary, for a second format. CSV remains a flat typed-record export.
+
+### Compose a hierarchical analysis
+
+`groupBy: ["region", "site"]` selects projected values by stable column key. For a grouping field that should not appear in the detail columns, supply `{ key, value, label? }`. Its synchronous getter receives the original record and `{ rowIndex, level, key }`; an existing visible column reuses its captured projection and cannot also declare a grouping getter. Each label callback receives the typed key. Levels require unique keys; `groupLabel` applies only to a single level.
+
+```ts
+import { Workbook, createGroupedReport, addGroupedXlsx, saveBlob } from "@evotecit/officeimo";
+
+const selected = [
+  { portfolio: "Core", environment: "Production", service: "Directory", latency: 12 },
+  { portfolio: "Core", environment: "Production", service: "DNS", latency: 18 },
+  { portfolio: "Core", environment: "Staging", service: "Directory", latency: 6 }
+];
+const source = createGroupedReport(selected, {
+  columns: [
+    { header: "Service", key: "service" },
+    { header: "Latency", key: "latency", type: "number", format: "0.00" }
+  ],
+  groupBy: [
+    { key: "portfolio", value: row => row.portfolio },
+    { key: "environment", value: row => row.environment }
+  ],
+  totals: { latency: "average" }
+});
+const book = new Workbook();
+await book.addWorksheet("Context", { columns: [{ header: "Scope" }] })
+  .addRows([["Selected services; grouping fields are metadata."]]);
+const analysis = await addGroupedXlsx(book, source, {
+  labelColumn: { header: "Group", width: 30 },
+  subtotalLabel: group => `${group.label}: ${group.rows} services`,
+  grandTotalLabel: summary => `All ${summary.rows} selected services`,
+  sheet: { name: "Analysis", freezeHeader: true },
+  conditionalFormats: [{ type: "cellIs", range: { column: "latency" },
+    operator: "greaterThan", value: 15, style: { font: { bold: true, color: "991B1B" } } }]
+});
+const overview = book.addWorksheet("Overview", {
+  columns: [{ header: "Portfolio" }, { header: "Services", type: "number" }]
+});
+await overview.addRows(analysis.groups.filter(group => group.level === 0)
+  .map(group => [group.label, group.rows]));
+saveBlob(await book.toBlob(), "selected-services.xlsx");
+```
+
+`addGroupedXlsx` closes its new analysis worksheet and leaves the existing workbook open for further sheets and finalization. It shares that workbook's styles, destination, cancellation and cumulative limits. Its result contains `worksheet`, accepted `rows`, output `columns`, `grandSummary`, physical `detailRanges`, per-group identity/path/rows/totals and `startRow`, `firstDetailRow`, `lastDetailRow`, `summaryRow`, plus optional `grandTotalRow`. Coordinates are one-based physical worksheet positions. `Worksheet.rowCount` includes generated analysis rows; workbook result/progress row counts exclude those generated rows and still include ordinary sibling-sheet data. On a grouped worksheet, `dataRange()` returns its single contiguous detail run or `undefined` for no details. Multiple detail runs require the explicit `detailRanges`; a single rectangular range would also include generated totals and is rejected.
+
+Top-level grouped `conditionalFormats` and `dataValidation` apply only to the returned detail runs. Select a stable data-column key or one-based visible data-column number; the added label column does not change those selectors. A1 rule ranges and generated rows are rejected. Inline validation retains the ordinary Excel limits. Disjoint editing references are bounded to 32,767 UTF-16 units; split a worksheet if its group count would exceed that ceiling. Native tables and autofilters remain unsupported for interleaved detail and summary rows.
+
+For a PDF document, create a fresh source and insert `pdfGroupedTable(source, labelsAndTableOptions)` alongside sections, paragraphs, charts, ordinary tables and recommendations. The block inherits fonts, page geometry, cancellation and resource policy from `writePdfDocument`/`writePdfDocumentTo`. Block options contain table presentation and labels; document options belong on the document writer. A grand total moved or split onto a fresh page repeats the metric headings unless `includeHeader: false` was requested. Ownership of a source begins when its block is reached, and a completed, failed or cancelled block releases its iterator and listeners. An unreached block does not consume its source.
+
+Group events expose zero-based `level` and a captured `path` containing all active `{ groupIndex, key, label, level }` identities. `source.groupBy` is a readonly array of stable level keys. A composed report can use a supplied opening overview, or create a computed overview after consuming the detail. It does not silently replay a source or retain its complete body to compute an earlier summary. Totals describe the actual exported rows, including selected/filtered captures; a grid's full-query summary is a different scope.
+
+The [complete analytical report example](../OfficeIMO.JavaScript.Examples/analytical-report-job.mjs) combines hidden grouping fields, detail-only editing rules, an editable overview chart and multi-section PDF output. Its worker input is ordinary flat projected rows: visible values followed by explicitly selected grouping scalars. Those metadata fields consume the same worker cell/text budgets; callbacks are reconstructed in the worker. It has explicit English and Polish example resources, while the engine's keys, grouping and numeric semantics remain language independent.
 
 ## Live Excel conditional formatting
 

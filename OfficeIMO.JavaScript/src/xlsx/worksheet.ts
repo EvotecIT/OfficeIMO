@@ -33,6 +33,7 @@ import { prepareDataValidations, dataValidationsXml } from "./validation.js";
 import type { PreparedValidations } from "./validation.js";
 import { qualifiedCell, qualifiedColumnRange, resolveDataColumn } from "./ranges.js";
 import type { PreparedChartBinding } from "./chart-bindings.js";
+import { dataRowRanges, dataRowCount } from "./data-row-ranges.js";
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count: number): void {
@@ -388,13 +389,20 @@ export class Worksheet<T = never> {
     } catch (error) { this.failed = true; this.error = error; await this.book.discard(error); throw error; }
     finally { this.busy = false; }
   }
-  private progress(): void { if (!this.preserved && !this.chartData) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+  private progress(): void { if (!this.preserved && !this.chartData) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.reportRowCount, sheetName: this.name }); }
   get rowCount(): number { return this.count; }
-  /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+  /** A finite formula reference to a completed data column, excluding report decorations.
+   * Empty data returns undefined; discontiguous grouped details require explicit detailRanges instead. */
   dataRange(column: string | number): string | undefined {
     if (this.failed) throw this.error;
     if (!this.completed) throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
     const selected = resolveDataColumn(this.columns, column);
+    const ranges = dataRowRanges(this);
+    if (ranges !== undefined) {
+      if (ranges.length > 1) throw new OfficeIMOError("INVALID_STATE", "Grouped details are discontiguous; use the grouped result's detailRanges for explicit formula references.");
+      const range = ranges[0];
+      return range ? qualifiedColumnRange(this.name, selected, range.firstRow, range.lastRow - range.firstRow + 1) : undefined;
+    }
     return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
   }
   /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
@@ -410,7 +418,7 @@ export class Worksheet<T = never> {
   /** @internal Only the workbook may attach a preflighted, bounded source observer. */
   retainChartBinding(binding: PreparedChartBinding): void { this.chartSources.push(binding); }
   /** @internal Preservation records are metadata, not report data rows. */
-  get reportRowCount(): number { return this.preserved || this.chartData ? 0 : this.count; }
+  get reportRowCount(): number { return this.preserved || this.chartData ? 0 : dataRowCount(this, this.headerRows, this.count); }
   /** @internal Chart data is editable through Excel's Unhide worksheet command. */
   get hidden(): boolean { return this.chartData; }
   /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
@@ -504,8 +512,9 @@ export class Worksheet<T = never> {
       await this.buffer!.write('</sheetData>');
       if (this.options.autoFilter && this.headerRows && !this.tableDefinition) await this.buffer!.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
       if (regions.references.length) await this.buffer!.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
-      for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows)) await this.buffer!.write(xml);
-      for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count)) await this.buffer!.write(xml);
+      const detailRanges = dataRowRanges(this);
+      for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows, detailRanges)) await this.buffer!.write(xml);
+      for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges)) await this.buffer!.write(xml);
       if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
       await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
       if (this.pictures.length || this.nativeCharts.length) await this.buffer!.write('<drawing r:id="drawing"/>');

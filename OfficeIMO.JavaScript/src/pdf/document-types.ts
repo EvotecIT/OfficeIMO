@@ -3,6 +3,8 @@ import type { PdfOptions } from "./types.js";
 import type { PdfDrawingBlock } from "./drawing-types.js";
 import type { PdfText } from "./inline-types.js";
 import type { PdfBookmark, PdfSectionBlock } from "./section-types.js";
+import type { GroupedReportSource } from "../core/grouped-report.js";
+import type { GroupedPdfTableOptions } from "./grouped-types.js";
 
 /** Page geometry, fonts, decorations and resource policy shared by every document block. */
 export interface PdfDocumentOptions extends Omit<PdfOptions<never>, "columns" | "includeHeader" | "headerRows" | "footer" |
@@ -22,6 +24,13 @@ export interface PdfTableBlock {
   readonly caption?: PdfCaption;
   /** Repeated before leaf headings when this table continues on another page. Tagged output is unsupported. */
   readonly continuationCaption?: PdfCaption;
+}
+/** A single-use analytical source with repeated ancestor context and source-owned numeric aggregates.
+ * Construct through pdfGroupedTable to capture its options. Tagged output is unsupported. */
+export interface PdfGroupedTableBlock {
+  readonly kind: "groupedTable";
+  readonly report: GroupedReportSource;
+  readonly options: GroupedPdfTableOptions;
 }
 /** Reusable paragraph appearance, spacing and keep rules. Semantic roles remain on their content blocks. */
 export interface PdfParagraphStyle {
@@ -131,4 +140,4 @@ export interface PdfVectorBlock {
   readonly caption?: PdfCaption;
 }
 /** Blocks are consumed once in order; each table owns its row source until that table completes. */
-export type PdfDocumentBlock = PdfParagraphBlock | PdfGroupBlock | PdfTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock | PdfDrawingBlock | PdfListBlock | PdfSectionBlock;
+export type PdfDocumentBlock = PdfParagraphBlock | PdfGroupBlock | PdfTableBlock | PdfGroupedTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock | PdfDrawingBlock | PdfListBlock | PdfSectionBlock;

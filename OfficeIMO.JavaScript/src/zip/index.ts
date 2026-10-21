@@ -45,6 +45,8 @@ export class ZipWriter {
   private active: ZipEntry | undefined;
   private state: "open" | "writing" | "finished" | "failed" = "open";
   private readonly options: Readonly<ZipWriterOptions>;
+  private readonly lifetime = new AbortController();
+  private disposal: Promise<void> | undefined;
   constructor(sink?: ByteSink, options: ZipWriterOptions = {}) {
     const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
     const { compression, maxOutputBytes } = captured;
@@ -54,11 +56,21 @@ export class ZipWriter {
     this.options = Object.freeze(captured);
     this.owned = sink ? undefined : new BlobByteSink(); this.sink = sink ?? this.owned!;
   }
+  /** Pending header/directory writes and source reads must also stop on explicit discard. */
+  private async acceptance<T>(operation: () => T | PromiseLike<T>): Promise<T> {
+    const signal = this.options.signal;
+    const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+    signal?.addEventListener("abort", abort, { once: true });
+    try {
+      checkAbort(signal); checkAbort(this.lifetime.signal);
+      return await withAbort(Promise.resolve(operation()), this.lifetime.signal);
+    } finally { signal?.removeEventListener("abort", abort); }
+  }
   private async emit(bytes: Uint8Array): Promise<void> {
     if (this.options.maxOutputBytes !== undefined && this.offset + bytes.length > this.options.maxOutputBytes)
       throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
     this.offset = zipSize(this.offset + bytes.length);
-    await withAbort(Promise.resolve(this.sink.write(bytes)), this.options.signal);
+    await this.acceptance(() => this.sink.write(bytes));
   }
   private reserve(name: string): Uint8Array {
     checkAbort(this.options.signal);
@@ -90,7 +102,7 @@ export class ZipWriter {
       await this.emit(this.local(encoded, entry, true));
       const writer = entry;
       let busy = false, closed = false, completion: Promise<EntryInfo> | undefined;
-      const discard = async (error: unknown) => { closed = true; this.state = "failed"; await writer.discard(error); this.owned?.discard(); this.active = undefined; };
+      const discard = async (error: unknown) => { closed = true; this.state = "failed"; this.lifetime.abort(error); await writer.discard(error); this.owned?.discard(); this.active = undefined; };
       return this.active = {
         write: async bytes => {
           if (busy || closed || this.state !== "writing") throw new OfficeIMOError("INVALID_STATE", "Await the current ZIP entry operation.");
@@ -117,14 +129,17 @@ export class ZipWriter {
   async add(name: string, source: ZipEntrySource): Promise<void> {
     const entry = await this.openEntry(name);
     try {
-      if (typeof source === "function") await withAbort(Promise.resolve(source(entry)), this.options.signal);
-      else await writeBytes(source, entry, this.options.signal);
+      if (typeof source === "function") await this.acceptance(() => source(entry));
+      else await this.acceptance(() => writeBytes(source, entry, this.lifetime.signal));
       await entry.close();
     } catch (error) { await entry.discard(error); throw error; }
   }
   get bytesWritten(): number { return this.offset; }
   /** Drop owned output and release the active compressor. Caller-owned partial bytes remain with the caller. */
-  async discard(error: unknown): Promise<void> { this.state = "failed"; await this.active?.discard(error); this.owned?.discard(); }
+  discard(error: unknown): Promise<void> {
+    this.state = "failed"; this.lifetime.abort(error);
+    return this.disposal ??= (async () => { await this.active?.discard(error); this.owned?.discard(); })();
+  }
   /** @internal Buffered worksheet compression stays in the format owner. */
   async addPrepared(name: string, entry: PreparedEntry): Promise<void> {
     const encoded = this.reserve(name), offset = this.offset;

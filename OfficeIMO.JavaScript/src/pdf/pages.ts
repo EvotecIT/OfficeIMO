@@ -265,6 +265,14 @@ export class PdfPages {
     }
     await this.structure?.completeRow(elements);
   }
+  /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
+   * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
+  async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
+    const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
+    const fits = height <= this.continuationTop - bottom + .001;
+    if (fits && height > this.y - bottom + .001) { await this.finishPage(); await this.start(); }
+    for (const [index, row] of rows.entries()) await this.row(row, !fits && index === 0 && allowFirstFragment);
+  }
   async paragraph(text: string, style: CellPresentation = {}, size = this.settings.fontSize, paginate = true, headingLevel?: number): Promise<void> {
     await this.ensureStarted();
     const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
@@ -325,12 +333,16 @@ export class PdfPages {
   }
   /** Begin an independent table on the current page, retaining its headings on continuation pages. */
   async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
-    continuationCaption?: PdfPreparedParagraph): Promise<void> {
+    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false): Promise<void> {
     await this.ensureStarted();
     this.layout = layout;
     this.continuationCaption = continuationCaption; this.continuationCaptionPaints = 0;
     this.tableElement = this.structure?.element("Table"); this.tableHeadingsDrawn = false;
-    const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+    const headings = preparedHeadings ?? await layout.headers();
+    // A closing summary can share the preceding table's headings on the current page.
+    // Its own headings remain available when it moves or splits onto a fresh page.
+    const initialHeadings = headingsOnNewPageOnly && this.bodyAdded ? [] : headings;
+    const height = initialHeadings.reduce((n, row) => n + row.height, 0);
     if (caption) {
       await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
       await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
@@ -338,8 +350,8 @@ export class PdfPages {
     if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
       await this.finishPage(); await this.start(true, headings); return;
     }
-    this.continuationTop = this.settings.page.height - this.settings.margins.top - height - (continuationCaption?.height ?? 0);
-    await this.drawHeadings(headings);
+    this.continuationTop = this.settings.page.height - this.settings.margins.top - headings.reduce((n, row) => n + row.height, 0) - (continuationCaption?.height ?? 0);
+    await this.drawHeadings(initialHeadings);
     this.dataTop = this.y;
   }
   async endTable(): Promise<void> {

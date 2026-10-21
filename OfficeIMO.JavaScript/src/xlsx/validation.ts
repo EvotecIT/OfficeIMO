@@ -3,9 +3,10 @@ import { checkAbort } from "../core/iteration.js";
 import type { ProjectionColumn } from "../internal/columns.js";
 import { cleanXml, escapeOoxmlAttribute, escapeXml } from "../xml/index.js";
 import { fields, optionalBoolean } from "./differential-styles.js";
-import { columnName } from "./values.js";
 import { resolveDataColumn } from "./ranges.js";
 import type { ListValidation } from "./validation-types.js";
+import { dataRowReference } from "./data-row-ranges.js";
+import type { DataRowRange } from "./data-row-ranges.js";
 
 /** @internal Captured worksheet metadata; no caller arrays or option objects remain. */
 export interface PreparedValidation { readonly column: number; readonly attributes: string; readonly formula: string; }
@@ -74,11 +75,11 @@ export function prepareDataValidations(rules: readonly ListValidation[] | undefi
 }
 
 /** @internal Empty sources do not create validation over headings, totals or an artificial blank row. */
-export function* dataValidationsXml(prepared: PreparedValidations, headerRows: number, dataRows: number): Iterable<string> {
-  if (!prepared.count || !dataRows) return;
+export function* dataValidationsXml(prepared: PreparedValidations, headerRows: number, dataRows: number, ranges?: readonly DataRowRange[]): Iterable<string> {
+  if (!prepared.count || !dataRows || ranges?.length === 0) return;
   yield '<dataValidations count="' + prepared.count + '">';
   for (const rule of prepared.rules) {
-    const column = columnName(rule.column), reference = column + (headerRows + 1) + ":" + column + (headerRows + dataRows);
+    const reference = dataRowReference(rule.column, rule.column, headerRows, dataRows, ranges)!;
     yield '<dataValidation' + rule.attributes + ' sqref="' + reference + '"><formula1>' + escapeXml(rule.formula, "reject") + '</formula1></dataValidation>';
   }
   yield '</dataValidations>';

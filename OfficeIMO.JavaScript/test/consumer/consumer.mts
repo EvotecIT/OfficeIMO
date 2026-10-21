@@ -24,6 +24,14 @@ import type { PdfFontPreparationOptions } from "@evotecit/officeimo/pdf";
 import { createHarfBuzzTextShaper } from "@evotecit/officeimo/pdf/providers/harfbuzz";
 import type { PdfHarfBuzzModule, PdfBidiEngine } from "@evotecit/officeimo/pdf/providers/harfbuzz";
 import type { PdfTextShaper, PdfShapeLineRequest, PdfShapedRun } from "@evotecit/officeimo";
+import { createGroupedReport as createRootGroupedReport, addGroupedXlsx as addRootGroupedXlsx, pdfGroupedTable as rootGroupedTable } from "@evotecit/officeimo";
+import type { GroupedReportOptions, GroupedReportLevel, GroupedReportGroup, GroupedReportValueContext, GroupedXlsxWorksheet, GroupedXlsxSheetOptions, GroupedPdfTableOptions, PdfGroupedTableBlock } from "@evotecit/officeimo";
+import { createGroupedReport as createCoreGroupedReport } from "@evotecit/officeimo/core";
+import type { GroupedReportSource, GroupedReportGroup as CoreReportGroup, GroupedReportValueContext as CoreValueContext } from "@evotecit/officeimo/core";
+import { addGroupedXlsx } from "@evotecit/officeimo/xlsx";
+import type { GroupedReportSource as XlsxReportSource, GroupedXlsxWorksheet as XlsxAnalysisSheet } from "@evotecit/officeimo/xlsx";
+import { pdfGroupedTable } from "@evotecit/officeimo/pdf";
+import type { GroupedReportSource as PdfReportSource, PdfGroupedTableBlock as PdfAnalysisBlock } from "@evotecit/officeimo/pdf";
 function optionalTextProvider(harfbuzz: PdfHarfBuzzModule, bidi: PdfBidiEngine, regular: PdfFont, arabic: PdfFont) {
   const provider = createHarfBuzzTextShaper({ harfbuzz, bidi, language: "ar" });
   const replaceable: PdfTextShaper = provider;
@@ -428,6 +436,75 @@ async function groupedAnalysis() {
   await writeCsv([[true]], { columns: [{ header: "Ready" }], booleanText: { true: true, false: "Nie" } });
 }
 void groupedAnalysis;
+
+interface CertificateRecord {
+  readonly name: string;
+  readonly site: string;
+  readonly issuer: string;
+  readonly state: "valid" | "expired";
+  readonly days: number | null;
+}
+
+async function hierarchicalAnalysis(records: readonly CertificateRecord[]) {
+  const site: GroupedReportLevel<CertificateRecord> = { key: "site", value(row, context) {
+    const sourceContext: CoreValueContext = context;
+    const rootContext: GroupedReportValueContext = sourceContext;
+    const index: number = rootContext.rowIndex + rootContext.level;
+    const field: string = context.key;
+    void [index, field];
+    // @ts-expect-error grouping contexts are captured read-only metadata
+    context.level = 2;
+    return row.site;
+  }, label: value => String(value) };
+  const setup: GroupedReportOptions<CertificateRecord> = {
+    columns: [{ key: "name", header: "Certificate" }, { key: "state", header: "State" }, { key: "days", header: "Days", type: "number" }],
+    groupBy: [site, { key: "issuer", value: row => row.issuer }, "state"], totals: { days: "average" },
+  };
+  const source = (): GroupedReportSource => createCoreGroupedReport(records, setup);
+  const rootSource = createRootGroupedReport(records, setup);
+  const xlsxSource: XlsxReportSource = rootSource, pdfSource: PdfReportSource = rootSource;
+  const groupingKeys: readonly string[] = rootSource.groupBy;
+  void [xlsxSource, pdfSource, groupingKeys];
+  // @ts-expect-error captured grouping keys cannot be modified
+  rootSource.groupBy.push("another");
+  for await (const event of source().events) {
+    if (event.kind === "complete") continue;
+    const path: readonly GroupedReportGroup[] = event.path;
+    const group: CoreReportGroup | undefined = path.at(-1);
+    if (group) { const level: number = group.level; const label: string = group.label; void [level, label]; }
+    // @ts-expect-error every event's ancestor path is immutable
+    event.path[0] = { groupIndex: 0, key: "x", label: "x", level: 0 };
+  }
+  const labels: GroupedXlsxSheetOptions = { labelColumn: { header: "Summary" },
+    subtotalLabel: group => `${group.path.map(ancestor => ancestor.label).join(" / ")}: ${group.rows}`,
+    grandTotalLabel: summary => `${summary.rows} selected certificates`, sheet: { name: "Certificates" } };
+  const book = new Workbook({ compression: "store" });
+  const cover = book.addWorksheet("Overview", { columns: [{ header: "Report" }] });
+  await cover.addRows([["Selected certificate inventory"]]);
+  const analysis: GroupedXlsxWorksheet = await addGroupedXlsx(book, source(), labels);
+  const subpathSheet: XlsxAnalysisSheet = analysis;
+  const physicalRow: number | undefined = analysis.detailRanges[0]?.firstRow;
+  const groupPath: readonly GroupedReportGroup[] | undefined = analysis.groups[0]?.path;
+  void [subpathSheet, physicalRow, groupPath, analysis.grandSummary.totals];
+  await addRootGroupedXlsx(book, source(), { ...labels, sheet: { name: "Appendix" } });
+  await book.toBlob();
+  const tableOptions: GroupedPdfTableOptions = { labelColumn: labels.labelColumn, subtotalLabel: labels.subtotalLabel,
+    grandTotalLabel: summary => String(summary.rows), continuationLabel: group => group.path.map(ancestor => ancestor.label).join(" / ") };
+  const block: PdfGroupedTableBlock = pdfGroupedTable(source(), tableOptions);
+  const subpathBlock: PdfAnalysisBlock = rootGroupedTable(source(), tableOptions);
+  await writePdfDocument([{ kind: "paragraph", text: "Selected certificate inventory" }, block,
+    { kind: "paragraph", text: "Second analysis" }, subpathBlock]);
+  // @ts-expect-error hidden grouping getters must return a synchronous scalar
+  const asyncLevel: GroupedReportLevel<CertificateRecord> = { key: "site", value: row => Promise.resolve(row.site) };
+  // @ts-expect-error hidden grouping getters receive the declared record type
+  const wrongRecord: GroupedReportLevel<CertificateRecord> = { key: "site", value: (row: { wrong: string }) => row.wrong };
+  // @ts-expect-error grouping labels return text
+  const numericLabel: GroupedReportLevel<CertificateRecord> = { key: "site", label: () => 1 };
+  // @ts-expect-error document geometry belongs to writePdfDocument, not an analytical table block
+  pdfGroupedTable(source(), { ...tableOptions, orientation: "landscape" });
+  void [asyncLevel, wrongRecord, numericLabel];
+}
+void hierarchicalAnalysis;
 
 const pdfTotal: import("@evotecit/officeimo").PdfTotal = "sum";
 const rootError = new RootOfficeIMOError("INVALID_STATE", "Stopped");

@@ -8,13 +8,13 @@ export * as pdf from "./pdf/index.js";
 export { Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo } from "./xlsx/index.js";
 export { writeCsv, writeCsvTo } from "./csv/index.js";
 export { createGroupedReport } from "./core/grouped-report.js";
-export { writeGroupedXlsx, writeGroupedXlsxTo } from "./xlsx/grouped.js";
-export { writeGroupedPdf, writeGroupedPdfTo } from "./pdf/grouped.js";
-export type { GroupedPdfOptions } from "./pdf/grouped-types.js";
+export { writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx } from "./xlsx/grouped.js";
+export { writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable } from "./pdf/grouped.js";
+export type { GroupedPdfOptions, GroupedPdfTableOptions } from "./pdf/grouped-types.js";
 export type { PdfPageNumberLabels } from "./pdf/types.js";
 export type { RowOutline } from "./xlsx/types.js";
-export type { GroupedXlsxOptions } from "./xlsx/grouped.js";
-export type { GroupedReportSource, GroupedReportEvent, GroupedReportOptions, GroupedReportSummary } from "./core/grouped-report.js";
+export type { GroupedXlsxOptions, GroupedXlsxSheetOptions, GroupedXlsxWorksheet, GroupedXlsxGroupRows } from "./xlsx/grouped.js";
+export type { GroupedReportSource, GroupedReportEvent, GroupedReportOptions, GroupedReportSummary, GroupedReportValueContext, GroupedReportLevel, GroupedReportGroup } from "./core/grouped-report.js";
 export type { BooleanText } from "./core/value-text.js";
 export { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText } from "./pdf/index.js";
 export { OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } from "./core/index.js";
@@ -30,3 +30,5 @@ export type { PdfDocumentOptions, PdfDocumentBlock, PdfTableOptions, PdfTableBlo
 export type { PdfDrawing, PdfDrawingBlock, PdfDrawingElement, PdfDrawingPath, PdfDrawingText, PdfDrawingGroup, PdfDrawingClip, PdfDrawingFont } from "./pdf/index.js";
 
 export type { PdfSectionBlock, PdfBookmark } from "./pdf/section-types.js";
+
+export type { PdfGroupedTableBlock } from "./pdf/document-types.js";
