@@ -418,6 +418,7 @@ namespace OfficeIMO.Excel {
 
         private void ReloadFromBytes(byte[] packageBytes, bool simplePackageContentKnown = false, Stream? reusablePackageStream = null) {
             var previousSheetParts = _sheetPartsBeforePackageClose ?? CaptureActiveSheetPartsForReload();
+            var previousDrawingHandles = _drawingHandlesBeforePackageClose ?? CaptureDrawingHandlesForReload(previousSheetParts);
             var previousDocument = _spreadSheetDocument;
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
@@ -470,7 +471,9 @@ namespace OfficeIMO.Excel {
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
             RebindSheetWrappersAfterPackageReload(previousSheetParts);
+            RebindDrawingHandlesAfterPackageReload(previousDrawingHandles);
             _sheetPartsBeforePackageClose = null;
+            _drawingHandlesBeforePackageClose = null;
             ReinitializePackageBoundHelpers();
             MarkPackageClean(reuseOwnedFileBackedStream ? null : packageBytes, simplePackageContentKnown);
 

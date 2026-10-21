@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Captures active worksheet identities while package relationships can still be read.</summary>
         private void ClosePackageForReload() {
             _sheetPartsBeforePackageClose = CaptureActiveSheetPartsForReload();
+            _drawingHandlesBeforePackageClose = CaptureDrawingHandlesForReload(_sheetPartsBeforePackageClose);
             try { _spreadSheetDocument.Dispose(); } catch { }
         }
 
