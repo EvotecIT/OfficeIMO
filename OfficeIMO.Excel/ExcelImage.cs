@@ -11,16 +11,17 @@ namespace OfficeIMO.Excel {
     /// Represents a worksheet image anchored in the drawing layer.
     /// </summary>
     public sealed partial class ExcelImage {
-        private readonly Xdr.Picture _picture;
-        private readonly OpenXmlElement _anchor;
-        private readonly DrawingsPart _drawingsPart;
+        private readonly ExcelDrawingHandle _drawingHandle;
+        private Xdr.Picture _picture => (Xdr.Picture)_drawingHandle.Element;
+        private OpenXmlElement _anchor => _picture.Ancestors().First(element =>
+            element is Xdr.OneCellAnchor || element is Xdr.TwoCellAnchor || element is Xdr.AbsoluteAnchor);
+        private DrawingsPart _drawingsPart => _drawingHandle.Part;
         private readonly ExcelDocument _document;
 
-        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelDocument document) {
-            _picture = picture ?? throw new ArgumentNullException(nameof(picture));
-            _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
-            _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
-            _document = document ?? throw new ArgumentNullException(nameof(document));
+        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelSheet sheet) {
+            if (anchor == null) throw new ArgumentNullException(nameof(anchor));
+            _drawingHandle = new ExcelDrawingHandle(picture, drawingsPart, sheet);
+            _document = sheet.Document;
         }
 
         /// <summary>

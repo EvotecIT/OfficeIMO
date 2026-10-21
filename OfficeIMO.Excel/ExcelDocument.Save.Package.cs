@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
                 ClosePackageForReload();
             }
 
-            return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
+            return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, applyPackageProperties: _packagePropertiesDirty);
         }
 
         internal static Dictionary<string, OpenXmlElement> CollectLoadedCarriageReturnParts(WorkbookPart workbookPart) {
@@ -343,11 +343,12 @@ namespace OfficeIMO.Excel {
             } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
-                skipReason = "Simple package writer failed: " + ex.Message;
                 if (packageBytes != null) {
-                    try { ReloadFromBytes(packageBytes, simplePackageContentKnown: true); } catch { }
+                    RestoreFailedFileSave(packageBytes, ex);
+                    throw;
                 }
 
+                skipReason = "Simple package writer failed: " + ex.Message;
                 return false;
             } finally {
                 DeleteFileIfExists(temporaryPath);
@@ -383,11 +384,12 @@ namespace OfficeIMO.Excel {
             } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
-                skipReason = "Extended package writer failed: " + ex.Message;
                 if (packageBytes != null) {
-                    try { ReloadFromBytes(packageBytes, simplePackageContentKnown: true); } catch { }
+                    RestoreFailedFileSave(packageBytes, ex);
+                    throw;
                 }
 
+                skipReason = "Extended package writer failed: " + ex.Message;
                 return false;
             } finally {
                 DeleteFileIfExists(temporaryPath);
@@ -416,6 +418,7 @@ namespace OfficeIMO.Excel {
 
         private void ReloadFromBytes(byte[] packageBytes, bool simplePackageContentKnown = false, Stream? reusablePackageStream = null) {
             var previousSheetParts = _sheetPartsBeforePackageClose ?? CaptureActiveSheetPartsForReload();
+            var previousDrawingHandles = _drawingHandlesBeforePackageClose ?? CaptureDrawingHandlesForReload(previousSheetParts);
             var previousDocument = _spreadSheetDocument;
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
@@ -468,7 +471,9 @@ namespace OfficeIMO.Excel {
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;
             RebindSheetWrappersAfterPackageReload(previousSheetParts);
+            RebindDrawingHandlesAfterPackageReload(previousDrawingHandles);
             _sheetPartsBeforePackageClose = null;
+            _drawingHandlesBeforePackageClose = null;
             ReinitializePackageBoundHelpers();
             MarkPackageClean(reuseOwnedFileBackedStream ? null : packageBytes, simplePackageContentKnown);
 
@@ -523,9 +528,8 @@ namespace OfficeIMO.Excel {
                 ? payload.Properties.ApplyTo(payload.PackageBytes, options)
                 : payload.PackageBytes;
             ThrowIfPackageMaterializationExceedsLimit(withProperties.LongLength, options);
-            byte[] finalized = payload.NormalizeContentTypes
-                ? NormalizePackageBytes(withProperties, options)
-                : withProperties;
+            // SDK cloning and property rewriting can choose a different XML default even when the live package was normalized.
+            byte[] finalized = NormalizePackageBytes(withProperties, options);
             ThrowIfPackageMaterializationExceedsLimit(finalized.LongLength, options);
             return finalized;
         }

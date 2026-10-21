@@ -69,6 +69,11 @@ namespace OfficeIMO.Excel.Utilities {
                 .Where(e => string.Equals((string?)e.Attribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
+            if (xmlDefaults.Count != 0) {
+                changed = PreserveInheritedXmlContentTypes(archive, root,
+                    (string?)xmlDefaults[0].Attribute("ContentType"), xml);
+            }
+
             if (xmlDefaults.Count == 0) {
                 root.AddFirst(new XElement(ns + "Default",
                     new XAttribute("Extension", "xml"),
@@ -114,20 +119,57 @@ namespace OfficeIMO.Excel.Utilities {
 
             document.Declaration = new XDeclaration("1.0", "utf-8", null);
 
-            // Replace the entry content by recreating the entry
-            entry.Delete();
-            var newEntry = archive.CreateEntry(ContentTypesEntry, CompressionLevel.Optimal);
-            using var output = newEntry.Open();
+            // Bound the completed declaration before replacing the original ZIP entry.
+            using var normalizedTypes = new MemoryStream();
+            using var boundedTypes = new ExcelBoundedSeekableStream(
+                normalizedTypes, MaximumContentTypesEntryBytes, leaveOpen: true,
+                limitExceededExceptionFactory: static _ => new InvalidDataException(
+                    "Normalizing package content types exceeds the supported XML size limit."));
             var settings = new XmlWriterSettings {
                 Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 Indent = false,
                 OmitXmlDeclaration = false,
                 NewLineHandling = NewLineHandling.None
             };
-            using var writer = XmlWriter.Create(output, settings);
-            document.Save(writer);
-            writer.Flush();
+            using (var writer = XmlWriter.Create(boundedTypes, settings)) {
+                document.Save(writer);
+            }
+            boundedTypes.Complete();
+            normalizedTypes.Position = 0;
+            entry.Delete();
+            var newEntry = archive.CreateEntry(ContentTypesEntry, CompressionLevel.Optimal);
+            using var output = newEntry.Open();
+            normalizedTypes.CopyTo(output);
             return true;
+        }
+
+        /// <summary>Preserves effective part types before replacing a specialized XML default.</summary>
+        private static bool PreserveInheritedXmlContentTypes(
+            ZipArchive archive, XElement root, string? previousXmlType, string originalXml) {
+            if (string.IsNullOrWhiteSpace(previousXmlType)
+                || string.Equals(previousXmlType, "application/xml", StringComparison.OrdinalIgnoreCase)) return false;
+
+            XNamespace ns = root.Name.Namespace;
+            var overriddenParts = new HashSet<string>(root.Elements(ns + "Override")
+                .Select(item => (string?)item.Attribute("PartName") ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+            long remainingBytes = MaximumContentTypesEntryBytes - Encoding.UTF8.GetByteCount(originalXml);
+            bool changed = false;
+            foreach (ZipArchiveEntry part in archive.Entries) {
+                if (part.FullName == ContentTypesEntry
+                    || !part.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) continue;
+                string partName = "/" + part.FullName;
+                if (!overriddenParts.Add(partName)) continue;
+
+                var declaration = new XElement(ns + "Override",
+                    new XAttribute("PartName", partName), new XAttribute("ContentType", previousXmlType));
+                // Include namespace/escaping overhead conservatively while bounding DOM growth.
+                remainingBytes -= Encoding.UTF8.GetByteCount(declaration.ToString(SaveOptions.DisableFormatting));
+                if (remainingBytes < 0) throw new InvalidDataException(
+                    "Normalizing package content types exceeds the supported XML size limit.");
+                root.Add(declaration);
+                changed = true;
+            }
+            return changed;
         }
 
         internal static bool NeedsContentTypeNormalization(Stream packageStream, long maxCharactersInPart = 0) {

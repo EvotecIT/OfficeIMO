@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 return drawingPart.WorksheetDrawing
                     .ChildElements
                     .Where(IsSupportedImageAnchor)
-                    .SelectMany(anchor => anchor.Descendants<Xdr.Picture>().Select(picture => new ExcelImage(picture, anchor, drawingPart, _excelDocument)))
+                    .SelectMany(anchor => anchor.Descendants<Xdr.Picture>().Select(picture => new ExcelImage(picture, anchor, drawingPart, this)))
                     .ToList();
             }
         }
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel {
                 drawingPart.WorksheetDrawing.Save();
                 WorksheetRoot.Save();
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, _excelDocument);
+                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
             });
 
             return image!;

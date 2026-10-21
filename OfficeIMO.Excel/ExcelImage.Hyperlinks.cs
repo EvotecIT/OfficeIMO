@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
         /// Targets are stored in the workbook and are never opened by OfficeIMO.
         /// </summary>
         /// <remarks>
-        /// A save that reloads the package invalidates image handles. Obtain current images from
-        /// <see cref="ExcelSheet.Images"/> after such saves or removing a worksheet.
+        /// Image handles remain usable after saving while the picture belongs to the workbook.
+        /// Removing the picture or its worksheet invalidates its handles.
         /// Reading is supported on read-only workbooks; changing the link requires a writable workbook.
         /// </remarks>
         public Uri? HyperlinkUri {
