@@ -19,21 +19,25 @@ public static partial class OfficeDrawingSvgExporter {
         }
         // Parse only markup produced above by our renderer, never external SVG.
         var root = XElement.Parse(svg, LoadOptions.PreserveWhitespace);
+        bool changed = false;
         foreach (var element in root.DescendantsAndSelf()) {
             cancellationToken.ThrowIfCancellationRequested();
             var attribute = element.Attribute("font-family");
             if (attribute == null) continue;
             var names = OfficeFontFamilyParser.ParseCssReferences(attribute.Value);
             if (!names.Any(name => families.ContainsKey(name.Name))) continue;
-            attribute.Value = string.Join(", ", names.Select(name => {
+            string reference = string.Join(", ", names.Select(name => {
                 if (!name.IsQuoted && IsGenericCssFamily(name.Name)) return name.Name;
                 return prefix.Length > 0 && families.TryGetValue(name.Name, out var scoped)
                     ? QuoteCssFamily(scoped)
                     : name.IsQuoted || RequiresQuotedCssFamily(name.Name) ? QuoteCssFamily(name.Name) : name.Name;
             }));
+            if (string.Equals(attribute.Value, reference, StringComparison.Ordinal)) continue;
+            attribute.Value = reference;
+            changed = true;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return root.ToString(SaveOptions.DisableFormatting);
+        return changed ? root.ToString(SaveOptions.DisableFormatting) : svg;
     }
 
     private static bool RequiresQuotedCssFamily(string family) {
@@ -89,7 +93,19 @@ public static partial class OfficeDrawingSvgExporter {
         value.Equals("ui-rounded", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("math", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("emoji", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("fangsong", StringComparison.OrdinalIgnoreCase);
+        value.Equals("fangsong", StringComparison.OrdinalIgnoreCase) ||
+        IsFunctionalGenericCssFamily(value);
+
+    // CSS Fonts 4 script-specific generics are functions, not literal family names.
+    private static bool IsFunctionalGenericCssFamily(string value) {
+        if (!value.StartsWith("generic(", StringComparison.OrdinalIgnoreCase) ||
+            value[value.Length - 1] != ')') return false;
+        string argument = value.Substring(8, value.Length - 9).Trim(' ', '\t', '\r', '\n', '\f');
+        return argument.Equals("fangsong", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("kai", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("khmer-mul", StringComparison.OrdinalIgnoreCase) ||
+            argument.Equals("nastaliq", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string QuoteCssFamily(string family) => "\"" + EscapeCssString(family) + "\"";
 }

@@ -13,8 +13,8 @@ internal sealed partial class HtmlCssPageRuleSet {
         double width = _baseWidth ?? geometry.Width, height = _baseHeight ?? geometry.Height;
         var root = styleResolver.ResolvePageStyleParent();
         var contexts = ResolveMarginContexts(pageNumber, pageName, root.Computed,
-            styleResolver.PageComputedStyles, styleResolver.PageCancellationToken).ToArray();
-        if (contexts.Length == 0) return resolved;
+            styleResolver.PageComputedStyles, styleResolver.PageCancellationToken);
+        if (contexts.Count == 0) return resolved;
         HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height);
         foreach (var context in contexts) {
             HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height);
@@ -49,10 +49,14 @@ internal sealed partial class HtmlCssPageRuleSet {
         }
     }
 
-    private IEnumerable<(HtmlComputedStyle Page, HtmlComputedStyle Margin, HtmlCssPageMarginPosition Position, HtmlCssGeneratedContentTemplate Content)> ResolveMarginContexts(
+    private IReadOnlyList<MarginStyleContext> ResolveMarginContexts(
         int pageNumber, string? pageName, HtmlComputedStyle root, HtmlComputedStyleSet styles, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlCssPageRule[] rules = MatchingRules(pageNumber, pageName).ToArray();
-        if (!rules.Any(rule => rule.MarginBoxes.Count > 0)) yield break;
+        if (!rules.Any(rule => rule.MarginBoxes.Count > 0)) return Array.Empty<MarginStyleContext>();
+        var key = new MarginStyleContextKey(styles, root, rules);
+        if (_marginStyleContexts.TryGetValue(key, out IReadOnlyList<MarginStyleContext>? cached)) return cached;
+        var contexts = new List<MarginStyleContext>();
         HtmlComputedStyle page = styles.ComputeGeneratedContext(root,
             rules.SelectMany(rule => MatchDeclarations(rule.StyleDeclarations, rule)), cancellationToken);
         foreach (HtmlCssPageMarginPosition position in rules.SelectMany(rule => rule.MarginBoxes.Keys).Distinct()) {
@@ -67,8 +71,10 @@ internal sealed partial class HtmlCssPageRuleSet {
             contentValue = ResolveLayerRevert(contentValue);
             if (!contentValue.HasValue || !HtmlCssGeneratedContentTemplate.TryParse(contentValue.Value, out HtmlCssGeneratedContentTemplate content)) continue;
             HtmlComputedStyle marginStyle = styles.ComputeGeneratedContext(page, declarations, cancellationToken);
-            yield return (page, marginStyle, position, content);
+            contexts.Add(new MarginStyleContext(page, marginStyle, position, content));
         }
+        cancellationToken.ThrowIfCancellationRequested();
+        return _marginStyleContexts[key] = contexts.ToArray();
     }
 
     private static IEnumerable<HtmlGeneratedStyleDeclaration> MatchDeclarations(
