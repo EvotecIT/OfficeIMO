@@ -26,8 +26,8 @@ namespace PSWriteOffice.Cmdlets.Reader;
 public sealed class GetOfficeDocumentAssetCommand : OfficeDocumentReaderCommandBase
 {
     /// <summary>File path to read.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional directory where materializable asset payloads should be written.</summary>

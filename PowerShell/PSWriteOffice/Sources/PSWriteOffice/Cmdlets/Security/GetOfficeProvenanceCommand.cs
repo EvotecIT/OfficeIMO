@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.Provenance;
 using OfficeIMO.Provenance.C2pa;
@@ -25,8 +26,8 @@ namespace PSWriteOffice.Cmdlets.Security;
 public sealed class GetOfficeProvenanceCommand : PSCmdlet
 {
     /// <summary>Asset or document path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Structural, text-integrity, and provider verification limits and policy.</summary>
@@ -44,7 +45,7 @@ public sealed class GetOfficeProvenanceCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
         IOfficeProvenanceVerifier? verifier = string.IsNullOrWhiteSpace(C2paToolPath)
             ? null
             : new C2paToolProvenanceVerifier(C2paToolPath!);

@@ -3,10 +3,35 @@ using HtmlTinkerX;
 using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
+if (args.Length == 2 && args[0] == "--validate-grouped") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*", SearchOption.AllDirectories)
+        .Where(file => file.EndsWith(".xlsx", StringComparison.Ordinal) || file.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
+    if (files.Length == 0) throw new InvalidDataException("No grouped report fixtures to validate.");
+    foreach (string file in files)
+        Console.WriteLine(JsonSerializer.Serialize(GroupedReportVerifier.Verify(file)));
+    return;
+}
+if (args.Length == 2 && args[0] == "--validate-editable-analysis") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.xlsx", SearchOption.AllDirectories);
+    if (files.Length == 0) throw new InvalidDataException("No editable analysis fixtures to validate.");
+    foreach (string file in files)
+        Console.WriteLine(JsonSerializer.Serialize(EditableAnalysisVerifier.Verify(file)));
+    return;
+}
+if (args.Length == 3 && args[0] == "--validate-editable-native") {
+    Console.WriteLine(JsonSerializer.Serialize(EditableAnalysisVerifier.VerifyNativeEdit(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]))));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate-links") {
     var files = Directory.GetFiles(Path.GetFullPath(args[1])).Where(f => f.EndsWith(".xlsx", StringComparison.Ordinal) || f.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
     if (files.Length == 0) throw new InvalidDataException("No portable-link fixtures to validate.");
     foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(PortableLinkVerifier.Verify(file)));
+    return;
+}
+if (args.Length == 2 && args[0] == "--validate-professional") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.pdf", SearchOption.AllDirectories);
+    if (files.Length == 0) throw new InvalidDataException("No professional PDF fixtures to validate.");
+    foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(ProfessionalPdfVerifier.Verify(file)));
     return;
 }
 if (args.Length == 2 && args[0] == "--validate") {
@@ -24,6 +49,36 @@ if (args.Length == 2 && args[0] == "--validate-directory") {
 if (args.Length < 2) throw new ArgumentException("Usage: <repository> <evidence-directory> [--scale] [--limits] [--example=<directory>]");
 string repository = Path.GetFullPath(args[0]), evidence = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(evidence);
+string? exampleOnly = args.FirstOrDefault(argument => argument.StartsWith("--example-only=", StringComparison.Ordinal));
+if (exampleOnly is not null) {
+    string exampleDirectory = Path.GetFullPath(exampleOnly["--example-only=".Length..]);
+    var exampleReports = new List<object>();
+    string exampleHost = Path.Combine(evidence, "example-host.html");
+    File.WriteAllText(exampleHost, "<!doctype html><meta charset=utf-8><title>Offline example qualification</title>");
+    foreach (HtmlBrowserEngine engine in DataTablesInterop.Engines(args)) {
+        await using var session = await HtmlBrowser.OpenSessionAsync(new Uri(exampleHost).AbsoluteUri,
+            new HtmlBrowserLaunchOptions { Browser = engine, Headless = true, Timeout = 120000, Timezone = "Europe/Warsaw" });
+        foreach (bool translated in args.Contains("--example-translated") ? new[] { false, true } : new[] { false }) {
+            string output = Path.Combine(evidence, engine.ToString().ToLowerInvariant(), translated ? "translated" : "default");
+            Directory.CreateDirectory(output);
+            await ExampleVerifier.RunAsync(session, exampleDirectory, output, translated);
+            using var result = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "example-report.json")));
+            exampleReports.Add(new { engine = engine.ToString(), browser = session.Browser?.Version, result = result.RootElement.Clone() });
+        }
+    }
+    File.WriteAllText(Path.Combine(evidence, "example-only-report.json"), JsonSerializer.Serialize(new {
+        sources = Directory.GetFiles(exampleDirectory).Where(file => file.EndsWith(".html", StringComparison.Ordinal) || file.EndsWith(".js", StringComparison.Ordinal))
+            .ToDictionary(file => Path.GetFileName(file)!, file => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(file))).ToLowerInvariant()),
+        reports = exampleReports
+    }, new JsonSerializerOptions { WriteIndented = true }));
+    return;
+}
+if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--pdf-professional")) { await ProfessionalPdfInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf")) { await PdfInterop.RunAsync(repository, evidence, args); return; }

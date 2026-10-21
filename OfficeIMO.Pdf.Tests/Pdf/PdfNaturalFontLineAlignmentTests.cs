@@ -6,6 +6,46 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
 namespace OfficeIMO.Tests.Pdf {
     public sealed class PdfNaturalFontLineAlignmentTests {
+        [Fact]
+        public void AscentOnlyStrutKeepsTheSameGridBaselineAsVisibleAscentOnlyText() {
+            byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
+                1000, -500, 0, 500, Enumerable.Range(32, 95).ToArray());
+            byte[] Render(bool strut) {
+                var options = new PdfOptions {
+                    PageWidth = 300D, PageHeight = 300D,
+                    MarginTop = 30D, MarginBottom = 30D, MarginLeft = 30D, MarginRight = 30D
+                };
+                options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Strut grid metrics", font));
+                var ascentOnly = PdfTextRun.Normal(strut ? string.Empty : "X", fontSize: 40D,
+                    fontFamily: "Strut grid metrics");
+                ascentOnly.IsLineBoxStrut = strut;
+                ascentOnly.ContributesLineBoxDescent = false;
+                var style = new PdfParagraphStyle {
+                    FontSize = 11D, SpacingBefore = 0D, SpacingAfter = 0D,
+                    LineSpacing = PdfLineSpacing.Multiple(1.5D).WithFontLineBoxBaseline(1.5D).WithLineGrid(18D)
+                };
+                return PdfDocument.Create(options)
+                    .Paragraph(paragraph => paragraph.Runs(new[] {
+                        PdfTextRun.Normal("A", fontSize: 11D, fontFamily: "Strut grid metrics"), ascentOnly
+                    }), style: style)
+                    .Paragraph(paragraph => paragraph.Runs(new[] {
+                        PdfTextRun.Normal("B", fontSize: 11D, fontFamily: "Strut grid metrics")
+                    }), style: style).ToBytes();
+            }
+            using PdfPigDocument actual = PdfPigDocument.Open(Render(strut: true));
+            using PdfPigDocument visibleReference = PdfPigDocument.Open(Render(strut: false));
+            Letter first = Assert.Single(actual.GetPage(1).Letters, letter => letter.Value == "A");
+            Letter next = Assert.Single(actual.GetPage(1).Letters, letter => letter.Value == "B");
+            Letter expectedFirst = Assert.Single(visibleReference.GetPage(1).Letters, letter => letter.Value == "A");
+            Letter expectedNext = Assert.Single(visibleReference.GetPage(1).Letters, letter => letter.Value == "B");
+            // The first line occupies 40pt ascent + 5.5pt body descent, snapped
+            // to 54pt. Its baseline is 44.25pt below the top; the next is 11.75pt.
+            Assert.Equal(21.5D, first.StartBaseLine.Y - next.StartBaseLine.Y, 3);
+            Assert.Equal(expectedFirst.StartBaseLine.Y, first.StartBaseLine.Y, 3);
+            Assert.Equal(expectedNext.StartBaseLine.Y, next.StartBaseLine.Y, 3);
+            Assert.DoesNotContain(actual.GetPage(1).Letters, letter => letter.Value == "X");
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

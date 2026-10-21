@@ -134,7 +134,7 @@ internal static partial class PdfWriter {
                 hasBold |= isBold;
                 hasItalic |= isItalic;
                 hasBoldItalic |= isBold && isItalic;
-                if (run.InlineElement != null) {
+                if (run.InlineElement != null && run.InlineElement is not PdfInlineFormWidget { SourceRun: not null }) {
                     continue;
                 }
 

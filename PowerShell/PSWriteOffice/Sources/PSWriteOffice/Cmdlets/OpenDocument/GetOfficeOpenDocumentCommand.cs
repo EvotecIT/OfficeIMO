@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.OpenDocument;
 
@@ -9,7 +10,8 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 public sealed class GetOfficeOpenDocumentCommand : PSCmdlet
 {
     /// <summary>Path to an ODT, ODS, ODP, or ODG file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional bounded package and XML settings.</summary>
@@ -67,7 +69,7 @@ public sealed class GetOfficeOpenDocumentCommand : PSCmdlet
 
     /// <inheritdoc />
     protected override void ProcessRecord() => WriteObject(OdfDocument.Load(
-        SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path), BuildOptions()));
+        OfficeFileCommandUtilities.ResolvePath(this, Path), BuildOptions()));
 
     private OdfLoadOptions BuildOptions() {
         var options = Options == null

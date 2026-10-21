@@ -5,6 +5,8 @@ import { Workbook } from "./workbook.js";
 import type { XlsxRows } from "./types.js";
 import { portableSheet, portableWorkbook } from "./portable.js";
 import type { PortableWorkbookOptions, PortableSheetOptions } from "./portable.js";
+import { captureFields } from "../internal/capture.js";
+import { sheetOptionFields, workbookOptionFields } from "./options.js";
 
 /** One table, using the same workbook engine as the advanced multi-worksheet API. */
 export interface XlsxOptions<T = never> extends PortableWorkbookOptions {
@@ -13,8 +15,9 @@ export interface XlsxOptions<T = never> extends PortableWorkbookOptions {
 }
 
 function prepare(options: XlsxOptions): XlsxOptions {
-  const columns = copyColumns(options?.columns);
-  return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
+  options = captureFields(options, [...workbookOptionFields, "columns", "sheet"] as readonly (keyof XlsxOptions)[]);
+  const columns = copyColumns(options.columns), sheet = options.sheet && captureFields(options.sheet, [...sheetOptionFields, "name"] as readonly (keyof NonNullable<XlsxOptions["sheet"]>)[]);
+  return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(sheet), ...(sheet?.name === undefined ? {} : { name: sheet.name }) } };
 }
 
 function worksheet(book: Workbook, options: XlsxOptions) {

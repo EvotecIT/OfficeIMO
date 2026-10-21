@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "producer": {
+    "package": "ChartForgeX",
+    "version": "3.0.0",
+    "api": "Chart.Create / SavePng",
+    "source": "using ChartForgeX;\nusing ChartForgeX.Core;\nusing ChartForgeX.Primitives;\nvar chart = Chart.Create().WithTitle(\"Selected service status\").WithSubtitle(\"95 selected services\").WithSize(1200, 400).WithXLabels(\"Healthy\", \"Attention\", \"Offline\").WithYAxis(\"Services\").WithYAxisBounds(0, 100).WithLegend(false).WithDataLabels(true).AddBar(\"Services\", new[] { new ChartPoint(1, 84), new ChartPoint(2, 8), new ChartPoint(3, 3) });\nchart.SavePng(args[0]);\nchart.SaveSvg(args[1]);\n"
+  },
+  "width": 1200,
+  "height": 400,
+  "summary": {
+    "total": 95,
+    "Healthy": 84,
+    "Attention": 8,
+    "Offline": 3
+  },
+  "sha256": "3a1957382a36a60feef73d06dfb359f3941d4955d651487c3dac4a975ef1e68e",
+  "purpose": "Independent chart producer fixture for the selected-service PDF report. Categories use ChartForgeX one-based x-label coordinates."
+}

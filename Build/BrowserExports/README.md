@@ -39,6 +39,25 @@ This route serves modules over loopback HTTP and runs the same contracts against
 
 The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback streams, Polish text, Japanese text, supplementary symbols, repeated and spanned headings, multirow footers, totals, oversized text, paged input, slow sinks, cancellation and resource ceilings. Worker output transfers byte chunks to avoid WebKit worker Blob-read restrictions. Every document must open without repair in `OfficeIMO.Pdf`; ordered row IDs, complete long text, headings and expected values are independently checked. DataTables button scenarios run when verified comparison assets are provided. The ordinary workflow runs both installed pairs without host-timing gates. `--scale` records diagnostic durations and validates every cell in plain/styled tables at 10,000 and 100,000 rows with four/twenty columns; large PDFs are deleted immediately after readback. Rendered-page inspection with an independent PDF application remains separate visual proof.
 
+## Professional PDF report qualification
+
+`--pdf-professional` exercises the [executable service report](../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs) over real filtered/selected DataTables and CanopyX captures. It runs Chromium, Firefox and WebKit with fresh sources for Blob and awaited sink delivery, producing twelve reports. The report uses a portrait summary/findings section, a captioned ChartForgeX-produced figure, a landscape inventory appendix and a portrait closing section. Summary metadata is supplied before the single-use inventory stream; the report does not enumerate that stream to compute its opening summary.
+
+Serve the repository root through one loopback HTTP origin, including the current `OfficeIMO.JavaScript/dist` modules and `OfficeIMO.JavaScript.Examples/report-engine-job.mjs`. Run the interop entry directly with that origin, the [verified DataTables assets](#datatables-integration-and-comparisons) and the selected CanopyX source checkout:
+
+```powershell
+$origin = 'http://127.0.0.1:8765' # Existing server serving this repository root.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/pdf-professional/build" -- . "$evidence/pdf-professional" --pdf-professional "--module-url=$origin/OfficeIMO.JavaScript/dist" "--example-url=$origin/OfficeIMO.JavaScript.Examples/report-engine-job.mjs" "--comparison-assets=$assets" "--canopy=$canopySource"
+```
+
+Both URLs must use the same loopback HTTP authority. The lane records and rechecks the module graph, classic bundle, executable example, fixture and native grid hashes. DataTables uses the current installed stack and classic writer; CanopyX uses the module writer. Both profiles retain their real filter, selection, column order, typed values and resolved display contract. A delayed destination verifies backpressure, and cancellation during appendix enumeration must return the active source and release the stream lock.
+
+The separate `OfficeIMO.Pdf` reader checks every selected cell and ordered ID, excludes hidden/unselected values, opens each file without repair, and verifies portrait/landscape page boxes, repeated headings, running section context, continuous page totals, bookmark hierarchy/destinations, finding links and list/caption ownership. Repeated visual headings and running decorations are inspected with artifact text enabled; logical reading order is checked without those artifacts. `professional-pdf-interop.json` and each browser/profile directory retain the compact reports and PDFs for independent inspection.
+
+Run independent PDF syntax/text tools and inspect rendered opening, list continuation, caption/figure, first/continued appendix and closing pages separately. Reader success does not establish visual quality, assistive-technology behavior or PDF/UA conformance. This qualification lane and its native grid/browser dependencies remain opt-in and test-only.
+
+## Build and package checks
+
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.
 
 The `--links` correctness lane qualifies portable cell links in all three browser engines. It checks numeric/date XLSX values and relationship coordinates through both managed readers and the Open XML SDK, then reads PDF URI actions, Unicode tooltips and page-fragment rectangles independently. Classic and compression-fallback lanes produce Blobs; the worker lane writes to a byte destination and transfers chunks to avoid host-specific worker Blob read limitations. Each lane also checks raw/display CSV semantics. Use `--validate-links <fixture-directory>` to read the captured small link fixtures without launching a browser.
@@ -60,7 +79,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run sizes -- "$evidence/sizes.json"
 ```
 
-`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all twelve byte/hash contracts on .NET 8 and .NET 10.
+`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all fourteen byte/hash contracts on .NET 8 and .NET 10.
 
 The shared XLSX manifest is `OfficeIMO.TestAssets/JavaScript/xlsx-writer.json`; CSV vectors are in `OfficeIMO.TestAssets/CSV/browser-exports.json`. A C# test invokes the Node fixture producer and validates every generated file using the shared `JavaScriptWorkbookContract`. Both OfficeIMO.Excel and OfficeIMO.Reader.Excel open the workbooks, expected cells/styles/parts are checked, and the Open XML SDK validates each document. The CSV contract compares TypeScript bytes with independently generated OfficeIMO.CSV bytes.
 
@@ -88,6 +107,73 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 The measurement script compares actual inline-string worksheet XML with an equivalent shared-string representation using the same compressor, and measures the generated bundles. The scale runner writes 100,000 rows by 20 columns for XLSX/CSV, validates output and records responsiveness and available heap metrics. These timing/memory measurements do not become ordinary CI correctness envelopes.
 
 `Check-Excel.ps1` and `check-libreoffice.py` preserve optional application spot checks. They do not install, ship or invoke either application as a product dependency.
+
+## Worker execution and report workbench
+
+The optional execution entry has a focused three-engine lane for projected rows, portable cells and Dates, acknowledged output, cancellation, disposal, limits and reuse:
+
+```sh
+npm --prefix OfficeIMO.JavaScript run build
+npm --prefix OfficeIMO.JavaScript run test:browser -- "$evidence/execution" --execution
+```
+
+The website workbench uses the shared executable `OfficeIMO.JavaScript.Examples/report-engine-job.mjs` for its Excel, PDF and CSV exports. Serve the built website over loopback HTTP, then exercise actual controls and downloads:
+
+```sh
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/workbench" --report-engine --site-url=http://127.0.0.1:51381/report-engine/
+```
+
+This lane independently reads empty and populated exports, checks typed numbers and explicit UTC dates, and verifies chart formulas/caches. It also checks cancellation after progress, retry after font or module loading fails, keyboard navigation, compact/wide layouts, both themes and links from the neighboring converter. Captures still need visual inspection. Website build/deployment and assistive-technology acceptance are separate from these browser checks.
+
+## Image and font resource measurements
+
+Use a separately compiled baseline `dist` tree from a known source revision:
+
+```powershell
+./Build/BrowserExports/Run-ResourceComparison.ps1 -BaselineDist /path/to/baseline/dist -OutputRoot "$evidence/resources" -Plan
+./Build/BrowserExports/Run-ResourceComparison.ps1 -BaselineDist /path/to/baseline/dist -OutputRoot "$evidence/resources" -WarmupCount 1 -IterationCount 3
+```
+
+The opt-in runner delegates repetitions and rotated ordering to PSPublishModule/PowerForge. It requires Node, qpdf and Poppler's `pdftotext` for validation; these are not product dependencies. PNG cases measure complete uncompressed PDF Blob generation from deterministic filter-0, 8-bit RGBA inputs at 2048 and 4096 pixels square. Font cases measure intake of the supplied Carlito and Japanese TrueType files; their PDF generation is outside the measured interval. Complete PDF hashes, independently inspected image planes and extracted font text must pass for every sample, including warmups. Large PDFs are removed after successful validation.
+
+Results record the source graph and fixture hashes, raw samples, Node process peak RSS, memory snapshots, CPU time, timer gaps and host load/CPU context. Peak RSS includes process startup and native allocations, and is not JavaScript heap or whole-system memory. Timings on a busy, unpinned host describe that run; preserve losses and variation, and do not generalize this PNG profile to all images, font scripts or document formats. These measurements do not run as ordinary correctness gates.
+
+## Complete report workload comparison
+
+`Run-ReportWorkloads.ps1` compares an immutable standalone OfficeIMO module with the current module through the shared PowerForge benchmark runner:
+
+```powershell
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/reports" -Plan
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/reports" -WarmupCount 1 -IterationCount 3
+```
+
+The six-column inventory/assessment corpus contains literal identifiers, asset names, report statuses, numbers and UTC dates. Cases cover CSV, plain/styled XLSX, compressed PDF, and tagged reports at 10,000 and 100,000 rows. Sink and Blob cases have separate delivery contracts. Lazy input construction is included; module loading and independent validation are excluded from engine time. Every measured and warmup artifact must pass independent value readback; PDFs also pass qpdf and tagged-cell checks. Successful bulky outputs are removed after validation, while failures and their measurements remain visible.
+
+Reports retain source/input hashes, all rotated samples, time to first sink acceptance, completion time, output bytes, process-lifetime peak RSS, sampled JavaScript heap and timer gaps. Peak RSS includes native/runtime/startup memory; sampled heap can miss synchronous peaks. Blob output retains the completed document, and compression can retain native working memory. These opt-in observations apply to the declared workload and host, rather than ordinary CI timing thresholds or a constant-memory guarantee.
+
+The editable service-analysis case calls the shared report example with 100,000 rows, live status rules, three numeric formulas and a chart bound to the visible summary. Run it separately as current-only diagnostics; an older snapshot report performs different work and is not its comparison baseline:
+
+```powershell
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/editable-analysis" -Cases editable-analysis-xlsx-100000-sink -Engine current -Compare:$false -WarmupCount 1 -IterationCount 3
+node Build/BrowserExports/report-workloads.mjs contracts --manifest "$evidence/editable-analysis/workloads.json" --case editable-analysis-xlsx-100000-sink --output "$evidence/editable-analysis/functional.xlsx" --python python3
+```
+
+Independent readback checks every source cell, finite formula/cache ranges, validation and chart references, and the two visible sheets. The separate functional run checks slow stored output, cancellation and source release, plus a held compressed-data write. Native compression can buffer input while a compressed write awaits acknowledgement; the functional observation checks that source consumption stops before the complete input drains rather than assuming that every compressed write stops it immediately. Keep these observations outside throughput measurements.
+
+## Grouped analytical report qualification
+
+The `--grouped-report` profile consumes real filtered/selected DataTables captures from both pinned version pairs and a native CanopyX capture. The host explicitly orders by the grouping field and supplies stable column IDs, renamed/reordered headings and display labels. The shared executable report job writes XLSX and PDF; the adapters retain grid capture ownership.
+
+```powershell
+$origin = 'http://127.0.0.1:8765' # Existing server serving this repository root.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/grouped/build" -- . "$evidence/grouped" --grouped-report "--module-url=$origin/OfficeIMO.JavaScript/dist" "--example-url=$origin/OfficeIMO.JavaScript.Examples/report-engine-job.mjs" "--comparison-assets=$assets" "--canopy=$canopySource"
+# Re-read retained files without another browser run.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-grouped "$evidence/grouped"
+```
+
+The three-engine profile checks Blob and slow-sink exports, a bounded worker handoff, empty captures, cancellation and recurrence rejection. XLSX readback validates typed data, finite formula ranges/caches and native outlines. PDF readback validates every source record, group/grand averages, continuation labels and explicit page-counter labels. A host-authored footer is checked separately from the table body margin. Native Excel edit, recalculate, collapse and save/reopen evidence remains a separate application check.
+
+The canonical ReportWorkloads runner includes opt-in `grouped-analysis-xlsx-100000-sink` and `grouped-analysis-pdf-5000-sink` cases. They measure the OfficeIMO grouped workflow with independent content validation; there is no equivalent earlier grouped writer to use as a speed baseline. Keep timing and memory observations outside ordinary correctness gates and report the captured host load and source hashes. A separate equivalent flat-report comparison can detect overhead in unchanged default paths.
 
 ## DataTables integration and comparisons
 

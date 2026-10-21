@@ -77,7 +77,7 @@ public sealed class NewOfficeWordCommand : PSCmdlet {
             return;
         }
 
-        if (!NoSave.IsPresent || !string.IsNullOrWhiteSpace(TemplatePath)) {
+        if (!NoSave.IsPresent) {
             var directory = System.IO.Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
                 Directory.CreateDirectory(directory);
@@ -135,11 +135,9 @@ public sealed class NewOfficeWordCommand : PSCmdlet {
             throw new FileNotFoundException($"Template file {templatePath} doesn't exist.", templatePath);
         }
 
-        if (!string.Equals(templatePath, fullPath, StringComparison.OrdinalIgnoreCase)) {
-            File.Copy(templatePath, fullPath, overwrite: true);
-        }
-
-        return WordDocumentService.LoadDocument(fullPath, readOnly: false, autoSave: false);
+        var document = WordDocumentService.CreateFromTemplate(templatePath);
+        WordDocumentService.UpdateSaveAssociation(document, fullPath, encrypted: false);
+        return document;
     }
 
     private string ResolveFileSystemPath(string path) {

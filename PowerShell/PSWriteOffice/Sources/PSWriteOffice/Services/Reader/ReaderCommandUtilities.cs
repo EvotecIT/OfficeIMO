@@ -16,23 +16,14 @@ internal static class ReaderCommandUtilities
     internal static OfficeDocumentReader Reader => SharedReader.Value;
 
     internal static string ResolvePath(PSCmdlet cmdlet, string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new PSArgumentException("Path cannot be empty.", nameof(path));
-        }
+        => OfficeFileCommandUtilities.ResolvePath(cmdlet, path);
 
-        var providerPath = cmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(path);
-        return Path.IsPathRooted(providerPath)
-            ? providerPath
-            : Path.Combine(cmdlet.SessionState.Path.CurrentFileSystemLocation.Path, providerPath);
-    }
 
     internal static IReadOnlyList<string> ResolvePaths(PSCmdlet cmdlet, string path)
     {
         try
         {
-            var resolved = cmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath(path, out _);
+            var resolved = OfficeFileCommandUtilities.ResolveWildcardPaths(cmdlet, path);
             return resolved.Count > 0
                 ? resolved.ToArray()
                 : new[] { ResolvePath(cmdlet, path) };

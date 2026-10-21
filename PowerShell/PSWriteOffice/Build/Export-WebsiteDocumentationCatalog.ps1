@@ -27,6 +27,36 @@ $aliases = @($manifest.AliasesToExport) |
 
 $familyDefinitions = @(
     [ordered]@{
+        id = 'project'; title = 'Project'; description = 'Create schedules, inspect tasks and resources, exchange mapped tables, and save qualified native or XML projects.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('New-OfficeProject', 'Invoke-OfficeProjectSchedule', 'Save-OfficeProject', 'Import-OfficeProjectTable')
+        match = { param($name) $name -match 'OfficeProject' }
+    }
+    [ordered]@{
+        id = 'access'; title = 'Access'; description = 'Read native database schemas and rows, and create qualified table databases without ACE or COM.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('New-OfficeAccess', 'Get-OfficeAccessRow', 'Add-OfficeAccessRow', 'Save-OfficeAccess')
+        match = { param($name) $name -match 'OfficeAccess' }
+    }
+    [ordered]@{
+        id = 'epub'; title = 'EPUB'; description = 'Read, create, and save EPUB publications from chapters, resources, and metadata.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('New-OfficeEpub', 'Add-OfficeEpubChapter', 'Get-OfficeEpubChapter', 'Save-OfficeEpub')
+        match = { param($name) $name -match 'OfficeEpub' }
+    }
+    [ordered]@{
+        id = 'invoicing'; title = 'Electronic invoicing'; description = 'Create, edit, validate, and convert invoice XML and generate hybrid invoice PDFs.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('New-OfficeInvoice', 'Save-OfficeInvoice', 'Test-OfficeInvoice', 'Export-OfficeInvoicePdf')
+        match = { param($name) $name -match 'OfficeInvoice' }
+    }
+    [ordered]@{
+        id = 'conversion'; title = 'Conversion jobs'; description = 'Discover executable routes and run bounded single-file, selected-file, and resumable directory jobs.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
+        samples = @('Get-OfficeConversionRoute', 'New-OfficeConversionOptions', 'ConvertTo-OfficeDocument')
+        match = { param($name) $name -match 'OfficeConversion' -or $name -eq 'ConvertTo-OfficeDocument' }
+    }
+    [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'
         docs = 'word'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Word'
         samples = @('New-OfficeWord', 'Add-OfficeWordTable', 'Get-OfficeWordReview', 'Invoke-OfficeWordMailMerge', 'ConvertTo-OfficeWordDocument')
@@ -43,12 +73,6 @@ $familyDefinitions = @(
         docs = 'powerpoint'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/PowerPoint'
         samples = @('New-OfficePowerPoint', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointChart', 'Get-OfficePowerPointInspection')
         match = { param($name) $name -match 'OfficePowerPoint' }
-    }
-    [ordered]@{
-        id = 'conversion'; title = 'Conversion routes'; description = 'Inspect conversion contracts, fidelity limits, owning APIs, and batch PDF availability in the current host.'
-        docs = 'conversion-routes'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeConversionRoute')
-        match = { param($name) $name -eq 'Get-OfficeConversionRoute' }
     }
     [ordered]@{
         id = 'pdf'; title = 'PDF'; description = 'Author, inspect, transform, sign, annotate, extract, preflight, and combine PDF files.'

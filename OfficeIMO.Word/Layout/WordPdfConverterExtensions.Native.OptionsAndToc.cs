@@ -392,7 +392,7 @@ namespace OfficeIMO.Word.Pdf {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
             bool allowSystemFontEmbedding,
             NativeFontMap nativeFontMap) {
-            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true);
             W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
             if (markFonts != null) {
                 RegisterNativeFontCandidates(EnumerateNativeLatinFontFamilies(paragraph._document, markFonts),
@@ -418,6 +418,13 @@ namespace OfficeIMO.Word.Pdf {
                         allowSystemFontEmbedding,
                         nativeFontMap);
                 }
+            }
+
+            // Both authored states belong to the document even though only one
+            // has a cached visible run. Filling the PDF selects its other AP.
+            foreach (string family in GetNativeCheckBoxAppearanceFontFamilies(paragraph)) {
+                RegisterNativeFontCandidate(family, pdfOptions, registeredFamilies,
+                    registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
 
             WordDocumentTraversal.ListInfo? listInfo = WordDocumentTraversal.GetListInfo(paragraph);

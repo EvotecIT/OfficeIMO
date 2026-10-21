@@ -1,0 +1,59 @@
+---
+external help file: PSWriteOffice-help.xml
+Module Name: PSWriteOffice
+online version: https://github.com/EvotecIT/OfficeIMO
+schema: 2.0.0
+---
+# Get-OfficeProjectDependency
+## SYNOPSIS
+Returns project dependencies.
+
+## SYNTAX
+### __AllParameterSets
+```powershell
+Get-OfficeProjectDependency -Document <ProjectDocument> [<CommonParameters>]
+```
+
+## DESCRIPTION
+Returns project dependencies.
+
+## EXAMPLES
+
+### EXAMPLE 1
+```powershell
+$project | Get-OfficeProjectDependency
+```
+
+
+## PARAMETERS
+
+### -Document
+Project document.
+
+```yaml
+Type: ProjectDocument
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+- `OfficeIMO.Project.ProjectDocument`
+
+## OUTPUTS
+
+- `OfficeIMO.Project.ProjectDependency`
+
+## RELATED LINKS
+
+- None

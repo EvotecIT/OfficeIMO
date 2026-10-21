@@ -1,12 +1,34 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    internal sealed record PositionedTextBoxMeasurement(double Width, double Ascent, double Descent);
+
     internal static double? MeasurePositionedText(PdfTextRun run, PdfOptions options) {
+        List<PdfTextRun>? parts = GetPositionedTextMeasurementRuns(run, options);
+        return parts?.Sum(part => GetRichSegmentWidth(CreatePositionedTextSegment(part, options.DefaultFontSize, options)));
+    }
+
+    /// <summary>Measures advances and baseline extents using the same resolved fallback fonts as painting.</summary>
+    internal static PositionedTextBoxMeasurement? MeasurePositionedTextBox(PdfTextRun run, PdfOptions options) {
+        List<PdfTextRun>? parts = GetPositionedTextMeasurementRuns(run, options);
+        if (parts == null) return null;
+        double width = 0D, ascent = 0D, descent = 0D;
+        foreach (PdfTextRun part in parts) {
+            RichSeg segment = CreatePositionedTextSegment(part, options.DefaultFontSize, options);
+            width += GetRichSegmentWidth(segment);
+            double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
+            double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
+            ascent = Math.Max(ascent, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
+            descent = Math.Max(descent, GetDescenderForOptions(segment.Font, segment.NamedFont, size, options) - rise);
+        }
+        return new PositionedTextBoxMeasurement(width, ascent, descent);
+    }
+
+    private static List<PdfTextRun>? GetPositionedTextMeasurementRuns(PdfTextRun run, PdfOptions options) {
         PdfStandardFont baseFont = ChooseNormal(options.DefaultFont);
         var parts = NormalizeFallbackRuns(new[] { run }, baseFont, options).ToList();
         // Automatic fallback fonts may only be registered once the full scene is known.
-        if (parts.Any(part => !CanWriteRunWithSelectedFont(part, baseFont, options))) return null;
-        return parts.Sum(part => GetRichSegmentWidth(CreatePositionedTextSegment(part, options.DefaultFontSize, options)));
+        return parts.Any(part => !CanWriteRunWithSelectedFont(part, baseFont, options)) ? null : parts;
     }
 
     private static RichSeg CreatePositionedTextSegment(PdfTextRun run, double fontSize, PdfOptions options, double fontMetricScale = 1D) {
@@ -24,7 +46,7 @@ internal static partial class PdfWriter {
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
             textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing, fontMetricScale: fontMetricScale,
-            preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
     }
 
     private static double MeasurePositionedTextWidth(

@@ -20,6 +20,7 @@ interface ConditionalHighlight extends ConditionalBase { readonly style: Conditi
 /** Array order sets worksheet-wide priority, starting at one. Overlapping ranges are allowed. */
 export type ConditionalFormat =
   | (ConditionalHighlight & { readonly type: "cellIs"; readonly operator: ConditionalOperator; readonly value: number })
+  | (ConditionalHighlight & { readonly type: "cellIs"; readonly operator: "equal" | "notEqual"; readonly value: string })
   | (ConditionalHighlight & { readonly type: "cellIs"; readonly operator: "between" | "notBetween"; readonly values: readonly [number, number] })
   | (ConditionalHighlight & { readonly type: "expression"; readonly formula: string })
   | (ConditionalBase & { readonly type: "colorScale"; readonly stops: readonly [ConditionalColorStop, ConditionalColorStop] | readonly [ConditionalColorStop, ConditionalColorStop, ConditionalColorStop] })

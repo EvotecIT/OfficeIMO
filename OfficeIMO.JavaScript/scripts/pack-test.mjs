@@ -17,7 +17,7 @@ function run(args, cwd) {
 const packed = run([npmCli, "pack", "--pack-destination", output, "--json"], root);
 const manifest = JSON.parse(packed.slice(packed.indexOf("[")));
 for (const file of manifest[0].files) {
-  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-pdf|-datatables|-canopyx)?\.(?:js|mjs))$/.test(file.path))
+  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-pdf|-datatables|-canopyx|-execution)?\.(?:js|mjs))$/.test(file.path))
     throw new Error("Unexpected shipped file: " + file.path);
 }
 await writeFile(join(output, "archive.json"), JSON.stringify(manifest, null, 2) + "\n");
@@ -47,6 +47,7 @@ await copyFile(join(consumer, "packed-worker.xlsx"), join(output, "packed-worker
 await copyFile(join(consumer, "packed-consumer.pdf"), join(output, "packed-consumer.pdf"));
 await copyFile(join(consumer, "packed-document.pdf"), join(output, "packed-document.pdf"));
 await copyFile(join(consumer, "packed-rich-report.pdf"), join(output, "packed-rich-report.pdf"));
-await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 7, strictTypeScript: "5.9.3", archive: manifest[0].filename,
+for (const name of ["packed-grouped.xlsx", "packed-grouped.pdf"]) await copyFile(join(consumer, name), join(output, name));
+await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 8, strictTypeScript: "5.9.3", archive: manifest[0].filename,
   integrations: ["datatables", "canopyx"], pdfReport: ["png", "drawing", "tagged"], nodeWritableStreams: ["csv", "xlsx", "pdf"], shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Strict types, archive contents, isolated npm install and all runtime subpaths passed.");

@@ -58,8 +58,7 @@ public static partial class WordPdfConverterExtensions {
         }
 
         void AppendRun(WordParagraph paragraph, WordParagraph run, string text, bool fieldToken) {
-            NativeHeaderFooterStyledReplacement? replacement = CreateNativeHeaderFooterSpacingReplacement(paragraph, run, text, fieldToken, fontMap);
-            if (replacement != null) replacements.Add(replacement);
+            replacements.AddRange(CreateNativeHeaderFooterSpacingReplacements(paragraph, run, text, fieldToken, fontMap));
         }
     }
 }

@@ -19,8 +19,8 @@ namespace PSWriteOffice.Cmdlets.Reader;
 public sealed class GetOfficeDocumentTableCommand : OfficeDocumentReaderCommandBase
 {
     /// <summary>File path to read.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Return deterministic CSV, Markdown, and JSON export bundles instead of table models.</summary>

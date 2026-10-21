@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -17,9 +18,9 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Cmdlet(VerbsCommon.Get, "OfficePowerPoint")]
 public class GetOfficePowerPointCommand : PSCmdlet {
     /// <summary>Path to the .pptx file.</summary>
-    [Parameter(Mandatory = true)]
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
     [ValidateNotNullOrEmpty]
-    [Alias("FilePath")]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Password used to open an encrypted presentation package.</summary>
@@ -29,7 +30,7 @@ public class GetOfficePowerPointCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
             var presentation = PowerPointDocumentService.LoadPresentation(resolvedPath, Password);
             WriteObject(presentation);
         } catch (FileNotFoundException ex) {

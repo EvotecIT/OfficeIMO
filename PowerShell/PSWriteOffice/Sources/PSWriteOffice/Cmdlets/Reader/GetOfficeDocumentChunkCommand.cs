@@ -25,8 +25,8 @@ public sealed class GetOfficeDocumentChunkCommand : OfficeDocumentReaderCommandB
     private const string FolderParameterSet = "Folder";
 
     /// <summary>File path to read.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = FileParameterSet)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = FileParameterSet, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Folder path to read.</summary>

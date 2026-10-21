@@ -29,8 +29,8 @@ public sealed class GetOfficePdfRedactionPlanCommand : PSCmdlet
     private const string ParameterSetText = "Text";
 
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>One-based page number for the redaction rectangle.</summary>

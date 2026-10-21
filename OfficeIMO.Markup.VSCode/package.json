@@ -397,7 +397,7 @@
     }
   },
   "dependencies": {
-    "mermaid": "^12.1.0"
+    "mermaid": "^12.2.0"
   },
   "overrides": {
     "brace-expansion": "5.0.12",

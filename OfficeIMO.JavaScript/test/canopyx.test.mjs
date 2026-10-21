@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { createCanopyExport, exportCanopy, writeCanopyTo } from "../dist/integrations/canopyx/index.js";
+import { createGroupedReport } from "../dist/core/index.js";
 import { readZip } from "./zip-reader.mjs";
 import { inspectPdf } from "./pdf-reader.mjs";
 
@@ -38,6 +39,28 @@ test("Canopy raw and display CSV remain literal, including formula protection af
   assert.equal(await raw.text(), "Name,Amount,Seen\r\nRaw,12.5,2026-10-08T12:34:56.1234567+02:00\r\n");
   assert.equal(await display.text(), "Name,Amount,Seen\r\n'=display,12.50 USD,Yesterday\r\n");
   await fixture("canopy-raw.csv", raw); await fixture("canopy-display.csv", display);
+});
+
+test("Canopy raw numeric metadata supports grouped metrics without typing rendered display or preserved dates", async () => {
+  const precise = "2026-10-08T12:34:56.123456789Z";
+  const cols = [column("Site"), { ...column("Latency", "number"), title: "Opóźnienie" }, column("Seen", "datetime")];
+  const rows = [{ id: "a", cells: { Site: cell("A"), Latency: cell(12.5, "12,50 ms"), Seen: cell(precise, "Local date") } },
+    { id: "b", cells: { Site: cell("A"), Latency: cell(null, "Missing"), Seen: cell(precise, "Local date") } }];
+  for (const format of ["csv", "xlsx", "pdf"]) {
+    const raw = createCanopyExport(capture(rows, cols), format);
+    assert.deepEqual(raw.columns.map(c => c.type), [undefined, "number", undefined]);
+    const grouped = createGroupedReport(raw.rows(), { columns: raw.columns, groupBy: "Site", totals: { Latency: "average" } });
+    const events = []; for await (const event of grouped.events) events.push(event);
+    assert.deepEqual(events.at(-1).totals, [null, 12.5, null]);
+    const firstDate = events.find(event => event.kind === "row").values[2];
+    assert.equal(format === "csv" ? firstDate : firstDate.value, precise, "Date preservation must not force a Date column");
+    const display = createCanopyExport(capture(rows, cols, { values: "display" }), format);
+    assert.ok(display.columns.every(c => c.type === undefined));
+    const rendered = (await collect(display))[0][1];
+    assert.equal(format === "csv" ? rendered : rendered.value, "12,50 ms");
+  }
+  const contradictory = capture([{ id: "bad", cells: { Site: cell("A"), Latency: cell("12.5"), Seen: cell(precise) } }], cols);
+  await assert.rejects(exportCanopy(contradictory, "xlsx"), /does not match column type number/);
 });
 
 test("Canopy row and cell tones compose without replacing values or number formats", async () => {
@@ -160,4 +183,13 @@ test("Canopy writer formats preserve typed XLSX, resolved PDF text, links and kn
   assert.match([...read.objects.values()].map(o => o.body).join("\n"), /\/URI <68747470733a/);
   await fixture("canopy-report.xlsx", xlsx); await fixture("canopy-report.pdf", pdf);
   await assert.rejects(exportCanopy(input, "csv", { ...options, onProgress: async () => { throw new Error("async progress"); } }), /synchronous/);
+});
+
+test("Canopy adapter retains format ceilings while explicit common limits override them", async () => {
+  const input = capture([{ id: "r1", cells: { Name: cell("one") } }, { id: "r2", cells: { Name: cell("two") } }]);
+  for (const format of ["xlsx", "csv", "pdf"]) {
+    class Limits { get maxRows() { return 1; } }
+    await assert.rejects(exportCanopy(input, format, { [format]: { limits: new Limits() }, limits: { maxRows: undefined } }), /maxRows/);
+    await exportCanopy(input, format, { [format]: { limits: { maxRows: 1 } }, limits: { maxRows: 2 } });
+  }
 });

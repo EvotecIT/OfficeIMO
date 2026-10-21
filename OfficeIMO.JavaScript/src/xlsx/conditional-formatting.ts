@@ -7,6 +7,7 @@ import { colorArgb } from "./style-xml.js";
 import { fields, optionalBoolean, differentialXml } from "./differential-styles.js";
 import type { ConditionalFormat, ConditionalRange, ConditionalStyle, ConditionalThreshold } from "./conditional-types.js";
 import type { StyleRegistry } from "./styles.js";
+import { resolveDataColumn } from "./ranges.js";
 
 interface Target { readonly first: number; readonly last: number; readonly reference?: string; readonly bottom?: number; }
 /** @internal Validated metadata, without workbook registrations. */
@@ -20,22 +21,22 @@ function target(range: ConditionalRange, columns: readonly ProjectionColumn[]): 
     return { first: first.column, last: last.column, reference: range, bottom: last.row };
   }
   fields(range, ["column", "through"], "conditional data range");
-  function resolve(value: string | number): number {
-    if (typeof value === "string") {
-      const matches = columns.flatMap((column, i) => column.key === value ? [i + 1] : []);
-      if (matches.length !== 1) throw new TypeError("Conditional column keys must identify exactly one declared column.");
-      return matches[0]!;
-    }
-    if (!Number.isInteger(value) || value < 1 || value > columns.length) throw new RangeError("Conditional column numbers must be one-based and within declared columns.");
-    return value;
-  }
-  const first = resolve(range.column), last = range.through === undefined ? first : resolve(range.through);
+  const first = resolveDataColumn(columns, range.column, "Conditional"), last = range.through === undefined ? first : resolveDataColumn(columns, range.through, "Conditional");
   if (last < first) throw new RangeError("Conditional data ranges require ordered columns.");
   return { first, last };
 }
 function finite(value: number): string {
   if (typeof value !== "number" || !Number.isFinite(value)) throw new TypeError("Conditional values must be finite numbers.");
   return String(value);
+}
+function comparisonValue(value: number | string, operator: string): string {
+  if (typeof value !== "string") return finite(value);
+  if (operator !== "equal" && operator !== "notEqual") throw new TypeError("Text conditional comparisons support only equal and notEqual.");
+  if (value.length > 8190) throw new RangeError("Conditional comparison formulas must fit 8,192 characters including quotes.");
+  cleanXml(value, "reject");
+  const literal = '"' + value.replace(/"/g, '""') + '"';
+  if (literal.length > 8192) throw new RangeError("Conditional comparison formulas must fit 8,192 characters including quotes.");
+  return literal;
 }
 function formula(value: string): string {
   if (typeof value !== "string") throw new TypeError("Conditional formulas must be strings.");
@@ -89,7 +90,7 @@ export function prepareConditionalFormats(rules: readonly ConditionalFormat[] | 
           if (rule.values[0] > rule.values[1]) throw new RangeError("Conditional comparison bounds must be ordered.");
         } else {
           if ("values" in rule || !("value" in rule)) throw new TypeError("A conditional comparison requires one value.");
-          body = '<formula>' + finite(rule.value) + '</formula>';
+          body = '<formula>' + escapeXml(comparisonValue(rule.value, rule.operator), "reject") + '</formula>';
         }
         attributes += ' operator="' + rule.operator + '"';
       }

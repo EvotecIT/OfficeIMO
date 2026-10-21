@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
+import { MessageChannel } from "node:worker_threads";
 import { Workbook, writeXlsx, writeXlsxTo, writePdf, preflightPdfText, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
 import * as coreModule from "@evotecit/officeimo/core";
 import * as zipModule from "@evotecit/officeimo/zip";
@@ -10,10 +11,13 @@ import * as csvModule from "@evotecit/officeimo/csv";
 import * as pdfModule from "@evotecit/officeimo/pdf";
 import * as dataTablesModule from "@evotecit/officeimo/integrations/datatables";
 import * as canopyModule from "@evotecit/officeimo/integrations/canopyx";
+import { executeWorkerExport, handleWorkerExports } from "@evotecit/officeimo/execution";
+import { createHarfBuzzTextShaper } from "@evotecit/officeimo/pdf/providers/harfbuzz";
 
 for (const [namespace, module] of [[core, coreModule], [zip, zipModule], [xml, xmlModule], [opc, opcModule], [xlsx, xlsxModule], [csv, csvModule], [pdf, pdfModule]])
   for (const [key, value] of Object.entries(module)) assert.equal(namespace[key], value);
 assert.equal(globalThis.document, undefined);
+assert.equal(typeof createHarfBuzzTextShaper, "function", "The optional provider adapter imports without loading WASM or external packages");
 assert.equal(typeof dataTablesModule.createDataTablesExport, 'function');
 assert.equal(dataTablesModule.ExportCell, coreModule.ExportCell);
 assert.equal(canopyModule.ExportCell, coreModule.ExportCell);
@@ -80,4 +84,43 @@ assert.equal(await (await csv.writeCsv([[resolved]], { columns: [{ header: "Amou
 const manifest = JSON.parse(await readFile("node_modules/@evotecit/officeimo/package.json", "utf8"));
 assert.equal(manifest.dependencies, undefined);
 assert.deepEqual(Object.keys(manifest.devDependencies), ["typescript"]);
+// The optional installed entry must execute independently of a document or grid.
+const { port1, port2 } = new MessageChannel(), workerSink = new core.BlobByteSink();
+const handler = handleWorkerExports(port2, ({ rows, sink, signal }) => csvModule.writeCsvTo(rows, sink, {
+  columns: [{ header: "Amount" }, { header: "Seen" }], signal
+}));
+try {
+  const result = await executeWorkerExport(port1, [[new core.ExportCell(12.5, { text: "12.50 USD" }), new Date("2026-10-20T08:00:00Z")]], workerSink);
+  assert.equal(result.rows, 1);
+  assert.equal(await workerSink.toBlob().text(), "Amount,Seen\r\n12.5,2026-10-20T08:00:00.000Z\r\n");
+  await import("@evotecit/officeimo/execution.js");
+  assert.equal(typeof globalThis.OfficeIMO.executeWorkerExport, "function");
+} finally { handler.dispose(); port1.close(); port2.close(); }
+// The exact installed archive must preserve grouped source ownership across public subpaths.
+const groupedColumns = [{ header: "Measure", key: "amount", type: "number" }, { header: "Location", key: "site" }, { header: "Ready", key: "ready" }];
+const groupedRecords = [{ amount: 2, site: "A", ready: true }, { amount: null, site: "A", ready: false }, { amount: 8, site: "B", ready: true }];
+const groupedSetup = { columns: groupedColumns, groupBy: "site", totals: { amount: "average" } };
+const groupedLabels = { labelColumn: { header: "Summary" }, subtotalLabel: group => "Group " + group.label,
+  grandTotalLabel: summary => "All " + summary.rows + " records" };
+const groupedXlsxSettings = { ...groupedLabels, compression: "store", collapseGroups: true, created: new Date("2026-10-20T00:00:00Z") };
+const groupedXlsx = await xlsxModule.writeGroupedXlsx(coreModule.createGroupedReport(groupedRecords, groupedSetup), groupedXlsxSettings);
+await writeFile("packed-grouped.xlsx", new Uint8Array(await groupedXlsx.arrayBuffer()));
+const groupedPdfSetup = { ...groupedSetup, columns: groupedColumns.map(column => column.key === "amount" ? { ...column, groups: ["Measures"] } : column) };
+const groupedPdf = await pdfModule.writeGroupedPdf(pdfModule.createGroupedReport(groupedRecords, groupedPdfSetup), { ...groupedLabels, compression: false,
+  pageNumberLabels: { prefix: "Sheet ", separator: " / " }, booleanText: { true: "Yes", false: "No" } });
+await writeFile("packed-grouped.pdf", new Uint8Array(await groupedPdf.arrayBuffer()));
+const emptySink = new coreModule.BlobByteSink();
+const emptyGrouped = await pdfModule.writeGroupedPdfTo(pdfModule.createGroupedReport([], groupedSetup), emptySink, { ...groupedLabels, includeGrandTotal: false });
+assert.deepEqual(emptyGrouped, { rows: 0, columns: 4, bytes: emptySink.toBlob().size });
+await import("@evotecit/officeimo/xlsx.js");
+const classicGrouped = await globalThis.OfficeIMO.xlsx.writeGroupedXlsx(globalThis.OfficeIMO.createGroupedReport(groupedRecords, groupedSetup), groupedXlsxSettings);
+assert.deepEqual(Buffer.from(await classicGrouped.arrayBuffer()), Buffer.from(await groupedXlsx.arrayBuffer()), "Classic grouped XLSX uses the same source contract");
+const classicGroupedPdf = await globalThis.OfficeIMO.pdf.writeGroupedPdf(globalThis.OfficeIMO.createGroupedReport(groupedRecords, groupedPdfSetup), { ...groupedLabels, compression: false,
+  pageNumberLabels: { prefix: "Sheet ", separator: " / " }, booleanText: { true: "Yes", false: "No" } });
+assert.deepEqual(Buffer.from(await classicGroupedPdf.arrayBuffer()), Buffer.from(await groupedPdf.arrayBuffer()), "Composed classic writers share the owned grouped source");
+for (const [entry, format] of [["xlsx", "xlsx"], ["pdf", "pdf"]]) {
+  const module = await import(import.meta.resolve("@evotecit/officeimo/" + entry + ".js").replace(/\.js$/, ".mjs"));
+  const file = await module[format === "xlsx" ? "writeGroupedXlsx" : "writeGroupedPdf"](module.createGroupedReport(groupedRecords, groupedSetup), groupedLabels);
+  assert.ok(file.size > 0, "Standalone ESM entry owns both factory and writer");
+}
 console.log("All packed subpaths imported and executed without runtime dependencies or a DOM.");

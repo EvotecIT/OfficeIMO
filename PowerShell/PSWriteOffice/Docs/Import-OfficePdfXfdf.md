@@ -140,13 +140,13 @@ Source PDF path.
 ```yaml
 Type: String
 Parameter Sets: Text, File
-Aliases: None
+Aliases: FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 

@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -15,9 +16,12 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
     private readonly StringBuilder _pipelineXfdf = new();
     private long _pipelineXfdfBytes;
     private bool _hasPipelineXfdf;
+    private string? _inputPath;
 
     /// <summary>Source PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "File", ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>XFDF XML.</summary>
@@ -60,6 +64,11 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (ParameterSetName == "File" && _inputPath != null)
+        {
+            throw new PSArgumentException("A single OutputPath accepts exactly one source PDF. Invoke the command separately for each PDF.");
+        }
+        _inputPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         if (ParameterSetName == "Text")
         {
             AppendPipelineXfdf(Xfdf);
@@ -69,11 +78,11 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
     /// <inheritdoc />
     protected override void EndProcessing()
     {
-        var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);
+        var input = _inputPath ?? throw new PSArgumentException("A source PDF was not provided.");
+        var output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
         if (!ShouldProcess(output, "Import XFDF into PDF form fields")) return;
         var xml = ParameterSetName == "File"
-            ? ReadBoundedXfdfFile(SessionState.Path.GetUnresolvedProviderPathFromPSPath(XfdfPath))
+            ? ReadBoundedXfdfFile(OfficeFileCommandUtilities.ResolvePath(this, XfdfPath))
             : _pipelineXfdf.ToString();
         var result = PdfCommandUtilities.LoadDocument(
             input,

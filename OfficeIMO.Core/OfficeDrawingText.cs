@@ -298,19 +298,35 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Creates a detached copy of this positioned text box.</summary>
     public OfficeDrawingText Clone() => CloneWithFont(Font);
 
-    internal OfficeDrawingText CloneWithFont(OfficeFontInfo font) => new OfficeDrawingText(Text, X, Y, Width, Height, font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette, TextDirection) {
-        PreservesPaintedGlyphs = PreservesPaintedGlyphs,
-        RasterText = RasterText,
-        PreparedShaping = string.Equals(font.FamilyName, Font.FamilyName, StringComparison.OrdinalIgnoreCase)
-            && font.Face.Equals(Font.Face) ? PreparedShaping : null,
-        FontMetricScale = FontMetricScale,
-        ClipToFrame = ClipToFrame,
-        OutlineStrokeColor = OutlineStrokeColor,
-        OutlineStrokeWidth = OutlineStrokeWidth,
-        OutlineStrokeDashPattern = OutlineStrokeDashPattern,
-        OutlineStrokeDashOffset = OutlineStrokeDashOffset,
-        FillSuppressed = FillSuppressed
-    };
+    internal OfficeDrawingText CloneWithFont(OfficeFontInfo font) {
+        var clone = new OfficeDrawingText(Text, X, Y, Width, Height, font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette, TextDirection);
+        CopyPaintTo(clone);
+        return clone;
+    }
+
+    // Nested placement, recoloring and font clones must retain the same painted
+    // glyphs and pen state; reconstructing the public text box alone loses them.
+    internal void CopyPaintTo(OfficeDrawingText target) {
+        target.PreservesPaintedGlyphs = PreservesPaintedGlyphs;
+        target.RasterText = RasterText;
+        target.PreparedShaping = string.Equals(target.Font.FamilyName, Font.FamilyName, StringComparison.OrdinalIgnoreCase)
+            && target.Font.Face.Equals(Font.Face) ? PreparedShaping : null;
+        target.FontMetricScale = FontMetricScale;
+        target.ClipToFrame = ClipToFrame;
+        target.GlyphTransform = GlyphTransform;
+        target.OutlineStrokeColor = OutlineStrokeColor;
+        target.OutlineStrokeWidth = OutlineStrokeWidth;
+        target.OutlineStrokeDashPattern = OutlineStrokeDashPattern == null
+            ? null : new List<double>(OutlineStrokeDashPattern).AsReadOnly();
+        target.OutlineStrokeDashOffset = OutlineStrokeDashOffset;
+        target.FillSuppressed = FillSuppressed;
+    }
+
+    /// <summary>
+    /// Transforms positioned glyph contours before filling or stroking them.
+    /// The pen width and dash pattern remain in destination drawing units.
+    /// </summary>
+    internal OfficeTransform? GlyphTransform { get; set; }
 
     /// <summary>
     /// Optional glyph-outline stroke paint (PDF text rendering modes 1, 2, 5 and 6). Raster renderers stroke the

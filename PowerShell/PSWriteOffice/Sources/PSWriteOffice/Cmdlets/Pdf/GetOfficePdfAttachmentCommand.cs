@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
@@ -22,8 +23,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfAttachmentCommand : PSCmdlet
 {
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional attachment name or file name filter.</summary>
@@ -71,7 +72,7 @@ public sealed class GetOfficePdfAttachmentCommand : PSCmdlet
             var fileName = !string.IsNullOrWhiteSpace(attachment.UnicodeFileName)
                 ? attachment.UnicodeFileName!
                 : attachment.FileName;
-            var outputPath = AtomicFileWriter.WriteUnique(outputDirectory, fileName, attachment.Bytes);
+            var outputPath = OfficeFileOutput.WriteUnique(outputDirectory, fileName, attachment.Bytes);
             WriteObject(new FileInfo(outputPath));
         }
     }

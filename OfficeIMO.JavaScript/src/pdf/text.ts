@@ -2,6 +2,7 @@ import { OfficeIMOError } from "../core/errors.js";
 import { ExportCell, assertExportValue } from "../core/presentation.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 import { isDate } from "../core/dates.js";
+import { defaultBooleanText } from "../core/value-text.js";
 import type { ExportValue, ColumnValueContext } from "../core/index.js";
 import type { PdfOptions } from "./types.js";
 import type { PdfFontResource } from "./font-resources.js";
@@ -16,7 +17,7 @@ export function displayText(value: ExportValue, options: PdfOptions, context: Co
   if (value instanceof ExportCell && value.text !== undefined) return value.text;
   const raw = value instanceof ExportCell ? value.value : value;
   if (options.formatValue) return synchronousText(options.formatValue(raw, context), "formatValue");
-  return raw == null ? "" : isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? raw ? "True" : "False" : String(raw);
+  return raw == null ? "" : isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? (options.booleanText ?? defaultBooleanText)[raw ? "true" : "false"] : String(raw);
 }
 export interface PdfTextLine { readonly text: string; readonly width: number; }
 /** Greedy word boundaries, then scalar boundaries. No character, whitespace or long-word truncation. */

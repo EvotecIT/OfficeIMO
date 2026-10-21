@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using System.Text;
@@ -52,7 +53,7 @@ public sealed class ExportOfficePdfXfdfCommand : PSCmdlet
         var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath!);
         if (!ShouldProcess(output, "Write PDF form data as XFDF")) return;
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        File.WriteAllText(output, xfdf, new UTF8Encoding(false));
+        OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, xfdf, new UTF8Encoding(false)));
         if (PassThru.IsPresent) WriteObject(new FileInfo(output));
     }
 }

@@ -171,3 +171,16 @@ test("cancellation between appends and finalization preserves the original reaso
     await assert.rejects(sheet.addRows([["later"]]), error => error === reason);
   }
 });
+
+test("print margins capture structural and enumerable getters before repeated layout validation", async () => {
+  for (const structural of [false, true]) {
+    let left = 0, right = 0;
+    class Margins { get left() { left++; return 1.25; } get right() { right++; return 1.5; } }
+    const margins = structural ? new Margins() : { get left() { return ++left === 1 ? 1.25 : -1; }, get right() { right++; return 1.5; } };
+    const book = new Workbook({ compression: "store" });
+    await book.addWorksheet("Print", { columns: [{ header: "Value" }], print: { margins } }).addRows([[1]]);
+    const zip = await readZip(await book.toBlob());
+    assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<pageMargins left="1.25" right="1.5"/);
+    assert.equal(left, 1); assert.equal(right, 1);
+  }
+});

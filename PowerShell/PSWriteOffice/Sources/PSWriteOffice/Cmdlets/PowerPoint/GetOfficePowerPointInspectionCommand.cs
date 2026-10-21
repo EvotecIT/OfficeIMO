@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Services.PowerPoint;
@@ -16,7 +17,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointInspectionCommand : PSCmdlet
 {
     /// <summary>Path to the presentation.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path", ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Open presentation instance.</summary>
@@ -37,7 +39,7 @@ public sealed class GetOfficePowerPointInspectionCommand : PSCmdlet
             if (ParameterSetName == "Path")
             {
                 owned = PowerPointDocumentService.LoadPresentation(
-                    SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path),
+                    OfficeFileCommandUtilities.ResolvePath(this, Path),
                     readOnly: true);
                 presentation = owned;
             }

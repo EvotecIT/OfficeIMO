@@ -6,11 +6,17 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private const int DiagnosticGlyphCacheEntryLimit = 512;
         private const int DiagnosticGlyphCachePointLimit = 65536;
-        // DiagnosticFont resolves these owned programs from private font snapshots;
+        // Shared glyph-paint font resolution uses owned private font snapshots;
         // caller-provided outline providers never enter this per-writer cache.
         private readonly Dictionary<(IOfficeBoundedFontProgram Font, int Glyph, double Size), List<List<OfficePoint>>>
             _diagnosticGlyphContours = new();
         private int _diagnosticGlyphPointCount;
+
+        /// <summary>Releases retained font programs with their cached outlines.</summary>
+        private void ClearDiagnosticGlyphCache() {
+            _diagnosticGlyphContours.Clear();
+            _diagnosticGlyphPointCount = 0;
+        }
 
         /// <summary>Reuses exact bounded outlines only within this writer and returns private points for placement.</summary>
         private List<List<OfficePoint>> DiagnosticGlyphOutline(IOfficeBoundedFontProgram font, int glyphId, double size) {
@@ -25,8 +31,7 @@ internal static partial class PdfWriter {
                 foreach (List<OfficePoint> contour in contours) points += contour.Count;
                 if (_diagnosticGlyphContours.Count >= DiagnosticGlyphCacheEntryLimit
                     || points > DiagnosticGlyphCachePointLimit - _diagnosticGlyphPointCount) {
-                    _diagnosticGlyphContours.Clear();
-                    _diagnosticGlyphPointCount = 0;
+                    ClearDiagnosticGlyphCache();
                 }
                 _diagnosticGlyphContours.Add(key, contours);
                 _diagnosticGlyphPointCount += points;

@@ -404,7 +404,7 @@ public static class OfficeWorkflowCatalog {
     }
 
     /// <summary>Applies canonical extension selection to the executable routes captured from one runner.</summary>
-    internal static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, IReadOnlyList<OfficeWorkflowRoute> routes) {
+    public static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, IReadOnlyList<OfficeWorkflowRoute> routes) {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
         // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).

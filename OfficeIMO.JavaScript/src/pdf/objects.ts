@@ -46,42 +46,61 @@ export class PdfObjects {
     if (taskYieldDue()) await pause();
     checkAbort(this.signal);
   }
-  async object(id: number, body: string): Promise<void> {
-    this.start(id); await this.text(id + " 0 obj\n" + body + "\nendobj\n");
+  async object(id: number, body: string | Iterable<string>): Promise<void> {
+    this.start(id);
+    if (typeof body === "string") {
+      await this.text(id + " 0 obj\n" + body + "\nendobj\n"); return;
+    }
+    // Logical parent arrays can be large. Coalesce small tokens without materializing the whole object.
+    let chunk = id + " 0 obj\n";
+    for (const part of body) {
+      for (let offset = 0; offset < part.length;) {
+        const end = Math.min(part.length, offset + 32768 - chunk.length);
+        chunk += part.slice(offset, end); offset = end;
+        if (chunk.length === 32768) {
+          // Keep a trailing high surrogate with the next token, matching one-shot UTF-8 encoding.
+          const code = chunk.charCodeAt(chunk.length - 1), length = code >= 0xd800 && code <= 0xdbff ? chunk.length - 1 : chunk.length;
+          await this.text(chunk.slice(0, length)); chunk = chunk.slice(length);
+        }
+      }
+    }
+    await this.text(chunk + "\nendobj\n");
   }
   private start(id: number): void {
     if (!Number.isInteger(id) || id <= 0 || id >= this.offsets.length || this.offsets[id] !== undefined) throw new Error("Invalid PDF object state.");
     this.offsets[id] = this.bytes;
   }
-  async stream(id: number, source: Uint8Array | string, dictionary = "", compression = true): Promise<void> {
-    let bytes = typeof source === "string" ? this.encoder.encode(source) : source, compressed = false;
+  async stream(id: number, source: Uint8Array | string, dictionary = "", compression = true, owned = false): Promise<void> {
+    const bytes = typeof source === "string" ? this.encoder.encode(source) : source;
+    let compressor: CompressionStream | undefined;
     if (compression && typeof CompressionStream === "function" && bytes.length) {
-      let compressor: CompressionStream | undefined;
       try { compressor = new CompressionStream("deflate"); } catch { /* PDF streams can remain uncompressed. */ }
-      if (compressor) {
-        const sourceBytes = new Uint8Array(bytes);
-        const input = new ReadableStream<BufferSource>({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
-        const reader = input.pipeThrough(compressor).getReader(), chunks: Uint8Array[] = [];
-        let length = 0, complete = false;
-        try {
-          while (true) {
-            const next = await withAbort(reader.read(), this.signal);
-            if (next.done) { complete = true; break; }
-            chunks.push(next.value); length += next.value.length;
-          }
-        } finally {
-          if (!complete) void reader.cancel(this.signal?.reason).catch(() => {});
-          reader.releaseLock();
-        }
-        bytes = new Uint8Array(length);
-        let offset = 0;
-        for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-        compressed = true;
-      }
     }
-    this.start(id);
-    await this.text(id + " 0 obj\n<< /Length " + bytes.length + (compressed ? " /Filter /FlateDecode" : "") + " " + dictionary + " >>\nstream\n");
-    await this.raw(bytes); await this.text("\nendstream\nendobj\n");
+    if (!compressor) {
+      this.start(id);
+      await this.text(id + " 0 obj\n<< /Length " + bytes.length + " " + dictionary + " >>\nstream\n");
+      await this.raw(bytes); await this.text("\nendstream\nendobj\n"); return;
+    }
+    // Verified internal producers can transfer immutable ownership; other byte sources retain the defensive snapshot.
+    const sourceBytes = typeof source === "string" || owned ? bytes as Uint8Array<ArrayBuffer> : new Uint8Array(bytes);
+    const input = new ReadableStream<BufferSource>({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
+    const reader = input.pipeThrough(compressor).getReader(), lengthId = this.reserve();
+    let length = 0, complete = false;
+    try {
+      this.start(id);
+      await this.text(id + " 0 obj\n<< /Length " + lengthId + " 0 R /Filter /FlateDecode " + dictionary + " >>\nstream\n");
+      while (true) {
+        const next = await withAbort(reader.read(), this.signal);
+        if (next.done) { complete = true; break; }
+        length += next.value.length;
+        await this.raw(next.value);
+      }
+      await this.text("\nendstream\nendobj\n");
+      await this.object(lengthId, String(length));
+    } finally {
+      if (!complete) void reader.cancel(this.signal?.reason).catch(() => {});
+      reader.releaseLock();
+    }
   }
   async finish(root: number, info: number): Promise<void> {
     if (this.offsets.slice(1).some(offset => offset === undefined)) throw new Error("PDF contains unwritten objects.");

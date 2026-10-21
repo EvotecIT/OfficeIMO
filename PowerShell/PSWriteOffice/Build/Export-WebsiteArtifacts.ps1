@@ -189,7 +189,11 @@ function Get-QualifiedSourceRevision {
             throw 'The module bundle source manifest does not match this checkout. Rebuild it from this checkout.'
         }
     }
-    $apiInputs = @('Sources', 'PSWriteOffice.psm1', 'Directory.Build.props', 'Directory.Build.targets',
+    # PowerForge regenerates the source loader for the frameworks available on this
+    # host. It is a checked input before the build and a generated output afterward.
+    # The fresh package has its own generated loader; compilation and build inputs
+    # must still match the committed revision after generation.
+    $apiInputs = @('Sources', 'Directory.Build.props', 'Directory.Build.targets',
         'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build')
     if ($BeforeBuild) { $apiInputs = @('.', ':(exclude)PSWriteOffice.psd1') }
     $difference = Invoke-SourceGit (@('diff', '--quiet', $packageCommits[0], $head[0], '--') + $apiInputs)

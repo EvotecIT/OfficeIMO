@@ -101,15 +101,32 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_ScaledObjectRetainsMinimumLineHeightInPageAndColumn(bool columns) {
-        using var pdf = PdfPigDocument.Open(ObjectBoundaryPdf(columns, wide: true));
-        var page = pdf.GetPage(1);
+    public void SaveAsPdf_OversizedBodyPictureRetainsAuthoredFrameAboveMinimumLineHeightInPageAndColumn(bool columns) {
+        byte[] bytes = ObjectBoundaryPdf(columns, wide: true);
+        using var pdf = PdfPigDocument.Open(bytes);
+        var page = Assert.Single(pdf.GetPages());
         double gap = Assert.Single(page.Letters, l => l.Value == "A").StartBaseLine.Y -
             Assert.Single(page.Letters, l => l.Value == "B").StartBaseLine.Y;
-        Assert.Equal(80D, gap - ObjectMarkGap("none", false), 3);
+        // The authored 1000 x 100 pt frame exceeds the 80 pt minimum. Word
+        // retains its dimensions across body/column admission and clips paint
+        // at the physical page rather than shrinking the picture to the text box.
+        Assert.Equal(100D, gap - ObjectMarkGap("none", false), 3);
         var image = Assert.Single(page.GetImages());
-        Assert.True(image.BoundingBox.Height < 80D);
-        Assert.Equal(columns ? 216D : 468D, image.BoundingBox.Width, 3);
+        Assert.Equal(100D, image.BoundingBox.Height, 3);
+        Assert.Equal(1000D, image.BoundingBox.Width, 3);
+        Assert.Equal(Assert.Single(page.Letters, l => l.Value == "A").StartBaseLine.X, image.BoundingBox.Left, 3);
+        Assert.True(image.BoundingBox.Right > page.Width);
+
+        PdfPageRenderResult rendered = Assert.Single(PdfDocument.Load(bytes).Render.Pages(
+            options: new PdfPageRenderOptions { Dpi = 72 }));
+        Assert.True(rendered.Succeeded, string.Join("\n", rendered.Diagnostics));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(rendered.Bytes!, out OfficeRasterImage? bitmap));
+        Assert.Equal((int)Math.Ceiling(page.Width), bitmap!.Width);
+        int pictureMiddle = (int)Math.Floor(page.Height - (image.BoundingBox.Top + image.BoundingBox.Bottom) / 2D);
+        OfficeColor edge = bitmap.GetPixel(bitmap.Width - 2, pictureMiddle);
+        Assert.InRange(Math.Abs(edge.R - OfficeColor.Green.R), 0, 8);
+        Assert.InRange(Math.Abs(edge.G - OfficeColor.Green.G), 0, 8);
+        Assert.InRange(Math.Abs(edge.B - OfficeColor.Green.B), 0, 8);
     }
 
     [Theory]

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
+using PSWriteOffice.Services;
 #if !FRAMEWORK
 using OfficeIMO.Workflows;
 #endif
@@ -53,6 +54,10 @@ public sealed class GetOfficeConversionRouteCommand : PSCmdlet
     [Parameter]
     public SwitchParameter PdfBatch { get; set; }
 
+    /// <summary>Return only file routes executable by ConvertTo-OfficeDocument in the current host.</summary>
+    [Parameter]
+    public SwitchParameter Executable { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
@@ -65,12 +70,16 @@ public sealed class GetOfficeConversionRouteCommand : PSCmdlet
             if (target != null && !string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase)) continue;
             bool pdfBatchSupported = SupportsPdfBatch(route);
             if (PdfBatch.IsPresent && !pdfBatchSupported) continue;
+            bool executable = IsExecutable(route);
+            if (Executable.IsPresent && !executable) continue;
 
             // A fresh wrapper keeps host-specific surface information out of the immutable owner catalog.
             var row = new PSObject(route);
             row.Properties.Add(new PSNoteProperty("PdfBatchSupported", pdfBatchSupported));
             row.Properties.Add(new PSNoteProperty("PdfBatchCommand", pdfBatchSupported ? "Export-OfficeDocumentPdf" : null));
             row.Properties.Add(new PSNoteProperty("PdfBatchMinimumPowerShellVersion", new Version(7, 4)));
+            row.Properties.Add(new PSNoteProperty("ConversionSupported", executable));
+            row.Properties.Add(new PSNoteProperty("ConversionCommand", executable ? "ConvertTo-OfficeDocument" : null));
             WriteObject(row);
         }
     }
@@ -89,7 +98,16 @@ public sealed class GetOfficeConversionRouteCommand : PSCmdlet
 #else
         return string.Equals(route.TargetExtension, ".pdf", StringComparison.OrdinalIgnoreCase) &&
             (route.InputKind == OfficeConversionInputKind.File || route.InputKind == OfficeConversionInputKind.Text) &&
-            OfficeWorkflowCatalog.FindExecutable(route.Id) != null;
+            OfficeWorkflowCommandUtilities.IsExecutable(route.Id);
+#endif
+    }
+
+    private static bool IsExecutable(OfficeConversionCapability route) {
+#if FRAMEWORK
+        return false;
+#else
+        return OfficeWorkflowCommandUtilities.IsExecutable(route.Id) &&
+            (route.InputKind == OfficeConversionInputKind.File || route.InputKind == OfficeConversionInputKind.Text);
 #endif
     }
 }

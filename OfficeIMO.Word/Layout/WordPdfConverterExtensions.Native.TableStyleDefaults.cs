@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.Pdf {
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public bool? SeparateCellBorders { get; init; }
+            public bool RightToLeft { get; init; }
             // An explicit PDF default supplies missing cell typography while
             // authored run, paragraph and named table styles retain precedence.
             public bool UseConfiguredTypography { get; init; }
@@ -17,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
+            public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
@@ -24,6 +26,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
+            public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
@@ -39,8 +42,9 @@ namespace OfficeIMO.Word.Pdf {
             // that chain before applying the configured PDF fallback; built-in
             // Normal Table definitions already produce an empty chain.
             IReadOnlyList<W.Style> styleChain = GetNativeTableStyleChain(table.Document, styleId);
+            bool rightToLeft = WordTableAlignmentResolver.IsRightToLeft(table._tableProperties);
             if (styleChain.Count == 0) {
-                return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = ignoreFallbackTableStyle };
+                return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = ignoreFallbackTableStyle, RightToLeft = rightToLeft };
             }
 
             double? marginTop = null;
@@ -79,6 +83,7 @@ namespace OfficeIMO.Word.Pdf {
             OfficeTextDecorationStyle? underlineStyle = null;
             OfficeTextDecorationStyle? strikeStyle = null;
             bool? allCaps = null;
+            bool? smallCaps = null;
             W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
@@ -100,7 +105,8 @@ namespace OfficeIMO.Word.Pdf {
                 italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
                 underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
                 strikeStyle = MapNativeStrikeStyle(runProperties) ?? strikeStyle;
-                allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
+                allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
+                smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
                 highlight = WordRunFormatting.ReadRunHighlight(runProperties) ?? highlight;
@@ -114,7 +120,7 @@ namespace OfficeIMO.Word.Pdf {
                     cellSpacing = resolvedCellSpacing;
                     separateCellBorders = spacingDeclaration!.Type?.Value == W.TableWidthUnitValues.Dxa;
                 }
-                alignment = tableProperties?.GetFirstChild<W.TableJustification>()?.Val?.Value ?? alignment;
+                alignment = WordTableAlignmentResolver.Read(tableProperties?.GetFirstChild<W.TableJustification>(), rightToLeft) ?? alignment;
 
                 W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
                 if (margins != null) {
@@ -244,14 +250,14 @@ namespace OfficeIMO.Word.Pdf {
                     baseline,
                     colorHex,
                     highlight,
-                    null) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing },
+                    null) { SmallCaps = smallCaps, FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing },
                 firstRowStyle,
                 lastRowStyle,
                 firstColumnStyle,
                 lastColumnStyle,
                 band1HorizontalStyle,
                 band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing,
-                    ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders };
+                    ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders, RightToLeft = rightToLeft };
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
@@ -297,7 +303,8 @@ namespace OfficeIMO.Word.Pdf {
                 bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());
                 OfficeTextDecorationStyle? underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
                 OfficeTextDecorationStyle? strikeStyle = MapNativeStrikeStyle(runProperties);
-                bool? allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>());
+                bool? allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>());
+                bool? smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>());
                 W.VerticalPositionValues? baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value;
                 W.HighlightColorValues? highlight = WordRunFormatting.ReadRunHighlight(runProperties);
 
@@ -366,6 +373,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphLeftIndent ?? result.ParagraphLeftIndent,
                     paragraphRightIndent ?? result.ParagraphRightIndent,
                 paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) {
+                    SmallCaps = smallCaps ?? result.SmallCaps,
                     FontFamilies = fontFamilies,
                     ComplexScript = result.ComplexScript.Merge(runProperties),
                     TextSpacing = result.TextSpacing.Merge(runProperties),
