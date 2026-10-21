@@ -71,7 +71,7 @@ public partial class PdfPageFootnoteTests {
         Assert.Equal(repeat ? 10D : 14D, continuation.BoundingBox.Top - first.BoundingBox.Top, 3);
         foreach (var page in pdf.GetPages()) {
             var fill = Assert.Single(page.Paths.Where(path => path.IsFilled)
-                .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue));
+                .Select(path => path.GetBoundingRectangle()), bounds => bounds.HasValue);
             Assert.Equal(20D, fill!.Value.Left, 3);
             Assert.Equal(240D, fill.Value.Right, 3);
             Assert.True(fill.Value.Bottom >= 20D - .001D);

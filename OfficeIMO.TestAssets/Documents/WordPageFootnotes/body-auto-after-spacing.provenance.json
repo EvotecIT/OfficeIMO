@@ -1,0 +1,23 @@
+{
+  "provenance": "OfficeIMO-owned synthetic OOXML with ordinary prose; no user document or private sample.",
+  "producer": "Microsoft Word for Microsoft 365 16.0.20430.20182 on Windows",
+  "captured": "2026-10-21",
+  "input": "body-auto-after-spacing.docx",
+  "input_bytes": 17201,
+  "input_sha256": "bc4893a2355683c08c310a1e6ccdaa399c45027eb91a7de759010442f44fe72e",
+  "reference": "body-auto-after-spacing.microsoft-word.pdf",
+  "reference_bytes": 107161,
+  "reference_sha256": "a2e2722222805655ecd6787a8a328f36f63b90e2d9e06b9335a04e6d66fae729",
+  "reference_pages": 2,
+  "font": {
+    "family": "Arial",
+    "version": "7.06",
+    "regular_sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "bold_sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+  },
+  "source_profile": "The final body paragraph has no direct paragraph properties. Document defaults supply after160 twips and auto259 line spacing; note paragraphs use after0 and exact280 twips. The source distinguishes the final font box used by imported frame fitting from the full line advance used by note admission.",
+  "qualification": "Public conversion must complete, preserve all visible glyphs and note order, and leave the source unchanged. Native page assignments are asserted only with the pinned Arial profile; font substitution remains explicit and does not claim native geometry.",
+  "export": "Read-only inert input, native Word repagination and PDF export before diagnostic getters; no repair or source save. Source, native binaries and fonts remained unchanged.",
+  "inert_parts": "Eleven OOXML parts, no docProps, VBA, external relationships, field instructions, embedded objects or altChunk. Body/note content is generated ordinary prose.",
+  "causal_controls": "Independent owned copies change only the final paragraph's after-space. Native Word places after0 on one page, inherited after8 and explicit after16 on two pages. The regression fixture remains the unchanged inherited-default input. These values are fixture inputs, not converter constants."
+}

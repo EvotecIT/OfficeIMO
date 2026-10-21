@@ -121,6 +121,100 @@ public partial class PdfPageFootnoteTests {
         }
     }
 
+    [Theory]
+    [InlineData("paragraph")]
+    [InlineData("heading")]
+    [InlineData("list")]
+    public void ImportedAutoLineAdvanceDoesNotEnterAContinuedNoteRegion(string owner) {
+        PdfOptions options = Options();
+        options.PageHeight = 150;
+        var document = PdfDocument.Create(options);
+        var note = document.Content.DefineFootnote(body => {
+            for (int index = 0; index < 18; index++)
+                body.Text($"ContinuedNote{index:D2}", style: BodyAfterStyle(0));
+        });
+        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+            PdfTextRun.Normal("Reference").WithFootnoteReference(note)
+        }), style: BodyAfterStyle(0));
+        // Imported multiple spacing can fit a final font box while its full
+        // advance plus after-space enters the continued note's reserved area.
+        // The importer metadata uses the existing friend contract, as in the
+        // imported-line frame-fit tests; no public proof-only API is required.
+        var spacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D);
+        if (owner == "paragraph") {
+            document.Content.Text("OwnerBody", style: new PdfParagraphStyle {
+                FontSize = 10, LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8,
+                WidowControl = false
+            });
+        } else if (owner == "heading") {
+            document.Content.Heading(2, "OwnerBody", style: new PdfHeadingStyle {
+                FontSize = 10, Font = PdfStandardFont.Helvetica, Bold = false,
+                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, KeepWithNext = false
+            });
+        } else if (owner == "list") {
+            document.Content.Numbered(new[] { "OwnerBody" }, style: new PdfListStyle {
+                FontSize = 10, MarkerFontSize = 10, MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, ItemSpacing = 0,
+                KeepTogether = false, KeepWithNext = false
+            });
+        } else {
+            throw new ArgumentOutOfRangeException(nameof(owner));
+        }
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Contains("Reference", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OwnerBody", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OwnerBody", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        Assert.Contains("OwnerBody", pdf.GetPage(3).Text, StringComparison.Ordinal);
+        string[] noteTokens = pdf.GetPages().SelectMany(page => page.GetWords())
+            .Select(word => word.Text).Where(token => token.StartsWith("ContinuedNote", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(Enumerable.Range(0, 18).Select(index => $"ContinuedNote{index:D2}"), noteTokens);
+        for (int index = 0; index < 18; index++) {
+            string token = $"ContinuedNote{index:D2}";
+            Assert.Single(pdf.GetPages(), page => page.Text.IndexOf(token, StringComparison.Ordinal) >= 0);
+            Assert.Contains(token, pdf.GetPage(index < 10 ? 1 : 2).Text, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImportedAutoLineAdvanceRetainsALegalPrefixOrMovesTheKeptParagraph(bool keepTogether) {
+        PdfOptions options = Options();
+        options.PageHeight = 175;
+        var document = PdfDocument.Create(options);
+        var note = document.Content.DefineFootnote(body => {
+            for (int index = 0; index < 20; index++)
+                body.Text($"PrefixNote{index:D2}", style: BodyAfterStyle(0));
+        });
+        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+            PdfTextRun.Normal("Reference").WithFootnoteReference(note)
+        }), style: BodyAfterStyle(0));
+        document.Content.Text("FirstBody\nLastBody", style: new PdfParagraphStyle {
+            FontSize = 10, LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D),
+            SpacingBefore = 0, SpacingAfter = 8, WidowControl = false, KeepTogether = keepTogether
+        });
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Contains("FirstBody", pdf.GetPage(keepTogether ? 3 : 2).Text, StringComparison.Ordinal);
+        Assert.Contains("LastBody", pdf.GetPage(3).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("LastBody", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        if (keepTogether)
+            Assert.DoesNotContain("FirstBody", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        else
+            Assert.DoesNotContain("FirstBody", pdf.GetPage(3).Text, StringComparison.Ordinal);
+        string[] noteTokens = pdf.GetPages().SelectMany(page => page.GetWords())
+            .Select(word => word.Text).Where(token => token.StartsWith("PrefixNote", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(Enumerable.Range(0, 20).Select(index => $"PrefixNote{index:D2}"), noteTokens);
+        for (int index = 0; index < 20; index++) {
+            string token = $"PrefixNote{index:D2}";
+            Assert.Single(pdf.GetPages(), page => page.Text.IndexOf(token, StringComparison.Ordinal) >= 0);
+            Assert.Contains(token, pdf.GetPage(index < 12 ? 1 : 2).Text, StringComparison.Ordinal);
+        }
+    }
+
     private static PdfParagraphStyle BodyAfterStyle(double after) => new() {
         FontSize = 8,
         LineSpacing = PdfLineSpacing.Exactly(10),
