@@ -92,7 +92,7 @@ if ($RefreshFixtures.IsPresent -or -not (Test-Path -LiteralPath $fixtureManifest
     $pythonPath = ConvertTo-WslPath $fixturePackages
     $preparePath = ConvertTo-WslPath $prepareScript
     $fixturePath = ConvertTo-WslPath $fixtures
-    & wsl.exe -- env "PYTHONPATH=$pythonPath" "PYTHONDONTWRITEBYTECODE=1" python3 $preparePath $fixturePath
+    & wsl.exe -- env "PYTHONPATH=$pythonPath" "PYTHONDONTWRITEBYTECODE=1" python3 -S $preparePath $fixturePath
     if ($LASTEXITCODE -ne 0) {
         throw 'OCR comparison fixture generation failed.'
     }
