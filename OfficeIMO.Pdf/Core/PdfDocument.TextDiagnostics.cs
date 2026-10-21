@@ -373,20 +373,30 @@ public sealed partial class PdfDocument {
 
     private static void AnalyzePageTextForVariant(PdfOptions options, int pageNumber, List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (options.HasHeaderTextContentForPage(pageNumber)) {
-            string headerLocation = AppendLocation(locationPrefix, "PdfHeader[page=" + pageNumber.ToString(CultureInfo.InvariantCulture) + "]");
-            AddPageText(diagnostics, seenPageText, options.GetHeaderFormatForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
-            AddSegments(diagnostics, seenPageText, options.GetHeaderSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber, cancellationToken);
-            AddZones(diagnostics, seenPageText, options.GetHeaderZonesForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
-            AddZoneSegments(diagnostics, seenPageText, options.GetHeaderZoneSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber, cancellationToken);
-        }
+        AnalyzePageText(isHeader: true);
+        AnalyzePageText(isHeader: false);
 
-        if (options.HasFooterTextContentForPage(pageNumber)) {
-            string footerLocation = AppendLocation(locationPrefix, "PdfFooter[page=" + pageNumber.ToString(CultureInfo.InvariantCulture) + "]");
-            AddPageText(diagnostics, seenPageText, options.GetFooterFormatForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
-            AddSegments(diagnostics, seenPageText, options.GetFooterSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber, cancellationToken);
-            AddZones(diagnostics, seenPageText, options.GetFooterZonesForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
-            AddZoneSegments(diagnostics, seenPageText, options.GetFooterZoneSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber, cancellationToken);
+        void AnalyzePageText(bool isHeader) {
+            if (!(isHeader ? options.HasHeaderTextContentForPage(pageNumber) : options.HasFooterTextContentForPage(pageNumber))) return;
+            string source = isHeader ? "PdfHeader" : "PdfFooter";
+            string location = AppendLocation(locationPrefix, source + "[page=" + pageNumber.ToString(CultureInfo.InvariantCulture) + "]");
+            PdfStandardFont font = isHeader ? options.HeaderFont : options.FooterFont;
+            string? family = isHeader ? options.HeaderFontFamily : options.FooterFontFamily;
+            PdfPageTextZoneSegments? zoneSegments = isHeader ? options.GetHeaderZoneSegmentsForPage(pageNumber) : options.GetFooterZoneSegmentsForPage(pageNumber);
+            var zones = isHeader ? options.GetHeaderZonesForPage(pageNumber) : options.GetFooterZonesForPage(pageNumber);
+            IReadOnlyList<FooterSegment>? segments = isHeader ? options.GetHeaderSegmentsForPage(pageNumber) : options.GetFooterSegmentsForPage(pageNumber);
+            // Match the effective content chosen by page text painting and font-resource preparation.
+            if (zoneSegments?.HasContent == true) {
+                AddZoneSegments(diagnostics, seenPageText, zoneSegments, options, font, family, source, location, pageNumber, cancellationToken);
+            } else if (!string.IsNullOrEmpty(zones.Left) || !string.IsNullOrEmpty(zones.Center) || !string.IsNullOrEmpty(zones.Right)) {
+                AddZones(diagnostics, seenPageText, zones, options, font, family, source, location, pageNumber);
+            } else if (segments != null && segments.Count > 0) {
+                AddSegments(diagnostics, seenPageText, segments, options, font, family, source, location, pageNumber, cancellationToken);
+            } else {
+                AddPageText(diagnostics, seenPageText,
+                    isHeader ? options.GetHeaderFormatForPage(pageNumber) : options.GetFooterFormatForPage(pageNumber),
+                    options, font, family, source, location, pageNumber);
+            }
         }
     }
 

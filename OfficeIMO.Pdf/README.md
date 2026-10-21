@@ -269,9 +269,10 @@ var style = new PdfParagraphStyle {
     JustifyLastLine = true
 };
 var document = PdfDocument.Create();
-document.Content.Paragraph(paragraph => paragraph
-    .Text("Distributed first line").LineBreak().Text("Final line"),
-    PdfAlign.Justify, style: style);
+document.Compose(layout => layout.Content(content => content
+    .Paragraph(paragraph => paragraph
+        .Text("Distributed first line").LineBreak().Text("Final line"),
+        PdfAlign.Justify, style: style)));
 document.Save("distributed-text.pdf");
 ```
 
@@ -285,8 +286,9 @@ Explicit tab positions are finite point coordinates relative to the paragraph's 
 var style = new PdfParagraphStyle { LeftIndent = 36, FirstLineIndent = -36 };
 style.AddTabStop(-18);
 PdfDocument.Create()
-    .Paragraph(paragraph => paragraph.Text("1.\tFirst field").LineBreak()
-        .Text("Continuation\tLater field"), style: style)
+    .Compose(layout => layout.Content(content => content
+        .Paragraph(paragraph => paragraph.Text("1.\tFirst field").LineBreak()
+            .Text("Continuation\tLater field"), style: style)))
     .Save("hanging-tabs.pdf");
 ```
 

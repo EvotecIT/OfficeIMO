@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
     /// <summary>Uses the paint command's word boundaries and advances for words-only underline geometry.</summary>
     private static void VisitRichWordDecorationAdvances(RichSeg segment, PdfTextShowCommand command,
         PdfOptions options, Action<double, double> visit) {
-        if (command.JustificationTracking == 0D) {
+        if (command.VisualGlyphs is not { Count: > 0 } && command.JustificationTracking == 0D) {
             VisitWordDecorationAdvances(segment.Text,
                 span => MeasurePositionedTextWidth(span, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
                     options, segment.FeatureSettings, segment.TextDirection, segment.HorizontalTextScaling,
