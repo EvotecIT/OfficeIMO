@@ -10,7 +10,7 @@ internal static class ReportEngineInterop {
             ?? throw new ArgumentException("--report-engine requires --site-url=<loopback report-engine URL>."));
         if (!uri.IsLoopback || uri.Scheme != "http") throw new ArgumentException("Workbench qualification requires loopback HTTP.");
         using var http = new HttpClient();
-        string[] paths = [uri.AbsolutePath, "/js/report-engine-job.mjs", "/js/report-engine.mjs", "/js/report-engine-loader.mjs", "/js/report-engine-worker.mjs", "/assets/officeimo/officeimo.mjs", "/assets/officeimo/officeimo-execution.mjs", "/css/report-engine.css"];
+        string[] paths = [uri.AbsolutePath, "/js/report-engine-job.mjs", "/js/analytical-report-job.mjs", "/js/report-engine.mjs", "/js/report-engine-loader.mjs", "/js/report-engine-worker.mjs", "/assets/officeimo/officeimo.mjs", "/assets/officeimo/officeimo-execution.mjs", "/css/report-engine.css"];
         async Task<Dictionary<string, string>> ServedHashesAsync() {
             var hashes = new Dictionary<string, string>();
             foreach (string path in paths) hashes.Add(path, Convert.ToHexString(SHA256.HashData(await http.GetByteArrayAsync(new Uri(uri, path)))).ToLowerInvariant());
@@ -20,6 +20,7 @@ internal static class ReportEngineInterop {
         bool visualOnly = args.Contains("--report-engine-visual-only");
         bool lifecycleOnly = args.Contains("--report-engine-lifecycle-only");
         bool refreshOnly = args.Contains("--report-engine-refresh-only");
+        bool hierarchicalOnly = args.Contains("--report-engine-hierarchical-only");
         var reports = new List<object>();
         foreach (HtmlBrowserEngine engine in DataTablesInterop.Engines(args)) {
             string output = Path.Combine(evidence, engine.ToString().ToLowerInvariant()); Directory.CreateDirectory(output);
@@ -44,6 +45,16 @@ internal static class ReportEngineInterop {
             Require(await page.Locator("#report-preview tr").CountAsync() == 8, "Default preview must contain eight rows.");
             Require(await page.Locator("#report-preview tr").Nth(1).Locator("td").Nth(3).InnerTextAsync() == "4.9 ms", "Preview numeric rounding differs from PDF.");
             Require(await page.EvaluateAsync<bool>("document.querySelector('#report-status').getAttribute('role') === 'status' && document.querySelector('#report-status').getAttribute('aria-live') === 'polite'"), "Status is not a live region.");
+
+            if (hierarchicalOnly) {
+                await page.AddScriptTagAsync(new() { Path = Path.Combine(repository, "Build", "BrowserExports", "hierarchical-report-contracts.js") });
+                await VerifyHierarchicalAsync(page, engine, output, files, states);
+                Require(errors.Count == 0 && network.Count == 0, "Hierarchical workbench had page or HTTP failures.");
+                var hierarchical = new { engine = engine.ToString(), browser = session.Browser?.Version, mode = "hierarchical-only", site = uri.AbsoluteUri, served, files, states, pageErrors = errors, console, network };
+                reports.Add(hierarchical); File.WriteAllText(Path.Combine(output, "hierarchical.json"), JsonSerializer.Serialize(hierarchical, new JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine($"Hierarchical workbench passed {engine}: localized/empty XLSX and PDF downloads, cancellation, CSV recovery and responsive controls.");
+                continue;
+            }
 
             if (!visualOnly) {
             foreach (int count in refreshOnly ? new[] { 100 } : new[] { 100, 0 }) foreach (string format in refreshOnly ? new[] { "xlsx", "pdf" } : new[] { "xlsx", "pdf", "csv" }) {
@@ -165,7 +176,8 @@ internal static class ReportEngineInterop {
         }
         Require(served.OrderBy(pair => pair.Key).SequenceEqual((await ServedHashesAsync()).OrderBy(pair => pair.Key)), "The served workbench candidate changed during qualification.");
         File.WriteAllText(Path.Combine(evidence, "report-engine-interop.json"), JsonSerializer.Serialize(new {
-            exampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "report-engine-job.mjs")), served, reports
+            exampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "report-engine-job.mjs")),
+            analyticalExampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "analytical-report-job.mjs")), served, reports
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
@@ -179,20 +191,85 @@ internal static class ReportEngineInterop {
         await page.Locator("#report-generate").ClickAsync(); await NewDownloadAsync(page, prior);
     }
     private static async Task NewDownloadAsync(IPage page, string prior) => await page.WaitForFunctionAsync("prior => { const link=document.querySelector('#report-download'), progress=document.querySelector('#report-progress'); return link.getAttribute('href') !== prior && !link.hidden && progress.value === progress.max && document.querySelector('#report-form').getAttribute('aria-busy') === 'false'; }", prior, new() { Timeout = 120000 });
-    private static async Task<object> DownloadAsync(IPage page, string output, string name, int count) {
+    private static async Task<object> DownloadAsync(IPage page, string output, string name, int count, string? contract = null) {
         var download = await page.RunAndWaitForDownloadAsync(() => page.Locator("#report-download").ClickAsync(), new() { Timeout = 120000 });
         string path = Path.Combine(output, name); await download.SaveAsAsync(path);
         string? failure = await download.FailureAsync();
         Require(failure is null && download.SuggestedFilename == "service-health" + Path.GetExtension(name), $"Download differs: expected service-health{Path.GetExtension(name)}, actual {download.SuggestedFilename}, failure {failure ?? "none"}.");
-        return ReportEngineVerifier.Verify(path, count);
+        if (contract is null) return ReportEngineVerifier.Verify(path, count);
+        File.WriteAllText(path + ".json", contract);
+        return HierarchicalReportVerifier.Verify(path);
+    }
+    private static async Task VerifyHierarchicalAsync(IPage page, HtmlBrowserEngine engine, string output, List<object> files, List<object> states) {
+        async Task SelectHierarchyAsync(int count, string format, string language) {
+            await SelectAsync(page, count, format);
+            await page.Locator("#report-layout").SelectOptionAsync("grouped");
+            Require(await page.Locator("#report-language").IsEnabledAsync(), "Site grouping lost language selection.");
+            await page.Locator("#report-layout").SelectOptionAsync("hierarchical");
+            await page.Locator("#report-language").SelectOptionAsync(language);
+            Require(await page.Locator("#report-language").IsEnabledAsync(), "Hierarchical reports lost language selection.");
+            if (count > 0) Require(await page.Locator("#report-preview tr").First.Locator("td").Nth(3).InnerTextAsync() == "—", "Null latency was displayed as a numeric zero.");
+        }
+        async Task<string> ContractAsync(int count, string language) => await page.EvaluateAsync<string>("""
+            async ({count,language}) => {
+              const { analyticalRows, analyticalReportText } = await import('/js/analytical-report-job.mjs');
+              const { reportColumns } = await import('/js/report-engine-job.mjs');
+              const text = { ...analyticalReportText[language], scope: language === 'pl'
+                ? `Wybrany widok usług · ${count.toLocaleString('pl')} rekordów.` : `Selected service view · ${count.toLocaleString('en')} services.` };
+              const columns = reportColumns.map(column => ({...column, header: text.headers[column.key] ?? column.header}));
+              return JSON.stringify(hierarchicalExpectedContract([...analyticalRows(count)], columns, ['portfolio','environment','owner'], text, language));
+            }
+            """, new { count, language });
+        foreach (int count in new[] { 100, 0 }) foreach (string language in new[] { "en", "pl" }) foreach (string format in new[] { "xlsx", "pdf" }) {
+            await SelectHierarchyAsync(count, format, language);
+            string contract = await ContractAsync(count, language);
+            await GenerateAsync(page);
+            Require(await page.Locator("#report-status").InnerTextAsync() == $"Ready. {count} services exported.", "Hierarchical completion count differs from the captured view.");
+            files.Add(await DownloadAsync(page, output, $"hierarchical-{language}-{count}.{format}", count, contract));
+        }
+        await SelectHierarchyAsync(50000, "pdf", "pl");
+        await page.Locator("#report-generate").ClickAsync();
+        await page.WaitForFunctionAsync("document.querySelector('#report-progress').value > 0 && document.querySelector('#report-form').getAttribute('aria-busy') === 'true'", null, new() { Timeout = 120000 });
+        double processed = await page.Locator("#report-progress").EvaluateAsync<double>("element => element.value");
+        Require(await page.Locator("#report-language").IsDisabledAsync() && await page.Locator("#report-layout").IsDisabledAsync(), "Running export left mutable report controls enabled.");
+        await page.Locator("#report-cancel").ClickAsync(); await ReadyAsync(page);
+        Require(await page.Locator("#report-progress").EvaluateAsync<double>("element => element.value") == 0 && !await page.Locator("#report-download").IsVisibleAsync(), "Cancelled hierarchy exposed a partial download.");
+        await SelectHierarchyAsync(100, "xlsx", "en"); await GenerateAsync(page);
+        files.Add(await DownloadAsync(page, output, "hierarchical-recovery.xlsx", 100, await ContractAsync(100, "en")));
+        await SelectAsync(page, 100, "csv");
+        Require(await page.Locator("#report-layout").InputValueAsync() == "analysis" && await page.Locator("#report-layout").IsDisabledAsync() && await page.Locator("#report-language").IsDisabledAsync(), "CSV did not restore the flat export controls.");
+        Require(await page.Locator("#report-preview tr").First.Locator("td").Nth(3).InnerTextAsync() == "4.8 ms", "CSV retained the hierarchical row source.");
+        await GenerateAsync(page); files.Add(await DownloadAsync(page, output, "hierarchical-recovery-flat.csv", 100));
+        states.Add(new { hierarchicalCancellationAfterRows = processed, partialDownloadCreated = false, xlsxRecovery = true, csvFlatRecovery = true });
+        foreach (string theme in new[] { "light", "dark" }) {
+            await page.EvaluateAsync("theme => { localStorage.setItem('imo-theme',theme); localStorage.setItem('imo-bg','blueprint'); }", theme);
+            await page.ReloadAsync(); await ReadyAsync(page); await SelectHierarchyAsync(100, "pdf", "pl");
+            foreach ((int width, int height, string label) in new[] { (1280, 900, "wide"), (390, 844, "phone") }) {
+                await page.SetViewportSizeAsync(width, height); await page.EvaluateAsync("() => document.fonts.ready.then(() => true)");
+                await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Tab");
+                if (await page.EvaluateAsync<string>("document.activeElement.id") != "report-generate" && engine == HtmlBrowserEngine.WebKit) {
+                    await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Alt+Tab");
+                }
+                Require(await page.EvaluateAsync<string>("document.activeElement.id") == "report-generate", "Hierarchical language control does not lead to Generate by keyboard.");
+                Require(await page.EvaluateAsync<bool>("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2 && getComputedStyle(document.activeElement).outlineStyle !== 'none'"), "Hierarchical keyboard focus lacks a visible outline.");
+                await ScrollTopAsync(page); JsonElement layout = await LayoutAsync(page);
+                Require(layout.GetProperty("overflow").GetInt32() <= 1 && layout.GetProperty("controlsVisible").GetBoolean() && layout.GetProperty("theme").GetString() == theme, "Hierarchical layout overflow, controls or theme differ.");
+                Require(layout.GetProperty("selectHeights").EnumerateArray().All(value => value.GetDouble() >= 44), "Hierarchical select controls are smaller than 44px.");
+                await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"hierarchical-{label}-{theme}.png"), FullPage = true });
+                states.Add(new { theme, width, height, layout, hierarchicalLanguage = "pl", keyboardFocus = "language to generate" });
+            }
+        }
+        await page.Locator("#report-rows").SelectOptionAsync("0"); await ScrollTopAsync(page);
+        Require(await page.EvaluateAsync<bool>("document.querySelector('#report-preview').rows.length === 1 && document.querySelector('#report-preview td').colSpan === 4"), "Empty hierarchical preview lost its placeholder.");
+        await page.ScreenshotAsync(new() { Path = Path.Combine(output, "hierarchical-phone-empty-dark.png"), FullPage = true });
     }
     private static Task<JsonElement> LayoutAsync(IPage page) => page.EvaluateAsync<JsonElement>("""
         () => ({ viewport: innerWidth, overflow: document.documentElement.scrollWidth - innerWidth,
           theme: document.documentElement.dataset.theme, background: document.documentElement.dataset.bg,
-          controlsVisible: ['report-rows','report-format','report-generate','report-cancel'].every(id => {
+          controlsVisible: ['report-rows','report-format','report-layout','report-language','report-generate','report-cancel'].every(id => {
             const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.left >= -1 && r.right <= innerWidth + 1;
           }), font: getComputedStyle(document.body).fontFamily,
-          selectHeights: ['report-rows','report-format'].map(id => document.getElementById(id).getBoundingClientRect().height),
+          selectHeights: ['report-rows','report-format','report-layout','report-language'].map(id => document.getElementById(id).getBoundingClientRect().height),
           status: { live: document.querySelector('#report-status').getAttribute('aria-live'), busy: document.querySelector('#report-form').getAttribute('aria-busy') },
           previewScrollable: document.querySelector('.imo-report-lab__table-scroll').scrollWidth > document.querySelector('.imo-report-lab__table-scroll').clientWidth })
         """);

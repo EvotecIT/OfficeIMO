@@ -20,6 +20,7 @@
     { "Source": "static" },
     { "Source": "../OfficeIMO.JavaScript/bundles", "Destination": "assets/officeimo" },
     { "Source": "../OfficeIMO.JavaScript.Examples/report-engine-job.mjs", "Destination": "js/report-engine-job.mjs" },
+    { "Source": "../OfficeIMO.JavaScript.Examples/analytical-report-job.mjs", "Destination": "js/analytical-report-job.mjs" },
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "Destination": "assets/report-fonts/Carlito-Regular.ttf" },
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf", "Destination": "assets/report-fonts/Carlito-Bold.ttf" },
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt", "Destination": "assets/report-fonts/OFL-Carlito.txt" },

@@ -19,6 +19,7 @@ import type { PdfCapturedParagraph } from "./paragraph-layout.js";
 import { captureListOptions, prepareListItem } from "./list-layout.js";
 import { captureSection } from "./section-types.js";
 import type { PdfOptions } from "./types.js";
+import { renderGroupedPdfTable } from "./document-grouped.js";
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"] as const;
 
@@ -33,14 +34,20 @@ export async function writePdfDocument(blocks: Iterable<PdfDocumentBlock> | Asyn
   try { await writePdfDocumentTo(blocks, sink, options); return sink.toBlob("application/pdf"); }
   catch (error) { sink.discard(); throw error; }
 }
-/** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
+/** Stream composed pages with backpressure. Rows sum table source rows; columns reports the widest table.
+ * Analytical subtotals/grand totals also consume the cumulative maxRows output budget. */
 export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | AsyncIterable<PdfDocumentBlock>, destination: OutputDestination,
   configuration: PdfDocumentOptions = {}): Promise<ExportResult> {
-  const prepared = settings(configuration as PdfOptions, true), { options, budget } = prepared;
+  const captured = settings(configuration as PdfOptions, true), controller = new AbortController();
+  const parentSignal = captured.options.signal, abort = () => controller.abort(parentSignal?.reason);
+  parentSignal?.addEventListener("abort", abort, { once: true });
+  if (parentSignal?.aborted) abort();
+  const prepared = { ...captured, options: { ...captured.options, signal: controller.signal } }, { options, budget } = prepared;
+  try {
   beginTask(); checkAbort(options.signal);
-  return withDestination(destination, async sink => {
+  return await withDestination(destination, async sink => {
     const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-    let rows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
+    let rows = 0, budgetRows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
     let pending: PdfCapturedParagraph[] = [];
     const flushParagraphs = async (nextHeight = 0): Promise<void> => {
       const paragraphs = [];
@@ -108,6 +115,14 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           await pages.paragraphs(paragraphs, 0, keepTogether !== false); break;
         }
         case "pageBreak": await flushParagraphs(); await pages.pageBreak(); break;
+        case "groupedTable":
+          await renderGroupedPdfTable(block, { prepared, pages, fonts, controller, flushParagraphs,
+            acceptColumns: count => { columns = Math.max(columns, count); },
+            acceptRow: source => {
+              budget.row(++budgetRows);
+              if (source && ++rows % 256 === 0) notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+            } });
+          break;
         case "table": {
           const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
           const tableOptions = captureTableOptions(inputTableOptions);
@@ -122,7 +137,7 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           let count = 0, started = false; columns = Math.max(columns, table.options.columns.length);
           const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
           await consumeRows(source, options.signal, async row => {
-            budget.row(rows + 1);
+            budget.row(++budgetRows);
             const laidOut = await layout.data(project(row, count) as readonly ExportValue[], count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
             if (!started) {
               const minimum = laidOut.lineHeight + table.padding * 2;
@@ -184,6 +199,7 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
     notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes }); checkAbort(options.signal);
     return { rows, columns, bytes: objects.bytes };
   });
+  } finally { parentSignal?.removeEventListener("abort", abort); }
 }
 function graphicAlignment(value: string | undefined): "left" | "center" | "right" {
   if (value !== undefined && !["left", "center", "right"].includes(value)) throw new TypeError("Invalid graphic alignment.");

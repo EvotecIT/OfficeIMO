@@ -3,6 +3,13 @@ using HtmlTinkerX;
 using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
+if (args.Length == 2 && args[0] == "--validate-analytical") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*", SearchOption.AllDirectories)
+        .Where(file => file.EndsWith(".xlsx", StringComparison.Ordinal) || file.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
+    if (files.Length == 0) throw new InvalidDataException("No analytical report fixtures to validate.");
+    foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(HierarchicalReportVerifier.Verify(file)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate-grouped") {
     string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*", SearchOption.AllDirectories)
         .Where(file => file.EndsWith(".xlsx", StringComparison.Ordinal) || file.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
@@ -77,6 +84,7 @@ if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, 
 if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--analytical-report")) { await HierarchicalReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf-professional")) { await ProfessionalPdfInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }

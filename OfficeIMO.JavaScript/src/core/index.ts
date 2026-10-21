@@ -9,7 +9,7 @@ export type { ExportLink } from "./links.js";
 export type { TableSpanCell, TableSpanRows } from "./table.js";
 export type { BooleanText } from "./value-text.js";
 export { createGroupedReport } from "./grouped-report.js";
-export type { GroupedReportSource, GroupedReportEvent, GroupedReportOptions, GroupedReportSummary } from "./grouped-report.js";
+export type { GroupedReportSource, GroupedReportEvent, GroupedReportOptions, GroupedReportSummary, GroupedReportValueContext, GroupedReportLevel, GroupedReportGroup } from "./grouped-report.js";
 export { checkAbort, withAbort, inputRows, pause } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 

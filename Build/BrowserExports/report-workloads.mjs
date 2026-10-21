@@ -6,6 +6,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
 import { groupedFixtures, groupedRows, writeGroupedWorkload } from "./report-workloads-grouped.mjs";
+import { analyticalFixtures, analyticalSetup, analyticalInput, writeAnalyticalWorkload } from "./report-workloads-analytical.mjs";
 
 const args = process.argv.slice(2), command = args.shift();
 const opts = Object.fromEntries(args.flatMap((arg, i) => i % 2 ? [] : [[arg.replace(/^--/, ""), args[i + 1]]]));
@@ -22,7 +23,7 @@ const fixtures = [
   { name: "assessment-pdf-10000-blob", format: "pdf", rows: 10000, delivery: "blob", styled: true },
   { name: "tagged-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true },
   { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true },
-  ...groupedFixtures
+  ...groupedFixtures, ...analyticalFixtures
 ];
 const titles = ["ID", "Asset", "Owner", "Status", "Amount", "Seen"];
 function row(index) {
@@ -51,6 +52,7 @@ async function manifest() {
   if (sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))) !== value.verifierSha256) throw Error("Independent verifier changed after preparation.");
   if (value.groupedHelperSha256 && sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))) !== value.groupedHelperSha256) throw Error("Grouped workload changed after preparation.");
   if (value.example && sha(await readFile(value.example.path)) !== value.example.sha256) throw Error("Canonical editable-analysis example changed after preparation.");
+  for (const source of value.additionalSources ?? []) if (sha(await readFile(source.path)) !== source.sha256) throw Error("Analytical workload input changed: " + source.path);
   return value;
 }
 async function run() {
@@ -61,13 +63,14 @@ async function run() {
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Measured runtime changed after preparation.");
   const api = await import(pathToFileURL(source.path).href), config = settings(fixture), output = path.resolve(required("output"));
   const example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
-  const analytical = example || fixture.kind === "grouped-analysis";
+  const composed = fixture.kind === "analytical", setup = composed ? await analyticalSetup(fixture) : {};
+  const analytical = example || fixture.kind === "grouped-analysis" || composed;
   const file = await open(output, "w"), memoryBefore = process.memoryUsage(), loadBefore = os.loadavg(), cpuStart = process.cpuUsage();
   let outputBytes = 0, firstByteMs = null, last = performance.now(), maxTimerGapMs = 0, timerTicks = 0;
   let produced = 0, enumerations = 0, returned = 0, writes = 0, firstDeliveryProducedRows, acknowledgementOverlapWrites = 0, maxRowsAdvancedDuringAcknowledgement = 0;
   function* selectedRows() {
     enumerations++;
-    try { for (const value of example ? example.operationalRows(fixture.rows) : groupedRows(fixture)) { produced++; yield value; } }
+    try { for (const value of example ? example.operationalRows(fixture.rows) : fixture.kind === "analytical" ? analyticalInput(fixture) : groupedRows(fixture)) { produced++; yield value; } }
     finally { returned++; }
   }
   let maxSampledHeapBytes = memoryBefore.heapUsed, maxSampledExternalBytes = memoryBefore.external;
@@ -83,7 +86,8 @@ async function run() {
   let blob, result;
   try {
     const writer = "write" + ({ pdf: "Pdf", xlsx: "Xlsx", csv: "Csv" })[fixture.format];
-    if (example) result = await example.writeServiceAnalysis(api, { rows: selectedRows(), sink });
+    if (composed) result = await writeAnalyticalWorkload(api, fixture, { rows: selectedRows(), sink, input: setup });
+    else if (example) result = await example.writeServiceAnalysis(api, { rows: selectedRows(), sink });
     else if (fixture.kind === "grouped-analysis") result = await writeGroupedWorkload(api, fixture, { rows: selectedRows(), sink });
     else if (fixture.delivery === "blob") blob = await api[writer](rows(api, fixture), config);
     else await api[writer + "To"](rows(api, fixture), sink, config);
@@ -93,13 +97,14 @@ async function run() {
   // Blob copying and all validation are outside the measured interval. Sink file acceptance is inside it.
   if (blob) { const bytes = new Uint8Array(await blob.arrayBuffer()); outputBytes = bytes.length; await file.writeFile(bytes); }
   await file.close();
-  const columns = fixture.kind === "grouped-analysis" ? 7 : titles.length;
+  const columns = fixture.kind === "grouped-analysis" || composed ? 7 : titles.length;
   if (analytical && (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.columns !== columns || result.bytes !== outputBytes))
     throw Error("Analytical report did not complete its one-pass source and delivery contract.");
   const bytes = await readFile(output);
   return { case: fixture.name, engine, engineMs, firstByteMs, outputBytes, outputSha256: sha(bytes), rows: fixture.rows, columns,
     peakRssBytes, maxSampledHeapBytes, maxSampledExternalBytes, memoryBefore, memoryAfter, maxTimerGapMs, timerTicks, cpuMicroseconds: cpu,
-    inputScope: fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
+    inputScope: composed ? "Canonical lazy analyticalRows and writeAnalyticalReport included: three hidden grouping dimensions, typed values/nulls/UTC dates, ancestor/grand aggregates, composed sections and native XLSX editing rules/chart. No retained source matrix. Imports/font intake excluded; current-only diagnostics, no baseline ranking."
+      : fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
     ...(analytical ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
@@ -114,6 +119,16 @@ async function validate(output = required("output")) {
   if (!fixture) throw Error("Unknown workload.");
   if (sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))) !== input.verifierSha256) throw Error("Independent verifier changed after preparation.");
   const bytes = await readFile(output); let proof;
+  if (fixture.kind === "analytical") {
+    if (fixture.format === "pdf") {
+      const checked = spawnSync(required("qpdf"), ["--check", output], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+      if (checked.status !== 0) throw Error("qpdf failed: " + checked.stdout + checked.stderr);
+    }
+    const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-analytical-workload.py"), output, String(fixture.rows), fixture.format,
+      ...(fixture.format === "pdf" ? [required("pdftotext")] : [])], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+    if (checked.status !== 0) throw Error("Independent analytical readback failed: " + checked.stdout + checked.stderr);
+    return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { ...JSON.parse(checked.stdout), ...(fixture.format === "pdf" ? { qpdf: true } : {}) } };
+  }
   if (fixture.format === "csv") {
     const expected = [titles.join(","), ...Array.from({ length: fixture.rows }, (_, index) => row(index).map(value => value instanceof Date ? value.toISOString() : value).join(","))].join("\r\n") + "\r\n";
     if (!bytes.equals(Buffer.from(expected))) throw Error("CSV differs from every expected value.");
@@ -146,12 +161,14 @@ async function validate(output = required("output")) {
 // Functional acknowledgement/abort proof, outside every throughput measurement.
 async function contracts() {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case"));
-  if (!["editable-analysis", "grouped-analysis"].includes(fixture?.kind)) throw Error("Contract proof requires an analytical report case.");
+  if (!["editable-analysis", "grouped-analysis", "analytical"].includes(fixture?.kind)) throw Error("Contract proof requires an analytical report case.");
   const source = input.engines.current;
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Current runtime changed before contract proof.");
   const api = await import(pathToFileURL(source.path).href), example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
-  const operation = options => example ? example.writeServiceAnalysis(api, options) : writeGroupedWorkload(api, fixture, options);
-  const selectedValues = () => example ? example.operationalRows(fixture.rows) : groupedRows(fixture);
+  const setup = fixture.kind === "analytical" ? await analyticalSetup(fixture) : {};
+  const operation = options => example ? example.writeServiceAnalysis(api, options) : fixture.kind === "analytical"
+    ? writeAnalyticalWorkload(api, fixture, { ...options, input: { ...setup, ...options.input } }) : writeGroupedWorkload(api, fixture, options);
+  const selectedValues = () => example ? example.operationalRows(fixture.rows) : fixture.kind === "analytical" ? analyticalInput(fixture) : groupedRows(fixture);
   const output = path.resolve(required("output")), storedOutput = output + ".store." + fixture.format, file = await open(storedOutput, "w");
   let produced = 0, enumerations = 0, returned = 0, writes = 0, bytes = 0, firstDeliveryProducedRows;
   const progress = [];
@@ -227,8 +244,15 @@ try {
     for (const engine of ["baseline", "current"]) { const file = path.resolve(required(engine)); engines[engine] = { path: file, sha256: sha(await readFile(file)) }; }
     const names = opts.cases?.split(","), cases = names ? names.map(name => { const item = fixtures.find(item => item.name === name); if (!item) throw Error("Unknown case " + name); return item; }) : fixtures.filter(item => !item.currentOnly);
     const examplePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs");
+    const additionalPaths = cases.some(item => item.kind === "analytical") ? ["report-workloads-analytical.mjs", "verify-analytical-workload.py",
+      "../../OfficeIMO.JavaScript.Examples/analytical-report-job.mjs", "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs",
+      "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf"] : [];
+    const additionalSources = await Promise.all(additionalPaths.map(async name => {
+      const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), name); return { path: file, sha256: sha(await readFile(file)) };
+    }));
     result = { schema: 1, created: new Date().toISOString(), helperSha256: sha(await readFile(fileURLToPath(import.meta.url))),
       groupedHelperSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))),
+      additionalSources,
       verifierSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))), engines, cases,
       ...(cases.some(item => item.kind === "editable-analysis") ? { example: { path: examplePath, sha256: sha(await readFile(examplePath)) } } : {}) };
     await writeFile(path.join(evidence, "workloads.json"), JSON.stringify(result, null, 2) + "\n");

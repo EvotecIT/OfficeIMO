@@ -663,8 +663,8 @@ _modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2",
 return _exports;
 })();
 
-const _m11 = _modules.get("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d") ?? (() => {
-const { ExportCell } = _m8;
+const _m11 = _modules.get("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e") ?? (() => {
+const { ExportCell, assertScalar } = _m8;
 
 const { isDate } = _m9;
 
@@ -742,7 +742,52 @@ function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTim
 function result(aggregates) {
     return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
 }
-/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+function groupingLevels(input, keys, groupLabel) {
+    const selected = typeof input === "string" ? [input] : Array.isArray(input) ? Array.from(input) : undefined;
+    if (!selected || selected.length < 1 || selected.length > 4)
+        throw new TypeError("groupBy must declare between one and four grouping levels.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    if (groupLabel && selected.length !== 1)
+        throw new TypeError("groupLabel is only available for one grouping level; use descriptor labels for a hierarchy.");
+    const seen = new Set();
+    return Object.freeze(selected.map(level => {
+        if (typeof level !== "string" && (!level || typeof level !== "object" || Array.isArray(level)))
+            throw new TypeError("A grouping level must name a stable column key or provide a descriptor.");
+        // Supported structural fields, including prototype accessors, are captured once.
+        const { key, value, label } = typeof level === "string" ? { key: level, value: undefined, label: undefined } : level;
+        if (typeof key !== "string" || !key.length || seen.has(key))
+            throw new TypeError("Grouping levels need unique, nonempty stable keys.");
+        seen.add(key);
+        if (value !== undefined && typeof value !== "function")
+            throw new TypeError("Grouping value getters must be synchronous functions.");
+        if (label !== undefined && typeof label !== "function")
+            throw new TypeError("Grouping labels must be synchronous functions.");
+        if (label && groupLabel)
+            throw new TypeError("Specify either groupLabel or the grouping descriptor label.");
+        const column = keys.indexOf(key);
+        if (column >= 0 && value !== undefined)
+            throw new TypeError("A declared grouping column reuses its projected value; do not provide another value getter.");
+        if (column < 0 && value === undefined)
+            throw new TypeError("groupBy must name a declared stable column key; hidden grouping fields need an explicit value getter.");
+        return Object.freeze({ key, column, value, label: label ?? groupLabel });
+    }));
+}
+/** Copy date keys on every event so a consumer cannot mutate later hierarchy decisions. */
+function groupPath(active) {
+    return Object.freeze(active.map(({ group }) => Object.freeze({ ...group, key: eventKey(group.key) })));
+}
+function labelText(format, key, fallback) {
+    if (!format)
+        return fallback;
+    const formatted = format(eventKey(key));
+    if (typeof formatted?.then === "function")
+        void Promise.resolve(formatted).catch(() => { });
+    if (typeof formatted !== "string")
+        throw new TypeError("Grouping labels must return synchronous text.");
+    return formatted;
+}
+/** Group a preordered row source once. Closed-group recurrence within the same parent rejects.
  * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
  * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
 function createGroupedReport(rows, options) {
@@ -760,11 +805,7 @@ function createGroupedReport(rows, options) {
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
-    const groupColumn = keys.indexOf(groupBy);
-    if (typeof groupBy !== "string" || groupColumn < 0)
-        throw new TypeError("groupBy must name a declared stable column key.");
-    if (groupLabel !== undefined && typeof groupLabel !== "function")
-        throw new TypeError("groupLabel must be a synchronous function.");
+    const levels = groupingLevels(groupBy, keys, groupLabel);
     const totals = Object.freeze({ ...selectedTotals });
     const grand = createTotals(columns, totals);
     for (let column = 0; column < columns.length; column++)
@@ -793,9 +834,8 @@ function createGroupedReport(rows, options) {
     const events = eventsFor(sourceSignal);
     async function* iterate(signal) {
         const project = createRowProjector(columns, undefined, signal);
-        const seen = new Set();
-        let characters = 0, rowCount = 0, groups = 0, currentId;
-        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        const seen = new Set(), active = [];
+        let characters = 0, rowCount = 0, groups = 0;
         for await (const input of inputRows(rows, signal)) {
             // Copy positional input once before the shared projector validates and inspects its values.
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
@@ -803,39 +843,13 @@ function createGroupedReport(rows, options) {
             for (let column = 0; column < columns.length; column++)
                 values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
-            const next = identity(scalar(values[groupColumn]));
-            if (next.id !== currentId) {
-                if (seen.has(next.id))
-                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
-                if (groups === maxGroups)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
-                let nextLabel = next.text;
-                if (groupLabel) {
-                    const formatted = groupLabel(eventKey(next.key));
-                    if (typeof formatted?.then === "function")
-                        void Promise.resolve(formatted).catch(() => { });
-                    if (typeof formatted !== "string")
-                        throw new TypeError("groupLabel must return synchronous text.");
-                    nextLabel = formatted;
-                }
+            const next = levels.map((level, index) => {
                 checkAbort(signal);
-                const nextCharacters = characters + next.id.length + nextLabel.length;
-                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
-                budget.reserve(0, nextLabel.length);
-                if (currentId !== undefined)
-                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
-                currentId = next.id;
-                key = next.key;
-                label = nextLabel;
-                groupRows = 0;
-                characters = nextCharacters;
-                seen.add(next.id);
-                groups++;
-                aggregates = createTotals(columns, totals);
-                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
-            }
+                const value = level.column >= 0 ? scalar(values[level.column]) : level.value(snapshot, Object.freeze({ rowIndex: rowCount, level: index, key: level.key }));
+                assertScalar(value);
+                checkAbort(signal);
+                return identity(value);
+            });
             budget.row(rowCount + 1);
             for (let column = 0; column < values.length; column++) {
                 const value = values[column], raw = scalar(value);
@@ -844,35 +858,78 @@ function createGroupedReport(rows, options) {
                 budget.cell(raw);
                 if (value instanceof ExportCell && value.text !== undefined)
                     budget.reserve(0, value.text.length);
-                aggregates[column].accept(raw);
+            }
+            let common = 0;
+            while (common < active.length && active[common].id === next[common].id)
+                common++;
+            const pending = [];
+            for (let level = common; level < levels.length; level++) {
+                const value = next[level], parent = pending.at(-1) ?? active[level - 1];
+                // Parent indexes are generated integers, so scalar strings containing delimiters cannot collide.
+                const scopedId = (parent?.group.groupIndex ?? -1) + ":" + value.id;
+                if (seen.has(scopedId))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again within the same parent.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                const label = labelText(levels[level].label, value.key, value.text);
+                checkAbort(signal);
+                const nextCharacters = characters + scopedId.length + label.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, label.length);
+                pending.push({ id: value.id, group: Object.freeze({ groupIndex: groups, key: value.key, label, level }),
+                    rows: 0, aggregates: createTotals(columns, totals) });
+                characters = nextCharacters;
+                seen.add(scopedId);
+                groups++;
+            }
+            while (active.length > common) {
+                checkAbort(signal);
+                const path = groupPath(active), ending = active.pop();
+                yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+            }
+            for (const opening of pending) {
+                checkAbort(signal);
+                active.push(opening);
+                const path = groupPath(active);
+                yield Object.freeze({ kind: "groupStart", ...path.at(-1), path });
+            }
+            for (let column = 0; column < values.length; column++) {
+                const raw = scalar(values[column]);
+                for (const group of active)
+                    group.aggregates[column].accept(raw);
                 grand[column].accept(raw);
             }
+            for (const group of active)
+                group.rows++;
             checkAbort(signal);
-            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount,
+                groupIndex: active.at(-1).group.groupIndex, path: groupPath(active) });
             rowCount++;
-            groupRows++;
             if (taskYieldDue()) {
                 await pause();
                 checkAbort(signal);
             }
         }
         checkAbort(signal);
-        if (currentId !== undefined)
-            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        while (active.length) {
+            checkAbort(signal);
+            const path = groupPath(active), ending = active.pop();
+            yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+        }
         checkAbort(signal);
         yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
     }
-    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    const source = Object.freeze({ columns: portable, groupBy: Object.freeze(levels.map(level => level.key)), totals, events });
     sources.set(source, { signal: sourceSignal, events: eventsFor });
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d", _exports);
+_modules.set("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c") ?? (() => {
+const _m7 = _modules.get("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6") ?? (() => {
 
 
 
@@ -917,11 +974,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m8.ExportCell, createGroupedReport: _m11.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c", _exports);
+_modules.set("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("d63e335bcd61199cebe8d1352c48854db3f818c91ab4c859d96c354b691843ef") ?? (() => {
+const _m6 = _modules.get("6d481dd3d70bfda0bc812bba50af41f04eaf6c41adb484d5bacc98b406d59826") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
 const { assertExportValue, assertScalar, copyCellPresentation } = _m8;
@@ -1100,11 +1157,11 @@ function result(value) {
     return { rows: value.rows, columns: value.columns, bytes: value.bytes };
 }
 const _exports = Object.freeze({ protocol: protocol, message: message, bounds: bounds, captureInput: captureInput, captureRow: captureRow, restoreRows: restoreRows, captureProgress: captureProgress, wireError: wireError, restoreError: restoreError, result: result });
-_modules.set("d63e335bcd61199cebe8d1352c48854db3f818c91ab4c859d96c354b691843ef", _exports);
+_modules.set("6d481dd3d70bfda0bc812bba50af41f04eaf6c41adb484d5bacc98b406d59826", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("ca5f9ccab16ae3abd9c1d9793f150e43a1d25234ce5168d3db6a73332790c1b7") ?? (() => {
+const _m1 = _modules.get("3982f4ced65ad40847f192f43453fc5f4efd742a2f6038e1bfa5776b526035b1") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -1276,11 +1333,11 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("ca5f9ccab16ae3abd9c1d9793f150e43a1d25234ce5168d3db6a73332790c1b7", _exports);
+_modules.set("3982f4ced65ad40847f192f43453fc5f4efd742a2f6038e1bfa5776b526035b1", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("3128b19b350ccc312894e6e0eb57cdef4ce56d76579aaf36199494ccf2c961d9") ?? (() => {
+const _m17 = _modules.get("d50c522b4616149acd587dc6b3efcaf84d54c48f7eb06adfa2af77dc19205723") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -1432,14 +1489,14 @@ function handleWorkerExports(endpoint, operation) {
         } };
 }
 const _exports = Object.freeze({ handleWorkerExports: handleWorkerExports });
-_modules.set("3128b19b350ccc312894e6e0eb57cdef4ce56d76579aaf36199494ccf2c961d9", _exports);
+_modules.set("d50c522b4616149acd587dc6b3efcaf84d54c48f7eb06adfa2af77dc19205723", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("26dce6de19e25fb11f59c38e1fedb530f090d683e69eebd95c6fa63e1063993c") ?? (() => {
+const _m0 = _modules.get("b83ca2173ec8f6c1c0464096af160fa79bedbf627dc0e2901277928a9eb87994") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m17.handleWorkerExports });
-_modules.set("26dce6de19e25fb11f59c38e1fedb530f090d683e69eebd95c6fa63e1063993c", _exports);
+_modules.set("b83ca2173ec8f6c1c0464096af160fa79bedbf627dc0e2901277928a9eb87994", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

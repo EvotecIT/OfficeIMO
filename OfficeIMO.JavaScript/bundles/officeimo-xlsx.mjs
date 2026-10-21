@@ -769,6 +769,8 @@ class ZipWriter {
     active;
     state = "open";
     options;
+    lifetime = new AbortController();
+    disposal;
     constructor(sink, options = {}) {
         const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
         const { compression, maxOutputBytes } = captured;
@@ -780,11 +782,25 @@ class ZipWriter {
         this.owned = sink ? undefined : new BlobByteSink();
         this.sink = sink ?? this.owned;
     }
+    /** Pending header/directory writes and source reads must also stop on explicit discard. */
+    async acceptance(operation) {
+        const signal = this.options.signal;
+        const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        signal?.addEventListener("abort", abort, { once: true });
+        try {
+            checkAbort(signal);
+            checkAbort(this.lifetime.signal);
+            return await withAbort(Promise.resolve(operation()), this.lifetime.signal);
+        }
+        finally {
+            signal?.removeEventListener("abort", abort);
+        }
+    }
     async emit(bytes) {
         if (this.options.maxOutputBytes !== undefined && this.offset + bytes.length > this.options.maxOutputBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
         this.offset = zipSize(this.offset + bytes.length);
-        await withAbort(Promise.resolve(this.sink.write(bytes)), this.options.signal);
+        await this.acceptance(() => this.sink.write(bytes));
     }
     reserve(name) {
         checkAbort(this.options.signal);
@@ -830,7 +846,7 @@ class ZipWriter {
             await this.emit(this.local(encoded, entry, true));
             const writer = entry;
             let busy = false, closed = false, completion;
-            const discard = async (error) => { closed = true; this.state = "failed"; await writer.discard(error); this.owned?.discard(); this.active = undefined; };
+            const discard = async (error) => { closed = true; this.state = "failed"; this.lifetime.abort(error); await writer.discard(error); this.owned?.discard(); this.active = undefined; };
             return this.active = {
                 write: async (bytes) => {
                     if (busy || closed || this.state !== "writing")
@@ -885,9 +901,9 @@ class ZipWriter {
         const entry = await this.openEntry(name);
         try {
             if (typeof source === "function")
-                await withAbort(Promise.resolve(source(entry)), this.options.signal);
+                await this.acceptance(() => source(entry));
             else
-                await writeBytes(source, entry, this.options.signal);
+                await this.acceptance(() => writeBytes(source, entry, this.lifetime.signal));
             await entry.close();
         }
         catch (error) {
@@ -897,7 +913,11 @@ class ZipWriter {
     }
     get bytesWritten() { return this.offset; }
     /** Drop owned output and release the active compressor. Caller-owned partial bytes remain with the caller. */
-    async discard(error) { this.state = "failed"; await this.active?.discard(error); this.owned?.discard(); }
+    discard(error) {
+        this.state = "failed";
+        this.lifetime.abort(error);
+        return this.disposal ??= (async () => { await this.active?.discard(error); this.owned?.discard(); })();
+    }
     /** @internal Buffered worksheet compression stays in the format owner. */
     async addPrepared(name, entry) {
         const encoded = this.reserve(name), offset = this.offset;
@@ -2602,18 +2622,64 @@ const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualified
 return _exports;
 })();
 
+const _m35 = (() => {
+const { OfficeIMOError } = _m3;
+
+const { columnName } = _m19;
+
+const scopes = new WeakMap();
+/** @internal A format adapter owns this bounded list until worksheet completion. */
+function retainDataRowRanges(worksheet, ranges) { scopes.set(worksheet, ranges); }
+/** @internal Ordinary worksheets retain their contiguous data-column contract. */
+function dataRowRanges(worksheet) { return scopes.get(worksheet); }
+/** @internal Count accepted details while preserving physical row counts for native references. */
+function dataRowCount(worksheet, headerRows, serializedRows) {
+    const ranges = scopes.get(worksheet);
+    if (ranges === undefined)
+        return serializedRows;
+    const lastSerialized = headerRows + serializedRows;
+    let rows = 0;
+    for (const range of ranges) {
+        if (range.firstRow > lastSerialized)
+            break;
+        rows += Math.min(range.lastRow, lastSerialized) - range.firstRow + 1;
+    }
+    return rows;
+}
+/** @internal Native editing rules share one finite, bounded space-separated reference. */
+function dataRowReference(firstColumn, lastColumn, headerRows, dataRows, ranges) {
+    if (ranges === undefined)
+        return dataRows ? columnName(firstColumn) + (headerRows + 1) + ":" + columnName(lastColumn) + (headerRows + dataRows) : undefined;
+    const first = columnName(firstColumn), last = columnName(lastColumn);
+    let reference = "", previous = headerRows;
+    for (const range of ranges) {
+        if (!Number.isSafeInteger(range.firstRow) || !Number.isSafeInteger(range.lastRow) || range.firstRow <= previous ||
+            range.lastRow < range.firstRow || range.lastRow > headerRows + dataRows)
+            throw new RangeError("Detail editing ranges must be ordered within serialized worksheet rows.");
+        const next = first + range.firstRow + ":" + last + range.lastRow;
+        if (reference.length + (reference ? 1 : 0) + next.length > 32767)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Detail editing references exceed 32,767 UTF-16 characters; split the worksheet.");
+        reference += (reference ? " " : "") + next;
+        previous = range.lastRow;
+    }
+    return reference || undefined;
+}
+const _exports = Object.freeze({ retainDataRowRanges: retainDataRowRanges, dataRowRanges: dataRowRanges, dataRowCount: dataRowCount, dataRowReference: dataRowReference });
+return _exports;
+})();
+
 const _m33 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m11;
 
 const { cellPosition } = _m27;
-
-const { columnName } = _m19;
 
 const { colorArgb } = _m17;
 
 const { fields, optionalBoolean, differentialXml } = _m18;
 
 const { resolveDataColumn } = _m34;
+
+const { dataRowReference } = _m35;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2756,13 +2822,13 @@ class ConditionalFormats {
             xml: '<cfRule type="' + rule.type + '" priority="' + (i + 1) + '"' + (rule.style ? ' dxfId="' + differential[styleIndex++] + '"' : "") + rule.attributes + '>' + rule.body + '</cfRule>' }));
     }
     get count() { return this.rules.length; }
-    *xml(headerRows, dataRows, totalRows) {
+    *xml(headerRows, dataRows, totalRows, ranges) {
         for (const rule of this.rules) {
             if (rule.target.bottom !== undefined && rule.target.bottom > totalRows)
                 throw new RangeError("Conditional ranges must stay within exported rows.");
-            if (!rule.target.reference && !dataRows)
+            const reference = rule.target.reference ?? dataRowReference(rule.target.first, rule.target.last, headerRows, dataRows, ranges);
+            if (!reference)
                 continue;
-            const reference = rule.target.reference ?? columnName(rule.target.first) + (headerRows + 1) + ':' + columnName(rule.target.last) + (headerRows + dataRows);
             yield '<conditionalFormatting sqref="' + reference + '">' + rule.xml + '</conditionalFormatting>';
         }
     }
@@ -2771,7 +2837,7 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m36 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { checkAbort } = _m2;
@@ -2780,9 +2846,9 @@ const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m11;
 
 const { fields, optionalBoolean } = _m18;
 
-const { columnName } = _m19;
-
 const { resolveDataColumn } = _m34;
+
+const { dataRowReference } = _m35;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -2860,12 +2926,12 @@ function prepareDataValidations(rules, columns, availableCount = 1000, available
     return Object.freeze({ rules: Object.freeze(prepared), count, textCharacters });
 }
 /** @internal Empty sources do not create validation over headings, totals or an artificial blank row. */
-function* dataValidationsXml(prepared, headerRows, dataRows) {
-    if (!prepared.count || !dataRows)
+function* dataValidationsXml(prepared, headerRows, dataRows, ranges) {
+    if (!prepared.count || !dataRows || ranges?.length === 0)
         return;
     yield '<dataValidations count="' + prepared.count + '">';
     for (const rule of prepared.rules) {
-        const column = columnName(rule.column), reference = column + (headerRows + 1) + ":" + column + (headerRows + dataRows);
+        const reference = dataRowReference(rule.column, rule.column, headerRows, dataRows, ranges);
         yield '<dataValidation' + rule.attributes + ' sqref="' + reference + '"><formula1>' + escapeXml(rule.formula, "reject") + '</formula1></dataValidation>';
     }
     yield '</dataValidations>';
@@ -2909,9 +2975,11 @@ const { isDate } = _m12;
 
 const { FormulaCell, formulaXml, isSubtotalFormula } = _m22;
 
-const { prepareDataValidations, dataValidationsXml } = _m35;
+const { prepareDataValidations, dataValidationsXml } = _m36;
 
 const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m34;
+
+const { dataRowRanges, dataRowCount } = _m35;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -3406,15 +3474,23 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved && !this.chartData)
-        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.reportRowCount, sheetName: this.name }); }
     get rowCount() { return this.count; }
-    /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+    /** A finite formula reference to a completed data column, excluding report decorations.
+     * Empty data returns undefined; discontiguous grouped details require explicit detailRanges instead. */
     dataRange(column) {
         if (this.failed)
             throw this.error;
         if (!this.completed)
             throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
         const selected = resolveDataColumn(this.columns, column);
+        const ranges = dataRowRanges(this);
+        if (ranges !== undefined) {
+            if (ranges.length > 1)
+                throw new OfficeIMOError("INVALID_STATE", "Grouped details are discontiguous; use the grouped result's detailRanges for explicit formula references.");
+            const range = ranges[0];
+            return range ? qualifiedColumnRange(this.name, selected, range.firstRow, range.lastRow - range.firstRow + 1) : undefined;
+        }
         return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
     }
     /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
@@ -3430,7 +3506,7 @@ class Worksheet {
     /** @internal Only the workbook may attach a preflighted, bounded source observer. */
     retainChartBinding(binding) { this.chartSources.push(binding); }
     /** @internal Preservation records are metadata, not report data rows. */
-    get reportRowCount() { return this.preserved || this.chartData ? 0 : this.count; }
+    get reportRowCount() { return this.preserved || this.chartData ? 0 : dataRowCount(this, this.headerRows, this.count); }
     /** @internal Chart data is editable through Excel's Unhide worksheet command. */
     get hidden() { return this.chartData; }
     /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
@@ -3555,9 +3631,10 @@ class Worksheet {
                     await this.buffer.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
                 if (regions.references.length)
                     await this.buffer.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
-                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
+                const detailRanges = dataRowRanges(this);
+                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows, detailRanges))
                     await this.buffer.write(xml);
-                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count))
+                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
@@ -3588,7 +3665,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m36 = (() => {
+const _m37 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m11;
 
 const { cellText, columnName } = _m19;
@@ -3634,7 +3711,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m37 = (() => {
+const _m38 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m11;
@@ -3701,7 +3778,7 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m39 = (() => {
 const { captureFields } = _m7;
 
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
@@ -3723,7 +3800,7 @@ const _exports = Object.freeze({ workbookOptionFields: workbookOptionFields, she
 return _exports;
 })();
 
-const _m40 = (() => {
+const _m41 = (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
@@ -3854,7 +3931,7 @@ const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareCh
 return _exports;
 })();
 
-const _m39 = (() => {
+const _m40 = (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
@@ -3865,7 +3942,7 @@ const { copyDrawingAnchor } = _m27;
 
 const { captureFields } = _m7;
 
-const { captureChartRange, prepareChartBinding } = _m40;
+const { captureChartRange, prepareChartBinding } = _m41;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -4053,15 +4130,15 @@ const { assertExportValue } = _m20;
 
 const { Worksheet } = _m26;
 
-const { defineTable, tableXml } = _m36;
+const { defineTable, tableXml } = _m37;
 
 const { copyHyperlink, drawingXml, drawingContentType } = _m27;
 
-const { TextOverflow } = _m37;
+const { TextOverflow } = _m38;
 
-const { captureWorkbookOptions, sheetOptionFields } = _m38;
+const { captureWorkbookOptions, sheetOptionFields } = _m39;
 
-const { prepareChart } = _m39;
+const { prepareChart } = _m40;
 
 const { qualifiedColumnRange, resolveDataColumn } = _m34;
 
@@ -4391,7 +4468,7 @@ class Workbook {
         this.state = "finalizing";
         this.completion = (async () => {
             try {
-                const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
+                const rows = this.rowCount;
                 for (let i = 0; i < this.sheets.length; i++) {
                     const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
                     await sheet.finish();
@@ -4502,10 +4579,10 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m42 = (() => {
+const _m43 = (() => {
 const { ExportCell, assertScalar } = _m20;
 
-const { captureWorkbookOptions, sheetOptionFields } = _m38;
+const { captureWorkbookOptions, sheetOptionFields } = _m39;
 
 const { captureFields } = _m7;
 
@@ -4554,18 +4631,18 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m41 = (() => {
+const _m42 = (() => {
 const { withDestination } = _m5;
 
 const { copyColumns } = _m24;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m42;
+const { portableSheet, portableWorkbook } = _m43;
 
 const { captureFields } = _m7;
 
-const { sheetOptionFields, workbookOptionFields } = _m38;
+const { sheetOptionFields, workbookOptionFields } = _m39;
 
 function prepare(options) {
     options = captureFields(options, [...workbookOptionFields, "columns", "sheet"]);
@@ -4612,8 +4689,8 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m44 = (() => {
-const { ExportCell } = _m20;
+const _m45 = (() => {
+const { ExportCell, assertScalar } = _m20;
 
 const { isDate } = _m12;
 
@@ -4691,7 +4768,52 @@ function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTim
 function result(aggregates) {
     return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
 }
-/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+function groupingLevels(input, keys, groupLabel) {
+    const selected = typeof input === "string" ? [input] : Array.isArray(input) ? Array.from(input) : undefined;
+    if (!selected || selected.length < 1 || selected.length > 4)
+        throw new TypeError("groupBy must declare between one and four grouping levels.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    if (groupLabel && selected.length !== 1)
+        throw new TypeError("groupLabel is only available for one grouping level; use descriptor labels for a hierarchy.");
+    const seen = new Set();
+    return Object.freeze(selected.map(level => {
+        if (typeof level !== "string" && (!level || typeof level !== "object" || Array.isArray(level)))
+            throw new TypeError("A grouping level must name a stable column key or provide a descriptor.");
+        // Supported structural fields, including prototype accessors, are captured once.
+        const { key, value, label } = typeof level === "string" ? { key: level, value: undefined, label: undefined } : level;
+        if (typeof key !== "string" || !key.length || seen.has(key))
+            throw new TypeError("Grouping levels need unique, nonempty stable keys.");
+        seen.add(key);
+        if (value !== undefined && typeof value !== "function")
+            throw new TypeError("Grouping value getters must be synchronous functions.");
+        if (label !== undefined && typeof label !== "function")
+            throw new TypeError("Grouping labels must be synchronous functions.");
+        if (label && groupLabel)
+            throw new TypeError("Specify either groupLabel or the grouping descriptor label.");
+        const column = keys.indexOf(key);
+        if (column >= 0 && value !== undefined)
+            throw new TypeError("A declared grouping column reuses its projected value; do not provide another value getter.");
+        if (column < 0 && value === undefined)
+            throw new TypeError("groupBy must name a declared stable column key; hidden grouping fields need an explicit value getter.");
+        return Object.freeze({ key, column, value, label: label ?? groupLabel });
+    }));
+}
+/** Copy date keys on every event so a consumer cannot mutate later hierarchy decisions. */
+function groupPath(active) {
+    return Object.freeze(active.map(({ group }) => Object.freeze({ ...group, key: eventKey(group.key) })));
+}
+function labelText(format, key, fallback) {
+    if (!format)
+        return fallback;
+    const formatted = format(eventKey(key));
+    if (typeof formatted?.then === "function")
+        void Promise.resolve(formatted).catch(() => { });
+    if (typeof formatted !== "string")
+        throw new TypeError("Grouping labels must return synchronous text.");
+    return formatted;
+}
+/** Group a preordered row source once. Closed-group recurrence within the same parent rejects.
  * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
  * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
 function createGroupedReport(rows, options) {
@@ -4709,11 +4831,7 @@ function createGroupedReport(rows, options) {
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
-    const groupColumn = keys.indexOf(groupBy);
-    if (typeof groupBy !== "string" || groupColumn < 0)
-        throw new TypeError("groupBy must name a declared stable column key.");
-    if (groupLabel !== undefined && typeof groupLabel !== "function")
-        throw new TypeError("groupLabel must be a synchronous function.");
+    const levels = groupingLevels(groupBy, keys, groupLabel);
     const totals = Object.freeze({ ...selectedTotals });
     const grand = createTotals(columns, totals);
     for (let column = 0; column < columns.length; column++)
@@ -4742,9 +4860,8 @@ function createGroupedReport(rows, options) {
     const events = eventsFor(sourceSignal);
     async function* iterate(signal) {
         const project = createRowProjector(columns, undefined, signal);
-        const seen = new Set();
-        let characters = 0, rowCount = 0, groups = 0, currentId;
-        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        const seen = new Set(), active = [];
+        let characters = 0, rowCount = 0, groups = 0;
         for await (const input of inputRows(rows, signal)) {
             // Copy positional input once before the shared projector validates and inspects its values.
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
@@ -4752,39 +4869,13 @@ function createGroupedReport(rows, options) {
             for (let column = 0; column < columns.length; column++)
                 values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
-            const next = identity(scalar(values[groupColumn]));
-            if (next.id !== currentId) {
-                if (seen.has(next.id))
-                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
-                if (groups === maxGroups)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
-                let nextLabel = next.text;
-                if (groupLabel) {
-                    const formatted = groupLabel(eventKey(next.key));
-                    if (typeof formatted?.then === "function")
-                        void Promise.resolve(formatted).catch(() => { });
-                    if (typeof formatted !== "string")
-                        throw new TypeError("groupLabel must return synchronous text.");
-                    nextLabel = formatted;
-                }
+            const next = levels.map((level, index) => {
                 checkAbort(signal);
-                const nextCharacters = characters + next.id.length + nextLabel.length;
-                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
-                budget.reserve(0, nextLabel.length);
-                if (currentId !== undefined)
-                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
-                currentId = next.id;
-                key = next.key;
-                label = nextLabel;
-                groupRows = 0;
-                characters = nextCharacters;
-                seen.add(next.id);
-                groups++;
-                aggregates = createTotals(columns, totals);
-                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
-            }
+                const value = level.column >= 0 ? scalar(values[level.column]) : level.value(snapshot, Object.freeze({ rowIndex: rowCount, level: index, key: level.key }));
+                assertScalar(value);
+                checkAbort(signal);
+                return identity(value);
+            });
             budget.row(rowCount + 1);
             for (let column = 0; column < values.length; column++) {
                 const value = values[column], raw = scalar(value);
@@ -4793,26 +4884,69 @@ function createGroupedReport(rows, options) {
                 budget.cell(raw);
                 if (value instanceof ExportCell && value.text !== undefined)
                     budget.reserve(0, value.text.length);
-                aggregates[column].accept(raw);
+            }
+            let common = 0;
+            while (common < active.length && active[common].id === next[common].id)
+                common++;
+            const pending = [];
+            for (let level = common; level < levels.length; level++) {
+                const value = next[level], parent = pending.at(-1) ?? active[level - 1];
+                // Parent indexes are generated integers, so scalar strings containing delimiters cannot collide.
+                const scopedId = (parent?.group.groupIndex ?? -1) + ":" + value.id;
+                if (seen.has(scopedId))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again within the same parent.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                const label = labelText(levels[level].label, value.key, value.text);
+                checkAbort(signal);
+                const nextCharacters = characters + scopedId.length + label.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, label.length);
+                pending.push({ id: value.id, group: Object.freeze({ groupIndex: groups, key: value.key, label, level }),
+                    rows: 0, aggregates: createTotals(columns, totals) });
+                characters = nextCharacters;
+                seen.add(scopedId);
+                groups++;
+            }
+            while (active.length > common) {
+                checkAbort(signal);
+                const path = groupPath(active), ending = active.pop();
+                yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+            }
+            for (const opening of pending) {
+                checkAbort(signal);
+                active.push(opening);
+                const path = groupPath(active);
+                yield Object.freeze({ kind: "groupStart", ...path.at(-1), path });
+            }
+            for (let column = 0; column < values.length; column++) {
+                const raw = scalar(values[column]);
+                for (const group of active)
+                    group.aggregates[column].accept(raw);
                 grand[column].accept(raw);
             }
+            for (const group of active)
+                group.rows++;
             checkAbort(signal);
-            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount,
+                groupIndex: active.at(-1).group.groupIndex, path: groupPath(active) });
             rowCount++;
-            groupRows++;
             if (taskYieldDue()) {
                 await pause();
                 checkAbort(signal);
             }
         }
         checkAbort(signal);
-        if (currentId !== undefined)
-            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        while (active.length) {
+            checkAbort(signal);
+            const path = groupPath(active), ending = active.pop();
+            yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+        }
         checkAbort(signal);
         yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
     }
-    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    const source = Object.freeze({ columns: portable, groupBy: Object.freeze(levels.map(level => level.key)), totals, events });
     sources.set(source, { signal: sourceSignal, events: eventsFor });
     return source;
 }
@@ -4820,32 +4954,64 @@ const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportS
 return _exports;
 })();
 
-const _m43 = (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m44;
-
-const { withDestination } = _m5;
-
-const { Workbook } = _m1;
-
-const { FormulaCell } = _m22;
-
-const { columnName } = _m19;
-
-const { copyStylePatch } = _m16;
-
-const { portableSheet } = _m42;
+const _m46 = (() => {
+const { assertGroupedReportSource } = _m45;
 
 const { captureFields } = _m7;
 
-const { sheetOptionFields, workbookOptionFields } = _m38;
+const { OfficeIMOError } = _m3;
 
+const { fields } = _m18;
+
+const { sheetOptionFields } = _m39;
+
+const { portableSheet } = _m43;
+
+const { resolveDataColumn } = _m34;
+
+const { copyStylePatch } = _m16;
+
+/** @internal */
+const groupedOptionFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle", "conditionalFormats", "dataValidation"];
 const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
-const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
-function prepare(report, configuration) {
+function detailColumn(report, selector) {
+    return resolveDataColumn(report.columns, selector, "Grouped detail") + 1;
+}
+function conditionalRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("conditionalFormats must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "range", "style", "stopIfTrue", "operator", "value", "values", "formula", "stops", "color", "minimum", "maximum", "showValue"]);
+        const inputRange = rule.range;
+        if (typeof inputRange === "string")
+            throw new TypeError("Grouped conditional formats require detail-column selectors rather than A1 or generated-row ranges.");
+        fields(inputRange, ["column", "through"], "grouped conditional range");
+        const range = captureFields(inputRange, ["column", "through"]);
+        return { ...rule, range: { column: detailColumn(report, range.column), ...(range.through === undefined ? {} : { through: detailColumn(report, range.through) }) } };
+    });
+}
+function validationRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("dataValidation must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxDataValidations exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "column", "items", "allowBlank", "showErrorMessage", "errorStyle", "errorTitle", "errorMessage"]);
+        return { ...rule, column: detailColumn(report, rule.column) };
+    });
+}
+/** @internal Capture options before creating a worksheet or touching a one-pass source. */
+function prepareGroupedSheet(report, configuration, maxConditionalFormats = 1000, maxDataValidations = 1000) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped XLSX options require host-authored labels.");
-    const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"]);
+    const options = captureFields(configuration, groupedOptionFields);
     const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"]);
     if (!options.labelColumn || typeof options.labelColumn !== "object")
         throw new TypeError("Grouped XLSX needs a leading label column.");
@@ -4863,19 +5029,45 @@ function prepare(report, configuration) {
             throw new TypeError("Grouped XLSX owns worksheet " + key + ".");
     if (sheet.autoFilter !== undefined && sheet.autoFilter !== false)
         throw new TypeError("Grouped summary rows cannot use a native table or autofilter.");
-    if (options.sink !== undefined || options.cellValueWriters !== undefined)
-        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
     for (const style of [options.groupStyle, options.subtotalStyle, options.grandTotalStyle])
         if (style !== undefined)
             portableSheet({ alternatingRowStyle: style });
     for (const column of report.columns)
         if (Object.prototype.hasOwnProperty.call(report.totals, column.key) && column.type !== "number")
             throw new TypeError("Editable grouped totals require explicitly numeric columns.");
+    const conditionalFormats = conditionalRules(report, options.conditionalFormats, maxConditionalFormats), dataValidation = validationRules(report, options.dataValidation, maxDataValidations);
     return { ...options, labelColumn, sheet: portableSheet(sheet),
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
         ...(options.groupStyle ? { groupStyle: copyStylePatch(options.groupStyle) } : {}),
         ...(options.subtotalStyle ? { subtotalStyle: copyStylePatch(options.subtotalStyle) } : {}),
         ...(options.grandTotalStyle ? { grandTotalStyle: copyStylePatch(options.grandTotalStyle) } : {}) };
 }
+const _exports = Object.freeze({ groupedOptionFields: groupedOptionFields, prepareGroupedSheet: prepareGroupedSheet });
+return _exports;
+})();
+
+const _m44 = (() => {
+const { groupedReportOperation } = _m45;
+
+const { checkAbort, withAbort } = _m2;
+
+const { withDestination } = _m5;
+
+const { captureFields } = _m7;
+
+const { Workbook } = _m1;
+
+const { FormulaCell } = _m22;
+
+const { columnName } = _m19;
+
+const { captureWorkbookLimits, workbookOptionFields } = _m39;
+
+const { retainDataRowRanges } = _m35;
+
+const { groupedOptionFields, prepareGroupedSheet } = _m46;
+
+const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
 function label(value) {
     if (typeof value?.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -4883,61 +5075,131 @@ function label(value) {
         throw new TypeError("Grouped summary labels must return strings.");
     return value;
 }
-/** SUBTOTAL ignores nested subtotal formulas; functions 1..11 include collapsed outline details. */
+/** SUBTOTAL ignores nested subtotal expressions; functions 1..11 include collapsed outline details. */
 function subtotal(operation, letter, first, last, cached) {
     const range = letter + first + ":" + letter + last;
     const expression = "SUBTOTAL(" + subtotalOperations[operation] + "," + range + ")";
     return new FormulaCell(operation === "average" || operation === "min" || operation === "max"
         ? "IF(SUBTOTAL(2," + range + ")=0,\"\"," + expression + ")" : expression, cached, operation === "count" ? 0 : undefined);
 }
-async function write(report, options, sink) {
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, onProgress, ...settings } = options;
-    const operation = groupedReportOperation(report, settings.signal);
-    let rows = 0, currentKind = "groupStart";
-    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
-    let book;
-    try {
-        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
-        const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
-        const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
-        const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
-        const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
-            maxOutlineLevel: 1,
-            rowStyle: () => currentKind === "row" ? undefined : styles[currentKind],
-            rowOutline: () => currentKind === "row" ? { level: 1, hidden: collapseGroups ?? false } : currentKind === "groupEnd" && collapseGroups ? { collapsed: true } : undefined });
-        const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
-        let firstDetail = 0, firstAnyDetail = 0, lastDetail = 0;
-        async function* values() {
-            for await (const event of operation.events) {
-                currentKind = event.kind;
-                if (event.kind === "groupStart") {
-                    firstDetail = sheet.rowCount + sheet.headerRowCount + 2;
-                    yield [event.label, ...report.columns.map(() => null)];
+async function append(book, report, options, operation, accepted) {
+    checkAbort(operation.signal);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, conditionalFormats, dataValidation } = options;
+    let rows = 0, current;
+    const groups = [], stack = [], detailRanges = [];
+    let firstDetail = 0, lastDetail = 0, grandTotalRow;
+    let grandSummary;
+    const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
+    const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
+    const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
+    const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
+        maxOutlineLevel: report.groupBy.length,
+        rowStyle: () => current && current.kind !== "row" ? styles[current.kind] : undefined,
+        rowOutline: () => {
+            if (!current || current.kind === "complete")
+                return undefined;
+            const level = current.kind === "row" ? current.path.length : current.level;
+            return { level, hidden: !!collapseGroups && level > 0, collapsed: !!collapseGroups && current.kind === "groupEnd" };
+        } });
+    retainDataRowRanges(sheet, detailRanges);
+    const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
+    async function* values() {
+        for await (const event of operation.events) {
+            current = event;
+            const worksheetRow = sheet.rowCount + sheet.headerRowCount + 1;
+            if (event.kind === "groupStart") {
+                const group = { groupIndex: event.groupIndex, level: event.level, key: event.key, label: event.label, path: event.path,
+                    rows: 0, totals: Object.freeze([]), startRow: worksheetRow, firstDetailRow: 0, lastDetailRow: 0, summaryRow: 0 };
+                groups.push(group);
+                stack.push(group);
+                yield [event.label, ...report.columns.map(() => null)];
+            }
+            else if (event.kind === "row") {
+                rows++;
+                accepted?.(rows);
+                firstDetail ||= worksheetRow;
+                lastDetail = worksheetRow;
+                const previous = detailRanges.at(-1);
+                if (previous && previous.lastRow + 1 === worksheetRow)
+                    previous.lastRow = worksheetRow;
+                else
+                    detailRanges.push({ firstRow: worksheetRow, lastRow: worksheetRow });
+                for (const group of stack) {
+                    group.firstDetailRow ||= worksheetRow;
+                    group.lastDetailRow = worksheetRow;
                 }
-                else if (event.kind === "row") {
-                    rows++;
-                    lastDetail = sheet.rowCount + sheet.headerRowCount + 1;
-                    firstAnyDetail ||= lastDetail;
-                    yield [null, ...event.values];
-                }
-                else if (event.kind === "groupEnd") {
-                    yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : null)];
-                }
-                else if (includeGrandTotal !== false) {
-                    // Empty exports still retain a labelled numeric sum/count and blank average/min/max.
+                yield [null, ...event.values];
+            }
+            else if (event.kind === "groupEnd") {
+                const group = stack.pop();
+                group.summaryRow = worksheetRow;
+                group.rows = event.rows;
+                group.totals = event.totals;
+                yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
+                        ? subtotal(operation, columnName(index + 2), group.firstDetailRow, group.lastDetailRow, event.totals[index]) : null)];
+            }
+            else {
+                grandSummary = Object.freeze({ rows: event.rows, groups: event.groups, totals: event.totals });
+                if (includeGrandTotal !== false) {
+                    grandTotalRow = worksheetRow;
+                    // An empty source still retains numeric sum/count and blank average/min/max.
                     yield [label(grandTotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? firstAnyDetail ? subtotal(operation, columnName(index + 2), firstAnyDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
+                            ? firstDetail ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
                 }
             }
         }
-        await sheet.addRows(values());
+    }
+    try {
+        checkAbort(operation.signal);
+        await withAbort(sheet.addRows(values()), operation.signal);
+        // Grouped coordinates and native editing ranges cannot change after the result is returned.
+        await withAbort(sheet.close(), operation.signal);
+        return Object.freeze({ worksheet: sheet, rows, columns: columns.length,
+            detailRanges: Object.freeze(detailRanges.map(range => Object.freeze({ ...range }))),
+            groups: Object.freeze(groups.map(group => Object.freeze({ ...group }))), grandSummary: grandSummary,
+            ...(grandTotalRow === undefined ? {} : { grandTotalRow }) });
+    }
+    catch (error) {
+        await book.discard(error);
+        throw error;
+    }
+}
+/** Add one ordered analysis worksheet, preserving the workbook's styles, budgets, destination and sibling sheets.
+ * The returned worksheet is closed; finalize the workbook only after adding any remaining sheets. */
+async function addGroupedXlsx(book, report, options) {
+    const prepared = prepareGroupedSheet(report, options, book.settings.limits?.maxConditionalFormats ?? 1000, book.availableDataValidations), operation = groupedReportOperation(report, book.settings.signal);
+    try {
+        return await append(book, report, prepared, operation);
+    }
+    finally {
+        operation.dispose();
+    }
+}
+function prepare(report, configuration) {
+    if (!configuration || typeof configuration !== "object")
+        throw new TypeError("Grouped XLSX options require host-authored labels.");
+    const options = captureFields(configuration, [...workbookOptionFields, ...groupedOptionFields]);
+    if (options.sink !== undefined || options.cellValueWriters !== undefined)
+        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
+    const limits = options.limits === undefined ? undefined : captureWorkbookLimits(options.limits);
+    return { ...options, ...(limits === undefined ? {} : { limits }),
+        ...prepareGroupedSheet(report, options, limits?.maxConditionalFormats ?? 1000, limits?.maxDataValidations ?? 1000) };
+}
+async function write(report, options, sink) {
+    const { labelColumn: _labelColumn, subtotalLabel: _subtotalLabel, grandTotalLabel: _grandTotalLabel, includeGrandTotal: _includeGrandTotal, collapseGroups: _collapseGroups, sheet: _sheet, groupStyle: _groupStyle, subtotalStyle: _subtotalStyle, grandTotalStyle: _grandTotalStyle, conditionalFormats: _conditionalFormats, dataValidation: _dataValidation, onProgress, ...settings } = options;
+    const operation = groupedReportOperation(report, settings.signal);
+    let rows = 0, book;
+    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
+    try {
+        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
+        const result = await append(book, report, options, operation, accepted => { rows = accepted; });
         if (sink) {
             const completion = await book.finish();
-            return { result: { rows, columns: report.columns.length + 1, bytes: completion.bytes } };
+            return { result: { rows, columns: result.columns, bytes: completion.bytes } };
         }
         const blob = await book.toBlob();
-        return { blob, result: { rows, columns: report.columns.length + 1, bytes: blob.size } };
+        return { blob, result: { rows, columns: result.columns, bytes: blob.size } };
     }
     catch (error) {
         await book?.discard(error);
@@ -4956,11 +5218,11 @@ async function writeGroupedXlsxTo(report, destination, options) {
     const prepared = prepare(report, options);
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
-const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
+const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
 return _exports;
 })();
 
-const _m45 = (() => {
+const _m47 = (() => {
 
 
 
@@ -5004,14 +5266,14 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m20.ExportCell, createGroupedReport: _m44.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m20.ExportCell, createGroupedReport: _m45.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m41.writeXlsx, writeXlsxTo: _m41.writeXlsxTo, writeGroupedXlsx: _m43.writeGroupedXlsx, writeGroupedXlsxTo: _m43.writeGroupedXlsxTo, createGroupedReport: _m44.createGroupedReport, Worksheet: _m26.Worksheet, Cell: _m19.Cell, FormulaCell: _m22.FormulaCell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m45.saveBlob, ExportCell: _m20.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m42.writeXlsx, writeXlsxTo: _m42.writeXlsxTo, writeGroupedXlsx: _m44.writeGroupedXlsx, writeGroupedXlsxTo: _m44.writeGroupedXlsxTo, addGroupedXlsx: _m44.addGroupedXlsx, createGroupedReport: _m45.createGroupedReport, Worksheet: _m26.Worksheet, Cell: _m19.Cell, FormulaCell: _m22.FormulaCell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m47.saveBlob, ExportCell: _m20.ExportCell });
 return _exports;
 })();
-const { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;
-export { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell };
+const { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;
+export { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell };

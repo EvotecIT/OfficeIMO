@@ -631,7 +631,7 @@ return _exports;
 })();
 
 const _m8 = (() => {
-const { ExportCell } = _m5;
+const { ExportCell, assertScalar } = _m5;
 
 const { isDate } = _m6;
 
@@ -709,7 +709,52 @@ function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTim
 function result(aggregates) {
     return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
 }
-/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+function groupingLevels(input, keys, groupLabel) {
+    const selected = typeof input === "string" ? [input] : Array.isArray(input) ? Array.from(input) : undefined;
+    if (!selected || selected.length < 1 || selected.length > 4)
+        throw new TypeError("groupBy must declare between one and four grouping levels.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    if (groupLabel && selected.length !== 1)
+        throw new TypeError("groupLabel is only available for one grouping level; use descriptor labels for a hierarchy.");
+    const seen = new Set();
+    return Object.freeze(selected.map(level => {
+        if (typeof level !== "string" && (!level || typeof level !== "object" || Array.isArray(level)))
+            throw new TypeError("A grouping level must name a stable column key or provide a descriptor.");
+        // Supported structural fields, including prototype accessors, are captured once.
+        const { key, value, label } = typeof level === "string" ? { key: level, value: undefined, label: undefined } : level;
+        if (typeof key !== "string" || !key.length || seen.has(key))
+            throw new TypeError("Grouping levels need unique, nonempty stable keys.");
+        seen.add(key);
+        if (value !== undefined && typeof value !== "function")
+            throw new TypeError("Grouping value getters must be synchronous functions.");
+        if (label !== undefined && typeof label !== "function")
+            throw new TypeError("Grouping labels must be synchronous functions.");
+        if (label && groupLabel)
+            throw new TypeError("Specify either groupLabel or the grouping descriptor label.");
+        const column = keys.indexOf(key);
+        if (column >= 0 && value !== undefined)
+            throw new TypeError("A declared grouping column reuses its projected value; do not provide another value getter.");
+        if (column < 0 && value === undefined)
+            throw new TypeError("groupBy must name a declared stable column key; hidden grouping fields need an explicit value getter.");
+        return Object.freeze({ key, column, value, label: label ?? groupLabel });
+    }));
+}
+/** Copy date keys on every event so a consumer cannot mutate later hierarchy decisions. */
+function groupPath(active) {
+    return Object.freeze(active.map(({ group }) => Object.freeze({ ...group, key: eventKey(group.key) })));
+}
+function labelText(format, key, fallback) {
+    if (!format)
+        return fallback;
+    const formatted = format(eventKey(key));
+    if (typeof formatted?.then === "function")
+        void Promise.resolve(formatted).catch(() => { });
+    if (typeof formatted !== "string")
+        throw new TypeError("Grouping labels must return synchronous text.");
+    return formatted;
+}
+/** Group a preordered row source once. Closed-group recurrence within the same parent rejects.
  * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
  * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
 function createGroupedReport(rows, options) {
@@ -727,11 +772,7 @@ function createGroupedReport(rows, options) {
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
-    const groupColumn = keys.indexOf(groupBy);
-    if (typeof groupBy !== "string" || groupColumn < 0)
-        throw new TypeError("groupBy must name a declared stable column key.");
-    if (groupLabel !== undefined && typeof groupLabel !== "function")
-        throw new TypeError("groupLabel must be a synchronous function.");
+    const levels = groupingLevels(groupBy, keys, groupLabel);
     const totals = Object.freeze({ ...selectedTotals });
     const grand = createTotals(columns, totals);
     for (let column = 0; column < columns.length; column++)
@@ -760,9 +801,8 @@ function createGroupedReport(rows, options) {
     const events = eventsFor(sourceSignal);
     async function* iterate(signal) {
         const project = createRowProjector(columns, undefined, signal);
-        const seen = new Set();
-        let characters = 0, rowCount = 0, groups = 0, currentId;
-        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        const seen = new Set(), active = [];
+        let characters = 0, rowCount = 0, groups = 0;
         for await (const input of inputRows(rows, signal)) {
             // Copy positional input once before the shared projector validates and inspects its values.
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
@@ -770,39 +810,13 @@ function createGroupedReport(rows, options) {
             for (let column = 0; column < columns.length; column++)
                 values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
-            const next = identity(scalar(values[groupColumn]));
-            if (next.id !== currentId) {
-                if (seen.has(next.id))
-                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
-                if (groups === maxGroups)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
-                let nextLabel = next.text;
-                if (groupLabel) {
-                    const formatted = groupLabel(eventKey(next.key));
-                    if (typeof formatted?.then === "function")
-                        void Promise.resolve(formatted).catch(() => { });
-                    if (typeof formatted !== "string")
-                        throw new TypeError("groupLabel must return synchronous text.");
-                    nextLabel = formatted;
-                }
+            const next = levels.map((level, index) => {
                 checkAbort(signal);
-                const nextCharacters = characters + next.id.length + nextLabel.length;
-                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
-                budget.reserve(0, nextLabel.length);
-                if (currentId !== undefined)
-                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
-                currentId = next.id;
-                key = next.key;
-                label = nextLabel;
-                groupRows = 0;
-                characters = nextCharacters;
-                seen.add(next.id);
-                groups++;
-                aggregates = createTotals(columns, totals);
-                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
-            }
+                const value = level.column >= 0 ? scalar(values[level.column]) : level.value(snapshot, Object.freeze({ rowIndex: rowCount, level: index, key: level.key }));
+                assertScalar(value);
+                checkAbort(signal);
+                return identity(value);
+            });
             budget.row(rowCount + 1);
             for (let column = 0; column < values.length; column++) {
                 const value = values[column], raw = scalar(value);
@@ -811,26 +825,69 @@ function createGroupedReport(rows, options) {
                 budget.cell(raw);
                 if (value instanceof ExportCell && value.text !== undefined)
                     budget.reserve(0, value.text.length);
-                aggregates[column].accept(raw);
+            }
+            let common = 0;
+            while (common < active.length && active[common].id === next[common].id)
+                common++;
+            const pending = [];
+            for (let level = common; level < levels.length; level++) {
+                const value = next[level], parent = pending.at(-1) ?? active[level - 1];
+                // Parent indexes are generated integers, so scalar strings containing delimiters cannot collide.
+                const scopedId = (parent?.group.groupIndex ?? -1) + ":" + value.id;
+                if (seen.has(scopedId))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again within the same parent.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                const label = labelText(levels[level].label, value.key, value.text);
+                checkAbort(signal);
+                const nextCharacters = characters + scopedId.length + label.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, label.length);
+                pending.push({ id: value.id, group: Object.freeze({ groupIndex: groups, key: value.key, label, level }),
+                    rows: 0, aggregates: createTotals(columns, totals) });
+                characters = nextCharacters;
+                seen.add(scopedId);
+                groups++;
+            }
+            while (active.length > common) {
+                checkAbort(signal);
+                const path = groupPath(active), ending = active.pop();
+                yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+            }
+            for (const opening of pending) {
+                checkAbort(signal);
+                active.push(opening);
+                const path = groupPath(active);
+                yield Object.freeze({ kind: "groupStart", ...path.at(-1), path });
+            }
+            for (let column = 0; column < values.length; column++) {
+                const raw = scalar(values[column]);
+                for (const group of active)
+                    group.aggregates[column].accept(raw);
                 grand[column].accept(raw);
             }
+            for (const group of active)
+                group.rows++;
             checkAbort(signal);
-            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount,
+                groupIndex: active.at(-1).group.groupIndex, path: groupPath(active) });
             rowCount++;
-            groupRows++;
             if (taskYieldDue()) {
                 await pause();
                 checkAbort(signal);
             }
         }
         checkAbort(signal);
-        if (currentId !== undefined)
-            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
-                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        while (active.length) {
+            checkAbort(signal);
+            const path = groupPath(active), ending = active.pop();
+            yield Object.freeze({ kind: "groupEnd", ...path.at(-1), path, rows: ending.rows, totals: result(ending.aggregates) });
+        }
         checkAbort(signal);
         yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
     }
-    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    const source = Object.freeze({ columns: portable, groupBy: Object.freeze(levels.map(level => level.key)), totals, events });
     sources.set(source, { signal: sourceSignal, events: eventsFor });
     return source;
 }
@@ -1087,6 +1144,8 @@ class ZipWriter {
     active;
     state = "open";
     options;
+    lifetime = new AbortController();
+    disposal;
     constructor(sink, options = {}) {
         const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
         const { compression, maxOutputBytes } = captured;
@@ -1098,11 +1157,25 @@ class ZipWriter {
         this.owned = sink ? undefined : new BlobByteSink();
         this.sink = sink ?? this.owned;
     }
+    /** Pending header/directory writes and source reads must also stop on explicit discard. */
+    async acceptance(operation) {
+        const signal = this.options.signal;
+        const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        signal?.addEventListener("abort", abort, { once: true });
+        try {
+            checkAbort(signal);
+            checkAbort(this.lifetime.signal);
+            return await withAbort(Promise.resolve(operation()), this.lifetime.signal);
+        }
+        finally {
+            signal?.removeEventListener("abort", abort);
+        }
+    }
     async emit(bytes) {
         if (this.options.maxOutputBytes !== undefined && this.offset + bytes.length > this.options.maxOutputBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
         this.offset = zipSize(this.offset + bytes.length);
-        await withAbort(Promise.resolve(this.sink.write(bytes)), this.options.signal);
+        await this.acceptance(() => this.sink.write(bytes));
     }
     reserve(name) {
         checkAbort(this.options.signal);
@@ -1148,7 +1221,7 @@ class ZipWriter {
             await this.emit(this.local(encoded, entry, true));
             const writer = entry;
             let busy = false, closed = false, completion;
-            const discard = async (error) => { closed = true; this.state = "failed"; await writer.discard(error); this.owned?.discard(); this.active = undefined; };
+            const discard = async (error) => { closed = true; this.state = "failed"; this.lifetime.abort(error); await writer.discard(error); this.owned?.discard(); this.active = undefined; };
             return this.active = {
                 write: async (bytes) => {
                     if (busy || closed || this.state !== "writing")
@@ -1203,9 +1276,9 @@ class ZipWriter {
         const entry = await this.openEntry(name);
         try {
             if (typeof source === "function")
-                await withAbort(Promise.resolve(source(entry)), this.options.signal);
+                await this.acceptance(() => source(entry));
             else
-                await writeBytes(source, entry, this.options.signal);
+                await this.acceptance(() => writeBytes(source, entry, this.lifetime.signal));
             await entry.close();
         }
         catch (error) {
@@ -1215,7 +1288,11 @@ class ZipWriter {
     }
     get bytesWritten() { return this.offset; }
     /** Drop owned output and release the active compressor. Caller-owned partial bytes remain with the caller. */
-    async discard(error) { this.state = "failed"; await this.active?.discard(error); this.owned?.discard(); }
+    discard(error) {
+        this.state = "failed";
+        this.lifetime.abort(error);
+        return this.disposal ??= (async () => { await this.active?.discard(error); this.owned?.discard(); })();
+    }
     /** @internal Buffered worksheet compression stays in the format owner. */
     async addPrepared(name, entry) {
         const encoded = this.reserve(name), offset = this.offset;
@@ -2858,18 +2935,64 @@ const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualified
 return _exports;
 })();
 
+const _m38 = (() => {
+const { OfficeIMOError } = _m2;
+
+const { columnName } = _m27;
+
+const scopes = new WeakMap();
+/** @internal A format adapter owns this bounded list until worksheet completion. */
+function retainDataRowRanges(worksheet, ranges) { scopes.set(worksheet, ranges); }
+/** @internal Ordinary worksheets retain their contiguous data-column contract. */
+function dataRowRanges(worksheet) { return scopes.get(worksheet); }
+/** @internal Count accepted details while preserving physical row counts for native references. */
+function dataRowCount(worksheet, headerRows, serializedRows) {
+    const ranges = scopes.get(worksheet);
+    if (ranges === undefined)
+        return serializedRows;
+    const lastSerialized = headerRows + serializedRows;
+    let rows = 0;
+    for (const range of ranges) {
+        if (range.firstRow > lastSerialized)
+            break;
+        rows += Math.min(range.lastRow, lastSerialized) - range.firstRow + 1;
+    }
+    return rows;
+}
+/** @internal Native editing rules share one finite, bounded space-separated reference. */
+function dataRowReference(firstColumn, lastColumn, headerRows, dataRows, ranges) {
+    if (ranges === undefined)
+        return dataRows ? columnName(firstColumn) + (headerRows + 1) + ":" + columnName(lastColumn) + (headerRows + dataRows) : undefined;
+    const first = columnName(firstColumn), last = columnName(lastColumn);
+    let reference = "", previous = headerRows;
+    for (const range of ranges) {
+        if (!Number.isSafeInteger(range.firstRow) || !Number.isSafeInteger(range.lastRow) || range.firstRow <= previous ||
+            range.lastRow < range.firstRow || range.lastRow > headerRows + dataRows)
+            throw new RangeError("Detail editing ranges must be ordered within serialized worksheet rows.");
+        const next = first + range.firstRow + ":" + last + range.lastRow;
+        if (reference.length + (reference ? 1 : 0) + next.length > 32767)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Detail editing references exceed 32,767 UTF-16 characters; split the worksheet.");
+        reference += (reference ? " " : "") + next;
+        previous = range.lastRow;
+    }
+    return reference || undefined;
+}
+const _exports = Object.freeze({ retainDataRowRanges: retainDataRowRanges, dataRowRanges: dataRowRanges, dataRowCount: dataRowCount, dataRowReference: dataRowReference });
+return _exports;
+})();
+
 const _m36 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m17;
 
 const { cellPosition } = _m31;
-
-const { columnName } = _m27;
 
 const { colorArgb } = _m25;
 
 const { fields, optionalBoolean, differentialXml } = _m26;
 
 const { resolveDataColumn } = _m37;
+
+const { dataRowReference } = _m38;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -3012,13 +3135,13 @@ class ConditionalFormats {
             xml: '<cfRule type="' + rule.type + '" priority="' + (i + 1) + '"' + (rule.style ? ' dxfId="' + differential[styleIndex++] + '"' : "") + rule.attributes + '>' + rule.body + '</cfRule>' }));
     }
     get count() { return this.rules.length; }
-    *xml(headerRows, dataRows, totalRows) {
+    *xml(headerRows, dataRows, totalRows, ranges) {
         for (const rule of this.rules) {
             if (rule.target.bottom !== undefined && rule.target.bottom > totalRows)
                 throw new RangeError("Conditional ranges must stay within exported rows.");
-            if (!rule.target.reference && !dataRows)
+            const reference = rule.target.reference ?? dataRowReference(rule.target.first, rule.target.last, headerRows, dataRows, ranges);
+            if (!reference)
                 continue;
-            const reference = rule.target.reference ?? columnName(rule.target.first) + (headerRows + 1) + ':' + columnName(rule.target.last) + (headerRows + dataRows);
             yield '<conditionalFormatting sqref="' + reference + '">' + rule.xml + '</conditionalFormatting>';
         }
     }
@@ -3027,7 +3150,7 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m39 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -3036,9 +3159,9 @@ const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m17;
 
 const { fields, optionalBoolean } = _m26;
 
-const { columnName } = _m27;
-
 const { resolveDataColumn } = _m37;
+
+const { dataRowReference } = _m38;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -3116,12 +3239,12 @@ function prepareDataValidations(rules, columns, availableCount = 1000, available
     return Object.freeze({ rules: Object.freeze(prepared), count, textCharacters });
 }
 /** @internal Empty sources do not create validation over headings, totals or an artificial blank row. */
-function* dataValidationsXml(prepared, headerRows, dataRows) {
-    if (!prepared.count || !dataRows)
+function* dataValidationsXml(prepared, headerRows, dataRows, ranges) {
+    if (!prepared.count || !dataRows || ranges?.length === 0)
         return;
     yield '<dataValidations count="' + prepared.count + '">';
     for (const rule of prepared.rules) {
-        const column = columnName(rule.column), reference = column + (headerRows + 1) + ":" + column + (headerRows + dataRows);
+        const reference = dataRowReference(rule.column, rule.column, headerRows, dataRows, ranges);
         yield '<dataValidation' + rule.attributes + ' sqref="' + reference + '"><formula1>' + escapeXml(rule.formula, "reject") + '</formula1></dataValidation>';
     }
     yield '</dataValidations>';
@@ -3165,9 +3288,11 @@ const { isDate } = _m6;
 
 const { FormulaCell, formulaXml, isSubtotalFormula } = _m28;
 
-const { prepareDataValidations, dataValidationsXml } = _m38;
+const { prepareDataValidations, dataValidationsXml } = _m39;
 
 const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m37;
+
+const { dataRowRanges, dataRowCount } = _m38;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -3662,15 +3787,23 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved && !this.chartData)
-        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.reportRowCount, sheetName: this.name }); }
     get rowCount() { return this.count; }
-    /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+    /** A finite formula reference to a completed data column, excluding report decorations.
+     * Empty data returns undefined; discontiguous grouped details require explicit detailRanges instead. */
     dataRange(column) {
         if (this.failed)
             throw this.error;
         if (!this.completed)
             throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
         const selected = resolveDataColumn(this.columns, column);
+        const ranges = dataRowRanges(this);
+        if (ranges !== undefined) {
+            if (ranges.length > 1)
+                throw new OfficeIMOError("INVALID_STATE", "Grouped details are discontiguous; use the grouped result's detailRanges for explicit formula references.");
+            const range = ranges[0];
+            return range ? qualifiedColumnRange(this.name, selected, range.firstRow, range.lastRow - range.firstRow + 1) : undefined;
+        }
         return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
     }
     /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
@@ -3686,7 +3819,7 @@ class Worksheet {
     /** @internal Only the workbook may attach a preflighted, bounded source observer. */
     retainChartBinding(binding) { this.chartSources.push(binding); }
     /** @internal Preservation records are metadata, not report data rows. */
-    get reportRowCount() { return this.preserved || this.chartData ? 0 : this.count; }
+    get reportRowCount() { return this.preserved || this.chartData ? 0 : dataRowCount(this, this.headerRows, this.count); }
     /** @internal Chart data is editable through Excel's Unhide worksheet command. */
     get hidden() { return this.chartData; }
     /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
@@ -3811,9 +3944,10 @@ class Worksheet {
                     await this.buffer.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
                 if (regions.references.length)
                     await this.buffer.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
-                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
+                const detailRanges = dataRowRanges(this);
+                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows, detailRanges))
                     await this.buffer.write(xml);
-                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count))
+                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
@@ -3844,7 +3978,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m39 = (() => {
+const _m40 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m17;
 
 const { cellText, columnName } = _m27;
@@ -3890,7 +4024,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m40 = (() => {
+const _m41 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { cleanXml } = _m17;
@@ -3957,7 +4091,7 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m41 = (() => {
+const _m42 = (() => {
 const { captureFields } = _m10;
 
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
@@ -3979,7 +4113,7 @@ const _exports = Object.freeze({ workbookOptionFields: workbookOptionFields, she
 return _exports;
 })();
 
-const _m43 = (() => {
+const _m44 = (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4110,7 +4244,7 @@ const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareCh
 return _exports;
 })();
 
-const _m42 = (() => {
+const _m43 = (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4121,7 +4255,7 @@ const { copyDrawingAnchor } = _m31;
 
 const { captureFields } = _m10;
 
-const { captureChartRange, prepareChartBinding } = _m43;
+const { captureChartRange, prepareChartBinding } = _m44;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -4309,15 +4443,15 @@ const { assertExportValue } = _m5;
 
 const { Worksheet } = _m30;
 
-const { defineTable, tableXml } = _m39;
+const { defineTable, tableXml } = _m40;
 
 const { copyHyperlink, drawingXml, drawingContentType } = _m31;
 
-const { TextOverflow } = _m40;
+const { TextOverflow } = _m41;
 
-const { captureWorkbookOptions, sheetOptionFields } = _m41;
+const { captureWorkbookOptions, sheetOptionFields } = _m42;
 
-const { prepareChart } = _m42;
+const { prepareChart } = _m43;
 
 const { qualifiedColumnRange, resolveDataColumn } = _m37;
 
@@ -4647,7 +4781,7 @@ class Workbook {
         this.state = "finalizing";
         this.completion = (async () => {
             try {
-                const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
+                const rows = this.rowCount;
                 for (let i = 0; i < this.sheets.length; i++) {
                     const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
                     await sheet.finish();
@@ -4758,10 +4892,10 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m45 = (() => {
+const _m46 = (() => {
 const { ExportCell, assertScalar } = _m5;
 
-const { captureWorkbookOptions, sheetOptionFields } = _m41;
+const { captureWorkbookOptions, sheetOptionFields } = _m42;
 
 const { captureFields } = _m10;
 
@@ -4810,18 +4944,18 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m44 = (() => {
+const _m45 = (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
 
 const { Workbook } = _m22;
 
-const { portableSheet, portableWorkbook } = _m45;
+const { portableSheet, portableWorkbook } = _m46;
 
 const { captureFields } = _m10;
 
-const { sheetOptionFields, workbookOptionFields } = _m41;
+const { sheetOptionFields, workbookOptionFields } = _m42;
 
 function prepare(options) {
     options = captureFields(options, [...workbookOptionFields, "columns", "sheet"]);
@@ -4868,32 +5002,64 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m46 = (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m8;
-
-const { withDestination } = _m3;
-
-const { Workbook } = _m22;
-
-const { FormulaCell } = _m28;
-
-const { columnName } = _m27;
-
-const { copyStylePatch } = _m24;
-
-const { portableSheet } = _m45;
+const _m48 = (() => {
+const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
 
-const { sheetOptionFields, workbookOptionFields } = _m41;
+const { OfficeIMOError } = _m2;
 
+const { fields } = _m26;
+
+const { sheetOptionFields } = _m42;
+
+const { portableSheet } = _m46;
+
+const { resolveDataColumn } = _m37;
+
+const { copyStylePatch } = _m24;
+
+/** @internal */
+const groupedOptionFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle", "conditionalFormats", "dataValidation"];
 const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
-const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
-function prepare(report, configuration) {
+function detailColumn(report, selector) {
+    return resolveDataColumn(report.columns, selector, "Grouped detail") + 1;
+}
+function conditionalRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("conditionalFormats must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "range", "style", "stopIfTrue", "operator", "value", "values", "formula", "stops", "color", "minimum", "maximum", "showValue"]);
+        const inputRange = rule.range;
+        if (typeof inputRange === "string")
+            throw new TypeError("Grouped conditional formats require detail-column selectors rather than A1 or generated-row ranges.");
+        fields(inputRange, ["column", "through"], "grouped conditional range");
+        const range = captureFields(inputRange, ["column", "through"]);
+        return { ...rule, range: { column: detailColumn(report, range.column), ...(range.through === undefined ? {} : { through: detailColumn(report, range.through) }) } };
+    });
+}
+function validationRules(report, rules, maximum) {
+    if (rules === undefined)
+        return undefined;
+    if (!Array.isArray(rules))
+        throw new TypeError("dataValidation must be an array.");
+    if (rules.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxDataValidations exceeded.");
+    return rules.map(input => {
+        const rule = captureFields(input, ["type", "column", "items", "allowBlank", "showErrorMessage", "errorStyle", "errorTitle", "errorMessage"]);
+        return { ...rule, column: detailColumn(report, rule.column) };
+    });
+}
+/** @internal Capture options before creating a worksheet or touching a one-pass source. */
+function prepareGroupedSheet(report, configuration, maxConditionalFormats = 1000, maxDataValidations = 1000) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped XLSX options require host-authored labels.");
-    const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"]);
+    const options = captureFields(configuration, groupedOptionFields);
     const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"]);
     if (!options.labelColumn || typeof options.labelColumn !== "object")
         throw new TypeError("Grouped XLSX needs a leading label column.");
@@ -4911,19 +5077,45 @@ function prepare(report, configuration) {
             throw new TypeError("Grouped XLSX owns worksheet " + key + ".");
     if (sheet.autoFilter !== undefined && sheet.autoFilter !== false)
         throw new TypeError("Grouped summary rows cannot use a native table or autofilter.");
-    if (options.sink !== undefined || options.cellValueWriters !== undefined)
-        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
     for (const style of [options.groupStyle, options.subtotalStyle, options.grandTotalStyle])
         if (style !== undefined)
             portableSheet({ alternatingRowStyle: style });
     for (const column of report.columns)
         if (Object.prototype.hasOwnProperty.call(report.totals, column.key) && column.type !== "number")
             throw new TypeError("Editable grouped totals require explicitly numeric columns.");
+    const conditionalFormats = conditionalRules(report, options.conditionalFormats, maxConditionalFormats), dataValidation = validationRules(report, options.dataValidation, maxDataValidations);
     return { ...options, labelColumn, sheet: portableSheet(sheet),
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
         ...(options.groupStyle ? { groupStyle: copyStylePatch(options.groupStyle) } : {}),
         ...(options.subtotalStyle ? { subtotalStyle: copyStylePatch(options.subtotalStyle) } : {}),
         ...(options.grandTotalStyle ? { grandTotalStyle: copyStylePatch(options.grandTotalStyle) } : {}) };
 }
+const _exports = Object.freeze({ groupedOptionFields: groupedOptionFields, prepareGroupedSheet: prepareGroupedSheet });
+return _exports;
+})();
+
+const _m47 = (() => {
+const { groupedReportOperation } = _m8;
+
+const { checkAbort, withAbort } = _m4;
+
+const { withDestination } = _m3;
+
+const { captureFields } = _m10;
+
+const { Workbook } = _m22;
+
+const { FormulaCell } = _m28;
+
+const { columnName } = _m27;
+
+const { captureWorkbookLimits, workbookOptionFields } = _m42;
+
+const { retainDataRowRanges } = _m38;
+
+const { groupedOptionFields, prepareGroupedSheet } = _m48;
+
+const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
 function label(value) {
     if (typeof value?.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -4931,61 +5123,131 @@ function label(value) {
         throw new TypeError("Grouped summary labels must return strings.");
     return value;
 }
-/** SUBTOTAL ignores nested subtotal formulas; functions 1..11 include collapsed outline details. */
+/** SUBTOTAL ignores nested subtotal expressions; functions 1..11 include collapsed outline details. */
 function subtotal(operation, letter, first, last, cached) {
     const range = letter + first + ":" + letter + last;
     const expression = "SUBTOTAL(" + subtotalOperations[operation] + "," + range + ")";
     return new FormulaCell(operation === "average" || operation === "min" || operation === "max"
         ? "IF(SUBTOTAL(2," + range + ")=0,\"\"," + expression + ")" : expression, cached, operation === "count" ? 0 : undefined);
 }
-async function write(report, options, sink) {
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, onProgress, ...settings } = options;
-    const operation = groupedReportOperation(report, settings.signal);
-    let rows = 0, currentKind = "groupStart";
-    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
-    let book;
-    try {
-        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
-        const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
-        const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
-        const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
-        const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
-            maxOutlineLevel: 1,
-            rowStyle: () => currentKind === "row" ? undefined : styles[currentKind],
-            rowOutline: () => currentKind === "row" ? { level: 1, hidden: collapseGroups ?? false } : currentKind === "groupEnd" && collapseGroups ? { collapsed: true } : undefined });
-        const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
-        let firstDetail = 0, firstAnyDetail = 0, lastDetail = 0;
-        async function* values() {
-            for await (const event of operation.events) {
-                currentKind = event.kind;
-                if (event.kind === "groupStart") {
-                    firstDetail = sheet.rowCount + sheet.headerRowCount + 2;
-                    yield [event.label, ...report.columns.map(() => null)];
+async function append(book, report, options, operation, accepted) {
+    checkAbort(operation.signal);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, conditionalFormats, dataValidation } = options;
+    let rows = 0, current;
+    const groups = [], stack = [], detailRanges = [];
+    let firstDetail = 0, lastDetail = 0, grandTotalRow;
+    let grandSummary;
+    const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
+    const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
+    const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
+    const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
+        ...(conditionalFormats === undefined ? {} : { conditionalFormats }), ...(dataValidation === undefined ? {} : { dataValidation }),
+        maxOutlineLevel: report.groupBy.length,
+        rowStyle: () => current && current.kind !== "row" ? styles[current.kind] : undefined,
+        rowOutline: () => {
+            if (!current || current.kind === "complete")
+                return undefined;
+            const level = current.kind === "row" ? current.path.length : current.level;
+            return { level, hidden: !!collapseGroups && level > 0, collapsed: !!collapseGroups && current.kind === "groupEnd" };
+        } });
+    retainDataRowRanges(sheet, detailRanges);
+    const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
+    async function* values() {
+        for await (const event of operation.events) {
+            current = event;
+            const worksheetRow = sheet.rowCount + sheet.headerRowCount + 1;
+            if (event.kind === "groupStart") {
+                const group = { groupIndex: event.groupIndex, level: event.level, key: event.key, label: event.label, path: event.path,
+                    rows: 0, totals: Object.freeze([]), startRow: worksheetRow, firstDetailRow: 0, lastDetailRow: 0, summaryRow: 0 };
+                groups.push(group);
+                stack.push(group);
+                yield [event.label, ...report.columns.map(() => null)];
+            }
+            else if (event.kind === "row") {
+                rows++;
+                accepted?.(rows);
+                firstDetail ||= worksheetRow;
+                lastDetail = worksheetRow;
+                const previous = detailRanges.at(-1);
+                if (previous && previous.lastRow + 1 === worksheetRow)
+                    previous.lastRow = worksheetRow;
+                else
+                    detailRanges.push({ firstRow: worksheetRow, lastRow: worksheetRow });
+                for (const group of stack) {
+                    group.firstDetailRow ||= worksheetRow;
+                    group.lastDetailRow = worksheetRow;
                 }
-                else if (event.kind === "row") {
-                    rows++;
-                    lastDetail = sheet.rowCount + sheet.headerRowCount + 1;
-                    firstAnyDetail ||= lastDetail;
-                    yield [null, ...event.values];
-                }
-                else if (event.kind === "groupEnd") {
-                    yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : null)];
-                }
-                else if (includeGrandTotal !== false) {
-                    // Empty exports still retain a labelled numeric sum/count and blank average/min/max.
+                yield [null, ...event.values];
+            }
+            else if (event.kind === "groupEnd") {
+                const group = stack.pop();
+                group.summaryRow = worksheetRow;
+                group.rows = event.rows;
+                group.totals = event.totals;
+                yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
+                        ? subtotal(operation, columnName(index + 2), group.firstDetailRow, group.lastDetailRow, event.totals[index]) : null)];
+            }
+            else {
+                grandSummary = Object.freeze({ rows: event.rows, groups: event.groups, totals: event.totals });
+                if (includeGrandTotal !== false) {
+                    grandTotalRow = worksheetRow;
+                    // An empty source still retains numeric sum/count and blank average/min/max.
                     yield [label(grandTotalLabel(event)), ...operations.map((operation, index) => operation
-                            ? firstAnyDetail ? subtotal(operation, columnName(index + 2), firstAnyDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
+                            ? firstDetail ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
                 }
             }
         }
-        await sheet.addRows(values());
+    }
+    try {
+        checkAbort(operation.signal);
+        await withAbort(sheet.addRows(values()), operation.signal);
+        // Grouped coordinates and native editing ranges cannot change after the result is returned.
+        await withAbort(sheet.close(), operation.signal);
+        return Object.freeze({ worksheet: sheet, rows, columns: columns.length,
+            detailRanges: Object.freeze(detailRanges.map(range => Object.freeze({ ...range }))),
+            groups: Object.freeze(groups.map(group => Object.freeze({ ...group }))), grandSummary: grandSummary,
+            ...(grandTotalRow === undefined ? {} : { grandTotalRow }) });
+    }
+    catch (error) {
+        await book.discard(error);
+        throw error;
+    }
+}
+/** Add one ordered analysis worksheet, preserving the workbook's styles, budgets, destination and sibling sheets.
+ * The returned worksheet is closed; finalize the workbook only after adding any remaining sheets. */
+async function addGroupedXlsx(book, report, options) {
+    const prepared = prepareGroupedSheet(report, options, book.settings.limits?.maxConditionalFormats ?? 1000, book.availableDataValidations), operation = groupedReportOperation(report, book.settings.signal);
+    try {
+        return await append(book, report, prepared, operation);
+    }
+    finally {
+        operation.dispose();
+    }
+}
+function prepare(report, configuration) {
+    if (!configuration || typeof configuration !== "object")
+        throw new TypeError("Grouped XLSX options require host-authored labels.");
+    const options = captureFields(configuration, [...workbookOptionFields, ...groupedOptionFields]);
+    if (options.sink !== undefined || options.cellValueWriters !== undefined)
+        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
+    const limits = options.limits === undefined ? undefined : captureWorkbookLimits(options.limits);
+    return { ...options, ...(limits === undefined ? {} : { limits }),
+        ...prepareGroupedSheet(report, options, limits?.maxConditionalFormats ?? 1000, limits?.maxDataValidations ?? 1000) };
+}
+async function write(report, options, sink) {
+    const { labelColumn: _labelColumn, subtotalLabel: _subtotalLabel, grandTotalLabel: _grandTotalLabel, includeGrandTotal: _includeGrandTotal, collapseGroups: _collapseGroups, sheet: _sheet, groupStyle: _groupStyle, subtotalStyle: _subtotalStyle, grandTotalStyle: _grandTotalStyle, conditionalFormats: _conditionalFormats, dataValidation: _dataValidation, onProgress, ...settings } = options;
+    const operation = groupedReportOperation(report, settings.signal);
+    let rows = 0, book;
+    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
+    try {
+        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
+        const result = await append(book, report, options, operation, accepted => { rows = accepted; });
         if (sink) {
             const completion = await book.finish();
-            return { result: { rows, columns: report.columns.length + 1, bytes: completion.bytes } };
+            return { result: { rows, columns: result.columns, bytes: completion.bytes } };
         }
         const blob = await book.toBlob();
-        return { blob, result: { rows, columns: report.columns.length + 1, bytes: blob.size } };
+        return { blob, result: { rows, columns: result.columns, bytes: blob.size } };
     }
     catch (error) {
         await book?.discard(error);
@@ -5004,17 +5266,17 @@ async function writeGroupedXlsxTo(report, destination, options) {
     const prepared = prepare(report, options);
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
-const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
+const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
 return _exports;
 })();
 
 const _m21 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m22.Workbook, writeXlsx: _m44.writeXlsx, writeXlsxTo: _m44.writeXlsxTo, writeGroupedXlsx: _m46.writeGroupedXlsx, writeGroupedXlsxTo: _m46.writeGroupedXlsxTo, createGroupedReport: _m8.createGroupedReport, Worksheet: _m30.Worksheet, Cell: _m27.Cell, FormulaCell: _m28.FormulaCell, StyleRegistry: _m24.StyleRegistry, NumberFormats: _m24.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+const _exports = Object.freeze({ Workbook: _m22.Workbook, writeXlsx: _m45.writeXlsx, writeXlsxTo: _m45.writeXlsxTo, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m30.Worksheet, Cell: _m27.Cell, FormulaCell: _m28.FormulaCell, StyleRegistry: _m24.StyleRegistry, NumberFormats: _m24.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
 return _exports;
 })();
 
-const _m48 = (() => {
+const _m50 = (() => {
 const { captureTableSpans, tableSpans } = _m29;
 
 /** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
@@ -5035,7 +5297,7 @@ const _exports = Object.freeze({ csvStructuredRows: csvStructuredRows });
 return _exports;
 })();
 
-const _m49 = (() => {
+const _m51 = (() => {
 /** Compatibility display policy; hosts can supply labels without changing typed source values. */
 const defaultBooleanText = Object.freeze({ true: "True", false: "False" });
 /** @internal Capture display policy once, before source iteration or asynchronous output. */
@@ -5053,7 +5315,7 @@ const _exports = Object.freeze({ defaultBooleanText: defaultBooleanText, capture
 return _exports;
 })();
 
-const _m50 = (() => {
+const _m52 = (() => {
 const { captureFields } = _m10;
 
 /** @internal Share the format's capture policy with thin adapters before they compose options. */
@@ -5067,7 +5329,7 @@ const _exports = Object.freeze({ captureCsvOptions: captureCsvOptions });
 return _exports;
 })();
 
-const _m47 = (() => {
+const _m49 = (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -5082,11 +5344,11 @@ const { notifyProgress } = _m23;
 
 const { copyColumns, createRowProjector } = _m11;
 
-const { csvStructuredRows } = _m48;
+const { csvStructuredRows } = _m50;
 
-const { captureBooleanText } = _m49;
+const { captureBooleanText } = _m51;
 
-const { captureCsvOptions } = _m50;
+const { captureCsvOptions } = _m52;
 
 
 
@@ -5217,7 +5479,7 @@ const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportC
 return _exports;
 })();
 
-const _m55 = (() => {
+const _m57 = (() => {
 const { captureFields } = _m10;
 
 /** Pure validation shared by document settings and named paragraph styles. */
@@ -5251,10 +5513,10 @@ const _exports = Object.freeze({ positive: positive, color: color, presentation:
 return _exports;
 })();
 
-const _m54 = (() => {
+const _m56 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { positive, presentation } = _m55;
+const { positive, presentation } = _m57;
 
 const fields = ["fontSize", "presentation", "keepTogether", "keepWithNext", "spaceBefore", "spaceAfter"];
 const presentationFields = ["bold", "italic", "color", "alignment"];
@@ -5324,7 +5586,7 @@ const _exports = Object.freeze({ captureParagraphStyle: captureParagraphStyle, c
 return _exports;
 })();
 
-const _m53 = (() => {
+const _m55 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportBudget } = _m9;
@@ -5337,11 +5599,11 @@ const { copyExportValue } = _m13;
 
 const { captureFields } = _m10;
 
-const { captureParagraphStyles } = _m54;
+const { captureParagraphStyles } = _m56;
 
-const { captureBooleanText } = _m49;
+const { captureBooleanText } = _m51;
 
-const { positive, color, presentation } = _m55;
+const { positive, color, presentation } = _m57;
 
 
 
@@ -5490,11 +5752,11 @@ function settings(input, document = false) {
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m55.positive, color: _m55.color, presentation: _m55.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, settings: settings });
+const _exports = Object.freeze({ positive: _m57.positive, color: _m57.color, presentation: _m57.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, settings: settings });
 return _exports;
 })();
 
-const _m57 = (() => {
+const _m59 = (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -5644,7 +5906,7 @@ const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, P
 return _exports;
 })();
 
-const _m61 = (() => {
+const _m63 = (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -5673,8 +5935,8 @@ const _exports = Object.freeze({ FontReader: FontReader, checksum: checksum, ali
 return _exports;
 })();
 
-const _m62 = (() => {
-const { align4 } = _m61;
+const _m64 = (() => {
+const { align4 } = _m63;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -5897,12 +6159,12 @@ const _exports = Object.freeze({ subsetTrueType: subsetTrueType, subsetTrueTypeC
 return _exports;
 })();
 
-const _m60 = (() => {
+const _m62 = (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m61;
+const { FontReader } = _m63;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m62;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m64;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6141,8 +6403,8 @@ const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
 })();
 
-const _m59 = (() => {
-const { TrueTypeFont } = _m60;
+const _m61 = (() => {
+const { TrueTypeFont } = _m62;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -6204,7 +6466,7 @@ const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
 return _exports;
 })();
 
-const _m64 = (() => {
+const _m66 = (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -6526,12 +6788,12 @@ const _exports = Object.freeze({ helveticaWidths: helveticaWidths });
 return _exports;
 })();
 
-const _m63 = (() => {
+const _m65 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m59;
+const { PdfFont, fontProgram } = _m61;
 
-const { helveticaWidths } = _m64;
+const { helveticaWidths } = _m66;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -6594,14 +6856,14 @@ const _exports = Object.freeze({ standardCode: standardCode, resolveScalar: reso
 return _exports;
 })();
 
-const _m58 = (() => {
+const _m60 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m59;
+const { fontProgram } = _m61;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m63;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m65;
 
-const { pdfNumber, unicodeHex } = _m57;
+const { pdfNumber, unicodeHex } = _m59;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6805,7 +7067,7 @@ const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResour
 return _exports;
 })();
 
-const _m66 = (() => {
+const _m68 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -6814,7 +7076,7 @@ const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { isDate } = _m6;
 
-const { defaultBooleanText } = _m49;
+const { defaultBooleanText } = _m51;
 
 function synchronousText(value, name) {
     if (typeof value === "string")
@@ -6911,7 +7173,7 @@ const _exports = Object.freeze({ synchronousText: synchronousText, displayText: 
 return _exports;
 })();
 
-const _m68 = (() => {
+const _m70 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7123,18 +7385,18 @@ const _exports = Object.freeze({ wrapShapedPdfText: wrapShapedPdfText });
 return _exports;
 })();
 
-const _m67 = (() => {
+const _m69 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { presentation, color } = _m53;
+const { presentation, color } = _m55;
 
-const { wrapShapedPdfText } = _m68;
+const { wrapShapedPdfText } = _m70;
 
-const { PdfFont } = _m59;
+const { PdfFont } = _m61;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -7276,7 +7538,7 @@ const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wr
 return _exports;
 })();
 
-const _m65 = (() => {
+const _m67 = (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -7285,11 +7547,11 @@ const { tableSpans } = _m29;
 
 const { createTotals } = _m12;
 
-const { presentation, positive } = _m53;
+const { presentation, positive } = _m55;
 
-const { displayText } = _m66;
+const { displayText } = _m68;
 
-const { capturePdfText, wrapPdfText } = _m67;
+const { capturePdfText, wrapPdfText } = _m69;
 
 class PdfTableLayout {
     settings;
@@ -7440,10 +7702,10 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m70 = (() => {
+const _m72 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m57;
+const { pdfNumber, unicodeHex } = _m59;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -7485,10 +7747,10 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m71 = (() => {
+const _m73 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { unicodeHex } = _m57;
+const { unicodeHex } = _m59;
 
 const { captureFields } = _m10;
 
@@ -7533,8 +7795,8 @@ const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSectio
 return _exports;
 })();
 
-const _m72 = (() => {
-const { settings } = _m53;
+const _m74 = (() => {
+const { settings } = _m55;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
 function sectionSettings(base, section) {
@@ -7551,24 +7813,24 @@ const _exports = Object.freeze({ sectionSettings: sectionSettings });
 return _exports;
 })();
 
-const _m69 = (() => {
+const _m71 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m57;
+const { pdfNumber } = _m59;
 
-const { color } = _m53;
+const { color } = _m55;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m66;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m68;
 
-const { linkAnnotation } = _m70;
+const { linkAnnotation } = _m72;
 
-const { unicodeHex } = _m57;
+const { unicodeHex } = _m59;
 
-const { captureSection, captureBookmark } = _m71;
+const { captureSection, captureBookmark } = _m73;
 
-const { sectionSettings } = _m72;
+const { sectionSettings } = _m74;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -7886,6 +8148,18 @@ class PdfPages {
         }
         await this.structure?.completeRow(elements);
     }
+    /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
+     * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
+    async keptRows(rows, allowFirstFragment = false) {
+        const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
+        const fits = height <= this.continuationTop - bottom + .001;
+        if (fits && height > this.y - bottom + .001) {
+            await this.finishPage();
+            await this.start();
+        }
+        for (const [index, row] of rows.entries())
+            await this.row(row, !fits && index === 0 && allowFirstFragment);
+    }
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         await this.ensureStarted();
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
@@ -7963,14 +8237,18 @@ class PdfPages {
         }
     }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption) {
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
         await this.ensureStarted();
         this.layout = layout;
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
         this.tableElement = this.structure?.element("Table");
         this.tableHeadingsDrawn = false;
-        const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+        const headings = preparedHeadings ?? await layout.headers();
+        // A closing summary can share the preceding table's headings on the current page.
+        // Its own headings remain available when it moves or splits onto a fresh page.
+        const initialHeadings = headingsOnNewPageOnly && this.bodyAdded ? [] : headings;
+        const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
             await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
@@ -7980,8 +8258,8 @@ class PdfPages {
             await this.start(true, headings);
             return;
         }
-        this.continuationTop = this.settings.page.height - this.settings.margins.top - height - (continuationCaption?.height ?? 0);
-        await this.drawHeadings(headings);
+        this.continuationTop = this.settings.page.height - this.settings.margins.top - headings.reduce((n, row) => n + row.height, 0) - (continuationCaption?.height ?? 0);
+        await this.drawHeadings(initialHeadings);
         this.dataTop = this.y;
     }
     async endTable() {
@@ -8076,7 +8354,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m74 = (() => {
+const _m76 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -8138,14 +8416,14 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m73 = (() => {
+const _m75 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { unicodeHex } = _m57;
+const { unicodeHex } = _m59;
 
-const { PdfParentTree } = _m74;
+const { PdfParentTree } = _m76;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -8317,12 +8595,12 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m75 = (() => {
+const _m77 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber, unicodeHex } = _m57;
+const { pdfNumber, unicodeHex } = _m59;
 
 /** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
 class PdfOutlines {
@@ -8375,18 +8653,18 @@ const _exports = Object.freeze({ PdfOutlines: PdfOutlines });
 return _exports;
 })();
 
-const _m56 = (() => {
-const { PdfObjects, unicodeHex } = _m57;
+const _m58 = (() => {
+const { PdfObjects, unicodeHex } = _m59;
 
-const { PdfFontResources } = _m58;
+const { PdfFontResources } = _m60;
 
-const { PdfTableLayout } = _m65;
+const { PdfTableLayout } = _m67;
 
-const { PdfPages } = _m69;
+const { PdfPages } = _m71;
 
-const { PdfStructure } = _m73;
+const { PdfStructure } = _m75;
 
-const { PdfOutlines } = _m75;
+const { PdfOutlines } = _m77;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -8439,7 +8717,7 @@ const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
 return _exports;
 })();
 
-const _m52 = (() => {
+const _m54 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -8448,9 +8726,9 @@ const { notifyProgress } = _m23;
 
 const { createRowProjector } = _m11;
 
-const { settings } = _m53;
+const { settings } = _m55;
 
-const { PdfWriteSession } = _m56;
+const { PdfWriteSession } = _m58;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -8505,7 +8783,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m79 = (() => {
+const _m81 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -8727,12 +9005,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m78 = (() => {
+const _m80 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m79;
+const { pngPixels } = _m81;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -8860,14 +9138,14 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m80 = (() => {
+const _m82 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { color, positive } = _m53;
+const { color, positive } = _m55;
 
-const { pdfNumber: n } = _m57;
+const { pdfNumber: n } = _m59;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -8946,14 +9224,14 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m81 = (() => {
+const _m83 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { color, positive } = _m53;
+const { color, positive } = _m55;
 
-const { pdfNumber: n } = _m57;
+const { pdfNumber: n } = _m59;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -9192,16 +9470,16 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m82 = (() => {
+const _m84 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m67;
+const { capturePdfText, wrapPdfText } = _m69;
 
-const { positive } = _m53;
+const { positive } = _m55;
 
-const { resolveParagraphStyle } = _m54;
+const { resolveParagraphStyle } = _m56;
 
-const { captureBookmark } = _m71;
+const { captureBookmark } = _m73;
 
 const { captureFields } = _m10;
 
@@ -9269,12 +9547,12 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCapt
 return _exports;
 })();
 
-const _m83 = (() => {
-const { capturePdfText, wrapPdfText } = _m67;
+const _m85 = (() => {
+const { capturePdfText, wrapPdfText } = _m69;
 
-const { captureParagraph, prepareParagraph } = _m82;
+const { captureParagraph, prepareParagraph } = _m84;
 
-const { resolveParagraphStyle } = _m54;
+const { resolveParagraphStyle } = _m56;
 
 function captureListOptions(block, settings) {
     const { items, ordered = false, start: inputStart, itemStyle, indent, markerGap } = block;
@@ -9326,7 +9604,205 @@ const _exports = Object.freeze({ captureListOptions: captureListOptions, prepare
 return _exports;
 })();
 
-const _m77 = (() => {
+const _m87 = (() => {
+const { assertGroupedReportSource } = _m8;
+
+const { captureFields } = _m10;
+
+const { presentation } = _m57;
+
+/** @internal Capture schemas shared by the block factory and standalone convenience writers. */
+const groupedPdfLabelFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
+/** @internal A grouped table may override presentation but not its document's resource/lifetime policy. */
+const groupedPdfTableFields = ["includeHeader", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns", ...groupedPdfLabelFields];
+/** Capture an analytical table without opening its row iterator or attaching cancellation listeners.
+ * Ownership begins when the document reaches the block; unused blocks leave their sources unconsumed. */
+function pdfGroupedTable(report, options) {
+    assertGroupedReportSource(report);
+    return Object.freeze({ kind: "groupedTable", report, options: captureGroupedPdfTableOptions(options) });
+}
+/** @internal Capture the same public table contract for factory-created and structural document blocks. */
+function captureGroupedPdfTableOptions(configuration) {
+    if (!configuration || typeof configuration !== "object" || Array.isArray(configuration) ||
+        Object.keys(configuration).some(key => !groupedPdfTableFields.includes(key)))
+        throw new TypeError("Grouped PDF table options support table presentation and labels; document settings belong on writePdfDocument.");
+    const captured = captureFields(configuration, groupedPdfTableFields);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, continuationLabel } = captured;
+    if (!labelColumn || typeof labelColumn !== "object")
+        throw new TypeError("Grouped PDF needs a leading labelColumn.");
+    const { header, width } = labelColumn;
+    if (typeof header !== "string")
+        throw new TypeError("The grouped label column header must be text.");
+    for (const [name, value] of [["subtotalLabel", subtotalLabel], ["grandTotalLabel", grandTotalLabel]])
+        if (typeof value !== "function")
+            throw new TypeError(name + " must be a synchronous text callback.");
+    if (continuationLabel !== undefined && typeof continuationLabel !== "function")
+        throw new TypeError("continuationLabel must be a synchronous text callback.");
+    if (includeGrandTotal !== undefined && typeof includeGrandTotal !== "boolean")
+        throw new TypeError("includeGrandTotal must be boolean.");
+    return Object.freeze({ ...captured, labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
+        ...(captured.columnWidths === undefined ? {} : { columnWidths: Object.freeze([...captured.columnWidths]) }),
+        ...(captured.headerPresentation === undefined ? {} : { headerPresentation: presentation(captured.headerPresentation) }),
+        ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });
+}
+const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, groupedPdfTableFields: groupedPdfTableFields, pdfGroupedTable: pdfGroupedTable, captureGroupedPdfTableOptions: captureGroupedPdfTableOptions });
+return _exports;
+})();
+
+const _m86 = (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m8;
+
+const { consumeRows } = _m4;
+
+const { ExportCell } = _m5;
+
+const { captureGroupedPdfTableOptions } = _m87;
+
+const { settings } = _m55;
+
+const { PdfTableLayout } = _m67;
+
+const { captureCaption, prepareParagraph } = _m84;
+
+const { synchronousText } = _m68;
+
+/** @internal Render one analytical source in the existing document session. Retain one detail row and
+ * at most four closing subtotals. All captions, rows, pages, bytes and fonts use the document owners. */
+async function renderGroupedPdfTable(block, context) {
+    const { report } = block, { pages, fonts, prepared, controller } = context;
+    assertGroupedReportSource(report);
+    if (prepared.options.tagged)
+        throw new TypeError("Tagged grouped PDF reports are unsupported.");
+    const captured = captureGroupedPdfTableOptions(block.options);
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captured;
+    const columns = Object.freeze([Object.freeze({ ...labelColumn }), ...report.columns]);
+    let rowIndex = -1;
+    const sourceContext = (value) => ({ rowIndex,
+        columnIndex: value.columnIndex - 1, column: report.columns[value.columnIndex - 1] });
+    const table = settings({ ...pages.settings.options, ...input, columns, includeHeader: input.includeHeader ?? true,
+        ...(input.formatValue === undefined ? {} : { formatValue: (value, position) => input.formatValue(value, sourceContext(position)) }),
+        ...(input.formatRuns === undefined ? {} : { formatRuns: (value, position) => input.formatRuns(value, sourceContext(position)) }) });
+    const sharedTable = { ...table, budget: prepared.budget }, layout = new PdfTableLayout(sharedTable, fonts);
+    context.acceptColumns(columns.length);
+    const operation = groupedReportOperation(report, controller.signal), abort = () => controller.abort(operation.signal?.reason);
+    operation.signal?.addEventListener("abort", abort, { once: true });
+    if (operation.signal?.aborted)
+        abort();
+    try {
+        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+        let path = [], started = false, firstFragment = false, firstBundleOversized = false;
+        let pending;
+        const closing = [];
+        const summaryValues = (label, values) => Object.freeze([
+            new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
+            ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
+        ]);
+        const flushLastDetail = async () => {
+            if (pending) {
+                if (!started)
+                    await startLeaf(pending);
+                if (closing.length && !firstBundleOversized)
+                    await pages.keptRows([pending, ...closing], firstFragment);
+                else if (closing.length) {
+                    await pages.row(pending, firstFragment);
+                    for (const row of closing)
+                        await pages.row(row);
+                }
+                else
+                    await pages.row(pending, firstFragment);
+            }
+            else
+                for (const row of closing)
+                    await pages.row(row);
+            pending = undefined;
+            closing.length = 0;
+            firstFragment = false;
+            firstBundleOversized = false;
+        };
+        const finishLeaf = async () => {
+            if (!started && !pending)
+                return;
+            await flushLastDetail();
+            await pages.endTable();
+            started = false;
+        };
+        const startLeaf = async (row) => {
+            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
+                    synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
+            const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
+            firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
+            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+            await context.flushParagraphs(caption.height + headingHeight + minimum);
+            await pages.beginTable(layout, headings, minimum, caption, continuation);
+            started = true;
+            firstFragment = caption.lines.length > 0;
+        };
+        const complete = async (summary) => {
+            await finishLeaf();
+            if (!includeGrandTotal && summary.rows !== 0)
+                return;
+            const completeColumns = summary.rows === 0 ? columns : columns.map(column => {
+                const { groups: _groups, ...leaf } = column;
+                return leaf;
+            });
+            const completeTable = settings({ ...table.options, columns: completeColumns,
+                includeHeader: input.includeHeader ?? true });
+            const completeLayout = summary.rows === 0 ? layout : new PdfTableLayout({ ...completeTable, budget: prepared.budget }, fonts);
+            const completeHeadings = summary.rows === 0 ? headings : await completeLayout.headers();
+            rowIndex = -1;
+            let total;
+            if (includeGrandTotal) {
+                context.acceptRow(false);
+                total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
+            }
+            if (!completeHeadings.length && !total)
+                return;
+            const minimum = total ? total.lineHeight + table.padding * 2 : 0;
+            await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+            await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
+            if (total)
+                await pages.row(total);
+            await pages.endTable();
+        };
+        await consumeRows(operation.events, operation.signal, async (event) => {
+            switch (event.kind) {
+                case "groupStart":
+                    await finishLeaf();
+                    path = Object.freeze([...path.slice(0, event.level), event]);
+                    break;
+                case "row": {
+                    if (pending)
+                        await flushLastDetail();
+                    rowIndex = event.rowIndex;
+                    context.acceptRow(true);
+                    const row = await layout.data([new ExportCell("", { text: "" }), ...event.values], event.rowIndex);
+                    pending = row;
+                    break;
+                }
+                case "groupEnd":
+                    rowIndex = -1;
+                    context.acceptRow(false);
+                    closing.push(await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true));
+                    break;
+                case "complete":
+                    await complete(event);
+                    break;
+            }
+        });
+    }
+    finally {
+        operation.signal?.removeEventListener("abort", abort);
+        operation.dispose();
+    }
+}
+const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
+return _exports;
+})();
+
+const _m79 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -9339,27 +9815,29 @@ const { copyColumns, createRowProjector } = _m11;
 
 const { captureFields } = _m10;
 
-const { settings } = _m53;
+const { settings } = _m55;
 
-const { pdfNumber: n } = _m57;
+const { pdfNumber: n } = _m59;
 
-const { PdfTableLayout } = _m65;
+const { PdfTableLayout } = _m67;
 
-const { PdfWriteSession } = _m56;
+const { PdfWriteSession } = _m58;
 
-const { PdfDocumentImages } = _m78;
+const { PdfDocumentImages } = _m80;
 
-const { vectorCommands } = _m80;
+const { vectorCommands } = _m82;
 
-const { graphicAlternative } = _m73;
+const { graphicAlternative } = _m75;
 
-const { checkDrawingBlock, prepareDrawing } = _m81;
+const { checkDrawingBlock, prepareDrawing } = _m83;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m82;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m84;
 
-const { captureListOptions, prepareListItem } = _m83;
+const { captureListOptions, prepareListItem } = _m85;
 
-const { captureSection } = _m71;
+const { captureSection } = _m73;
+
+const { renderGroupedPdfTable } = _m86;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -9379,209 +9857,229 @@ async function writePdfDocument(blocks, options = {}) {
         throw error;
     }
 }
-/** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
+/** Stream composed pages with backpressure. Rows sum table source rows; columns reports the widest table.
+ * Analytical subtotals/grand totals also consume the cumulative maxRows output budget. */
 async function writePdfDocumentTo(blocks, destination, configuration = {}) {
-    const prepared = settings(configuration, true), { options, budget } = prepared;
-    beginTask();
-    checkAbort(options.signal);
-    return withDestination(destination, async (sink) => {
-        const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-        let rows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
-        let pending = [];
-        const flushParagraphs = async (nextHeight = 0) => {
-            const paragraphs = [];
-            for (const paragraph of pending)
-                paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
-            pending = [];
-            await pages.paragraphs(paragraphs, nextHeight);
-        };
-        const enqueueParagraph = async (block) => {
-            const paragraph = captureParagraph(block, pages.settings, fonts);
-            if (!paragraph.text.text)
-                return;
-            if (pending.length || paragraph.keepWithNext) {
-                pending.push(paragraph);
-                checkParagraphBuffer(pending, pages.settings);
-                if (!paragraph.keepWithNext)
-                    await flushParagraphs();
-            }
-            else
-                await pages.paragraphs([await prepareParagraph(paragraph, pages.settings, fonts)]);
-        };
-        const prepareCaption = async (captured) => captured === undefined ? undefined : prepareParagraph(captured, pages.settings, fonts);
-        const snapshotCaption = (caption) => caption === undefined ? undefined : captureCaption(caption, pages.settings, fonts);
-        await session.start();
-        await consumeRows(blocks, options.signal, async (block) => {
-            if (!block || typeof block !== "object")
-                throw new TypeError("PDF document blocks must be objects.");
-            switch (block.kind) {
-                case "section": {
-                    const capturedSection = captureSection(block, prepared);
-                    await flushParagraphs();
-                    const section = await pages.beginSection(capturedSection);
-                    if (section.includeHeading)
-                        await enqueueParagraph({ kind: "paragraph", text: section.title,
-                            headingLevel: section.level, ...(section.headingStyle === undefined ?
-                                { fontSize: pages.settings.fontSize * 1.5, presentation: { bold: true } } : { style: section.headingStyle }),
-                            keepTogether: true, keepWithNext: true,
-                            ...(section.bookmark ? { bookmark: { title: section.title, level: section.level } } : {}) });
-                    else if (section.bookmark)
-                        pages.addBookmark({ title: section.title, level: section.level });
-                    break;
+    const captured = settings(configuration, true), controller = new AbortController();
+    const parentSignal = captured.options.signal, abort = () => controller.abort(parentSignal?.reason);
+    parentSignal?.addEventListener("abort", abort, { once: true });
+    if (parentSignal?.aborted)
+        abort();
+    const prepared = { ...captured, options: { ...captured.options, signal: controller.signal } }, { options, budget } = prepared;
+    try {
+        beginTask();
+        checkAbort(options.signal);
+        return await withDestination(destination, async (sink) => {
+            const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
+            let rows = 0, budgetRows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
+            let pending = [];
+            const flushParagraphs = async (nextHeight = 0) => {
+                const paragraphs = [];
+                for (const paragraph of pending)
+                    paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
+                pending = [];
+                await pages.paragraphs(paragraphs, nextHeight);
+            };
+            const enqueueParagraph = async (block) => {
+                const paragraph = captureParagraph(block, pages.settings, fonts);
+                if (!paragraph.text.text)
+                    return;
+                if (pending.length || paragraph.keepWithNext) {
+                    pending.push(paragraph);
+                    checkParagraphBuffer(pending, pages.settings);
+                    if (!paragraph.keepWithNext)
+                        await flushParagraphs();
                 }
-                case "paragraph":
-                    await enqueueParagraph(block);
-                    break;
-                case "list": {
-                    const captured = captureListOptions(block, pages.settings);
-                    let count = 0, owner;
-                    await consumeRows(captured.items, options.signal, async (item) => {
-                        if (++listItems > prepared.limits.maxListItems)
-                            throw new OfficeIMOError("RESOURCE_LIMIT", "maxListItems exceeded.");
-                        const laidOut = await prepareListItem(item, count++, captured, pages.settings, fonts);
-                        if (count === 1) {
-                            await flushParagraphs(laidOut.paragraph.keepTogether ? laidOut.paragraph.height : laidOut.paragraph.firstHeight);
-                            owner = session.structure?.element("L");
-                        }
-                        await pages.listItem(laidOut, owner);
-                        if (taskYieldDue())
-                            await pause();
-                        checkAbort(options.signal);
-                    });
-                    await session.structure?.complete(owner);
-                    break;
-                }
-                case "group": {
-                    const blocks = block.blocks, keepTogether = block.keepTogether;
-                    if (!Array.isArray(blocks))
-                        throw new TypeError("PDF paragraph group blocks must be an array.");
-                    if (keepTogether !== undefined && typeof keepTogether !== "boolean")
-                        throw new TypeError("PDF paragraph group keepTogether must be boolean.");
-                    if (blocks.length > prepared.limits.maxGroupBlocks)
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
-                    const captured = [];
-                    for (const paragraph of blocks) {
-                        captured.push(captureParagraph(paragraph, pages.settings, fonts));
-                        checkParagraphBuffer(captured, prepared);
-                    }
-                    if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
-                        throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
-                    const paragraphs = [];
-                    for (const paragraph of captured)
-                        paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
-                    if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
+                else
+                    await pages.paragraphs([await prepareParagraph(paragraph, pages.settings, fonts)]);
+            };
+            const prepareCaption = async (captured) => captured === undefined ? undefined : prepareParagraph(captured, pages.settings, fonts);
+            const snapshotCaption = (caption) => caption === undefined ? undefined : captureCaption(caption, pages.settings, fonts);
+            await session.start();
+            await consumeRows(blocks, options.signal, async (block) => {
+                if (!block || typeof block !== "object")
+                    throw new TypeError("PDF document blocks must be objects.");
+                switch (block.kind) {
+                    case "section": {
+                        const capturedSection = captureSection(block, prepared);
+                        await flushParagraphs();
+                        const section = await pages.beginSection(capturedSection);
+                        if (section.includeHeading)
+                            await enqueueParagraph({ kind: "paragraph", text: section.title,
+                                headingLevel: section.level, ...(section.headingStyle === undefined ?
+                                    { fontSize: pages.settings.fontSize * 1.5, presentation: { bold: true } } : { style: section.headingStyle }),
+                                keepTogether: true, keepWithNext: true,
+                                ...(section.bookmark ? { bookmark: { title: section.title, level: section.level } } : {}) });
+                        else if (section.bookmark)
+                            pages.addBookmark({ title: section.title, level: section.level });
                         break;
-                    await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
-                    await pages.paragraphs(paragraphs, 0, keepTogether !== false);
-                    break;
-                }
-                case "pageBreak":
-                    await flushParagraphs();
-                    await pages.pageBreak();
-                    break;
-                case "table": {
-                    const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
-                    const tableOptions = captureTableOptions(inputTableOptions);
-                    const capturedCaption = snapshotCaption(inputCaption);
-                    if (inputContinuationCaption !== undefined && options.tagged)
-                        throw new TypeError("Tagged PDF table continuation captions are unsupported.");
-                    const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
-                    const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
-                    const caption = await prepareCaption(capturedCaption);
-                    const continuationCaption = await prepareCaption(capturedContinuationCaption);
-                    const project = createRowProjector(table.options.columns, undefined, options.signal);
-                    let count = 0, started = false;
-                    columns = Math.max(columns, table.options.columns.length);
-                    const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
-                    await consumeRows(source, options.signal, async (row) => {
-                        budget.row(rows + 1);
-                        const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
+                    }
+                    case "paragraph":
+                        await enqueueParagraph(block);
+                        break;
+                    case "list": {
+                        const captured = captureListOptions(block, pages.settings);
+                        let count = 0, owner;
+                        await consumeRows(captured.items, options.signal, async (item) => {
+                            if (++listItems > prepared.limits.maxListItems)
+                                throw new OfficeIMOError("RESOURCE_LIMIT", "maxListItems exceeded.");
+                            const laidOut = await prepareListItem(item, count++, captured, pages.settings, fonts);
+                            if (count === 1) {
+                                await flushParagraphs(laidOut.paragraph.keepTogether ? laidOut.paragraph.height : laidOut.paragraph.firstHeight);
+                                owner = session.structure?.element("L");
+                            }
+                            await pages.listItem(laidOut, owner);
+                            if (taskYieldDue())
+                                await pause();
+                            checkAbort(options.signal);
+                        });
+                        await session.structure?.complete(owner);
+                        break;
+                    }
+                    case "group": {
+                        const blocks = block.blocks, keepTogether = block.keepTogether;
+                        if (!Array.isArray(blocks))
+                            throw new TypeError("PDF paragraph group blocks must be an array.");
+                        if (keepTogether !== undefined && typeof keepTogether !== "boolean")
+                            throw new TypeError("PDF paragraph group keepTogether must be boolean.");
+                        if (blocks.length > prepared.limits.maxGroupBlocks)
+                            throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
+                        const captured = [];
+                        for (const paragraph of blocks) {
+                            captured.push(captureParagraph(paragraph, pages.settings, fonts));
+                            checkParagraphBuffer(captured, prepared);
+                        }
+                        if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
+                            throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
+                        const paragraphs = [];
+                        for (const paragraph of captured)
+                            paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
+                        if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
+                            break;
+                        await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
+                        await pages.paragraphs(paragraphs, 0, keepTogether !== false);
+                        break;
+                    }
+                    case "pageBreak":
+                        await flushParagraphs();
+                        await pages.pageBreak();
+                        break;
+                    case "groupedTable":
+                        await renderGroupedPdfTable(block, { prepared, pages, fonts, controller, flushParagraphs,
+                            acceptColumns: count => { columns = Math.max(columns, count); },
+                            acceptRow: source => {
+                                budget.row(++budgetRows);
+                                if (source && ++rows % 256 === 0)
+                                    notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+                            } });
+                        break;
+                    case "table": {
+                        const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
+                        const tableOptions = captureTableOptions(inputTableOptions);
+                        const capturedCaption = snapshotCaption(inputCaption);
+                        if (inputContinuationCaption !== undefined && options.tagged)
+                            throw new TypeError("Tagged PDF table continuation captions are unsupported.");
+                        const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
+                        const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
+                        const caption = await prepareCaption(capturedCaption);
+                        const continuationCaption = await prepareCaption(capturedContinuationCaption);
+                        const project = createRowProjector(table.options.columns, undefined, options.signal);
+                        let count = 0, started = false;
+                        columns = Math.max(columns, table.options.columns.length);
+                        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+                        await consumeRows(source, options.signal, async (row) => {
+                            budget.row(++budgetRows);
+                            const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
+                            if (!started) {
+                                const minimum = laidOut.lineHeight + table.padding * 2;
+                                await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
+                                await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
+                                started = true;
+                            }
+                            await pages.row(laidOut, keptHeading);
+                            count++;
+                            rows++;
+                            if (rows % 256 === 0)
+                                notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+                            if (taskYieldDue())
+                                await pause();
+                            checkAbort(options.signal);
+                        });
+                        const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                         if (!started) {
-                            const minimum = laidOut.lineHeight + table.padding * 2;
+                            if (!headings.length && !footer?.length)
+                                break;
+                            const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
+                                footer[0].lineHeight + table.padding * 2 : 0;
                             await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                             await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
-                            started = true;
                         }
-                        await pages.row(laidOut, keptHeading);
-                        count++;
-                        rows++;
-                        if (rows % 256 === 0)
-                            notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
-                        if (taskYieldDue())
-                            await pause();
-                        checkAbort(options.signal);
-                    });
-                    const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
-                    if (!started) {
-                        if (!headings.length && !footer?.length)
-                            break;
-                        const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-                            footer[0].lineHeight + table.padding * 2 : 0;
-                        await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
-                        await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
+                        if (footer) {
+                            if (table.options.footer?.rows)
+                                await pages.block(footer);
+                            else
+                                await pages.row(footer[0], keptFooterHeading);
+                        }
+                        await pages.endTable();
+                        break;
                     }
-                    if (footer) {
-                        if (table.options.footer?.rows)
-                            await pages.block(footer);
-                        else
-                            await pages.row(footer[0], keptFooterHeading);
+                    case "image": {
+                        const { width: displayWidth, height: displayHeight, image: inputImage, caption: inputCaption } = block;
+                        const capturedCaption = snapshotCaption(inputCaption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const image = await images.prepare(inputImage), caption = await prepareCaption(capturedCaption);
+                        const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+                        const height = displayHeight ?? width * image.height / image.width;
+                        if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
+                            throw new RangeError("Image display dimensions must be finite and positive.");
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(width, height));
+                        pages.registerXObject(image.name, image.id);
+                        await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative, caption);
+                        break;
                     }
-                    await pages.endTable();
-                    break;
+                    case "vector": {
+                        const capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const path = await vectorCommands(block, pages.settings, commands), caption = await prepareCaption(capturedCaption);
+                        commands += path.count;
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(path.width, path.height));
+                        await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
+                            " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative, caption);
+                        break;
+                    }
+                    case "drawing": {
+                        checkDrawingBlock(block);
+                        const inputDrawing = block.drawing, capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                        if (capturedCaption && alternative === undefined)
+                            throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                        const drawing = await prepareDrawing(inputDrawing, pages.settings, fonts, { commands, elements: drawingElements }), caption = await prepareCaption(capturedCaption);
+                        commands += drawing.commands;
+                        drawingElements += drawing.elements;
+                        await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(drawing.width, drawing.height));
+                        await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
+                            " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative, caption);
+                        break;
+                    }
+                    default: throw new TypeError("Unsupported PDF document block.");
                 }
-                case "image": {
-                    const { width: displayWidth, height: displayHeight, image: inputImage, caption: inputCaption } = block;
-                    const capturedCaption = snapshotCaption(inputCaption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const image = await images.prepare(inputImage), caption = await prepareCaption(capturedCaption);
-                    const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
-                    const height = displayHeight ?? width * image.height / image.width;
-                    if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
-                        throw new RangeError("Image display dimensions must be finite and positive.");
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(width, height));
-                    pages.registerXObject(image.name, image.id);
-                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative, caption);
-                    break;
-                }
-                case "vector": {
-                    const capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const path = await vectorCommands(block, pages.settings, commands), caption = await prepareCaption(capturedCaption);
-                    commands += path.count;
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(path.width, path.height));
-                    await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative, caption);
-                    break;
-                }
-                case "drawing": {
-                    checkDrawingBlock(block);
-                    const inputDrawing = block.drawing, capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
-                    if (capturedCaption && alternative === undefined)
-                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
-                    const drawing = await prepareDrawing(inputDrawing, pages.settings, fonts, { commands, elements: drawingElements }), caption = await prepareCaption(capturedCaption);
-                    commands += drawing.commands;
-                    drawingElements += drawing.elements;
-                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(drawing.width, drawing.height));
-                    await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative, caption);
-                    break;
-                }
-                default: throw new TypeError("Unsupported PDF document block.");
-            }
-            if (taskYieldDue())
-                await pause();
+                if (taskYieldDue())
+                    await pause();
+                checkAbort(options.signal);
+            });
+            await flushParagraphs();
+            if (options.messageBottom)
+                await pages.paragraph(options.messageBottom);
+            await session.finish();
+            notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes });
             checkAbort(options.signal);
+            return { rows, columns, bytes: objects.bytes };
         });
-        await flushParagraphs();
-        if (options.messageBottom)
-            await pages.paragraph(options.messageBottom);
-        await session.finish();
-        notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes });
-        checkAbort(options.signal);
-        return { rows, columns, bytes: objects.bytes };
-    });
+    }
+    finally {
+        parentSignal?.removeEventListener("abort", abort);
+    }
 }
 function graphicAlignment(value) {
     if (value !== undefined && !["left", "center", "right"].includes(value))
@@ -9598,25 +10096,23 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m76 = (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m8;
+const _m78 = (() => {
+const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
 
-const { notifyProgress } = _m23;
+const { writePdfDocumentTo } = _m79;
 
-const { ExportCell } = _m5;
-
-const { pdfTable, writePdfDocumentTo } = _m77;
-
-const { settings, pdfOptionFields } = _m53;
-
-const { synchronousText } = _m66;
+const { pdfOptionFields } = _m55;
 
 const { captureFields } = _m10;
 
-const groupedOptionFields = [...pdfOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
-/** Stream contiguous analytical groups through the ordinary PDF document/table writer. No group body is retained. */
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m87;
+
+
+
+const groupedOptionFields = [...pdfOptionFields, ...groupedPdfLabelFields];
+/** Stream analytical groups through the composed document owner. No group body is retained. */
 async function writeGroupedPdf(report, configuration) {
     const sink = new BlobByteSink();
     try {
@@ -9628,120 +10124,32 @@ async function writeGroupedPdf(report, configuration) {
         throw error;
     }
 }
-/** Rows/progress count source data only. Generated labels/subtotals still consume ordinary PDF row/cell/text limits.
- * Tagged grouped reports are unsupported; leaf-table tagging alone does not qualify group semantics. */
+/** Result/progress rows count source data. Generated subtotals and grand totals also consume maxRows.
+ * Tagged group associations are unsupported; oversized detail/subtotal bundles use ordinary row pagination. */
 async function writeGroupedPdfTo(report, destination, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped PDF options are required.");
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captureFields(configuration, groupedOptionFields);
-    if (!labelColumn || typeof labelColumn !== "object")
-        throw new TypeError("Grouped PDF needs a leading labelColumn.");
-    const { header, width } = labelColumn;
-    if (typeof header !== "string")
-        throw new TypeError("The grouped label column header must be text.");
-    for (const [name, value] of [["subtotalLabel", subtotalLabel], ["grandTotalLabel", grandTotalLabel]])
-        if (typeof value !== "function")
-            throw new TypeError(name + " must be a synchronous text callback.");
-    if (continuationLabel !== undefined && typeof continuationLabel !== "function")
-        throw new TypeError("continuationLabel must be a synchronous text callback.");
-    if (typeof includeGrandTotal !== "boolean")
-        throw new TypeError("includeGrandTotal must be boolean.");
-    if (input.tagged !== undefined)
+    const captured = captureFields(configuration, groupedOptionFields);
+    if (captured.tagged !== undefined)
         throw new TypeError("Tagged grouped PDF reports are unsupported.");
-    const operation = groupedReportOperation(report, input.signal);
-    try {
-        const columns = Object.freeze([Object.freeze({ header, ...(width === undefined ? {} : { width }) }), ...report.columns]);
-        // Reuse the normal capture/validation owner before consuming any event or invoking display callbacks.
-        const captured = settings({ ...input, ...(operation.signal === undefined ? {} : { signal: operation.signal }), columns }).options;
-        const { columns: _columns, includeHeader, headerRows: _headers, footer: _footer, headerPresentation, footerPresentation, alternateRowColor, columnWidths, wideTable, formatValue, formatRuns, onProgress, ...documentOptions } = captured;
-        let dataRows = 0, currentRowIndex = -1, summary;
-        const sourceContext = (context) => ({ rowIndex: currentRowIndex,
-            columnIndex: context.columnIndex - 1, column: report.columns[context.columnIndex - 1] });
-        const tableOptions = {
-            columns, ...(includeHeader === undefined ? {} : { includeHeader }),
-            ...(headerPresentation === undefined ? {} : { headerPresentation }),
-            ...(alternateRowColor === undefined ? {} : { alternateRowColor }),
-            ...(columnWidths === undefined ? {} : { columnWidths }), ...(wideTable === undefined ? {} : { wideTable }),
-            ...(formatValue === undefined ? {} : { formatValue: (value, context) => formatValue(value, sourceContext(context)) }),
-            ...(formatRuns === undefined ? {} : { formatRuns: (value, context) => formatRuns(value, sourceContext(context)) })
-        };
-        const summaryValues = (label, values) => Object.freeze([
-            new ExportCell(label, { text: label, presentation: footerPresentation ?? { bold: true, background: "eef2f6" } }),
-            ...values.map(value => new ExportCell(value, { presentation: footerPresentation ?? { bold: true, background: "eef2f6" } }))
-        ]);
-        async function* blocks() {
-            const cursor = operation.events[Symbol.asyncIterator]();
-            try {
-                while (true) {
-                    const item = await cursor.next();
-                    if (item.done)
-                        break;
-                    const event = item.value;
-                    if (event.kind === "groupStart") {
-                        const continued = continuationLabel === undefined ? event.label : synchronousText(continuationLabel(event), "continuationLabel");
-                        async function* rows() {
-                            while (true) {
-                                const next = await cursor.next();
-                                if (next.done)
-                                    throw new TypeError("Grouped report ended before its group summary.");
-                                const value = next.value;
-                                if (value.kind === "row") {
-                                    currentRowIndex = value.rowIndex;
-                                    dataRows = value.rowIndex + 1;
-                                    yield [new ExportCell("", { text: "" }), ...value.values];
-                                }
-                                else if (value.kind === "groupEnd") {
-                                    currentRowIndex = -1;
-                                    yield summaryValues(synchronousText(subtotalLabel(value), "subtotalLabel"), value.totals);
-                                    return;
-                                }
-                                else
-                                    throw new TypeError("Unexpected grouped report event inside a group.");
-                            }
-                        }
-                        yield { ...pdfTable(rows(), tableOptions),
-                            caption: { text: event.label, presentation: { bold: true }, spaceAfter: 4 },
-                            continuationCaption: { text: continued, presentation: { bold: true }, spaceAfter: 4 } };
-                    }
-                    else if (event.kind === "complete") {
-                        summary = event;
-                        if (includeGrandTotal || event.rows === 0) {
-                            currentRowIndex = -1;
-                            // A heading-free grand summary has no group-heading hierarchy. Keep the original
-                            // source metadata for formatting contexts and for an empty report's visible schema.
-                            const completeColumns = event.rows === 0 ? columns : columns.map(column => {
-                                const { groups: _groups, ...leaf } = column;
-                                return leaf;
-                            });
-                            yield pdfTable(includeGrandTotal ? [summaryValues(synchronousText(grandTotalLabel(event), "grandTotalLabel"), event.totals)] : [], { ...tableOptions, columns: completeColumns, includeHeader: event.rows === 0 ? includeHeader ?? true : false });
-                        }
-                        break;
-                    }
-                    else
-                        throw new TypeError("Unexpected grouped report event outside a group.");
-                }
-            }
-            finally {
-                await cursor.return?.();
-            }
-        }
-        const result = await writePdfDocumentTo(blocks(), destination, { ...documentOptions,
-            onProgress: progress => notifyProgress(onProgress, { ...progress, rows: progress.phase === "complete" ? summary?.rows ?? dataRows : dataRows }) });
-        return { ...result, rows: summary?.rows ?? dataRows, columns: columns.length };
-    }
-    finally {
-        operation.dispose();
-    }
+    const tableOptions = Object.fromEntries(groupedPdfTableFields.filter(name => Object.hasOwn(captured, name)).map(name => [name, captured[name]]));
+    const documentOptions = { ...captured };
+    for (const name of groupedPdfTableFields)
+        delete documentOptions[name];
+    delete documentOptions.columns;
+    delete documentOptions.headerRows;
+    delete documentOptions.footer;
+    return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+const _exports = Object.freeze({ pdfGroupedTable: _m87.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
 return _exports;
 })();
 
-const _m84 = (() => {
-const { fontProgram } = _m59;
+const _m88 = (() => {
+const { fontProgram } = _m61;
 
-const { resolveScalar, selectFont, validateFonts } = _m63;
+const { resolveScalar, selectFont, validateFonts } = _m65;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -9777,16 +10185,16 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m51 = (() => {
+const _m53 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m52.writePdf, writePdfTo: _m52.writePdfTo, writeGroupedPdf: _m76.writeGroupedPdf, writeGroupedPdfTo: _m76.writeGroupedPdfTo, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m77.writePdfDocument, writePdfDocumentTo: _m77.writePdfDocumentTo, pdfTable: _m77.pdfTable, PdfFont: _m59.PdfFont, preflightPdfText: _m84.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m78.writeGroupedPdf, writeGroupedPdfTo: _m78.writeGroupedPdfTo, pdfGroupedTable: _m78.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m79.writePdfDocument, writePdfDocumentTo: _m79.writePdfDocumentTo, pdfTable: _m79.pdfTable, PdfFont: _m61.PdfFont, preflightPdfText: _m88.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m47, pdf: _m51, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m47.writeCsv, writeCsvTo: _m47.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m46.writeGroupedXlsx, writeGroupedXlsxTo: _m46.writeGroupedXlsxTo, writeGroupedPdf: _m76.writeGroupedPdf, writeGroupedPdfTo: _m76.writeGroupedPdfTo, writePdf: _m51.writePdf, writePdfTo: _m51.writePdfTo, writePdfDocument: _m51.writePdfDocument, writePdfDocumentTo: _m51.writePdfDocumentTo, pdfTable: _m51.pdfTable, PdfFont: _m51.PdfFont, preflightPdfText: _m51.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
+const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m78.writeGroupedPdf, writeGroupedPdfTo: _m78.writeGroupedPdfTo, pdfGroupedTable: _m78.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
-const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, writeGroupedPdf, writeGroupedPdfTo, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;
-export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, writeGroupedPdf, writeGroupedPdfTo, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell };
+const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;
+export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell };

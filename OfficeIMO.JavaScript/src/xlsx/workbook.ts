@@ -300,7 +300,7 @@ export class Workbook {
     this.state = "finalizing";
     this.completion = (async () => {
       try {
-        const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
+        const rows = this.rowCount;
         for (let i = 0; i < this.sheets.length; i++) {
           const sheet = this.sheets[i]!, uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
           await sheet.finish(); const prepared = sheet.takePrepared();

@@ -175,6 +175,26 @@ The three-engine profile checks Blob and slow-sink exports, a bounded worker han
 
 The canonical ReportWorkloads runner includes opt-in `grouped-analysis-xlsx-100000-sink` and `grouped-analysis-pdf-5000-sink` cases. They measure the OfficeIMO grouped workflow with independent content validation; there is no equivalent earlier grouped writer to use as a speed baseline. Keep timing and memory observations outside ordinary correctness gates and report the captured host load and source hashes. A separate equivalent flat-report comparison can detect overhead in unchanged default paths.
 
+## Composable hierarchical report qualification
+
+The `--analytical-report` profile exercises the shared `analytical-report-job.mjs` against real filtered and selected DataTables and CanopyX captures. Three hidden grouping keys produce nested portfolio, environment and owner summaries without becoming visible columns. XLSX combines context, editable grouped details and an overview chart in one workbook. PDF combines an introduction, optional host overview/figure, landscape grouped details and portrait next actions in one document.
+
+```powershell
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/analytical/build" -- . "$evidence/analytical" --analytical-report "--module-url=$origin/OfficeIMO.JavaScript/dist" "--example-url=$origin/OfficeIMO.JavaScript.Examples/analytical-report-job.mjs" "--comparison-assets=$assets" "--canopy-assets=$canopyAssets"
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-analytical "$evidence/analytical"
+```
+
+`$canopyAssets` identifies the directory containing the existing CanopyX browser assets. Each engine/profile checks Blob and awaited-sink output, a host-owned worker, selected-row totals, hidden/reordered columns, original-source cancellation and destination backpressure. Independent readers validate all selected values, parent/grand aggregates, worksheet coordinates, detail-only formatting/validation, native chart references, complete PDF ancestor context and printable bounds. Running page decorations are checked separately from body margins. Native Excel recalculation and outline behavior remain separate application evidence.
+
+The opt-in `analytical-xlsx-60000-sink`, `analytical-xlsx-100000-sink` and `analytical-pdf-10000-sink` workloads use the same executable composition job. They are current-only diagnostics because the older flat report performs different work:
+
+```powershell
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/analytical-workloads" -Cases analytical-xlsx-60000-sink,analytical-xlsx-100000-sink,analytical-pdf-10000-sink -Engine current -Compare:$false -WarmupCount 1 -IterationCount 3
+node Build/BrowserExports/report-workloads.mjs contracts --manifest "$evidence/analytical-workloads/workloads.json" --case analytical-xlsx-100000-sink --output "$evidence/analytical-workloads/functional.xlsx" --python python3
+```
+
+The independent workload verifier reads every source value and all hierarchy/formula/chart/editing ranges, or reconstructs PDF records and repeated ancestor labels with Poppler. Font intake is setup outside PDF engine timing. Raw rows remain single-pass; the XLSX overview uses the bounded returned group metadata after details, while any PDF overview before details is supplied explicitly by the host. The worker transfers flat projected rows plus declared hidden grouping values through the existing bounded protocol. This qualification does not claim PDF/UA, screen-reader acceptance or constant memory.
+
 ## DataTables integration and comparisons
 
 The optional grid integration is qualified against the version pairs in `comparison-assets.json`. The downloaded MIT-licensed assets are test-only and hash-checked; they never enter npm, NuGet or product build dependencies. The `bundled` pair identifies the assessed HtmlForgeX asset versions, while `current` identifies the pinned current comparison pair. Updating this manifest is an intentional comparison-input change.

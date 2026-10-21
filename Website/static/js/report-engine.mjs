@@ -1,5 +1,6 @@
 import { executeWorkerExport } from "/assets/officeimo/officeimo-execution.mjs";
 import { operationalRows, operationalRowsBySite } from "/js/report-engine-job.mjs";
+import { analyticalRows } from "/js/analytical-report-job.mjs";
 
 const byId = id => document.getElementById(id);
 const form = byId("report-form"), rowSelect = byId("report-rows"), formatSelect = byId("report-format");
@@ -8,15 +9,19 @@ const start = byId("report-generate"), cancel = byId("report-cancel"), status = 
 const progress = byId("report-progress"), download = byId("report-download"), measurement = byId("report-measurement");
 let active, downloadUrl;
 const latencyFormat = new Intl.NumberFormat("en", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function sourceRows(count, layout = layoutSelect.value) {
+  return layout === "hierarchical" ? analyticalRows(count) : layout === "grouped" ? operationalRowsBySite(count) : operationalRows(count);
+}
+function translatedLayout() { return layoutSelect.value === "grouped" || layoutSelect.value === "hierarchical"; }
 function preview() {
   const count = Number(rowSelect.value), body = byId("report-preview");
   body.replaceChildren();
   let shown = 0;
-  for (const row of (layoutSelect.value === "grouped" ? operationalRowsBySite(count) : operationalRows(count))) {
+  for (const row of sourceRows(count)) {
     if (shown === 8) break;
     const tr = document.createElement("tr");
     for (const [index, value] of row.slice(0, 4).entries()) {
-      const td = document.createElement("td"); td.textContent = index === 3 ? latencyFormat.format(value) + " ms" : value;
+      const td = document.createElement("td"); td.textContent = value == null ? "—" : index === 3 ? latencyFormat.format(value) + " ms" : value;
       if (index === 2) { td.className = "report-health"; td.dataset.state = value; }
       tr.append(td);
     }
@@ -31,7 +36,7 @@ function preview() {
 function busy(value) {
   start.disabled = rowSelect.disabled = formatSelect.disabled = value;
   layoutSelect.disabled = value || formatSelect.value === "csv";
-  languageSelect.disabled = value || layoutSelect.value !== "grouped" || formatSelect.value === "csv";
+  languageSelect.disabled = value || !translatedLayout() || formatSelect.value === "csv";
   cancel.disabled = !value;
   form.setAttribute("aria-busy", String(value));
 }
@@ -59,13 +64,16 @@ form.addEventListener("submit", async event => {
   let worker, accepted = 0;
   try {
     const layout = format === "csv" ? "analysis" : layoutSelect.value;
-    const input = { format, layout, ...(layout === "grouped" ? { language: languageSelect.value } : {}), rowCount: count,
+    const language = languageSelect.value;
+    const input = { format, layout, ...(layout === "grouped" || layout === "hierarchical" ? { language } : {}), rowCount: count,
+      ...(layout === "hierarchical" ? { scope: language === "pl" ? `Wybrany widok usług · ${count.toLocaleString("pl")} rekordów.` :
+        `Selected service view · ${count.toLocaleString("en")} services.` } : {}),
       ...(format === "pdf" ? { fonts: { regular: await font("Regular", controller.signal), bold: await font("Bold", controller.signal) } } : {}) };
     controller.signal.throwIfAborted();
     worker = new Worker("/js/report-engine-worker.mjs", { type: "module", name: "OfficeIMO report" });
     worker.addEventListener("error", event => { event.preventDefault(); controller.abort(new Error("The report worker could not run. Refresh the page and try again.")); });
     worker.addEventListener("messageerror", () => controller.abort(new Error("The report worker could not read a message.")));
-    const result = await executeWorkerExport(worker, layout === "grouped" ? operationalRowsBySite(count) : operationalRows(count), { write(bytes) {
+    const result = await executeWorkerExport(worker, sourceRows(count, layout), { write(bytes) {
       accepted += bytes.length;
       if (accepted > 96 * 1024 * 1024) throw new Error("This download exceeds the workbench's 96 MiB limit. Choose fewer services.");
       parts.push(bytes.slice());
