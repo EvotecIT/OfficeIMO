@@ -26,9 +26,12 @@ public sealed class OcrAttachedInvocationTests {
         Task<OcrResult> operation = OcrEngineRunner.CreateExecution(engine).RecognizeAttachedAsync(new(),
             deadline ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
         try {
-            Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task;
+            // Both tasks may finish before this continuation resumes; the guard only bounds a hung test.
+            await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(entered.Task.IsCompleted, "OCR provider did not enter."); await entered.Task;
             if (!deadline) cancellation.Cancel();
-            Assert.Same(cleaning.Task, await Task.WhenAny(cleaning.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await cleaning.Task;
+            await Task.WhenAny(cleaning.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(cleaning.Task.IsCompleted, "OCR provider cleanup did not start."); await cleaning.Task;
             await Task.Delay(100);
             Assert.False(operation.IsCompleted);
             release.TrySetResult(true);
@@ -56,9 +59,13 @@ public sealed class OcrAttachedInvocationTests {
         });
         var operation = OcrEngineRunner.CreateExecution(engine).RecognizeAttachedAsync(new(), TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
         try {
-            Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task; cancellation.Cancel();
-            Assert.Same(callbackEntered.Task, await Task.WhenAny(callbackEntered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await callbackEntered.Task;
-            returnProvider.TrySetResult(true); Assert.Same(providerReturned.Task, await Task.WhenAny(providerReturned.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await providerReturned.Task;
+            await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(entered.Task.IsCompleted, "Callback-owning OCR provider did not enter."); await entered.Task; cancellation.Cancel();
+            await Task.WhenAny(callbackEntered.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(callbackEntered.Task.IsCompleted, "OCR cancellation callback did not start."); await callbackEntered.Task;
+            returnProvider.TrySetResult(true);
+            await Task.WhenAny(providerReturned.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(providerReturned.Task.IsCompleted, "OCR provider did not reach its return point."); await providerReturned.Task;
             await Task.Delay(100); Assert.False(operation.IsCompleted);
             releaseCallback.Set(); await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
         } finally {
@@ -78,12 +85,14 @@ public sealed class OcrAttachedInvocationTests {
         var execution = OcrEngineRunner.CreateExecution(engine);
         Task<OcrResult> first = execution.RecognizeAsync(new(), TimeSpan.FromMinutes(2));
         try {
-            Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task;
+            await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(entered.Task.IsCompleted, "Gate-holding OCR provider did not enter."); await entered.Task;
             using var cancellation = new CancellationTokenSource();
             Task<OcrResult> waiting = execution.RecognizeAttachedAsync(new(), TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
             cancellation.Cancel();
             // This bounds a hung test; cancellation latency under a loaded test host is not the contract.
-            Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(30))));
+            await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(30)));
+            Assert.True(waiting.IsCompleted, "Cancelled OCR gate waiter did not settle.");
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
             Assert.Equal(1, Volatile.Read(ref calls));
         } finally { release.TrySetResult(true); await first; }

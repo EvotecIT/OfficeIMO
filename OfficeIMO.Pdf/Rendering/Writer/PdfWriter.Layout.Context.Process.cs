@@ -31,6 +31,7 @@ internal static partial class PdfWriter {
                 if (block is PageBlock pageBlock) {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+                    FinishFootnoteContinuations();
                     PadSectionStart(pageBlock.Options);
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
@@ -44,6 +45,7 @@ internal static partial class PdfWriter {
                     ProcessBlocks(pageBlock.Blocks);
                     pendingFloatingBookmarks.Clear();
                     FlushPage(force: true);
+                    FinishFootnoteContinuations();
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
                     currentOpts = optionsStack.Peek();
@@ -97,7 +99,7 @@ internal static partial class PdfWriter {
                     bool preservePage = pageBreak.PreserveEmptyPage || !pageDirty && (HasCurrentPageBodyContent() ||
                         activeColumnFlow != null && activeColumnFlow.LowestY < activeColumnFlow.Top - .001D);
                     if (activeColumnFlow != null) AdvanceColumnFrame(forcePhysicalPage: true, preservePage);
-                    else NewPage(preservePage);
+                    else NewPageAfterFootnoteContinuations(preservePage);
                     continue;
                 }
                 if (block is BookmarkBlock bookmark) {

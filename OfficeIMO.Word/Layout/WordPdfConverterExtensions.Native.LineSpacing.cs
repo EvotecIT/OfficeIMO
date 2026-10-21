@@ -3,6 +3,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const double NativeLayoutDevicePointsPerPixel = 72D / 600D;
         // Retain authored units until the effective paragraph font is resolved. An
         // automatic value is a multiplier, not a height measured with the style font.
         private readonly record struct NativeLineSpacing(double? Value, W.LineSpacingRuleValues? Rule) {
@@ -34,7 +35,7 @@ namespace OfficeIMO.Word.Pdf {
                         : FontAlignment.Value == W.VerticalTextAlignmentValues.Center ? OfficeIMO.Pdf.PdfFontLineAlignment.Center
                         : FontAlignment.Value == W.VerticalTextAlignmentValues.Bottom ? OfficeIMO.Pdf.PdfFontLineAlignment.Bottom
                         : OfficeIMO.Pdf.PdfFontLineAlignment.Baseline;
-                    spacing = spacing.WithFontAlignment(alignment, 72D / 600D);
+                    spacing = spacing.WithFontAlignment(alignment, NativeLayoutDevicePointsPerPixel);
                 }
                 return spacing;
             }
@@ -83,13 +84,20 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeSectionLineGridPitch(paragraph, documentDefaults.NoteContentSection);
         }
 
+        // A note's special rule character has no visible text, but retains its
+        // source font metrics. It is not an empty paragraph or a spacing run.
+        private static bool IsNativeParagraphMetricBearingRun(WordParagraph run, WordParagraph paragraph, bool noteContent) =>
+            !run.IsImage && !IsNativeHiddenTextRun(run, paragraph) &&
+            (!string.IsNullOrWhiteSpace(run.Text) || noteContent &&
+                run.EnumerateEffectiveRunContent().Any(child => child is W.SeparatorMark or W.ContinuationSeparatorMark));
+
         // A paragraph mark or a large run on another line must not impose a
-        // paragraph-wide minimum on every visible line. Runs retain their own sizes.
+        // paragraph-wide minimum on every content line. Runs retain their own sizes.
         private static double ResolveNativeParagraphLayoutFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults,
             NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             double? minimum = null;
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) continue;
+                if (!IsNativeParagraphMetricBearingRun(run, paragraph, nativeDefaults.NoteContentSection != null)) continue;
                 double size = ResolveNativeTextRunStyle(run, paragraph, tableRunStyleDefaults, nativeDefaults).FontSize ?? nativeDefaults.FontSize;
                 if (size > 0D) minimum = minimum.HasValue ? Math.Min(minimum.Value, size) : size;
             }

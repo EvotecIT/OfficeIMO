@@ -42,7 +42,7 @@ public sealed partial class PdfTextRun {
     public PdfTabLeaderStyle TabLeader { get; }
     /// <summary>Alignment used when this run represents a paragraph tab.</summary>
     public PdfTabAlignment TabAlignment { get; }
-    /// <summary>Optional fixed-size visual carried by this run instead of text.</summary>
+    /// <summary>Optional inline visual carried by this run instead of text.</summary>
     public PdfInlineElement? InlineElement { get; }
     /// <summary>Optional OpenType feature selections for this run.</summary>
     public OfficeIMO.Drawing.OfficeTextFeatureSettings FeatureSettings { get; private set; }
@@ -179,7 +179,7 @@ public sealed partial class PdfTextRun {
     public static PdfTextRun Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
     /// <summary>Create an explicit paragraph tab run with alignment.</summary>
     public static PdfTextRun Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) => new PdfTextRun("\t", tabLeader: leader, tabAlignment: alignment);
-    /// <summary>Create a fixed-size inline visual run.</summary>
+    /// <summary>Create an inline visual run.</summary>
     public static PdfTextRun Inline(PdfInlineElement element) => new PdfTextRun(element);
     /// <summary>Create a bold run.</summary>
     public static PdfTextRun Bolded(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new PdfTextRun(text, bold: true, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);

@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
                     descent = Math.Max(descent, runDescent);
                     hasDescent = true;
                 }
-            } else if (segment.InlineElement is { } inline) {
+            } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
                 descent = Math.Max(descent, -inline.BaselineOffset);
                 hasDescent = true;
             } else if (segment.ContributesLineBoxDescent) {

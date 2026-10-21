@@ -15,7 +15,9 @@ internal static partial class PdfWriter {
                         AppendPreservedSpaceRuns(runs, segment);
                     }
                     if (segment.InlineElement != null) {
-                        PdfTextRun inline = PdfTextRun.Inline(segment.InlineElement);
+                        PdfTextRun inline = segment.InlineElement is PdfInlineBox { SourceRule: { } sourceRule }
+                            ? PdfTextRun.Inline(sourceRule, BuildTextRunFromWrappedSegment(string.Empty, segment))
+                            : PdfTextRun.Inline(segment.InlineElement);
                         runs.Add(segment.FormField == null ? inline : inline.WithFormField(segment.FormField));
                         continue;
                     }

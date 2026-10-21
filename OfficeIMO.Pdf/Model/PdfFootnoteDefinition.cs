@@ -5,18 +5,23 @@ namespace OfficeIMO.Pdf;
 /// A continued note requires the same usable page width; finish the note before changing page width or horizontal margins.</remarks>
 public sealed class PdfFootnoteDefinition {
     internal PdfFootnoteDefinition(PdfDocument owner, IReadOnlyList<IPdfBlock> blocks, PdfFootnoteOptions options,
-        IReadOnlyList<IPdfBlock> separator, IReadOnlyList<IPdfBlock> continuationSeparator) {
+        IReadOnlyList<IPdfBlock> separator, IReadOnlyList<IPdfBlock> continuationSeparator,
+        IReadOnlyList<IPdfBlock> continuationNotice) {
         Owner = owner;
         Blocks = blocks;
         Placement = options.Placement;
         Separator = separator;
         ContinuationSeparator = continuationSeparator;
+        ContinuationNotice = continuationNotice;
+        ReserveContinuationNoticeSpaceOnFinalPage = options.ReserveContinuationNoticeSpaceOnFinalPage;
     }
 
     internal PdfDocument Owner { get; }
     internal IReadOnlyList<IPdfBlock> Blocks { get; }
     internal IReadOnlyList<IPdfBlock> Separator { get; }
     internal IReadOnlyList<IPdfBlock> ContinuationSeparator { get; }
+    internal IReadOnlyList<IPdfBlock> ContinuationNotice { get; }
+    internal bool ReserveContinuationNoticeSpaceOnFinalPage { get; }
     /// <summary>Placement selected when this definition was composed.</summary>
     public PdfFootnotePlacement Placement { get; }
 }
@@ -38,4 +43,12 @@ public sealed class PdfFootnoteOptions {
     public Action<PdfContentBuilder>? Separator { get; set; }
     /// <summary>Optional ordinary flow rendered before a continued footnote on a later page.</summary>
     public Action<PdfContentBuilder>? ContinuationSeparator { get; set; }
+    /// <summary>Optional ordinary flow rendered after the page's notes when note content continues to another page.</summary>
+    /// <remarks>The first admitted note selects the page's notice, as it does the separator.
+    /// The notice reserves space before note fragments are accepted and is omitted on the final note page.</remarks>
+    public Action<PdfContentBuilder>? ContinuationNotice { get; set; }
+    /// <summary>Reserve the measured continuation-notice flow even on a complete or final note page. The default is false.</summary>
+    /// <remarks>The first admitted note selects this policy together with the page's notice.
+    /// This changes available space; the notice is still painted only when note content continues to another page.</remarks>
+    public bool ReserveContinuationNoticeSpaceOnFinalPage { get; set; }
 }

@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing) =>
         WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, lineSpacing: lineSpacing);
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null) {
         PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
         bool preserveWhitespace = whitespaceMode != PdfTextWhitespaceMode.Collapse;
         bool preformattedWhitespace = whitespaceMode == PdfTextWhitespaceMode.Preformatted;
@@ -377,7 +377,7 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
-            bool whitespaceFootnote = run.FootnoteReference != null && text.All(character => character is ' ' or '\t' or '\n');
+            bool whitespaceFootnote = run.InlineElement == null && run.FootnoteReference != null && text.All(character => character is ' ' or '\t' or '\n');
             if (whitespaceFootnote) {
                 // Defer invisible associations until wrapping is complete so an anchor
                 // never changes empty-line/leading-whitespace layout decisions.
@@ -389,7 +389,7 @@ internal static partial class PdfWriter {
             currentRunDecorationTextRise += ResolveFontLineAlignmentRise(fontForRun, currentRunNamedFont,
                 currentRunDecorationFontSize, options, lineSpacing);
             currentRunContributesDescent = run.ContributesLineBoxDescent;
-            bool usesSourceTextMetrics = run.InlineElement is PdfInlineFormWidget { SourceRun: not null };
+            bool usesSourceTextMetrics = UsesInlineRunTextMetrics(run.InlineElement);
             currentRunIsInline = run.InlineElement != null && !usesSourceTextMetrics;
             GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
                 out currentRunAscent, out currentRunDescent);
@@ -428,8 +428,9 @@ internal static partial class PdfWriter {
                 PdfInlineElement inlineElement = run.InlineElement;
                 double inlineHeight;
                 if (usesSourceTextMetrics) {
-                    GetInlineFormWidgetLineMetrics((PdfInlineFormWidget)inlineElement, baseFont,
-                        fontSize, options, lineSpacing, out currentRunAscent, out currentRunDescent);
+                    if (inlineElement is PdfInlineFormWidget widget)
+                        GetInlineFormWidgetLineMetrics(widget, baseFont,
+                            fontSize, options, lineSpacing, out currentRunAscent, out currentRunDescent);
                     inlineHeight = RunLineHeight(runFontSize);
                 } else {
                     currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
@@ -483,6 +484,14 @@ internal static partial class PdfWriter {
                     currentLine.AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, leadingAdvance));
                     lineWidth += leadingAdvance;
                     leadingAdvance = 0D;
+                }
+                // Flexible ink is resolved only after the actual frame, tab and
+                // preserved-space placement are known. The source remains reusable.
+                if (inlineElement is PdfInlineRule rule) {
+                    double ruleFrameWidth = lines.Count == 1
+                        ? firstLineInlineRuleWidth ?? inlineRuleWidth ?? CurrentMaxWidth()
+                        : inlineRuleWidth ?? CurrentMaxWidth();
+                    inlineElement = ResolveInlineRule(rule, Math.Min(CurrentMaxWidth(), ruleFrameWidth) - lineWidth - leadingAdvance, purpose);
                 }
                 currentLine.Add(new RichSeg(
                     string.Empty,

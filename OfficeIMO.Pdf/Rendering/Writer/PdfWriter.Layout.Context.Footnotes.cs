@@ -11,6 +11,9 @@ internal static partial class PdfWriter {
         private double pageFootnoteHeight;
         private PdfOptions? footnotePageOptions;
         private IReadOnlyList<FootnoteUnit> pageFootnoteSeparator = Array.Empty<FootnoteUnit>();
+        private IReadOnlyList<FootnoteUnit> pageFootnoteContinuationNotice = Array.Empty<FootnoteUnit>();
+        private bool pageReserveContinuationNoticeSpaceOnFinalPage;
+        private bool pageFootnotesContinue;
 
         // Page coordinates: the body must end at or above this Y. Running-footer exclusion
         // is already part of currentOpts; the footnote plan never mutates those options.
@@ -36,14 +39,17 @@ internal static partial class PdfWriter {
 
         private sealed class PreparedFootnote {
             public PreparedFootnote(PdfFootnoteDefinition definition, List<FootnoteUnit> units,
-                List<FootnoteUnit> separator, List<FootnoteUnit> continuationSeparator, double usableWidth) {
+                List<FootnoteUnit> separator, List<FootnoteUnit> continuationSeparator,
+                List<FootnoteUnit> continuationNotice, double usableWidth) {
                 Definition = definition; Units = units; Separator = separator; ContinuationSeparator = continuationSeparator;
+                ContinuationNotice = continuationNotice;
                 UsableWidth = usableWidth;
             }
             public PdfFootnoteDefinition Definition { get; }
             public List<FootnoteUnit> Units { get; }
             public List<FootnoteUnit> Separator { get; }
             public List<FootnoteUnit> ContinuationSeparator { get; }
+            public List<FootnoteUnit> ContinuationNotice { get; }
             public double UsableWidth { get; }
         }
 
@@ -83,33 +89,31 @@ internal static partial class PdfWriter {
             if (definitions.Count == 0) return true;
             definitions.Sort((left, right) => FootnoteSourceOrdinal(left).CompareTo(FootnoteSourceOrdinal(right)));
             var notes = definitions.Select(PrepareFootnote).ToList();
-            double available = bodyBottom - currentOpts.MarginBottom - pageFootnoteHeight;
             IReadOnlyList<FootnoteUnit> separator = pageFootnotes.Count == 0 ? notes[0].Separator : Array.Empty<FootnoteUnit>();
             double separatorHeight = separator.Sum(unit => unit.Height);
-            int[] minimumCounts = notes.Select(note => GetMinimumFootnoteUnits(note.Units, 0)).ToArray();
-            double minimum = separatorHeight;
-            for (int index = 0; index < notes.Count; index++) minimum += notes[index].Units.Take(minimumCounts[index]).Sum(unit => unit.Height);
-            if (minimum > available + .001D) return false;
-
-            // The reference's mandatory body fragment wins first. The largest legal note prefix
-            // then wins over following body; later references retain their first legal fragments.
-            available -= separatorHeight;
-            reservedHeight += separatorHeight;
-            for (int index = 0; index < notes.Count; index++) {
-                PreparedFootnote note = notes[index];
-                double laterMinimum = 0D;
-                for (int next = index + 1; next < notes.Count; next++)
-                    laterMinimum += notes[next].Units.Take(minimumCounts[next]).Sum(unit => unit.Height);
-                int count = FitFootnoteUnits(note.Units, 0, available - laterMinimum);
-                if (count < minimumCounts[index]) throw new InvalidOperationException("Footnote admission lost its measured first fragment.");
-                var fragment = new FootnoteFragment(note, 0, count);
-                reservedHeight += fragment.Height;
-                if (commit) pageFootnotes.Add(fragment);
-                available -= note.Units.Take(count).Sum(unit => unit.Height);
-                if (commit) scheduledFootnotes.Add(note.Definition);
-            }
+            IReadOnlyList<FootnoteUnit> notice = HasPageFootnotes ? pageFootnoteContinuationNotice : notes[0].ContinuationNotice;
+            bool reserveFinalNotice = HasPageFootnotes ? pageReserveContinuationNoticeSpaceOnFinalPage
+                : notes[0].Definition.ReserveContinuationNoticeSpaceOnFinalPage;
+            double noticeHeight = notice.Sum(unit => unit.Height);
+            double oldNoticeHeight = pageFootnotesContinue || pageReserveContinuationNoticeSpaceOnFinalPage
+                ? pageFootnoteContinuationNotice.Sum(unit => unit.Height) : 0D;
+            double available = bodyBottom - currentOpts.MarginBottom - (pageFootnoteHeight - oldNoticeHeight) - separatorHeight;
+            bool noticeAlreadyReserved = pageFootnotesContinue || reserveFinalNotice;
+            if (!TryPlanNewFootnoteFragments(notes, available - (noticeAlreadyReserved ? noticeHeight : 0D), out var fragments)) return false;
+            bool continues = pageFootnotesContinue || fragments.Any(FootnoteFragmentContinues);
+            // Ordinary notes reserve notice space only after finding continuation.
+            // A captured final-page policy has already withheld the measured flow.
+            if (continues && !noticeAlreadyReserved && noticeHeight > 0D &&
+                !TryPlanNewFootnoteFragments(notes, available - noticeHeight, out fragments)) return false;
+            reservedHeight = pageFootnoteHeight - oldNoticeHeight + separatorHeight +
+                fragments.Sum(fragment => fragment.Height) + (continues || reserveFinalNotice ? noticeHeight : 0D);
             if (commit) {
+                pageFootnotes.AddRange(fragments);
+                foreach (PreparedFootnote note in notes) scheduledFootnotes.Add(note.Definition);
                 if (pageFootnoteSeparator.Count == 0 && separator.Count > 0) pageFootnoteSeparator = separator;
+                pageFootnoteContinuationNotice = notice;
+                pageReserveContinuationNoticeSpaceOnFinalPage = reserveFinalNotice;
+                pageFootnotesContinue = continues;
                 pageFootnoteHeight = reservedHeight;
             }
             return true;
@@ -153,34 +157,36 @@ internal static partial class PdfWriter {
             footnotePageOptions = currentOpts;
             pageFootnotes.Clear();
             pageFootnoteSeparator = Array.Empty<FootnoteUnit>();
+            pageFootnoteContinuationNotice = Array.Empty<FootnoteUnit>();
+            pageReserveContinuationNoticeSpaceOnFinalPage = false;
+            pageFootnotesContinue = false;
             pageFootnoteHeight = 0D;
             if (continuedFootnotes.Count == 0) return;
             foreach (FootnoteCursor cursor in continuedFootnotes) {
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Blocks, currentOpts);
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Separator, currentOpts);
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationSeparator, currentOpts);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationNotice, currentOpts);
             }
             double usableWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             if (continuedFootnotes.Any(cursor => Math.Abs(cursor.Note.UsableWidth - usableWidth) > .001D))
                 throw new NotSupportedException("A continued footnote cannot cross a change in usable page width. Finish the note before changing page geometry.");
-            double available = yStart - currentOpts.MarginBottom;
-            for (int index = 0; index < continuedFootnotes.Count; index++) {
-                FootnoteCursor cursor = continuedFootnotes[index];
-                IReadOnlyList<FootnoteUnit> separator = index == 0 ? cursor.Note.ContinuationSeparator : Array.Empty<FootnoteUnit>();
-                double separatorHeight = separator.Sum(unit => unit.Height);
-                int count = FitFootnoteUnits(cursor.Note.Units, cursor.Start, available - separatorHeight);
-                if (count < GetMinimumFootnoteUnits(cursor.Note.Units, cursor.Start)) {
-                    if (pageFootnotes.Count == 0)
-                        throw new ArgumentException("The first continued footnote fragment exceeds the available page body height.");
-                    break;
-                }
-                var fragment = new FootnoteFragment(cursor.Note, cursor.Start, count);
-                pageFootnotes.Add(fragment);
-                if (index == 0) pageFootnoteSeparator = separator;
-                pageFootnoteHeight += fragment.Height + separatorHeight;
-                available -= fragment.Height + separatorHeight;
-                if (cursor.Start + count < cursor.Note.Units.Count) break;
-            }
+            pageFootnoteSeparator = continuedFootnotes[0].Note.ContinuationSeparator;
+            pageFootnoteContinuationNotice = continuedFootnotes[0].Note.ContinuationNotice;
+            pageReserveContinuationNoticeSpaceOnFinalPage = continuedFootnotes[0].Note.Definition.ReserveContinuationNoticeSpaceOnFinalPage;
+            double separatorHeight = pageFootnoteSeparator.Sum(unit => unit.Height);
+            double noticeHeight = pageFootnoteContinuationNotice.Sum(unit => unit.Height);
+            double available = yStart - currentOpts.MarginBottom - separatorHeight;
+            List<FootnoteFragment> fragments = PlanContinuedFootnoteFragments(available -
+                (pageReserveContinuationNoticeSpaceOnFinalPage ? noticeHeight : 0D));
+            pageFootnotesContinue = fragments.Count < continuedFootnotes.Count || fragments.Any(FootnoteFragmentContinues);
+            if (pageFootnotesContinue && !pageReserveContinuationNoticeSpaceOnFinalPage && noticeHeight > 0D)
+                fragments = PlanContinuedFootnoteFragments(available - noticeHeight);
+            if (fragments.Count == 0)
+                throw new ArgumentException("The first continued footnote fragment and its separator or notice exceed the available page body height.");
+            pageFootnotes.AddRange(fragments);
+            pageFootnoteHeight = separatorHeight + fragments.Sum(fragment => fragment.Height) +
+                (pageFootnotesContinue || pageReserveContinuationNoticeSpaceOnFinalPage ? noticeHeight : 0D);
         }
 
         private void FlushPageFootnotes() {
@@ -199,6 +205,8 @@ internal static partial class PdfWriter {
                     for (int index = fragment.Start; index < fragment.Start + fragment.Count; index++)
                         PaintFootnoteUnit(fragment.Note.Units[index], ref top);
                 }
+                if (pageFootnotesContinue)
+                    foreach (FootnoteUnit unit in pageFootnoteContinuationNotice) PaintFootnoteUnit(unit, ref top);
             } finally {
                 paintingFootnotes = false;
                 currentOpts = savedOptions;
@@ -216,7 +224,19 @@ internal static partial class PdfWriter {
             continuedFootnotes.AddRange(remaining);
             pageFootnotes.Clear();
             pageFootnoteSeparator = Array.Empty<FootnoteUnit>();
+            pageFootnoteContinuationNotice = Array.Empty<FootnoteUnit>();
+            pageReserveContinuationNoticeSpaceOnFinalPage = false;
+            pageFootnotesContinue = false;
             pageFootnoteHeight = 0D;
+        }
+
+        // An authored page boundary follows all fragments associated with the
+        // preceding body. Automatic pagination still allows body to resume on
+        // the last continued-note page. Use NewPage so active containers retain
+        // their normal fragment preparation and resumption.
+        private void NewPageAfterFootnoteContinuations(bool preserveEmptyPage = false) {
+            NewPage(preserveEmptyPage);
+            while (HasPageFootnotes) NewPage();
         }
 
         private void FinishFootnoteContinuations() {

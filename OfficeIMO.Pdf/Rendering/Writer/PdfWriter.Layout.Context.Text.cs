@@ -4,6 +4,15 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static void MarkPageRichTextFont(LayoutResult.Page page, PdfOptions options,
+        PdfStandardFont font, PdfNamedFontFace? namedFont) {
+        if (namedFont.HasValue) page.UsedNamedFonts.Add(namedFont.Value);
+        else {
+            page.UsedFonts.Add(font);
+            options.MarkEmbeddedFallbackFontFamilySlotUsed(font);
+        }
+    }
+
     private sealed partial class LayoutContext {
         private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
             EnsurePage();
@@ -147,10 +156,9 @@ internal static partial class PdfWriter {
                             ? ChooseItalic(runBaseFont)
                             : runBaseFont;
                 if (currentOpts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFont)) {
-                    currentPage!.UsedNamedFonts.Add(namedFont);
+                    MarkPageRichTextFont(currentPage!, currentOpts, runFont, namedFont);
                 } else {
-                    currentPage!.UsedFonts.Add(runFont);
-                    currentOpts.MarkEmbeddedFallbackFontFamilySlotUsed(runFont);
+                    MarkPageRichTextFont(currentPage!, currentOpts, runFont, null);
                 }
             }
 

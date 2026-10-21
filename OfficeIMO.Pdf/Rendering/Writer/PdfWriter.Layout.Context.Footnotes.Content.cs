@@ -28,6 +28,7 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateFootnoteBlocks(definition.Blocks, noteOptions);
             PdfDocument.ValidateFootnoteBlocks(definition.Separator, noteOptions);
             PdfDocument.ValidateFootnoteBlocks(definition.ContinuationSeparator, noteOptions);
+            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationNotice, noteOptions);
             var key = (definition, currentPageBaseOptions, noteOptions.PageWidth - noteOptions.MarginLeft - noteOptions.MarginRight);
             if (preparedFootnotes.TryGetValue(key, out PreparedFootnote? prepared)) return prepared;
             PdfOptions saved = currentOpts;
@@ -35,7 +36,8 @@ internal static partial class PdfWriter {
             try {
                 var units = PrepareFootnoteUnits(definition.Blocks);
                 if (!units.Any(unit => unit.IsVisual || unit.Height > 0D)) throw new ArgumentException("A footnote must have measurable content.");
-                prepared = new PreparedFootnote(definition, units, PrepareFootnoteUnits(definition.Separator), PrepareFootnoteUnits(definition.ContinuationSeparator), key.Item3);
+                prepared = new PreparedFootnote(definition, units, PrepareFootnoteUnits(definition.Separator),
+                    PrepareFootnoteUnits(definition.ContinuationSeparator), PrepareFootnoteUnits(definition.ContinuationNotice), key.Item3);
                 preparedFootnotes.Add(key, prepared);
                 return prepared;
             } finally { currentOpts = saved; }

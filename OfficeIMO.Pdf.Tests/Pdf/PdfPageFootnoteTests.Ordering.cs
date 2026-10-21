@@ -47,9 +47,9 @@ public partial class PdfPageFootnoteTests {
     }
 
     [Theory]
-    [InlineData(2, false)]
-    [InlineData(25, true)]
-    public void PageWidthChangeRejectsOnlyAnActiveFootnoteContinuation(int noteLines, bool activeContinuation) {
+    [InlineData(2, 2)]
+    [InlineData(25, 4)]
+    public void ExplicitPageScopeFinishesNotesBeforeChangingUsableWidth(int noteLines, int expectedPages) {
         var document = PdfDocument.Create(Options());
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < noteLines; index++) body.Text("WidthNote" + index, style: Style());
@@ -59,14 +59,19 @@ public partial class PdfPageFootnoteTests {
                 body.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style())));
             pages.Page(page => page.Size(240, 140).Content(body => body.Text("NarrowPageBody", style: Style())));
         });
-        if (activeContinuation) {
-            var exception = Assert.Throws<NotSupportedException>(() => document.ToBytes());
-            Assert.Contains("usable page width", exception.Message);
-        } else {
-            using var pdf = PdfPigDocument.Open(document.ToBytes());
-            Assert.Equal(2, pdf.NumberOfPages);
-            Assert.Contains("WidthNote1", pdf.GetPage(1).Text);
-            Assert.Contains("NarrowPageBody", pdf.GetPage(2).Text);
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(expectedPages, pdf.NumberOfPages);
+        Assert.Contains("WidthNote1", pdf.GetPage(1).Text);
+        Assert.Contains("NarrowPageBody", pdf.GetPage(expectedPages).Text);
+        Assert.Equal(240D, pdf.GetPage(expectedPages).Width);
+        Assert.All(pdf.GetPages().Take(expectedPages - 1), page => {
+            Assert.Equal(260D, page.Width);
+            Assert.DoesNotContain("NarrowPageBody", page.Text);
+        });
+        for (int index = 0; index < noteLines; index++) {
+            string token = "WidthNote" + index;
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(string.Concat(pdf.GetPages().Select(page => page.Text)),
+                System.Text.RegularExpressions.Regex.Escape(token) + "(?![0-9])"));
         }
     }
 }

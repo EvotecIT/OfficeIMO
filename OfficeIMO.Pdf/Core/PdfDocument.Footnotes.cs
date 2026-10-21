@@ -7,17 +7,23 @@ public sealed partial class PdfDocument {
         if (options.Placement is not PdfFootnotePlacement.BottomOfPage and not PdfFootnotePlacement.BeneathText)
             throw new ArgumentOutOfRangeException(nameof(options), "Unknown footnote placement.");
         // Capture the option values before callbacks run. Retained builders are detached below.
-        var snapshot = new PdfFootnoteOptions { Placement = options.Placement };
+        var snapshot = new PdfFootnoteOptions {
+            Placement = options.Placement,
+            ReserveContinuationNoticeSpaceOnFinalPage = options.ReserveContinuationNoticeSpaceOnFinalPage
+        };
         Action<PdfContentBuilder>? separator = options.Separator;
         Action<PdfContentBuilder>? continuationSeparator = options.ContinuationSeparator;
+        Action<PdfContentBuilder>? continuationNotice = options.ContinuationNotice;
         var content = BuildFlowBlocks(build);
         IReadOnlyList<IPdfBlock> first = separator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(separator);
         IReadOnlyList<IPdfBlock> continuation = continuationSeparator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationSeparator);
+        IReadOnlyList<IPdfBlock> notice = continuationNotice == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationNotice);
         ValidateFootnoteBlocks(content, _options);
         ValidateFootnoteBlocks(first, _options);
         ValidateFootnoteBlocks(continuation, _options);
+        ValidateFootnoteBlocks(notice, _options);
         if (content.Count == 0) throw new ArgumentException("A footnote must contain flow content.", nameof(build));
-        return new PdfFootnoteDefinition(this, content, snapshot, first, continuation);
+        return new PdfFootnoteDefinition(this, content, snapshot, first, continuation, notice);
     }
 
     internal static void ValidateFootnoteBlocks(IReadOnlyList<IPdfBlock> blocks, PdfOptions options) {

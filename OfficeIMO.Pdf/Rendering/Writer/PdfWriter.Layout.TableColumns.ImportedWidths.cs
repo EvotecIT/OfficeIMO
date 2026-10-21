@@ -7,7 +7,8 @@ internal static partial class PdfWriter {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
         TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
-            font, size, size * 1.25D, options, runFontSizeScale, minimumShrinkFontSize);
+            font, size, size * 1.25D, options, runFontSizeScale, minimumShrinkFontSize,
+            purpose: RichWrapPurpose.IntrinsicMeasurement);
         double minimum = 0D;
         int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
