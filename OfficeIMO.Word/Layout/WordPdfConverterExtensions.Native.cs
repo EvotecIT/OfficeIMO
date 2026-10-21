@@ -65,6 +65,7 @@ namespace OfficeIMO.Word.Pdf {
             void ParagraphSpacingBefore(double height);
             void ParagraphSpacingAfter(double height);
             void Bookmark(string name);
+            void TableOfContents(PdfCore.PdfTableOfContentsOptions options);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
             void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
             void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null);
@@ -100,6 +101,7 @@ namespace OfficeIMO.Word.Pdf {
             public void ParagraphSpacingBefore(double height) { if (height > 0D) _pdf.Spacer(height); }
             public void ParagraphSpacingAfter(double height) { if (height > 0D) _pdf.Spacer(height); }
             public void Bookmark(string name) => _pdf.Bookmark(name);
+            public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) => _pdf.TableOfContents(options);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _pdf.Panel(build, style);
@@ -145,6 +147,7 @@ namespace OfficeIMO.Word.Pdf {
             public void ParagraphSpacingBefore(double height) { if (height > 0D) _column.Spacer(height); }
             public void ParagraphSpacingAfter(double height) { if (height > 0D) _column.Spacer(height); }
             public void Bookmark(string name) => _column.Bookmark(name);
+            public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) => _column.TableOfContents(options);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _column.Panel(build, style);
@@ -210,7 +213,7 @@ namespace OfficeIMO.Word.Pdf {
 
             Dictionary<WordParagraph, (int Level, int Index)> listIndices = WordDocumentTraversal.BuildListIndices(document);
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
-            IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
+            IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             nativeDefaults = nativeDefaults with {
                 BodyTextInkTopOffset = GetNativeBodyTextInkTopOffset(document, nativeDefaults, nativeFontMap, options),

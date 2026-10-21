@@ -22,7 +22,12 @@ namespace OfficeIMO.Word.Pdf {
                         collapseFlow.RetainSuppressedSpacingAfter(CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap).SpacingAfter);
                     break;
                 case WordTableOfContent tableOfContent:
-                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth);
+                    WordParagraph? title = tableOfContent.TitleParagraph;
+                    if (title != null) {
+                        RenderNativeParagraph(pdf, title, null, getMarker, Array.Empty<int>(), footnoteNumbersById,
+                            options, headingDestinations, nativeDefaults, nativeFontMap, null);
+                    }
+                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth, renderTitle: title == null);
                     break;
                 case WordTable table:
                     RenderNativeTable(pdf, table, getMarker, footnoteNumbersById, options, contentWidth, nativeDefaults, nativeFontMap);
