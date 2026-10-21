@@ -85,7 +85,8 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("50%", 150D)]
-    [InlineData("50cqw", 170D)]
+    // The configured default paper is A4; authored @page size does not replace its unit reference.
+    [InlineData("50cqw", 210D / 25.4D * 96D / 2D)]
     [InlineData("calc(50% - 10px)", 140D)]
     public void HtmlPageMarginGeometry_PercentagesAndPaperUnitsUseTheirOwnReferences(string width, double expected) {
         HtmlRenderDocument rendered = RenderMarginSizing(300D, "@top-center{content:'A';width:" + width + "}");
@@ -221,7 +222,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginGeometry_RunningContentRelayoutUsesThePaddedInnerFrame() {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
             "@top-center{content:element(heading);width:80px;padding:0 10px;border:2px solid red}",
-            body: "<p style='position:running(heading)'>HEADER</p><p>BODY</p>");
+            body: "<p style='position:running(heading);background:blue'>HEADER</p><p>BODY</p>");
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderSemanticGroup box = Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(),
             group => group.Source == "@page @top-center element(heading)");
@@ -231,7 +232,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(60D, box.Height, 6);
         Assert.Equal("HEADER", text.Text);
         Assert.Equal(box.X + 12D, text.X, 6);
-        Assert.Equal(80D, text.Width, 6);
+        Assert.InRange(text.Width, 0.01D, 80D);
+        HtmlRenderShape background = Assert.Single(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderShape>(),
+            visual => visual.Shape.FillColor == OfficeColor.Blue);
+        Assert.Equal(box.X + 12D, background.X, 6);
+        Assert.Equal(80D, background.Width, 6);
         Assert.Equal("BODY", rendered.Text.Trim());
         rendered.RequireNoLoss();
     }
