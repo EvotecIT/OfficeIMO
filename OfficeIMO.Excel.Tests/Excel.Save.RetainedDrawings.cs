@@ -90,6 +90,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Collected_picture_lookups_preserve_live_drawing_aliases_after_save() {
+            using var document = ExcelDocument.Create();
+            var (chart, image) = CreateRetainedDrawingWorkbook(document);
+            ExcelSheet sheet = document["Report"];
+            string imageName = image.Name;
+            WeakReference<ExcelImage> discarded = CreateDiscardedPictureLookups(sheet, imageName);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Assert.False(discarded.TryGetTarget(out _));
+            CreateDiscardedPictureLookups(sheet, imageName);
+
+            string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-DrawingAliases-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                string path = Path.Combine(directory, "report.xlsx");
+                document.Save(path);
+                chart.SetTitle("Retained after lookups");
+                image.Title = "Retained after lookups";
+                document.Save(path);
+                using var reopened = ExcelDocument.Load(path);
+                Assert.Equal("Retained after lookups", reopened["Report"].Charts.Single().Title);
+                Assert.Equal("Retained after lookups", reopened["Report"].Images.Single().Title);
+            } finally {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static WeakReference<ExcelImage> CreateDiscardedPictureLookups(ExcelSheet sheet, string name) {
+            ExcelImage? last = null;
+            for (int index = 0; index < 1024; index++) last = sheet.GetImage(name);
+            return new WeakReference<ExcelImage>(last!);
+        }
+
+        [Fact]
         public void Removed_worksheet_drawings_do_not_attach_to_a_replacement() {
             using var document = ExcelDocument.Create();
             var (chart, image) = CreateRetainedDrawingWorkbook(document);

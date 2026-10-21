@@ -7,9 +7,20 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private readonly List<WeakReference<ExcelDrawingHandle>> _drawingHandles = new();
         private IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot>? _drawingHandlesBeforePackageClose;
+        private int _drawingHandlePruneThreshold = 256;
 
         internal void RegisterDrawingHandle(ExcelDrawingHandle handle) {
-            lock (_sheetWrapperCacheLock) { _drawingHandles.Add(new WeakReference<ExcelDrawingHandle>(handle)); }
+            lock (_sheetWrapperCacheLock) {
+                if (_drawingHandles.Count >= _drawingHandlePruneThreshold) PruneCollectedDrawingHandles();
+                _drawingHandles.Add(new WeakReference<ExcelDrawingHandle>(handle));
+            }
+        }
+
+        /// <summary>Compacts collected references in one pass while the sheet-wrapper lock is held.</summary>
+        private void PruneCollectedDrawingHandles() {
+            _drawingHandles.RemoveAll(reference => !reference.TryGetTarget(out _));
+            // Grow with live aliases so registering them does not repeatedly scan the whole list.
+            _drawingHandlePruneThreshold = (int)Math.Min(int.MaxValue, Math.Max(256L, (long)_drawingHandles.Count * 2));
         }
 
         /// <summary>Snapshots live drawing identity before package replacement or a transactional mutation.</summary>
@@ -18,11 +29,9 @@ namespace OfficeIMO.Excel {
             activeParts ??= CaptureActiveSheetPartsForReload();
             var snapshots = new List<ExcelDrawingHandle.ReloadSnapshot>();
             lock (_sheetWrapperCacheLock) {
-                for (int index = _drawingHandles.Count - 1; index >= 0; index--) {
-                    if (!_drawingHandles[index].TryGetTarget(out ExcelDrawingHandle? handle)) {
-                        _drawingHandles.RemoveAt(index);
-                        continue;
-                    }
+                PruneCollectedDrawingHandles();
+                foreach (WeakReference<ExcelDrawingHandle> reference in _drawingHandles) {
+                    if (!reference.TryGetTarget(out ExcelDrawingHandle? handle)) continue;
                     ExcelDrawingHandle.ReloadSnapshot? snapshot = handle.Capture(activeParts);
                     if (snapshot != null) snapshots.Add(snapshot);
                 }
