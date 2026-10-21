@@ -5,6 +5,17 @@ internal static partial class PdfWriter {
         private bool HasUnscheduledFootnote(IEnumerable<RichSeg> segments) =>
             segments.Any(segment => segment.FootnoteReference != null && !scheduledFootnotes.Contains(segment.FootnoteReference));
 
+        // Paragraph after-space can overflow the ordinary physical frame, but it
+        // must not enter an accepted or newly introduced page-note region. Keep
+        // enclosing-container padding and its already included after-space once.
+        private double GetFootnoteClosingTextPadding(IReadOnlyList<List<RichSeg>> lines, int start,
+            double spacingAfter, bool closesContainer = true) {
+            double closing = closesContainer ? GetClosingTextPadding(spacingAfter) : 0D;
+            if (paintingFootnotes || spacingAfter <= 0D || closing >= spacingAfter) return closing;
+            return HasPageFootnotes || HasUnscheduledFootnote(lines.Skip(start).SelectMany(line => line))
+                ? spacingAfter : closing;
+        }
+
         /// <summary>Ends a body slice at its first newly admitted reference, so its note has priority over later body text.</summary>
         private bool ConstrainFootnoteSlice(IReadOnlyList<List<RichSeg>> lines, List<double> heights,
             int start, int minimumLines, int minimumTailLines, double before, double closingPadding,
