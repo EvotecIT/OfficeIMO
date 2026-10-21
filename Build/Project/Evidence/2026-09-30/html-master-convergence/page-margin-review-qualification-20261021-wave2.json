@@ -1,0 +1,588 @@
+{
+  "schema": "officeimo.html.page-margin-review-wave2-qualification/v1",
+  "status": "QUALIFIED_LOCAL_CHECKPOINT_CI_REVIEW_PENDING",
+  "collectedUtc": "2026-10-21T10:44:01.822808+00:00",
+  "sourceHead": "20afd05869c2b16bb399dd39cee37c96bd145bd3",
+  "sourceSeal": {
+    "path": "$WAVE2_ROOT/source-seal-20afd05.json",
+    "bytes": 12183329,
+    "sha256": "873c943bd7e10a2461fde47086a84f502e1f6f0a1b00b2c60023feea311926c9"
+  },
+  "sourceInputs": 58329,
+  "artifactRoots": {
+    "$WAVE2_ROOT": "$TASK_ROOT/ci-review-wave2",
+    "$COMPOSITION_ROOT": "$TASK_ROOT/master-convergence-review-wave1",
+    "$WAVE_ROOT": "$TASK_ROOT/ci-review-wave1"
+  },
+  "priorQualification": {
+    "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-review-qualification-20261021.json",
+    "bytes": 38697,
+    "sha256": "25bb91d39c8171004ce95aa590c5aa26cdbe6ba65112133ca943b22cf1a774c6",
+    "productionSource": "51e6abbf62bc2500f39542687c5f6926694b5ac1",
+    "boundary": "Prior55/47/M packages, mainHTML40/SVG40/48cache/nativeprofile and fullPDF11939 retain original source bindings; no history is embedded or relabelled as current20."
+  },
+  "tests": [
+    {
+      "role": "w2-full-drawing-net80",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 6069,
+        "NotExecuted": 5
+      },
+      "existingSkippedCases": [
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation"
+      ],
+      "regressions": [
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"emoji\", request: \"EmOjI\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"emoji\", request: \"emoji\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"fangsong\", request: \"fangsong\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"fangsong\", request: \"FaNgSoNg\")",
+          "outcome": "Passed"
+        }
+      ],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-full-drawing-net80-execution.json",
+        "bytes": 1779,
+        "sha256": "df9185420f24510a7d9cfe9104ddd0b22338046aa268ceab4dfde6ee92ffd6a6"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-full-drawing-net80/w2-full-drawing-net80.trx",
+        "bytes": 9433298,
+        "sha256": "561306521ce99c13da0c1cdbb6cc753fdf27e6a1e476b16ac14839673ea1a54d"
+      }
+    },
+    {
+      "role": "w2-full-drawing-net100",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 6069,
+        "NotExecuted": 5
+      },
+      "existingSkippedCases": [
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+        "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork"
+      ],
+      "regressions": [
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"emoji\", request: \"EmOjI\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"fangsong\", request: \"FaNgSoNg\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"emoji\", request: \"emoji\")",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingSvgFontScopeTests.InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(family: \"fangsong\", request: \"fangsong\")",
+          "outcome": "Passed"
+        }
+      ],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-full-drawing-net100-execution.json",
+        "bytes": 1782,
+        "sha256": "68dda6dabdef22ce2b7740849f94cedd19aecd1cca78a20bcd8815bc6f018e97"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-full-drawing-net100/w2-full-drawing-net100.trx",
+        "bytes": 9445447,
+        "sha256": "fff9f3e20140e3e60c3f83e46673f632a2baafad557d518e57e1c961a13d6a16"
+      }
+    },
+    {
+      "role": "w2-full-html-net80",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 7686
+      },
+      "existingSkippedCases": [],
+      "regressions": [
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+          "outcome": "Passed"
+        }
+      ],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-full-html-net80-execution.json",
+        "bytes": 1761,
+        "sha256": "3d973600ca59411db6c1265646132a34e8ac601ac8cf6fc09045ab39639f0507"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-full-html-net80/w2-full-html-net80.trx",
+        "bytes": 11985606,
+        "sha256": "5c3a170b11e54681ffcb17c0bbccbb672a646da9cbddd0d732a703da6021beed"
+      }
+    },
+    {
+      "role": "w2-full-html-net100",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 7686
+      },
+      "existingSkippedCases": [],
+      "regressions": [
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_HitsRecomputeUsedGeometryAndHonorCancellation",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets",
+          "outcome": "Passed"
+        },
+        {
+          "name": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageMarginContextCache_FirstParityAndNamedMatchesKeepTheirOwnCascadeAndCounters",
+          "outcome": "Passed"
+        }
+      ],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-full-html-net100-execution.json",
+        "bytes": 1771,
+        "sha256": "141a18a3861ad64b043a3e882c718a5e60fbd841c5d4f2de1b433b2b487d993f"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-full-html-net100/w2-full-html-net100.trx",
+        "bytes": 12000979,
+        "sha256": "f0713b83c01adb7e1b82e699377c762940c2ee2e7c1d1031bf7b834ad8a10b39"
+      }
+    },
+    {
+      "role": "w2-focused-pdf-net80",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 2
+      },
+      "existingSkippedCases": [],
+      "regressions": [],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-focused-pdf-net80-execution.json",
+        "bytes": 1793,
+        "sha256": "f604d2b659fd0cbb6d2ef14f1f81da85ed295026042d3572af8dff347de1bffb"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-focused-pdf-net80/w2-focused-pdf-net80.trx",
+        "bytes": 4567,
+        "sha256": "7148d6a8346e80e5256a1e5043603e6b18401fd11ad8ed3fc42b8b7bb795b537"
+      }
+    },
+    {
+      "role": "w2-focused-pdf-net100",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 2
+      },
+      "existingSkippedCases": [],
+      "regressions": [],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-focused-pdf-net100-execution.json",
+        "bytes": 1798,
+        "sha256": "86bf2ce89a03a413f70e9de4f345da46392adb6310dcd88a1b0b9e9d32be4855"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-focused-pdf-net100/w2-focused-pdf-net100.trx",
+        "bytes": 4572,
+        "sha256": "6d8f69de5d08ee02ff5e4953bfbe197c041ce067558b2ca5750b07abdc9ad157"
+      }
+    },
+    {
+      "role": "w2-focused-excel-net80",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 24
+      },
+      "existingSkippedCases": [],
+      "regressions": [],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-focused-excel-net80-execution.json",
+        "bytes": 1800,
+        "sha256": "6fe012cff58fd8ffd64a199769406a419df6fe4acf7ff4f1610ba14a25cb42ad"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-focused-excel-net80/w2-focused-excel-net80.trx",
+        "bytes": 37578,
+        "sha256": "82b03d41892b34adbda13ed4360da23b176a89b479b47c6128ace97c2a33e9a6"
+      }
+    },
+    {
+      "role": "w2-focused-excel-net100",
+      "scope": "AffectedSVGownerandHTMLintegration stablecorrectness;performanceexcluded;PDFfullpriorMbound",
+      "outcomeCounts": {
+        "Passed": 24
+      },
+      "existingSkippedCases": [],
+      "regressions": [],
+      "execution": {
+        "path": "$WAVE2_ROOT/w2-focused-excel-net100-execution.json",
+        "bytes": 1805,
+        "sha256": "aa37614b5531010ab4807c25a04091875e6b9950974536755f9ad51317505bb9"
+      },
+      "trx": {
+        "path": "$WAVE2_ROOT/trx/w2-focused-excel-net100/w2-focused-excel-net100.trx",
+        "bytes": 37627,
+        "sha256": "63022872dc32e046a30fd73cc73cc406ce9c9a8edcabd360bfd4237e35c01bd9"
+      }
+    }
+  ],
+  "net472": {
+    "execution": {
+      "path": "$WAVE2_ROOT/w2-compile-drawing-net472-execution.json",
+      "bytes": 1572,
+      "sha256": "f82532329557581c2f617d1874c37f9b57b7677f4fb099725ece20450cabf155"
+    },
+    "boundary": "Drawing compilation only; no Windows runtime/profiling claim."
+  },
+  "publicBefore": {
+    "summary": {
+      "path": "$WAVE2_ROOT/svg-fangsong/before-results/summary.json",
+      "bytes": 6484,
+      "sha256": "b0cffa9241e7c8c1cb233551e5c0a52873527f926a30a742a7106806b310ad49"
+    },
+    "execution": {
+      "path": "$WAVE2_ROOT/literal-before-run-execution.json",
+      "bytes": 1594,
+      "sha256": "cfe344904c5710c75b946b8f37a9a8a970805702936db152a1d29f9a176d332a"
+    },
+    "declaredRuntimeSource": "51e6abbf62bc2500f39542687c5f6926694b5ac1",
+    "badBareReferences": 4,
+    "correctQuotedControls": 2
+  },
+  "corePackage": {
+    "privateVersion": "3.5.21",
+    "packageBinding": {
+      "path": "$WAVE2_ROOT/packages/core/package-binding.json",
+      "bytes": 3801,
+      "sha256": "30d45d5b14fe11daf4d84aebbcde89522f995942cc23c69ff2e8161dbffa9481"
+    },
+    "consumerBinding": {
+      "path": "$WAVE2_ROOT/packages/core/consumer-binding.json",
+      "bytes": 6668,
+      "sha256": "39f9117187b82e9bf3e03448b967058302635ecd492465dba51bd57bb15fced6"
+    },
+    "freshAssets": 4,
+    "reusedAssets": 0,
+    "runtimeDependencies": [],
+    "actualPublicObservations": 18,
+    "consumers": [
+      {
+        "lane": "net8",
+        "framework": ".NET 8.0.23",
+        "result": {
+          "path": "$WAVE2_ROOT/packages/core/results/net8/summary.json",
+          "bytes": 6674,
+          "sha256": "bbd8bc74a4f186555bcaca12c277929bee59726fb8e7b97f31127cabceebf738"
+        },
+        "observations": 6,
+        "actualArm64NativeAot": false
+      },
+      {
+        "lane": "net10",
+        "framework": ".NET 10.0.13",
+        "result": {
+          "path": "$WAVE2_ROOT/packages/core/results/net10/summary.json",
+          "bytes": 6682,
+          "sha256": "d28e48c2a8e965cb8920945ad25cd4f76fe3ce2a207d000df780af97634a5f47"
+        },
+        "observations": 6,
+        "actualArm64NativeAot": false
+      },
+      {
+        "lane": "aot",
+        "framework": ".NET 10.0.13",
+        "result": {
+          "path": "$WAVE2_ROOT/packages/core/results/aot/summary.json",
+          "bytes": 6671,
+          "sha256": "bbdab2eb3c5a3e15b2bb6bdad772eafe5e8ed6a3d7a5a7c4c012b698c362018b"
+        },
+        "observations": 6,
+        "actualArm64NativeAot": true
+      }
+    ],
+    "executions": [
+      {
+        "path": "$WAVE2_ROOT/wave2-core-package-preflight-execution.json",
+        "bytes": 1688,
+        "sha256": "e30e496d53dda8836d3dda10b8212241a1d848bc6ab795e1971a2c94be26ceee"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-pack-execution.json",
+        "bytes": 2639,
+        "sha256": "a20f1e75b1d998849d04c9d73cb25ee61ebbb45b61dbde39a9e0f04aad96afc7"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-package-inspect-execution.json",
+        "bytes": 1690,
+        "sha256": "5c9cba7af746e3c0517256df1dbb5615f17a2ce44c8a8e34de73e3a9589044e4"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-net8-build-execution.json",
+        "bytes": 2381,
+        "sha256": "cb5a2dfde5a6e0cbf13630eb9f432d4002e8987a95426c1335a0c833b7b671d7"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-net8-run-execution.json",
+        "bytes": 1987,
+        "sha256": "5b45b140e331d1d0c56965ab38f3d8f178be32564a238a9489f952382ed0f66e"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-net10-build-execution.json",
+        "bytes": 2381,
+        "sha256": "bbb2dcda2c464d2ec5563c54871ffd99488c3362dc631784b26052ac065ff099"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-net10-run-execution.json",
+        "bytes": 1993,
+        "sha256": "3a613aa39fd9b9c92fc2ee7abaf37ef7e06d35dba41e9c7f838fbde0b2847c36"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-aot-build-execution.json",
+        "bytes": 2436,
+        "sha256": "cc0cbc53f8ddfc7fa4bf391ede87a3fed88025a587afedb0769c8994f26d1828"
+      },
+      {
+        "path": "$WAVE2_ROOT/wave2-core-consumer-aot-run-execution.json",
+        "bytes": 1944,
+        "sha256": "fad98ec5fae6c5412b47a5678b89e29f6b2462d25ebfdf0dcdf03c1d470775ec"
+      }
+    ],
+    "originalInspectorFailure": {
+      "path": "$WAVE2_ROOT/wave2-core-consumers-inspect-execution.json",
+      "bytes": 1688,
+      "sha256": "d06f218575dc0fdbb3ac0773922b27ba680a72284dacc4f7ebd7e867733b1fe7"
+    },
+    "correction": {
+      "path": "$WAVE2_ROOT/prep/package-core/inspection-correction-v2.json",
+      "bytes": 786,
+      "sha256": "3bbd4ec473629ad46faabde07d5e26dee988ef6e6548d69d9261bba5fe914bdc"
+    },
+    "correctedInspector": {
+      "path": "$WAVE2_ROOT/wave2-core-consumers-inspect-v2-execution.json",
+      "bytes": 1320,
+      "sha256": "7b2f1c59ebc831b9b45fe9d21773685408844eac1175b73744a6c110d165ea85"
+    },
+    "boundary": "Original inspector remains failed for sole cache-directory trailing-slash spelling; actual artifact/consumer results were unchanged and only the exact-directory spelling check was corrected."
+  },
+  "ownerClosure": {
+    "review": {
+      "path": "$WAVE2_ROOT/owner-closure-review.json",
+      "bytes": 19585,
+      "sha256": "0f1218a9f2972b34d1690f5f1b7b919cdd04a17b4c36e1524c34e50c60b91c8f"
+    },
+    "findings": 0,
+    "boundary": "Required defect-class closure after second material wave; original full/targeted owner passes retain original bindings."
+  },
+  "nativeLiteralSvg": {
+    "comparison": {
+      "path": "$WAVE2_ROOT/literal-native/comparison.json",
+      "bytes": 6667,
+      "sha256": "eab41ad7e28443eb0a4d9fb1299911f03aa942abb514cdcb01c8b2820d71f35a"
+    },
+    "rootApproval": {
+      "path": "$WAVE2_ROOT/root-render-acceptance-wave2.json",
+      "bytes": 3581,
+      "sha256": "a27da37a4b652e7a59610167573fbc769414a38ffbf5f68e46908108bbc8c7d7"
+    },
+    "observations": [
+      {
+        "phase": "before",
+        "sourceHead": "51e6abbf62bc2500f39542687c5f6926694b5ac1",
+        "capture": {
+          "path": "$WAVE2_ROOT/literal-native/before/native/execution.json",
+          "bytes": 6730188,
+          "sha256": "c9b360f3234cf1d8bf4841fb58b9d2b4d6ebb767374a6743407d3eca5170d4ac"
+        },
+        "caseCount": 4,
+        "mediaProfiles": [
+          "print",
+          "screen"
+        ],
+        "observations": 8
+      },
+      {
+        "phase": "fixed",
+        "sourceHead": "20afd05869c2b16bb399dd39cee37c96bd145bd3",
+        "capture": {
+          "path": "$WAVE2_ROOT/literal-native/fixed/native/execution.json",
+          "bytes": 6730186,
+          "sha256": "a47e241d624ac1e7ccbe35f90aeb3f11f6d775dfbc865cfa9330f92d6ef16f53"
+        },
+        "caseCount": 4,
+        "mediaProfiles": [
+          "print",
+          "screen"
+        ],
+        "observations": 8
+      }
+    ],
+    "totalBeforeFixedCaseMediaObservations": 16,
+    "functionalGenericNativeSelectionClaimed": false,
+    "generalBrowserParityClaimed": false
+  },
+  "storage": {
+    "cleanup": {
+      "path": "$WAVE2_ROOT/cleanup-result.json",
+      "bytes": 12628,
+      "sha256": "907589c5035cd0f2115d66653ea6546800db272680b45e00ee5381a54da9294d"
+    },
+    "logicalBytesRemoved": 5058962197,
+    "archiveReadback": {
+      "path": "$WAVE2_ROOT/prep/cleanup-wave2/archive-readback.json",
+      "bytes": 439337,
+      "sha256": "685b3ec9b3df3e01e2e056c4bcba66a3411fc0f3078c62bbd3e45398c2fa1567"
+    },
+    "archives": [
+      {
+        "category": "identities",
+        "file": {
+          "path": "$WAVE2_ROOT/retained/wave2-identities-20afd05.zip",
+          "bytes": 20849343,
+          "sha256": "f24b0577366bd969b35eb3b421362ec1e81602fa10691fde6704f5e4462f5ca4"
+        },
+        "members": 28
+      },
+      {
+        "category": "metadata",
+        "file": {
+          "path": "$WAVE2_ROOT/retained/wave2-metadata-20afd05.zip",
+          "bytes": 23808215,
+          "sha256": "05ad13383ba61be5239f6d4cff9424e82988d50af8526a8236c4eb9e0eac3177"
+        },
+        "members": 486
+      }
+    ],
+    "ledgerAppend": {
+      "path": "$WAVE2_ROOT/storage-ledger-append-receipt.json",
+      "bytes": 3151,
+      "sha256": "1f22ed8aadaafc208a9968bd0477a67bce05e2161eb1efeabe4910ef878460b6"
+    },
+    "centralLedgerPreflight": {
+      "checkedUtc": "2026-10-21T10:44:01.822808+00:00",
+      "bytes": 4091454,
+      "sha256": "b276803b1ba7d96b9f59a4d52591e96153a3074293691b2f7e6ca9191eed53d9",
+      "rows": 5215,
+      "exactCleanupRowOccurrences": 1
+    }
+  },
+  "limits": [
+    "Core-only current delta; no currentHTML five-package/newgeneralnative/fullPDF matrix claimed.",
+    "Runtime/provider forks remain separate on feature/html-engine; Windows profiling deferred.",
+    "No package publication, release, merge, deployment or manual hosted-review request is asserted."
+  ],
+  "integratedSourceHead": "eb907a22ba84a158bb4baab01cff3c4cd7018ba0",
+  "masterIntegration": {
+    "schema": "officeimo.html.wave2-ordinary-master-integration/v1",
+    "recordedUtc": "2026-10-21T10:46:40.966972+00:00",
+    "qualifiedSourceHead": "20afd05869c2b16bb399dd39cee37c96bd145bd3",
+    "integratedSourceHead": "eb907a22ba84a158bb4baab01cff3c4cd7018ba0",
+    "adoptedMasterHead": "3e04ef37081444cdf400347f8420ab4cefd482bf",
+    "exactChangedPaths": [
+      "OfficeIMO.Ocr.Benchmarks.Comparisons/Invoke-OcrEngineComparison.ps1",
+      "OfficeIMO.Ocr.Benchmarks.Comparisons/README.md",
+      "OfficeIMO.Ocr.Benchmarks.Comparisons/environment.lock.json",
+      "OfficeIMO.Ocr.Benchmarks.Comparisons/requirements.lock.txt"
+    ],
+    "unchangedQualifiedOwners": [
+      {
+        "repositoryPath": "OfficeIMO.Core",
+        "qualifiedObject": "45b8090fa3ddcaf889cbb3a99834267319661ae3",
+        "integratedObject": "45b8090fa3ddcaf889cbb3a99834267319661ae3"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html",
+        "qualifiedObject": "5e59662edf8d606b521159443be5eb1855bc219e",
+        "integratedObject": "5e59662edf8d606b521159443be5eb1855bc219e"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html.Core",
+        "qualifiedObject": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+        "integratedObject": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html.AngleSharp",
+        "qualifiedObject": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+        "integratedObject": "2b7f2b16754df243579efea6e88a9c35e0dce3a6"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Pdf",
+        "qualifiedObject": "7e9f966e7cb2e851fa656b23b80ac3a92aa07c73",
+        "integratedObject": "7e9f966e7cb2e851fa656b23b80ac3a92aa07c73"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Drawing.Tests",
+        "qualifiedObject": "8be3171d8723d5b8fbc9bfb0e2b2b6ab94a5be3d",
+        "integratedObject": "8be3171d8723d5b8fbc9bfb0e2b2b6ab94a5be3d"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Html.Tests",
+        "qualifiedObject": "e43454954113423a96e78409430b8b049b9c5e7a",
+        "integratedObject": "e43454954113423a96e78409430b8b049b9c5e7a"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Pdf.Tests",
+        "qualifiedObject": "27b341fae7582041fe5741b57c007b4c5f07e57a",
+        "integratedObject": "27b341fae7582041fe5741b57c007b4c5f07e57a"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Excel.Tests",
+        "qualifiedObject": "63154fcba8c63bd213df8ddb9a66febe437bb2c6",
+        "integratedObject": "63154fcba8c63bd213df8ddb9a66febe437bb2c6"
+      },
+      {
+        "repositoryPath": "Directory.Build.props",
+        "qualifiedObject": "75c225a157144cf23d2e688fa9bf379fbc9a1a13",
+        "integratedObject": "75c225a157144cf23d2e688fa9bf379fbc9a1a13"
+      },
+      {
+        "repositoryPath": "Directory.Build.targets",
+        "qualifiedObject": "d74a9894d591deb1a8b8739f291114bc0d4ec309",
+        "integratedObject": "d74a9894d591deb1a8b8739f291114bc0d4ec309"
+      },
+      {
+        "repositoryPath": "global.json",
+        "qualifiedObject": "64b312f8364bc8d0bdc88994e960ed46379e22c0",
+        "integratedObject": "64b312f8364bc8d0bdc88994e960ed46379e22c0"
+      }
+    ],
+    "ordinaryMerge": true,
+    "qualificationRerun": false,
+    "reason": "Only four opt-in OCR comparison files were adopted from already-landed master. All affected production, test and build/SDK inputs above are object-identical to qualified20; no engine/package/native/source proof is relabelled as newly executed onM. Current-head external CI will gate publication settlement."
+  },
+  "originalWave2Proof": {
+    "path": "$WAVE2_ROOT/portable-review-qualification-wave2.json",
+    "bytes": 20150,
+    "sha256": "6ee32c9adb3a6d49608f7ca0d0e34c4cae0cac37df75428d16b40154937ee09c"
+  }
+}
