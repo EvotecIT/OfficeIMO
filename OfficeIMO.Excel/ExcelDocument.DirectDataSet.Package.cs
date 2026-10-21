@@ -701,15 +701,12 @@ namespace OfficeIMO.Excel {
             } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
-                skipReason = "Direct DataSet package writer failed: " + ex.Message;
                 if (packageBytes != null) {
-                    try {
-                        ClearDirectDataSetSaveCandidate();
-                        ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
-                    } catch {
-                    }
+                    RestoreFailedFileSave(packageBytes, ex, clearDirectDataSetCandidate: true);
+                    throw;
                 }
 
+                skipReason = "Direct DataSet package writer failed: " + ex.Message;
                 return false;
             } finally {
                 DeleteFileIfExists(temporaryPath);
