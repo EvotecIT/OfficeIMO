@@ -13,6 +13,8 @@ public partial class PdfPageFootnoteTests {
     [InlineData("Image", true, "Separator")]
     [InlineData("Rule", false, "Continuation")]
     [InlineData("Rule", true, "Content")]
+    [InlineData("ParagraphKeep", false, "Notice")]
+    [InlineData("Rule", true, "Notice")]
     public void DefinitionRejectsUnsupportedEffectiveConstraintsWithoutAppendingCapturedContent(string constraint, bool inherited, string location) {
         PdfOptions options = Options();
         if (inherited) ApplyUnsupportedNoteDefault(options, constraint);
@@ -22,7 +24,8 @@ public partial class PdfPageFootnoteTests {
         Action<PdfContentBuilder> valid = body => body.Text("NoteBody", style: Style());
         var noteOptions = new PdfFootnoteOptions {
             Separator = location == "Separator" ? unsupported : null,
-            ContinuationSeparator = location == "Continuation" ? unsupported : null
+            ContinuationSeparator = location == "Continuation" ? unsupported : null,
+            ContinuationNotice = location == "Notice" ? unsupported : null
         };
 
         Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(location == "Content" ? unsupported : valid, noteOptions));

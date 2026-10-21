@@ -156,7 +156,7 @@ internal static partial class PdfWriter {
 
         private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs, double? fontSize = null) {
             double size = fontSize ?? currentOpts.DefaultFontSize;
-            var layout = WrapRichRunsCore(
+            var layout = WrapRichRunsIntrinsic(
                 runs, double.MaxValue, size, ChooseNormal(currentOpts.DefaultFont), size * 1.4D,
                 null, DefaultParagraphTabStopWidth, currentOpts);
             return layout.Lines.Count == 0 ? 0D : layout.Lines.Max(line => MeasureRichLineWidth(line, currentOpts));

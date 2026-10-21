@@ -1,0 +1,727 @@
+{
+  "provenance": "OfficeIMO-owned deterministic synthetic OOXML controls and independent read-only Microsoft Word PDF exports. No user, third-party or externally downloaded documents.",
+  "captured": "2026-10-21",
+  "producer": {
+    "wwlib_sha256": "e57c78251137589d01bcff89bdcebba8002b06279c93867a30dbf538cc90d15d",
+    "version": "16.0.20430.20182",
+    "platform": "Windows",
+    "executable_sha256": "0f96d6172dd6cc9eda5ddb786fee5d8f9c8b4bee96f56db2dab6f5888f3be882",
+    "application": "Microsoft Word"
+  },
+  "fonts": {
+    "Arial_bold_sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5",
+    "Arial_regular_sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "Calibri_regular_sha256": "57e93ff143572bcc092c1f56202d43ddc07bb119aa104c6d7af163470fb551f6"
+  },
+  "export": "Read-only native open and PDF export, macros disabled; no repair, save, trusted location, external field/link updates or navigation. Source SHA256 unchanged before and after export. Document properties excluded from export.",
+  "inert_source_parts": [
+    "_rels/.rels",
+    "[Content_Types].xml",
+    "word/_rels/document.xml.rels",
+    "word/document.xml",
+    "word/footer1.xml",
+    "word/footnotes.xml",
+    "word/settings.xml",
+    "word/styles.xml"
+  ],
+  "privacy": "Sources contain no properties, macros, external relationships, embedded objects, altChunk, fields, instructions or external assets.",
+  "limits": [
+    "Native coordinates and pagination qualify these source/native pairs under the recorded font programs; they do not establish universal Word pagination or rendering parity.",
+    "Portable tests retain source, schema, text order and explicit font-loss reporting when the native font profile is unavailable.",
+    "The paint control intentionally uses both Arial and Calibri; its native geometry requires both recorded families.",
+    "Rule allocation, rule ink and source run/paragraph-mark metrics are separate observable contracts."
+  ],
+  "cases": [
+    {
+      "id": "geometry-indents-alignment-mixed",
+      "input": "geometry-indents-alignment-mixed.docx",
+      "input_sha256": "579421afd890a3c5f161d10bb39d91ce6b71914cd564a1fbc877d02fa964363b",
+      "reference": "geometry-indents-alignment-mixed.microsoft-word.pdf",
+      "reference_sha256": "736fdd4795c739edd782726c81921834f913673fa65675cb7914095c3b11884f",
+      "schema_errors": 0,
+      "pages": 1,
+      "compatibility_mode": 15,
+      "profile": {
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "normalFont": "Arial12",
+        "normalLine": "240auto",
+        "noteFont": "Arial10",
+        "noteLinePt": 12,
+        "compatibilitySetting": "15",
+        "selectorIds": [
+          -1,
+          0
+        ],
+        "specialPartOrder": [
+          -1,
+          0
+        ],
+        "normativeConformance": "positive",
+        "purpose": "Paragraph frame versus remaining width; indents, alignment, mixed text+mark",
+        "separatorParagraphs": [
+          {},
+          {
+            "left": 96,
+            "right": 72
+          },
+          {
+            "left": 96,
+            "right": 72,
+            "align": "center"
+          },
+          {
+            "left": 96,
+            "right": 72,
+            "align": "right"
+          },
+          {
+            "left": 96,
+            "right": 72,
+            "leading": "LEAD ",
+            "trailing": " TAIL"
+          }
+        ]
+      },
+      "native_rule_rows": [
+        {
+          "thickness": 0.5999755859375,
+          "x": 50.06399917602539,
+          "top": 363.46002197265625,
+          "paragraph_index": 0,
+          "width": 144.04999923706055
+        },
+        {
+          "thickness": 0.600006103515625,
+          "x": 146.08999633789062,
+          "top": 377.260009765625,
+          "paragraph_index": 1,
+          "width": 132.05001831054688
+        },
+        {
+          "thickness": 0.600006103515625,
+          "x": 146.08999633789062,
+          "top": 391.05999755859375,
+          "paragraph_index": 2,
+          "width": 132.05001831054688
+        },
+        {
+          "thickness": 0.623992919921875,
+          "x": 146.08999633789062,
+          "top": 404.85601806640625,
+          "paragraph_index": 3,
+          "width": 132.05001831054688
+        },
+        {
+          "thickness": 0.600006103515625,
+          "x": 180.7899932861328,
+          "top": 418.67999267578125,
+          "paragraph_index": 4,
+          "width": 97.34400939941406
+        }
+      ]
+    },
+    {
+      "id": "paint-font-size-style",
+      "input": "paint-font-size-style.docx",
+      "input_sha256": "648af103041c75a26764205f8d36cc30adb8689dc96214ef2f2be3f52b83c86d",
+      "reference": "paint-font-size-style.microsoft-word.pdf",
+      "reference_sha256": "fc114d792f31f61e9dd99417893afc8e0b2d072781449be855795a03adf1e8ae",
+      "schema_errors": 0,
+      "pages": 1,
+      "compatibility_mode": 15,
+      "profile": {
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "normalFont": "Arial12",
+        "normalLine": "240auto",
+        "noteFont": "Arial10",
+        "noteLinePt": 12,
+        "compatibilitySetting": "15",
+        "selectorIds": [
+          -1,
+          0
+        ],
+        "specialPartOrder": [
+          -1,
+          0
+        ],
+        "normativeConformance": "positive",
+        "purpose": "Paint thickness/color/relative baseline; explicit17/27halfp points; mark/run ownership; font/style responses",
+        "separatorParagraphs": [
+          {
+            "size": 8.5,
+            "mark_size": 8.5
+          },
+          {
+            "size": 13.5,
+            "mark_size": 13.5
+          },
+          {
+            "size": 12,
+            "mark_size": 6
+          },
+          {
+            "size": 6,
+            "mark_size": 12
+          },
+          {},
+          {
+            "bold": true
+          },
+          {
+            "underline": true
+          },
+          {
+            "superscript": true
+          },
+          {
+            "color": "C03040"
+          },
+          {
+            "family": "Calibri"
+          }
+        ]
+      },
+      "native_rule_rows": [
+        {
+          "paragraph_index": 0,
+          "x": 50.06399917602539,
+          "thickness": 0.50396728515625,
+          "width": 144.04999923706055,
+          "top": 314.23602294921875,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 1,
+          "x": 50.06399917602539,
+          "thickness": 0.719970703125,
+          "width": 144.04999923706055,
+          "top": 327.34002685546875,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 2,
+          "x": 50.06399917602539,
+          "thickness": 0.5999755859375,
+          "width": 144.04999923706055,
+          "top": 341.86004638671875,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 3,
+          "x": 50.06399917602539,
+          "thickness": 0.240020751953125,
+          "width": 144.04999923706055,
+          "top": 351.5799865722656,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 4,
+          "x": 50.06399917602539,
+          "thickness": 0.600006103515625,
+          "width": 144.04999923706055,
+          "top": 362.6199951171875,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 5,
+          "x": 50.06399917602539,
+          "thickness": 0.5999755859375,
+          "width": 144.04999923706055,
+          "top": 376.4200439453125,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 6,
+          "x": 50.06399917602539,
+          "thickness": 0.600006103515625,
+          "width": 144.04999923706055,
+          "top": 390.2200012207031,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 7,
+          "x": 50.06399917602539,
+          "thickness": 0.3599853515625,
+          "width": 144.04999923706055,
+          "top": 401.1360168457031,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "paragraph_index": 8,
+          "x": 50.06399917602539,
+          "thickness": 0.600006103515625,
+          "width": 144.04999923706055,
+          "top": 417.8399963378906,
+          "fill": [
+            0.753000020980835,
+            0.18799999356269836,
+            0.25099998712539673
+          ]
+        },
+        {
+          "paragraph_index": 9,
+          "x": 50.06399917602539,
+          "thickness": 0.839996337890625,
+          "width": 144.04999923706055,
+          "top": 431.8800048828125,
+          "fill": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "native_additional_underline": {
+        "pathIndex": 25,
+        "type": "f",
+        "x": 50.06399917602539,
+        "top": 394.6600036621094,
+        "right": 194.11399841308594,
+        "bottom": 395.5,
+        "width": 144.04999923706055,
+        "height": 0.839996337890625,
+        "fill": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": "continuation-notice-compat14",
+      "input": "continuation-notice-compat14.docx",
+      "input_sha256": "790f0fdf7e332789b05595c5bb2670c0d000686046e37c21ca42ea660a49f424",
+      "reference": "continuation-notice-compat14.microsoft-word.pdf",
+      "reference_sha256": "d2ad542b4e61ff3e204eab9bfc277c32028e7c7352ac694c882b337f65b88bea",
+      "schema_errors": 0,
+      "pages": 3,
+      "compatibility_mode": 14,
+      "profile": {
+        "compatibilitySetting": "14",
+        "transformation": "notice",
+        "noticeText": "NOTICE MODE 14 CONTINUED ON NEXT PAGE",
+        "newSpecialId": 2,
+        "selectorIds": [
+          -1,
+          0,
+          2
+        ]
+      },
+      "native_note_partition": [
+        40,
+        43,
+        29
+      ],
+      "notice_pages": [
+        1,
+        2
+      ],
+      "native_continued_story": "continuationSeparator"
+    },
+    {
+      "id": "continuation-notice-compat15",
+      "input": "continuation-notice-compat15.docx",
+      "input_sha256": "7fcc2f8ecd3d1327807e0eeb7e230155039b1cde9cac15e084a2ac051856adfe",
+      "reference": "continuation-notice-compat15.microsoft-word.pdf",
+      "reference_sha256": "8201ac28be10750aafdffa64c0a782ab9367da3176569346c6dd6e6d2aadde36",
+      "schema_errors": 0,
+      "pages": 3,
+      "compatibility_mode": 15,
+      "profile": {
+        "compatibilitySetting": "15",
+        "transformation": "notice",
+        "noticeText": "NOTICE MODE 15 CONTINUED ON NEXT PAGE",
+        "newSpecialId": 2,
+        "selectorIds": [
+          -1,
+          0,
+          2
+        ]
+      },
+      "native_note_partition": [
+        40,
+        43,
+        29
+      ],
+      "notice_pages": [
+        1,
+        2
+      ],
+      "native_continued_story": "separator"
+    },
+    {
+      "id": "continuation-plus-new-note",
+      "input": "continuation-plus-new-note.docx",
+      "input_sha256": "bb77e1f4a4e95d4a6c820ca21f4699519140149e8a79d5a748386c7fbcdeb7bf",
+      "reference": "continuation-plus-new-note.microsoft-word.pdf",
+      "reference_sha256": "cc91726cf797fec5acf69f0573d5ef1ce2b1bdfd510dab7bda34f769c414b662",
+      "schema_errors": 0,
+      "pages": 4,
+      "compatibility_mode": 15,
+      "profile": {
+        "pagePt": [
+          400,
+          500
+        ],
+        "marginsPt": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "normalFont": "Arial12",
+        "normalLine": "240auto",
+        "noteFont": "Arial10",
+        "noteLinePt": 12,
+        "compatibilitySetting": "15",
+        "selectorIds": [
+          -1,
+          0
+        ],
+        "specialPartOrder": [
+          -1,
+          0
+        ],
+        "normativeConformance": "positive",
+        "purpose": "Continued old note plus new reference/note; native page association must be observed",
+        "authoredBodyPageBreakBeforeSecondReference": true
+      },
+      "native_note_partition": [
+        41,
+        45,
+        26,
+        0
+      ],
+      "new_reference_and_note_page": 4
+    },
+    {
+      "id": "continuation-notice-compat14-font6",
+      "input": "continuation-notice-compat14-font6.docx",
+      "input_sha256": "b01b8be290637863a972863cdfaeecc0ce304e163c4f5a7f9b587242eabdef14",
+      "reference": "continuation-notice-compat14-font6.microsoft-word.pdf",
+      "reference_sha256": "2c7cc823631aa693c0556feb77cc188376e3963d05e6b85789884ce4e606f498",
+      "schema_errors": 0,
+      "pages": 3,
+      "compatibility_mode": 14,
+      "profile": {
+        "page_points": [
+          400,
+          500
+        ],
+        "margins_points": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "ordinary_note_font": "Arial10",
+        "ordinary_note_exact_line_points": 12,
+        "ordinary_note_paragraphs": 1,
+        "notice_font_points": 6,
+        "notice_line_spacing": "240auto",
+        "notice_spacing_before_after_points": [
+          0,
+          0
+        ],
+        "special_story_registration": [
+          -1,
+          0,
+          2
+        ],
+        "ordinary_note_token_count": 112,
+        "ordinary_note_text": "NOTE001 through NOTE112 in one naturally wrapping paragraph",
+        "source_change": "Only the continuation notice run and paragraph-mark size changes; all other parts and stories remain byte-identical."
+      },
+      "native_notice_pages": [
+        1,
+        2
+      ],
+      "native_note_page_geometry": [
+        {
+          "last_baseline_top": 440.8800048828125,
+          "lines": 29,
+          "first_baseline_top": 104.77999877929688,
+          "page": 1
+        },
+        {
+          "last_baseline_top": 440.8800048828125,
+          "lines": 31,
+          "first_baseline_top": 80.77999877929688,
+          "page": 2
+        },
+        {
+          "last_baseline_top": 440.8800048828125,
+          "lines": 20,
+          "first_baseline_top": 212.80999755859375,
+          "page": 3
+        }
+      ],
+      "native_following_body_allocation": [
+        {
+          "tokens": [
+            "AFTER LONG 01",
+            "AFTER LONG 02",
+            "AFTER LONG 03",
+            "AFTER LONG 04",
+            "AFTER LONG 05",
+            "AFTER LONG 06"
+          ],
+          "page": 3
+        }
+      ]
+    },
+    {
+      "id": "continuation-notice-compat14-font18",
+      "input": "continuation-notice-compat14-font18.docx",
+      "input_sha256": "24b361dafbb87203c8c8d836607ef1c4b0044fc5833d6f657217eb6586fdd398",
+      "reference": "continuation-notice-compat14-font18.microsoft-word.pdf",
+      "reference_sha256": "3c0221df6ab3b6ddf2a68512cb6ae39a0d2e400cd72eab7111dc655bf857a94e",
+      "schema_errors": 0,
+      "pages": 4,
+      "compatibility_mode": 14,
+      "profile": {
+        "page_points": [
+          400,
+          500
+        ],
+        "margins_points": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "ordinary_note_font": "Arial10",
+        "ordinary_note_exact_line_points": 12,
+        "ordinary_note_paragraphs": 1,
+        "notice_font_points": 18,
+        "notice_line_spacing": "240auto",
+        "notice_spacing_before_after_points": [
+          0,
+          0
+        ],
+        "special_story_registration": [
+          -1,
+          0,
+          2
+        ],
+        "ordinary_note_token_count": 112,
+        "ordinary_note_text": "NOTE001 through NOTE112 in one naturally wrapping paragraph",
+        "source_change": "Only the continuation notice run and paragraph-mark size changes; all other parts and stories remain byte-identical."
+      },
+      "native_notice_pages": [
+        1,
+        2
+      ],
+      "native_note_page_geometry": [
+        {
+          "last_baseline_top": 406.32000732421875,
+          "lines": 26,
+          "first_baseline_top": 106.22000122070312,
+          "page": 1
+        },
+        {
+          "last_baseline_top": 406.32000732421875,
+          "lines": 28,
+          "first_baseline_top": 82.22000122070312,
+          "page": 2
+        },
+        {
+          "last_baseline_top": 406.32000732421875,
+          "lines": 26,
+          "first_baseline_top": 106.22000122070312,
+          "page": 3
+        }
+      ],
+      "native_following_body_allocation": [
+        {
+          "tokens": [
+            "AFTER LONG 01",
+            "AFTER LONG 02"
+          ],
+          "page": 3
+        },
+        {
+          "tokens": [
+            "AFTER LONG 03",
+            "AFTER LONG 04",
+            "AFTER LONG 05",
+            "AFTER LONG 06"
+          ],
+          "page": 4
+        }
+      ]
+    },
+    {
+      "id": "continuation-notice-compat14-short-note",
+      "input": "continuation-notice-compat14-short-note.docx",
+      "input_sha256": "c23fbdd2c21dd97af0f44d3a25dd9ee56cced16c2b9eb03aa8f8024b349cf462",
+      "reference": "continuation-notice-compat14-short-note.microsoft-word.pdf",
+      "reference_sha256": "c2cb0c93957e548e9730b4e51b82448bdad7bbb506a62f7791eb3988282e854d",
+      "schema_errors": 0,
+      "pages": 1,
+      "compatibility_mode": 14,
+      "profile": {
+        "page_points": [
+          400,
+          500
+        ],
+        "margins_points": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "ordinary_note_font": "Arial10",
+        "ordinary_note_exact_line_points": 12,
+        "ordinary_note_paragraphs": 1,
+        "notice_font_points": 12,
+        "notice_line_spacing": "240auto",
+        "notice_spacing_before_after_points": [
+          0,
+          0
+        ],
+        "special_story_registration": [
+          -1,
+          0,
+          2
+        ],
+        "ordinary_note_token_count": 0,
+        "ordinary_note_text": "NOTE SHORT BODY",
+        "source_change": "Only the ordinary note text is shortened; all special stories and registration remain byte-identical."
+      },
+      "native_notice_pages": [],
+      "native_note_page_geometry": [
+        {
+          "last_baseline_top": 433.9200134277344,
+          "lines": 1,
+          "first_baseline_top": 433.9200134277344,
+          "page": 1
+        }
+      ],
+      "native_following_body_allocation": [
+        {
+          "tokens": [
+            "AFTER LONG 01",
+            "AFTER LONG 02",
+            "AFTER LONG 03",
+            "AFTER LONG 04",
+            "AFTER LONG 05",
+            "AFTER LONG 06"
+          ],
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "continuation-notice-compat15-short-note",
+      "input": "continuation-notice-compat15-short-note.docx",
+      "input_sha256": "2708a49684307868eabdfe099ade7fb43e639c60b9b29bf7a207fcfb16b83a4d",
+      "reference": "continuation-notice-compat15-short-note.microsoft-word.pdf",
+      "reference_sha256": "7fb80143c63c67ea3e1ca3b8859d43329fd6f61b74c54ed02dd92580bf8ab9c2",
+      "schema_errors": 0,
+      "pages": 1,
+      "compatibility_mode": 15,
+      "profile": {
+        "page_points": [
+          400,
+          500
+        ],
+        "margins_points": [
+          50,
+          50,
+          50,
+          50
+        ],
+        "ordinary_note_font": "Arial10",
+        "ordinary_note_exact_line_points": 12,
+        "ordinary_note_paragraphs": 1,
+        "notice_font_points": 12,
+        "notice_line_spacing": "240auto",
+        "notice_spacing_before_after_points": [
+          0,
+          0
+        ],
+        "special_story_registration": [
+          -1,
+          0,
+          2
+        ],
+        "ordinary_note_token_count": 0,
+        "ordinary_note_text": "NOTE SHORT BODY",
+        "source_change": "Only the ordinary note text is shortened; all special stories and registration remain byte-identical."
+      },
+      "native_notice_pages": [],
+      "native_note_page_geometry": [
+        {
+          "last_baseline_top": 447.7200012207031,
+          "lines": 1,
+          "first_baseline_top": 447.7200012207031,
+          "page": 1
+        }
+      ],
+      "native_following_body_allocation": [
+        {
+          "tokens": [
+            "AFTER LONG 01",
+            "AFTER LONG 02",
+            "AFTER LONG 03",
+            "AFTER LONG 04",
+            "AFTER LONG 05",
+            "AFTER LONG 06"
+          ],
+          "page": 1
+        }
+      ]
+    }
+  ]
+}

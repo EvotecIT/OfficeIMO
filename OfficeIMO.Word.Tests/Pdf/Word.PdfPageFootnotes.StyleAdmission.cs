@@ -20,6 +20,7 @@ public partial class Word {
         source.AddParagraph("FIRSTREFERENCE").AddFootNote("FIRSTNOTEBODY");
         source.AddParagraph("SECONDREFERENCE").AddFootNote("SECONDNOTEBODY");
         source.AddParagraph("LASTBODY");
+        if (story == "continuation") source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2010;
         SetPageFootnoteAdmissionKeepNext(source, story, inherited, directOverride: null);
         Assert.Empty(source.ValidateDocument());
 
@@ -56,6 +57,7 @@ public partial class Word {
     public void SaveAsPdf_DirectFalseKeepWithNextOverridesInheritedNoteKeepChain(string story) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
         source.AddParagraph("REFERENCE").AddFootNote("NOTEBODY");
+        if (story == "continuation") source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2010;
         SetPageFootnoteAdmissionKeepNext(source, story, inherited: true, directOverride: false);
         Assert.Empty(source.ValidateDocument());
         var main = source._wordprocessingDocument.MainDocumentPart!;

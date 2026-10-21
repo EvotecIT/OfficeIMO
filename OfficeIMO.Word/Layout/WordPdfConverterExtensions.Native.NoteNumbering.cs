@@ -26,6 +26,7 @@ public static partial class WordPdfConverterExtensions {
         private bool pageRestartReported;
         private bool placementFallbackReported;
         private bool separatorMarkOmissionReported;
+        private bool separatorDecorationOmissionReported;
         private WordSection? currentSection;
         private readonly Dictionary<NativeNoteKey, NativePageFootnoteSource> pageFootnotes = new();
         internal bool EndnotesAtDocumentEnd { get; }
@@ -75,7 +76,14 @@ public static partial class WordPdfConverterExtensions {
             if (separatorMarkOmissionReported || options == null) return;
             separatorMarkOmissionReported = true;
             AddNativeExportWarning(options, "NativeFootnoteSeparatorMarkOmitted", "footnote separator",
-                "The separator paragraph and its spacing are retained, but its separator rule mark is not painted because the native rule geometry is not qualified.");
+                "The separator paragraph and its spacing are retained, but its rule mark is not painted because the selected font does not provide usable strike-band metrics.");
+        }
+
+        internal void ReportSeparatorDecorationOmission(string reason) {
+            if (separatorDecorationOmissionReported || options == null) return;
+            separatorDecorationOmissionReported = true;
+            AddNativeExportWarning(options, "NativeFootnoteSeparatorDecorationOmitted", "footnote separator",
+                "The separator rule is retained, but an additional authored decoration is not painted. " + reason);
         }
 
         internal void ReportPlacementFallback(string? reason = null) {

@@ -163,11 +163,32 @@ document.Save("report.pdf");
 
 The reference and the first legal note fragment stay on the same page. Notes reserve space before later body content, can continue across pages, and retain rich paragraph text, inline images and links. References in split table rows attach to the page containing the actual reference fragment. Definitions belong to their document; each serialization has independent pagination state.
 
-`PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
+`PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content before the first note and continued notes respectively; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
+
+`ContinuationNotice` captures flow to place after the page's notes when note content continues to another page. Its measured height is reserved before accepting note fragments; the notice is painted only when content continues. By default, a complete or final note page reserves no notice space. Set `ReserveContinuationNoticeSpaceOnFinalPage = true` to retain that measured space even for a short note that fits on one page, while keeping the notice hidden there.
+
+The first note admitted to a page selects that page's separator, notice and final-page reservation policy, including when table references are admitted in a different order from their source. Definitions capture the options and callback content when composed. Later changes to those options or retained builders do not change the definition.
+
+Explicit page breaks and new-page section boundaries finish pending note continuations before starting the following content. Automatic pagination can resume body content on the page containing the final note fragment.
 
 Page notes require single-column body flow and statically authored references. `TableDeferred` batches and replayable `Deferred` callbacks cannot introduce note references; use ordinary tables or static `Flow` content for those references. Deferred content without note references can share pages with notes when it follows the same body-layout constraints.
 
 Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
+
+## Inline rules
+
+Use `PdfInlineRule` for a horizontal band that fills the space remaining on a rich-text line:
+
+```csharp
+document.Content.Paragraph(paragraph => paragraph
+    .Text("Signature: ")
+    .Inline(new PdfInlineRule(height: 0.5, color: PdfColor.Black,
+        baselineOffset: -2)));
+```
+
+Height, `MaximumWidth` and `BaselineOffset` are in points. The baseline offset positions the bottom of the band relative to the text baseline; a negative value places it below that baseline. A null `MaximumWidth` fills the remaining line, while a positive value caps the width. Each layout resolves the width against its actual paragraph, table-cell or nested frame. The rule adds no intrinsic width during automatic table sizing, and text following a rule wraps normally if the rule consumes the rest of the line. A frame with no remaining width paints no band.
+
+Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(0.5, PdfColor.Black, maximumWidth: 144)` draws a band up to two inches wide without extending beyond its line frame.
 
 ## Literal text to PDF
 

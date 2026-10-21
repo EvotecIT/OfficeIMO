@@ -26,7 +26,8 @@ internal static partial class PdfWriter {
         // another field measurement. Reuse the actual token/space/kerning layout
         // rather than measuring a differently normalized copy of its text.
         var wrapped = WrapRichRunsCoreWithFirstLineOrigin(field, double.MaxValue / 4D, fontSize, baseFont,
-            fontSize * 1.2D, null, null, DefaultParagraphTabStopWidth, options, textWhitespaceMode: whitespaceMode);
+            fontSize * 1.2D, null, null, DefaultParagraphTabStopWidth, options, textWhitespaceMode: whitespaceMode,
+            purpose: RichWrapPurpose.IntrinsicMeasurement);
         return wrapped.Lines.Count == 0 ? 0D : MeasureRichLineWidth(wrapped.Lines[0], options);
     }
 

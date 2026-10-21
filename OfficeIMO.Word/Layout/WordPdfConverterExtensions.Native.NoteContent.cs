@@ -11,7 +11,8 @@ public static partial class WordPdfConverterExtensions {
     private static bool HasNativeNoteContent(WordParagraph run, NativeNoteNumbering? notes,
         NativeDocumentDefaults defaults) => run.EnumerateEffectiveRunContent().Any(child =>
             GetNativeNoteReferenceKey(child) is NativeNoteKey key && notes?.TryGetValue(key, out _) == true ||
-            child is W.FootnoteReferenceMark && defaults.NoteBodyLabel != null);
+            child is W.FootnoteReferenceMark && defaults.NoteBodyLabel != null ||
+            (child is W.SeparatorMark or W.ContinuationSeparatorMark) && defaults.NoteContentSection != null);
 
     private static bool TryAddNativeNoteRun(PdfCore.PdfParagraphBuilder builder, WordParagraph run,
         WordParagraph paragraph, NativeNoteNumbering notes, IReadOnlyList<WordTabStop> tabStops,
@@ -22,7 +23,7 @@ public static partial class WordPdfConverterExtensions {
             if (child is W.RunProperties) continue;
             if (TryCreateNativeNoteMarker(child, run, paragraph, notes, defaults, fonts,
                 NativeTableRunStyleDefaults.Empty, false, out PdfCore.PdfTextRun? marker, out int? token)) {
-                builder.Runs(new[] { marker! });
+                if (marker != null) builder.Runs(new[] { marker });
                 if (token.HasValue) emittedNoteTokens.Add(token.Value);
             } else {
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
@@ -40,7 +41,7 @@ public static partial class WordPdfConverterExtensions {
             if (child is W.RunProperties) continue;
             if (TryCreateNativeNoteMarker(child, run, run, notes, defaults, fonts,
                 table.RunStyle, table.UseConfiguredTypography, out PdfCore.PdfTextRun? marker, out int? token)) {
-                result.Add(marker!);
+                if (marker != null) result.Add(marker);
                 if (token.HasValue) emittedNoteTokens.Add(token.Value);
             } else {
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
@@ -56,6 +57,11 @@ public static partial class WordPdfConverterExtensions {
         out PdfCore.PdfTextRun? marker, out int? noteToken) {
         marker = null;
         noteToken = null;
+        if ((child is W.SeparatorMark or W.ContinuationSeparatorMark) && defaults.NoteContentSection != null) {
+            marker = CreateNativeFootnoteSeparatorRule(child, source, defaults, fonts, table, notes);
+            if (marker == null) notes?.ReportSeparatorMarkOmission();
+            return true;
+        }
         string? label;
         string? destination = null;
         PdfCore.PdfFootnoteDefinition? definition = null;
