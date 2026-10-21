@@ -15,7 +15,7 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        internal void ResetMutationCachesAfterRollback() {
+        internal void ResetMutationCachesAfterRollback(IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot>? drawingHandles) {
             _sharedStringTablePart = null;
             _sharedStringCache.Clear();
             _sharedStringTableCount = -1;
@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel {
             _cachedSheets = null;
             _sheetCacheDirty = true;
             RebindSheetWrappersAfterPackageReload(CaptureActiveSheetPartsForReload(), packageWasSaved: false);
+            // Ordinary cache invalidation keeps drawing DOMs; rollback supplies their pre-mutation identities.
+            if (drawingHandles != null) RebindDrawingHandlesAfterPackageReload(drawingHandles);
         }
 
         internal SharedStringTablePart SharedStringTablePart {

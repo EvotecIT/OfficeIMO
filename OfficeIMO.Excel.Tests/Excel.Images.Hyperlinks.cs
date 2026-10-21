@@ -117,7 +117,7 @@ public sealed class ExcelPictureHyperlinkTests {
     }
 
     [Fact]
-    public void StaleAndReadOnlyPictureHandlesCannotMutateLinks() {
+    public void RetainedPictureLinksSurviveSaveAndReadOnlyHandlesRejectChanges() {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
@@ -130,9 +130,16 @@ public sealed class ExcelPictureHyperlinkTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-PictureLink-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             document.Save(path);
-            Assert.Throws<InvalidOperationException>(() => original.HyperlinkUri);
-            Assert.Throws<InvalidOperationException>(() => original.HyperlinkUri = target);
+            Assert.Equal(target, original.HyperlinkUri);
             Assert.Equal(target, document.Sheets.Single().Images.Single().HyperlinkUri);
+            var updatedTarget = new Uri("https://example.org/updated");
+            original.HyperlinkUri = updatedTarget;
+            document.Save(path);
+            Assert.Equal(updatedTarget, original.HyperlinkUri);
+            using var reopened = ExcelDocument.Load(path);
+            ExcelImage persisted = reopened.Sheets.Single().Images.Single();
+            Assert.Equal(updatedTarget, persisted.HyperlinkUri);
+            Assert.Equal(png, persisted.ToBytes());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -142,6 +149,7 @@ public sealed class ExcelPictureHyperlinkTests {
         Assert.Throws<InvalidOperationException>(() => image.HyperlinkUri = null);
         Assert.Equal(target, image.HyperlinkUri);
     }
+
     [Fact]
     public void RemovedWorksheetPictureCannotBeReboundByName() {
         using var document = ExcelDocument.Create();

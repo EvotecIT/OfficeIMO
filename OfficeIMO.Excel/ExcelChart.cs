@@ -15,19 +15,28 @@ namespace OfficeIMO.Excel {
     /// Represents a chart on a worksheet.
     /// </summary>
     public sealed partial class ExcelChart {
-        private readonly Xdr.GraphicFrame _frame;
-        private readonly DrawingsPart _drawingsPart;
+        private readonly ExcelDrawingHandle _drawingHandle;
+        private Xdr.GraphicFrame _frame => (Xdr.GraphicFrame)_drawingHandle.Element;
+        private DrawingsPart _drawingsPart => _drawingHandle.Part;
         private readonly ExcelDocument _document;
-        private readonly string _sheetName;
+        private string _sheetName => _drawingHandle.Sheet.Name;
+        private string _lastKnownSheetName;
         private ExcelChartDataRange? _dataRange;
 
         internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
-            _frame = frame ?? throw new ArgumentNullException(nameof(frame));
-            _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             _document = sheet.Document;
-            _sheetName = sheet.Name;
+            _lastKnownSheetName = sheet.Name;
             _dataRange = dataRange;
+            _drawingHandle = new ExcelDrawingHandle(frame, drawingsPart, sheet, RefreshDataRangeAfterReload);
+        }
+
+        private void RefreshDataRangeAfterReload() {
+            _lastKnownSheetName = _sheetName;
+            if (_dataRange != null) {
+                int maximumSeries = _dataRange.SeriesCount;
+                _dataRange = ExcelChartUtils.TryExtractDataRange(GetChartPart(), maximumSeries);
+            }
         }
 
         /// <summary>
@@ -39,6 +48,8 @@ namespace OfficeIMO.Excel {
                 var props = _frame.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties;
                 if (props != null) {
                     props.Name = value ?? string.Empty;
+                    _drawingsPart.WorksheetDrawing?.Save();
+                    _document.MarkPackageDirty();
                 }
             }
         }
@@ -46,15 +57,24 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the chart data range when it is known.
         /// </summary>
-        public ExcelChartDataRange? DataRange => _dataRange;
+        public ExcelChartDataRange? DataRange {
+            get {
+                if (_dataRange != null) GetChartPart();
+                return _dataRange;
+            }
+        }
 
-        internal ExcelChartDataRange? GetSourceDataRange(int maximumSeries) =>
-            _dataRange != null
-                ? _dataRange.SeriesCount <= maximumSeries ? _dataRange : null
+        internal ExcelChartDataRange? GetSourceDataRange(int maximumSeries) {
+            ExcelChartDataRange? range = DataRange;
+            return range != null
+                ? range.SeriesCount <= maximumSeries ? range : null
                 : ExcelChartUtils.TryExtractDataRange(GetChartPart(), maximumSeries);
+        }
 
-        internal bool HasCanonicalWorksheetReferences() => _dataRange != null &&
-            ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), _dataRange);
+        internal bool HasCanonicalWorksheetReferences() {
+            ExcelChartDataRange? range = DataRange;
+            return range != null && ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), range);
+        }
 
         internal bool HasCanonicalWorksheetReferences(ExcelChartDataRange range) =>
             ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), range);
@@ -555,7 +575,12 @@ namespace OfficeIMO.Excel {
             }
 
             string relId = relationshipId.Value ?? throw new InvalidOperationException("Chart relationship id is empty.");
-            return (ChartPart)_drawingsPart.GetPartById(relId);
+            var part = (ChartPart)_drawingsPart.GetPartById(relId);
+            if (!string.Equals(_lastKnownSheetName, _sheetName, StringComparison.Ordinal)) {
+                if (_dataRange != null) _dataRange = ExcelChartUtils.TryExtractDataRange(part, _dataRange.SeriesCount);
+                _lastKnownSheetName = _sheetName;
+            }
+            return part;
         }
 
         private void Save() {
