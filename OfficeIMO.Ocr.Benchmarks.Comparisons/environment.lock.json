@@ -30,12 +30,12 @@
   "rapidOcr": {
     "version": "3.9.2",
     "onnxRuntimeVersion": "1.29.0",
-    "payloadSha256": "035549b42953db6c7edde4193bbf916ff4c12616319de5feb576aeafb99354a6",
-    "payloadEntryCount": 2154,
+    "payloadSha256": "0b63f93d82979104ffb6862849877773ee3d7f1204344bc4fbf3abd43794bd48",
+    "payloadEntryCount": 2162,
     "distributions": {
       "PyYAML": "6.0.3",
       "antlr4-python3-runtime": "4.9.3",
-      "certifi": "2026.7.22",
+      "certifi": "2026.10.19",
       "charset-normalizer": "3.5.1",
       "colorlog": "6.12.0",
       "flatbuffers": "25.12.19",
@@ -45,7 +45,7 @@
       "onnxruntime": "1.29.0",
       "opencv-python": "5.0.0.93",
       "packaging": "26.3",
-      "pillow": "11.0.0",
+      "pillow": "12.3.0",
       "protobuf": "7.36.1",
       "pyclipper": "1.4.0",
       "rapidocr": "3.9.2",
@@ -53,7 +53,7 @@
       "shapely": "2.1.2",
       "six": "1.17.0",
       "tqdm": "4.70.0",
-      "urllib3": "2.7.0"
+      "urllib3": "2.8.0"
     },
     "models": {
       "PP-OCRv6_det_small.onnx": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
