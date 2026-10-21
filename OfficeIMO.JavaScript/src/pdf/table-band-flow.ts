@@ -35,12 +35,16 @@ export class PdfTableBandFlow {
     this.entries.push(entry); this.height += entry.height; this.count += entry.count;
     if (this.count >= this.layout.settings.limits.maxTableWindowRows) await this.flush();
   }
-  async row(row: PdfLayoutRow): Promise<void> {
+  async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
     const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
     if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
       throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
-    // A normal row remains intact whenever it fits below a fresh set of repeated context/headings.
+    // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
+    // retain the first fragment here instead of being orphaned by a later table-only page move.
     if (this.entries.length && row.height <= this.painter.continuationCapacity + .001 && row.height > this.capacity - this.height + .001) await this.flush();
+    if (!allowFirstFragment && this.firstWindow && !this.entries.length && row.height > this.capacity + .001 && row.height <= this.painter.firstFullCapacity + .001) {
+      await this.painter.moveFirstToFreshPage(); this.firstCapacity = this.painter.firstFullCapacity;
+    }
     let first = 0;
     while (first < row.lines) {
       checkAbort(options.signal);
@@ -70,10 +74,10 @@ export class PdfTableBandFlow {
     if (rows.length > this.layout.settings.limits.maxTableWindowRows) throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
     await this.accept({ rows: projected, height, count: rows.length });
   }
-  async keptRows(rows: readonly PdfLayoutRow[]): Promise<void> {
-    const height = rows.reduce((sum, row) => sum + row.height, 0);
-    if (this.entries.length && height <= this.painter.continuationCapacity + .001 && height > this.capacity - this.height + .001) await this.flush();
-    for (const row of rows) await this.row(row);
+  async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
+    const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
+    if (this.entries.length && fits && height > this.capacity - this.height + .001) await this.flush();
+    for (const [index, row] of rows.entries()) await this.row(row, !fits && index === 0 && allowFirstFragment);
   }
   async flush(forceHeadings = false): Promise<void> {
     if (!this.entries.length && (!forceHeadings || this.painted || !this.headings.some(rows => rows.length))) return;

@@ -3154,13 +3154,18 @@ class PdfTableBandFlow {
         if (this.count >= this.layout.settings.limits.maxTableWindowRows)
             await this.flush();
     }
-    async row(row) {
+    async row(row, allowFirstFragment = false) {
         const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
         if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
             throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
-        // A normal row remains intact whenever it fits below a fresh set of repeated context/headings.
+        // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
+        // retain the first fragment here instead of being orphaned by a later table-only page move.
         if (this.entries.length && row.height <= this.painter.continuationCapacity + .001 && row.height > this.capacity - this.height + .001)
             await this.flush();
+        if (!allowFirstFragment && this.firstWindow && !this.entries.length && row.height > this.capacity + .001 && row.height <= this.painter.firstFullCapacity + .001) {
+            await this.painter.moveFirstToFreshPage();
+            this.firstCapacity = this.painter.firstFullCapacity;
+        }
         let first = 0;
         while (first < row.lines) {
             checkAbort(options.signal);
@@ -3196,12 +3201,12 @@ class PdfTableBandFlow {
             throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
         await this.accept({ rows: projected, height, count: rows.length });
     }
-    async keptRows(rows) {
-        const height = rows.reduce((sum, row) => sum + row.height, 0);
-        if (this.entries.length && height <= this.painter.continuationCapacity + .001 && height > this.capacity - this.height + .001)
+    async keptRows(rows, allowFirstFragment = false) {
+        const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
+        if (this.entries.length && fits && height > this.capacity - this.height + .001)
             await this.flush();
-        for (const row of rows)
-            await this.row(row);
+        for (const [index, row] of rows.entries())
+            await this.row(row, !fits && index === 0 && allowFirstFragment);
     }
     async flush(forceHeadings = false) {
         if (!this.entries.length && (!forceHeadings || this.painted || !this.headings.some(rows => rows.length)))
@@ -3651,7 +3656,7 @@ class PdfPages {
     }
     async row(row, allowFirstFragment = false) {
         if (this.bandFlow)
-            return this.bandFlow.row(row);
+            return this.bandFlow.row(row, allowFirstFragment);
         const elements = this.rowElements(row);
         const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
         if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
@@ -3681,7 +3686,7 @@ class PdfPages {
      * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
     async keptRows(rows, allowFirstFragment = false) {
         if (this.bandFlow)
-            return this.bandFlow.keptRows(rows);
+            return this.bandFlow.keptRows(rows, allowFirstFragment);
         const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
         const fits = height <= this.continuationTop - bottom + .001;
         if (fits && height > this.y - bottom + .001) {

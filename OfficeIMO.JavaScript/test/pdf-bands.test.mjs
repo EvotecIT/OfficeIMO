@@ -163,3 +163,38 @@ test("multiline repeated identifiers remain intact on short final fragments and 
   const oversized = { ...row, id: Array.from({ length: 40 }, (_, index) => `ID-${index}`).join("\n") };
   await assert.rejects(writePdf([oversized], { ...geometry, ...tableOptions }), error => error instanceof RangeError && /Repeated PDF identifiers must fit intact/.test(error.message));
 });
+
+test("ordinary first band rows move intact after preceding content while kept contexts retain their first fragment", async () => {
+  const selected = [{ header: "Identifier", key: "id" }, { header: "Detail", key: "detail" }, { header: "Metric", key: "metric" }];
+  const geometry = { pageSize: base.pageSize, margins: base.margins, fontSize: base.fontSize, padding: base.padding, pageNumbers: false, compression: false };
+  const tableOptions = { columns: selected, columnWidths: [80, 100, 100], wideTable: { mode: "bands", repeatColumns: [0] } };
+  const detail = Array.from({ length: 10 }, (_, index) => `DETAIL-${index}`);
+  const row = { id: "FIRST-ID", detail: detail.join("\n"), metric: "Metric-one" };
+  const prefix = count => Array.from({ length: count }, (_, index) => `Preceding-${index}`).join("\n");
+  for (const profile of ["title", "messageTop", "composed"]) {
+    const blob = profile === "title" ? await writePdf([row], { ...geometry, ...tableOptions, title: prefix(10) }) :
+      profile === "messageTop" ? await writePdf([row], { ...geometry, ...tableOptions, title: "Visible report title", messageTop: prefix(13) }) :
+        await writePdfDocument([{ kind: "paragraph", text: prefix(15), spaceAfter: 0 }, pdfTable([row], tableOptions)], geometry);
+    const pdf = await inspectPdf(blob), body = pdf.pages.filter(page => page.lines.some(line => /^DETAIL-/.test(line)));
+    assert.equal(body.length, 1, `${profile}: the complete first row fits a fresh band window and must remain intact`);
+    assert.deepEqual(body[0].lines.filter(line => /^DETAIL-/.test(line)), detail);
+  }
+  for (const profile of ["kept", "caption", "grouped"]) {
+    const blocks = [{ kind: "paragraph", text: prefix(14), spaceAfter: 0 }];
+    const label = profile === "kept" ? "KEPT HEADING" : profile === "caption" ? "TABLE CAPTION" : "GROUP CONTEXT";
+    if (profile === "kept") blocks.push({ kind: "paragraph", text: label, keepWithNext: true, keepTogether: true, spaceAfter: 4 });
+    if (profile === "grouped") {
+      const report = createGroupedReport([row, { id: "SECOND-ID", detail: "Second detail", metric: "Metric-two" }], {
+        columns: selected, groupBy: [{ key: "hidden", value: () => label }]
+      });
+      blocks.push(pdfGroupedTable(report, { labelColumn: { header: "Group" }, subtotalLabel: () => "Subtotal", grandTotalLabel: () => "Grand",
+        includeGrandTotal: false, columnWidths: [60, 80, 100, 100], wideTable: { mode: "bands", repeatColumns: [0, 1] } }));
+    } else blocks.push(profile === "caption" ? { ...pdfTable([row], tableOptions), caption: { text: label, spaceAfter: 4 },
+      continuationCaption: { text: "CONTINUED CONTEXT", spaceAfter: 4 } } : pdfTable([row], tableOptions));
+    const pdf = await inspectPdf(await writePdfDocument(blocks, geometry));
+    const labelPage = pdf.pages.findIndex(page => page.lines.includes(label));
+    const detailPage = pdf.pages.findIndex(page => page.lines.some(line => /^DETAIL-/.test(line)));
+    assert.equal(labelPage, detailPage, `${profile}: an explicitly kept label stays with the first table fragment`);
+    assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^DETAIL-/.test(line)), detail);
+  }
+});

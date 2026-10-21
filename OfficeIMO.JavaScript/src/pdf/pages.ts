@@ -259,7 +259,7 @@ export class PdfPages {
     }
   }
   async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
-    if (this.bandFlow) return this.bandFlow.row(row);
+    if (this.bandFlow) return this.bandFlow.row(row, allowFirstFragment);
     const elements = this.rowElements(row);
     const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
     if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) { await this.finishPage(); await this.start(); }
@@ -276,7 +276,7 @@ export class PdfPages {
   /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
    * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
   async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
-    if (this.bandFlow) return this.bandFlow.keptRows(rows);
+    if (this.bandFlow) return this.bandFlow.keptRows(rows, allowFirstFragment);
     const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
     const fits = height <= this.continuationTop - bottom + .001;
     if (fits && height > this.y - bottom + .001) { await this.finishPage(); await this.start(); }

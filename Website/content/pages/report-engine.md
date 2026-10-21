@@ -1,6 +1,6 @@
 ---
 title: JavaScript report workbench
-description: "Generate typed Excel, PDF and CSV service reports locally. Try readable wide PDF tables, hierarchical groups, editable analysis, worker execution, progress and cancellation."
+description: "Generate typed Excel, readable wide PDF and CSV reports locally. Try hierarchical analysis, worker exports, progress and cancellation."
 layout: report-engine
 ---
 
