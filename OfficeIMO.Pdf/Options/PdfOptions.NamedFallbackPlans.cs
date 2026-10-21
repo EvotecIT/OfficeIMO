@@ -60,6 +60,9 @@ public sealed partial class PdfOptions {
 
         string key = NormalizeNamedFontFamilyKey(candidate.FontName);
         bool occupiedByCaller = _namedFontFamilies?.TryGetValue(key, out PdfEmbeddedFontFamily? existing) == true
+            // An explicit caller set replaces profile-owned resources. Only a
+            // caller-authored family needs a separate fallback resource name.
+            && _renderingProfileOwnedNamedFamilyNames?.Contains(candidate.FontName.Trim()) != true
             && _automaticFallbackOwnedNamedFamilyKeys?.Contains(key) != true
             && _namedFallbackPlanBindings?.Values.Any(active =>
                 ReferenceEquals(existing, active.FontFamilySnapshot)) != true;

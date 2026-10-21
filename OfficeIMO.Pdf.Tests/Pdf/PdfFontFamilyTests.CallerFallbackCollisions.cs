@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -223,6 +224,75 @@ public partial class PdfFontFamilyTests {
             .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();
         double baseline = GetCallerCollisionAdvance(Render(new[] { expected }), "A");
         Assert.InRange(GetCallerCollisionAdvance(Render(runs), "A"), baseline - 0.001D, baseline + 0.001D);
+    }
+
+    [Fact]
+    public void CallerNamedFallbackReplacesClonedProfileFamilyAndRetainsOwnershipAcrossOverlay() {
+        PdfEmbeddedFontFamily originalFamily = CreateCallerCollisionFamily();
+        var fonts = new OfficeFontFaceCollection()
+            .Add(originalFamily.FamilyName, originalFamily.Regular)
+            .Add(originalFamily.FamilyName, originalFamily.Bold!, OfficeFontStyle.Bold);
+        var original = new PdfOptions { DefaultFontSize = 10 }
+            .UseRenderingProfile(new OfficeRenderingProfile("profile-only-family", fonts));
+        byte[] callerData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(" caller family ", callerData)
+        });
+        PdfOptions options = original.Clone();
+
+        options.EmbeddedFontFallbacks = fallbacks;
+
+        Assert.Single(options.NamedFontFamilies);
+        Assert.Equal(callerData, options.NamedFontFamilies[originalFamily.FamilyName].Regular);
+        Assert.Equal(originalFamily.Regular, original.NamedFontFamilies[originalFamily.FamilyName].Regular);
+        Assert.Equal(originalFamily.Bold, original.NamedFontFamilies[originalFamily.FamilyName].Bold);
+        Assert.Null(original.EmbeddedFontFallbacks);
+        var overlayFonts = new OfficeFontFaceCollection()
+            .Add(originalFamily.FamilyName,
+                ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 'A', 0x03A9))
+            .AddFallbackFamily(originalFamily.FamilyName);
+        options.UseRenderingProfile(new OfficeRenderingProfile("later-overlay", overlayFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Single(options.NamedFontFamilies);
+        Assert.Equal(callerData, options.NamedFontFamilies[originalFamily.FamilyName].Regular);
+        Assert.Equal(callerData, Assert.Single(options.EmbeddedFontFallbacks!.Candidates).DataSnapshot);
+        byte[] pdf = PdfDocument.Create(options).Compose(document => document.Content(content => content
+            .Paragraph(paragraph => paragraph.FontFamily(originalFamily.FamilyName).Text("A\u03a9"))
+            .Paragraph(paragraph => paragraph.FontFamily(originalFamily.FamilyName).Bold().Text("A\u03a9"))
+            .Paragraph(paragraph => paragraph.Runs(fallbacks.PlanTextRuns("A\u03a9")))))
+            .ToBytes();
+        Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9A\u03a9A\u03a9"), 17.999D, 18.001D);
+    }
+
+    [Fact]
+    public void CallerNamedFallbackReusesProfileOwnedNameAtFamilyCapacity() {
+        PdfEmbeddedFontFamily callerFamily = CreateCallerCollisionFamily();
+        const string profileFamily = "Profile Family";
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add(profileFamily, callerFamily.Regular)
+            .AddFallbackFamily(profileFamily);
+        var options = new PdfOptions { DefaultFontSize = 10 }
+            .UseRenderingProfile(new OfficeRenderingProfile("profile-at-capacity", profileFonts));
+        for (int index = 0; index < 63; index++) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Other Family " + index,
+                callerFamily.Regular, callerFamily.Bold));
+        }
+        byte[] replacement = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9);
+
+        options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(profileFamily, replacement)
+        }));
+
+        Assert.Equal(64, options.NamedFontFamilies.Count);
+        Assert.Equal(replacement, options.NamedFontFamilies[profileFamily].Regular);
+        Assert.Equal(callerFamily.Bold, options.NamedFontFamilies["Other Family 0"].Bold);
+        Assert.Equal(callerFamily.Regular, options.NamedFontFamilies["Other Family 62"].Regular);
+        Assert.Equal(profileFamily, Assert.Single(options.EmbeddedFontFallbacks!.Candidates).FontName);
+        byte[] pdf = PdfDocument.Create(options).Compose(document => document.Content(content => content
+            .Paragraph(paragraph => paragraph.FontFamily(profileFamily).Text("A\u03a9"))))
+            .ToBytes();
+        Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
     }
 
     private static PdfEmbeddedFontFamily CreateCallerCollisionFamily() => new(
