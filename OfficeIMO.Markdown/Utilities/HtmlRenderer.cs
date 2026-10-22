@@ -126,7 +126,7 @@ internal static class HtmlRenderer {
             var navHtml = sidebar.RenderHtml(context);
             var content = new StringBuilder();
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
-                content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
+                AppendBodyBlock(content, plan.RenderBlocks[i], context);
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes, context));
             return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
@@ -134,10 +134,17 @@ internal static class HtmlRenderer {
 
         var sb = new StringBuilder();
         for (int i = 0; i < plan.RenderBlocks.Count; i++) {
-            sb.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
+            AppendBodyBlock(sb, plan.RenderBlocks[i], context);
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes, context));
         return sb.ToString();
+    }
+
+    private static void AppendBodyBlock(StringBuilder builder, IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        if (block is HtmlRawBlock { IsParsedBlock: true } && builder.Length > 0 && builder[builder.Length - 1] != '\n') {
+            builder.Append('\n');
+        }
+        builder.Append(RenderBodyBlock(block, context));
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {

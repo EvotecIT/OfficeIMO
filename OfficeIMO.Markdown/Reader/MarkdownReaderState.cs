@@ -115,6 +115,9 @@ public sealed class MarkdownReaderState {
     /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig.</summary>
     internal Dictionary<string, MarkdownAbbreviationDefinition> Abbreviations { get; } = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
     internal int SourceLineOffset { get; set; }
+    // A source-line slice is already a real line, even when its text is empty.
+    internal bool LastInputLineIsContent { get; set; }
+    internal bool HasSyntheticTerminalLine { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
     internal bool UseRelativeListMarkerIndent { get; set; }

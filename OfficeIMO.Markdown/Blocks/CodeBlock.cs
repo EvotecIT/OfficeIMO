@@ -10,7 +10,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     public string InfoString { get; }
     /// <summary>Structured fenced-code info metadata.</summary>
     public MarkdownCodeFenceInfo FenceInfo { get; }
-    /// <summary>Code contents.</summary>
+    /// <summary>Code contents, excluding one terminating newline when parsed from a code block.</summary>
     public string Content { get; }
     /// <summary>Optional caption shown under the block.</summary>
     public string? Caption { get; set; }
@@ -103,7 +103,9 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         }
 
         sb.AppendLine($"{fence}{InfoString}");
-        sb.AppendLine(Content);
+        if (Content.Length > 0 || FencedContentLineCount != 0) {
+            sb.AppendLine(Content);
+        }
         sb.AppendLine(fence);
         if (!string.IsNullOrWhiteSpace(Caption)) sb.AppendLine("_" + Caption + "_");
         return sb.ToString().TrimEnd();
@@ -123,7 +125,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             ? RenderCodeAttributes(options)
             : string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
         string code = HtmlTextEncoder.Encode(Content, options);
-        if (code.Length > 0) {
+        if (code.Length > 0 || FencedContentLineCount is > 0) {
             // CommonMark-style HTML keeps the terminating line break inside <code>
             // for multi-line block code, even though the stored model content does not.
             code += "\n";

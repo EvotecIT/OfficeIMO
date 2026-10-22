@@ -225,8 +225,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows
-          dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows
+          # Persist TRX and the active-test sequence before the job's 20-minute limit.
+          dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
+          dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -1307,8 +1308,8 @@ jobs:
       - name: Install multilingual HTML fixture fonts
         if: matrix.partition == 'word-rtf-html'
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
 
       - name: Restore NuGet packages
         uses: actions/cache/restore@v6
