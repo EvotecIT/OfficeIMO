@@ -34,9 +34,13 @@ public static partial class MarkdownReader {
                     }
 
                     // Strip one level
-                    var stripped = ltrim.Length >= 2 && ltrim[1] == ' ' ? ltrim.Substring(2) : ltrim.Substring(1);
+                    var expanded = ExpandWhitespaceAfterContainerMarker(ln, ln.IndexOf('>') + 1);
+                    var stripped = StripSingleQuoteMarker(expanded);
+                    int contentStartColumn = GetQuoteContentStartColumn(expanded);
                     if (inner.Count == 0) {
+                        int leadingColumns = CountLeadingIndentColumns(stripped);
                         stripped = NormalizeContainerContentIndent(stripped);
+                        contentStartColumn += leadingColumns - CountLeadingIndentColumns(stripped);
                     }
                     if (inner.Count > 0 &&
                         TryNormalizeQuotedNestedQuoteContinuation(inner[inner.Count - 1], stripped, options, out var normalizedNestedQuoteLine)) {
@@ -53,7 +57,7 @@ public static partial class MarkdownReader {
                     innerSourceLines.Add(new MarkdownSourceLineSlice(
                         stripped,
                         state.SourceLineOffset + j + 1,
-                        GetQuoteContentStartColumn(ln),
+                        contentStartColumn,
                         isQuoteContainerLine: true));
                     var markerSourceSpan = CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state);
                     if (markerSourceSpan.HasValue && markerSourceSpans != null) {
@@ -122,7 +126,7 @@ public static partial class MarkdownReader {
             var qb = new QuoteBlock();
             IReadOnlyList<MarkdownSyntaxNode> syntaxChildren = Array.Empty<MarkdownSyntaxNode>();
             if (CanParseSemanticQuoteAsSingleParagraph(inner, options, state)) {
-                qb.ChildBlocks.Add(new ParagraphBlock(ParseInlines(JoinParagraphLines(inner, options), options, state)));
+                qb.ChildBlocks.Add(new ParagraphBlock(ParseJoinedParagraphLines(inner, options, state)));
             } else {
                 var parsed = ParseNestedMarkdownBlocks(
                     innerSourceLines,
@@ -155,6 +159,7 @@ public static partial class MarkdownReader {
                 string line = lines[lineIndex] ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(line)
                     || (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4)
+                    || (options.Tables && LooksLikeTableRow(line))
                     || IsQuoteStarter(line)
                     || IsAtxHeading(line, out _, out _)
                     || IsCodeFenceOpen(line, out _, out _, out _)

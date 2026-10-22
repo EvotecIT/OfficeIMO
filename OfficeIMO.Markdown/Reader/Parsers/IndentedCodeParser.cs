@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
                 if (string.IsNullOrWhiteSpace(cur)) {
                     // Include blank lines only if there is a following indented line (otherwise end block).
                     if (!HasIndentedCodeContinuationAfterBlankLines(lines, j, IndentedCodeMinimumSpaces)) break;
-                    sb.AppendLine();
+                    sb.AppendLine(StripLeadingIndentColumns(cur, IndentedCodeMinimumSpaces));
                     j++;
                     continue;
                 }
@@ -45,8 +45,10 @@ public static partial class MarkdownReader {
             // Keep content as-is (minus the last newline we appended via AppendLine).
             string content = RemoveSingleTrailingLineEnding(sb.ToString());
             if (TryTakePendingGenericAttributeBlock(state, out var pending)) {
-                var paragraphText = JoinParagraphLines(new List<string>(content.Split('\n')), options).Trim();
-                var paragraph = new ParagraphBlock(ParseInlines(paragraphText, options, state));
+                // Split the same terminator AppendLine used, so a residual CR cannot hide two-space hard breaks.
+                var paragraphLines = new List<string>(content.Split(new[] { Environment.NewLine }, StringSplitOptions.None));
+                var (paragraphText, paragraphSourceMap) = JoinTrimmedParagraphLines(paragraphLines, options);
+                var paragraph = new ParagraphBlock(ParseInlines(paragraphText, options, state, paragraphSourceMap));
                 paragraph.SetAttributes(pending.Attributes);
                 MarkdownGenericAttributeSourceSpans.Set(paragraph, pending.SourceText, pending.SourceSpan);
                 doc.Add(paragraph);

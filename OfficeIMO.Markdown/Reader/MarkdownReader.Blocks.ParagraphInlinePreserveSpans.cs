@@ -48,6 +48,13 @@ public static partial class MarkdownReader {
         return result;
     }
 
+    private static bool StartsWithRawInlineHtml(string line) {
+        var text = (line ?? string.Empty).TrimStart(' ', '\t');
+        return text.Length > 0 && text[0] == '<' &&
+            (TryGetRawInlineHtmlConstructEnd(text, 0, out _) ||
+             HtmlBlockParser.TryParseHtmlTag(text, out _, out _, out _));
+    }
+
     private static List<ParagraphInlinePreserveRange> FindMatchedCodeSpanRanges(string text) {
         var ranges = new List<ParagraphInlinePreserveRange>();
         for (var position = 0; position < text.Length;) {
