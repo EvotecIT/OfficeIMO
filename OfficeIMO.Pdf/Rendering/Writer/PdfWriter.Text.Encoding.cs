@@ -225,9 +225,7 @@ internal static partial class PdfWriter {
             }
             sourceIndex++;
         }
-        return new PdfTextEncodingDiagnostic(diagnostic.Source, sourceIndex, diagnostic.CodePoint, diagnostic.Text,
-            diagnostic.IsControlCharacter, diagnostic.Encoding, diagnostic.Remediation, diagnostic.Location,
-            diagnostic.RunIndex, diagnostic.PageNumber, diagnostic.TableRowIndex, diagnostic.TableColumnIndex, diagnostic.FieldName);
+        return diagnostic.WithIndex(sourceIndex);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
