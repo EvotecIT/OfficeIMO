@@ -21,7 +21,8 @@ internal static partial class HtmlCssPageSettingsResolver {
                 || name.Equals("font-weight", StringComparison.OrdinalIgnoreCase) || name.Equals("font-style", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("font-stretch", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("line-height", StringComparison.OrdinalIgnoreCase) || name.Equals("color", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)) {
+                || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)
+                || IsMarginGeometryDeclaration(name)) {
                 string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
                     HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
                 if (value.Length > 0) result.Add(new HtmlGeneratedStyleDeclaration(name, value,
@@ -31,4 +32,13 @@ internal static partial class HtmlCssPageSettingsResolver {
         }
         return result;
     }
+
+    internal static bool IsMarginGeometryDeclaration(string name) =>
+        name.ToLowerInvariant() is "width" or "min-width" or "max-width" or "padding"
+            or "padding-top" or "padding-right" or "padding-bottom" or "padding-left"
+            or "border" or "border-width" or "border-style" or "border-color"
+            or "border-top" or "border-right" or "border-bottom" or "border-left"
+            or "border-top-width" or "border-right-width" or "border-bottom-width" or "border-left-width"
+            or "border-top-style" or "border-right-style" or "border-bottom-style" or "border-left-style"
+            or "border-top-color" or "border-right-color" or "border-bottom-color" or "border-left-color";
 }
