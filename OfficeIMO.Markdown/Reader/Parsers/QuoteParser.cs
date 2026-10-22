@@ -125,7 +125,8 @@ public static partial class MarkdownReader {
             // Recursively parse inner content as a separate document
             var qb = new QuoteBlock();
             IReadOnlyList<MarkdownSyntaxNode> syntaxChildren = Array.Empty<MarkdownSyntaxNode>();
-            if (CanParseSemanticQuoteAsSingleParagraph(inner, options, state)) {
+            if (CanParseSemanticQuoteAsSingleParagraph(inner, options, state)
+                && !innerSourceLines.Exists(line => line.IsLazyQuoteContinuation)) {
                 qb.ChildBlocks.Add(new ParagraphBlock(ParseJoinedParagraphLines(inner, options, state)));
             } else {
                 var parsed = ParseNestedMarkdownBlocks(

@@ -251,7 +251,8 @@ public static partial class MarkdownReader {
             bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
             var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
             normalizedSourceText = text;
-            state.HasSyntheticTerminalLine = !state.LastInputLineIsContent && text.EndsWith("\n", StringComparison.Ordinal);
+            state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
+                (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
             if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }

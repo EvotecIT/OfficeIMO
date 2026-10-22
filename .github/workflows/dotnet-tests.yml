@@ -225,8 +225,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows
-          dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows
+          # Persist TRX and the active-test sequence before the job's 20-minute limit.
+          dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
+          dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

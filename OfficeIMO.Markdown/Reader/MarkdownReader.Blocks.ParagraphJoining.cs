@@ -24,7 +24,8 @@ public static partial class MarkdownReader {
         return (trimmed, sourceMap?.Slice(start, trimmed.Length));
     }
 
-    private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options, out List<int>? softBreaks) {
+    private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options, out List<int>? softBreaks,
+        MarkdownReaderState? state = null, int absoluteLineOffset = 0) {
         softBreaks = null;
         if (lines.Count == 1) {
             return GetParagraphLineJoinInfo(
@@ -56,8 +57,11 @@ public static partial class MarkdownReader {
                     StartsWithRawInlineHtml(lines[i + 1]));
 
             if (i > 0) {
-                if (previousPreserveLineBreak) (softBreaks ??= new List<int>()).Add(sb.Length);
-                sb.Append(previousUsesLineBreakSeparator ? "\n" : " ");
+                bool lazyQuoteBreak = !previousHardBreak &&
+                    (IsLazyQuoteContinuationLine(state, absoluteLineOffset + i - 1) ||
+                     IsLazyQuoteContinuationLine(state, absoluteLineOffset + i));
+                if (previousPreserveLineBreak || lazyQuoteBreak) (softBreaks ??= new List<int>()).Add(sb.Length);
+                sb.Append(previousUsesLineBreakSeparator || lazyQuoteBreak ? "\n" : " ");
             }
             sb.Append(joinInfo.Text);
             previousUsesLineBreakSeparator = joinInfo.UsesLineBreakSeparator;
@@ -74,7 +78,7 @@ public static partial class MarkdownReader {
         MarkdownReaderState? state,
         IReadOnlyList<int>? lineStartColumns = null) {
         if (state?.SourceTextMap == null) {
-            var sourceText = JoinParagraphLines(lines, options, out var softBreaks);
+            var sourceText = JoinParagraphLines(lines, options, out var softBreaks, state, absoluteLineOffset);
             return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks));
         }
 
@@ -93,7 +97,8 @@ public static partial class MarkdownReader {
             var absoluteLine = absoluteLineOffset + i + 1;
             var lineStartColumn = GetParagraphLineStartColumn(lineStartColumns, i);
             if (previousJoinInfo.HasValue) {
-                var softLazyQuoteBreak = IsLazyQuoteContinuationLine(state, absoluteLineOffset + i) &&
+                var softLazyQuoteBreak = (IsLazyQuoteContinuationLine(state, absoluteLineOffset + i - 1) ||
+                    IsLazyQuoteContinuationLine(state, absoluteLineOffset + i)) &&
                     !previousJoinInfo.Value.HardBreak;
                 textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
                 points[mapLength] = state.SourceTextMap.CreatePoint(previousAbsoluteLine, previousJoinColumn);
