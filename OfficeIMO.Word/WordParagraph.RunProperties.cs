@@ -313,6 +313,7 @@ namespace OfficeIMO.Word {
                 } else {
                     if (runProperties.FontSize != null) runProperties.FontSize.Remove();
                 }
+                UpdatePageNumberFormatting(runProperties.FontSize);
             }
         }
 
@@ -359,6 +360,7 @@ namespace OfficeIMO.Word {
                 } else {
                     if (runProperties.Color != null) runProperties.Color.Remove();
                 }
+                UpdatePageNumberFormatting(runProperties.Color);
             }
         }
 
@@ -500,6 +502,7 @@ namespace OfficeIMO.Word {
                     runProperties.RunFonts.ComplexScript = value;
                     runProperties.RunFonts.EastAsia = value;
                 }
+                UpdatePageNumberFormatting(runProperties.RunFonts);
             }
         }
 

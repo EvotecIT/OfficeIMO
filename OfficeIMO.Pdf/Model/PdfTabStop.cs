@@ -6,6 +6,9 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfTabStop {
     private double _position;
     private char? _decimalSeparator;
+    // Generated navigation anchors its final tab to each actual flow frame.
+    // Authored tab stops retain their ordinary absolute positions.
+    internal bool IsFrameRightRelative { get; set; }
 
     /// <summary>
     /// Creates a paragraph tab stop at the specified position.
@@ -53,5 +56,16 @@ public sealed class PdfTabStop {
     }
 
     /// <summary>Creates a copy of this tab stop.</summary>
-    public PdfTabStop Clone() => new PdfTabStop(Position, Alignment, Leader) { DecimalSeparator = DecimalSeparator };
+    public PdfTabStop Clone() => new PdfTabStop(Position, Alignment, Leader) {
+        DecimalSeparator = DecimalSeparator, IsFrameRightRelative = IsFrameRightRelative
+    };
+
+    internal PdfTabStop ResolveFramePosition(double frameWidth) {
+        PdfTabStop clone = Clone();
+        if (IsFrameRightRelative) {
+            clone.Position = System.Math.Max(0.001D, frameWidth - Position);
+            clone.IsFrameRightRelative = false;
+        }
+        return clone;
+    }
 }

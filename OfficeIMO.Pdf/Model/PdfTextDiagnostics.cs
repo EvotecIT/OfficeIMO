@@ -67,14 +67,14 @@ internal static partial class PdfTextDiagnostics {
         return AnalyzeWinAnsiTextCore(text, source, location, null);
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextCore(string text, string source, string location, int? runIndex) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeWinAnsiTextCore(string text, string source, string location, int? runIndex, bool generatedText = false) {
         Guard.NotNull(text, nameof(text));
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || (generatedText && ch == '\u200B')) {
                 index++;
                 continue;
             }
@@ -221,7 +221,7 @@ internal static partial class PdfTextDiagnostics {
                 TryGetWinAnsiCoveredTextElementLength);
         }
 
-        return AnalyzeWinAnsiTextCore(text, source, location, runIndex);
+        return AnalyzeWinAnsiTextCore(text, source, location, runIndex, generatedText: true);
     }
 
     /// <summary>
@@ -787,7 +787,7 @@ internal static partial class PdfTextDiagnostics {
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
-            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+            if (scalar == '\n' || scalar == '\r' || scalar == '\t' || scalar == '\u200B') {
                 previousFallbackFontIndex = -1;
                 continue;
             }
@@ -904,7 +904,7 @@ internal static partial class PdfTextDiagnostics {
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || ch == '\u200B') {
                 index++;
                 continue;
             }
@@ -937,7 +937,7 @@ internal static partial class PdfTextDiagnostics {
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (ch == '\n' || ch == '\r' || ch == '\t' || ch == '\u200B') {
                 index++;
                 continue;
             }
@@ -1146,7 +1146,6 @@ internal static partial class PdfTextDiagnostics {
         string codePoint = FormatCodePoint(scalar);
         string display = GetDisplayText(scalar);
         string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";
-        string message = "Text contains character " + codePoint + rendered + " at index " + index.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded TrueType font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.";
         return new PdfTextEncodingDiagnostic(
             source,
             index,
@@ -1154,15 +1153,13 @@ internal static partial class PdfTextDiagnostics {
             display,
             isControlCharacter: false,
             code: "missing-embedded-font-glyph",
-            message: message,
-            customCode: true);
+            messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded TrueType font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.");
     }
 
     private static PdfTextEncodingDiagnostic CreateEmbeddedCffFontDiagnostic(int index, int scalar, string source, string fontName) {
         string codePoint = FormatCodePoint(scalar);
         string display = GetDisplayText(scalar);
         string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";
-        string message = "Text contains character " + codePoint + rendered + " at index " + index.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded OpenType/CFF font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.";
         return new PdfTextEncodingDiagnostic(
             source,
             index,
@@ -1170,8 +1167,7 @@ internal static partial class PdfTextDiagnostics {
             display,
             isControlCharacter: false,
             code: "missing-embedded-font-glyph",
-            message: message,
-            customCode: true);
+            messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded OpenType/CFF font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.");
     }
 
     private static void AddDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int index, int scalar, string script, string code, string message, bool isCoveredByBuiltInShaping = false) {
@@ -1327,7 +1323,6 @@ internal static partial class PdfTextDiagnostics {
         string display = GetDisplayText(scalar);
         string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";
         string fontNames = string.Join(", ", fonts.Select(font => "'" + font.FontName + "'"));
-        string message = "Text contains character " + codePoint + rendered + " at index " + index.ToString(CultureInfo.InvariantCulture) + " that is not covered by any embedded font fallback candidate: " + fontNames + ". Add a fallback font that contains this glyph or replace the character before rendering.";
         return new PdfTextEncodingDiagnostic(
             source,
             index,
@@ -1335,8 +1330,7 @@ internal static partial class PdfTextDiagnostics {
             display,
             isControlCharacter: false,
             code: "missing-embedded-font-fallback-glyph",
-            message: message,
-            customCode: true);
+            messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by any embedded font fallback candidate: " + fontNames + ". Add a fallback font that contains this glyph or replace the character before rendering.");
     }
 
     private static int ReadScalar(string text, ref int index) {

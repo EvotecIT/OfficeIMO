@@ -22,11 +22,11 @@ export interface PdfTableBlock {
   readonly options: PdfTableOptions;
   /** Visible caption before the table, kept with its first heading/data fragment. */
   readonly caption?: PdfCaption;
-  /** Repeated before leaf headings when this table continues on another page. Tagged output is unsupported. */
+  /** Repeated visual context before continuation headings; an artifact in tagged output. */
   readonly continuationCaption?: PdfCaption;
 }
 /** A single-use analytical source with repeated ancestor context and source-owned numeric aggregates.
- * Construct through pdfGroupedTable to capture its options. Tagged output is unsupported. */
+ * Construct through pdfGroupedTable to capture its options. Tagged output preserves the group hierarchy. */
 export interface PdfGroupedTableBlock {
   readonly kind: "groupedTable";
   readonly report: GroupedReportSource;

@@ -132,16 +132,21 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a page number field to the paragraph.
         /// </summary>
+        /// <remarks>The generated fields and separator copy this run's formatting and follow later font-family, font-size and color changes to this run while authoring. Unrelated runs retain their own formatting. Saved fields contain explicit run properties.</remarks>
         /// <param name="includeTotalPages">If true adds a NUMPAGES field preceded by text " of ".</param>
         /// <param name="format">Optional field format to apply.</param>
         /// <param name="separator">Text inserted between the current page and total pages fields.</param>
         /// <returns>The paragraph that this was called on.</returns>
         public WordParagraph AddPageNumber(bool includeTotalPages = false, WordFieldFormat? format = null, string separator = " of ") {
+            VerifyRun();
+            OpenXmlElement? previous = _paragraph.LastChild;
             this.AddField(WordFieldType.Page, format);
             if (includeTotalPages) {
                 this.AddText(separator);
                 this.AddField(WordFieldType.NumPages, format);
             }
+            InheritPageNumberFormatting(_paragraph.ChildElements.SkipWhile(child => !ReferenceEquals(child, previous))
+                .Skip(1).SelectMany(child => child is Run run ? new[] { run } : child.Descendants<Run>()));
             return this;
         }
 

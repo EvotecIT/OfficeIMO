@@ -149,19 +149,24 @@ public static partial class HtmlImageSourceResolver {
     public static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) =>
         ResolveNormalizedSrcSet(rawSrcSet, baseUri, policy, maxCandidates, CancellationToken.None);
 
-    internal static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, CancellationToken cancellationToken) {
+    internal static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, CancellationToken cancellationToken, HtmlConversionLimits? limits = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(rawSrcSet)) {
             return string.Empty;
         }
 
         var parts = new List<string>();
+        long serializedCharacters = 0;
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(rawSrcSet, maxCandidates, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(resolved)) {
-                parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor) ? resolved : resolved + " " + candidate.Descriptor);
+                bool hasDescriptor = !string.IsNullOrWhiteSpace(candidate.Descriptor);
+                serializedCharacters = checked(serializedCharacters + (parts.Count == 0 ? 0 : 2) +
+                    resolved.Length + (hasDescriptor ? 1L + candidate.Descriptor.Length : 0));
+                if (limits != null) HtmlConversionSourceWriter.ValidateLength(serializedCharacters, limits);
+                parts.Add(hasDescriptor ? resolved + " " + candidate.Descriptor : resolved);
             }
         }
 

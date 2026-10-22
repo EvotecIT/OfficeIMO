@@ -37,6 +37,10 @@ public sealed class PdfTableOfContentsOptions {
     /// <summary>Optional formatter for physical output page numbers.</summary>
     public Func<int, string>? PageNumberFormatter { get; set; }
 
+    /// <summary>Explicit bookmark entries, or null to use generated document sections.</summary>
+    /// <remarks>Entries retain authored order. Page numbers are resolved from actual bookmark placement on each layout pass.</remarks>
+    public IReadOnlyList<PdfTableOfContentsEntry>? Entries { get; set; }
+
     internal PdfTableOfContentsOptions Clone() {
         if (MinimumLevel > MaximumLevel) throw new ArgumentException("TOC minimum level cannot exceed maximum level.");
         return new PdfTableOfContentsOptions {
@@ -45,7 +49,8 @@ public sealed class PdfTableOfContentsOptions {
             MaximumLevel = MaximumLevel,
             IndentPerLevel = IndentPerLevel,
             Leader = Leader,
-            PageNumberFormatter = PageNumberFormatter
+            PageNumberFormatter = PageNumberFormatter,
+            Entries = Entries?.Select(entry => entry ?? throw new ArgumentException("TOC entries cannot contain null.", nameof(Entries))).ToArray()
         };
     }
 
