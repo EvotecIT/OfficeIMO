@@ -5,6 +5,55 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
+        /// Gets the zero-based index of the worksheet that spreadsheet applications show when the workbook opens.
+        /// </summary>
+        /// <remarks>
+        /// The index is relative to <see cref="Sheets"/>. Reads the first workbook view's <c>activeTab</c>
+        /// in workbook-tab order: a missing value means the first tab, and a value past the last tab means
+        /// the last tab. Returns -1 when there is no active worksheet, including when a preserved chartsheet
+        /// or another non-worksheet tab is active.
+        /// </remarks>
+        public int ActiveWorksheetIndex {
+            get => ExecuteReadAfterMaterializing(() => {
+                List<ExcelSheet> sheets = GetSheetsForLockedOperation();
+                return GetActiveWorksheetIndexForLockedOperation(sheets);
+            });
+        }
+
+        /// <summary>
+        /// Gets the worksheet that spreadsheet applications show when the workbook opens, or null when the active tab is not a worksheet.
+        /// </summary>
+        /// <remarks>Uses the same <c>activeTab</c> resolution as <see cref="ActiveWorksheetIndex"/>. Returns null when there are no worksheets.</remarks>
+        public ExcelSheet? ActiveWorksheet {
+            get => ExecuteReadAfterMaterializing(() => {
+                List<ExcelSheet> sheets = GetSheetsForLockedOperation();
+                int index = GetActiveWorksheetIndexForLockedOperation(sheets);
+                return index < 0 ? null : sheets[index];
+            });
+        }
+
+        private int GetActiveWorksheetIndexForLockedOperation(IReadOnlyList<ExcelSheet> worksheets) {
+            List<Sheet> workbookSheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+            int? activeTab = GetActiveWorksheetIndex(WorkbookRoot, workbookSheets.Count);
+            if (!activeTab.HasValue) {
+                return -1;
+            }
+
+            string? relationshipId = workbookSheets[activeTab.Value].Id?.Value;
+            if (string.IsNullOrEmpty(relationshipId)) {
+                return -1;
+            }
+
+            for (int index = 0; index < worksheets.Count; index++) {
+                if (string.Equals(worksheets[index].SheetElement.Id?.Value, relationshipId, StringComparison.Ordinal)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Sets the worksheet that spreadsheet applications should show when the workbook opens.
         /// </summary>
         /// <param name="sheetName">Worksheet name.</param>
