@@ -10,10 +10,13 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPaperHeaderSizingTests {
-    [Fact]
-    public void WideHeadersSerializeWithinThePageAndRenderCompoundWordsIntact() {
+    [Theory]
+    [InlineData("Arial")]
+    [InlineData("Helvetica")]
+    [InlineData("Courier")]
+    public void WideHeadersSerializeWithinThePageAndRenderCompoundWordsIntact(string family) {
         using WordDocument document = WordDocument.Create();
-        var style = new WordPaperStyle { FontFamily = "Arial" };
+        var style = new WordPaperStyle { FontFamily = family };
         string[] headers = { "Domain", "Authentication", "MTA-STS policy", "TLS-RPT", "Disposition", "Score" };
         WordTable table = document.AddTable(2, headers.Length);
         for (int column = 0; column < headers.Length; column++) {
@@ -45,14 +48,32 @@ public sealed class WordPaperHeaderSizingTests {
         PdfReadDocument pdf = PdfReadDocument.Open(bytes);
         Assert.Single(pdf.Pages);
         var spans = pdf.Pages[0].GetTextSpans();
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var words = independent.GetPage(1).GetWords().ToArray();
         foreach (string word in new[] { "Authentication", "MTA-STS", "TLS-RPT", "Disposition" }) {
             Assert.True(spans.Any(span => span.Text.Contains(word)), word + ": widths=" + string.Join(",", saved.ColumnWidth) + " " + string.Join(" | ", spans.Select(span => $"{span.Text} @ {span.X},{span.Y} size={span.FontSize} width={span.Advance}")));
             PdfTextSpan span = Assert.Single(spans, span => span.Text.Contains(word));
             int column = Array.FindIndex(headers, header => header.Contains(word));
             double left = document.Margins.Left / 20D + saved.ColumnWidth.Take(column).Sum() / 20D;
             Assert.True(span.X >= left, word + " starts outside its column");
-            Assert.True(span.X + span.Advance <= left + saved.ColumnWidth[column] / 20D + .1D, word + " exceeds its column");
+            var independentWord = Assert.Single(words, candidate => candidate.Text == word);
+            Assert.True(independentWord.BoundingBox.Right <= left + saved.ColumnWidth[column] / 20D + .1D,
+                $"{family}: [{span.Text}] size={span.FontSize} font={span.BaseFont}: {word} at {span.X:0.###}..{span.X + span.Advance:0.###} exceeds {left:0.###}..{left + saved.ColumnWidth[column] / 20D:0.###}; widths={string.Join(",", saved.ColumnWidth)}");
         }
+    }
+
+    [Fact]
+    public void SoftHyphenHeaderMinimumIncludesTheFallbackPaintedHyphen() {
+        using WordDocument document = WordDocument.Create();
+        var style = new WordPaperStyle { FontFamily = "Unavailable paper font 537" };
+        WordTable table = document.AddTable(2, 2);
+        style.SetCellText(table.Rows[0].Cells[0], "W\u00ADW");
+        style.SetCellText(table.Rows[0].Cells[1], "Notes");
+        style.ApplyTable(table, alignNumericColumns: false);
+        style.FitTableColumnsToHeaders(table, 0, 1);
+        double fallback = OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W-W", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold);
+        Assert.Equal(fallback, OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W\u00ADW", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold));
+        Assert.True(table.ColumnWidth[0] >= fallback * 20 + 2 * style.TableCellHorizontalPadding);
     }
 
     [Fact]

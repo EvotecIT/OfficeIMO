@@ -10,7 +10,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="relativeWidths">Non-negative column weights; omitted weights give equal desired widths. The values need not sum to 100.</param>
     /// <remarks>
     /// Words break at whitespace, not hyphens, so compound labels remain intact. Measurements use
-    /// OfficeIMO.Core estimates, bounded below by available managed TrueType metrics. The resulting
+    /// OfficeIMO.Core estimates, bounded below by managed TrueType and standard fallback advances. The resulting
     /// fixed grid and cell widths are in twips. Reapply after changing header text, typography or page geometry.
     /// </remarks>
     /// <exception cref="InvalidOperationException">The header minima exceed the available width, or the table has merged or irregular rows.</exception>
@@ -88,14 +88,16 @@ public sealed partial class WordPaperStyle {
                         wordWidth += MeasureSegment(segment.ToString());
                     }
                 }
-                double MeasureSegment(string text) => Math.Max(measurer.MeasureWidth(text, measurement),
-                    metrics?.Measure(text, size) ?? 0D);
+                double MeasureSegment(string text) => Math.Max(
+                    OfficeStandardFontMetrics.MeasureFallbackWidth(text, size, font.Style),
+                    Math.Max(measurer.MeasureWidth(text, measurement), metrics?.Measure(text, size) ?? 0D));
             }
             longest = Math.Max(longest, wordWidth);
         }
         int left = cell.MarginLeftWidth ?? table.StyleDetails?.MarginDefaultLeftWidth ?? TableCellHorizontalPadding;
         int right = cell.MarginRightWidth ?? table.StyleDetails?.MarginDefaultRightWidth ?? TableCellHorizontalPadding;
-        return Math.Max(1, checked((int)Math.Ceiling(longest * 20D) + Math.Max(0, left) + Math.Max(0, right)));
+        // Round strictly outward: an exact twip boundary must survive PDF grid normalization.
+        return Math.Max(1, checked((int)Math.Floor(longest * 20D) + 1 + Math.Max(0, left) + Math.Max(0, right)));
     }
 
     // Clamp undersized columns, then redistribute the remaining width in the requested ratio.
