@@ -135,10 +135,8 @@ namespace OfficeIMO.Word {
         internal static Endnote GenerateEndNote(long endnoteReferenceId, WordParagraph wordParagraph) {
             Endnote endNote = new Endnote() { Id = endnoteReferenceId };
 
-            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
-            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "EndnoteText" };
-
-            paragraphProperties1.Append(paragraphStyleId1);
+            ParagraphProperties paragraphProperties1 = wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            paragraphProperties1.ParagraphStyleId ??= new ParagraphStyleId { Val = "EndnoteText" };
 
             Run run1 = new Run();
 
@@ -151,14 +149,7 @@ namespace OfficeIMO.Word {
             run1.Append(runProperties1);
             run1.Append(endnoteReferenceMark);
 
-            wordParagraph._paragraph.ParagraphProperties = paragraphProperties1;
-
-            var run = wordParagraph._paragraph.GetFirstChild<Run>();
-            if (run != null) {
-                run.InsertBeforeSelf(run1);
-            } else {
-                wordParagraph._paragraph.PrependChild(run1);
-            }
+            wordParagraph._paragraph.InsertAfter(run1, paragraphProperties1);
 
             endNote.Append(wordParagraph._paragraph);
             wordParagraph.RefreshParent();

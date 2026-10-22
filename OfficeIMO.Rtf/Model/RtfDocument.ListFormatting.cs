@@ -21,8 +21,11 @@ public sealed partial class RtfDocument {
             .LastOrDefault(item => (item.Item.LevelIndex ?? item.Index) == levelIndex)?.Item;
         if (levelOverride?.OverrideFormat == true && levelOverride.Formatting != null) source = levelOverride.Formatting;
         if (source == null && paragraph.ListKind == RtfListKind.None && !paragraph.LegacyNumbering.HasAnyValue) return null;
+        RtfListKind kind = paragraph.ListKind == RtfListKind.None
+            ? paragraph.LegacyNumbering.LevelKind == RtfLegacyNumberingLevelKind.Bullet ? RtfListKind.Bullet : RtfListKind.Decimal
+            : paragraph.ListKind;
         RtfListLevel level = source == null
-            ? new RtfListLevel(levelIndex, paragraph.ListKind == RtfListKind.None ? RtfListKind.Decimal : paragraph.ListKind)
+            ? new RtfListLevel(levelIndex, kind)
             : new RtfCloneContext().Clone(source)!;
         if (source == null && paragraph.LegacyNumbering.HasAnyValue) {
             RtfLegacyNumbering legacy = paragraph.LegacyNumbering;

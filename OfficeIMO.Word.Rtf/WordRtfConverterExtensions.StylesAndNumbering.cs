@@ -285,13 +285,14 @@ public static partial class WordRtfConverterExtensions {
         destination.ListKind = level?.Kind ?? RtfListKind.Decimal;
     }
 
-    private static void ApplyParagraphStyleAndNumbering(WordParagraph destination, RtfParagraph source, RtfDocument document) {
+    private static void ApplyParagraphStyleAndNumbering(WordParagraph destination, RtfParagraph source, RtfDocument document, int? projectedNumberId) {
         if (source.StyleId.HasValue && HasRtfStyle(document, source.StyleId.Value, RtfStyleKind.Paragraph)) destination.SetStyleId(GetWordStyleId(source.StyleId.Value, RtfStyleKind.Paragraph));
-        if (!source.ListId.HasValue) return;
+        int? listId = projectedNumberId ?? source.ListId;
+        if (!listId.HasValue) return;
         ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
         properties.NumberingProperties = new NumberingProperties(
             new NumberingLevelReference { Val = source.ListLevel ?? 0 },
-            new NumberingId { Val = source.ListId.Value });
+            new NumberingId { Val = listId.Value });
     }
 
     private static int? FindRtfStyleId(RtfDocument document, string name, RtfStyleKind kind) =>
