@@ -182,3 +182,36 @@ its samples are retained rather than removed. Allocation fell for all three
 payloads. This preliminary trial does not close the speed objective. Final
 qualification uses a stable committed candidate, rotated baseline/candidate
 pairs, larger purchase reports and saved warning/geometry controls.
+
+
+### Stable reuse candidates and follow-up profiling
+
+The first committed candidate, `fc604c6f`, reduced some allocations but ran
+substantially slower in its 28-row paired cohort. It did not pass the speed
+objective. The next candidate, `e8b79548`, removed redundant font-snapshot scans
+on misses and bypassed further cache probes after saturation. All 13 saved
+reports, their text and complete diagnostics remained exact, and the selected
+.NET 8 and .NET 10 correctness suites passed.
+
+The complete second 28-row cohort reduced managed allocation by about 50% for
+plain text, 22% for the table payload and 47% for multilingual text. Both
+multilingual candidate rounds ran faster. Plain-text and large-report timings
+varied substantially between launches. One targeted 12-row reverse-order check
+retained every observation and did not establish a reliable elapsed-time winner;
+large prepared-layout means were higher. These results do not close the speed
+objective or establish a cause for the timing variation.
+
+A subsequent profile invoked the maintained 2,500-row prepared-layout method
+three times per producer using the same immutable runtime inputs. Both retained
+417 pages, all 2,500 row markers, identical text and complete diagnostics. About
+a quarter of the sampled allocation estimate in each producer occurred beneath
+`MaximumScrollBottom`, where recursive traversal boxed list enumerators. The
+font-measurement and PDF-writer geometry changes are outside this layout-only
+path. Sampled allocations and CPU stacks are diagnostic evidence, not elapsed
+time measurements.
+
+The next bounded attempt uses the scene's existing indexed-list contract in
+both private scroll-extent helpers. It preserves traversal order, arithmetic,
+clip rules and transform handling, without retaining geometry or adding a cache.
+Its compile, exact-output and changed-source measurement results are pending;
+the earlier slower and inconclusive cohorts remain part of the investigation.

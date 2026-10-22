@@ -626,14 +626,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static double MaximumScrollRight(IEnumerable<HtmlRenderVisual> visuals) {
+    private static double MaximumScrollRight(IReadOnlyList<HtmlRenderVisual> visuals) {
         double maximum = 0D;
-        foreach (HtmlRenderVisual visual in visuals) {
+        // Scene owners already expose indexed lists; avoid boxing an enumerator
+        // for every nested group on every printed fragment.
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             // Semantic owners do not create a CSS box or painted overflow.
             bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup
                 || visual is HtmlRenderSemanticGroup;
             double right = paintOnlyBounds ? 0D : visual.X + visual.Width;
-            IEnumerable<HtmlRenderVisual>? children = visual switch {
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup clip when !clip.ClipHorizontal => clip.Visuals,
                 HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
                 HtmlRenderEffectGroup effect => effect.Visuals,
@@ -649,12 +652,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return maximum;
     }
 
-    private static double MaximumScrollBottom(IEnumerable<HtmlRenderVisual> visuals) {
+    private static double MaximumScrollBottom(IReadOnlyList<HtmlRenderVisual> visuals) {
         double maximum = 0D;
-        foreach (HtmlRenderVisual visual in visuals) {
+        // Scene owners already expose indexed lists; avoid boxing an enumerator
+        // for every nested group on every printed fragment.
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
             double bottom = paintOnlyBounds ? 0D : visual.Y + visual.Height;
-            IEnumerable<HtmlRenderVisual>? children = visual switch {
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup clip when !clip.ClipVertical => clip.Visuals,
                 HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
                 HtmlRenderEffectGroup effect => effect.Visuals,
