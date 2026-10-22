@@ -48,6 +48,11 @@ peak-memory or portable ranking study. Each run has six warmups, twelve measured
 iterations and no outlier removal. Allocation is total managed allocation per
 operation, not retained or peak memory.
 
+The timing table describes the named runtime revision. The dated evidence also
+records a separate check with later shared PDF text-rendering changes. That
+combined-output check does not extend these timings, private-package results
+or NativeAOT observations to the later combination.
+
 | Purchase-table workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
 | --- | ---: | ---: | ---: | ---: |
 | 250 rows, prepared layout | 185.50 ms | 167.73 ms | 220.74 MiB | 187.04 MiB |
