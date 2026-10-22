@@ -147,7 +147,7 @@ const semanticColumns = [
   ["Service", "id"], ["Location", "location"], ["Amount", "amount"], ["Ready", "ready"], ["Note", "note"], ["Owner", "owner"]
 ].map(([header, key]) => ({ header, key, ...(key === "amount" ? { type: "number" } : {}), value: row => {
   semanticColumnReads++;
-  return key === "id" ? new ExportCell(row[key], { link: { target: "https://example.org/service/" + row[key] } }) : row[key];
+  return key === "id" ? new coreModule.ExportCell(row[key], { link: { target: "https://example.org/service/" + row[key] } }) : row[key];
 } }));
 const semanticReport = coreModule.createGroupedReport(semanticRows, { columns: semanticColumns,
   groupBy: ["region", "site"].map(key => ({ key, value: row => { semanticGroupReads++; return row[key]; } })), totals: { amount: "sum" } });

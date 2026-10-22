@@ -152,7 +152,7 @@ async function runSemanticReportContracts({ moduleBase, profile, stack, regular,
     const data = new Uint8Array(await new Blob(chunks).arrayBuffer()); let binary = '';
     for (let offset = 0; offset < data.length; offset += 8192) binary += String.fromCharCode(...data.subarray(offset, offset + 8192));
     const contract = { profile, stack, grouped, standalone: input.standalone, language: text.tag, title,
-      labels: { groupHeader: text.groupHeader, subtotal: text.subtotal, grandTotal: text.grandTotal },
+      labels: { groupHeader: text.groupHeader, subtotal: text.subtotal, grandTotal: text.grandTotal }, continuationSuffix: text.continuation,
       aggregates: grouped ? { c6: 'sum', c8: 'max' } : {},
       columns: input.columns.map(column => ({ key: column.key, header: column.header })),
       rows: expected.map(row => row.map(display)), rawRows: expected, groupPaths: grouped ? expected.map((_, index) => groupPath(index)) : [],

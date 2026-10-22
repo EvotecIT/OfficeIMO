@@ -146,6 +146,45 @@ def attributes(element):
     return result
 
 
+def physical_group_contexts(page_texts, paths, continuation_suffix):
+    """Recognize only the fixture's exact authored context lines, without inferring product roles."""
+    variants = {}
+    for path in paths:
+        for level, label in enumerate(path):
+            identity = compact(label)
+            for text in (label, label + " " + continuation_suffix) if continuation_suffix else (label,):
+                previous = variants.setdefault(compact(text), (identity, level))
+                require(previous == (identity, level), "Physical-context fixture labels are ambiguous across levels")
+    result = []
+    for text in page_texts:
+        runs, current = [], []
+        for line in text.splitlines():
+            normalized = compact(line)
+            if normalized in variants:
+                current.append(variants[normalized])
+            elif normalized and current:
+                runs.append(current); current = []
+        if current:
+            runs.append(current)
+        result.append(runs)
+    return result
+
+
+def has_physical_context(runs, path):
+    expected = tuple(compact(label) for label in path)
+    for run in runs:
+        for first in range(len(run) - len(expected) + 1):
+            if tuple(label for label, _ in run[first:first + len(expected)]) != expected:
+                continue
+            following = first + len(expected)
+            # A stale descendant caption contains its parent's prefix but is not that parent's
+            # summary context. Another root/sibling context in the same physical page is allowed.
+            if following < len(run) and run[following][1] >= len(expected):
+                continue
+            return True
+    return not expected
+
+
 def verify(path, qpdf):
     contract = json.loads(path.with_suffix(path.suffix + ".json").read_text())
     labels = contract.get("labels", {"groupHeader": "Group", "subtotal": "Subtotal", "grandTotal": "Grand total"})
@@ -182,9 +221,12 @@ def verify(path, qpdf):
         identity = reference(value)
         require(identity is not None and identity not in elements, "Duplicate/non-indirect logical structure element")
         require(reference(obj["/P"]) == parent, "Logical parent link differs")
-        entry = {"id": identity, "object": obj, "role": str(obj["/S"]), "ancestors": ancestry[:], "children": sequence(obj.get("/K"))}
+        entry = {"id": identity, "object": obj, "role": str(obj["/S"]), "ancestors": ancestry[:], "children": sequence(obj.get("/K")), "pages": set()}
         elements[identity] = entry
         entry["text"] = "".join(visit(child, identity, [*ancestry, identity], page_key) for child in entry["children"])
+        for child in entry["children"]:
+            if reference(child) in elements:
+                entry["pages"].update(elements[reference(child)]["pages"])
         return entry["text"]
 
     def mark_text(page_key, mcid, parent):
@@ -195,6 +237,7 @@ def verify(path, qpdf):
         page = pages[page_key][1]
         owners = sequence(parents[int(page["/StructParents"])])
         require(mcid < len(owners) and reference(owners[mcid]) == parent, "Page parent-tree owner mismatch")
+        elements[parent]["pages"].add(page_key)
         return marks[page_key][mcid]
 
     logical_text = visit(root, reference(root), [])
@@ -239,7 +282,9 @@ def verify(path, qpdf):
         for column, cell in enumerate(cells):
             require(column_associations(cell) == expected_columns(column), "Body cell column-header identity/order differs for " + expected[0])
     require(compact(contract["expectedFragmentToken"]) in compact(logical_text), "Last overheight-cell fragment is missing")
-    physical = "".join(page.extract_text() for page in reader.pages)
+    page_texts = [page.extract_text() or "" for page in reader.pages]
+    physical_pages = [compact(text) for text in page_texts]
+    physical = "".join(page_texts)
     for forbidden in contract["forbidden"]:
         require(compact(forbidden) not in compact(logical_text) and compact(forbidden) not in compact(physical), "Excluded host data leaked")
     require(all(compact(logical_text).count(identifier) == 1 for identifier in expected_ids), "A repeated visual ID appears more than once in logical reading")
@@ -259,8 +304,10 @@ def verify(path, qpdf):
                 continue
             candidate = next(entry for entry in elements.values() if entry["role"] in ("/TH", "/TD") and compact(entry["text"]) == compact(anchor["value"]))
             require(column_associations(candidate) == expected_columns(column, anchor.get("columnSpan", 1)), "Footer span lost its exact column-header associations")
+    checked_contexts = set()
     if contract["grouped"]:
         paths = list(dict.fromkeys(tuple(path[:level + 1]) for path in contract["groupPaths"] for level in range(len(path))))
+        contexts = physical_group_contexts(page_texts, contract["groupPaths"], contract.get("continuationSuffix", ""))
         headings = [entry for entry in elements.values() if entry["role"] in ("/H2", "/H3", "/H4", "/H5")]
         require([(int(entry["role"][2:]) - 2, compact(entry["text"])) for entry in headings] == [(len(path) - 1, compact(path[-1])) for path in paths], "Hierarchical logical headings differ")
         def group_ancestry(entry):
@@ -273,8 +320,14 @@ def verify(path, qpdf):
                 groups.extend(child["text"] for child in direct if child["role"] in ("/H2", "/H3", "/H4", "/H5"))
             return tuple(compact(value) for value in groups)
 
-        for row, expected_path in zip(bodies, contract["groupPaths"]):
+        for row, expected_path, identifier in zip(bodies, contract["groupPaths"], expected_ids):
             require(group_ancestry(row) == tuple(compact(value) for value in expected_path), "A record is attached to the wrong ancestor section")
+            detail_pages = [index for index, text in enumerate(physical_pages) if compact(identifier) in text]
+            require(detail_pages, "A source ID has no physical detail page")
+            for index in detail_pages:
+                require(has_physical_context(contexts[index], expected_path),
+                        "Physical detail page " + str(index + 1) + " lacks the full active ancestor context for " + identifier)
+                checked_contexts.add((index, tuple(compact(value) for value in expected_path)))
         summaries = [entry for entry in elements.values() if entry["role"] == "/TH" and str(attributes(entry["object"]).get("/Scope")) == "/Row"]
         require(len(summaries) == len(paths) + 1, "Subtotal/grand-total logical row headings differ")
         source_rows = contract.get("rawRows", contract["rows"])
@@ -312,6 +365,7 @@ def verify(path, qpdf):
             label = label_overrides.get(identity, labels["subtotal"] + " " + group_path[-1] + " (" + str(len(indices)) + ")")
             expected_summaries[identity] = summary_values(indices, label)
         expected_summaries[()] = summary_values(range(len(source_rows)), label_overrides.get((), labels["grandTotal"] + " (" + str(len(source_rows)) + ")"))
+        summary_label_counts = Counter(values[0] for values in expected_summaries.values())
         seen_summaries = set()
         for summary in summaries:
             row = elements[reference(summary["object"]["/P"])]; identifier = str(summary["object"]["/ID"])
@@ -320,6 +374,16 @@ def verify(path, qpdf):
             seen_summaries.add(owner_path)
             cells = [elements[reference(child)] for child in row["children"] if reference(child) in elements]
             require([compact(cell["text"]) for cell in cells] == expected_summaries[owner_path], "Summary label/count/independently computed numeric totals differ")
+            if owner_path:
+                summary_pages = {pages[key][0] for key in row["pages"]}
+                label = expected_summaries[owner_path][0]
+                if summary_label_counts[label] == 1:
+                    summary_pages.update(index for index, text in enumerate(physical_pages) if label in text)
+                require(summary_pages, "A subtotal has no physical summary page")
+                for index in summary_pages:
+                    require(has_physical_context(contexts[index], owner_path),
+                            "Physical subtotal page " + str(index + 1) + " lacks its own active ancestor context: " + "/".join(owner_path))
+                    checked_contexts.add((index, owner_path))
             for column, child in enumerate(row["children"]):
                 entry = elements.get(reference(child))
                 if entry is not None:
@@ -342,6 +406,7 @@ def verify(path, qpdf):
     return {"file": str(path), "pages": len(reader.pages), "sourceRows": len(bodies), "logicalElements": len(elements), "roles": dict(by_role),
             "markedFragments": len(consumed), "headerIdentities": len(identifiers), "nativeLinks": len(links), "qpdf": "PASS",
             "sourceOrderExactlyOnce": True, "physicalRepeatedIds": True, "summaryValuesAndOwnership": bool(contract["grouped"]),
+            "physicalAncestorContextPagePaths": len(checked_contexts), "physicalContextProof": "exact authored context-line presence/order, not per-row native-reader or AT acceptance",
             "typedSummarySource": bool(contract.get("rawRows")), "independentReader": "pypdf", "nativeAT": "separate acceptance"}
 
 

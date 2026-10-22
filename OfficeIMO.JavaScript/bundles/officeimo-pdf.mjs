@@ -3918,10 +3918,11 @@ class PdfPages {
     }
     /** The generated summary label is a row heading; no localized text/style inference is used. */
     summary(row) { this.summaryRows.add(row); }
-    /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
+    /** Begin an independent table on the current page, retaining its headings on continuation pages.
+     * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false, captionArtifact = false) {
         if (layout.bands)
-            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
+            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
         await this.ensureStarted();
         this.layout = layout;
         this.paintedHeaderCells = new WeakSet();
@@ -3937,7 +3938,10 @@ class PdfPages {
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-            await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+            const annotationParent = captionArtifact ? this.captionAnnotations(caption) : undefined;
+            await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
+                ? { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) }
+                : { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
         }
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headings);
@@ -3953,7 +3957,7 @@ class PdfPages {
         this.dataTop = this.y;
     }
     /** Bind the bounded logical-window owner to the existing physical page painter. */
-    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation) {
+    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation, captionArtifact) {
         await this.ensureStarted();
         const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
         const headerHeight = headings[0].reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -3971,7 +3975,8 @@ class PdfPages {
         let captionPaints = 0, continuationPaints = 0, continuationOwner;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
-        const captionElement = this.structure && caption?.lines.length ? this.structure.element("Caption", this.tableElement) : undefined;
+        const captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+            : this.structure.element("Caption", this.tableElement) : undefined;
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, logicalHeadings);
         }
@@ -3998,7 +4003,7 @@ class PdfPages {
                         if (!firstWindow)
                             continuationOwner ??= this.captionAnnotations(currentCaption);
                         const annotationParent = firstWindow ? captionElement : continuationOwner;
-                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
                             : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
                     await this.tableStructure?.prepareHeaders();
@@ -5840,12 +5845,29 @@ async function renderGroupedPdfTable(block, context) {
     try {
         const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
         let path = [], started = false, firstFragment = false, firstBundleOversized = false, semanticDepth = 0;
+        const continuationLabels = new WeakMap();
         let pending;
         const closing = [];
         const summaryValues = (label, values) => Object.freeze([
             new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
             ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
         ]);
+        const prepareGroupContext = async () => {
+            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => {
+                    if (continuationLabel === undefined)
+                        return group.label;
+                    const existing = semantic ? continuationLabels.get(group) : undefined;
+                    if (existing !== undefined)
+                        return existing;
+                    const label = synchronousText(continuationLabel(group), "continuationLabel");
+                    if (semantic)
+                        continuationLabels.set(group, label);
+                    return label;
+                }).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            return { caption, continuation };
+        };
         const flushLastDetail = async () => {
             if (pending) {
                 if (!started)
@@ -5876,10 +5898,7 @@ async function renderGroupedPdfTable(block, context) {
             started = false;
         };
         const startLeaf = async (row) => {
-            const caption = semantic ? undefined : await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
-                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
-            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
-                    synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const { caption, continuation } = await prepareGroupContext();
             const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
             const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption?.height ?? 0, continuation.height);
             firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
@@ -5896,24 +5915,25 @@ async function renderGroupedPdfTable(block, context) {
                     }, pages.settings, fonts), pages.settings, fonts));
             const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
             await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
-            let followingHeight = groupHeight + headingHeight + minimum;
+            let followingHeight = groupHeight + caption.height + headingHeight + minimum;
             for (const heading of groupHeadings) {
                 followingHeight -= heading.height;
                 await pages.beginGroup(semanticDepth++, heading, followingHeight);
             }
-            await pages.beginTable(layout, headings, minimum, caption, continuation);
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
             started = true;
             firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
         };
         const semanticSubtotal = async (row, level) => {
             await finishLeaf();
+            const { caption, continuation } = await prepareGroupContext();
             const minimum = layout.minimumRowHeight(row);
-            await context.flushParagraphs(headingHeight + minimum);
+            await context.flushParagraphs(caption.height + headingHeight + minimum);
             // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
             // Its own visible column headings keep the separate logical summary table truthful.
-            await pages.beginTable(layout, headings, minimum);
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
             pages.summary(row);
-            await pages.row(row);
+            await pages.row(row, caption.lines.length > 0 || headings.length > 0);
             await pages.endTable();
             await pages.endGroup(level);
             semanticDepth = level;

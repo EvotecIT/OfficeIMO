@@ -531,7 +531,9 @@ Every image, vector or drawing block in tagged output requires either a nonempty
 
 `maxStructureElements` (default 1,000,000) bounds the total logical elements created, including `Document`, sections, lists, captions, tables, rows, cells and figures. `maxMarkedContentReferences` (2,000,000) bounds the total references created for painted content, including continued cell lines. These cumulative limits include completed elements and apply across the document. Untagged output remains the default.
 
-This profile provides structure for supported reports. It does not claim accessible PDF or PDF/UA conformance. Assistive-technology reading, navigation and author-supplied semantics require manual acceptance; see the [remaining accessibility work](../Docs/ROADMAP.md#officeimo-javascript).
+Selected reports were inspected in macOS Preview 11: tables, links and heading hierarchy were exposed, and group outline entries navigated to their destinations. In wide banded samples, the accessibility view exposed separate physical-page tables and fragmented repeated-heading text. These observations do not qualify logical table reading across bands, screen-reader speech or navigation.
+
+This profile provides structure for supported reports. It does not claim accessible PDF or PDF/UA conformance. Assistive-technology behavior and author-supplied semantics require manual acceptance; see the [remaining accessibility work](../Docs/ROADMAP.md#officeimo-javascript).
 
 ## XLSX: workbook, worksheets and cells
 

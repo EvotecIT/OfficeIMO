@@ -3483,7 +3483,7 @@ _modules.set("31017b0c80e6e8ace64ed268298a4f155b992b295138be6ad0bffe8d9365710d",
 return _exports;
 })();
 
-const _m33 = _modules.get("fca8b9cda99dd82c6d56af0c9139fd23cddfbe2b695b99e2463011407e254da5") ?? (() => {
+const _m33 = _modules.get("6a6eb91d05079d182d13e43b4067324bc9968eaf259a60e0a2409080fd1aaf11") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -3959,10 +3959,11 @@ class PdfPages {
     }
     /** The generated summary label is a row heading; no localized text/style inference is used. */
     summary(row) { this.summaryRows.add(row); }
-    /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
+    /** Begin an independent table on the current page, retaining its headings on continuation pages.
+     * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false, captionArtifact = false) {
         if (layout.bands)
-            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
+            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
         await this.ensureStarted();
         this.layout = layout;
         this.paintedHeaderCells = new WeakSet();
@@ -3978,7 +3979,10 @@ class PdfPages {
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-            await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+            const annotationParent = captionArtifact ? this.captionAnnotations(caption) : undefined;
+            await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
+                ? { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) }
+                : { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
         }
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headings);
@@ -3994,7 +3998,7 @@ class PdfPages {
         this.dataTop = this.y;
     }
     /** Bind the bounded logical-window owner to the existing physical page painter. */
-    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation) {
+    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation, captionArtifact) {
         await this.ensureStarted();
         const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
         const headerHeight = headings[0].reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -4012,7 +4016,8 @@ class PdfPages {
         let captionPaints = 0, continuationPaints = 0, continuationOwner;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
-        const captionElement = this.structure && caption?.lines.length ? this.structure.element("Caption", this.tableElement) : undefined;
+        const captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+            : this.structure.element("Caption", this.tableElement) : undefined;
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, logicalHeadings);
         }
@@ -4039,7 +4044,7 @@ class PdfPages {
                         if (!firstWindow)
                             continuationOwner ??= this.captionAnnotations(currentCaption);
                         const annotationParent = firstWindow ? captionElement : continuationOwner;
-                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
                             : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
                     await this.tableStructure?.prepareHeaders();
@@ -4168,7 +4173,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("fca8b9cda99dd82c6d56af0c9139fd23cddfbe2b695b99e2463011407e254da5", _exports);
+_modules.set("6a6eb91d05079d182d13e43b4067324bc9968eaf259a60e0a2409080fd1aaf11", _exports);
 return _exports;
 })();
 
@@ -4553,7 +4558,7 @@ _modules.set("29578404bfc3df4d4b6b8036db67bd83212dbfe6182fadb62c55beb0584b5ca8",
 return _exports;
 })();
 
-const _m18 = _modules.get("d2d7f0f3e70d8616e206def44602fe8883afce9b1f12500b7f9cc114419e796f") ?? (() => {
+const _m18 = _modules.get("12bd2581b910ab316233e4673aaa77a3fa0cc90e5f47265f0ec2920b43be321d") ?? (() => {
 const { PdfObjects, unicodeHex } = _m19;
 
 const { PdfFontResources } = _m20;
@@ -4616,11 +4621,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("d2d7f0f3e70d8616e206def44602fe8883afce9b1f12500b7f9cc114419e796f", _exports);
+_modules.set("12bd2581b910ab316233e4673aaa77a3fa0cc90e5f47265f0ec2920b43be321d", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("9612b171bdbc32d3beeb3f020ee4a43339a65bec7250286d3b1393585ea31f70") ?? (() => {
+const _m1 = _modules.get("d0bea837cad04b3ab43ef8dde707dff7f636b80127d453e61c19ef312a91f99e") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -4685,7 +4690,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("9612b171bdbc32d3beeb3f020ee4a43339a65bec7250286d3b1393585ea31f70", _exports);
+_modules.set("d0bea837cad04b3ab43ef8dde707dff7f636b80127d453e61c19ef312a91f99e", _exports);
 return _exports;
 })();
 
@@ -5855,7 +5860,7 @@ _modules.set("0c51d89c5cf0ebfeddbe03d5cd04c8bd29a78cdf70b244a68d44fdf82f0f0016",
 return _exports;
 })();
 
-const _m52 = _modules.get("640c25da49a6d046234edabd769b9bda7343302ed4a31cadddd731c71d9dd016") ?? (() => {
+const _m52 = _modules.get("5127530428c74613e9f9ccf7d8ee5b8fd642824210234c900fed612f24279f59") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m43;
 
 const { consumeRows } = _m3;
@@ -5896,12 +5901,29 @@ async function renderGroupedPdfTable(block, context) {
     try {
         const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
         let path = [], started = false, firstFragment = false, firstBundleOversized = false, semanticDepth = 0;
+        const continuationLabels = new WeakMap();
         let pending;
         const closing = [];
         const summaryValues = (label, values) => Object.freeze([
             new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
             ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
         ]);
+        const prepareGroupContext = async () => {
+            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => {
+                    if (continuationLabel === undefined)
+                        return group.label;
+                    const existing = semantic ? continuationLabels.get(group) : undefined;
+                    if (existing !== undefined)
+                        return existing;
+                    const label = synchronousText(continuationLabel(group), "continuationLabel");
+                    if (semantic)
+                        continuationLabels.set(group, label);
+                    return label;
+                }).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            return { caption, continuation };
+        };
         const flushLastDetail = async () => {
             if (pending) {
                 if (!started)
@@ -5932,10 +5954,7 @@ async function renderGroupedPdfTable(block, context) {
             started = false;
         };
         const startLeaf = async (row) => {
-            const caption = semantic ? undefined : await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
-                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
-            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
-                    synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const { caption, continuation } = await prepareGroupContext();
             const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
             const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption?.height ?? 0, continuation.height);
             firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
@@ -5952,24 +5971,25 @@ async function renderGroupedPdfTable(block, context) {
                     }, pages.settings, fonts), pages.settings, fonts));
             const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
             await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
-            let followingHeight = groupHeight + headingHeight + minimum;
+            let followingHeight = groupHeight + caption.height + headingHeight + minimum;
             for (const heading of groupHeadings) {
                 followingHeight -= heading.height;
                 await pages.beginGroup(semanticDepth++, heading, followingHeight);
             }
-            await pages.beginTable(layout, headings, minimum, caption, continuation);
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
             started = true;
             firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
         };
         const semanticSubtotal = async (row, level) => {
             await finishLeaf();
+            const { caption, continuation } = await prepareGroupContext();
             const minimum = layout.minimumRowHeight(row);
-            await context.flushParagraphs(headingHeight + minimum);
+            await context.flushParagraphs(caption.height + headingHeight + minimum);
             // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
             // Its own visible column headings keep the separate logical summary table truthful.
-            await pages.beginTable(layout, headings, minimum);
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
             pages.summary(row);
-            await pages.row(row);
+            await pages.row(row, caption.lines.length > 0 || headings.length > 0);
             await pages.endTable();
             await pages.endGroup(level);
             semanticDepth = level;
@@ -6044,11 +6064,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("640c25da49a6d046234edabd769b9bda7343302ed4a31cadddd731c71d9dd016", _exports);
+_modules.set("5127530428c74613e9f9ccf7d8ee5b8fd642824210234c900fed612f24279f59", _exports);
 return _exports;
 })();
 
-const _m44 = _modules.get("d1852077545a1c6e9e7566ad4a625a6b714a0deb7f25b236d22d6d40fd9dc4c5") ?? (() => {
+const _m44 = _modules.get("93b2ae4f3ba856444d4bdb4e177cdab855b12652957771867093647e73551465") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -6338,11 +6358,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("d1852077545a1c6e9e7566ad4a625a6b714a0deb7f25b236d22d6d40fd9dc4c5", _exports);
+_modules.set("93b2ae4f3ba856444d4bdb4e177cdab855b12652957771867093647e73551465", _exports);
 return _exports;
 })();
 
-const _m42 = _modules.get("7b87b1fde3c60cf666a42df2b75f3e3e8f09598907f6cc2d1d4eb5644a743e65") ?? (() => {
+const _m42 = _modules.get("846b8b3e5f32fb917f59ef7cedc750c682ab3f3a978f10d3e0730551093c59a8") ?? (() => {
 const { assertGroupedReportSource } = _m43;
 
 const { BlobByteSink } = _m2;
@@ -6388,7 +6408,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m53.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("7b87b1fde3c60cf666a42df2b75f3e3e8f09598907f6cc2d1d4eb5644a743e65", _exports);
+_modules.set("846b8b3e5f32fb917f59ef7cedc750c682ab3f3a978f10d3e0730551093c59a8", _exports);
 return _exports;
 })();
 
@@ -6481,10 +6501,10 @@ _modules.set("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6",
 return _exports;
 })();
 
-const _m0 = _modules.get("d65f2b1df68b92db32fe1e7729d99e9f4a4749bedf4eb77487fbaa0ec858946c") ?? (() => {
+const _m0 = _modules.get("619208d1e731e90b5a821b487f56b7da90a9c11b24a0a1976e7042ad9a4ff5a1") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m42.writeGroupedPdf, writeGroupedPdfTo: _m42.writeGroupedPdfTo, pdfGroupedTable: _m42.pdfGroupedTable, createGroupedReport: _m43.createGroupedReport, writePdfDocument: _m44.writePdfDocument, writePdfDocumentTo: _m44.writePdfDocumentTo, pdfTable: _m44.pdfTable, PdfFont: _m21.PdfFont, preflightPdfText: _m54.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m55.saveBlob });
-_modules.set("d65f2b1df68b92db32fe1e7729d99e9f4a4749bedf4eb77487fbaa0ec858946c", _exports);
+_modules.set("619208d1e731e90b5a821b487f56b7da90a9c11b24a0a1976e7042ad9a4ff5a1", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m55, pdf: _m0 });

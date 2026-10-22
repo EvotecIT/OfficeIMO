@@ -171,3 +171,90 @@ test("native group outlines close named ancestors before null, blank and whitesp
     }
   }
 });
+
+test("tagged grouped detail and subtotal tables repeat complete physical context without duplicate logical headings", async () => {
+  const selected = [{ header: "ID", key: "id" }, { header: "Detail", key: "detail" }, { header: "Value", key: "amount", type: "number" }];
+  const long = Array.from({ length: 24 }, (_, index) => `Detail-${index}`).join("\n");
+  const rows = [
+    { region: "Root", site: "Site", environment: "Env", team: "LeafA", id: "REC-A0", detail: long, amount: 1 },
+    { region: "Root", site: "Site", environment: "Env", team: "LeafA", id: "REC-A1", detail: "Next", amount: 2 },
+    { region: "Root", site: "Site", environment: "Env", team: "LeafB", id: "REC-B0", detail: "Last", amount: 3 }
+  ];
+  const paths = new Map(rows.map(row => [row.id, levels.map(level => row[level])]));
+  const summaries = new Map([...["LeafA", "LeafB"].map(leaf => [`Tot3${leaf}`, ["Root", "Site", "Env", leaf]]),
+    ["Tot2Env", ["Root", "Site", "Env"]], ["Tot1Site", ["Root", "Site"]], ["Tot0Root", ["Root"]]]);
+  for (const bands of [false, true]) for (const composed of [false, true]) {
+    const calls = [], table = { labelColumn: { header: "Summary", width: 80 }, subtotalLabel: group => `Tot${group.level}${group.label}`,
+      grandTotalLabel: () => "GRAND", continuationLabel(group) { calls.push(group.groupIndex); return `CONT:${group.label}`; },
+      columnWidths: [80, 80, 100, 100], ...(bands ? { wideTable: { mode: "bands", minimumColumnWidth: 80, repeatColumns: [0, 1] } } : {}) };
+    const grouped = source(rows, selected), configuration = { ...options, pageSize: { width: 300, height: 340 }, limits: { maxTableWindowRows: 1 } };
+    const blob = composed ? await writePdfDocument([
+      { kind: "paragraph", text: "Report", headingLevel: 1 },
+      { kind: "paragraph", text: Array.from({ length: 17 }, (_, index) => `Preface-${index}`).join("\n") },
+      pdfGroupedTable(grouped, table)
+    ], configuration) : await writeGroupedPdf(grouped, { ...configuration, ...table });
+    const pdf = await semanticPdf(blob);
+    const assertContext = (page, index, path) => {
+      const header = page.lines.lastIndexOf("Summary", index);
+      assert.ok(header >= 0, "Every physical data/summary band has its column headings");
+      const context = page.lines.slice(0, header).slice(-path.length);
+      assert.ok(JSON.stringify(context) === JSON.stringify(path) || JSON.stringify(context) === JSON.stringify(path.map(label => `CONT:${label}`)),
+        `Full ordered context must immediately precede this table's headings: ${JSON.stringify({ bands, composed, context, path, text: page.lines[index] })}`);
+    };
+    let records = 0, totals = 0, continued = false;
+    for (const page of pdf.pages) for (const [index, line] of page.lines.entries()) {
+      if (paths.has(line)) { assertContext(page, index, paths.get(line)); records++; }
+      if (summaries.has(line)) { assertContext(page, index, summaries.get(line)); totals++; }
+      continued ||= line.startsWith("CONT:");
+    }
+    assert.ok(records >= rows.length && totals >= summaries.size);
+    assert.ok(continued, "A continued row/window must keep the authored continuation context");
+    for (const [level, names] of [[2, ["Root"]], [3, ["Site"]], [4, ["Env"]], [5, ["LeafA", "LeafB"]]])
+      for (const name of names) assert.equal(pdf.find(`H${level}`, name).length, 1, "Physical repetition does not duplicate logical group headings");
+    assert.equal([...pdf.nodes.values()].filter(node => node.role === "Caption").length, 0, "Plain group context has no duplicate logical caption");
+    assert.equal(calls.length, 5); assert.equal(new Set(calls).size, 5, "Each opened group's continuation callback is captured once across its leaf and summary tables");
+    const [grand] = pdf.find("TH", "GRAND"); assert.ok(grand);
+    const grandTable = pdf.nodes.get(pdf.nodes.get(grand.parent).parent);
+    assert.equal(pdf.nodes.get(grandTable.parent).role, "Document", "Grand totals retain no closed group ownership");
+    if (composed) {
+      const first = pdf.pages.find(page => page.lines.includes("Root"));
+      assert.ok(pdf.pages.indexOf(first) > 0, "The complete group-heading/context/first-fragment chain moves off the nearly full preface page");
+      assert.ok(first.lines.includes("REC-A0"), "A real group heading is not orphaned from its kept first fragment");
+    }
+  }
+});
+
+test("tagged subtotal context and headings retain their reserved first fragment near the page boundary", async () => {
+  const selected = [{ header: "Item", key: "name" }, { header: "Amount", key: "amount", type: "number" }];
+  const summaryLines = Array.from({ length: 9 }, (_, index) => `Subtotal-${index}`);
+  const preface = Array.from({ length: 6 }, (_, index) => `Preface-${index}`).join("\n");
+  const table = { labelColumn: { header: "Summary", width: 100 }, columnWidths: [100, 90, 90],
+    subtotalLabel: () => summaryLines.join("\n"), grandTotalLabel: () => "Grand" };
+  const configuration = { ...options, orientation: "landscape" };
+  for (const groupLabel of ["Group", ""]) for (const composed of [false, true]) {
+    const grouped = createGroupedReport([{ group: groupLabel || null, name: "Only", amount: 2 }], {
+      columns: selected, groupBy: [{ key: "group", value: row => row.group }], totals: { amount: "sum" }
+    });
+    const pdf = await semanticPdf(composed
+      ? await writePdfDocument([{ kind: "paragraph", text: preface }, pdfGroupedTable(grouped, table)], configuration)
+      : await writeGroupedPdf(grouped, { ...configuration, ...table, messageTop: preface }));
+    const first = pdf.pages[0];
+    assert.ok(first.lines.filter(line => line === "Summary").length >= 2,
+      "The fixture must paint both the detail headings and the reserved subtotal headings on the first page");
+    assert.ok(first.lines.includes("Subtotal-0"),
+      "An ordinary fitting-on-fresh-page subtotal must use its reserved first fragment after its new context/headings");
+    const summaryPages = pdf.pages.filter(page => page.lines.some(line => summaryLines.includes(line)));
+    assert.ok(summaryPages.length > 1, "The wrapped subtotal must exercise continuation");
+    for (const page of summaryPages) {
+      for (const header of ["Summary", "Item", "Amount"]) assert.ok(page.lines.includes(header), header);
+      if (groupLabel) assert.ok(page.lines.includes(groupLabel), "Each summary fragment retains its active physical context");
+    }
+    assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => summaryLines.includes(line)), summaryLines);
+    assert.equal(pdf.find("TH", summaryLines.join("")).length, 1, "Every physical summary fragment retains one logical row heading");
+    assert.equal(pdf.find("H2", "Group").length, groupLabel ? 1 : 0);
+    assert.equal([...pdf.nodes.values()].filter(node => node.role === "Caption").length, 0);
+    const [grand] = pdf.find("TH", "Grand"); assert.ok(grand);
+    assert.equal(pdf.nodes.get(pdf.nodes.get(pdf.nodes.get(grand.parent).parent).parent).role, "Document",
+      "Grand totals remain outside the analytical section");
+  }
+});

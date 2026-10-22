@@ -381,10 +381,11 @@ export class PdfPages {
   }
   /** The generated summary label is a row heading; no localized text/style inference is used. */
   summary(row: PdfLayoutRow): void { this.summaryRows.add(row); }
-  /** Begin an independent table on the current page, retaining its headings on continuation pages. */
+  /** Begin an independent table on the current page, retaining its headings on continuation pages.
+   * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
   async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
-    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false): Promise<void> {
-    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
+    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false, captionArtifact = false): Promise<void> {
+    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
     await this.ensureStarted();
     this.layout = layout;
     this.paintedHeaderCells = new WeakSet();
@@ -399,7 +400,10 @@ export class PdfPages {
     const height = initialHeadings.reduce((n, row) => n + row.height, 0);
     if (caption) {
       await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-      await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+      const annotationParent = captionArtifact ? this.captionAnnotations(caption) : undefined;
+      await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
+        ? { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) }
+        : { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
     }
     if (this.structure) {
       this.tableStructure = new PdfTableStructure(this.structure, this.tableElement!, headings);
@@ -414,7 +418,7 @@ export class PdfPages {
   }
   /** Bind the bounded logical-window owner to the existing physical page painter. */
   private async beginBands(layout: PdfTableLayout, preparedHeadings: readonly PdfLayoutRow[] | undefined, minimumDataHeight: number,
-    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined): Promise<void> {
+    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined, captionArtifact: boolean): Promise<void> {
     await this.ensureStarted();
     const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
     const headerHeight = headings[0]!.reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -429,7 +433,8 @@ export class PdfPages {
     let captionPaints = 0, continuationPaints = 0, continuationOwner: number | undefined;
     this.tableElement = this.structure?.element("Table", this.groupParent);
     this.paintedHeaderCells = new WeakSet();
-    const captionElement = this.structure && caption?.lines.length ? this.structure.element("Caption", this.tableElement) : undefined;
+    const captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+      : this.structure.element("Caption", this.tableElement) : undefined;
     if (this.structure) {
       this.tableStructure = new PdfTableStructure(this.structure, this.tableElement!, logicalHeadings);
     }
@@ -452,7 +457,7 @@ export class PdfPages {
             if (!firstWindow) continuationOwner ??= this.captionAnnotations(currentCaption);
             const annotationParent = firstWindow ? captionElement : continuationOwner;
             await this.paragraphs([currentCaption], headerHeight + minimum, true,
-              firstWindow && firstBand ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+              firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
                 : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
           }
           await this.tableStructure?.prepareHeaders();
