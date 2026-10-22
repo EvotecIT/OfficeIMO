@@ -1,0 +1,2402 @@
+{
+  "schema": "officeimo.pdf-report-layout-performance-evidence/v2",
+  "assembledUtc": "2026-10-22T02:38:09.090869+00:00",
+  "status": "Local qualification passed; delivery gates separate",
+  "intendedRepositoryPath": "Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json",
+  "runtimeSource": {
+    "commit": "765057d2bdf16706be5e0cdec228fd541abf8ee8",
+    "sourceFileCount": 6434,
+    "manifestRecord": "qualification-config.json",
+    "sourceGuardGate": "currentCleanSource"
+  },
+  "documentationCommit": "d53348af68fb5c6eef44f0834d9cd0f06368fa2d",
+  "gates": {
+    "currentCleanSource": {
+      "status": "Passed",
+      "commit": "765057d2bdf16706be5e0cdec228fd541abf8ee8",
+      "fileCount": 6434,
+      "manifestRecord": "qualification-config.json",
+      "sourceRecordsSha256": "b3646dd8322b381394b9d9557c1f7772db1f0a69d122fc0e56cd4567dc88c155",
+      "sourceFreezeUtc": "2026-10-22T01:23:41.717378+00:00",
+      "observedCheckoutHead": "d53348af68fb5c6eef44f0834d9cd0f06368fa2d",
+      "boundary": "Clean current checkout and measured source bytes verified read-only. Later documentation/evidence commits never become measured runtime identities."
+    },
+    "immutableHistory": {
+      "status": "Passed",
+      "originalBaseline": {
+        "commit": "0612ee6a8bd8a18ba13eb7c3b64fcb104d182945",
+        "sourceFileCount": 3570,
+        "sourceRecord": "baseline-source-manifest.json",
+        "binaryRecord": "baseline/binary-manifest.json",
+        "executionPeCount": 128
+      },
+      "completedDdddCheckpoint": {
+        "commit": "ddddaa1c458c3a45036efef3590c0a60dbf043bf",
+        "sourceFileCount": 6433,
+        "record": "whitespace-remediation/checkpoint-disposition.json",
+        "qualifiedAtItsOwnBinding": true,
+        "status": "Historical; superseded for current-runtime acceptance",
+        "correction": "RFC nested-span spacing loss was a concrete supported preformatted whitespace defect. The earlier font/profile explanation is superseded by current repair and saved-artifact assessment.",
+        "pairedTimingRows": 20,
+        "canonicalComparisonCases": 9,
+        "boundary": "Original receipt hashes preserved; none supplies current runtime timing/package/artifact acceptance."
+      },
+      "earlierTiming": {
+        "commit": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+        "record": "Build/Project/Evidence/2026-10-20/pdf-workflow-reliability.json",
+        "boundary": "Separate earlier source/platform; never relabeled as baseline, DDDD, current runtime, or documentation head."
+      }
+    },
+    "currentRetainedExecutionEvidence": {
+      "status": "Passed",
+      "preflight": "performance/whitespace-completed-test-graph-compaction-preflight.json",
+      "record": "performance/whitespace-completed-test-graph-compaction.json",
+      "readback": "performance/whitespace-completed-test-compaction-readback.json",
+      "executionPeBindingsVerified": 1233,
+      "removedLogicalBytes": 5290751013,
+      "boundary": "Current measured cleanup has a durable pre-deletion mapping and independent retained-byte readback. Repeated execution bindings are not unique file counts; earlier DDDD cleanup failure/unmeasured bytes remain separate."
+    },
+    "net10Correctness": {
+      "status": "Passed",
+      "record": "stable-qualification-whitespace-net10.json",
+      "framework": "net10.0",
+      "runs": [
+        {
+          "record": "qualification-results-whitespace-net10/focused-OfficeIMO.Html.Tests-net10.0.trx",
+          "passed": 548,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Html",
+          "mode": "focused",
+          "actualPeBookends": {
+            "fileCount": 124,
+            "mapSha256": "a13351abbb8fef4b7649b4b60e29228280df0a62b133a65f28c1625a4c174e85",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net10/focused-OfficeIMO.Pdf.Tests-net10.0.trx",
+          "passed": 160,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Pdf",
+          "mode": "focused",
+          "actualPeBookends": {
+            "fileCount": 144,
+            "mapSha256": "4680896227252467b77747b11baaa02ccf8c89f1b4ab91680fc2f7b7d9787a77",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net10/full-OfficeIMO.Html.Tests-net10.0.trx",
+          "passed": 7765,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Html",
+          "mode": "full",
+          "actualPeBookends": {
+            "fileCount": 124,
+            "mapSha256": "a13351abbb8fef4b7649b4b60e29228280df0a62b133a65f28c1625a4c174e85",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net10/full-OfficeIMO.Pdf.Tests-net10.0.trx",
+          "passed": 11998,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Pdf",
+          "mode": "full",
+          "actualPeBookends": {
+            "fileCount": 144,
+            "mapSha256": "4680896227252467b77747b11baaa02ccf8c89f1b4ab91680fc2f7b7d9787a77",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        }
+      ],
+      "boundary": "Local correctness; opt-in Category=Performance cases excluded from full runs."
+    },
+    "net8Correctness": {
+      "status": "Passed",
+      "record": "stable-qualification-whitespace-net8.json",
+      "framework": "net8.0",
+      "runs": [
+        {
+          "record": "qualification-results-whitespace-net8/focused-OfficeIMO.Html.Tests-net8.0.trx",
+          "passed": 548,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Html",
+          "mode": "focused",
+          "actualPeBookends": {
+            "fileCount": 126,
+            "mapSha256": "7eb18bcecdff44370fb7aea58c86899a988e870a870e544dd4cb17dcbdc79d0b",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net8/focused-OfficeIMO.Pdf.Tests-net8.0.trx",
+          "passed": 160,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Pdf",
+          "mode": "focused",
+          "actualPeBookends": {
+            "fileCount": 148,
+            "mapSha256": "6453db853816ddd890f330cdf921ea09fa59f84fa14317cfba15b9c5d29bb95e",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net8/full-OfficeIMO.Html.Tests-net8.0.trx",
+          "passed": 7765,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Html",
+          "mode": "full",
+          "actualPeBookends": {
+            "fileCount": 126,
+            "mapSha256": "7eb18bcecdff44370fb7aea58c86899a988e870a870e544dd4cb17dcbdc79d0b",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-net8/full-OfficeIMO.Pdf.Tests-net8.0.trx",
+          "passed": 11998,
+          "failed": 0,
+          "skipped": 0,
+          "owner": "Pdf",
+          "mode": "full",
+          "actualPeBookends": {
+            "fileCount": 148,
+            "mapSha256": "6453db853816ddd890f330cdf921ea09fa59f84fa14317cfba15b9c5d29bb95e",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        }
+      ],
+      "boundary": "Local correctness; opt-in Category=Performance cases excluded from full runs."
+    },
+    "platformAndAffectedConsumers": {
+      "status": "Passed",
+      "record": "stable-qualification-whitespace-platform.json",
+      "affectedRuns": [
+        {
+          "record": "qualification-results-whitespace-platform/OfficeIMO.Word.Tests-net8.0.trx",
+          "passed": 3191,
+          "failed": 0,
+          "skipped": 0,
+          "actualPeBookends": {
+            "fileCount": 52,
+            "mapSha256": "51aa95b19f9f6aa706fec5cda30614ae78fb1e46232dac6f09196512d8a0aef8",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-platform/OfficeIMO.Drawing.Tests-net8.0.trx",
+          "passed": 265,
+          "failed": 0,
+          "skipped": 0,
+          "actualPeBookends": {
+            "fileCount": 24,
+            "mapSha256": "c9393fc6f45173a8cfd7c305e6f621753a593a5dda27d3ed368e6eaf8381cd8e",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-platform/OfficeIMO.Word.Tests-net10.0.trx",
+          "passed": 3191,
+          "failed": 0,
+          "skipped": 0,
+          "actualPeBookends": {
+            "fileCount": 50,
+            "mapSha256": "de00eb5a041171f59366053f79de8964390282b6285873e98bd1b7d91f2524b4",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        },
+        {
+          "record": "qualification-results-whitespace-platform/OfficeIMO.Drawing.Tests-net10.0.trx",
+          "passed": 265,
+          "failed": 0,
+          "skipped": 0,
+          "actualPeBookends": {
+            "fileCount": 23,
+            "mapSha256": "a529cdb0ec8e7badac86cbeab2331cfb17ab19fb5ed1ab2b1fd25ddd5f0a3903",
+            "unchanged": true,
+            "physicallyReadBack": true
+          }
+        }
+      ],
+      "net472": "Cross-compilation only; no Windows runtime acceptance claim"
+    },
+    "privatePackagesManagedAndNativeAot": {
+      "status": "Passed",
+      "record": "packages-whitespace/qualification.json",
+      "privateVersion": "3.5.2-local.report.2",
+      "packages": [
+        {
+          "id": "OfficeIMO.Core",
+          "archive": "packages-whitespace/feed/OfficeIMO.Core.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "af8c9124e519061f53cb5993499d0667e3983a794e40077b7bccbe9ac23faec7"
+        },
+        {
+          "id": "OfficeIMO.Html",
+          "archive": "packages-whitespace/feed/OfficeIMO.Html.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "4e5a3c51d3a0142f3a260cbd923bea50749f8fe081940ac93ef5184abf8dfa55"
+        },
+        {
+          "id": "OfficeIMO.Html.AngleSharp",
+          "archive": "packages-whitespace/feed/OfficeIMO.Html.AngleSharp.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "899e3f14e62543181d4e7503191afedf635f818f511055cab4b6c5982214d741"
+        },
+        {
+          "id": "OfficeIMO.Html.Core",
+          "archive": "packages-whitespace/feed/OfficeIMO.Html.Core.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "5db10490d80351a2773542d9c164e5aafef836a646744e993a2398fbcce1080e"
+        },
+        {
+          "id": "OfficeIMO.Html.Pdf",
+          "archive": "packages-whitespace/feed/OfficeIMO.Html.Pdf.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "9553c71ab3b6b18d95073db2703c609b7ac0d6ad55905be262411b792b3bd77f"
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "archive": "packages-whitespace/feed/OfficeIMO.Pdf.3.5.2-local.report.2.nupkg",
+          "targets": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "targetPeMapSha256": "284d50a1981dfa920d79c7d3edf1a6315445214b77bb4660683c4ca3a4872adc"
+        }
+      ],
+      "rootAcceptance": "packages-whitespace/root-acceptance.json",
+      "preservedFailedControl": "packages-whitespace/attempt1/archival.json",
+      "controlCorrection": "Logical PDF extraction intentionally normalizes spaces; corrected consumer checks normalized text plus actual saved baseline/advance geometry against a one-space control. Same six immutable package archives; no product change or repack.",
+      "actualConsumers": [
+        {
+          "kind": "net8.0",
+          "record": "packages-whitespace/evidence/net8.0/result.json",
+          "checks": 20
+        },
+        {
+          "kind": "net10.0",
+          "record": "packages-whitespace/evidence/net10.0/result.json",
+          "checks": 20
+        },
+        {
+          "kind": "native",
+          "record": "packages-whitespace/evidence/native/result.json",
+          "checks": 20
+        }
+      ],
+      "savedPdfCount": 36,
+      "boundary": "Unsigned private packages; actual NET8/NET10 and osx-arm64 NativeAOT execution. No public publication or Windows runtime claim."
+    },
+    "finalArtifacts": {
+      "status": "Passed",
+      "record": "candidate/whitespace-artifacts/receipt.json",
+      "executionInputs": {
+        "fileCount": 387,
+        "mapSha256": "546515322effa5a9f5dc21abee6dc29e6efff93b0dca233964dce89908db8d0b",
+        "unchanged": true,
+        "physicallyReadBack": true
+      },
+      "boundary": "Saved output replay; appearance/content disposition is a separate required gate."
+    },
+    "boundedArtifactEvaluation": {
+      "status": "Passed",
+      "record": "candidate/whitespace-inspection/receipt.json",
+      "supplemental": "candidate/whitespace-supplemental/receipt.json",
+      "assessment": "candidate/whitespace-inspection/assessment.json",
+      "pdfCount": 24,
+      "pageCount": 834,
+      "rfcWhitespaceCorrectionVerified": true,
+      "conclusion": "Bounded current-source report acceptance passed: allthreecompletepayloadPDFs andallsevenpubliccontrols byte-identicalbaseline;250/2500SKU exactlyonce with42/417pages. UKmatchedzeromarginreportretainsall11printedURLs exactlyonce/Contentsonpage1. Rootactuallyviewed8current/nativecaptures: RFCfooterthreecolumns nowpreserve nestedpre alignment and match nativehorizontal positions; same13pages/3600lexicaltokens acrossbaseline/current/native, butperpagegeometry/lineheightdistribution differs, so nofullnativefidelityclaim. IndependentpackageNativeAOT link/purchase pagesfitandlegible. NIST/NASAfrozenreports retainallpagelexicalcontent. UKdefaultstillhasexactlytwopre-existingout-of-media wordfragments inawidetable; zero-marginmatchedreportnone. Rotatedchartyearlabellexicalfragments02/201 remainrecordedasdiagnosticdifference, not asserted semantic equality. Fourcapturedwebreports retain known resource/font/renderinglosses; successfulconversion isnotblanketappearanceacceptance. RFCwasunusedearlierinthisgoal butknownbyengineowner; notenginewideheldout. Rawexternalinputs/nativecaptures private/no redistributionclaim.",
+      "boundary": "All-page text/media-box scans and actual selected native/product image inspection. Lexical equality is diagnostic; unfamiliar reports, font matching, wide tables and broad native/platform acceptance remain open."
+    },
+    "pairedPerformance": {
+      "status": "Passed",
+      "record": "performance/whitespace-7650/receipt.json",
+      "assessment": "performance/whitespace-7650/assessment.json",
+      "executionInputs": {
+        "fileCount": 892,
+        "mapSha256": "0fdb623adb39f4f10378b1d2ff2f40efe0153ad58964b69745a1ed76321004fa",
+        "unchanged": true,
+        "physicallyReadBack": true
+      },
+      "launches": [
+        {
+          "label": "payload-baseline-a",
+          "raw": "performance/whitespace-7650/payload-baseline-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+          "rows": [
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=PlainText",
+              "iterations": 12,
+              "meanNanoseconds": 38139788.76388889,
+              "stdDevNanoseconds": 2981265.874004184,
+              "managedAllocatedBytes": 100813013
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Table",
+              "iterations": 12,
+              "meanNanoseconds": 117205022.58333333,
+              "stdDevNanoseconds": 2517497.08998429,
+              "managedAllocatedBytes": 233104586
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Multilingual",
+              "iterations": 12,
+              "meanNanoseconds": 33294194.21111111,
+              "stdDevNanoseconds": 261554.85776953795,
+              "managedAllocatedBytes": 101688810
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        },
+        {
+          "label": "payload-current-a",
+          "raw": "performance/whitespace-7650/payload-current-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+          "rows": [
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=PlainText",
+              "iterations": 12,
+              "meanNanoseconds": 39454621.550000004,
+              "stdDevNanoseconds": 3008914.805431091,
+              "managedAllocatedBytes": 98534320
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Table",
+              "iterations": 12,
+              "meanNanoseconds": 104953771.56666666,
+              "stdDevNanoseconds": 928508.4442272101,
+              "managedAllocatedBytes": 209384642
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Multilingual",
+              "iterations": 12,
+              "meanNanoseconds": 33750685.18333333,
+              "stdDevNanoseconds": 202690.77514179313,
+              "managedAllocatedBytes": 99396948
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        },
+        {
+          "label": "payload-current-b",
+          "raw": "performance/whitespace-7650/payload-current-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+          "rows": [
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=PlainText",
+              "iterations": 12,
+              "meanNanoseconds": 39455251.43333334,
+              "stdDevNanoseconds": 2443265.8007408837,
+              "managedAllocatedBytes": 98366966
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Table",
+              "iterations": 12,
+              "meanNanoseconds": 107062230.02083333,
+              "stdDevNanoseconds": 3327201.414696077,
+              "managedAllocatedBytes": 209387196
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Multilingual",
+              "iterations": 12,
+              "meanNanoseconds": 33676419.07692308,
+              "stdDevNanoseconds": 199957.57927882907,
+              "managedAllocatedBytes": 99217020
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        },
+        {
+          "label": "payload-baseline-b",
+          "raw": "performance/whitespace-7650/payload-baseline-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+          "rows": [
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=PlainText",
+              "iterations": 12,
+              "meanNanoseconds": 40991223.599999994,
+              "stdDevNanoseconds": 3361663.3137999815,
+              "managedAllocatedBytes": 100829819
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Table",
+              "iterations": 12,
+              "meanNanoseconds": 118249423.625,
+              "stdDevNanoseconds": 2577759.3077405524,
+              "managedAllocatedBytes": 233259336
+            },
+            {
+              "method": "OfficeIMO",
+              "parameters": "Payload=Multilingual",
+              "iterations": 12,
+              "meanNanoseconds": 34452432.41111112,
+              "stdDevNanoseconds": 193413.52873537983,
+              "managedAllocatedBytes": 101703342
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        },
+        {
+          "label": "purchase-baseline",
+          "raw": "performance/whitespace-7650/purchase-baseline/results/OfficeIMO.Html.Benchmarks.HtmlPagedPurchaseTableBenchmarks-report-full-compressed.json",
+          "rows": [
+            {
+              "method": "LayoutPaged",
+              "parameters": "RowCount=250",
+              "iterations": 12,
+              "meanNanoseconds": 185504604.08333334,
+              "stdDevNanoseconds": 46504264.86943392,
+              "managedAllocatedBytes": 231466232
+            },
+            {
+              "method": "RenderPdfToForwardOnlyStream",
+              "parameters": "RowCount=250",
+              "iterations": 12,
+              "meanNanoseconds": 224500211.83333334,
+              "stdDevNanoseconds": 11682291.984633641,
+              "managedAllocatedBytes": 341627088
+            },
+            {
+              "method": "LayoutPaged",
+              "parameters": "RowCount=2500",
+              "iterations": 12,
+              "meanNanoseconds": 1961324433.9166667,
+              "stdDevNanoseconds": 78345236.00083153,
+              "managedAllocatedBytes": 2848683096
+            },
+            {
+              "method": "RenderPdfToForwardOnlyStream",
+              "parameters": "RowCount=2500",
+              "iterations": 12,
+              "meanNanoseconds": 6007780805.5,
+              "stdDevNanoseconds": 17483306.19768732,
+              "managedAllocatedBytes": 4748628136
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        },
+        {
+          "label": "purchase-current",
+          "raw": "performance/whitespace-7650/purchase-current/results/OfficeIMO.Html.Benchmarks.HtmlPagedPurchaseTableBenchmarks-report-full-compressed.json",
+          "rows": [
+            {
+              "method": "LayoutPaged",
+              "parameters": "RowCount=250",
+              "iterations": 12,
+              "meanNanoseconds": 167728691.08333334,
+              "stdDevNanoseconds": 45706538.10062927,
+              "managedAllocatedBytes": 196130240
+            },
+            {
+              "method": "RenderPdfToForwardOnlyStream",
+              "parameters": "RowCount=250",
+              "iterations": 12,
+              "meanNanoseconds": 177292420.16666666,
+              "stdDevNanoseconds": 7615665.42232869,
+              "managedAllocatedBytes": 296979756
+            },
+            {
+              "method": "LayoutPaged",
+              "parameters": "RowCount=2500",
+              "iterations": 12,
+              "meanNanoseconds": 1833977958.1666667,
+              "stdDevNanoseconds": 6012586.648855895,
+              "managedAllocatedBytes": 2497943904
+            },
+            {
+              "method": "RenderPdfToForwardOnlyStream",
+              "parameters": "RowCount=2500",
+              "iterations": 12,
+              "meanNanoseconds": 2558610340.3333335,
+              "stdDevNanoseconds": 16764058.570368698,
+              "managedAllocatedBytes": 3517281640
+            }
+          ],
+          "host": {
+            "ProcessorName": "Apple M4",
+            "RuntimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+            "Architecture": "Arm64",
+            "LogicalCoreCount": 10,
+            "BenchmarkDotNetVersion": "0.15.8"
+          }
+        }
+      ],
+      "conclusion": "Current-source paired cohort accepted for selected large-table speed/allocation improvement with byte-identical417page savedoutput/all2500markers. All20rows and raw noisy/slower cases retained; assess each workload separately. No peakmemory, coldstart, quiet-host, portable-ranking or isolated-optimization attribution. EarlierDDDD/83efd timings remain historical.",
+      "boundary": "Normal development load; all slower/noisy rows retained. Warm managed allocation is not peak process memory, cold start, a portable ranking, or isolated-change attribution."
+    },
+    "canonicalSharedNine": {
+      "status": "Passed",
+      "record": "comparisons/whitespace-7650/root-execution.json",
+      "assessment": "comparisons/whitespace-7650/assessment.json",
+      "normalizedResult": "comparisons/whitespace-7650/macos-pdfhtmlpayload-full-20261022-023141-normalized-result.json",
+      "executionInputs": {
+        "fileCount": 211,
+        "mapSha256": "0f513db9b48aa31e6a6c7c6307f64f4244f2fa4b27f6aa2556c635d5c1fea16d",
+        "unchanged": true,
+        "physicallyReadBack": true
+      },
+      "successfulCases": 9,
+      "benchmarkDependencyAttribution": {
+        "benchmark.dependency.pdfpecker.sourceCommit": "ce0adb8dd86948a8832e04c88f4034dc88c5cf5a",
+        "benchmark.dependency.peachpdf.version": "0.9.23",
+        "benchmark.dependency.pdfpecker.version": "1.17.0",
+        "benchmark.dependency.pdfpecker.license": "MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c"
+      },
+      "boundary": "Canonical comparison qualification. Dependency names identify the measurement setup. Out-of-process BDN child PE physical retention is not established by parent executable bookends."
+    },
+    "boundedLocalReview": {
+      "status": "Passed",
+      "originalReportScope": {
+        "record": "local-review-result.json",
+        "contextCommit": "ddddaa1c458c3a45036efef3590c0a60dbf043bf",
+        "independentPasses": 1,
+        "targetedConfirmations": 1,
+        "disposition": "Accepted"
+      },
+      "newWhitespaceScope": {
+        "record": "whitespace-remediation/review-result.json",
+        "commit": "765057d2bdf16706be5e0cdec228fd541abf8ee8",
+        "independentPasses": 1,
+        "targetedConfirmations": 0,
+        "disposition": "Accepted",
+        "provisionalLayerConcern": "Rejected by actual public computed/render controls"
+      },
+      "regressionProof": "whitespace-remediation/bounded-proof.json",
+      "boundary": "Bounded local reviews, not GitHub approval or current-head CI; earlier scope was not reviewed again."
+    },
+    "privateCorpusBindings": {
+      "status": "Passed",
+      "knownDevelopmentInputs": [
+        {
+          "id": "nist",
+          "record": "inputs/nist.mhtml",
+          "role": "Known independently produced development fixture"
+        },
+        {
+          "id": "nasa-reference",
+          "record": "inputs/nasa-reference.mhtml",
+          "role": "Known independently produced development fixture"
+        },
+        {
+          "id": "nasa-planets",
+          "record": "inputs/nasa-planets.mhtml",
+          "role": "Known independently produced development fixture"
+        },
+        {
+          "id": "uk-cyber",
+          "record": "inputs/uk-cyber.mhtml",
+          "role": "Known independently produced development fixture"
+        }
+      ],
+      "evaluation": {
+        "id": "rfc8259",
+        "record": "inputs/evaluation-rfc8259/source.mhtml",
+        "role": "Unused earlier in this goal when first frozen after implementation; known to engine owners, not engine-wide held-out",
+        "defectDisposition": "Actual nested-pre whitespace loss reproduced and repaired; current artifact assessment is required."
+      },
+      "nativeCapture": {
+        "record": "candidate/native-evaluation-proof/closure.json",
+        "boundary": "Capture/lifecycle completion is distinct from the current saved-product appearance assessment."
+      },
+      "historicalNativeReference": {
+        "record": "native-reference-bindings.json",
+        "boundary": "Saved UK offline reference PDFs retain the original capture deadline failure; their existence does not turn that capture into a pass."
+      },
+      "rights": "Raw external inputs/assets, native PDFs/captures and rights notices remain private; redistribution is not accepted."
+    },
+    "retainedRecipes": {
+      "status": "Passed",
+      "records": [
+        "assemble-final-whitespace-evidence.py",
+        "run-whitespace-artifacts.py",
+        "inspect-whitespace-artifacts.py",
+        "inspect-whitespace-supplemental.py",
+        "run-whitespace-benchmarks.py",
+        "assess-whitespace-performance.py",
+        "run-whitespace-comparison.py",
+        "compact-whitespace-tests.py"
+      ],
+      "boundary": "Retained reproduction/assembly recipes; their present hashes are not retroactive execution bookends."
+    }
+  },
+  "limits": [
+    "Finite inputs and observed saved pages do not close unfamiliar-report, font-matched, wide-table, assistive-technology, native or platform acceptance.",
+    "Managed correctness, private packages, actual NativeAOT, independent PDF checks, native images and human observation are separate evidence.",
+    "Later documentation/evidence commits do not change measured runtime source or refresh historical timing.",
+    "The original scratch-wide compaction equality check failed; removed logical bytes remain unmeasured. A separate historical readback verified decisive retained evidence; no whole-scratch equality claim.",
+    "Historical v6 comparison executable was overwritten before complete physical retention; recorded hashes/source/raw BDN/output remain. No claim that all 128 v6 PEs, or all optional integration DLLs, were rebuilt/physically retained from the current runtime."
+  ],
+  "delivery": {
+    "publicPackages": "No public publication by this work",
+    "pullRequestCiReviewMerge": "Separate owner gates; not assessed by this assembler"
+  },
+  "referenceResolution": "Relative to the private retained task bundle. Hash/size references do not redistribute raw inputs or imply repository download links.",
+  "references": [
+    {
+      "record": "assemble-final-whitespace-evidence.py",
+      "bytes": 44745,
+      "sha256": "5b5fd8a214b7ffd6b9488f00f2f7e045f608eb1a95cea7ab1793fec4e415476a"
+    },
+    {
+      "record": "assemble-portable-evidence.py",
+      "bytes": 25199,
+      "sha256": "7dab110774089a597cdb30462f94f6d239942edacf6e6d67f927c06e6dd31330"
+    },
+    {
+      "record": "assess-whitespace-performance.py",
+      "bytes": 3967,
+      "sha256": "729374db0d9721146a9aac5fe5360f280112d2aea5f007b22f10927b26e97b34"
+    },
+    {
+      "record": "baseline-source-manifest.json",
+      "bytes": 675548,
+      "sha256": "e5a8e2f665729b3cf83121397271f5bededdacb2e1236dd4811dd87761d08e62"
+    },
+    {
+      "record": "baseline/binary-manifest.json",
+      "bytes": 20766,
+      "sha256": "ceb7b40e83b49e871d012c79841851f539276a910ad70299470056b095e96c17"
+    },
+    {
+      "record": "baseline/replay-packet-closure.json",
+      "bytes": 2813,
+      "sha256": "5f42c246bf8ce9de263d573096317dba479bdced155f9f31f399325f515e7d37"
+    },
+    {
+      "record": "candidate/native-evaluation-proof/closure.json",
+      "bytes": 991,
+      "sha256": "4a2703c5b530ac88f7d3346aecefbac55b6707b59c511bed3ea8ec05b6a677dc"
+    },
+    {
+      "record": "candidate/native-evaluation-proof/pdfs/source.pdf",
+      "bytes": 167251,
+      "sha256": "1202f3edf8a9d8e7cf157a038c9e22a849d897653ab545937f4cdd82731826b5"
+    },
+    {
+      "record": "candidate/retained-inputs-whitespace-final-measurement-inputs.json",
+      "bytes": 220648,
+      "sha256": "d1202b0e236ad6df7e1c7dee211a063a28eb5f70bc193acba0751367a8186402"
+    },
+    {
+      "record": "candidate/settled-artifacts/receipt.json",
+      "bytes": 218590,
+      "sha256": "c1d6ce1b2ec91d7513ecc031d40361a46ce27fed41be999e5a53d52cb02b7746"
+    },
+    {
+      "record": "candidate/settled-inspection/assessment.json",
+      "bytes": 3804,
+      "sha256": "eb45a99241218bd51ec2ad1731bf8e66213c76acc172f6c7bac78a094fe91e5e"
+    },
+    {
+      "record": "candidate/settled-supplemental/receipt.json",
+      "bytes": 16133,
+      "sha256": "9bdd17144c17dd1945604bca87578c02d532f1d0b59eb02efdc7bfbf261f5358"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/baseline-rfc8259/officeimo-print-zero-margin.pdf",
+      "bytes": 299148,
+      "sha256": "1457559cfe8c92b95a6742d4e190b62bcb770b97f2abf9aaed8408610f642620"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/nasa-planets/officeimo-print.pdf",
+      "bytes": 2109271,
+      "sha256": "5aa7efdcf0646f4a549c7bfa80c1206bfd383bf993fa322aa84407c192a2af12"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/nasa-reference/officeimo-print.pdf",
+      "bytes": 1701812,
+      "sha256": "89851c66ca1b0370d46acab7bfd4ae89b67007d83e4ba86bf5e42aacabc177cb"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/nist/officeimo-print.pdf",
+      "bytes": 495655,
+      "sha256": "60daaf8372c68274d49876da8001903d56eb14f8bb78f6b32a98316ef0ed0396"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Multilingual-OfficeIMO.pdf",
+      "bytes": 69092,
+      "sha256": "abc3ef994c6cee7f148ca405036347dfb0e689fc4cf5778074ea0e2e14cbf448"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Multilingual-PdfPecker.pdf",
+      "bytes": 50584,
+      "sha256": "82c4b352e83c283ace4e3fe7ebbe92d65574c58a7f566c572a14b3a15dd9a758"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Multilingual-PeachPDF.pdf",
+      "bytes": 72579,
+      "sha256": "19f6fb9b3151b48a5d33649f71e9fe891b46f5d6c1a5f0925a2719e89267f0e1"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/PlainText-OfficeIMO.pdf",
+      "bytes": 66339,
+      "sha256": "8ca826e4b8d79d46166fc3203a240d28e823a9c0e0201e0588671ee5c642eefa"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/PlainText-PdfPecker.pdf",
+      "bytes": 48148,
+      "sha256": "65087e5aa4f47a42221fb3ef62715086fa9c6cb1d1f8b2eaeaf2922be26bc929"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/PlainText-PeachPDF.pdf",
+      "bytes": 71752,
+      "sha256": "cb9f9e89c3b11a619721f470ddf85710f43d90ecb07c0b31831b0b0283f1b0e7"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Table-OfficeIMO.pdf",
+      "bytes": 355495,
+      "sha256": "77563481a65eaeb3380747aa473226b0787be5875ada57c97266bf64d1996830"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Table-PdfPecker.pdf",
+      "bytes": 158502,
+      "sha256": "59405d18b44c5a35bb3bd7acd2c4f2244d137555485ac97b9d93a2fdfce84ab8"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/payloads/Table-PeachPDF.pdf",
+      "bytes": 209148,
+      "sha256": "00d1cf086777470d242cc11e0b34c7f7081067d01d05bf1668a2f0d2ee032e14"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/account-statement/report.pdf",
+      "bytes": 25112,
+      "sha256": "905bdd9f3ee3e21d5b791eb5122e36d38cb406479aae1bdaf0ffeb2e20720470"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/delivery-register/report.pdf",
+      "bytes": 83387,
+      "sha256": "ab86b2f3e2b868b4d3b64819b3a5fe276e3abbd8c8182ab8deea63758f9802b9"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/invoice/report.pdf",
+      "bytes": 16416,
+      "sha256": "961bc92cc153cec47207c552bbda02989de1e6ad218bad2c035044cf7c316fbf"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/nested-fragmentation/report.pdf",
+      "bytes": 11254,
+      "sha256": "952257189cc2a1a3c07500a8082f7aa65635ca0ff63cb8c780816124512a71a3"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/purchase250/report.pdf",
+      "bytes": 696407,
+      "sha256": "b5dd511a8173296b0b3a6c1782d7061573ad380b1e8d34f1f51f086b5449b156"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/purchase2500/report.pdf",
+      "bytes": 7162152,
+      "sha256": "f5a479a3beb5760403f0b3e43ef18c00726dc05145db01cda225241389966b9f"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/public/service-review/report.pdf",
+      "bytes": 27608,
+      "sha256": "5fa23e3996d96d7a3d8d1065770b0adb20720fa43e37bd0858b98510c0398b6b"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/receipt.json",
+      "bytes": 218590,
+      "sha256": "4a7216ca3e86a2d67b3ad38356ae40241cfc6550efeb326893cad2a8aa60f553"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/rfc8259/officeimo-print-zero-margin.pdf",
+      "bytes": 299251,
+      "sha256": "4b6c0824f0115afb53f52dc9af4a5ec0ef1d756207a2275022aef0bc2c01e443"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/uk-cyber/officeimo-print.pdf",
+      "bytes": 2228151,
+      "sha256": "d0fd68ea91c74ab75d67b767f215a08461113f86a0d36181965507aa9139b9ff"
+    },
+    {
+      "record": "candidate/whitespace-artifacts/uk-zero-margin/officeimo-print-zero-margin.pdf",
+      "bytes": 2087272,
+      "sha256": "d1b68b936c946f72f9ac5ccf3cffd1065ded76ee8161938bae8e69dae98230c7"
+    },
+    {
+      "record": "candidate/whitespace-inspection/assessment.json",
+      "bytes": 4890,
+      "sha256": "273a6105686b74c8d921b932b9f4da903be35bfadfda9a36de92428adbb80de1"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-0.bbox.xml",
+      "bytes": 499574,
+      "sha256": "8fae0bbeb165037b4b5a4552c6e7bacd03204b2c1c244e78023e64d07c068283"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-0.txt",
+      "bytes": 27153,
+      "sha256": "197ce6e186dbb0867c0d77fdd221dfbf3a2c2a0a75f82eaa6a1f731ca76eacd2"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-1.bbox.xml",
+      "bytes": 187977,
+      "sha256": "538fff730771588764bbe4ae6abdb38e49b0b518216ad340e64f003554766331"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-1.txt",
+      "bytes": 22614,
+      "sha256": "de30e45d9d28463951b305dd4f44457ab410c6b8487313ef774092c7fd5aef56"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-10.bbox.xml",
+      "bytes": 305385,
+      "sha256": "5a794b0aaa79e5b544420bfd92633157394fddb8a5cb6da56022ed76c212a280"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-10.txt",
+      "bytes": 16434,
+      "sha256": "64a5419f3c17352d5d4a41bd7328f6873a1b48c9bee598e06aeabcc0f121f568"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-11.bbox.xml",
+      "bytes": 305440,
+      "sha256": "1b5b64beb3a912516464a3885d2893a56059772624de839715520eda4f92fccd"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-11.txt",
+      "bytes": 16181,
+      "sha256": "647a3983ddf1c60bc27445c9c63254a6c8f89134f8010d479318b3b31dcbb196"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-12.bbox.xml",
+      "bytes": 305497,
+      "sha256": "cd011ed012a1d1b542a20d9700d5ebc7e805c354f59a51b3974a6e45c3add0f2"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-12.txt",
+      "bytes": 16175,
+      "sha256": "850dca865bbc94476717714204fbe236882222563bc04b6378c162dc22783661"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-13.bbox.xml",
+      "bytes": 23125,
+      "sha256": "053a6571e83e15f4442b5eb418498fc9f0edd41c034c4eb09612aa83df7c5139"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-13.txt",
+      "bytes": 2084,
+      "sha256": "2579e2d68eedfe70b111dedd8b7f1b91c4a44463122d8491dc5441f2344d247e"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-14.bbox.xml",
+      "bytes": 74277,
+      "sha256": "2883c94d4c034bc2c7fb3a0bc471cc6093df7e4da2cac1669b58027fb109d3c4"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-14.txt",
+      "bytes": 5230,
+      "sha256": "d33a7be4bb3b0a131067333610ec0788ac32d871ad794125e4cca2f355ab66db"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-15.bbox.xml",
+      "bytes": 12291,
+      "sha256": "e2dfb28d91790bd6fcd553181c9f9b8bcc830d9e18938d08f79e4e1f9f0959f5"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-15.txt",
+      "bytes": 1088,
+      "sha256": "bfd7855ded99227443f1b702aef1d12a47b4ebe809cd73ac9987cfa26ddd91a2"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-16.bbox.xml",
+      "bytes": 17758,
+      "sha256": "f9e17b611c87670f45ff20c2341c7871f6069add6a327bf2327a976fad0b7b08"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-16.txt",
+      "bytes": 1281,
+      "sha256": "e4ac5fc172d3ac16dc2c913a0c592f262bd2bbef259a166bcff5e7982a6959f4"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-17.bbox.xml",
+      "bytes": 735550,
+      "sha256": "611d4f681e2ba1184cdd0073a762406d4da2570da38dc1b05607f1bfab709906"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-17.txt",
+      "bytes": 51626,
+      "sha256": "7bbccbd314ecc5cbb22ddae89510cd753fa628502ff14ec91b107eaf0e7ad412"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-18.bbox.xml",
+      "bytes": 7333289,
+      "sha256": "87203ca86642cfe2be1144f572052b74c1be16e644a3703b14d9356bb7e46f94"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-18.txt",
+      "bytes": 509342,
+      "sha256": "dea0ddfef5349f732372c4dfc18df9de94f5f8afe186dd3de9c19de7ed8259ac"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-19.bbox.xml",
+      "bytes": 25629,
+      "sha256": "8aac29f3d0feafec1353e748946eb9e304dfb6500e7bf2e044386ceb76c49ecb"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-19.txt",
+      "bytes": 1919,
+      "sha256": "ab7547713e2946b262c60bee1bf3ca49d115ab72afa60f535e1719cc2a7f8170"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-2.bbox.xml",
+      "bytes": 80856,
+      "sha256": "5210b79eef4a42b0b941781824a68003055364e01c13ccdee0bb1bf2f69f8a02"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-2.txt",
+      "bytes": 11036,
+      "sha256": "7d672720ade46b4be2a19af7aef8e5957127623c67ee7e87bc41cf901a9f6850"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-20.bbox.xml",
+      "bytes": 518606,
+      "sha256": "8da5f38dd157c7becf0a4d9232500cb60714b83c2a7018e06e05788b4166e148"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-20.txt",
+      "bytes": 29089,
+      "sha256": "81aec03e0ebe225ad34980cf19d2bb489ab0b9d12b7d3ba74b0d46cfa956d68b"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-21.bbox.xml",
+      "bytes": 4994452,
+      "sha256": "4038ceecbcb2bb559ddefdd5add763b490d069f31547908b2cc95e6981671315"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-21.txt",
+      "bytes": 297910,
+      "sha256": "41fe4563c7f92148f5a359038dd824f9739c3db5a9fc162cce10829298833a83"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-22.bbox.xml",
+      "bytes": 4908990,
+      "sha256": "98cc754e69b14013ad6dde34ef87faa0758a4a2c073bfc5a9fe2d9e944435d28"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-22.txt",
+      "bytes": 297479,
+      "sha256": "65b6dc6b4a2e7b5b5ff7f35936e2aa7855be92a4f21d3f3f1f6d7ef42b53a225"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-23.bbox.xml",
+      "bytes": 518455,
+      "sha256": "96b04c47be4819decf7073888ea5bf0d4f639cafc682249323a0f3cddd61b1ae"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-23.txt",
+      "bytes": 29203,
+      "sha256": "7c02a17a6c39bcb6a6edefd62063aa145238115ef25d96af0ead2af648b0cc5b"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-3.bbox.xml",
+      "bytes": 364948,
+      "sha256": "3490cb8c6bef7b664d94bb92f3438a7c564afd4815d6f471c92c10fd88a47d6d"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-3.txt",
+      "bytes": 23231,
+      "sha256": "e1c88c0c45986501a4a939874d64e7b50a41d2ed678cfbd45c0c0dd22ca9dbf1"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-4.bbox.xml",
+      "bytes": 309637,
+      "sha256": "23b7932ed70679a7f8c544e9e3e5a702fd85736fb8c37e38a060ba6d465ddc8c"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-4.txt",
+      "bytes": 20165,
+      "sha256": "95b9cac6fde950515b88e6ae18f6311ff845875058436798eeeeea78fc28d73f"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-5.bbox.xml",
+      "bytes": 309692,
+      "sha256": "2b512108083f41d4f333aa37f8d1ff0b87db0225afd328fffe4bb7bd774108f2"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-5.txt",
+      "bytes": 20165,
+      "sha256": "95b9cac6fde950515b88e6ae18f6311ff845875058436798eeeeea78fc28d73f"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-6.bbox.xml",
+      "bytes": 309749,
+      "sha256": "72f597de407fbe6cd09e3bb84a38d458f46624abc0a017b04dfb5543bd590ee3"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-6.txt",
+      "bytes": 20165,
+      "sha256": "95b9cac6fde950515b88e6ae18f6311ff845875058436798eeeeea78fc28d73f"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-7.bbox.xml",
+      "bytes": 291291,
+      "sha256": "3a38d175d7986359b64e0c2e9e749846d3e1f57fac97128f92f5cc8e36a87abb"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-7.txt",
+      "bytes": 20226,
+      "sha256": "bead90de324f84c9a9d52ae35ced7c77950258974e85240691ba472cec92e616"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-8.bbox.xml",
+      "bytes": 291346,
+      "sha256": "c4c249b9153047366827ae31bcac1b040a12f65e21c811425f31ea3521c84a26"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-8.txt",
+      "bytes": 20226,
+      "sha256": "bead90de324f84c9a9d52ae35ced7c77950258974e85240691ba472cec92e616"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-9.bbox.xml",
+      "bytes": 291403,
+      "sha256": "1139bb1aaecfed2b6b93977e8eaae896883321dcd418b1015c966423bddfb4c2"
+    },
+    {
+      "record": "candidate/whitespace-inspection/pdf-9.txt",
+      "bytes": 20226,
+      "sha256": "bead90de324f84c9a9d52ae35ced7c77950258974e85240691ba472cec92e616"
+    },
+    {
+      "record": "candidate/whitespace-inspection/purchase-middle.png",
+      "bytes": 170357,
+      "sha256": "f1f3a7e4ff9bd667344d0c0c908bc02435438b9dda091e98b0a5d727cfe2fd90"
+    },
+    {
+      "record": "candidate/whitespace-inspection/receipt.json",
+      "bytes": 324466,
+      "sha256": "6e93b6c90d17b4b08b9868213c7b9f84c7dfacbea34854c554a1fd0a10e36fde"
+    },
+    {
+      "record": "candidate/whitespace-inspection/rfc-first.png",
+      "bytes": 225402,
+      "sha256": "52faacb7e2ecdbd7c81819633d68a7b90d37d008d61bc8c5ac12f3cdd7eb84fb"
+    },
+    {
+      "record": "candidate/whitespace-inspection/rfc-middle.png",
+      "bytes": 250961,
+      "sha256": "45b0c05a7706014a1430d9e20dacad9c292a44babdeda9077050fe38201e5001"
+    },
+    {
+      "record": "candidate/whitespace-inspection/uk-first.png",
+      "bytes": 236258,
+      "sha256": "dfbe4f4bdc515c515d0ab54788456e1e945dcbab8efd769bc4997098e65a6e98"
+    },
+    {
+      "record": "candidate/whitespace-supplemental/package-native-link.png",
+      "bytes": 37182,
+      "sha256": "3df9847b9723b319f8b7d9a8dba5ce800607b6732ec6ea6405f8d128580979a4"
+    },
+    {
+      "record": "candidate/whitespace-supplemental/package-native-purchase.png",
+      "bytes": 152001,
+      "sha256": "c6bc3817cb02c706a1c6276e90fc712cbc6222ded3b01382c0f91d5511149435"
+    },
+    {
+      "record": "candidate/whitespace-supplemental/receipt.json",
+      "bytes": 19795,
+      "sha256": "8bba8f743b5e6d3f517940cd47e86ee17ef71f5d87b8af54e2eab70f38b2890f"
+    },
+    {
+      "record": "candidate/whitespace-supplemental/rfc-native-first.png",
+      "bytes": 232022,
+      "sha256": "e1b83610f9eb1596c985bbb542b3de01fb043d8681ed66c4a51cda45aab2b5f2"
+    },
+    {
+      "record": "candidate/whitespace-supplemental/rfc-native-middle.png",
+      "bytes": 267457,
+      "sha256": "7729478eb4ba00fe12c2ce7690c6ab95d30babdadeed8a8a67a0f526341ff3c9"
+    },
+    {
+      "record": "compact-whitespace-tests.py",
+      "bytes": 4648,
+      "sha256": "f2428f4287f95fff77f6f3522c38d056b586871f2b6b474bd0ccb778e112b641"
+    },
+    {
+      "record": "comparisons/settled-dddd/assessment.json",
+      "bytes": 2224,
+      "sha256": "8c8d370585040a07d6c2e3a4f3f34b78ca229f6dab6ec19d56cf44f80436aa4e"
+    },
+    {
+      "record": "comparisons/settled-dddd/root-execution.json",
+      "bytes": 76055,
+      "sha256": "5652b389d34cde54b13f0206ebe20892683da67476102366c415a4321d1de7fb"
+    },
+    {
+      "record": "comparisons/whitespace-7650/assessment.json",
+      "bytes": 2230,
+      "sha256": "e02b0ff8d8880cd4de244af70261cd73c8be3834fd5278fd5343004d39369794"
+    },
+    {
+      "record": "comparisons/whitespace-7650/macos-pdfhtmlpayload-full-20261022-023141-normalized-result.json",
+      "bytes": 545936,
+      "sha256": "f973db690a18ccea0398e1029def2b6e77d291f26d73403d2b523156f20838f2"
+    },
+    {
+      "record": "comparisons/whitespace-7650/root-execution.json",
+      "bytes": 76058,
+      "sha256": "a00eb590016f1fd13e251d1b0c1c9ca133124f48b5607b6f8cfb9fa99ef42419"
+    },
+    {
+      "record": "corpus-plan.json",
+      "bytes": 5892,
+      "sha256": "ae09aa0a024603523fd4260882671480c8ad98807a19f8f289edee79750e0226"
+    },
+    {
+      "record": "executions/whitespace-layer-probe-run.log",
+      "bytes": 299,
+      "sha256": "df39f93b7b8797385ea9c0e0cb930559dd520fa6dd8f2cf37559cb0f4386818e"
+    },
+    {
+      "record": "executions/whitespace-net10-stable-focused-OfficeIMO.Html.Tests-net10.0.json",
+      "bytes": 1865,
+      "sha256": "d15d1b167e093a7a708e7134308369ad3460e89f24b3e04a6d740b8fd104de35"
+    },
+    {
+      "record": "executions/whitespace-net10-stable-focused-OfficeIMO.Pdf.Tests-net10.0.json",
+      "bytes": 1527,
+      "sha256": "b047527c4a3bf7efff493a82fae32c13f19d6872b0bc061c9b8f931fd34ade17"
+    },
+    {
+      "record": "executions/whitespace-net10-stable-full-OfficeIMO.Html.Tests-net10.0.json",
+      "bytes": 1126,
+      "sha256": "55dfc1def81e98a6ac74b358e28d277346e99ffee94da58a81334a23169ee908"
+    },
+    {
+      "record": "executions/whitespace-net10-stable-full-OfficeIMO.Pdf.Tests-net10.0.json",
+      "bytes": 1123,
+      "sha256": "5cebecbdc63262980a5dde35e6276d33cb56ff8877ff60447fdc2e35cac64af3"
+    },
+    {
+      "record": "executions/whitespace-net8-stable-focused-OfficeIMO.Html.Tests-net8.0.json",
+      "bytes": 1863,
+      "sha256": "818e17cd179c2ee094250c2325a52cc1d53fb374dbd4f21dd0a117cc9b839734"
+    },
+    {
+      "record": "executions/whitespace-net8-stable-focused-OfficeIMO.Pdf.Tests-net8.0.json",
+      "bytes": 1525,
+      "sha256": "d0e82e86a9dfa9c236e6a694ec53bb9ba9e7cc735e7e3ffb6e97840005d9d56b"
+    },
+    {
+      "record": "executions/whitespace-net8-stable-full-OfficeIMO.Html.Tests-net8.0.json",
+      "bytes": 1124,
+      "sha256": "237d783db57bf6f1def3b9d7c7b452baa165c8b4c43475863e5479973ce23751"
+    },
+    {
+      "record": "executions/whitespace-net8-stable-full-OfficeIMO.Pdf.Tests-net8.0.json",
+      "bytes": 1121,
+      "sha256": "45b21624d07f0794509eb75078a387e4b7412b776f9abb0b29e4a470ce17ad2d"
+    },
+    {
+      "record": "executions/whitespace-private-consumer-resume-v2.json",
+      "bytes": 842,
+      "sha256": "230a7d19c0d3c1f665a8e19e166256fdd8ddb3f924029c9c18d277f31ab255e0"
+    },
+    {
+      "record": "guard-source.py",
+      "bytes": 613,
+      "sha256": "295fd2e62f880c43cb5f35b9400a3ceaf6145845222cd2a34fd1d38236feec96"
+    },
+    {
+      "record": "inputs/evaluation-rfc8259/source.html",
+      "bytes": 44156,
+      "sha256": "7715bb3c93c90c69d2767a97423685a1caf6df9529dcfe9409f3e3921219898f"
+    },
+    {
+      "record": "inputs/evaluation-rfc8259/source.mhtml",
+      "bytes": 46283,
+      "sha256": "db58fa8aaadc5e1b9fd0d87d643e1e4eaba8e7680c3e9d7e38e8c2a1f15bf3b2"
+    },
+    {
+      "record": "inputs/nasa-planets.mhtml",
+      "bytes": 2641258,
+      "sha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2"
+    },
+    {
+      "record": "inputs/nasa-reference.mhtml",
+      "bytes": 1410684,
+      "sha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d"
+    },
+    {
+      "record": "inputs/nist.mhtml",
+      "bytes": 1099322,
+      "sha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa"
+    },
+    {
+      "record": "inputs/uk-cyber.mhtml",
+      "bytes": 1258862,
+      "sha256": "cac5b8988c91d8b117ad95cbdbf0716e341cb99ac21caa270d91b1f8fe60bedf"
+    },
+    {
+      "record": "inspect-whitespace-artifacts.py",
+      "bytes": 4775,
+      "sha256": "c44282302878a690f2dc6919364fc5e7caedf1bed310b0b0eb1e9f09de966104"
+    },
+    {
+      "record": "inspect-whitespace-supplemental.py",
+      "bytes": 3281,
+      "sha256": "7bc4217dc8a4cc7d7c1bccd24035f8103eae4f143ec637f78cb90cd47ebf72f7"
+    },
+    {
+      "record": "local-review-result.json",
+      "bytes": 1783,
+      "sha256": "118237679982a83b1317235416fe183c72a761e191b6fe70a86c56086cd98885"
+    },
+    {
+      "record": "native-reference-bindings.json",
+      "bytes": 2263,
+      "sha256": "7e6c4d5974c9260b559894d95f5d3064c4e59e18a714108afb6fc156e979d6c5"
+    },
+    {
+      "record": "packages-whitespace/attempt1/archival.json",
+      "bytes": 7240,
+      "sha256": "03528e751a5ec1bfaabd864c9e029d1de5ef0851de2017bb066d7cf38fab89a4"
+    },
+    {
+      "record": "packages-whitespace/attempt1/entry-retention.json",
+      "bytes": 1458,
+      "sha256": "e5440e6543101bbdaaade5ae343d3620c9db8de378ce6d8004723fd15f1c9b98"
+    },
+    {
+      "record": "packages-whitespace/consumer/PackedReportConsumer.csproj",
+      "bytes": 1026,
+      "sha256": "610c906ca7859c27ed257a9c4cf7b1bab33d66a93a6bd8873fce2fe2d3a3d3a1"
+    },
+    {
+      "record": "packages-whitespace/consumer/Program.cs",
+      "bytes": 16563,
+      "sha256": "fe8dda1f6ff1dd7a237a6b524806367c59414950a0d3a0e87ffdb26a47f218d7"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/generated-rows-review.html",
+      "bytes": 15881,
+      "sha256": "971cdf0f416085e93252cd2d2bb4493fce9c4f6089b6c9cfb4ee97c08a164694"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/generated-rows.html",
+      "bytes": 173,
+      "sha256": "e614699d12c00f50a23bed63eca818290a6f98e1e26267f5661fd50ac16eed11"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/generated-rows.pdf",
+      "bytes": 2776,
+      "sha256": "9101b7c95ae657100bf2da97efa8ebe8a70ef64bc383d9eed4281f3832deb1e8"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/generated-rows.txt",
+      "bytes": 39,
+      "sha256": "bbb7602ff188e3b7ca9c67d39a47aedf31aeff12ffee40ee2aa7ca877a634ca5"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-caption-after.html",
+      "bytes": 314,
+      "sha256": "3c8d8f53c4f052d4022b0025df732b5b633f0349a60ca82ef51ab9991dc78361"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-table-after.html",
+      "bytes": 316,
+      "sha256": "ea1d1edd9f2ce1af05b8f19175496a814f14ab9b008f439394354b4f710a6b71"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-table-before.html",
+      "bytes": 295,
+      "sha256": "345f0d3b1646e911ebd615b8cdfec0227d013bcf2bc32be5ea0dffd69a2679b9"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-tbody-before.html",
+      "bytes": 314,
+      "sha256": "c51736a9c4bda0f9ac6ce6dd045856e59a84d6463194a130810eb47333e2bdf1"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-td-before.html",
+      "bytes": 295,
+      "sha256": "b68d88d493baf767a5436ed685999be0b7e2a44700faffc3467fedb2a4ee2b25"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/geometry-tr-after.html",
+      "bytes": 294,
+      "sha256": "3a970e5633e63a66111b2d9b8306ba2754052293bb07132b68b2c22f9a3b768c"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-default.html",
+      "bytes": 114,
+      "sha256": "1964502a4c73fd3ad5598744b126b6620433d96b2e18d2c24d83c9762484f03f"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-default.pdf",
+      "bytes": 1797,
+      "sha256": "aea2401536a92d1bbadf2249942a9b74f995a1e7896b7367db62a36bdd4b12f4"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-default.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-initial.html",
+      "bytes": 133,
+      "sha256": "069d6a779a48b3fe3132c3488ba0d6a944a3ea7c6b8371a90a4de33c027f8c7c"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-initial.pdf",
+      "bytes": 1549,
+      "sha256": "2fb916a60980cbbd1c15aca54534e96b316b16cbafe523cdc0cde6da23d40539"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-initial.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-normal.html",
+      "bytes": 132,
+      "sha256": "968af215a1dcb1254b489361990e294386e15741515bc09e31d63b46045c79dc"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-normal.pdf",
+      "bytes": 1549,
+      "sha256": "2fb916a60980cbbd1c15aca54534e96b316b16cbafe523cdc0cde6da23d40539"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-normal.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-single-space-control.html",
+      "bytes": 111,
+      "sha256": "bd831b44f90c1a80106104b13fdd117c081d9faaa09a2daf8553921642478513"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-single-space-control.pdf",
+      "bytes": 1796,
+      "sha256": "43b1af5052728fc4f1909a03b070ac177d6abe33c92d434a97a0c1767e21d11c"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/pre-single-space-control.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/purchase250.html",
+      "bytes": 49686,
+      "sha256": "30663a7a043c3787d8664984b0c256fb6d802847acfa408d8a5b19a48eb2acce"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/purchase250.pdf",
+      "bytes": 696407,
+      "sha256": "8d13666220a119c37e055edfe1ab121721bb246943b8e80eba3135227389e4d0"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/purchase250.txt",
+      "bytes": 25782,
+      "sha256": "009955ecea92eec7f56779d3a1e20b6eb2623f63e149ed0835454082210dc3b2"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/result.json",
+      "bytes": 9244,
+      "sha256": "956910d4f368bd504643db71d734cfa40f3ef1089fec16d8088b4e2d7c525d21"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-auto.html",
+      "bytes": 332,
+      "sha256": "4ff97e3fcd43a31e2686c392ca71bf16eb519d9247c37d86c06ce27dee03e778"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-auto.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-auto.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-avoid.html",
+      "bytes": 368,
+      "sha256": "65c8ed9cf0aa88cf7a1374dd1163a7742d69494090e86535b88e8b70f31509b6"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-avoid.pdf",
+      "bytes": 3595,
+      "sha256": "216c4413bfaaab899e9fcd69ae35aab69f8593d39157a4375f40fa6fcf45673a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-avoid.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-fixed.html",
+      "bytes": 345,
+      "sha256": "ab648ff174ab50111774b907bda21f86c1998df8aece8fe08cf794f6738d67e9"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-fixed.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-fixed.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-max.html",
+      "bytes": 349,
+      "sha256": "2ad5fd3ebdcf579d11d9a9b55df56eab44c18515c05010b740a03d015cdc9ad5"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-max.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/scroll-max.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-inline-table.html",
+      "bytes": 264,
+      "sha256": "c839f54b7f47769928b0001cd4ef3e66fc6c526e5afeff5e6e6b306d684743fc"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-inline-table.pdf",
+      "bytes": 2817,
+      "sha256": "17f26a438f0a92999de3b88b883e6e409b4f964108ee1e05e591e35d088767da"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-inline-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-table.html",
+      "bytes": 257,
+      "sha256": "3e67f07505e52aeb1cb46a03ff52b7af009a42a30872261cf9606e16ddead2cb"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-table.pdf",
+      "bytes": 2817,
+      "sha256": "17f26a438f0a92999de3b88b883e6e409b4f964108ee1e05e591e35d088767da"
+    },
+    {
+      "record": "packages-whitespace/evidence/native/url-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/generated-rows-review.html",
+      "bytes": 15881,
+      "sha256": "971cdf0f416085e93252cd2d2bb4493fce9c4f6089b6c9cfb4ee97c08a164694"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/generated-rows.html",
+      "bytes": 173,
+      "sha256": "e614699d12c00f50a23bed63eca818290a6f98e1e26267f5661fd50ac16eed11"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/generated-rows.pdf",
+      "bytes": 2776,
+      "sha256": "9101b7c95ae657100bf2da97efa8ebe8a70ef64bc383d9eed4281f3832deb1e8"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/generated-rows.txt",
+      "bytes": 39,
+      "sha256": "bbb7602ff188e3b7ca9c67d39a47aedf31aeff12ffee40ee2aa7ca877a634ca5"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-caption-after.html",
+      "bytes": 314,
+      "sha256": "3c8d8f53c4f052d4022b0025df732b5b633f0349a60ca82ef51ab9991dc78361"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-table-after.html",
+      "bytes": 316,
+      "sha256": "ea1d1edd9f2ce1af05b8f19175496a814f14ab9b008f439394354b4f710a6b71"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-table-before.html",
+      "bytes": 295,
+      "sha256": "345f0d3b1646e911ebd615b8cdfec0227d013bcf2bc32be5ea0dffd69a2679b9"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-tbody-before.html",
+      "bytes": 314,
+      "sha256": "c51736a9c4bda0f9ac6ce6dd045856e59a84d6463194a130810eb47333e2bdf1"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-td-before.html",
+      "bytes": 295,
+      "sha256": "b68d88d493baf767a5436ed685999be0b7e2a44700faffc3467fedb2a4ee2b25"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/geometry-tr-after.html",
+      "bytes": 294,
+      "sha256": "3a970e5633e63a66111b2d9b8306ba2754052293bb07132b68b2c22f9a3b768c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-default.html",
+      "bytes": 114,
+      "sha256": "1964502a4c73fd3ad5598744b126b6620433d96b2e18d2c24d83c9762484f03f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-default.pdf",
+      "bytes": 1797,
+      "sha256": "aea2401536a92d1bbadf2249942a9b74f995a1e7896b7367db62a36bdd4b12f4"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-default.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-initial.html",
+      "bytes": 133,
+      "sha256": "069d6a779a48b3fe3132c3488ba0d6a944a3ea7c6b8371a90a4de33c027f8c7c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-initial.pdf",
+      "bytes": 1549,
+      "sha256": "2fb916a60980cbbd1c15aca54534e96b316b16cbafe523cdc0cde6da23d40539"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-initial.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-normal.html",
+      "bytes": 132,
+      "sha256": "968af215a1dcb1254b489361990e294386e15741515bc09e31d63b46045c79dc"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-normal.pdf",
+      "bytes": 1549,
+      "sha256": "2fb916a60980cbbd1c15aca54534e96b316b16cbafe523cdc0cde6da23d40539"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-normal.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-single-space-control.html",
+      "bytes": 111,
+      "sha256": "bd831b44f90c1a80106104b13fdd117c081d9faaa09a2daf8553921642478513"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-single-space-control.pdf",
+      "bytes": 1796,
+      "sha256": "43b1af5052728fc4f1909a03b070ac177d6abe33c92d434a97a0c1767e21d11c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/pre-single-space-control.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/purchase250.html",
+      "bytes": 49686,
+      "sha256": "30663a7a043c3787d8664984b0c256fb6d802847acfa408d8a5b19a48eb2acce"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/purchase250.pdf",
+      "bytes": 696407,
+      "sha256": "8d13666220a119c37e055edfe1ab121721bb246943b8e80eba3135227389e4d0"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/purchase250.txt",
+      "bytes": 25782,
+      "sha256": "009955ecea92eec7f56779d3a1e20b6eb2623f63e149ed0835454082210dc3b2"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/result.json",
+      "bytes": 11187,
+      "sha256": "7d83bdfed25ff2d60d73d2a7e9c68cc094d8a2b18a8690972831b73566d601f6"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-auto.html",
+      "bytes": 332,
+      "sha256": "4ff97e3fcd43a31e2686c392ca71bf16eb519d9247c37d86c06ce27dee03e778"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-auto.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-auto.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-avoid.html",
+      "bytes": 368,
+      "sha256": "65c8ed9cf0aa88cf7a1374dd1163a7742d69494090e86535b88e8b70f31509b6"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-avoid.pdf",
+      "bytes": 3595,
+      "sha256": "216c4413bfaaab899e9fcd69ae35aab69f8593d39157a4375f40fa6fcf45673a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-avoid.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-fixed.html",
+      "bytes": 345,
+      "sha256": "ab648ff174ab50111774b907bda21f86c1998df8aece8fe08cf794f6738d67e9"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-fixed.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-fixed.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-max.html",
+      "bytes": 349,
+      "sha256": "2ad5fd3ebdcf579d11d9a9b55df56eab44c18515c05010b740a03d015cdc9ad5"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-max.pdf",
+      "bytes": 3619,
+      "sha256": "10e5b7458f904f6692439e9b8ed6c944f79b3a7884a793c9e9a2c50b11c5099b"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/scroll-max.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-inline-table.html",
+      "bytes": 264,
+      "sha256": "c839f54b7f47769928b0001cd4ef3e66fc6c526e5afeff5e6e6b306d684743fc"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-inline-table.pdf",
+      "bytes": 2817,
+      "sha256": "17f26a438f0a92999de3b88b883e6e409b4f964108ee1e05e591e35d088767da"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-inline-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-table.html",
+      "bytes": 257,
+      "sha256": "3e67f07505e52aeb1cb46a03ff52b7af009a42a30872261cf9606e16ddead2cb"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-table.pdf",
+      "bytes": 2817,
+      "sha256": "17f26a438f0a92999de3b88b883e6e409b4f964108ee1e05e591e35d088767da"
+    },
+    {
+      "record": "packages-whitespace/evidence/net10.0/url-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/generated-rows-review.html",
+      "bytes": 15881,
+      "sha256": "971cdf0f416085e93252cd2d2bb4493fce9c4f6089b6c9cfb4ee97c08a164694"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/generated-rows.html",
+      "bytes": 173,
+      "sha256": "e614699d12c00f50a23bed63eca818290a6f98e1e26267f5661fd50ac16eed11"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/generated-rows.pdf",
+      "bytes": 2777,
+      "sha256": "bd68058f6147865825bad3cf21bda926809d1089211632e59ed78cd9f22eb2d1"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/generated-rows.txt",
+      "bytes": 39,
+      "sha256": "bbb7602ff188e3b7ca9c67d39a47aedf31aeff12ffee40ee2aa7ca877a634ca5"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-caption-after.html",
+      "bytes": 314,
+      "sha256": "3c8d8f53c4f052d4022b0025df732b5b633f0349a60ca82ef51ab9991dc78361"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-table-after.html",
+      "bytes": 316,
+      "sha256": "ea1d1edd9f2ce1af05b8f19175496a814f14ab9b008f439394354b4f710a6b71"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-table-before.html",
+      "bytes": 295,
+      "sha256": "345f0d3b1646e911ebd615b8cdfec0227d013bcf2bc32be5ea0dffd69a2679b9"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-tbody-before.html",
+      "bytes": 314,
+      "sha256": "c51736a9c4bda0f9ac6ce6dd045856e59a84d6463194a130810eb47333e2bdf1"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-td-before.html",
+      "bytes": 295,
+      "sha256": "b68d88d493baf767a5436ed685999be0b7e2a44700faffc3467fedb2a4ee2b25"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/geometry-tr-after.html",
+      "bytes": 294,
+      "sha256": "3a970e5633e63a66111b2d9b8306ba2754052293bb07132b68b2c22f9a3b768c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-default.html",
+      "bytes": 114,
+      "sha256": "1964502a4c73fd3ad5598744b126b6620433d96b2e18d2c24d83c9762484f03f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-default.pdf",
+      "bytes": 1801,
+      "sha256": "bbac6883b02e28011ccd94c10b0e2dd102d9566fa8fafcc673a3f28ac89e7396"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-default.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-initial.html",
+      "bytes": 133,
+      "sha256": "069d6a779a48b3fe3132c3488ba0d6a944a3ea7c6b8371a90a4de33c027f8c7c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-initial.pdf",
+      "bytes": 1549,
+      "sha256": "6a8f07ba6461b6c0120255151d8bcad892e266118a64143e74a02e253b6d1962"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-initial.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-normal.html",
+      "bytes": 132,
+      "sha256": "968af215a1dcb1254b489361990e294386e15741515bc09e31d63b46045c79dc"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-normal.pdf",
+      "bytes": 1549,
+      "sha256": "6a8f07ba6461b6c0120255151d8bcad892e266118a64143e74a02e253b6d1962"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-normal.txt",
+      "bytes": 15,
+      "sha256": "2d2716a70602168f204f167c906aefb5eef4b209a5bea43e433f6219f181e677"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-single-space-control.html",
+      "bytes": 111,
+      "sha256": "bd831b44f90c1a80106104b13fdd117c081d9faaa09a2daf8553921642478513"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-single-space-control.pdf",
+      "bytes": 1798,
+      "sha256": "22dd55ac9e11481567b54719ec06af02862dca9538ac61bde1a24fbecb5c817a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/pre-single-space-control.txt",
+      "bytes": 14,
+      "sha256": "62424b5d9eeac74ec7d5905f3209dd5f1b5353378181ee9523da65021e43392a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/purchase250.html",
+      "bytes": 49686,
+      "sha256": "30663a7a043c3787d8664984b0c256fb6d802847acfa408d8a5b19a48eb2acce"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/purchase250.pdf",
+      "bytes": 698643,
+      "sha256": "b4ed21c46fd99a23d2bd2e2e32c02c3d39d59523333bb2514dcd80798028d39c"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/purchase250.txt",
+      "bytes": 25782,
+      "sha256": "009955ecea92eec7f56779d3a1e20b6eb2623f63e149ed0835454082210dc3b2"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/result.json",
+      "bytes": 11181,
+      "sha256": "02837d59b0194d26400f8176f432b20bbc49e9db01543c4499d1f962de35050b"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-auto.html",
+      "bytes": 332,
+      "sha256": "4ff97e3fcd43a31e2686c392ca71bf16eb519d9247c37d86c06ce27dee03e778"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-auto.pdf",
+      "bytes": 3617,
+      "sha256": "08e6fbf981d5269d94268b0389796f39803493e60e2573cf5e13178e7fd25c77"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-auto.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-avoid.html",
+      "bytes": 368,
+      "sha256": "65c8ed9cf0aa88cf7a1374dd1163a7742d69494090e86535b88e8b70f31509b6"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-avoid.pdf",
+      "bytes": 3592,
+      "sha256": "3498b21821cf7bec4574d54d658254fc3a5fa128dd9e1346eacef5dffc5e0573"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-avoid.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-fixed.html",
+      "bytes": 345,
+      "sha256": "ab648ff174ab50111774b907bda21f86c1998df8aece8fe08cf794f6738d67e9"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-fixed.pdf",
+      "bytes": 3617,
+      "sha256": "08e6fbf981d5269d94268b0389796f39803493e60e2573cf5e13178e7fd25c77"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-fixed.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-max.html",
+      "bytes": 349,
+      "sha256": "2ad5fd3ebdcf579d11d9a9b55df56eab44c18515c05010b740a03d015cdc9ad5"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-max.pdf",
+      "bytes": 3617,
+      "sha256": "08e6fbf981d5269d94268b0389796f39803493e60e2573cf5e13178e7fd25c77"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/scroll-max.txt",
+      "bytes": 84,
+      "sha256": "d12016449933d995c2f1819fb6ad2a6c13fc4c8634938b452e6d2ff8a11eb17a"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-inline-table.html",
+      "bytes": 264,
+      "sha256": "c839f54b7f47769928b0001cd4ef3e66fc6c526e5afeff5e6e6b306d684743fc"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-inline-table.pdf",
+      "bytes": 2816,
+      "sha256": "962d3f3009d2b0c200a587167563194cc945bdc4d4278a561509cbff5afe9a57"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-inline-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-table.html",
+      "bytes": 257,
+      "sha256": "3e67f07505e52aeb1cb46a03ff52b7af009a42a30872261cf9606e16ddead2cb"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-table.pdf",
+      "bytes": 2816,
+      "sha256": "962d3f3009d2b0c200a587167563194cc945bdc4d4278a561509cbff5afe9a57"
+    },
+    {
+      "record": "packages-whitespace/evidence/net8.0/url-table.txt",
+      "bytes": 60,
+      "sha256": "d0acafe7b0ab3c99e79660495b3cb8e645bac087fe466d542728bb8a722a6d9f"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Core.3.5.2-local.report.2.nupkg",
+      "bytes": 8780136,
+      "sha256": "7bee3addbeb23ad187da01a77ecc704e9ae5cc307147e76ffe7a64fe9f68148e"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Html.3.5.2-local.report.2.nupkg",
+      "bytes": 4753680,
+      "sha256": "ddc3bb44d09057ae811d0465dc2c2821458a4133e43accdb5b3a60b63f9b57c5"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Html.AngleSharp.3.5.2-local.report.2.nupkg",
+      "bytes": 104229,
+      "sha256": "9b0a3361d878f1a46413d854f7216e28fc1bf2ea8d4dfd356b3c800d903382d8"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Html.Core.3.5.2-local.report.2.nupkg",
+      "bytes": 325372,
+      "sha256": "ba927de826b433de66c3e066db0d63ded309a5cc6d9ba7ece8b5857fc75f7927"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Html.Pdf.3.5.2-local.report.2.nupkg",
+      "bytes": 208006,
+      "sha256": "17e4abf32da819ac86973055bb9a4c8a0b6d6dd268020157ff683b131d8dc19a"
+    },
+    {
+      "record": "packages-whitespace/feed/OfficeIMO.Pdf.3.5.2-local.report.2.nupkg",
+      "bytes": 13973809,
+      "sha256": "1568ed26ed306c4a79861312c6276cf6fc5187f8b8af65e1438f478f91deb5b1"
+    },
+    {
+      "record": "packages-whitespace/inputs/purchase250.html",
+      "bytes": 49686,
+      "sha256": "30663a7a043c3787d8664984b0c256fb6d802847acfa408d8a5b19a48eb2acce"
+    },
+    {
+      "record": "packages-whitespace/managed-net10.0-before.json",
+      "bytes": 6742,
+      "sha256": "c549c97440e19ea529bc9d37e1cab8578360b0f2edbac03966965cc2d5b0f2e0"
+    },
+    {
+      "record": "packages-whitespace/managed-net8.0-before.json",
+      "bytes": 6704,
+      "sha256": "c0131bb536a45c82ec7bf599518167022a379c50863c97d7fe12532ae63cf6ae"
+    },
+    {
+      "record": "packages-whitespace/native-published.json",
+      "bytes": 6576,
+      "sha256": "899efb7913b0e7967a49e8d28f1a2fe83db04048fab377700facb9e278fa05f3"
+    },
+    {
+      "record": "packages-whitespace/native/PackedReportConsumer",
+      "bytes": 36235368,
+      "sha256": "09b83bc27850b54830141b5d89e0f5bbd6da6c7402630bc8671532304f0df53d"
+    },
+    {
+      "record": "packages-whitespace/nuget.config",
+      "bytes": 427,
+      "sha256": "558c7db690f95de620e45209256aa3669fc9faf7fea6e637d2998b12927f0fd2"
+    },
+    {
+      "record": "packages-whitespace/proof.py",
+      "bytes": 10867,
+      "sha256": "fa3e7eba56f214f5dc93a87e4f0f9d2d7d7c143a7f63252b17304771de3cac2f"
+    },
+    {
+      "record": "packages-whitespace/qualification.json",
+      "bytes": 37591,
+      "sha256": "9cbecff11cc97efd511ac11319c21be7b985a98e51ba41de9e07da1df270b135"
+    },
+    {
+      "record": "packages-whitespace/qualify.ps1",
+      "bytes": 4175,
+      "sha256": "99dfd096b79f8b55befc126f09b0038bf27532672582fba3fe883fa9ed1ff115"
+    },
+    {
+      "record": "packages-whitespace/resume-consumers.ps1",
+      "bytes": 3555,
+      "sha256": "d47b48fbb86bc13ae6cf2e3d1c28e5fbca9c223556d6c45e34c021e064e3c6aa"
+    },
+    {
+      "record": "packages-whitespace/retention-map.json",
+      "bytes": 29692,
+      "sha256": "cefff7faf85f18c3ae841620b189939e20cfd0151a103a7b65d983ae96935898"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/281eac4b47922c135791605c001442c48a5e01c801ae85350afd67aa325670fd",
+      "bytes": 30720,
+      "sha256": "281eac4b47922c135791605c001442c48a5e01c801ae85350afd67aa325670fd"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/445c5670b5f0dae311bb45ad57f9177fc3ea0c0b71eaaf7f61dd595439396b5d",
+      "bytes": 30720,
+      "sha256": "445c5670b5f0dae311bb45ad57f9177fc3ea0c0b71eaaf7f61dd595439396b5d"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c",
+      "bytes": 616448,
+      "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7",
+      "bytes": 1081344,
+      "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+      "bytes": 616448,
+      "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+    },
+    {
+      "record": "packages-whitespace/retention/sha256/ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+      "bytes": 1083904,
+      "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+    },
+    {
+      "record": "packages-whitespace/root-acceptance.json",
+      "bytes": 762,
+      "sha256": "db90892f3e3231a0349b00296c4063433639b22ce585f24d78e1cf78fc116f33"
+    },
+    {
+      "record": "packages-whitespace/source-before.json",
+      "bytes": 1353,
+      "sha256": "8ff5b20bd7bfbc16e6ced3980a50c5b5e57a0fd5f8321252d12d6408ccb48f71"
+    },
+    {
+      "record": "packages/qualification.json",
+      "bytes": 37423,
+      "sha256": "f1ff4c39f1c4bae6335ce0f8fd690950c6f1be27d2c699e5dfc10fb72606198a"
+    },
+    {
+      "record": "performance/cleanup-endpoint-compaction-preflight.json",
+      "bytes": 1287715,
+      "sha256": "7174c104b1622bce4ec8ec3c7f01b44bcd5a66a0e3c719426a54b2ca2443219f"
+    },
+    {
+      "record": "performance/settled-dddd/assessment.json",
+      "bytes": 12756,
+      "sha256": "1dbab4e960ce76ce6dd81b472d02dd36d938fccebd5117109d9d74ceb99cd378"
+    },
+    {
+      "record": "performance/settled-dddd/receipt.json",
+      "bytes": 330633,
+      "sha256": "58c5420c77916cd7013d45d2d8280c578c156ebbc13dfa472da9ca23b7cd35b4"
+    },
+    {
+      "record": "performance/whitespace-7650/assessment.json",
+      "bytes": 13090,
+      "sha256": "61de333f0eb7d6b206e71d000729c5323e5d5a0d07f61349ad5c07101d97c453"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-baseline-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full-compressed.json",
+      "bytes": 23402,
+      "sha256": "193b5d357d520267b9e741c0f4f1ea3c8ad09b0ae66f01e78d1f13b094762f17"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-baseline-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+      "bytes": 41103,
+      "sha256": "87d1faee8f49d012b06178cfd0932ecd1fb796999721c8906216d2a6e2049ae4"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-baseline-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full-compressed.json",
+      "bytes": 23030,
+      "sha256": "3b0e2901841ce8ea4d5b3cf75b273913aea3d0e164c390c32304ca4c8e198063"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-baseline-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+      "bytes": 40622,
+      "sha256": "5f6eadb0d27fe9be4804201662d4f280449d794e3555fe3977663d6bffcc3da2"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-current-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full-compressed.json",
+      "bytes": 23364,
+      "sha256": "31c9050927a1142469ca8c8813614ef89f7147cdfc974a949a1cdfda861b734a"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-current-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+      "bytes": 41065,
+      "sha256": "a6d8616728957f215fd7450de91a8c0ceea57386945d0d4e0ec6f9216cd0cab0"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-current-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full-compressed.json",
+      "bytes": 22650,
+      "sha256": "c5b15dde18de9f72437447199c84269370a13b3e341b4090c11eca2ca1fe9f44"
+    },
+    {
+      "record": "performance/whitespace-7650/payload-current-b/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full.json",
+      "bytes": 40024,
+      "sha256": "e3700bde24b536b92100e62b02fe0ba6de5f0a5681f14ba0dde869da554cece2"
+    },
+    {
+      "record": "performance/whitespace-7650/purchase-baseline/results/OfficeIMO.Html.Benchmarks.HtmlPagedPurchaseTableBenchmarks-report-full-compressed.json",
+      "bytes": 28640,
+      "sha256": "86dcbfb780996530d6a0c572af84d27ee84989c23416d760b1ede5374f0700d8"
+    },
+    {
+      "record": "performance/whitespace-7650/purchase-current/results/OfficeIMO.Html.Benchmarks.HtmlPagedPurchaseTableBenchmarks-report-full-compressed.json",
+      "bytes": 28428,
+      "sha256": "24c68efb7b9597e3faefe2af172224713f3339111f4f1a1bde74a44df2875435"
+    },
+    {
+      "record": "performance/whitespace-7650/raw-cohort-readback.json",
+      "bytes": 2122,
+      "sha256": "61bdde5779e51e70b946e4efe1acc90ce67264e0be915676f95e8067d5d0a339"
+    },
+    {
+      "record": "performance/whitespace-7650/receipt.json",
+      "bytes": 331008,
+      "sha256": "fe381602692efad1e9816b4399309ebf14cbb37431292af4e1e17e424fc5a0b5"
+    },
+    {
+      "record": "performance/whitespace-completed-test-compaction-readback.json",
+      "bytes": 580001,
+      "sha256": "f1f2f0c26bd2e313b15e70164195b081cf18b73b4c849972cee4672c3e4b27d6"
+    },
+    {
+      "record": "performance/whitespace-completed-test-graph-compaction-preflight.json",
+      "bytes": 30338466,
+      "sha256": "e6faedbfa54128f52e441f47f9cc31190af676d152cdd607d9a69ea5393b61b1"
+    },
+    {
+      "record": "performance/whitespace-completed-test-graph-compaction.json",
+      "bytes": 25663672,
+      "sha256": "0280401936626f81d70dc5c55e67802e158cc68e658d512d578caa5188e71d3a"
+    },
+    {
+      "record": "qualification-config.json",
+      "bytes": 1593819,
+      "sha256": "81c2ed9defcb2945381cb6045a9be9f1c3e336ca888d24a10dc1d6cc4a8523ca"
+    },
+    {
+      "record": "qualification-results-whitespace-net10/focused-OfficeIMO.Html.Tests-net10.0.trx",
+      "bytes": 871742,
+      "sha256": "622eb53b0d0ea4970008e5a81e3656ec93a34a759c94090b43c62ca2ba4b15c6"
+    },
+    {
+      "record": "qualification-results-whitespace-net10/focused-OfficeIMO.Pdf.Tests-net10.0.trx",
+      "bytes": 250518,
+      "sha256": "3893fdb44b2049b865f4e3e7b388dae2e88f335a5a129f744f0aea8080eeef7f"
+    },
+    {
+      "record": "qualification-results-whitespace-net10/full-OfficeIMO.Html.Tests-net10.0.trx",
+      "bytes": 12189951,
+      "sha256": "5df64666fbb320870502f7539f18cd9f42007520816a198e31542b574587db5f"
+    },
+    {
+      "record": "qualification-results-whitespace-net10/full-OfficeIMO.Pdf.Tests-net10.0.trx",
+      "bytes": 18639414,
+      "sha256": "005c03a3b85aac1513a9760a2b8a63dd85f2bd17d4ef1334a9fcd9b4f7d166ed"
+    },
+    {
+      "record": "qualification-results-whitespace-net8/focused-OfficeIMO.Html.Tests-net8.0.trx",
+      "bytes": 870645,
+      "sha256": "1d3fb58a660197d6611eccd350b14a73c593f65c035dac2f887c6d3c671a9274"
+    },
+    {
+      "record": "qualification-results-whitespace-net8/focused-OfficeIMO.Pdf.Tests-net8.0.trx",
+      "bytes": 250197,
+      "sha256": "ff2a086c5e6b2fbaaec52a08d6c6a6124e0b4d357e410bfe11265c8828231be7"
+    },
+    {
+      "record": "qualification-results-whitespace-net8/full-OfficeIMO.Html.Tests-net8.0.trx",
+      "bytes": 12174420,
+      "sha256": "43eecd7de81b938dc443581a098553c8e9f185f849b9946a6488b986923fad24"
+    },
+    {
+      "record": "qualification-results-whitespace-net8/full-OfficeIMO.Pdf.Tests-net8.0.trx",
+      "bytes": 18615417,
+      "sha256": "f3fdaa55cc91e20a3260693e8a7b67fc170d18407af9c7b143d3d822ab033b49"
+    },
+    {
+      "record": "qualification-results-whitespace-platform/OfficeIMO.Drawing.Tests-net10.0.trx",
+      "bytes": 415334,
+      "sha256": "c708177da04f5ccea6c21be9acbd1f14259bf9e7530b53ac3ae29689fb698953"
+    },
+    {
+      "record": "qualification-results-whitespace-platform/OfficeIMO.Drawing.Tests-net8.0.trx",
+      "bytes": 414803,
+      "sha256": "f7db53651b2c71ba29ed5987d58c8858bf26c09371b9d83390523a25d5ec6dee"
+    },
+    {
+      "record": "qualification-results-whitespace-platform/OfficeIMO.Word.Tests-net10.0.trx",
+      "bytes": 5011803,
+      "sha256": "7168e816273ac00597d35a77260bddb7264b6fcacd7158c9cd07c8d230ac5122"
+    },
+    {
+      "record": "qualification-results-whitespace-platform/OfficeIMO.Word.Tests-net8.0.trx",
+      "bytes": 5005420,
+      "sha256": "eb264c7f5424a0ec61c48507abe9ea4d2f2c3b92964d961185e2fa0e5ec6dd71"
+    },
+    {
+      "record": "run-stable.py",
+      "bytes": 4504,
+      "sha256": "cfcbe3dc0e8907e334ede151cd1ad07f53bda75207b98c4b8e2eae83a0cc40b4"
+    },
+    {
+      "record": "run-whitespace-artifacts.py",
+      "bytes": 3791,
+      "sha256": "48462a92f319492f76a711ca61a6e5cc6c53093848d42a18550e99a065d39c80"
+    },
+    {
+      "record": "run-whitespace-benchmarks.py",
+      "bytes": 3538,
+      "sha256": "34aba441059f2b3b7e7a1d6dc27459efefa500fe2b6cde116f587c535a79ce92"
+    },
+    {
+      "record": "run-whitespace-comparison.py",
+      "bytes": 1483,
+      "sha256": "cfd624674f96d4aece41991a76697d0f8d411f1b6ddcbe79e4ba2abc5a463f22"
+    },
+    {
+      "record": "stable-qualification-platform.json",
+      "bytes": 36307,
+      "sha256": "7394b752359efa688cca48bc9783470359a6c95d1c6b2a52653ecebfcceca21e"
+    },
+    {
+      "record": "stable-qualification-settled-net10.json",
+      "bytes": 202795,
+      "sha256": "6d1eeb296329f34188387a9a03fab8169f7d5ccfa3ab4fa95221b199c2cefcd6"
+    },
+    {
+      "record": "stable-qualification-settled-net8.json",
+      "bytes": 206067,
+      "sha256": "d4f8b96b5c1e28853b3bf1126e08c0114365a20347b6bdf2ece198a737b060f4"
+    },
+    {
+      "record": "stable-qualification-whitespace-net10.json",
+      "bytes": 202813,
+      "sha256": "12c4cb52022ea1112d90da5b6136ce824a73af87468181ae7b3912157f9add4f"
+    },
+    {
+      "record": "stable-qualification-whitespace-net8.json",
+      "bytes": 206085,
+      "sha256": "73672b799c9d2daeee4f5c4a18165ea83249df9b2b0c14f42ed63ed6e249ac94"
+    },
+    {
+      "record": "stable-qualification-whitespace-platform.json",
+      "bytes": 36343,
+      "sha256": "eb5f841d7ce817ffa6585f869ca1d595631250278cb466f6f4abb5ac789ea016"
+    },
+    {
+      "record": "whitespace-remediation/after-public/report.pdf",
+      "bytes": 4071,
+      "sha256": "263d086711b53c50e74d5e97a7faccf0887bd8b9996064fd410282da8b0c6b14"
+    },
+    {
+      "record": "whitespace-remediation/before-public/report.pdf",
+      "bytes": 4074,
+      "sha256": "1d83fea97fd8d5ca13b757e013d1692034331ea1f382e8fc8ee02c449a6f38de"
+    },
+    {
+      "record": "whitespace-remediation/before.trx",
+      "bytes": 52940,
+      "sha256": "5c31c1dc800d09b15dc25b620339ba6813e188c6cd112033b46652f7f3e30bcd"
+    },
+    {
+      "record": "whitespace-remediation/bounded-proof.json",
+      "bytes": 1782,
+      "sha256": "ab8c2b2337ccb361a8217a245d6bf3a46e9fe668c2511ca4db5bda583f68bf8c"
+    },
+    {
+      "record": "whitespace-remediation/checkpoint-disposition.json",
+      "bytes": 2493,
+      "sha256": "4cc1dc41d7927b4795bbab1a0950f89fc37db655562b0978a070ba965bd572c4"
+    },
+    {
+      "record": "whitespace-remediation/probe/Program.cs",
+      "bytes": 1565,
+      "sha256": "ed86f4270f39d35d73d58ea032b31515907b71ef88a4bc0aa9302866800f715c"
+    },
+    {
+      "record": "whitespace-remediation/probe/WhitespaceProbe.csproj",
+      "bytes": 1480,
+      "sha256": "8520247d9c0af14e72028a7698485bc5df60e97569d4bd6d35fd8b416df9904b"
+    },
+    {
+      "record": "whitespace-remediation/review-result.json",
+      "bytes": 660,
+      "sha256": "12fa2a869dfded7493b5e0fdcbcf24e858e0c3556967b70c5b1227e028c13c38"
+    },
+    {
+      "record": "whitespace-remediation/whitespace-after.trx",
+      "bytes": 229956,
+      "sha256": "91cb67893e122202187a3bff870adcc5b1d2a19ae216711ab597087867a747bf"
+    }
+  ],
+  "unmetGates": {}
+}
