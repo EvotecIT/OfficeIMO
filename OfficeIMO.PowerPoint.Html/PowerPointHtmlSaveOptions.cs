@@ -80,6 +80,19 @@ public sealed class PowerPointHtmlSaveOptions {
     /// <summary>Compatibility alias for <see cref="OfficeHtmlDocumentOptions.NewLine"/>.</summary>
     public string NewLine { get => DocumentOutput.NewLine; set => DocumentOutput.NewLine = value; }
 
+    /// <summary>
+    /// When true, the output starts with an <c>h1</c> heading showing <see cref="Title"/>, or a profile-specific
+    /// fallback when no title is set. Set to false to omit the heading; the document title is unaffected.
+    /// </summary>
+    public bool IncludeHeading { get; set; } = true;
+
+    /// <summary>
+    /// When true, visual-review output lists each slide's render diagnostics as visible text below the slide.
+    /// Set to false to leave them out of the HTML; they are still reported through
+    /// <see cref="PowerPointToHtmlResult.ImageDiagnostics"/>.
+    /// </summary>
+    public bool IncludeRenderDiagnostics { get; set; } = true;
+
     /// <summary>When true, hidden slides are included.</summary>
     public bool IncludeHiddenSlides { get; set; }
 
@@ -111,6 +124,8 @@ public sealed class PowerPointHtmlSaveOptions {
     public PowerPointHtmlSaveOptions Clone() => new PowerPointHtmlSaveOptions {
         ExportProfile = ExportProfile,
         DocumentOutput = DocumentOutput.Clone(),
+        IncludeHeading = IncludeHeading,
+        IncludeRenderDiagnostics = IncludeRenderDiagnostics,
         IncludeHiddenSlides = IncludeHiddenSlides,
         IncludeNotes = IncludeNotes,
         IncludeTables = IncludeTables,
