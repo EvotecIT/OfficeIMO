@@ -403,9 +403,8 @@ public sealed partial class PdfOptions {
         IEnumerable<PdfEmbeddedFontFallbackCandidate> candidates) {
         foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
             if (!HasNamedFontFamily(candidate.FontName)) {
-                RegisterRenderingProfileNamedFamily(new PdfEmbeddedFontFamily(
-                    candidate.FontName,
-                    candidate.DataSnapshot));
+                RegisterRenderingProfileNamedFamily(candidate.FontFamilySnapshot);
+                RegisterNamedFallbackPlan(candidate);
             }
         }
     }
@@ -640,18 +639,11 @@ public sealed partial class PdfOptions {
                 key = NormalizeNamedFontFamilyKey(familyName);
             }
 
-            var promotedCandidate = new PdfEmbeddedFontFallbackCandidate(
-                familyName,
-                candidate.DataSnapshot,
-                candidate.UnicodeRanges,
-                candidate.Style,
-                candidate.PlannerFamilyName);
+            PdfEmbeddedFontFallbackCandidate promotedCandidate = candidate.WithRegisteredFamilyName(familyName);
             promoted.Add(promotedCandidate);
             promotedFamilyKeys.Add(key);
             if (!prospectiveFamilies.ContainsKey(key)) {
-                prospectiveFamilies[key] = new PdfEmbeddedFontFamily(
-                    familyName,
-                    candidate.DataSnapshot);
+                prospectiveFamilies[key] = promotedCandidate.FontFamilySnapshot;
             }
         }
 
@@ -694,8 +686,9 @@ public sealed partial class PdfOptions {
                     candidate.PlannerFamilyName,
                     StringComparison.OrdinalIgnoreCase)
                 || !IsPromotedFallbackFamilyName(active.FontName, stem)
-                || !prospectiveFamilies.ContainsKey(
-                    NormalizeNamedFontFamilyKey(active.FontName))) {
+                || !prospectiveFamilies.TryGetValue(
+                    NormalizeNamedFontFamilyKey(active.FontName), out PdfEmbeddedFontFamily? registered)
+                || !ReferenceEquals(registered, active.FontFamilySnapshot)) {
                 continue;
             }
             return active.FontName;

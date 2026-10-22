@@ -24,7 +24,8 @@ internal static partial class PdfWriter {
             projected[i] = new PdfTableCellParagraph(runs, paragraph.SpacingAfter, paragraph.Align, paragraph.SpacingBefore,
                 paragraph.LeftIndent, paragraph.RightIndent, paragraph.FirstLineIndent, paragraph.LineHeight,
                 paragraph.DefaultTabStopWidth, paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
-                paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext);
+                paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
+                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine);
         }
         return projected ?? paragraphs;
     }

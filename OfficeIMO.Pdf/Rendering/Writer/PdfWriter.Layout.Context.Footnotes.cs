@@ -27,9 +27,9 @@ internal static partial class PdfWriter {
         }
 
         private sealed class FootnoteFragment {
-            public FootnoteFragment(PreparedFootnote note, int start, int count) {
+            public FootnoteFragment(PreparedFootnote note, int start, int count, double maximumHeight = double.PositiveInfinity) {
                 Note = note; Start = start; Count = count;
-                Height = note.Units.Skip(start).Take(count).Sum(unit => unit.Height);
+                Height = MeasureFootnoteFragmentHeight(note.Units, start, count, maximumHeight);
             }
             public PreparedFootnote Note { get; }
             public int Start { get; }
@@ -90,13 +90,13 @@ internal static partial class PdfWriter {
             definitions.Sort((left, right) => FootnoteSourceOrdinal(left).CompareTo(FootnoteSourceOrdinal(right)));
             var notes = definitions.Select(PrepareFootnote).ToList();
             IReadOnlyList<FootnoteUnit> separator = pageFootnotes.Count == 0 ? notes[0].Separator : Array.Empty<FootnoteUnit>();
-            double separatorHeight = separator.Sum(unit => unit.Height);
+            double separatorHeight = MeasureFootnoteUnits(separator);
             IReadOnlyList<FootnoteUnit> notice = HasPageFootnotes ? pageFootnoteContinuationNotice : notes[0].ContinuationNotice;
             bool reserveFinalNotice = HasPageFootnotes ? pageReserveContinuationNoticeSpaceOnFinalPage
                 : notes[0].Definition.ReserveContinuationNoticeSpaceOnFinalPage;
-            double noticeHeight = notice.Sum(unit => unit.Height);
+            double noticeHeight = MeasureFootnoteUnits(notice);
             double oldNoticeHeight = pageFootnotesContinue || pageReserveContinuationNoticeSpaceOnFinalPage
-                ? pageFootnoteContinuationNotice.Sum(unit => unit.Height) : 0D;
+                ? MeasureFootnoteUnits(pageFootnoteContinuationNotice) : 0D;
             double available = bodyBottom - currentOpts.MarginBottom - (pageFootnoteHeight - oldNoticeHeight) - separatorHeight;
             bool noticeAlreadyReserved = pageFootnotesContinue || reserveFinalNotice;
             if (!TryPlanNewFootnoteFragments(notes, available - (noticeAlreadyReserved ? noticeHeight : 0D), out var fragments)) return false;
@@ -117,40 +117,6 @@ internal static partial class PdfWriter {
                 pageFootnoteHeight = reservedHeight;
             }
             return true;
-        }
-
-        private static int GetMinimumFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start) {
-            int count = 0;
-            while (start + count < units.Count) {
-                FootnoteUnit unit = units[start + count++];
-                if (unit.Line != null) {
-                    int required = unit.KeepParagraphTogether ? unit.ParagraphLines - unit.ParagraphLine : unit.MinimumOrphanLines;
-                    if (unit.ParagraphLines - unit.ParagraphLine < required + unit.MinimumWidowLines)
-                        required = unit.ParagraphLines - unit.ParagraphLine;
-                    count += Math.Max(0, Math.Min(required, unit.ParagraphLines - unit.ParagraphLine) - 1);
-                    break;
-                }
-                if (unit.IsVisual) break;
-            }
-            return count;
-        }
-
-        private static int FitFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, double available) {
-            int count = 0;
-            for (int index = start; index < units.Count; index++) {
-                if (units[index].Height > available + .001D) break;
-                available -= units[index].Height;
-                count++;
-            }
-            while (count > 0) {
-                FootnoteUnit last = units[start + count - 1];
-                if (last.Line == null || last.ParagraphLine == last.ParagraphLines - 1) break;
-                int tail = last.ParagraphLines - last.ParagraphLine - 1;
-                if (!last.KeepParagraphTogether && tail >= last.MinimumWidowLines) break;
-                count--;
-            }
-            if (count < GetMinimumFootnoteUnits(units, start)) return 0;
-            return count;
         }
 
         private void StartPageFootnotes() {
@@ -174,8 +140,8 @@ internal static partial class PdfWriter {
             pageFootnoteSeparator = continuedFootnotes[0].Note.ContinuationSeparator;
             pageFootnoteContinuationNotice = continuedFootnotes[0].Note.ContinuationNotice;
             pageReserveContinuationNoticeSpaceOnFinalPage = continuedFootnotes[0].Note.Definition.ReserveContinuationNoticeSpaceOnFinalPage;
-            double separatorHeight = pageFootnoteSeparator.Sum(unit => unit.Height);
-            double noticeHeight = pageFootnoteContinuationNotice.Sum(unit => unit.Height);
+            double separatorHeight = MeasureFootnoteUnits(pageFootnoteSeparator);
+            double noticeHeight = MeasureFootnoteUnits(pageFootnoteContinuationNotice);
             double available = yStart - currentOpts.MarginBottom - separatorHeight;
             List<FootnoteFragment> fragments = PlanContinuedFootnoteFragments(available -
                 (pageReserveContinuationNoticeSpaceOnFinalPage ? noticeHeight : 0D));
@@ -200,13 +166,11 @@ internal static partial class PdfWriter {
             pageFootnotes.Sort((left, right) => FootnoteSourceOrdinal(left.Note.Definition).CompareTo(FootnoteSourceOrdinal(right.Note.Definition)));
             paintingFootnotes = true;
             try {
-                foreach (FootnoteUnit unit in pageFootnoteSeparator) PaintFootnoteUnit(unit, ref top);
-                foreach (FootnoteFragment fragment in pageFootnotes) {
-                    for (int index = fragment.Start; index < fragment.Start + fragment.Count; index++)
-                        PaintFootnoteUnit(fragment.Note.Units[index], ref top);
-                }
+                PaintFootnoteUnits(pageFootnoteSeparator, 0, pageFootnoteSeparator.Count, ref top);
+                foreach (FootnoteFragment fragment in pageFootnotes)
+                    PaintFootnoteUnits(fragment.Note.Units, fragment.Start, fragment.Count, ref top, fragment.Height);
                 if (pageFootnotesContinue)
-                    foreach (FootnoteUnit unit in pageFootnoteContinuationNotice) PaintFootnoteUnit(unit, ref top);
+                    PaintFootnoteUnits(pageFootnoteContinuationNotice, 0, pageFootnoteContinuationNotice.Count, ref top);
             } finally {
                 paintingFootnotes = false;
                 currentOpts = savedOptions;

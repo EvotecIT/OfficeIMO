@@ -14,9 +14,20 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData("Footnote")]
     [InlineData("BodyPages")]
     [InlineData("BodyColumns")]
-    public void JustifiedParagraphFragmentsMatchWholeParagraphGlyphsBackgroundsAndUnderlines(string owner) {
+    public void JustifiedParagraphFragmentsMatchWholeParagraphGlyphsBackgroundsAndUnderlines(string owner) =>
+        AssertJustificationFragmentPaint(owner, distributed: false);
+
+    [Theory]
+    [InlineData("Footnote")]
+    [InlineData("BodyPages")]
+    [InlineData("BodyColumns")]
+    public void DistributedParagraphFragmentsMatchWholeParagraphGlyphsBackgroundsAndUnderlines(string owner) =>
+        AssertJustificationFragmentPaint(owner, distributed: true);
+
+    private static void AssertJustificationFragmentPaint(string owner, bool distributed) {
+        Action<PdfContentBuilder> addParagraph = content => AddFragmentJustificationParagraph(content, distributed);
         var control = PdfDocument.Create(FragmentJustificationOptions(1000));
-        AddFragmentJustificationParagraph(control.Content);
+        addParagraph(control.Content);
         byte[] controlBytes = control.ToBytes();
         using var controlPdf = PdfPigDocument.Open(controlBytes);
         Assert.Equal(1, controlPdf.NumberOfPages);
@@ -27,14 +38,14 @@ public partial class PdfDocumentVisualQualityTests {
         if (owner == "BodyColumns") options.PageWidth = 500;
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
-            PdfFootnoteDefinition note = document.Content.DefineFootnote(AddFragmentJustificationParagraph);
+            PdfFootnoteDefinition note = document.Content.DefineFootnote(addParagraph);
             document.Content.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }),
                 style: FragmentJustificationStyle());
         } else if (owner == "BodyColumns") {
-            document.Content.Columns(AddFragmentJustificationParagraph,
+            document.Content.Columns(addParagraph,
                 new PdfMultiColumnOptions { ColumnCount = 2, Gap = 20, BalanceLastPage = false });
         } else {
-            AddFragmentJustificationParagraph(document.Content);
+            addParagraph(document.Content);
         }
 
         byte[] bytes = document.ToBytes();
@@ -77,6 +88,15 @@ public partial class PdfDocumentVisualQualityTests {
         for (int index = 0; index < underlines.Count; index++)
             Assert.InRange(Math.Abs((expectedUnderlines[index].X2 - expectedUnderlines[index].X1) -
                 (underlines[index].X2 - underlines[index].X1)), 0D, .02D);
+
+        var expectedLinks = controlPdf.GetPages().SelectMany(page => page.GetHyperlinks()).ToArray();
+        var links = pdf.GetPages().SelectMany(page => page.GetHyperlinks()).ToArray();
+        Assert.NotEmpty(expectedLinks);
+        Assert.Equal(expectedLinks.Length, links.Length);
+        for (int index = 0; index < links.Length; index++) {
+            Assert.InRange(Math.Abs(expectedLinks[index].Bounds.Width - links[index].Bounds.Width), 0D, .02D);
+            Assert.InRange(Math.Abs(expectedLinks[index].Bounds.Height - links[index].Bounds.Height), 0D, .02D);
+        }
     }
 
     private static PdfOptions FragmentJustificationOptions(double height) => new() {
@@ -85,14 +105,17 @@ public partial class PdfDocumentVisualQualityTests {
         CompressContentStreams = false
     };
 
-    private static PdfParagraphStyle FragmentJustificationStyle() => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0
+    private static PdfParagraphStyle FragmentJustificationStyle(bool distributed = false) => new() {
+        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0,
+        JustificationMode = distributed ? PdfJustificationMode.Characters : PdfJustificationMode.Words,
+        JustifyExplicitLineBreaks = distributed, JustifyLastLine = distributed
     };
 
-    private static void AddFragmentJustificationParagraph(PdfContentBuilder content) {
+    private static void AddFragmentJustificationParagraph(PdfContentBuilder content, bool distributed) {
         string text = "Short break\n" + string.Join(" ", Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D2", CultureInfo.InvariantCulture)));
-        content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true, backgroundColor: new PdfColor(1, 1, 0)) }),
-            PdfAlign.Justify, style: FragmentJustificationStyle());
+        content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true,
+                backgroundColor: new PdfColor(1, 1, 0), linkUri: "https://example.test/fragment") }),
+            PdfAlign.Justify, style: FragmentJustificationStyle(distributed));
     }
 
     private static List<List<Letter>> FragmentJustificationLines(PdfPigDocument pdf, bool columns) {

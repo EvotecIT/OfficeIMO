@@ -11,6 +11,7 @@ public sealed partial class PdfOptions {
     }
 
     private void MergeResolvedFallbackFontMappingsFrom(PdfOptions nested) {
+        MergeResolvedNamedFallbackFontMappingsFrom(nested);
         if (nested._usedEmbeddedFallbackFontSlots == null || nested._fallbackOwnedFontFamilies == null) return;
         foreach (PdfStandardFont family in nested._usedEmbeddedFallbackFontSlots.OrderBy(value => value)) {
             if (!nested._fallbackOwnedFontFamilies.Contains(family)) continue;
@@ -39,6 +40,7 @@ public sealed partial class PdfOptions {
     private void ReleasePreviousFallbackFontSlots(PdfEmbeddedFontFallbackSet? previous) {
         if (_automaticFallbackOwnedNamedFamilyKeys != null) {
             foreach (string key in _automaticFallbackOwnedNamedFamilyKeys) {
+                RemoveNamedFallbackPlans(key);
                 if (_namedFontFamilies?.Remove(key) == true) {
                     RemoveNamedFontProgramCache(key);
                 }

@@ -30,7 +30,8 @@ internal static partial class PdfWriter {
             IReadOnlyList<PdfAlign?>? alignments = null, IReadOnlyList<double>? offsets = null,
             IReadOnlyList<double>? widths = null, PdfStandardFont? baselineFont = null,
             OfficeTransform? localTransform = null, TableCellContentFrame? secondClip = null,
-            double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null) {
+            double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null,
+            bool hasFollowingParagraphLines = false) {
             if (!currentOpts.HasDiagnosticsReport || _diagnosticPaintHidden) return;
             OfficeTransform transform = (localTransform ?? OfficeTransform.Identity).Then(_canvasEffectToPage);
             if (!transform.TryInvert(out _)) return; // Singular paint has no filled area.
@@ -53,11 +54,12 @@ internal static partial class PdfWriter {
                     double available = ResolveRichLineWidth(textWidth, firstLineWidth, widths, index);
                     double origin = ResolveRichLineXOrigin(textX, firstLineX, offsets, index);
                     PdfAlign alignment = ResolveRichLineAlignment(block.Align, alignments, index);
-                    double advance = MeasureRichLineWidth(line);
-                    int gaps = line.Where(s => s.LeadingSpace && s.LeadingSpaceIsExpandable).Sum(s => s.LeadingSpaceCount);
-                    bool justify = alignment == PdfAlign.Justify && index != lines.Count - 1 &&
-                        !line.Any(s => s.EndsWithHardBreak) && gaps > 0 && available > advance;
-                    double wordSpacing = justify ? (available - advance) / gaps : 0D;
+                    RichLineJustification justification = PlanRichLineJustification(line, alignment,
+                        block.Style ?? currentOpts.DefaultParagraphStyleSnapshot, available,
+                        index == lines.Count - 1 && !hasFollowingParagraphLines, currentOpts);
+                    line = justification.Segments;
+                    double advance = justification.Width;
+                    double wordSpacing = justification.WordSpacing;
                     double dx = alignment == PdfAlign.Center ? Math.Max(0D, (available - advance) / 2D)
                         : alignment == PdfAlign.Right ? Math.Max(0D, available - advance) : 0D;
                     BidiLineLayout? bidi = bidiLevel.HasValue ? CreateBidiLineLayout(line, bidiLevel.Value, wordSpacing) : null;
@@ -116,11 +118,13 @@ internal static partial class PdfWriter {
                         } else if (segment.InlineElement == null && !segment.IsLineBoxStrut) {
                             foreach (var glyph in DiagnosticGlyphContours(segment, segment.Text, x, runY)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                             if (segment.Underline) {
-                                if (segment.UnderlineStyle == OfficeTextDecorationStyle.Words)
-                                    VisitWordDecorationAdvances(segment.Text,
-                                        span => MeasurePositionedTextWidth(span, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
-                                            DiagnosticTextOptions, segment.FeatureSettings, segment.TextDirection, segment.HorizontalTextScaling, segment.CharacterSpacing, segment.FontMetricScale),
+                                if (segment.UnderlineStyle == OfficeTextDecorationStyle.Words) {
+                                    PdfTextShowCommand command = segment.KerningCommand ?? EncodeTextShowCommand(segment.Text,
+                                        segment.Font, segment.NamedFont, currentOpts, segment.FeatureSettings, segment.TextDirection,
+                                        segment.FontMetricScale, preservesPaintedGlyphs: segment.PreservesPaintedGlyphs);
+                                    VisitRichWordDecorationAdvances(segment, command, currentOpts,
                                         (start, end) => Decoration(x + start, end - start, runY - size * .15D, OfficeTextDecorationStyle.Single));
+                                }
                                 else Decoration(x, width, runY - size * .15D, segment.UnderlineStyle);
                             }
                             if (segment.Strike) Decoration(x, width, runY + size * .32D, segment.StrikeStyle);

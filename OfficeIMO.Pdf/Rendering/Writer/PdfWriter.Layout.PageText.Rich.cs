@@ -170,8 +170,10 @@ internal static partial class PdfWriter {
                     if (run.Underline) {
                         double underlineY = baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D);
                         if (run.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
-                            VisitWordDecorationAdvances(text,
-                                span => MeasureRichText(span, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing),
+                            RichSeg segment = segments[runIndex];
+                            PdfTextShowCommand command = segment.KerningCommand ?? EncodeTextShowCommand(text,
+                                runFont, namedFont, options, run.FeatureSettings, run.TextDirection);
+                            VisitRichWordDecorationAdvances(segment, command, options,
                                 (start, end) => AppendPageTextDecorationLine(sb, cursorX + start, cursorX + end,
                                     underlineY, decorationWidth, decorationColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
                         } else {

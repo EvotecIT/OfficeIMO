@@ -212,15 +212,8 @@ internal sealed partial class ContentStreamBuilder {
         double totalAdvance1000 = 0D;
         for (int index = startIndex; index < limit;) {
             int clusterStart = index;
-            int logicalEnd = glyphs[index].LogicalClusterStart;
+            index = PdfGlyphClusters.End(glyphs, clusterStart, limit);
             bool representable = pinner != null;
-            do {
-                PdfGlyphInfo glyph = glyphs[index++];
-                // GSUB multiple substitution and a later ligature can give neighboring
-                // glyphs different starts but overlapping source ownership.
-                logicalEnd = Math.Max(logicalEnd, Math.Max(glyph.LogicalClusterStart + 1,
-                    glyph.TextIndex + glyph.UnicodeText.Length));
-            } while (index < limit && glyphs[index].LogicalClusterStart < logicalEnd);
 
             System.Text.StringBuilder? logical = null;
             int[] codes = ResolveClusterCodes(glyphs, clusterStart, index, pinner, ref representable);
@@ -256,6 +249,7 @@ internal sealed partial class ContentStreamBuilder {
                     open = true;
                 }
                 double trackingAdvance1000 = command.TrackingBoundaries != null && command.TrackingBoundaries[glyphIndex] ? tracking1000 : 0D;
+                trackingAdvance1000 += command.GetJustificationAdvance(glyphIndex) * 1000D / fontSize / _textScale;
                 if (glyph.OffsetX1000 != 0) ShowNumberElement(-glyph.OffsetX1000);
                 ShowGlyphElement(codes[glyphIndex - clusterStart]);
                 ShowNumberElement(glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000 - trackingAdvance1000);

@@ -5,10 +5,37 @@ internal static partial class PdfWriter {
         private bool HasUnscheduledFootnote(IEnumerable<RichSeg> segments) =>
             segments.Any(segment => segment.FootnoteReference != null && !scheduledFootnotes.Contains(segment.FootnoteReference));
 
+        // Paragraph after-space can overflow the ordinary physical frame, but it
+        // must not enter an accepted or newly introduced page-note region. Keep
+        // enclosing-container padding and its already included after-space once.
+        private double GetFootnoteClosingTextPadding(IReadOnlyList<List<RichSeg>> lines, int start,
+            double spacingAfter, bool closesContainer = true) {
+            double closing = closesContainer ? GetClosingTextPadding(spacingAfter) : 0D;
+            if (paintingFootnotes || spacingAfter <= 0D || closing >= spacingAfter) return closing;
+            return HasPageFootnotes || HasUnscheduledFootnote(lines.Skip(start).SelectMany(line => line))
+                ? spacingAfter : closing;
+        }
+
         /// <summary>Ends a body slice at its first newly admitted reference, so its note has priority over later body text.</summary>
         private bool ConstrainFootnoteSlice(IReadOnlyList<List<RichSeg>> lines, List<double> heights,
             int start, int minimumLines, int minimumTailLines, double before, double closingPadding,
             ref int take, ref double heightSum) {
+            if (HasPageFootnotes && !paintingFootnotes) {
+                int selectedLines = take;
+                // Imported line fitting may use only the final font box. The
+                // accepted note boundary still needs the actual body advance
+                // that commit will consume, without previewing later new notes.
+                while (take > 0 && !TryReserveFootnotes(Array.Empty<RichSeg>(),
+                    y - before - heightSum - (start + take == lines.Count ? closingPadding : 0D), commit: false)) {
+                    take--;
+                    heightSum -= heights[start + take];
+                }
+                if (take == 0 || take < selectedLines && take < Math.Min(lines.Count - start, Math.Max(1, minimumLines))) {
+                    take = 0;
+                    heightSum = 0D;
+                    return false;
+                }
+            }
             int end = start + take;
             for (int index = start; index < end; index++) {
                 if (!HasUnscheduledFootnote(lines[index])) continue;

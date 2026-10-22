@@ -106,6 +106,22 @@ internal sealed class PdfTextShowCommand {
     /// <summary>Imported layout advance, including the requested horizontal scale, before PDF rounding.</summary>
     internal double? FontUnitLayoutAdvanceWidth1000 { get; private set; }
 
+    /// <summary>Additional page-point advances at selected shaped cluster boundaries.</summary>
+    internal double JustificationTracking { get; private set; }
+    internal bool[]? JustificationBoundaries { get; private set; }
+
+    internal PdfTextShowCommand WithJustificationTracking(double advance, bool[] boundaries) {
+        if (boundaries.Length != GlyphCount || advance < 0D || double.IsNaN(advance) || double.IsInfinity(advance))
+            throw new ArgumentException("Justification tracking must match the encoded glyphs and have a finite non-negative advance.");
+        var copy = (PdfTextShowCommand)MemberwiseClone();
+        copy.JustificationTracking = advance;
+        copy.JustificationBoundaries = (bool[])boundaries.Clone();
+        return copy;
+    }
+
+    internal double GetJustificationAdvance(int glyphIndex) =>
+        JustificationBoundaries?[glyphIndex] == true ? JustificationTracking : 0D;
+
     /// <summary>
     /// Right-to-left glyphs in visual order, mapped through ToUnicode only. They get their own show operator so
     /// readers see a pure right-to-left run they can reorder, rather than a mixed-direction TJ array.

@@ -10,7 +10,7 @@ public sealed class PdfTabStop {
     /// <summary>
     /// Creates a paragraph tab stop at the specified position.
     /// </summary>
-    /// <param name="position">The tab stop position, in points, relative to the paragraph text frame.</param>
+    /// <param name="position">The finite tab stop position, in points, relative to the paragraph text frame. Zero and negative positions are permitted.</param>
     /// <param name="alignment">The alignment applied to the text following the tab character.</param>
     /// <param name="leader">The leader drawn across the tab gap.</param>
     public PdfTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
@@ -20,11 +20,15 @@ public sealed class PdfTabStop {
     }
 
     /// <summary>Tab stop position, in points, relative to the paragraph text frame.</summary>
+    /// <remarks>
+    /// Zero is the main text-frame origin. Negative positions can be reached
+    /// from a hanging first line. A stop is used only while ahead of the line cursor.
+    /// </remarks>
     public double Position {
         get => _position;
         set {
-            if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
-                throw new System.ArgumentException("Tab stop position must be a positive finite value.", nameof(Position));
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new System.ArgumentException("Tab stop position must be a finite value.", nameof(Position));
             }
 
             _position = value;

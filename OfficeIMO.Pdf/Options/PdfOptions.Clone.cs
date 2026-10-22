@@ -99,6 +99,8 @@ public sealed partial class PdfOptions {
             _usedEmbeddedFallbackFontSlots = _usedEmbeddedFallbackFontSlots == null
                 ? null : new HashSet<PdfStandardFont>(_usedEmbeddedFallbackFontSlots),
             _namedFontFamilies = CloneNamedFontFamilies(_namedFontFamilies),
+            _namedFallbackPlanBindings = _namedFallbackPlanBindings == null
+                ? null : new Dictionary<object, PdfEmbeddedFontFallbackCandidate>(_namedFallbackPlanBindings),
             _fontFamilySubstitutions = CloneFontFamilySubstitutions(_fontFamilySubstitutions),
             _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
             Portfolio = _portfolio?.Clone(),

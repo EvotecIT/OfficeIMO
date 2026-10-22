@@ -144,6 +144,8 @@ internal static partial class PdfWriter {
             FormField = source.FormField;
             FootnoteReference = source.FootnoteReference;
             FootnoteReferenceOrigin = source.FootnoteReferenceOrigin;
+            JustificationAdvance = source.JustificationAdvance;
+            JustificationPolicy = source.JustificationPolicy;
             return this;
         }
 
@@ -201,6 +203,8 @@ internal static partial class PdfWriter {
         public double HorizontalTextScaling { get; }
 
         public double CharacterSpacing { get; }
+        public double JustificationAdvance { get; private set; }
+        public RichLineJustificationPolicy? JustificationPolicy { get; private set; }
         public bool ContributesLineBoxDescent { get; private set; }
         public bool IsLineBoxStrut { get; private set; }
 
@@ -215,6 +219,20 @@ internal static partial class PdfWriter {
 
         public RichSeg WithLeadingAdvance(double advance) =>
             new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
+
+        /// <summary>Captures one line's distribution without changing authored runs or reusable wrapped lines.</summary>
+        public RichSeg WithJustification(double extraAdvance, double leadingAdvance, PdfTextShowCommand? command) {
+            RichSeg copy = new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth + extraAdvance, LeadingSpace, leadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
+            copy.KerningCommand = command ?? KerningCommand;
+            copy.JustificationAdvance += extraAdvance;
+            return copy;
+        }
+
+        public RichSeg WithJustificationPolicy(RichLineJustificationPolicy policy) {
+            RichSeg copy = WithJustification(0D, LeadingAdvance, null);
+            copy.JustificationPolicy = policy;
+            return copy;
+        }
     }
 
 }

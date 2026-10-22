@@ -98,7 +98,8 @@ internal static partial class PdfWriter {
                 paragraph.DefaultTabStopWidth,
                 paragraph.TabStops,
                 ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
-                paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext));
+                paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
+                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine));
         }
 
         return scaledParagraphs.AsReadOnly();
@@ -164,6 +165,11 @@ internal static partial class PdfWriter {
                 bool firstParagraphLine = lineIndex == firstNewLineIndex;
                 lineXOffsets.Add(firstParagraphLine ? alignmentFrame.FirstLineX : alignmentFrame.X);
                 lineWidths.Add(firstParagraphLine ? alignmentFrame.FirstLineWidth : alignmentFrame.Width);
+                List<RichSeg> line = lines[lineIndex];
+                var justification = new RichLineJustificationPolicy(paragraphStyle,
+                    lineIndex == firstNewLineIndex + wrap.Lines.Count - 1, line.Any(segment => segment.EndsWithHardBreak));
+                for (int segment = 0; segment < line.Count; segment++)
+                    line[segment] = line[segment].WithJustificationPolicy(justification);
             }
 
             if (paragraphIndex < paragraphs.Count - 1 && lines.Count > firstNewLineIndex) {
@@ -205,7 +211,10 @@ internal static partial class PdfWriter {
             LeftIndent = leftIndent,
             RightIndent = rightIndent,
             FirstLineIndent = firstLineIndent,
-            DefaultTabStopWidth = paragraph.DefaultTabStopWidth
+            DefaultTabStopWidth = paragraph.DefaultTabStopWidth,
+            JustificationMode = paragraph.JustificationMode,
+            JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
+            JustifyLastLine = paragraph.JustifyLastLine
         };
 
         foreach (PdfTabStop tabStop in paragraph.TabStops) {

@@ -38,6 +38,7 @@ public sealed partial class PdfTextRun {
         RelativeTabStop = source.RelativeTabStop;
         FormField = source.FormField;
         FootnoteReference = source.FootnoteReference;
+        PlannedFontFallback = source.PlannedFontFallback;
         return this;
     }
 
