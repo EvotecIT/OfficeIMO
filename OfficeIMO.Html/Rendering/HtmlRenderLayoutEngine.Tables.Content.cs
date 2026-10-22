@@ -7,21 +7,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         TableFormattingCell cell,
         double contentWidth,
         HtmlRenderBoxStyle style,
-        int depth) {
+        int depth) => LayoutTableBoxContent(cell.Element, contentWidth, style, depth, cell.Nodes,
+            cell.Nodes == null || cell.GeneratedBefore, cell.Nodes == null || cell.GeneratedAfter);
+
+    /// <summary>Lays out cell or caption content through the same inline and block formatting paths.</summary>
+    private HtmlInlineLayout LayoutTableBoxContent(IElement element, double contentWidth, HtmlRenderBoxStyle style,
+        int depth, IReadOnlyList<INode>? sourceNodes = null, bool includeGeneratedBefore = true, bool includeGeneratedAfter = true) {
         using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
-        if (cell.Nodes == null && !HasBlockChildren(cell.Element, contentWidth, style, depth)) {
-            return LayoutInlineNodes(cell.Element.ChildNodes, contentWidth, style, depth, null, cell.Element);
+        if (sourceNodes == null && !HasBlockChildren(element, contentWidth, style, depth)) {
+            return LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, null, element);
         }
-        if (cell.Nodes != null && cell.HasGeneratedContent
-            && !HasBlockChildren(cell.Element, contentWidth, style, depth, cell.Nodes, cell.GeneratedBefore, cell.GeneratedAfter)) {
-            return LayoutInlineNodes(cell.Nodes, contentWidth, style, depth, null, cell.Element,
-                includeGeneratedBefore: cell.GeneratedBefore, includeGeneratedAfter: cell.GeneratedAfter);
+        if (sourceNodes != null && (includeGeneratedBefore || includeGeneratedAfter)
+            && !HasBlockChildren(element, contentWidth, style, depth, sourceNodes, includeGeneratedBefore, includeGeneratedAfter)) {
+            return LayoutInlineNodes(sourceNodes, contentWidth, style, depth, null, element,
+                includeGeneratedBefore: includeGeneratedBefore, includeGeneratedAfter: includeGeneratedAfter);
         }
 
-        IReadOnlyList<HtmlRenderFlowBlock> blocks = cell.Nodes == null
-            ? BuildChildBlocks(cell.Element, contentWidth, style, depth)
-            : BuildChildBlocks(cell.Element, cell.Nodes, contentWidth, style, depth,
-                includeGeneratedBefore: cell.GeneratedBefore, includeGeneratedAfter: cell.GeneratedAfter);
+        IReadOnlyList<HtmlRenderFlowBlock> blocks = sourceNodes == null
+            ? BuildChildBlocks(element, contentWidth, style, depth)
+            : BuildChildBlocks(element, sourceNodes, contentWidth, style, depth,
+                includeGeneratedBefore: includeGeneratedBefore, includeGeneratedAfter: includeGeneratedAfter);
         var visuals = new List<HtmlRenderVisual>();
         var paintLayers = new List<FlowPaintLayer>();
         var breakOffsets = new SortedSet<double>();

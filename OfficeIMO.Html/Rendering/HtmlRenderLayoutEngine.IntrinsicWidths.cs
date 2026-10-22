@@ -3,6 +3,17 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Includes authored box edges and constraints without interpreting the source element as replaced content.</summary>
+    private static bool TryResolveDefiniteIntrinsicBoxContribution(HtmlRenderBoxStyle style, out double contribution) {
+        contribution = 0D;
+        if (!style.ExplicitWidth.HasValue || style.ExplicitWidthUsesPercentage) return false;
+        double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
+        if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        contribution = Math.Max(1D, boxWidth + style.MarginLeft + style.MarginRight);
+        return true;
+    }
+
     /// <summary>Resolves ordinary box constraints once, before margins and numeric layout.</summary>
     private HtmlRenderBoxStyle ResolveOrdinaryIntrinsicWidths(IElement element, HtmlRenderBoxStyle style, double availableWidth, int depth) {
         if (!style.HasIntrinsicWidths || style.IntrinsicWidthsResolved) return style;

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using Xunit;
@@ -6,6 +7,37 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("table", "before", "width:200px;", 220D)]
+    [InlineData("table", "after", "width:200px;box-sizing:border-box;", 200D)]
+    [InlineData("tbody", "before", "min-width:200px;", 220D)]
+    [InlineData("tr", "after", "width:200px;", 220D)]
+    [InlineData("td", "before", "width:200px;", 220D)]
+    [InlineData("caption", "after", "width:200px;", 220D)]
+    public void HtmlCssTable_GeneratedBlockGeometryContributesToTheAutoGrid(
+        string owner, string pseudo, string sizing, double generatedWidth) {
+        string content = owner switch {
+            "tbody" => "<tbody class='generated'><tr><td>X</td></tr></tbody>",
+            "tr" => "<tr class='generated'><td>X</td></tr>",
+            "td" => "<tr><td class='generated'>X</td></tr>",
+            "caption" => "<caption class='generated'>X</caption><tr><td>X</td></tr>",
+            _ => "<tr><td>X</td></tr>"
+        };
+        string html = "<style>body{margin:0}table{display:inline-table;border-spacing:0;background:blue}td{padding:0}"
+            + ".generated::" + pseudo + "{content:'X';display:block;background:red;padding:7px;border:3px solid black;"
+            + "margin-left:5px;margin-right:9px;" + sizing + "}</style><table"
+            + (owner == "table" ? " class='generated'" : "") + ">" + content + "</table>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
+        HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderShape>().ToArray();
+        HtmlRenderShape generated = Assert.Single(shapes, shape => shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape table = Assert.Single(shapes, shape => shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.Equal(generatedWidth, generated.Width, 3);
+        Assert.True(table.Width >= generated.Width + 14D - 0.001D,
+            $"The auto grid ({table.Width:R}) must include the generated box ({generated.Width:R}) and its margins.");
+    }
+
     [Theory]
     [InlineData("table")]
     [InlineData("inline-table")]
