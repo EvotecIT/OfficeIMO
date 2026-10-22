@@ -43,7 +43,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             sizes.TryGetValue(centerPosition, out PageMarginIntrinsicSize center);
             sizes.TryGetValue(rightPosition, out PageMarginIntrinsicSize right);
             double leftWidth, centerWidth, rightWidth;
-            if (center.Generated) {
+            boxes.TryGetValue(leftPosition, out HtmlCssPageMarginTemplate? leftBox);
+            boxes.TryGetValue(centerPosition, out HtmlCssPageMarginTemplate? centerBox);
+            boxes.TryGetValue(rightPosition, out HtmlCssPageMarginTemplate? rightBox);
+            if (leftBox?.HasBoxGeometry == true || centerBox?.HasBoxGeometry == true || rightBox?.HasBoxGeometry == true) {
+                (leftWidth, centerWidth, rightWidth) = ResolveConstrainedPageMarginStrip(
+                    leftBox, centerBox, rightBox, left, center, right, availableWidth);
+            } else if (center.Generated) {
                 // CSS Page 3 resolves the centre against an imaginary side pair
                 // twice the larger side, so asymmetric labels cannot shift it.
                 var sides = new PageMarginIntrinsicSize(left.Generated || right.Generated,

@@ -18,6 +18,17 @@ internal sealed partial class HtmlCssPageRuleSet {
         HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height);
         foreach (var context in contexts) {
             HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height);
+            if (!context.Content.IsEmpty && context.Position is (HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight
+                or HtmlCssPageMarginPosition.BottomLeft or HtmlCssPageMarginPosition.BottomCenter or HtmlCssPageMarginPosition.BottomRight)) {
+                bool top = context.Position is HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight;
+                styleResolver.ResolvePageMarginGeometry(context.Margin, margin, width, height,
+                    Math.Max(0D, geometry.Width - geometry.Margins.Left - geometry.Margins.Right),
+                    top ? geometry.Margins.Top : geometry.Margins.Bottom, "@page @" + (context.Position switch {
+                        HtmlCssPageMarginPosition.TopLeft => "top-left", HtmlCssPageMarginPosition.TopCenter => "top-center",
+                        HtmlCssPageMarginPosition.TopRight => "top-right", HtmlCssPageMarginPosition.BottomLeft => "bottom-left",
+                        HtmlCssPageMarginPosition.BottomCenter => "bottom-center", _ => "bottom-right"
+                    }));
+            }
             // The paged-media UA stylesheet sets positional alignment on each
             // margin box. Explicit inherit/unset still selects the page value.
             string alignment = context.Margin.IsImplicitlyInheritedValue("text-align") || context.Margin.IsOriginRevertedValue("text-align")
