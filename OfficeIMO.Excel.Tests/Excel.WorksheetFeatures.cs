@@ -826,8 +826,20 @@ namespace OfficeIMO.Tests {
                 details.CellValue(1, 1, "Details");
                 var archive = document.AddWorksheet("Archive");
                 archive.CellValue(1, 1, "Archive");
+                Assert.Equal(0, document.ActiveWorksheetIndex);
+                Assert.Equal("Summary", document.ActiveWorksheet!.Name);
                 document.SetActiveWorksheet(details);
+                Assert.Equal(1, document.ActiveWorksheetIndex);
+                Assert.Equal("Details", document.ActiveWorksheet!.Name);
+                document.SetActiveWorksheet(2);
+                Assert.Equal("Archive", document.ActiveWorksheet!.Name);
+                document.SetActiveWorksheet("Details");
                 document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                Assert.Equal(1, document.ActiveWorksheetIndex);
+                Assert.Equal("Details", document.ActiveWorksheet!.Name);
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -852,6 +864,44 @@ namespace OfficeIMO.Tests {
                 Assert.True(snapshot.Worksheets[1].IsActive);
                 Assert.False(snapshot.Worksheets[2].IsActive);
             }
+        }
+
+        [Theory]
+        [InlineData(null, 0, "First")]
+        [InlineData(2U, 2, "Third")]
+        [InlineData(7U, 2, "Third")]
+        public void Test_WorkbookActiveWorksheetReadsStoredActiveTab(uint? activeTab, int expectedIndex, string expectedName) {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create()) {
+                document.AddWorksheet("First").CellValue(1, 1, "First");
+                document.AddWorksheet("Second").CellValue(1, 1, "Second");
+                document.AddWorksheet("Third").CellValue(1, 1, "Third");
+                document.Save(stream);
+            }
+
+            stream.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(stream, true)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                workbook.GetFirstChild<BookViews>()?.Remove();
+                if (activeTab != null) {
+                    workbook.InsertBefore(new BookViews(new WorkbookView { ActiveTab = activeTab.Value }), workbook.Sheets);
+                }
+                workbook.Save();
+            }
+
+            stream.Position = 0;
+            using (var document = ExcelDocument.Load(stream)) {
+                Assert.Equal(expectedIndex, document.ActiveWorksheetIndex);
+                Assert.Equal(expectedName, document.ActiveWorksheet!.Name);
+            }
+        }
+
+        [Fact]
+        public void Test_WorkbookActiveWorksheetIsAbsentWithoutWorksheets() {
+            using var document = ExcelDocument.Create();
+
+            Assert.Equal(-1, document.ActiveWorksheetIndex);
+            Assert.Null(document.ActiveWorksheet);
         }
 
         [Fact]

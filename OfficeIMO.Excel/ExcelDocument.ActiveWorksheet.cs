@@ -5,6 +5,36 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
+        /// Gets the zero-based index of the worksheet that spreadsheet applications show when the workbook opens.
+        /// </summary>
+        /// <remarks>
+        /// Reads the first workbook view's <c>activeTab</c>. A missing value means the first worksheet, and a value
+        /// past the last worksheet is reported as the last worksheet. Returns -1 when the workbook has no worksheets.
+        /// </remarks>
+        public int ActiveWorksheetIndex {
+            get {
+                int sheetCount = Sheets.Count;
+                return Locking.ExecuteRead(EnsureLock(), () => GetActiveWorksheetIndex(WorkbookRoot, sheetCount) ?? -1);
+            }
+        }
+
+        /// <summary>
+        /// Gets the worksheet that spreadsheet applications show when the workbook opens, or null when the workbook has no worksheets.
+        /// </summary>
+        /// <remarks>Uses the same <c>activeTab</c> resolution as <see cref="ActiveWorksheetIndex"/>.</remarks>
+        public ExcelSheet? ActiveWorksheet {
+            get {
+                IReadOnlyList<ExcelSheet> sheets = Sheets;
+                int? index = Locking.ExecuteRead(EnsureLock(), () => GetActiveWorksheetIndex(WorkbookRoot, sheets.Count));
+                if (index == null) {
+                    return null;
+                }
+
+                return sheets[index.Value];
+            }
+        }
+
+        /// <summary>
         /// Sets the worksheet that spreadsheet applications should show when the workbook opens.
         /// </summary>
         /// <param name="sheetName">Worksheet name.</param>

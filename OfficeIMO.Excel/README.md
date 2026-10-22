@@ -1887,6 +1887,18 @@ document.Compose("Members", composer => {
 document.Save();
 ```
 
+## Active worksheet
+
+`SetActiveWorksheet` chooses the worksheet that spreadsheet applications show when the workbook opens. `ActiveWorksheet` and `ActiveWorksheetIndex` read it back without building an inspection snapshot.
+
+```csharp
+document.SetActiveWorksheet("Details");
+ExcelSheet? active = document.ActiveWorksheet;
+int index = document.ActiveWorksheetIndex;
+```
+
+Both read the first workbook view's `activeTab`. A workbook without one reports the first worksheet, and a value past the last worksheet reports the last. A workbook with no worksheets reports `null` and `-1`. Hidden worksheets cannot be set active.
+
 ## Worksheet print areas
 
 Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
