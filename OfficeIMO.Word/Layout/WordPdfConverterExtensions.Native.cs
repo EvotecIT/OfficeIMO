@@ -304,7 +304,8 @@ namespace OfficeIMO.Word.Pdf {
                                 listIndices,
                                 footnoteNumbersById,
                                 nativeDefaults,
-                                nativeFontMap)) {
+                                nativeFontMap,
+                                headingDestinations)) {
                                 continue;
                             }
 

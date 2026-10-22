@@ -477,7 +477,7 @@ internal static partial class PdfWriter {
 
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
-                if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
+                if (hasLinkTarget && wSeg > 0D && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
                     PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     linkStructElementIndex = structurePage.StructElements.Count;

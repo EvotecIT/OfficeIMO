@@ -9,6 +9,28 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfFinalTableOfContentsPagesTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void NumberedHeading_InContentsHasAnEmittedDestination(bool columns, bool paragraphPath) {
+        using WordDocument document = WordDocument.Create();
+        document.AddTableOfContent(WordTableOfContentsStyle.Template1, 1, 1);
+        document.AddPageBreak();
+        if (columns) document.Sections[0].ColumnCount = 2;
+        var list = document.AddList(WordListStyle.Numbered);
+        WordParagraph heading = list.AddItem("Numbered findings");
+        heading.Style = WordParagraphStyles.Heading1;
+        if (paragraphPath) heading.Spacing = 20;
+        document.AddParagraph("Numbered body marker");
+        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        var loaded = PdfDocument.Load(bytes);
+        Assert.Contains("Numbered findings", loaded.Reader.TextByPage()[0]);
+        Assert.NotEmpty(loaded.Read().GetLinksByDestinationName("officeimo-heading-numbered-findings"));
+        Assert.Equal(2, Assert.Single(loaded.Reader.NamedDestinations(), destination => destination.Name == "officeimo-heading-numbered-findings").PageNumber);
+    }
+
     [Fact]
     public void SaveAsPdf_OverflowBeforeHeading_ContentsMatchesActualHeadingPage() {
         using WordDocument document = WordDocument.Create();

@@ -168,6 +168,12 @@ internal static partial class PdfWriter {
             if (pageNumbers != null && runningStable &&
                 SectionPageNumbersEqual(pageNumbers, resolved) &&
                 SectionDefinitionsEqual(sections, resolvedSections)) {
+                try {
+                    context.ValidateTableOfContentsDestinations(resolved);
+                } catch {
+                    result.Dispose();
+                    throw;
+                }
                 ApplySectionReferences(result);
                 return result;
             }

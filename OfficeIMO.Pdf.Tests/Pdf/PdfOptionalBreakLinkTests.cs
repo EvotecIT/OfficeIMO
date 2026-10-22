@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -84,6 +85,34 @@ public sealed class PdfOptionalBreakLinkTests {
         Assert.Equal("details", Assert.Single(loaded.Reader.NamedDestinations()).Name);
         if (namedDestination) { Assert.NotEmpty(loaded.Read().GetLinksByDestinationName("details")); }
         else { Assert.Contains(uri, info.LinkUris); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OptionalBreakOnlyLink_DoesNotCreateAnOrphanStructure(bool visibleSibling) {
+        var document = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers });
+        document.Paragraph(paragraph => {
+            paragraph.Text("Before ");
+            paragraph.Link("\u200B", "https://example.test/empty");
+            if (visibleSibling) paragraph.Link("Visible", "https://example.test/visible");
+        });
+        PdfDocumentInfo info = PdfInspector.Inspect(document.ToBytes());
+        Assert.Equal(visibleSibling ? 1 : 0, info.LinkAnnotations.Count);
+        Assert.Equal(visibleSibling ? 1 : 0, info.TaggedContent!.StructureElements.Count(element => element.StructureType == "Link"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableOfContents_MissingDestinationFailsAfterFinalLayout(bool columns) {
+        var document = PdfDocument.Create();
+        var options = new PdfTableOfContentsOptions { Entries = new[] { new PdfTableOfContentsEntry("Missing entry", "missing-bookmark") } };
+        if (columns) document.Columns(column => column.TableOfContents(options));
+        else document.TableOfContents(options);
+        document.H1("Body");
+        var error = Assert.Throws<System.InvalidOperationException>(() => document.ToBytes());
+        Assert.Contains("missing-bookmark", error.Message);
     }
 
     [Fact]

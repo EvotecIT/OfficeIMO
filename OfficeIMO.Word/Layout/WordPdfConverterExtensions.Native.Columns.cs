@@ -57,7 +57,7 @@ public static partial class WordPdfConverterExtensions {
                 if (TryRenderNativeJoinedParagraphs(flow, elements, ref index,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
-                if (TryRenderNativeList(flow, elements, ref index, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap)) continue;
+                if (TryRenderNativeList(flow, elements, ref index, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations)) continue;
                 RenderNativeElement(flow, element, section,
                     paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                     GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById), footnoteNumbersById,

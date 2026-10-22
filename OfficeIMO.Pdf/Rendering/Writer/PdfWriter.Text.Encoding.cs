@@ -21,10 +21,11 @@ internal static partial class PdfWriter {
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false) {
+        string sourceText = text;
         text = WithoutOptionalBreaks(text);
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
-        PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
+        PdfTextEncodingDiagnostic? diagnostic = RestoreOptionalBreakDiagnosticIndex(sourceText, GetFirstTextEncodingDiagnostic(text, font, options));
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
         }
@@ -137,6 +138,7 @@ internal static partial class PdfWriter {
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false) {
+        string sourceText = text;
         text = WithoutOptionalBreaks(text);
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
@@ -144,7 +146,7 @@ internal static partial class PdfWriter {
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram);
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
             options.AddTextDiagnostics(diagnostics);
             if (diagnostics.Count > 0) {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
@@ -180,7 +182,7 @@ internal static partial class PdfWriter {
             options != null &&
             options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram);
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
             options.AddTextDiagnostics(diagnostics);
             if (diagnostics.Count > 0) {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
@@ -203,8 +205,29 @@ internal static partial class PdfWriter {
                 cffFontProgram.MeasureFontUnitAdvanceWidth1000(glyphRun, layoutHorizontalScaling)) : command;
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale, layoutHorizontalScaling,
+        return EncodeTextShowCommand(sourceText, fallbackFont, options, featureSettings, textDirection, fontMetricScale, layoutHorizontalScaling,
             preservesPaintedGlyphs);
+    }
+
+    private static IReadOnlyList<PdfTextEncodingDiagnostic> RestoreOptionalBreakDiagnosticIndices(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
+        diagnostics.Count == 0 || source.IndexOf('\u200B') < 0 ? diagnostics
+            : diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
+
+    // Glyph indices use normalized text; diagnostics describe the caller's original UTF-16 text.
+    private static PdfTextEncodingDiagnostic? RestoreOptionalBreakDiagnosticIndex(string source, PdfTextEncodingDiagnostic? diagnostic) {
+        if (diagnostic == null || source.IndexOf('\u200B') < 0) return diagnostic;
+        int normalizedIndex = 0;
+        int sourceIndex = 0;
+        while (sourceIndex < source.Length) {
+            if (source[sourceIndex] != '\u200B') {
+                if (normalizedIndex == diagnostic.Index) break;
+                normalizedIndex++;
+            }
+            sourceIndex++;
+        }
+        return new PdfTextEncodingDiagnostic(diagnostic.Source, sourceIndex, diagnostic.CodePoint, diagnostic.Text,
+            diagnostic.IsControlCharacter, diagnostic.Encoding, diagnostic.Remediation, diagnostic.Location,
+            diagnostic.RunIndex, diagnostic.PageNumber, diagnostic.TableRowIndex, diagnostic.TableColumnIndex, diagnostic.FieldName);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {

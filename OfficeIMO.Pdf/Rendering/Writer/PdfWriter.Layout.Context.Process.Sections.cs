@@ -60,6 +60,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                tableOfContentsDestinations.Add(entry.DestinationName);
                 double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel;
                 var style = new PdfParagraphStyle {
                     LeftIndent = leftIndent,
@@ -82,6 +83,14 @@ internal static partial class PdfWriter {
             }
 
             return entries;
+        }
+
+        public void ValidateTableOfContentsDestinations(IReadOnlyDictionary<string, int> resolved) {
+            foreach (string destination in tableOfContentsDestinations) {
+                if (!resolved.ContainsKey(destination)) {
+                    throw new InvalidOperationException("Table of contents destination '" + destination + "' was not emitted by the final layout.");
+                }
+            }
         }
 
         private static string FormatSectionPageNumber(PdfTableOfContentsOptions options, int pageNumber) {

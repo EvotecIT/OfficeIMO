@@ -235,13 +235,12 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.HR(style: topBorderRuleStyle);
             }
 
+            // Numbered headings retain paragraph flow but still own generated TOC destinations.
+            if (paragraph._paragraph != null && string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
+                headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
+                pdf.Bookmark(generatedDestinationName);
+            }
             if (renderHeading) {
-                if (paragraph._paragraph != null &&
-                    string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
-                    headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
-                    pdf.Bookmark(generatedDestinationName);
-                }
-
                 RenderNativeHeading(pdf, headingLevel, headingText,
                     builder => AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns || inlineImages.Count > 0,
                         renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, inlineImages: inlineImages),
