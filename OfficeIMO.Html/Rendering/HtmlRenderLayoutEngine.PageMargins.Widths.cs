@@ -6,9 +6,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlCssPageMarginTemplate? leftBox, HtmlCssPageMarginTemplate? centerBox, HtmlCssPageMarginTemplate? rightBox,
         PageMarginIntrinsicSize leftSize, PageMarginIntrinsicSize centerSize, PageMarginIntrinsicSize rightSize,
         double availableWidth) {
-        var left = new PageMarginWidthState(leftBox, leftSize);
-        var center = new PageMarginWidthState(centerBox, centerSize);
-        var right = new PageMarginWidthState(rightBox, rightSize);
+        var left = new PageMarginWidthState(leftBox, leftSize, availableWidth);
+        var center = new PageMarginWidthState(centerBox, centerSize, availableWidth);
+        var right = new PageMarginWidthState(rightBox, rightSize, availableWidth);
         var result = Resolve();
         bool changed = false;
         ApplyConstraint(ref left, result.Left, maximum: true);
@@ -65,15 +65,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct PageMarginWidthState {
-        internal PageMarginWidthState(HtmlCssPageMarginTemplate? box, PageMarginIntrinsicSize size) {
+        internal PageMarginWidthState(HtmlCssPageMarginTemplate? box, PageMarginIntrinsicSize size, double availableWidth) {
             Generated = size.Generated;
-            Insets = Generated ? box?.Typography.HorizontalInsets ?? 0D : 0D;
-            double? width = Generated ? box?.Typography.ExplicitWidth : 0D;
+            HtmlRenderBoxStyle? style = box?.Typography;
+            if (Generated && style != null && style.HasIntrinsicWidths)
+                style = ApplyIntrinsicWidthValues(style, size.Minimum, size.Maximum, availableWidth);
+            Insets = Generated ? style?.HorizontalInsets ?? 0D : 0D;
+            double? width = Generated ? style?.ExplicitWidth : 0D;
             OuterWidth = width.HasValue ? width.Value + Insets : null;
             OuterMinimum = (width ?? size.Minimum) + Insets;
             OuterMaximum = (width ?? size.Maximum) + Insets;
-            MinimumConstraint = Generated ? box?.Typography.MinWidth : null;
-            MaximumConstraint = Generated ? box?.Typography.MaxWidth : null;
+            MinimumConstraint = Generated ? style?.MinWidth : null;
+            MaximumConstraint = Generated ? style?.MaxWidth : null;
         }
 
         internal PageMarginWidthState(bool generated, double minimum, double maximum, double? width) {

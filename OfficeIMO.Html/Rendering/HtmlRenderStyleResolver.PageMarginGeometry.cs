@@ -24,6 +24,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.ExplicitWidth = ReadLength(computed.GetValue("width"), null, stripWidth, style.Font.Size);
             style.MinWidth = ReadLength(computed.GetValue("min-width"), null, stripWidth, style.Font.Size);
             style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, stripWidth, style.Font.Size);
+            style.IntrinsicWidth = ReadPageMarginIntrinsicWidth("width");
+            style.IntrinsicMinWidth = ReadPageMarginIntrinsicWidth("min-width");
+            style.IntrinsicMaxWidth = ReadPageMarginIntrinsicWidth("max-width");
             ApplyLength(computed.GetValue("padding-left"), stripWidth, style.Font.Size, ref style.PaddingLeft);
             ApplyLength(computed.GetValue("padding-right"), stripWidth, style.Font.Size, ref style.PaddingRight);
             // Paged margin contexts use their containing height for vertical percentages.
@@ -36,20 +39,6 @@ internal sealed partial class HtmlRenderStyleResolver {
                     style.Borders = borders;
                 else style.UnsupportedBorderPaint = "page-margin border-style outside the solid-border profile";
             } else style.UnsupportedBorderPaint = detail;
-
-            foreach (string property in new[] { "width", "min-width", "max-width" }) {
-                string value = computed.GetValue(property).Trim();
-                if (!(value.Equals("min-content", StringComparison.OrdinalIgnoreCase)
-                    || value.Equals("max-content", StringComparison.OrdinalIgnoreCase)
-                    || value.Equals("fit-content", StringComparison.OrdinalIgnoreCase)
-                    || value.StartsWith("fit-content(", StringComparison.OrdinalIgnoreCase))) continue;
-                string identity = source + " " + property + "=" + value;
-                if (_reportedPageMarginDimensions.Add(identity)) {
-                    _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported,
-                        "An intrinsic page-margin width used auto sizing or omitted its minimum or maximum constraint.",
-                        HtmlDiagnosticSeverity.Warning, source, property + "=" + value, OfficeConversionLossKind.Approximation);
-                }
-            }
         } finally {
             _viewportWidth = previousViewportWidth;
             _viewportHeight = previousViewportHeight;
@@ -57,6 +46,22 @@ internal sealed partial class HtmlRenderStyleResolver {
             _activeContainerHeight = previousHeight;
             _activeCharacterAdvance = previousAdvance;
             _activeUprightVerticalText = previousUpright;
+        }
+
+        HtmlRenderIntrinsicWidth? ReadPageMarginIntrinsicWidth(string property) {
+            string value = computed.GetValue(property).Trim();
+            HtmlRenderIntrinsicWidth? intrinsic = ReadIntrinsicWidth(value, stripWidth, style.Font.Size);
+            // Generated margin boxes admit the shared keywords. Functional
+            // limits retain their separate, unqualified margin-box contract.
+            if (intrinsic.HasValue && !intrinsic.Value.Limit.HasValue) return intrinsic;
+            if (!intrinsic.HasValue && !value.StartsWith("fit-content(", StringComparison.OrdinalIgnoreCase)) return null;
+            string identity = source + " " + property + "=" + value;
+            if (_reportedPageMarginDimensions.Add(identity)) {
+                _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported,
+                    "An intrinsic page-margin width used auto sizing or omitted its minimum or maximum constraint.",
+                    HtmlDiagnosticSeverity.Warning, source, property + "=" + value, OfficeConversionLossKind.Approximation);
+            }
+            return null;
         }
 
         static bool Supported(HtmlRenderBorderSide side) => side.Style is "none" or "hidden" or "solid";
