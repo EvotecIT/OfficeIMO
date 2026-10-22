@@ -1,120 +1,98 @@
 # HTML-to-PDF report performance
 
-This ledger records measurements and attempted improvements to the shared HTML
-layout and PDF owners. It is not a capability matrix or a second roadmap.
-[Open product outcomes](../ROADMAP.md#release-wide-quality) remain in the roadmap.
+The [22 October evidence](../../Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json)
+records report-layout checks and measurements of the shared HTML/PDF owners.
+[Open work](../ROADMAP.md#release-wide-quality) remains in the product roadmap.
 
-## Measurement contract
+## Reproduce the measurements
 
-Measure complete HTML-to-PDF conversion separately from prepared layout and PDF
-serialization. Use the same captured HTML, font bytes, page profile and requested
-tags for every baseline/candidate pair. Validate complete content and saved-page
-geometry outside timing; inspect rendered pages against independent references.
-Keep layout corrections separate from byte-preserving optimizations when comparing
-artifacts. Retain failed, slower and noisy observations.
-
-Use the existing BenchmarkDotNet projects and PowerForge comparison entrypoint:
+Use the maintained BenchmarkDotNet projects and PowerForge comparison entrypoint:
 
 ```powershell
 ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -OutputRoot <task-output> -BuildArtifactsPath <task-build>
 ```
 
-The HTML benchmark project also separates parsing, styling, prepared layout,
-Drawing projection and encoded output. Its purchase-table and page-fingerprint
-lanes provide scaling and all-page controls. Timing and allocation measurements
-remain opt-in and do not become ordinary correctness tests.
+The HTML benchmark project's `HtmlPagedPurchaseTableBenchmarks` separates prepared
+layout from PDF export at 250 and 2,500 rows. The export starts with parsed HTML
+and writes to `Stream.Null`; it excludes parsing and filesystem I/O. The shared
+payload benchmark parses HTML and returns PDF bytes. Keep these contracts
+separate when interpreting results.
 
-## Existing evidence and exhausted work
+The paired runs use the same inputs, fonts, page settings and benchmark drivers.
+Complete content, saved-page geometry and independent rendering checks run
+outside the timed section. Timing and allocation measurements stay opt-in.
 
-The [20 October qualification](../../Build/Project/Evidence/2026-10-20/pdf-workflow-reliability.json)
-retains the original measured source and platform. On that Apple M4/.NET 10
-source, eliminating repeated ink-contour work and adding a bounded glyph-outline
-cache reduced selected warm HTML conversion means by 66–87% and allocation volume
-by 60–83%. These are improvements over the earlier OfficeIMO baseline, not a
-portable ranking or measurements of later integrated source. Later shared-glyph
-changes require a fresh baseline before further claims.
+## Final paired results: 22 October 2026
 
-Do not repeat the same contour/cache work without showing which underlying
-source changed. Diagnostic accuracy, cancellation, font ownership and cache
-bounds remain part of the contract; disabling them is not an optimization.
+Baseline: `0612ee6a8bd8a18ba13eb7c3b64fcb104d182945`.
+Candidate runtime: `765057d2bdf16706be5e0cdec228fd541abf8ee8`.
+The Apple M4 development host uses .NET 10 and three logical processors, with
+normal development activity and OS scheduling. It is not a quiet-host, cold-start,
+peak-memory or portable ranking study. Each run has six warmups, twelve measured
+iterations and no outlier removal. Allocation is total managed allocation per
+operation, not retained or peak memory.
 
-## Current investigation
-
-The starting runtime is preparation commit
-`0612ee6a8bd8a18ba13eb7c3b64fcb104d182945`, based on the merged report-workflow
-and repeated-save source `4543902a9d2715877dac912220ecdd804f2bdb4b`.
-Its four frozen print-report conversions and all nine shared-payload admission
-cases succeed. The larger reports still retain documented resource and rendering
-losses; successful conversion is not an appearance acceptance result.
-
-An allocation and CPU profile of 30 conversions of the maintained 21 KiB table
-payload identifies repeated CSS length contexts and parsing of nonnumeric
-defaults as a useful first target. Tagged-PDF child enumeration also repeatedly
-scans all page elements. The instrumented PDF is byte-identical to the unprofiled
-admission artifact. Sampling identifies work to investigate; it does not establish
-a throughput improvement or a portable memory budget.
-
-| Candidate investigation | Required evidence | Disposition |
-| --- | --- | --- |
-| Reject empty and nonnumeric CSS length defaults before allocating a resolution context | Existing CSS math/context controls, equivalent saved payloads, and paired BenchmarkDotNet runs | About 6.4% less table allocation in the first combined draft; no throughput win established |
-| Reuse parsed short length expressions within one style resolver | Recompute used values for each percentage/font/container context, retain limits and diagnostics, and compare complete payloads and table stages | Kept for lower allocation; no isolated throughput improvement established |
-| Reuse the private synchronous length-resolution workspace | Overwrite every context input, retain percentage/font/container and cancellation controls | Kept for lower allocation; no isolated throughput improvement established |
-| Index tagged-PDF children within one write | Preserve local and cross-page parent identity, child ordering and saved tagged artifacts; measure scaling | Strong first scaling result with identical saved PDFs; final combined qualification remains required |
-| Repeated font analysis, shaping or diagnostic copies | Current allocation stacks and retained semantic/appearance controls | Lower priority in the current profile; do not repeat the earlier outline-cache work |
-
-The first trial combines the generated table-content correction with early
-rejection of empty, `auto`, `none` and `normal` lengths. Two paired launches in
-baseline/candidate/candidate/baseline order use the unchanged benchmark, six
-warmups, twelve measured iterations and no outlier removal. On the local Apple
-M4/.NET 10 development host, table means are 118.95–120.86 ms for the baseline
-and 122.28–125.22 ms for the draft; allocations are approximately 222.3 MiB and
-208.2 MiB respectively. This is an allocation observation, not an accepted
-speed improvement or a measurement of the guard in isolation. All three shared
-OfficeIMO payload PDFs are byte-identical, and the 42-page/417-page purchase
-controls retain every page SVG hash, logical text hash and diagnostic.
-
-The next trial caches only successful immutable parse results, with at most
-128 expressions of at most 128 characters per layout resolver. The existing
-parser remains the grammar and limit owner. Percentage, font, viewport and
-container values are resolved afresh for each use; neither resolved lengths nor
-cross-document state are cached. Longer or additional expressions use the usual
-uncached path.
-
-On the same development host, two clean `6a741e7f` parsed-expression launches
-measured the table at 117.36–118.49 ms against 116.85–119.42 ms for their paired
-baseline launches. Allocation volume was 203.83–204.26 MiB against
-222.33–222.45 MiB. Reusing the synchronous resolver's private context workspace
-then measured 118.19–122.04 ms against 117.68–118.13 ms, with
-200.28–200.57 MiB against 222.45 MiB. These trials support the allocation
-reduction, without an isolated throughput claim. Every resolution overwrites
-the context inputs; cached expressions retain no context or resolved value.
-
-The next development candidate builds a private child index for each tagged PDF
-write. It retains local-parent children before reference-parent children, page
-and source order, duplicate membership, and the existing logical-order sort.
-The shared 21 KiB table payload measured 107.06–109.19 ms with
-199.56–199.69 MiB allocated in two launches. This is a combined candidate result,
-not an attribution to the index alone.
-
-The maintained purchase-table stage benchmark exposes the larger scaling effect:
-
-| Workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
+| Purchase-table workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
 | --- | ---: | ---: | ---: | ---: |
-| 250 rows, complete PDF | 221.9 ms | 173.3 ms | 325.76 MiB | 285.94 MiB |
-| 2,500 rows, prepared layout | 1,954.3 ms | 1,834.0 ms | 2,717.64 MiB | 2,408.60 MiB |
-| 2,500 rows, complete PDF | 6,129.1 ms | 2,572.7 ms | 4,528.19 MiB | 3,381.35 MiB |
+| 250 rows, prepared layout | 185.50 ms | 167.73 ms | 220.74 MiB | 187.04 MiB |
+| 250 rows, PDF export | 224.50 ms | 177.29 ms | 325.80 MiB | 283.22 MiB |
+| 2,500 rows, prepared layout | 1,961.32 ms | 1,833.98 ms | 2,716.72 MiB | 2,382.22 MiB |
+| 2,500 rows, PDF export | 6,007.78 ms | 2,558.61 ms | 4,528.64 MiB | 3,354.34 MiB |
 
-These are first-stage measurements of frozen development binaries on Apple M4,
-.NET 10, with six warmups, twelve measured iterations and no outlier removal.
-The candidate includes the workspace and child-index changes on top of
-`6a741e7f`; it is not a clean integrated release measurement. The 250-row layout
-measurements were noisy and do not establish a layout regression or improvement.
-Both 42-page and 417-page public saved PDFs are byte-identical to the baseline;
-all page SVG, logical-text and diagnostic fingerprints also match. Native
-appearance and the later print-panel correction are separate qualification work.
+The selected 2,500-row export mean is 57.4% lower, with 25.9% fewer allocated
+bytes. Both public purchase-report PDFs are byte-identical to the baseline:
+42 and 417 pages, with every row marker present once. The 250-row layout runs
+have roughly 46 ms standard deviations, so their mean difference is not a
+reliable layout-speed claim.
 
-Stop expanding an optimization when it does not improve the selected equivalent
-workload, weakens output or defensive limits, or needs an unrelated redesign.
-Keep or revert each attempted change with its measured result and reason. Freeze
-runtime source before the final comparison and package proof; a later runtime
-change invalidates the affected measurements.
+Two shared-payload pairs ran in baseline/candidate/candidate/baseline order:
+
+| Payload | Baseline means | Candidate means | Baseline allocation | Candidate allocation |
+| --- | ---: | ---: | ---: | ---: |
+| Plain text | 38.14–40.99 ms | 39.45–39.46 ms | 96.14–96.16 MiB | 93.81–93.97 MiB |
+| Table | 117.21–118.25 ms | 104.95–107.06 ms | 222.31–222.45 MiB | 199.68–199.69 MiB |
+| Multilingual | 33.29–34.45 ms | 33.68–33.75 ms | 96.98–96.99 MiB | 94.62–94.79 MiB |
+
+All three OfficeIMO payload PDFs are byte-identical to the baseline. The table
+improvement repeats in both pairs. Plain-text and multilingual timings overlap
+or change direction; no throughput improvement is claimed for them. The separate
+nine-case shared comparison retains all successful engines and their differing
+outputs; these results do not establish a speed lead over other libraries.
+
+## Investigations and disposition
+
+An instrumented 30-conversion table profile retained a byte-identical PDF. It
+identified repeated CSS length setup/default parsing and repeated all-page scans
+while enumerating tagged-PDF children. Sampling guided the following bounded
+changes; it does not attribute the final gain to one change in isolation.
+
+| Attempt | Observation and disposition |
+| --- | --- |
+| Reject empty, `auto`, `none` and `normal` length defaults early | First combined draft reduced table allocation by about 6.4%, but measured slower. Kept for lower allocation; no isolated throughput claim. |
+| Cache successful short parsed length expressions | Clean `6a741e7f` trial: table 117.36–118.49 ms versus 116.85–119.42 ms; 203.83–204.26 MiB versus 222.33–222.45 MiB. Kept for lower allocation, not isolated speed. Cache is per resolver, at most 128 expressions of 128 characters; values resolve afresh for each context. |
+| Reuse the private synchronous resolution workspace | Trial: 118.19–122.04 ms versus 117.68–118.13 ms; 200.28–200.57 MiB versus 222.45 MiB. Kept for allocation; all context inputs are overwritten and context controls pass. |
+| Index tagged-PDF children once per write | Combined development trial: table 107.06–109.19 ms, about 199.6 MiB; 2,500-row export 6,129.1 to 2,572.7 ms with identical output. Kept after ordering, parent-identity and tagged-artifact checks; final results above replace this trial for current claims. |
+| Integrated `ddddaa1c` checkpoint | Earlier paired export: 6,088.99 to 2,569.03 ms. The 250-row layout mean rose from 178.75 to 194.90 ms. Retained as historical evidence; later whitespace correction required the fresh candidate measurements above. |
+| Preformatted-text correction | Nested styled text previously lost repeated spaces and line breaks. Saved RFC footer columns now align closely with the independent reference. This is a layout fix, not an optimization; the final candidate was remeasured. |
+| Repeat glyph-outline/contour caching | Not attempted: the current profile points elsewhere. Earlier changes already addressed that owner. |
+
+The [20 October evidence](../../Build/Project/Evidence/2026-10-20/pdf-workflow-reliability.json)
+keeps its original `83efd` source and platform. Its 66–87% selected mean reductions
+and 60–83% allocation reductions remain historical; they are not measurements of
+this candidate or later shared-glyph source.
+
+## Limits and next work
+
+Generated table text, printed link destinations, ordinary scroll-panel pagination
+and nested preformatted text have saved-file controls. The frozen captured reports
+still have named font/resource and layout differences. The RFC case retains all
+3,600 lexical tokens over 13 pages and fixes footer-column spacing, but its vertical
+spacing differs from the native reference. Successful conversion and syntax checks
+do not establish full appearance or accessibility equivalence.
+
+Next, use the roadmap's licensed, font-matched corpus to qualify wide tables,
+rotated labels and all-page native/assistive-technology behavior. Reprofile only
+when those supported workloads identify another material cost. Stop an optimization
+that weakens content, diagnostics, cancellation or resource limits, or requires an
+unrelated redesign. Preserve slower and failed observations; do not repeat exhausted
+ideas unless the relevant source has changed.

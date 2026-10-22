@@ -3875,6 +3875,10 @@ retained, including destinations printed by `content:attr(href)`. Regenerate
 saved-page baselines that depended on its omission or the earlier implicit
 scroll-panel keep; text wrapping and page counts can change.
 
+Preformatted blocks retain spaces and line breaks inside nested styled text
+and generated content. Update snapshots that depended on collapsed whitespace,
+or use `white-space:normal` when ordinary text flow is intended.
+
 ## Excel encrypted-save persistence
 
 Saving encrypted output to the document's associated file or stream changes its
