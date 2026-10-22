@@ -11,12 +11,12 @@ Converts a PowerPoint deck to an HTML review document.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficePowerPointHtml [-Path] <string> [-Password <string>] [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePowerPointHtml [-Path] <string> [-Password <string>] [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoMasterInventory] [-NoHeading] [-NoSlideHeadings] [-NoRenderDiagnostics] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Presentation
 ```powershell
-ConvertTo-OfficePowerPointHtml -Presentation <PowerPointPresentation> [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePowerPointHtml -Presentation <PowerPointPresentation> [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoMasterInventory] [-NoHeading] [-NoSlideHeadings] [-NoRenderDiagnostics] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,6 +37,13 @@ PS> ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -
 ```
 
 Uses the OfficeIMO PowerPoint visual review profile.
+
+### EXAMPLE 3
+```powershell
+PS> ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -OutputPath .\Briefing.slides.html
+```
+
+Leaves out the headings, render diagnostics, template inventory, and extraction proof.
 
 ## PARAMETERS
 
@@ -104,8 +111,72 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -NoHeading
+Do not write the document heading.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, Presentation
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoMasterInventory
+Do not include the master, layout, and theme inventory.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, Presentation
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -NoNotes
 Do not include presenter notes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, Presentation
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRenderDiagnostics
+Do not list visual-review render diagnostics below each slide.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, Presentation
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSlideHeadings
+Do not write a "Slide N" heading before each slide.
 
 ```yaml
 Type: SwitchParameter

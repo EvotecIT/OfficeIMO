@@ -25,6 +25,12 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -OutputPath .\Briefing.visual.html</code>
 ///   <para>Uses the OfficeIMO PowerPoint visual review profile.</para>
 /// </example>
+/// <example>
+///   <summary>Export only the drawn slides.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -OutputPath .\Briefing.slides.html</code>
+///   <para>Leaves out the headings, render diagnostics, template inventory, and extraction proof.</para>
+/// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficePowerPointHtml", DefaultParameterSetName = ParameterSetPath, SupportsShouldProcess = true)]
 [Alias("ConvertTo-PowerPointHtml")]
 [OutputType(typeof(string), typeof(FileInfo))]
@@ -82,6 +88,22 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
     /// <summary>Do not include extraction proof metadata.</summary>
     [Parameter]
     public SwitchParameter NoExtractionProof { get; set; }
+
+    /// <summary>Do not include the master, layout, and theme inventory.</summary>
+    [Parameter]
+    public SwitchParameter NoMasterInventory { get; set; }
+
+    /// <summary>Do not write the document heading.</summary>
+    [Parameter]
+    public SwitchParameter NoHeading { get; set; }
+
+    /// <summary>Do not write a "Slide N" heading before each slide.</summary>
+    [Parameter]
+    public SwitchParameter NoSlideHeadings { get; set; }
+
+    /// <summary>Do not list visual-review render diagnostics below each slide.</summary>
+    [Parameter]
+    public SwitchParameter NoRenderDiagnostics { get; set; }
 
     /// <summary>Do not include OfficeIMO default CSS styles.</summary>
     [Parameter]
@@ -141,7 +163,11 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
             IncludeNotes = !NoNotes.IsPresent,
             IncludeTables = !NoTables.IsPresent,
             IncludeHiddenShapes = IncludeHiddenShapes.IsPresent,
-            IncludeExtractionProof = !NoExtractionProof.IsPresent
+            IncludeExtractionProof = !NoExtractionProof.IsPresent,
+            IncludeMasterInventory = !NoMasterInventory.IsPresent,
+            IncludeHeading = !NoHeading.IsPresent,
+            IncludeSlideHeadings = !NoSlideHeadings.IsPresent,
+            IncludeRenderDiagnostics = !NoRenderDiagnostics.IsPresent
         };
 
         if (!string.IsNullOrWhiteSpace(Title))
