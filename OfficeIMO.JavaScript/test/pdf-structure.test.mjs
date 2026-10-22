@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, ExportCell } from "../dist/pdf/index.js";
+import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Amount", key: "amount" }];
@@ -65,7 +65,7 @@ async function inspectStructure(blob) {
       assert.equal(owner?.role, "Link", "Every tagged annotation must point to its logical Link");
       assert.equal(ref(annotation.body, "P"), page.id);
       assert.ok(owner.kids.includes("<< /Type /OBJR /Obj " + id + " 0 R /Pg " + page.id + " 0 R >>"));
-      assert.ok(["P", "H1", "H2", "H3", "H4", "H5", "H6", "TD", "TH"].includes(elements.get(owner.parent)?.role));
+      assert.ok(["P", "H1", "H2", "H3", "H4", "H5", "H6", "TD", "TH", "Caption"].includes(elements.get(owner.parent)?.role));
       assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.add(id);
     }
   }
@@ -126,11 +126,54 @@ test("tagged table convenience exports share structure ownership and preserve em
   assert.ok(![...untagged.objects.values()].some(object => /\/StructTreeRoot|\/StructParents|\/Marked|\/MCID|\/Artifact/.test(object.body)));
 });
 
-test("tagged profile rejects unsupported semantics instead of silently flattening them", async () => {
-  for (const options of [{ columns: [{ header: "Name", key: "name", groups: ["Group"] }] },
-    { columns, headerRows: [[{ value: "Group", columnSpan: 2 }, null]] },
-    { columns, footer: { rows: [[{ value: "Total", columnSpan: 2 }, null]] } }])
-    await assert.rejects(writePdf([{ name: "Item", amount: 1 }], { ...options, tagged }), /Tagged PDF supports leaf/);
+test("tagged linked continuation captions retain one first table owner across pages and bands", async () => {
+  for (const bands of [false, true]) for (const primary of [false, true]) {
+    const reportColumns = ["ID", "Detail", "Amount", "Count"].map(header => ({ header }));
+    const rows = Array.from({ length: 5 }, (_, index) => ["R" + index, "Detail", index, 2]);
+    const table = pdfTable(rows, { columns: reportColumns, ...(bands ? {
+      columnWidths: [60, 90, 90, 90], wideTable: { mode: "bands", repeatColumns: [0] }
+    } : {}) });
+    const pdf = await inspectStructure(await writePdfDocument([{ ...table,
+      ...(primary ? { caption: { text: [{ text: "Primary documentation", link: { target: "https://example.org/main" } }] } } : {}),
+      continuationCaption: { text: [{ text: "Continuation documentation", link: { target: "https://example.org/continued" } }] }
+    }], { tagged, compression: false, pageNumbers: false, orientation: "landscape", margins: 20,
+      pageSize: { width: 300, height: bands ? 220 : 112 }, limits: { maxTableWindowRows: 2 } }));
+    assert.ok(pdf.pages.length > 1, "The fixture must paint actual continuation context");
+    const owner = [...pdf.elements.values()].find(element => element.role === "Table");
+    const children = refs(owner.kids).map(id => pdf.elements.get(id));
+    assert.equal(children[0].role, "Caption", "A continuation-only owner also precedes the first logical row");
+    assert.equal(children.filter(child => child.role === "Caption").length, 1, "Primary and continuation links share one table caption");
+    assert.ok(children.slice(1).every(child => child.role === "TR"));
+    const caption = children[0], links = [...pdf.elements.values()].filter(element => element.role === "Link");
+    assert.equal(links.length, primary ? 2 : 1);
+    assert.ok(links.every(link => link.parent === caption.id));
+    const continuation = links.find(link => /\/Alt /.test(link.body));
+    assert.match(continuation.body, /\/Alt <feff0043006f006e00740069006e0075006100740069006f006e00200064006f00630075006d0065006e0074006100740069006f006e>/);
+    assert.ok((continuation.kids.match(/\/Type \/OBJR/g) ?? []).length > 0);
+    const logicalText = [...pdf.marked.values()].map(part => part.text).join("");
+    assert.equal(logicalText.includes("Continuation documentation"), false, "Repeated context remains an artifact");
+    assert.equal(logicalText.split("Primary documentation").length - 1, primary ? 1 : 0);
+    for (const row of rows) assert.equal(logicalText.split(row[0]).length - 1, 1, "Source identifiers retain one logical occurrence");
+  }
+});
+
+test("unused linked continuation captions create no phantom logical owners", async () => {
+  for (const bands of [false, true]) {
+    const pdf = await inspectStructure(await writePdfDocument([{ ...pdfTable([["R1", 7, 9]], {
+      columns: ["ID", "Amount", "Count"].map(header => ({ header })),
+      ...(bands ? { columnWidths: [80, 120, 120], wideTable: { mode: "bands", repeatColumns: [0] } } : {}) }),
+      continuationCaption: { text: [{ text: "Unused navigation", link: { target: "https://example.org/unused" } }] }
+    }], { tagged, compression: false, pageNumbers: false, pageSize: { width: 300, height: 220 },
+      orientation: "landscape", margins: 20, limits: { maxTableWindowRows: 2 } }));
+    assert.equal(pdf.pages.length, bands ? 2 : 1, "Every physical band still belongs to the first logical window");
+    assert.equal([...pdf.elements.values()].filter(element => element.role === "Caption" || element.role === "Link").length, 0);
+    assert.equal([...pdf.objects.values()].filter(object => /\/Subtype \/Link /.test(object.body)).length, 0);
+    assert.ok([...pdf.elements.values()].filter(element => element.role === "Table").every(table =>
+      refs(table.kids).every(id => pdf.elements.get(id).role === "TR")));
+  }
+});
+
+test("tagged profile validates authored link, figure and language semantics", async () => {
   await assert.rejects(writePdf([{ name: new ExportCell(" ", { link: { target: "https://example.com" } }), amount: 1 }], { columns, tagged }), /nonempty displayed text/);
   for (const block of [{ kind: "image", image }, vector, { ...vector, alternativeText: " " }, { ...vector, alternativeText: "Chart", decorative: true }])
     await assert.rejects(writePdfDocument([block], { tagged }), /alternativeText|decorative/);
@@ -175,6 +218,65 @@ test("tagged structure and marked-content budgets fail visibly and release activ
   await assert.rejects(writePdfDocumentTo(source, destination, { tagged, limits: { maxStructureElements: 8 }, pageNumbers: false }), /maxStructureElements/);
   assert.equal(returned, 1); assert.equal(blocksReturned, 1); assert.equal(destination.locked, false);
   await assert.rejects(writePdfDocument([{ ...vector, alternativeText: "Described" }], { tagged, limits: { maxCellCharacters: 3 } }), /maxCellCharacters/);
+});
+
+test("cached nonband table headings consume physical cell/text budgets without recapturing source callbacks", async () => {
+  for (const semantic of [false, true]) for (const composed of [false, true]) {
+    const run = async limits => {
+      let headerReads = 0, formatted = 0, returned = 0;
+      const table = { columns: [
+        { key: "left", get header() { headerReads++; return "HEAD"; } },
+        { key: "right", get header() { headerReads++; return "TAIL"; } }
+      ], formatValue(value) { formatted++; return String(value); } };
+      const rows = { *[Symbol.iterator]() { try { yield { left: "A", right: "C" }; yield { left: "B", right: "D" }; } finally { returned++; } } };
+      const settings = { pageSize: { width: 200, height: 60 }, orientation: "landscape", fontSize: 10, padding: 2, margins: 10,
+        pageNumbers: false, compression: false, ...(semantic ? { tagged } : {}), limits };
+      try {
+        return composed ? await writePdfDocument([pdfTable(rows, table)], settings) : await writePdf(rows, { ...table, ...settings });
+      } finally {
+        assert.equal(headerReads, 2, "Each authored heading is captured once across continuation pages");
+        assert.equal(formatted, 4, "Repeated headings never call the data formatter again");
+        assert.equal(returned, 1, "A budget failure closes the active source");
+      }
+    };
+    const pdf = await inspectPdf(await run({ maxCells: 100, maxTextCharacters: 100 }));
+    assert.equal(pdf.pages.length, 2, "The fixture must physically repeat both cached headings");
+    for (const heading of ["HEAD", "TAIL"])
+      assert.equal(pdf.pages.flatMap(page => page.lines).filter(line => line === heading).length, 2);
+    // Six original cells contain twelve characters; either ceiling must reject their physical repeats.
+    for (const limits of [{ maxCells: 6 }, { maxTextCharacters: 12 }])
+      await assert.rejects(run(limits), error => error.code === "RESOURCE_LIMIT" && error.message.includes(Object.keys(limits)[0]));
+  }
+});
+
+test("tagged grouped subtotal tables charge shared prepared headings again while retaining single source projection", async () => {
+  const run = async limits => {
+    let headerReads = 0, projected = 0, subtotalLabels = 0, continuationLabels = 0;
+    const declared = Array.from({ length: 8 }, (_, index) => ({ key: "m" + index, type: "number",
+      get header() { headerReads++; return "Metric" + index + "-" + "X".repeat(32); },
+      value(row) { projected++; return row[index]; } }));
+    const report = createGroupedReport([Array(8).fill(1)], { columns: declared,
+      groupBy: [{ key: "team", value: () => "Group-A" }], totals: { m0: "sum" } });
+    try {
+      return await writePdfDocument([pdfGroupedTable(report, { labelColumn: { header: "Group" }, includeGrandTotal: false,
+        subtotalLabel(group) { subtotalLabels++; return "Subtotal " + group.label; }, grandTotalLabel: () => "Unused",
+        continuationLabel(group) { continuationLabels++; return group.label; } })], {
+        tagged, pageSize: { width: 1000, height: 600 }, orientation: "landscape", margins: 20,
+        pageNumbers: false, compression: false, limits
+      });
+    } finally {
+      assert.equal(headerReads, 8, "Summary tables reuse captured headings without invoking authored getters");
+      assert.equal(projected, 8, "The one report record is projected once");
+      assert.equal(subtotalLabels, 1); assert.equal(continuationLabels, 1);
+    }
+  };
+  const pdf = await inspectStructure(await run({ maxCells: 100, maxTextCharacters: 5000 }));
+  assert.equal(pdf.pages.length, 1, "Separate summary-table headings repeat even without a page break");
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "Table").length, 2);
+  const heading = "Metric0-" + "X".repeat(32);
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "TH" && element.content.map(part => part.text).join("") === heading).length, 2);
+  for (const limits of [{ maxCells: 34 }, { maxTextCharacters: 500 }])
+    await assert.rejects(run(limits), error => error.code === "RESOURCE_LIMIT" && error.message.includes(Object.keys(limits)[0]));
 });
 
 test("graphic alternative getters preserve the validated text and decorative intent", async () => {

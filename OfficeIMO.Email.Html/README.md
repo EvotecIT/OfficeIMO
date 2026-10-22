@@ -13,9 +13,20 @@ Console.WriteLine(copy.AssetsDirectory);
 
 The exporter selects HTML, then RTF, then plain text, removes active content, and blocks remote resources. Embedded attachments are extracted into a fresh companion resource directory, and supported image attributes, responsive sources, and CSS URLs are rewritten through the shared HTML resource policy. `includeAttachments` also saves regular files and adds download links. Extraction results retain original names, logical attachment indexes, byte counts, and hashes.
 
-The copy retains the message body, sender, and To recipients at the path you choose. HTML sanitization does not anonymize message content.
+The copy retains the message body, sender, date, and To and Cc recipients at the path you choose. HTML sanitization does not anonymize message content.
 
 Keep the HTML file and its `.assets-<id>` directory together. HTML commits use an atomic fail-or-replace policy. An overwrite creates a fresh resource directory; earlier resource files survive cancellation or later failures and may be removed when no longer needed. Native email artifacts remain the appropriate choice when original message structure and format-specific metadata matter.
+
+To produce the same page without writing an output file, use `ExportContent`:
+
+```csharp
+EmailDocument document = EmailDocument.Load(inputStream);
+EmailHtmlContent page = EmailHtmlExporter.ExportContent(document);
+string html = page.Html;
+page.WriteTo(outputStream);
+```
+
+Embedded body resources, such as `cid:` images, become `data:` URIs, so the page is self-contained. They are read within the projection's resource budgets, and a read that exceeds them throws. Regular attachments are not included. The page keeps the same sanitization, Content-Security-Policy, and blocking of remote resources as the file export. `WriteTo` writes UTF-8 without a byte order mark and leaves the caller-owned stream open. The complete returned page also observes the shared untrusted HTML serialized-character boundary (`HtmlConversionLimits.MaxInputCharacters`, 72 MiB characters by default); this is separate from decoded resource read budgets. Output that would exceed it fails with `HtmlDomLimitException` before the oversized serialized value is appended.
 
 `OfficeIMO.Email.Html` is the optional HTML bridge for `OfficeIMO.Email`. It selects an HTML, RTF, or plain-text body once, applies the shared untrusted HTML policy, indexes CID and content-location resources, and exposes a prepared `HtmlConversionDocument` to renderers and readers.
 

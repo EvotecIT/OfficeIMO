@@ -4,8 +4,11 @@ import type { PdfLayoutRow, PdfTableLayout } from "./table-layout.js";
 import type { PdfPreparedParagraph } from "./paragraph-layout.js";
 
 /** @internal A window entry is one aligned logical row fragment or an indivisible span block. */
-interface BandWindowEntry { readonly rows: readonly (readonly PdfLayoutRow[])[]; readonly height: number; readonly count: number; }
+interface BandWindowEntry { readonly rows: readonly (readonly PdfLayoutRow[])[]; readonly height: number; readonly count: number;
+  readonly completed: readonly PdfLayoutRow[]; }
 interface BandWindowPainter {
+  prepareRow?(row: PdfLayoutRow): Promise<void>;
+  completeRow?(row: PdfLayoutRow): Promise<void>;
   readonly firstCapacity: number;
   readonly firstFullCapacity: number;
   moveFirstToFreshPage(): Promise<void>;
@@ -45,6 +48,7 @@ export class PdfTableBandFlow {
     if (!allowFirstFragment && this.firstWindow && !this.entries.length && row.height > this.capacity + .001 && row.height <= this.painter.firstFullCapacity + .001) {
       await this.painter.moveFirstToFreshPage(); this.firstCapacity = this.painter.firstFullCapacity;
     }
+    await this.painter.prepareRow?.(row);
     let first = 0;
     while (first < row.lines) {
       checkAbort(options.signal);
@@ -63,16 +67,17 @@ export class PdfTableBandFlow {
           const source = this.layout.bands![index]!.columns[cell.first]!;
           const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
           const { height: _height, ...plain } = cell;
-          return { ...plain, lines: visible };
+          return { ...plain, lines: visible, ...(first > 0 && this.layout.repeatedColumn(source) ? { semanticArtifact: true } : {}) };
         }) }]);
-      await this.accept({ rows: fragments, height, count: 1 }); first += lines;
+      await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [] }); first += lines;
       if (first < row.lines) await this.flush();
     }
   }
   async block(rows: readonly PdfLayoutRow[]): Promise<void> {
     const projected = await this.layout.bandRows(rows, true), height = projected[0]!.reduce((sum, row) => sum + row.height, 0);
     if (rows.length > this.layout.settings.limits.maxTableWindowRows) throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
-    await this.accept({ rows: projected, height, count: rows.length });
+    for (const row of rows) await this.painter.prepareRow?.(row);
+    await this.accept({ rows: projected, height, count: rows.length, completed: rows });
   }
   async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
     const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
@@ -86,6 +91,7 @@ export class PdfTableBandFlow {
       await this.painter.paint(band, this.headings[band]!, this.entries.flatMap(entry => entry.rows[band]!),
         this.firstWindow ? this.caption : this.continuation, this.firstWindow, band === 0);
     }
+    for (const entry of this.entries) for (const row of entry.completed) await this.painter.completeRow?.(row);
     this.entries = []; this.height = 0; this.count = 0; this.firstWindow = false; this.painted = true;
   }
 }

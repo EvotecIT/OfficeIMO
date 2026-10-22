@@ -98,7 +98,9 @@ internal static partial class PdfWriter {
                 throw new InvalidOperationException("Character distribution must retain the prepared encoded glyphs.");
             commands[index] = command;
             int start = text.Length;
-            text.Append(segment.Text);
+            // Encoded glyph ownership is relative to painted text, without optional breaks.
+            string paintedText = WithoutOptionalBreaks(segment.Text);
+            text.Append(paintedText);
             if (ownership.VisualGlyphs is { } glyphs) {
                 int[] sourceIndexes = ResolveRichGlyphClusterStarts(glyphs);
                 for (int glyph = 0; glyph < glyphs.Count; glyph++) {
@@ -108,7 +110,7 @@ internal static partial class PdfWriter {
             } else {
                 // The only cluster-free encoding here is a standard one-byte WinAnsi font.
                 // Embedded encoders were explicitly requested to return shaped ownership.
-                if (command.GlyphCount != segment.Text.Length)
+                if (command.GlyphCount != paintedText.Length)
                     throw new InvalidOperationException("Character distribution requires encoded glyph source ownership.");
                 for (int glyph = 0; glyph < command.GlyphCount; glyph++) {
                     indexes.Add(start + glyph);

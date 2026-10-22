@@ -31,8 +31,9 @@ internal static partial class PdfWriter {
     /// <summary>Uses the paint command's word boundaries and advances for words-only underline geometry.</summary>
     private static void VisitRichWordDecorationAdvances(RichSeg segment, PdfTextShowCommand command,
         PdfOptions options, Action<double, double> visit) {
+        string paintedText = WithoutOptionalBreaks(segment.Text);
         if (command.VisualGlyphs is not { Count: > 0 } && command.JustificationTracking == 0D) {
-            VisitWordDecorationAdvances(segment.Text,
+            VisitWordDecorationAdvances(paintedText,
                 span => MeasurePositionedTextWidth(span, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
                     options, segment.FeatureSettings, segment.TextDirection, segment.HorizontalTextScaling,
                     segment.CharacterSpacing, segment.FontMetricScale, segment.PreservesPaintedGlyphs), visit);
@@ -42,14 +43,14 @@ internal static partial class PdfWriter {
         double? wordStart = null;
         for (int index = 0; index < command.GlyphCount; index++) {
             int sourceIndex = command.VisualGlyphs?[index].TextIndex ?? index;
-            bool whitespace = sourceIndex >= 0 && sourceIndex < segment.Text.Length && char.IsWhiteSpace(segment.Text[sourceIndex]);
+            bool whitespace = sourceIndex >= 0 && sourceIndex < paintedText.Length && char.IsWhiteSpace(paintedText[sourceIndex]);
             if (whitespace) {
                 if (wordStart.HasValue) {
                     visit(wordStart.Value, advance);
                     wordStart = null;
                 }
             } else if (!wordStart.HasValue) wordStart = advance;
-            advance += GetRichGlyphAdvance(segment, segment.Text, command, index, options);
+            advance += GetRichGlyphAdvance(segment, paintedText, command, index, options);
         }
         if (wordStart.HasValue) visit(wordStart.Value, advance);
     }

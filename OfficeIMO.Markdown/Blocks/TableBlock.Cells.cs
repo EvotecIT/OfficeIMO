@@ -319,6 +319,8 @@ public sealed partial class TableBlock {
             '\'' => true,
             '|' => true,
             '>' => true,
+            '<' or '&' => MarkdownEscaper.UsesBackslashLiteralText,
+            '^' => MarkdownEscaper.UsesBackslashLiteralText,
             '=' => true,
             '~' => true,
             _ => false

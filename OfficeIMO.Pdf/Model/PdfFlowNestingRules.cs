@@ -2,13 +2,14 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfFlowNestingRules {
     /// <summary>Checks static column content recursively without changing its layout or semantics.</summary>
-    public static bool IsColumnFlowSupported(IPdfBlock block) => block switch {
-        ContainerBlock container => container.Blocks.All(IsColumnFlowSupported),
-        SemanticBlock semantic => semantic.Blocks.All(IsColumnFlowSupported),
+    public static bool IsColumnFlowSupported(IPdfBlock block, bool allowTableOfContents = false) => block switch {
+        TableOfContentsBlock => allowTableOfContents,
+        ContainerBlock container => container.Blocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
+        SemanticBlock semantic => semantic.Blocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
         FlowBlock flow => !flow.IsReplayable && flow.StaticBlocks != null &&
                           flow.Options.ShowIf == null && flow.Options.MinimumRemainingHeight == 0D &&
                           flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue &&
-                          flow.StaticBlocks.All(IsColumnFlowSupported),
+                          flow.StaticBlocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
         _ => IsColumnFlowPrimitive(block)
     };
 

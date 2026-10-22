@@ -71,6 +71,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Gets the existing title paragraph, or null when this table of contents has no title.</summary>
+        /// <remarks>Formatting and page-break settings applied here are retained by <see cref="RefreshEntries"/>.</remarks>
+        public WordParagraph? TitleParagraph {
+            get {
+                Paragraph? paragraph = GetTitleParagraph();
+                if (paragraph == null) return null;
+                Run? run = paragraph.Descendants<Run>().FirstOrDefault();
+                return run == null ? new WordParagraph(_document, paragraph) : new WordParagraph(_document, paragraph, run);
+            }
+        }
+
         /// <summary>
         /// Gets or sets the text shown when the document has no entries for the table of contents.
         /// </summary>

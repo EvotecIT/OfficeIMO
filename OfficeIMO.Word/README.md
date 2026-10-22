@@ -62,6 +62,31 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+## Printed reports
+
+`WordPaperStyle` applies shared typography, page chrome, covers, metric strips and quiet tables. Configure its colors, fonts and table density once, then use the same style across reports:
+
+```csharp
+using OfficeIMO.Word;
+
+using var document = WordDocument.Create("assessment.docx");
+var paper = new WordPaperStyle { TableFontSizePoints = 9 };
+paper.AddCover(document, "ASSESSMENT", "Domain assessment", "Example fixture");
+paper.AddPageChrome(document, "Domain assessment", "Example reports", "example.test");
+var table = document.AddTable(2, 2);
+paper.SetCellText(table.Rows[0].Cells[0], "Hostname");
+paper.SetCellText(table.Rows[0].Cells[1], "Status");
+paper.SetCellText(table.Rows[1].Cells[0],
+    WordPaperText.WithIdentifierBreaks("mail.example.test", '.', '-'));
+paper.SetCellText(table.Rows[1].Cells[1], "Pass");
+paper.ApplyTable(table);
+paper.FitTableColumnsToHeaders(table, 70, 30);
+paper.ApplyTypography(document);
+document.Save();
+```
+
+`WordPaperText.WithIdentifierBreaks(value)` adds invisible breaks at Latin case/digit boundaries; the separator overload above keeps hostname labels intact. Use `RemoveOptionalBreaks` when exporting plain text. For count charts, `chart.SetPaperStyle().SetCountAxis()` applies paper typography and a whole-number value axis.
+
 Run width and tracking are readable and writable on `WordParagraph`:
 
 ```csharp
@@ -131,6 +156,12 @@ document.Save();
 ```
 
 ## Paragraph formatting and inheritance
+
+`AddPageNumber(includeTotalPages: true)` uses its source run's typography for both page fields and the separator. Font family, size and colour can be set before or after adding the fields; unrelated runs keep their own formatting.
+
+For paper tables, call `WordPaperStyle.FitTableColumnsToHeaders(table, relativeWidths)` after populating and styling the header. It fits the requested column ratios within the table/container width while reserving each header's longest word plus padding. Hyphenated labels stay intact. It requires rectangular, unmerged rows and throws if the header minima cannot fit; call it before merging note rows and again after changing page geometry or header typography.
+
+`WordTableOfContent.TitleParagraph` exposes the existing contents heading for ordinary paragraph styling and pagination. For example, set its `Style` to `WordParagraphStyles.Heading2` and `PageBreakBefore` to `true` to begin a dedicated contents page. Refreshing entries retains the authored heading, and PDF conversion honors its paragraph formatting.
 
 Use `LineSpacing = 360` with `LineSpacingRule = WordLineSpacingRule.Auto` for 1.5 lines. `LineSpacingPoints = 18` selects exact spacing when the paragraph has no explicit rule; declare `AtLeast` to use an 18-point minimum. Assigning `null` to `LineSpacingPoints` removes its numeric value and retains an authored rule in DOCX. Word applies a spacing rule only with a numeric value in the same declaration; otherwise the complete value/rule pair is inherited. Native DOC saving carries document-default spacing into root paragraph styles without changing the source styles.
 

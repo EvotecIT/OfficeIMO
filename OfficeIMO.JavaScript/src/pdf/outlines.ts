@@ -30,6 +30,10 @@ export class PdfOutlines {
     siblings.push(item); this.items.push(item); this.stack.push(item);
   }
   get count(): number { return this.items.length; }
+  /** A completed analytical group cannot parent later groups, including unnamed ones. */
+  closeGroup(level: number): void {
+    while (this.stack.length && this.stack.at(-1)!.level >= level) this.stack.pop();
+  }
   get catalogDictionary(): string { return this.root === undefined ? "" : " /Outlines " + this.root + " 0 R"; }
   async finish(): Promise<void> {
     if (this.root === undefined) return;

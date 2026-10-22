@@ -17,14 +17,14 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },
             result.Projection.TextBoxObjects.Select(textBox => textBox.Content.PlainText));
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },
-            result.Value.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\n')));
+            result.Value.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\r', '\n')));
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },
-            reopened.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\n')));
+            reopened.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\r', '\n')));
     }
 
     private static MemoryStream CreatePagesPackageWithRestackedTextBoxes() {

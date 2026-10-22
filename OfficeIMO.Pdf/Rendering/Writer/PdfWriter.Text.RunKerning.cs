@@ -113,14 +113,15 @@ internal static partial class PdfWriter {
                 PdfTextShowCommand command = GetCommand(segments[index]);
                 if (command.VisualGlyphs == null) return 0D;
                 commands[index - start] = command;
+                string sourceText = WithoutOptionalBreaks(segments[index].Text);
                 SpendWork(command.VisualGlyphs.Count);
                 foreach (PdfGlyphInfo glyph in command.VisualGlyphs) {
                     glyphIds.Add(glyph.GlyphId);
                     // Multiple substitutions retain the source character even when
                     // their continuation glyphs have no separate extraction text.
                     int sourceIndex = glyph.TextIndex;
-                    scalars.Add((uint)sourceIndex < (uint)segments[index].Text.Length
-                        ? ReadScalar(segments[index].Text, ref sourceIndex) : glyph.UnicodeScalar);
+                    scalars.Add((uint)sourceIndex < (uint)sourceText.Length
+                        ? ReadScalar(sourceText, ref sourceIndex) : glyph.UnicodeScalar);
                 }
             }
             SpendWork(glyphIds.Count);

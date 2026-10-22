@@ -74,7 +74,9 @@ namespace OfficeIMO.Word.Pdf {
             // The shared reader owns qualified legend-frame appearance, including its native
             // fill and outline. Keep the PDF chart on that same projection when it is styled.
             if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart) ||
-                HasMaterialNativeLegendFrame(openXmlChart)) {
+                HasMaterialNativeLegendFrame(openXmlChart) ||
+                (plotArea.GetFirstChild<DataTable>() == null &&
+                 (HasNativeExplicitValueAxisScale(plotArea) || chartPart?.ChartSpace?.GetFirstChild<ShapeProperties>() != null))) {
                 return TryCreateSharedNativeWordChartSnapshot(chart, out snapshot, out warning);
             }
             List<OpenXmlElement> chartElements = allChartElements

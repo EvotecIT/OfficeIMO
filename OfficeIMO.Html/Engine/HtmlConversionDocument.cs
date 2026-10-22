@@ -189,15 +189,16 @@ public sealed partial class HtmlConversionDocument {
     }
 
     /// <summary>
-    /// Policy-normalizes an independently prepared source clone while retaining temporary adapter
-    /// markers. This lets an adapter remove selected subtrees without falling back to raw URLs.
+    /// Policy-normalizes an independently prepared source clone and correlates retained elements
+    /// through a per-operation side table, without adding transport attributes to the markup.
     /// </summary>
-    internal IHtmlDocument CreatePolicyNormalizedDocumentForConversion(IHtmlDocument preparedDocument) {
+    internal IHtmlDocument CreatePolicyNormalizedDocumentForConversion(IHtmlDocument preparedDocument,
+        Action<IElement, IElement>? elementNormalized = null) {
         if (preparedDocument == null) throw new ArgumentNullException(nameof(preparedDocument));
         return AnalyzeSource(() => {
             IHtmlDocument normalized = HtmlNormalizer.NormalizeToDocument(
                 preparedDocument,
-                ConfigureAdapterNormalization(preparedDocument, _options));
+                ConfigureAdapterNormalization(preparedDocument, _options), elementNormalized: elementNormalized);
             HtmlConversionInputGuard.ValidateDocument(normalized, _options.Limits);
             return normalized;
         });

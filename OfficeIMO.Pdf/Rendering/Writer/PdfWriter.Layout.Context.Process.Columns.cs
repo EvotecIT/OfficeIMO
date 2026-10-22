@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
 
         private static void ValidateSequentialColumnBlocks(IReadOnlyList<IPdfBlock> blocks) {
             foreach (IPdfBlock block in blocks) {
-                if (block is ColumnBreakBlock or PageBreakBlock || PdfFlowNestingRules.IsColumnFlowSupported(block)) continue;
+                if (block is ColumnBreakBlock or PageBreakBlock || PdfFlowNestingRules.IsColumnFlowSupported(block, allowTableOfContents: true)) continue;
                 throw new NotSupportedException("Sequential column flow does not support block type " + block.GetType().Name + ".");
             }
         }

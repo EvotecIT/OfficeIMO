@@ -27,21 +27,15 @@ public static partial class HtmlEditableLayoutProjector {
         IReadOnlyList<IElement> targetElements = target.QuerySelectorAll("*").ToList();
         int count = Math.Min(sourceElements.Count, targetElements.Count);
         for (int index = 0; index < count; index++) {
-            if (!EditableLayoutMarkers.TryGetValue(sourceElements[index], out EditableLayoutMarker? marker)) continue;
-            EditableLayoutMarker targetMarker = EditableLayoutMarkers.GetOrCreateValue(targetElements[index]);
-            targetMarker.RegionSourceKey = marker.RegionSourceKey;
-            targetMarker.ImageSourceKey = marker.ImageSourceKey;
+            CopyMarkers(sourceElements[index], targetElements[index]);
         }
     }
 
-    private static void RestoreAuthoredAttribute(
-        IElement element,
-        string attributeName,
-        string? sourceKey,
-        IReadOnlyDictionary<string, string?> authoredValues) {
-        if (sourceKey == null || !authoredValues.TryGetValue(sourceKey, out string? authoredValue)) return;
-        if (authoredValue == null) element.RemoveAttribute(attributeName);
-        else element.SetAttribute(attributeName, authoredValue);
+    internal static void CopyMarkers(IElement source, IElement target) {
+        if (!EditableLayoutMarkers.TryGetValue(source, out EditableLayoutMarker? marker)) return;
+        EditableLayoutMarker targetMarker = EditableLayoutMarkers.GetOrCreateValue(target);
+        targetMarker.RegionSourceKey = marker.RegionSourceKey;
+        targetMarker.ImageSourceKey = marker.ImageSourceKey;
     }
 
     private sealed class EditableLayoutMarker {

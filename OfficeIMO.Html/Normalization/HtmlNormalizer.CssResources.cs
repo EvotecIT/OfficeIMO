@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlNormalizer {
     private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    private static string NormalizeCssUrls(string css, Uri? baseUri, HtmlUrlPolicy policy, CancellationToken cancellationToken) {
+    private static string NormalizeCssUrls(string css, Uri? baseUri, HtmlUrlPolicy policy, HtmlConversionLimits limits, CancellationToken cancellationToken, bool trimOuterWhitespace = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(css)) {
             return string.Empty;
@@ -21,15 +21,15 @@ public static partial class HtmlNormalizer {
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
             cancellationToken.ThrowIfCancellationRequested();
-            string replacement = string.IsNullOrWhiteSpace(resolved)
-                ? "url(\"\")"
-                : "url(\"" + EscapeCssString(resolved) + "\")";
-            replacements.Add(new CssReplacement(match.Index, match.Index + match.Length, replacement));
+            // Keep wrappers separate so repeated large URLs do not allocate full
+            // replacement copies before the selected serialized ranges are bounded.
+            replacements.Add(new CssReplacement(match.Index, match.Index + match.Length,
+                EscapeCssString(resolved), "url(\"", "\")"));
         }
 
         AddCssImportResourceReplacements(css, baseUri, policy, replacements, cancellationToken);
         AddImageSetStringResourceReplacements(css, baseUri, policy, replacements, cancellationToken);
-        return ApplyCssReplacements(css, replacements, cancellationToken);
+        return ApplyCssReplacements(css, replacements, limits, cancellationToken, trimOuterWhitespace);
     }
 
     private static void AddCssImportResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements, CancellationToken cancellationToken) {
@@ -145,24 +145,30 @@ public static partial class HtmlNormalizer {
         }
     }
 
-    private static string ApplyCssReplacements(string css, IEnumerable<CssReplacement> replacements, CancellationToken cancellationToken) {
+    private static string ApplyCssReplacements(string css, IEnumerable<CssReplacement> replacements, HtmlConversionLimits limits, CancellationToken cancellationToken, bool trimOuterWhitespace) {
         var ordered = replacements
             .OrderByDescending(range => range.Start)
             .ThenByDescending(range => range.End - range.Start)
             .ToList();
-        var builder = new StringBuilder(css);
         var applied = new List<CssReplacement>();
         foreach (CssReplacement replacement in ordered) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (applied.Any(appliedReplacement => RangesOverlap(replacement, appliedReplacement))) {
-                continue;
-            }
-
-            builder.Remove(replacement.Start, replacement.End - replacement.Start);
-            builder.Insert(replacement.Start, replacement.Value);
-            applied.Add(replacement);
+            if (!applied.Any(appliedReplacement => RangesOverlap(replacement, appliedReplacement)))
+                applied.Add(replacement);
         }
 
+        // Emit selected non-overlapping ranges in source order. This bounds the
+        // final value without oversized intermediate insertions or charging
+        // discarded outer whitespace and overlapping URL/import discoveries.
+        using var builder = new HtmlConversionSourceWriter.BoundedWriter(limits, cancellationToken, trimOuterWhitespace);
+        int cursor = 0;
+        foreach (CssReplacement replacement in applied.OrderBy(range => range.Start)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            builder.Append(css.Substring(cursor, replacement.Start - cursor));
+            builder.Append(replacement.Prefix).Append(replacement.Value).Append(replacement.Suffix);
+            cursor = replacement.End;
+        }
+        builder.Append(css.Substring(cursor));
         return builder.ToString();
     }
 
@@ -438,14 +444,18 @@ public static partial class HtmlNormalizer {
     }
 
     private sealed class CssReplacement {
-        internal CssReplacement(int start, int end, string value) {
+        internal CssReplacement(int start, int end, string value, string prefix = "", string suffix = "") {
             Start = start;
             End = end;
             Value = value;
+            Prefix = prefix;
+            Suffix = suffix;
         }
 
         internal int Start { get; }
         internal int End { get; }
         internal string Value { get; }
+        internal string Prefix { get; }
+        internal string Suffix { get; }
     }
 }
