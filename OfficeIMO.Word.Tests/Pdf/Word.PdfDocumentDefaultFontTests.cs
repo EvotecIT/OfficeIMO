@@ -36,8 +36,8 @@ public partial class Word {
         }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToList();
         Assert.Equal("Default", string.Concat(letters.Select(letter => letter.Value)));
-        // An explicit PDF body font still wins over the document default.
-        if (explicitBody) Assert.All(letters, letter => Assert.Contains("Courier", letter.FontName));
-        else Assert.All(letters, letter => Assert.DoesNotContain("Helvetica", letter.FontName));
+        // An explicit PDF body font still wins over the document default; otherwise the registered family draws it.
+        string expected = explicitBody ? "Courier" : family.Replace(" ", string.Empty) + "-Regular";
+        Assert.All(letters, letter => Assert.Contains(expected, letter.FontName, StringComparison.Ordinal));
     }
 }
