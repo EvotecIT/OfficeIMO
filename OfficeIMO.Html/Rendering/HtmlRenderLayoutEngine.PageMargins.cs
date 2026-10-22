@@ -38,17 +38,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
-                if (box.Font.Size <= 0D) continue;
+                if (box.Font.Size <= 0D) {
+                    AppendEmptyPageMarginBox(visuals, page, box, horizontalBounds);
+                    continue;
+                }
                 string text = horizontalText.TryGetValue(box.Position, out string? preparedText)
                     ? preparedText : RenderPageMarginText(page, box, pages.Count);
-                if (text.Length == 0) continue;
+                if (text.Length == 0) {
+                    AppendEmptyPageMarginBox(visuals, page, box, horizontalBounds);
+                    continue;
+                }
                 ResolvePageMarginTextMetrics(box, text, out double lineHeight, out double baseline,
                     out double linePaintHeight, out double paintTopOverflow);
-                if (!TryGetMarginBoxBounds(page, box.Position, horizontalBounds, lineHeight, out _, out _, out double availableWidth, out _)) continue;
+                if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, lineHeight, out _, out _, out double availableWidth, out _)) continue;
                 // Retain the generated text and alignment in the public scene,
                 // reserving enough height for its measured wrapped lines.
                 OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(text, box.Font.Size,
-                    availableWidth, double.MaxValue, 1D, box.Font.Size,
+                    Math.Max(0.01D, availableWidth), double.MaxValue, 1D, box.Font.Size,
                     (value, _) => MeasurePageMarginText(value ?? string.Empty, box),
                     wrap: true, forceSingleLine: false, shrinkToFit: false,
                     overflowBehavior: OfficeTextOverflowBehavior.Clip);
@@ -59,10 +65,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HtmlDiagnosticSeverity.Warning, marginBoxSource, "text-layout-limit", OfficeConversionLossKind.Omission);
                 }
                 double textHeight = lines.Count * lineHeight;
-                if (!TryGetMarginBoxBounds(page, box.Position, horizontalBounds, textHeight, out double x, out double y, out double width, out double height)) continue;
+                if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, textHeight, out double x, out double y, out double width, out double height)) continue;
+                if (box.HasBoxGeometry) y += Math.Max(0D, (height - textHeight) / 2D);
                 _fontUsage?.Observe(text, box.Font.FamilyName, box.Typography.FontDescriptor);
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
-                    new HtmlRenderText(text, x, y + baseline - box.Font.Size, width,
+                    new HtmlRenderText(text, x, y + baseline - box.Font.Size, Math.Max(0.01D, width),
                         Math.Max(0.01D, (lines.Count - 1) * lineHeight + linePaintHeight),
                         box.Font, box.Color, box.Alignment, lineHeight, _paintOrder++,
                         linkUri: null, source: marginBoxSource, semanticRole: "page-margin", layoutY: y,
@@ -70,28 +77,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layoutHeight: Math.Max(0.01D, textHeight), paintTopOverflow: paintTopOverflow,
                         ordinaryLineCarrier: true, fontDescriptor: box.Typography.FontDescriptor).WithWrappedLines(lines)
                 };
-                if (textHeight > height + 0.0001D) {
+                if (textHeight > height + 0.0001D || width <= 0D) {
                     // The line advance determines admission, while the full selected-face
                     // frame must survive until the shared clip owner constrains glyph paint.
                     marginVisuals = new HtmlRenderVisual[] {
-                        new HtmlRenderClipGroup(x, y, width, height, false, true,
+                        new HtmlRenderClipGroup(x, y, width, height, width <= 0D, true,
                             marginVisuals, _paintOrder++, marginBoxSource)
                     };
                     if (_reportedMarginTextOverflow.Add(marginBoxSource)) {
                         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
-                            "Generated page-margin text exceeded the reserved margin height and was clipped.",
-                            HtmlDiagnosticSeverity.Warning, marginBoxSource, "margin-height", OfficeConversionLossKind.Omission);
+                            width <= 0D ? "Generated page-margin text had no available content width and was clipped."
+                                : "Generated page-margin text exceeded the reserved margin height and was clipped.",
+                            HtmlDiagnosticSeverity.Warning, marginBoxSource, width <= 0D ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
                     }
                 }
-                visuals.Add(new HtmlRenderSemanticGroup(
-                    HtmlRenderSemanticGroupRole.Artifact,
-                    x,
-                    y,
-                    width,
-                    height,
-                    marginVisuals,
-                    _paintOrder++,
-                    marginBoxSource));
+                AppendPageMarginVisuals(visuals, page, box, horizontalBounds,
+                    marginVisuals, x, y, width, height, marginBoxSource);
             }
 
             rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins, page.PrintProduction));
@@ -121,15 +122,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string name,
         HtmlCssRunningStringPosition position,
         IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> horizontalBounds) {
-        if (!TryGetPageMarginRunningSnapshot(page, name, position, out HtmlCssRunningElementSnapshot snapshot)) return;
+        if (!TryGetPageMarginRunningSnapshot(page, name, position, out HtmlCssRunningElementSnapshot snapshot)) {
+            AppendEmptyPageMarginBox(target, page, box, horizontalBounds);
+            return;
+        }
 
         HtmlRenderFlowBlock block = snapshot.Block;
-        if (block.Visuals.Count == 0
-            || !TryGetMarginBoxBounds(page, box.Position, horizontalBounds, block.Height, out _, out _, out double availableWidth, out _)) return;
+        if (block.Visuals.Count == 0) {
+            AppendEmptyPageMarginBox(target, page, box, horizontalBounds);
+            return;
+        }
+        if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, block.Height, out _, out _, out double availableWidth, out _)) return;
 
         block = ResolveRunningElementSnapshot(snapshot, page, availableWidth);
-        if (block.Visuals.Count == 0
-            || !TryGetMarginBoxBounds(page, box.Position, horizontalBounds, block.Height, out double x, out double y, out double width, out double height)) return;
+        if (block.Visuals.Count == 0) {
+            AppendEmptyPageMarginBox(target, page, box, horizontalBounds);
+            return;
+        }
+        if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, block.Height, out double x, out double y, out double width, out double height)) return;
 
         double offsetX = x;
         if (box.Alignment == OfficeTextAlignment.Center) offsetX += (width - block.Width) / 2D;
@@ -155,15 +165,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     source)
             }
             : translated;
-        target.Add(new HtmlRenderSemanticGroup(
-            HtmlRenderSemanticGroupRole.Artifact,
-            x,
-            y,
-            width,
-            height,
-            marginVisuals,
-            _paintOrder++,
-            source));
+        AppendPageMarginVisuals(target, page, box, horizontalBounds, marginVisuals, x, y, width, height, source);
     }
 
     private HtmlRenderFlowBlock ResolveRunningElementSnapshot(HtmlCssRunningElementSnapshot snapshot, HtmlRenderPage page, double availableWidth) {

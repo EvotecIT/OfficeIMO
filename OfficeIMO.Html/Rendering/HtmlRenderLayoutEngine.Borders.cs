@@ -26,6 +26,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Omission);
             return;
         }
+        AddBorderPaintCore(visuals, style, x, y, width, height, radii, sourceDescription);
+    }
+
+    /// <summary>Paints the common border scene for DOM boxes and generated page-margin boxes.</summary>
+    private void AddBorderPaintCore(ICollection<HtmlRenderVisual> visuals, HtmlRenderBoxStyle style,
+        double x, double y, double width, double height, HtmlResolvedBorderRadii radii, string sourceDescription) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         if (!style.Borders.HasPaint) return;
         if (style.Borders.IsUniform) {
             HtmlRenderBorderSide border = style.Borders.Top;
