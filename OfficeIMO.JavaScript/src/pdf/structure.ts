@@ -12,6 +12,51 @@ interface StructureElement {
   readonly children: (number | string)[];
   readonly linkIdentities: object[];
   readonly attributes: string;
+  identifier?: string;
+}
+
+interface StructureIdNode { readonly id: number; readonly first: string; readonly last: string; }
+
+/** A sorted name tree retains only a small open leaf and branch at each level. */
+class PdfStructureIds {
+  private readonly entries: { readonly key: string; readonly value: number }[] = [];
+  private readonly levels: StructureIdNode[][] = [];
+  private lastKey = "";
+  constructor(private readonly objects: PdfObjects, readonly root: number) {}
+  async append(key: string, value: number): Promise<void> {
+    if (key <= this.lastKey) throw new Error("PDF structure IDs must be appended in increasing order.");
+    this.lastKey = key; this.entries.push({ key, value });
+    if (this.entries.length === 64) await this.leaf();
+  }
+  private async leaf(): Promise<void> {
+    if (!this.entries.length) return;
+    const id = this.objects.reserve(), first = this.entries[0]!.key, last = this.entries.at(-1)!.key;
+    const body = "<< /Limits [(" + first + ") (" + last + ")] /Names [" +
+      this.entries.map(entry => "(" + entry.key + ") " + entry.value + " 0 R").join(" ") + "] >>";
+    this.entries.length = 0;
+    await this.objects.object(id, body); await this.node({ id, first, last }, 0);
+  }
+  private async node(node: StructureIdNode, level: number): Promise<void> {
+    const nodes = this.levels[level] ??= []; nodes.push(node);
+    if (nodes.length === 64) {
+      const parent = await this.branch(nodes); nodes.length = 0; await this.node(parent, level + 1);
+    }
+  }
+  private async branch(nodes: readonly StructureIdNode[]): Promise<StructureIdNode> {
+    const id = this.objects.reserve(), first = nodes[0]!.first, last = nodes.at(-1)!.last;
+    await this.objects.object(id, "<< /Limits [(" + first + ") (" + last + ")] /Kids [" +
+      nodes.map(node => node.id + " 0 R").join(" ") + "] >>");
+    return { id, first, last };
+  }
+  async finish(): Promise<void> {
+    await this.leaf();
+    for (let level = 0; level < this.levels.length - 1; level++) {
+      const nodes = this.levels[level]!;
+      if (nodes.length) { const parent = await this.branch(nodes); nodes.length = 0; await this.node(parent, level + 1); }
+    }
+    const nodes = this.levels.at(-1) ?? [];
+    await this.objects.object(this.root, nodes.length ? "<< /Kids [" + nodes.map(node => node.id + " 0 R").join(" ") + "] >>" : "<< /Names [] >>");
+  }
 }
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
@@ -23,6 +68,7 @@ export class PdfStructure {
   private readonly parentTreeWriter: PdfParentTree;
   private readonly annotations: { readonly key: number; readonly owner: number }[] = [];
   private readonly links = new WeakMap<object, Map<number, number>>();
+  private identifiers: PdfStructureIds | undefined;
   private pageParents: number[] = [];
   private pageId = 0;
   private pageKey = 0;
@@ -49,9 +95,18 @@ export class PdfStructure {
     await this.complete(this.section);
     this.section = this.element("Sect", this.document);
   }
-  tableRow(table: number, headers: readonly boolean[]): readonly number[] {
-    const row = this.element("TR", table);
-    return headers.map(header => this.element(header ? "TH" : "TD", row, header ? " /A << /O /Table /Scope /Column >>" : ""));
+  /** Register an explicit header identity in allocation order, without retaining completed headers. */
+  async identifier(elementId: number): Promise<string> {
+    checkAbort(this.settings.options.signal);
+    const element = this.elements.get(elementId);
+    if (!element) throw new Error("PDF structure IDs require an open logical owner.");
+    if (element.identifier !== undefined) return element.identifier;
+    // Object numbers increase monotonically. Fixed-width ASCII preserves name-tree lexical ordering.
+    const identifier = "e" + String(elementId).padStart(16, "0");
+    this.identifiers ??= new PdfStructureIds(this.objects, this.objects.reserve());
+    await this.identifiers.append(identifier, elementId);
+    element.identifier = identifier;
+    return identifier;
   }
   beginPage(pageId: number): void { this.pageId = pageId; this.pageParents = []; this.pageKey = this.nextParentKey++; }
   /** A source link retains one logical identity when its text/annotation continues on another page. */
@@ -100,7 +155,8 @@ export class PdfStructure {
     const element = this.elements.get(id); if (!element) return;
     for (const child of element.children) if (typeof child === "number" && this.elements.has(child)) await this.complete(child);
     checkAbort(this.settings.options.signal);
-    const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+    const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+      (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
     const remaining = 32768 - prefix.length - element.attributes.length - 4;
     let children = "", small = remaining >= 0;
     if (small) for (const child of element.children) {
@@ -117,7 +173,8 @@ export class PdfStructure {
     this.elements.delete(id);
   }
   private *body(element: StructureElement): Iterable<string> {
-    yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+    yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+      (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
     for (const child of element.children) yield typeof child === "number" ? child + " 0 R " : child + " ";
     yield "]" + element.attributes + " >>";
   }
@@ -127,8 +184,10 @@ export class PdfStructure {
   async finish(): Promise<void> {
     await this.complete(this.document);
     await this.parentTreeWriter.finish();
+    await this.identifiers?.finish();
     await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
-      this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey + " >>");
+      this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey +
+      (this.identifiers ? " /IDTree " + this.identifiers.root + " 0 R" : "") + " >>");
   }
 }
 

@@ -126,11 +126,7 @@ test("tagged table convenience exports share structure ownership and preserve em
   assert.ok(![...untagged.objects.values()].some(object => /\/StructTreeRoot|\/StructParents|\/Marked|\/MCID|\/Artifact/.test(object.body)));
 });
 
-test("tagged profile rejects unsupported semantics instead of silently flattening them", async () => {
-  for (const options of [{ columns: [{ header: "Name", key: "name", groups: ["Group"] }] },
-    { columns, headerRows: [[{ value: "Group", columnSpan: 2 }, null]] },
-    { columns, footer: { rows: [[{ value: "Total", columnSpan: 2 }, null]] } }])
-    await assert.rejects(writePdf([{ name: "Item", amount: 1 }], { ...options, tagged }), /Tagged PDF supports leaf/);
+test("tagged profile validates authored link, figure and language semantics", async () => {
   await assert.rejects(writePdf([{ name: new ExportCell(" ", { link: { target: "https://example.com" } }), amount: 1 }], { columns, tagged }), /nonempty displayed text/);
   for (const block of [{ kind: "image", image }, vector, { ...vector, alternativeText: " " }, { ...vector, alternativeText: "Chart", decorative: true }])
     await assert.rejects(writePdfDocument([block], { tagged }), /alternativeText|decorative/);
