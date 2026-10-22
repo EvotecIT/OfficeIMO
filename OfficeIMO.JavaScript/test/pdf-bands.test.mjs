@@ -75,7 +75,6 @@ test("band limits count physical repeated cells, annotations and pages, and reje
   }
   for (const wideTable of [{ mode: "bands", repeatColumns: [1, 1] }, { mode: "bands", repeatColumns: [7] }, { mode: "bands", repeatColumns: [0, 1, 2, 3] }, { mode: "bands", minimumColumnWidth: NaN }])
     await assert.rejects(writePdf(data(1), { ...base, wideTable }), /repeatColumns|Repeated|width/);
-  await assert.rejects(writePdf(data(1), { ...base, tagged: { language: "en" } }), /Tagged PDF horizontal bands/);
   await assert.rejects(writePdf(data(1), { ...base, wideTable: "reject" }), /widths exceed/);
   assert.equal((await inspectPdf(await writePdf(data(1), { ...base, wideTable: "fit" }))).pages.length, 1);
 });

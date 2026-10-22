@@ -131,4 +131,52 @@ for (const [entry, format] of [["xlsx", "xlsx"], ["pdf", "pdf"]]) {
   const file = await module[format === "xlsx" ? "writeGroupedXlsx" : "writeGroupedPdf"](module.createGroupedReport(groupedRecords, groupedSetup), groupedLabels);
   assert.ok(file.size > 0, "Standalone ESM entry owns both factory and writer");
 }
+// Exercise the installed archive's semantic/wide/grouped composition through public APIs.
+const semanticRecords = [
+  { id: "S0001", location: "Site-A", amount: 2, ready: true, note: "Owner packet one", owner: "Owner-A", region: "Region-A", site: "Site-A" },
+  { id: "S0002", location: "Site-B", amount: 3, ready: false, note: "Owner packet two", owner: "Owner-B", region: "Region-A", site: "Site-B" },
+  { id: "S0003", location: "Site-C", amount: 7, ready: true, note: "Owner packet three", owner: "Owner-C", region: "Region-B", site: "Site-C" }
+].map(record => ({ ...record, private: "PACKED-PRIVATE-ONLY" }));
+let semanticEnumerations = 0, semanticProduced = 0, semanticReturned = 0, semanticColumnReads = 0, semanticGroupReads = 0;
+const semanticRows = { async *[Symbol.asyncIterator]() {
+  semanticEnumerations++;
+  try { for (const record of semanticRecords) { semanticProduced++; yield record; } }
+  finally { semanticReturned++; }
+} };
+const semanticColumns = [
+  ["Service", "id"], ["Location", "location"], ["Amount", "amount"], ["Ready", "ready"], ["Note", "note"], ["Owner", "owner"]
+].map(([header, key]) => ({ header, key, ...(key === "amount" ? { type: "number" } : {}), value: row => {
+  semanticColumnReads++;
+  return key === "id" ? new coreModule.ExportCell(row[key], { link: { target: "https://example.org/service/" + row[key] } }) : row[key];
+} }));
+const semanticReport = coreModule.createGroupedReport(semanticRows, { columns: semanticColumns,
+  groupBy: ["region", "site"].map(key => ({ key, value: row => { semanticGroupReads++; return row[key]; } })), totals: { amount: "sum" } });
+const semanticSink = new coreModule.BlobByteSink(), semanticProgress = [];
+const semanticResult = await pdfModule.writePdfDocumentTo([
+  { kind: "paragraph", text: "Packed semantic inventory", headingLevel: 1 },
+  { kind: "paragraph", text: [{ text: "Report documentation", link: { target: "https://officeimo.com/report-engine/" } }] },
+  pdfModule.pdfGroupedTable(semanticReport, { labelColumn: { header: "Group" }, groupHeadingLevel: 2,
+    subtotalLabel: group => "Subtotal " + group.label, grandTotalLabel: summary => "Grand total " + summary.rows,
+    columnWidths: [80, ...semanticColumns.map(() => 90)], wideTable: { mode: "bands", repeatColumns: [0, 1] } })
+], semanticSink, { tagged: { language: "en-US" }, pageSize: { width: 420, height: 360 }, margins: 24,
+  booleanText: { true: "Yes", false: "No" }, pageNumbers: false, compression: false,
+  onProgress: event => semanticProgress.push(event), limits: { maxTableBands: 8, maxTableWindowRows: 2 } });
+const semanticBlob = semanticSink.toBlob("application/pdf");
+assert.deepEqual(semanticResult, { rows: 3, columns: 7, bytes: semanticBlob.size });
+assert.deepEqual([semanticEnumerations, semanticProduced, semanticReturned, semanticColumnReads, semanticGroupReads], [1, 3, 1, 18, 6]);
+assert.equal(semanticProgress.at(-1).phase, "complete");
+await writeFile("packed-semantic-report.pdf", new Uint8Array(await semanticBlob.arrayBuffer()));
+await writeFile("packed-semantic-report.pdf.json", JSON.stringify({ language: "en-US", grouped: true,
+  columns: semanticColumns.map(({ header, key }) => ({ header, key })),
+  rows: semanticRecords.map(record => [record.id, record.location, String(record.amount), record.ready ? "Yes" : "No", record.note, record.owner]),
+  rawRows: semanticRecords.map(record => [record.id, record.location, record.amount, record.ready, record.note, record.owner]),
+  aggregates: { amount: "sum" }, repeatColumns: [0, 1],
+  labels: { groupHeader: "Group", subtotal: "Subtotal ", grandTotal: "Grand total " },
+  summaryLabels: [
+    { path: ["Region-A", "Site-A"], text: "Subtotal Site-A" }, { path: ["Region-A", "Site-B"], text: "Subtotal Site-B" },
+    { path: ["Region-A"], text: "Subtotal Region-A" }, { path: ["Region-B", "Site-C"], text: "Subtotal Site-C" },
+    { path: ["Region-B"], text: "Subtotal Region-B" }, { path: [], text: "Grand total 3" }
+  ],
+  groupPaths: semanticRecords.map(record => [record.region, record.site]), expectedFragmentToken: "Owner packet three",
+  forbidden: ["PACKED-PRIVATE-ONLY"], links: ["https://example.org/service/", "https://officeimo.com/report-engine/"] }, null, 2) + "\n");
 console.log("All packed subpaths imported and executed without runtime dependencies or a DOM.");

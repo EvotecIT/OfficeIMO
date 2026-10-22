@@ -80,7 +80,6 @@ test("grouped PDF budgets generated rows but completion reports only body rows, 
   const empty = await writeGroupedPdfTo(report([]), { write: bytes => { chunks.push(bytes); } }, { ...options, onProgress: p => progress.push(p) });
   assert.equal(empty.rows, 0); assert.equal(progress.at(-1).rows, 0);
   assert.ok((await inspectPdf(new Blob(chunks))).text.includes("Razem (0)"));
-  await assert.rejects(writeGroupedPdf(report(one), { ...options, tagged: { language: "pl" } }), /Tagged grouped/);
   await assert.rejects(writeGroupedPdf(report(one), { ...options, subtotalLabel: async () => "Async" }), /synchronous/);
 });
 
@@ -219,7 +218,6 @@ test("composed hierarchical PDFs repeat all hidden-key ancestors and leaf headin
   assert.deepEqual(continued.flatMap(page => page.lines).filter(line => /^Detail /.test(line)), long.split("\n"));
   assert.ok(pdf.pages.every(page => !page.lines.includes("region") && !page.lines.includes("environment")), "Hidden grouping keys never become columns");
   await assert.rejects(writePdfDocument(blocks(make()), { ...options, limits: { maxRows: 9 } }), /maxRows/);
-  await assert.rejects(writePdfDocument([pdfGroupedTable(make(), labels)], { ...options, tagged: { language: "en" } }), /Tagged grouped/);
 });
 
 test("last detail and every closing subtotal stay together when they fit, with bounded oversized fallback", async () => {

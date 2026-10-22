@@ -92,6 +92,7 @@ if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsy
 if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--analytical-report")) { await HierarchicalReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--wide-report")) { await WideReportInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--semantic-report")) { await SemanticReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf-professional")) { await ProfessionalPdfInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }

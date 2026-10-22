@@ -56,6 +56,30 @@ The separate `OfficeIMO.Pdf` reader checks every selected cell and ordered ID, e
 
 Run independent PDF syntax/text tools and inspect rendered opening, list continuation, caption/figure, first/continued appendix and closing pages separately. Reader success does not establish visual quality, assistive-technology behavior or PDF/UA conformance. This qualification lane and its native grid/browser dependencies remain opt-in and test-only.
 
+## Semantic analytical PDF qualification
+
+`--semantic-report` produces tagged analytical PDFs from an HFX-shaped host report through the actual export worker, both installed DataTables stacks, and native CanopyX offset/cursor captures. The default matrix runs these five profiles in Chromium, Firefox and WebKit. It exercises complex column headings, four-level group sections, ancestor subtotals, wide column bands, continued detail, repeated identifiers, bookmarks and links. The HFX-shaped profile qualifies the worker contract; it does not establish adoption by an HFX product.
+
+Build the current JavaScript modules and serve the repository root through an existing loopback HTTP origin. Supply the [verified comparison assets](#datatables-integration-and-comparisons) and a selected CanopyX asset directory containing `canopyx-reporting.js`, `canopyx-reporting.css`, `canopyx-filter-editor.js`, `canopyx-filter-editor.css` and `canopyx-export.js`:
+
+```powershell
+npm --prefix OfficeIMO.JavaScript run build
+$origin = 'http://127.0.0.1:8765' # Existing server serving this repository root.
+$assets = "$evidence/comparison-assets" # Populated by fetch-comparison.mjs.
+$canopyAssets = '/path/to/selected/canopy-assets'
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/semantic/build" -- . "$evidence/semantic" --semantic-report "--module-url=$origin/OfficeIMO.JavaScript/dist" "--comparison-assets=$assets" "--canopy-assets=$canopyAssets"
+# Separate readback requires a Python environment with pypdf and an installed qpdf.
+python3 Build/BrowserExports/verify-semantic-report.py "$evidence/semantic"
+```
+
+Use `--engine=Chromium`, `--engine=Firefox` or `--engine=WebKit` to select one engine. `--semantic-profile` accepts `hfx-worker`, `datatables-bundled`, `datatables-current`, `canopyx-offset` or `canopyx-cursor`. Reports default to English; `--semantic-language=pl` requires `--semantic-profile=hfx-worker`. The independent verifier accepts one generated PDF or its evidence directory, and `--qpdf=/path/to/qpdf` when qpdf is not on `PATH`.
+
+The producer records and rechecks module, bundle, fixture, font and native asset hashes. It retains each PDF with an expected-contract `.pdf.json` sidecar, browser errors and source/projection/cancellation results, plus the aggregate `semantic-report-interop.json`. These sidecars belong to this fixture route; the verifier is not a general validator for arbitrary PDFs.
+
+The separate qpdf/pypdf readback writes `semantic-independent-report.json`. It checks structure ownership, marked-content and annotation associations, header identities/spans and explicit cell associations, logical source order exactly once across bands, source-derived summary values, bookmarks and link targets. Physical checks separately verify repeated IDs and authored ancestor-context lines in the expected order; repeated visual context must not duplicate the logical report content.
+
+Structural and physical-text success does not establish rendered quality, native-reader selection or navigation behavior, assistive-technology acceptance, or PDF/UA conformance. Inspect representative rendered pages and qualify heading/table/link navigation in a named reader and assistive-technology version separately. The browser producer and independent readers remain opt-in verification tools, outside shipped runtime requirements and timing-based correctness gates.
+
 ## Build and package checks
 
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.

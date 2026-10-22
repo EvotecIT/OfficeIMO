@@ -448,8 +448,7 @@ async function groupedAnalysis() {
   const pdf = await import("@evotecit/officeimo/pdf");
   await pdf.writeGroupedPdf(pdf.createGroupedReport(records, grouping), { ...options,
     pageNumberLabels: { prefix: "Strona ", separator: " z " }, booleanText: { true: "Tak", false: "Nie" } });
-  // @ts-expect-error grouped PDF does not offer tagged leaf-table output
-  const taggedGroup: import("@evotecit/officeimo").GroupedPdfOptions = { ...options, tagged: { language: "pl" } };
+  const taggedGroup: import("@evotecit/officeimo").GroupedPdfOptions = { ...options, tagged: { language: "pl" }, groupHeadingLevel: 1 };
   void taggedGroup;
   await pdf.writeGroupedPdfTo(pdf.createGroupedReport([], grouping), new WritableStream<Uint8Array>(), { ...options, includeGrandTotal: false });
   const blank = new FormulaCell('IF(COUNT(A1:A2)=0,"",AVERAGE(A1:A2))', null);
