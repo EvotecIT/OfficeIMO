@@ -262,9 +262,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
-            PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            PreserveWhitespace = IsPreformatted(computed.GetValue("white-space")),
             BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
-            PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            PreventTextWrapping = PreventsTextWrapping(computed.GetValue("white-space")),
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
@@ -820,11 +820,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private static bool IsPreformatted(string tag, string whiteSpace) =>
-        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+    private static bool IsPreformatted(string whiteSpace) =>
+        whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
 
-    private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
-        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "nowrap";
+    private static bool PreventsTextWrapping(string whiteSpace) =>
+        whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
         if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
