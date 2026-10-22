@@ -244,12 +244,15 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         var previousSourceTextMap = state.SourceTextMap;
+        var previousSyntheticTerminalLine = state.HasSyntheticTerminalLine;
         state.SourceLineOffset = lineOffset;
 
         try {
             bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
             var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
             normalizedSourceText = text;
+            state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
+                (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
             if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }
@@ -337,6 +340,7 @@ public static partial class MarkdownReader {
         } finally {
             state.SourceLineOffset = previousLineOffset;
             state.SourceTextMap = previousSourceTextMap;
+            state.HasSyntheticTerminalLine = previousSyntheticTerminalLine;
         }
     }
 
@@ -443,7 +447,7 @@ public static partial class MarkdownReader {
         int lineEnd) {
         int column = 0;
         int current = lineStart;
-        while (current < lineEnd && markdown[current] is ' ' or '\t') {
+        while (current < lineEnd && column < 4 && markdown[current] is ' ' or '\t') {
             if (markdown[current] == '\t') {
                 int spaces = 4 - column % 4;
                 builder.Append(' ', spaces);

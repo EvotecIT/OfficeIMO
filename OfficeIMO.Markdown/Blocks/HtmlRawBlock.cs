@@ -6,6 +6,7 @@ namespace OfficeIMO.Markdown;
 public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Raw HTML content to emit.</summary>
     public string Html { get; }
+    internal bool IsParsedBlock { get; set; }
     /// <summary>Source span for a recognized opening raw HTML tag when available.</summary>
     public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
     /// <summary>Source span for the raw HTML body between recognized matching tags when available.</summary>
@@ -25,12 +26,15 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         var o = HtmlRenderContext.Options;
         var handling = o?.RawHtmlHandling ?? RawHtmlHandling.Allow;
         return handling switch {
-            RawHtmlHandling.Allow => o?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
+            RawHtmlHandling.Allow => TerminateParsedHtml(o?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html),
             RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Html, o) + "</code></pre>",
             RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, o),
             _ => string.Empty
         };
     }
+
+    private string TerminateParsedHtml(string html) =>
+        IsParsedBlock && !html.EndsWith("\n", StringComparison.Ordinal) ? html + "\n" : html;
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         if (!TryGetFrame(out var frame)) {

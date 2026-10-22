@@ -545,7 +545,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             EscapeNonAsciiText = false
         });
 
-        Assert.Equal("<custom>\nok\n</custom>", html);
+        Assert.Equal("<custom>\nok\n</custom>\n", html);
     }
 
     [Fact]
