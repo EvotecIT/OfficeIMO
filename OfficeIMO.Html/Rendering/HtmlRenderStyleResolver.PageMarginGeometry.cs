@@ -18,8 +18,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _viewportHeight = _activeContainerHeight = paperHeight;
             _activeUprightVerticalText = false;
             _activeCharacterAdvance = computed.Properties.Any(pair =>
-                (pair.Key is "width" or "min-width" or "max-width" or "padding" || pair.Key.StartsWith("padding-", StringComparison.Ordinal)
-                    || pair.Key == "border" || pair.Key.StartsWith("border-", StringComparison.Ordinal)) && ContainsCharacterUnit(pair.Value))
+                HtmlCssPageSettingsResolver.IsMarginGeometryDeclaration(pair.Key) && ContainsCharacterUnit(pair.Value))
                 ? _measureCharacterAdvance(style) : double.NaN;
             style.ExplicitWidth = ReadLength(computed.GetValue("width"), null, stripWidth, style.Font.Size);
             style.MinWidth = ReadLength(computed.GetValue("min-width"), null, stripWidth, style.Font.Size);
@@ -27,6 +26,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.IntrinsicWidth = ReadPageMarginIntrinsicWidth("width");
             style.IntrinsicMinWidth = ReadPageMarginIntrinsicWidth("min-width");
             style.IntrinsicMaxWidth = ReadPageMarginIntrinsicWidth("max-width");
+            style.ExplicitHeight = ReadPageMarginHeight("height");
+            style.MinHeight = ReadPageMarginHeight("min-height");
+            style.MaxHeight = ReadPageMarginHeight("max-height");
+            ApplyAutoMargins(computed, style);
+            ApplyMarginLength(computed.GetValue("margin-left"), stripWidth, style.Font.Size, ref style.MarginLeft);
+            ApplyMarginLength(computed.GetValue("margin-right"), stripWidth, style.Font.Size, ref style.MarginRight);
+            ApplyMarginLength(computed.GetValue("margin-top"), stripHeight, style.Font.Size, ref style.MarginTop);
+            ApplyMarginLength(computed.GetValue("margin-bottom"), stripHeight, style.Font.Size, ref style.MarginBottom);
             ApplyLength(computed.GetValue("padding-left"), stripWidth, style.Font.Size, ref style.PaddingLeft);
             ApplyLength(computed.GetValue("padding-right"), stripWidth, style.Font.Size, ref style.PaddingRight);
             // Paged margin contexts use their containing height for vertical percentages.
@@ -59,6 +66,21 @@ internal sealed partial class HtmlRenderStyleResolver {
             if (_reportedPageMarginDimensions.Add(identity)) {
                 _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported,
                     "An intrinsic page-margin width used auto sizing or omitted its minimum or maximum constraint.",
+                    HtmlDiagnosticSeverity.Warning, source, property + "=" + value, OfficeConversionLossKind.Approximation);
+            }
+            return null;
+        }
+
+        double? ReadPageMarginHeight(string property) {
+            string value = computed.GetValue(property).Trim();
+            double? height = ReadVerticalLength(value, null, stripHeight, style.Font.Size);
+            if (height.HasValue || !(value.Equals("min-content", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("max-content", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("fit-content", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("fit-content(", StringComparison.OrdinalIgnoreCase))) return height;
+            if (_reportedPageMarginDimensions.Add(source + " " + property + "=" + value)) {
+                _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported,
+                    "An intrinsic page-margin height used auto sizing or omitted its minimum or maximum constraint.",
                     HtmlDiagnosticSeverity.Warning, source, property + "=" + value, OfficeConversionLossKind.Approximation);
             }
             return null;

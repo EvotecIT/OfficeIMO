@@ -16,22 +16,57 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private static bool TryGetPageMarginBorderBounds(HtmlRenderPage page, HtmlCssPageMarginTemplate box,
+    /// <summary>Resolves the border frame inside signed margins without allowing negative content dimensions.</summary>
+    private bool TryGetPageMarginBorderBounds(HtmlRenderPage page, HtmlCssPageMarginTemplate box,
         IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> horizontalBounds,
         out double x, out double y, out double width, out double height) {
+        CheckCancellation();
         bool top = box.Position is HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight;
         double reservedHeight = Math.Max(0D, top ? page.Margins.Top : page.Margins.Bottom);
         if (!horizontalBounds.TryGetValue(box.Position, out PageMarginHorizontalBounds bounds)) {
             x = y = width = height = 0D;
             return false;
         }
-        // Auto content height cannot become negative when padding and borders
-        // exceed the strip. The inside edge stays attached to the page body.
-        height = Math.Max(reservedHeight, box.Typography.VerticalInsets);
-        x = bounds.X;
-        y = top ? reservedHeight - height : page.Height - reservedHeight;
-        width = bounds.Width;
+        HtmlRenderBoxStyle style = box.Typography;
+        x = bounds.X + style.MarginLeft;
+        width = Math.Max(style.HorizontalInsets, bounds.Width - style.MarginLeft - style.MarginRight);
+        double autoContentHeight = Math.Max(0D, reservedHeight - style.VerticalInsets
+            - (style.MarginTopAuto ? 0D : style.MarginTop) - (style.MarginBottomAuto ? 0D : style.MarginBottom));
+        height = !style.ExplicitHeight.HasValue && !style.MinHeight.HasValue && !style.MaxHeight.HasValue
+            && style.MarginTop == 0D && style.MarginBottom == 0D
+            ? Math.Max(reservedHeight, style.VerticalInsets)
+            : ResolveBoxHeight(autoContentHeight, width, style, allowZeroHeight: true);
+        double marginTop = ResolvePageMarginTopMargin(style, reservedHeight, height, top);
+        y = (top ? 0D : page.Height - reservedHeight) + marginTop;
+        if (!Finite(x) || !Finite(y) || !Finite(width) || !Finite(height) || !Finite(x + width) || !Finite(y + height)) {
+            string source = "@page @" + GetMarginBoxName(box.Position);
+            if (_reportedMarginTextOverflow.Add(source + " geometry")) {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                    "Generated page-margin geometry exceeded finite layout coordinates and the box was omitted.",
+                    HtmlDiagnosticSeverity.Warning, source, "margin-geometry", OfficeConversionLossKind.Omission);
+            }
+            x = y = width = height = 0D;
+            return false;
+        }
         return true;
+
+        static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+    }
+
+    /// <summary>Balances the fixed-axis equation after height constraints, preserving the body-facing margin.</summary>
+    private static double ResolvePageMarginTopMargin(HtmlRenderBoxStyle style, double stripHeight, double borderHeight, bool top) {
+        bool topAuto = style.MarginTopAuto, bottomAuto = style.MarginBottomAuto;
+        double marginTop = topAuto ? 0D : style.MarginTop;
+        double marginBottom = bottomAuto ? 0D : style.MarginBottom;
+        if (borderHeight + marginTop + marginBottom > stripHeight) topAuto = bottomAuto = false;
+        // With no remaining auto value, the outer-facing margin absorbs the
+        // difference. This also preserves the existing body-edge inset floor.
+        if (!topAuto && !bottomAuto) {
+            if (top) topAuto = true;
+            else bottomAuto = true;
+        }
+        if (!topAuto) return marginTop;
+        return bottomAuto ? (stripHeight - borderHeight) / 2D : stripHeight - borderHeight - marginBottom;
     }
 
     private void AppendEmptyPageMarginBox(ICollection<HtmlRenderVisual> target, HtmlRenderPage page,

@@ -33,35 +33,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 2D * Math.Max(left.OuterMinimum, right.OuterMinimum),
                 2D * Math.Max(left.OuterMaximum, right.OuterMaximum),
                 left.OuterWidth.HasValue && right.OuterWidth.HasValue
-                    ? 2D * Math.Max(left.OuterWidth.Value, right.OuterWidth.Value) : null);
+                    ? 2D * Math.Max(left.OuterWidth.Value, right.OuterWidth.Value) : null,
+                2D * Math.Max(left.OuterEdges, right.OuterEdges));
             (double b, _) = DistributePageMarginWidthPair(center, sides, availableWidth);
             double sideWidth = (availableWidth - b) / 2D;
-            return (left.Generated ? left.OuterWidth ?? Math.Max(left.Insets, sideWidth) : 0D,
-                b, right.Generated ? right.OuterWidth ?? Math.Max(right.Insets, sideWidth) : 0D);
+            return (left.Generated ? left.OuterWidth ?? Math.Max(left.OuterEdges, sideWidth) : 0D,
+                b, right.Generated ? right.OuterWidth ?? Math.Max(right.OuterEdges, sideWidth) : 0D);
         }
 
         void ApplyConstraint(ref PageMarginWidthState state, double outerWidth, bool maximum) {
             double? limit = maximum ? state.MaximumConstraint : state.MinimumConstraint;
             if (!state.Generated || !limit.HasValue) return;
-            double contentWidth = Math.Max(0D, outerWidth - state.Insets);
+            double contentWidth = Math.Max(0D, outerWidth - state.Margins - state.Insets);
             if (maximum ? contentWidth <= limit.Value : contentWidth >= limit.Value) return;
             state = state.WithContentWidth(limit.Value);
             changed = true;
         }
     }
 
+    /// <summary>Distributes signed outer widths while flooring only the enclosed content and border box.</summary>
     private static (double First, double Second) DistributePageMarginWidthPair(
         PageMarginWidthState first, PageMarginWidthState second, double availableWidth) {
         if (first.OuterWidth.HasValue && second.OuterWidth.HasValue)
             return (first.OuterWidth.Value, second.OuterWidth.Value);
         if (first.OuterWidth.HasValue)
-            return (first.OuterWidth.Value, Math.Max(second.Insets, availableWidth - first.OuterWidth.Value));
+            return (first.OuterWidth.Value, Math.Max(second.OuterEdges, availableWidth - first.OuterWidth.Value));
         if (second.OuterWidth.HasValue)
-            return (Math.Max(first.Insets, availableWidth - second.OuterWidth.Value), second.OuterWidth.Value);
+            return (Math.Max(first.OuterEdges, availableWidth - second.OuterWidth.Value), second.OuterWidth.Value);
         (double a, double b) = DistributePageMarginPair(
-            new PageMarginIntrinsicSize(first.Generated, first.OuterMinimum, first.OuterMaximum),
-            new PageMarginIntrinsicSize(second.Generated, second.OuterMinimum, second.OuterMaximum), availableWidth);
-        return (Math.Max(first.Insets, a), Math.Max(second.Insets, b));
+            (first.Generated, first.OuterMinimum, first.OuterMaximum),
+            (second.Generated, second.OuterMinimum, second.OuterMaximum), availableWidth);
+        return (Math.Max(first.OuterEdges, a), Math.Max(second.OuterEdges, b));
     }
 
     private readonly struct PageMarginWidthState {
@@ -71,17 +73,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (Generated && style != null && style.HasIntrinsicWidths)
                 style = ApplyIntrinsicWidthValues(style, size.Minimum, size.Maximum, availableWidth);
             Insets = Generated ? style?.HorizontalInsets ?? 0D : 0D;
+            // Auto horizontal margins have used value zero in page-margin boxes.
+            Margins = Generated && style != null ? style.MarginLeft + style.MarginRight : 0D;
+            OuterEdges = Insets + Margins;
             double? width = Generated ? style?.ExplicitWidth : 0D;
-            OuterWidth = width.HasValue ? width.Value + Insets : null;
-            OuterMinimum = (width ?? size.Minimum) + Insets;
-            OuterMaximum = (width ?? size.Maximum) + Insets;
+            OuterWidth = width.HasValue ? width.Value + Insets + Margins : null;
+            OuterMinimum = (width ?? size.Minimum) + Insets + Margins;
+            OuterMaximum = (width ?? size.Maximum) + Insets + Margins;
             MinimumConstraint = Generated ? style?.MinWidth : null;
             MaximumConstraint = Generated ? style?.MaxWidth : null;
         }
 
-        internal PageMarginWidthState(bool generated, double minimum, double maximum, double? width) {
+        internal PageMarginWidthState(bool generated, double minimum, double maximum, double? width, double outerEdges) {
             Generated = generated;
-            Insets = 0D;
+            Insets = Margins = 0D;
+            OuterEdges = outerEdges;
             OuterWidth = generated ? width : 0D;
             OuterMinimum = minimum;
             OuterMaximum = maximum;
@@ -91,7 +97,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private PageMarginWidthState(PageMarginWidthState original, double contentWidth) {
             Generated = original.Generated;
             Insets = original.Insets;
-            OuterWidth = contentWidth + Insets;
+            Margins = original.Margins;
+            OuterEdges = original.OuterEdges;
+            OuterWidth = contentWidth + Insets + Margins;
             OuterMinimum = OuterMaximum = OuterWidth.Value;
             MinimumConstraint = original.MinimumConstraint;
             MaximumConstraint = original.MaximumConstraint;
@@ -99,6 +107,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal bool Generated { get; }
         internal double Insets { get; }
+        internal double Margins { get; }
+        internal double OuterEdges { get; }
         internal double? OuterWidth { get; }
         internal double OuterMinimum { get; }
         internal double OuterMaximum { get; }

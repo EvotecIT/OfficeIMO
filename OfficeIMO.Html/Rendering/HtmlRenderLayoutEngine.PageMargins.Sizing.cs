@@ -135,6 +135,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Distributes auto widths through max-content, flexible-content and constrained-minimum regimes.</summary>
     private static (double First, double Second) DistributePageMarginPair(
         PageMarginIntrinsicSize first, PageMarginIntrinsicSize second, double availableWidth) {
+        (double a, double b) = DistributePageMarginPair(
+            (first.Generated, first.Minimum, first.Maximum), (second.Generated, second.Minimum, second.Maximum), availableWidth);
+        if (!first.Generated || !second.Generated) return (a, b);
+        // Preserve the original content-only profile's bounded outer allocation.
+        double firstWidth = Math.Max(0D, Math.Min(availableWidth, a));
+        return (firstWidth, availableWidth - firstWidth);
+    }
+
+    /// <summary>Uses signed outer contributions; the box-aware caller owns nonnegative content-size floors.</summary>
+    private static (double First, double Second) DistributePageMarginPair(
+        (bool Generated, double Minimum, double Maximum) first,
+        (bool Generated, double Minimum, double Maximum) second, double availableWidth) {
         if (!first.Generated) return (0D, second.Generated ? availableWidth : 0D);
         if (!second.Generated) return (availableWidth, 0D);
         double minimum = first.Minimum + second.Minimum;
@@ -156,9 +168,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             firstFactor = first.Minimum;
             secondFactor = second.Minimum;
         }
-        if (firstFactor + secondFactor <= 0D) firstFactor = secondFactor = 1D;
-        double firstWidth = Math.Max(0D, Math.Min(availableWidth,
-            basis + space * firstFactor / (firstFactor + secondFactor)));
+        if (firstFactor + secondFactor == 0D) firstFactor = secondFactor = 1D;
+        double firstWidth = basis + space * firstFactor / (firstFactor + secondFactor);
         return (firstWidth, availableWidth - firstWidth);
     }
 
@@ -173,6 +184,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Maximum { get; }
     }
 
+    /// <summary>The allocated margin-box outer frame; signed margins are removed at the border-frame owner.</summary>
     private readonly struct PageMarginHorizontalBounds {
         internal PageMarginHorizontalBounds(double x, double width) { X = x; Width = width; }
         internal double X { get; }
