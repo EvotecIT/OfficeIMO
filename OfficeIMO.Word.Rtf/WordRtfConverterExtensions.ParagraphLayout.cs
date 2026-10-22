@@ -6,6 +6,10 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphLayout(WordParagraph source, RtfParagraph destination) {
+        destination.DirectAlignment = ToRtfTextAlignment(source._paragraphProperties?.Justification?.Val?.Value);
+        destination.LeftIndentTwips = source.IndentationBefore;
+        destination.RightIndentTwips = source.IndentationAfter;
+        destination.FirstLineIndentTwips = source.IndentationFirstLine ?? Negate(source.IndentationHanging);
         destination.DirectPageBreakBefore = ReadToggle(source._paragraphProperties?.PageBreakBefore);
         destination.DirectKeepWithNext = ReadToggle(source._paragraphProperties?.KeepNext);
         destination.DirectKeepLinesTogether = ReadToggle(source._paragraphProperties?.KeepLines);
@@ -33,6 +37,16 @@ public static partial class WordRtfConverterExtensions {
         flow.KeepNext = source.DirectKeepWithNext.HasValue ? new KeepNext { Val = source.KeepWithNext } : null;
         flow.KeepLines = source.DirectKeepLinesTogether.HasValue ? new KeepLines { Val = source.KeepLinesTogether } : null;
         flow.SuppressLineNumbers = source.DirectSuppressLineNumbers.HasValue ? new SuppressLineNumbers { Val = source.SuppressLineNumbers } : null;
+        flow.Justification = source.DirectAlignment.HasValue ? new Justification { Val = ToWordTextAlignment(source.DirectAlignment.Value) } : null;
+
+        if (source.LeftIndentTwips.HasValue || source.RightIndentTwips.HasValue || source.FirstLineIndentTwips.HasValue) {
+            flow.Indentation = new Indentation {
+                Left = FormatInt(source.LeftIndentTwips),
+                Right = FormatInt(source.RightIndentTwips),
+                FirstLine = source.FirstLineIndentTwips >= 0 ? FormatInt(source.FirstLineIndentTwips) : null,
+                Hanging = source.FirstLineIndentTwips < 0 ? FormatInt(-source.FirstLineIndentTwips) : null
+            };
+        }
 
         if (source.AutoHyphenation == false) {
             ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
