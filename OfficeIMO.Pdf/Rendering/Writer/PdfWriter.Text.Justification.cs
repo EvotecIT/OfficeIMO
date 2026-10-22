@@ -5,10 +5,12 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Source paragraph identity carried through cell line slicing and physical fragments.</summary>
     private readonly record struct RichLineJustificationPolicy(PdfJustificationMode Mode,
-        bool ExplicitBreaks, bool LastLine, bool IsFinalParagraphLine, bool IsExplicitBreak) {
+        bool ExplicitBreaks, bool LastLine, bool IsFinalParagraphLine, bool IsExplicitBreak,
+        bool UseWordJustificationSpacing = false) {
         internal RichLineJustificationPolicy(PdfParagraphStyle? style, bool final, bool explicitBreak)
             : this(style?.JustificationMode ?? PdfJustificationMode.Words,
-                style?.JustifyExplicitLineBreaks == true, style?.JustifyLastLine == true, final, explicitBreak) { }
+                style?.JustifyExplicitLineBreaks == true, style?.JustifyLastLine == true, final, explicitBreak,
+                style?.UseWordJustificationSpacing == true) { }
     }
 
     private readonly struct RichLineJustification {
@@ -25,6 +27,9 @@ internal static partial class PdfWriter {
     /// <summary>Plans one physical line's glyph and separator advances for paint and paint diagnostics.</summary>
     private static RichLineJustification PlanRichLineJustification(List<RichSeg> segments,
         PdfAlign alignment, PdfParagraphStyle? style, double availableWidth, bool isFinalParagraphLine, PdfOptions options) {
+        if (alignment == PdfAlign.Justify &&
+            TryApplyWordCompressionPlan(segments, availableWidth, out RichLineJustification compression))
+            return compression;
         double naturalWidth = MeasureRichLineWidth(segments);
         bool hardBreak = segments.Any(segment => segment.EndsWithHardBreak);
         RichLineJustificationPolicy policy = segments.Select(segment => segment.JustificationPolicy).FirstOrDefault(item => item.HasValue)
@@ -39,13 +44,44 @@ internal static partial class PdfWriter {
                 : new RichLineJustification(segments, 0D, naturalWidth);
         }
         if (policy.Mode != PdfJustificationMode.Characters) {
+            if (policy.UseWordJustificationSpacing)
+                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth);
             int gaps = segments.Where(segment => segment.LeadingSpace && segment.LeadingSpaceIsExpandable)
                 .Sum(segment => segment.LeadingSpaceCount);
             return gaps > 0 ? new RichLineJustification(segments, (availableWidth - naturalWidth) / gaps, availableWidth)
                 : new RichLineJustification(segments, 0D, naturalWidth);
         }
-        return PlanRichCharacterDistribution(segments, naturalWidth, availableWidth, options);
+        return PlanRichCharacterDistribution(segments, naturalWidth, availableWidth, options, policy.UseWordJustificationSpacing);
     }
+
+    /// <summary>Consumes source-space preferred expansion before sharing the remaining width per ordinary space.</summary>
+    private static RichLineJustification PlanRichWordSpaceDistribution(List<RichSeg> segments,
+        double naturalWidth, double availableWidth) {
+        int spaces = segments.Where(IsWordExpansionSpace).Sum(segment => segment.LeadingSpaceCount);
+        if (spaces == 0) return new RichLineJustification(segments, 0D, naturalWidth);
+        double adjustment = availableWidth - naturalWidth;
+        var resources = new List<OfficeTextSpacingResource>();
+        for (int index = 0; index < segments.Count; index++) {
+            RichSeg segment = segments[index];
+            if (!IsWordExpansionSpace(segment)) continue;
+            // Preferred capacity follows the actual source-space metrics. The later
+            // tier needs only the finite remaining request, shared per source space;
+            // it does not introduce a font-specific or native-unit ceiling.
+            resources.Add(new OfficeTextSpacingResource(index, 0, 0D, Math.Max(0D, segment.LeadingAdvance / 2D)));
+            resources.Add(new OfficeTextSpacingResource(index, 4, 0D, adjustment * (segment.LeadingSpaceCount / (double)spaces)));
+        }
+        OfficeTextSpacingAllocation allocation = OfficeTextSpacingAllocator.Allocate(segments.Count, resources, adjustment);
+        var distributed = new List<RichSeg>(segments.Count);
+        for (int index = 0; index < segments.Count; index++) {
+            RichSeg segment = segments[index];
+            double delta = allocation.Deltas[index];
+            distributed.Add(delta == 0D ? segment : segment.WithJustification(0D, segment.LeadingAdvance + delta, null));
+        }
+        return new RichLineJustification(distributed, 0D, naturalWidth + allocation.AppliedAdjustment);
+    }
+
+    private static bool IsWordExpansionSpace(RichSeg segment) => segment.LeadingSpace &&
+        segment.LeadingIsOrdinarySpace && !segment.LeadingIsTab && segment.LeadingSpaceIsExpandable && segment.LeadingSpaceCount > 0;
 
     private static RichLineJustification PlanRichAnchoredWordDistribution(List<RichSeg> segments,
         int lastTab, double naturalWidth, double availableWidth) {
@@ -63,86 +99,6 @@ internal static partial class PdfWriter {
             bool expands = index > lastTab && segment.LeadingSpace && segment.LeadingSpaceIsExpandable;
             distributed.Add(expands ? segment.WithJustification(0D,
                 segment.LeadingAdvance + segment.LeadingSpaceCount * spacing, null) : segment);
-        }
-        return new RichLineJustification(distributed, 0D, availableWidth);
-    }
-
-    private static RichLineJustification PlanRichCharacterDistribution(List<RichSeg> segments,
-        double naturalWidth, double availableWidth, PdfOptions options) {
-        var text = new StringBuilder();
-        var indexes = new List<int>();
-        var owners = new List<(int Segment, int Glyph)>();
-        var commands = new PdfTextShowCommand?[segments.Count];
-        for (int index = 0; index < segments.Count; index++) {
-            RichSeg segment = segments[index];
-            if (segment.LeadingSpace && !segment.LeadingIsTab) {
-                for (int space = 0; space < segment.LeadingSpaceCount; space++) {
-                    indexes.Add(text.Length);
-                    owners.Add((index, -1));
-                    text.Append(' ');
-                }
-            }
-            if (segment.InlineElement != null) {
-                indexes.Add(text.Length);
-                owners.Add((index, -2));
-                text.Append('\uFFFC');
-                continue;
-            }
-            if (segment.Text.Length == 0) continue;
-            PdfTextShowCommand ownership = segment.KerningCommand is { VisualGlyphs: not null } prepared ? prepared :
-                EncodeTextShowCommand(segment.Text, segment.Font, segment.NamedFont, options,
-                    segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale,
-                    segment.HorizontalTextScaling, segment.PreservesPaintedGlyphs, requireGlyphClusters: true);
-            PdfTextShowCommand command = segment.KerningCommand ?? ownership;
-            if (command.GlyphCount != ownership.GlyphCount || command.GlyphHex != ownership.GlyphHex)
-                throw new InvalidOperationException("Character distribution must retain the prepared encoded glyphs.");
-            commands[index] = command;
-            int start = text.Length;
-            text.Append(segment.Text);
-            if (ownership.VisualGlyphs is { } glyphs) {
-                int[] sourceIndexes = ResolveRichGlyphClusterStarts(glyphs);
-                for (int glyph = 0; glyph < glyphs.Count; glyph++) {
-                    indexes.Add(start + sourceIndexes[glyph]);
-                    owners.Add((index, glyph));
-                }
-            } else {
-                // The only cluster-free encoding here is a standard one-byte WinAnsi font.
-                // Embedded encoders were explicitly requested to return shaped ownership.
-                if (command.GlyphCount != segment.Text.Length)
-                    throw new InvalidOperationException("Character distribution requires encoded glyph source ownership.");
-                for (int glyph = 0; glyph < command.GlyphCount; glyph++) {
-                    indexes.Add(start + glyph);
-                    owners.Add((index, glyph));
-                }
-            }
-        }
-        if (indexes.Count < 2) return new RichLineJustification(segments, 0D, naturalWidth);
-        bool[] boundaries = OfficeOpenTypeTracking.GetBoundaries(text.ToString(), indexes);
-        boundaries[boundaries.Length - 1] = false;
-        int opportunities = boundaries.Count(boundary => boundary);
-        if (opportunities == 0) return new RichLineJustification(segments, 0D, naturalWidth);
-        double spacing = (availableWidth - naturalWidth) / opportunities;
-        var leading = new int[segments.Count];
-        var inline = new int[segments.Count];
-        var glyphBoundaries = new bool[segments.Count][];
-        for (int boundary = 0; boundary < boundaries.Length; boundary++) {
-            if (!boundaries[boundary]) continue;
-            (int segment, int glyph) = owners[boundary];
-            if (glyph == -1) leading[segment]++;
-            else if (glyph == -2) inline[segment]++;
-            else {
-                glyphBoundaries[segment] ??= new bool[commands[segment]!.GlyphCount];
-                glyphBoundaries[segment][glyph] = true;
-            }
-        }
-        var distributed = new List<RichSeg>(segments.Count);
-        for (int index = 0; index < segments.Count; index++) {
-            RichSeg segment = segments[index];
-            bool[]? selected = glyphBoundaries[index];
-            int count = (selected?.Count(boundary => boundary) ?? 0) + inline[index];
-            distributed.Add(count == 0 && leading[index] == 0 ? segment : segment.WithJustification(
-                count * spacing, segment.LeadingAdvance + leading[index] * spacing,
-                selected == null ? null : commands[index]!.WithJustificationTracking(spacing, selected)));
         }
         return new RichLineJustification(distributed, 0D, availableWidth);
     }

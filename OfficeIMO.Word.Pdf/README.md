@@ -82,6 +82,8 @@ document.SaveAsPdf("report.pdf", new WordToPdfOptions {
 
 `DATE` and `TIME` use the current local clock during the refresh. Set `CurrentDateTime` on `WordFieldUpdateOptions` when the export needs a fixed value. The refresh updates the in-memory Word document; it does not save the `.docx` file or change other fields. `CREATEDATE` and `SAVEDATE` continue to use their cached results unless explicitly refreshed through the general Word field API.
 
+Fields that display text need a cached result unless PDF export calculates them, such as page counters in headers and footers. When a recognized display field has no stored result, export reports `NativeFieldResultUnavailable` as an omission. Explicitly stored empty results remain empty. Hidden fields and instructions that produce no display text do not add this warning.
+
 ### Word-to-PDF layout
 
 Inline date pickers, drop-down lists and combo boxes retain their position among text in body paragraphs and table-cell paragraphs. Date pickers become editable PDF text fields; list and combo controls become editable PDF choice fields. Cached display runs retain their effective fonts, sizes, colors and ordinary line wrapping. The initial appearance uses that cached text, while the field keeps its logical date value or selected option. A missing date or choice cache can use the current logical display value. Wrapped controls can have several widgets belonging to one logical field. Filling the field replaces its cached appearance without leaving the original text underneath. A control with an effective run highlight or background retains static text and reports `NativeInlineControlBackgroundStatic`: its background must paint beneath surrounding paragraph glyphs, while PDF widgets paint above page content.

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
 
-    public sealed class PdfMixedInlineImageUnavailableTests {
+    public sealed class WordPdfMixedInlineImageUnavailableTests {
         [Fact]
         public void InlineImageRetainsCropWarningAfterSuccessfulPreparation() {
             using WordDocument word = WordDocument.Create();
