@@ -45,6 +45,31 @@ function semanticGraph(pdf) {
   });
 }
 
+/** Resolve every synthetic value through the emitted xref, including ordinary overflow values. */
+async function compactFixture(bodies) {
+  const chunks = [], expected = new Map(), objects = new PdfObjects({ write(bytes) { chunks.push(bytes.slice()); } }, undefined, undefined, true);
+  await objects.text("%PDF-1.7\n");
+  const catalog = objects.reserve(), pages = objects.reserve(), page = objects.reserve(), resources = objects.reserve(), content = objects.reserve(), info = objects.reserve();
+  await objects.object(catalog, "<< /Type /Catalog /Pages " + pages + " 0 R >>");
+  await objects.object(pages, "<< /Type /Pages /Kids [" + page + " 0 R] /Count 1 >>");
+  await objects.object(page, "<< /Type /Page /Parent " + pages + " 0 R /MediaBox [0 0 100 100] /Resources " + resources + " 0 R /Contents " + content + " 0 R >>");
+  await objects.object(resources, "<< >>"); await objects.stream(content, "", "", false); await objects.object(info, "<< >>");
+  for (const value of bodies) {
+    const id = objects.reserve(), body = typeof value === "function" ? value(id) : value;
+    expected.set(id, Buffer.from(body, "utf8").toString("latin1"));
+    await objects.compactObject(id, body);
+  }
+  await objects.finish(catalog, info);
+  const pdf = await inspectPdf(new Blob(chunks));
+  for (const [id, body] of expected) assert.equal(pdf.objects.get(id)?.body, body, "The xref must resolve each complete UTF-8 value exactly once");
+  const containers = [...pdf.objects.values()].filter(object => /\/Type \/ObjStm\b/.test(object.body));
+  for (const container of containers) {
+    assert.ok(container.stream.length <= 32768, "The decoded index, member bytes and newlines share one byte ceiling");
+    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 200);
+  }
+  return { pdf, containers, ids: [...expected.keys()] };
+}
+
 test("compressed structure containers preserve banded grouped reports, headers, links and reading order", async () => {
   const plain = await inspectPdf(await report(false)), compact = await inspectPdf(await report(true));
   assert.deepEqual(compact.pages.map(page => page.content), plain.pages.map(page => page.content));
@@ -57,6 +82,46 @@ test("compressed structure containers preserve banded grouped reports, headers, 
     assert.ok(container.stream.length <= 32768, "Decoded batches retain a bounded member index and body");
     const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
     assert.match(compact.objects.get(lengthId).body, /^\d+$/, "A container length stays an ordinary scalar object");
+  }
+});
+
+test("partial UTF-8 encodings preserve committed members and retry whole multibyte values", async () => {
+  for (const [scalar, padding] of [["é", 32748], ["€", 32747], ["😀", 32747], ["\ud800", 32747]]) {
+    const { containers } = await compactFixture(["(seed)", "(" + "x".repeat(padding) + scalar + ")"]);
+    assert.equal(containers.length, 2, "A value that exceeds the remaining suffix must fit intact in a fresh container");
+    assert.ok(containers[0].stream.length < 100, "A failed tentative encoding must not extend the committed prefix");
+  }
+});
+
+test("the decoded byte ceiling includes the index and newlines, with UTF-8 overflow remaining ordinary", async () => {
+  const { pdf, containers, ids } = await compactFixture([
+    id => "(" + "x".repeat(32768 - String(id).length - 7) + ")",
+    "(" + "😀".repeat(8191) + ")",
+    "(following compact value)"
+  ]);
+  assert.equal(containers[0].stream.length, 32768, "A complete first member may exactly fill the decoded byte ceiling");
+  assert.equal(containers.length, 2);
+  assert.equal(pdf.objects.get(ids[0]).bodyOffset, undefined);
+  assert.notEqual(pdf.objects.get(ids[1]).bodyOffset, undefined, "UTF-16 length alone cannot qualify a UTF-8 value for packing");
+  assert.equal(pdf.objects.get(ids[2]).bodyOffset, undefined, "An ordinary overflow must leave subsequent compact xref membership valid");
+});
+
+test("completed payloads retain their bytes while later batches reuse the bounded member storage", async () => {
+  const { containers } = await compactFixture(Array.from({ length: 405 }, (_, index) =>
+    "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
+  assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [200, 200, 5]);
+});
+
+test("TextEncoder implementations without encodeInto preserve complete packed UTF-8 values", async () => {
+  const bodies = ["(seed)", "(" + "x".repeat(32747) + "😀é\ud800)", "(tail)"], native = await compactFixture(bodies);
+  const prototype = TextEncoder.prototype, descriptor = Object.getOwnPropertyDescriptor(prototype, "encodeInto");
+  try {
+    Object.defineProperty(prototype, "encodeInto", { value: undefined, configurable: true, writable: true });
+    const fallback = await compactFixture(bodies);
+    assert.deepEqual(fallback.containers.map(container => container.stream), native.containers.map(container => container.stream));
+  } finally {
+    if (descriptor) Object.defineProperty(prototype, "encodeInto", descriptor);
+    else delete prototype.encodeInto;
   }
 });
 

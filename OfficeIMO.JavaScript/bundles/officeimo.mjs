@@ -5869,6 +5869,7 @@ class PdfObjects {
     // arrays avoid retaining an allocated location object for every completed structure element.
     compactIndices;
     compactBatch;
+    compactArena;
     compactUnavailable = false;
     encoder = new TextEncoder();
     buffer = new Uint8Array(32768);
@@ -5924,16 +5925,21 @@ class PdfObjects {
             this.compactUnavailable = true;
             return this.object(id, body);
         }
-        const bytes = this.encoder.encode(body), firstIndexBytes = String(id).length + 4;
-        if (firstIndexBytes + bytes.length + 1 > compactObjectBytes)
-            return this.object(id, body);
+        const firstIndexBytes = String(id).length + 4;
         let batch = this.compactBatch;
         const indexBytes = String(id).length + String(batch?.bodyBytes ?? 0).length + 2;
-        if (batch && (batch.entries.length === compactObjectCount || batch.indexBytes + indexBytes + batch.bodyBytes + bytes.length + 2 > compactObjectBytes)) {
+        let written = batch && batch.ids.length < compactObjectCount ? this.encodeCompactBody(body, batch.bodyBytes, compactObjectBytes - batch.indexBytes - indexBytes - batch.bodyBytes - 2) : undefined;
+        if (batch && written === undefined) {
+            // Partial encodings only touch the uncommitted suffix. Flush the committed prefix and retry
+            // the whole string so a multibyte scalar is never split between containers.
             await this.flushCompact();
             batch = undefined;
+            checkAbort(this.signal);
         }
         if (!batch) {
+            written = this.encodeCompactBody(body, 0, compactObjectBytes - firstIndexBytes - 1);
+            if (written === undefined)
+                return this.object(id, body);
             let compressor;
             try {
                 compressor = new CompressionStream("deflate");
@@ -5944,37 +5950,50 @@ class PdfObjects {
                 this.compactUnavailable = true;
                 return this.object(id, body);
             }
-            batch = { id: this.reserve(), compressor, entries: [], bodyBytes: 0, indexBytes: 1 };
+            batch = { id: this.reserve(), compressor, ids: [], bodyOffsets: [], bodyBytes: 0, indexBytes: 1 };
             this.compactIndices ??= this.offsets.map(() => undefined);
             this.compactBatch = batch;
         }
         this.offsets[id] = batch.id;
-        this.compactIndices[id] = batch.entries.length;
+        this.compactIndices[id] = batch.ids.length;
         batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
-        batch.entries.push({ id, bytes });
-        batch.bodyBytes += bytes.length + 1;
-        if (batch.entries.length === compactObjectCount)
+        batch.ids.push(id);
+        batch.bodyOffsets.push(batch.bodyBytes);
+        this.compactArena[batch.bodyBytes + written] = 10;
+        batch.bodyBytes += written + 1;
+        if (batch.ids.length === compactObjectCount)
             await this.flushCompact();
+    }
+    /** An incomplete encoding leaves only scratch bytes beyond the committed batch prefix. */
+    encodeCompactBody(body, offset, available) {
+        if (available < 0)
+            return undefined;
+        const destination = (this.compactArena ??= new Uint8Array(compactObjectBytes)).subarray(offset, offset + available);
+        if (typeof this.encoder.encodeInto === "function") {
+            const result = this.encoder.encodeInto(body, destination);
+            return result.read === body.length ? result.written : undefined;
+        }
+        // Preserve TextEncoder implementations that only expose encode().
+        const bytes = this.encoder.encode(body);
+        if (bytes.length > available)
+            return undefined;
+        destination.set(bytes);
+        return bytes.length;
     }
     async flushCompact() {
         const batch = this.compactBatch;
         if (!batch)
             return;
         this.compactBatch = undefined;
-        let offset = 0, index = "";
-        for (const entry of batch.entries) {
-            index += entry.id + " " + offset + " ";
-            offset += entry.bytes.length + 1;
-        }
-        const header = this.encoder.encode(index + "\n"), payload = new Uint8Array(header.length + batch.bodyBytes), count = batch.entries.length;
+        let index = "";
+        for (let member = 0; member < batch.ids.length; member++)
+            index += batch.ids[member] + " " + batch.bodyOffsets[member] + " ";
+        const header = this.encoder.encode(index + "\n"), payload = new Uint8Array(header.length + batch.bodyBytes), count = batch.ids.length;
         payload.set(header);
-        offset = header.length;
-        for (const entry of batch.entries) {
-            payload.set(entry.bytes, offset);
-            offset += entry.bytes.length;
-            payload[offset++] = 10;
-        }
-        batch.entries.length = 0;
+        // The native codec owns an immutable payload while this document reuses its bounded arena.
+        payload.set(this.compactArena.subarray(0, batch.bodyBytes), header.length);
+        batch.ids.length = 0;
+        batch.bodyOffsets.length = 0;
         await this.compressedStream(batch.id, payload, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor);
     }
     async object(id, body) {
