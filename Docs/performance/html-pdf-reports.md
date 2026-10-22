@@ -118,100 +118,64 @@ that weakens content, diagnostics, cancellation or resource limits, or requires 
 unrelated redesign. Preserve slower and failed observations; do not repeat exhausted
 ideas unless the relevant source has changed.
 
+## Font, style and geometry reuse: 22 October 2026
 
-## Font, style and geometry reuse investigation: 22 October 2026
+Baseline: `7361ba1a3ca75c7efb0b551d2d51fa9185b57a57`.
+Qualified runtime: `b18a1c4181d238d69dee51a5f3f0b1bc8208d142`.
+The [reuse evidence](../../Build/Project/Evidence/2026-10-22/pdf-render-reuse.json)
+retains all 28 matched rows, round-specific errors and earlier source-bound
+cohorts. The same maintained drivers run in baseline/candidate/candidate/baseline
+order. The hardware, runtime and measurement limits above apply; no outliers
+are removed. Allocation measures total managed bytes per operation.
 
-The baseline for this round is `8cc38e17423cc434a8306b1cd9cfc184ae30ba6c`.
-The selected goal is lower warm conversion time and managed allocation on the
-maintained 21 KiB payloads and purchase-table exports, with byte-identical saved
-PDFs, unchanged diagnostic behavior and existing resource/cancellation limits.
-The immutable baseline archive and compiled runtimes are retained with the run records.
-
-The normal Apple M4 development host uses the repository SDK and .NET 10 runtime,
-with `DOTNET_PROCESSOR_COUNT=3`, no affinity or power changes, six warmups,
-twelve measured iterations and no outlier removal for final paired measurements.
-Use the maintained commands above. Keep different workloads and earlier source
-revisions in separate cohorts; allocation is total managed allocation, not peak
-or retained memory.
-
-| Attempt | Observation and disposition |
-| --- | --- |
-| Reuse short built-in fallback measurements within one prepared conversion | Initial draft; full text/font/size/face key, font-definition snapshot invalidation, 1,024 entries and 256-character text/family limits. Host-selected faces and caller shaping providers keep their ordinary path. Included in the initial paired trial below; final qualification is pending. |
-| Reuse resolved border and outline values | Initial draft; one resolver, immutable computed-style identity and every original numeric/color/character context. Resolved parent boxes are never memoized. Included in the initial paired trial below; final qualification is pending. |
-| Reuse private glyph-placement workspace | Owner-confirmed separate placement workspace draft. Immutable origin outlines remain unchanged; every point is copied before the original placement arithmetic, with bounded writer-local storage. First compiled trial below; final qualification is pending. |
-
-Stop or revert an attempt that changes saved content, geometry, diagnostics,
-requested compliance or bounded-resource behavior. Keep failed and slower trials.
-A smaller allocation without a reliable throughput improvement is reported as
-such, and does not close the speed objective. No public API, provider or production
-dependency change is part of this round.
-
-The initial font/stroke draft passed six focused .NET 10 cases and all nine
-payload admissions, with the three OfficeIMO PDFs byte-identical to the fresh
-baseline. One preliminary pair used the maintained in-process benchmark job
-with six warmups and twelve measurements:
-
-| Payload | Baseline mean (ms) | Draft mean (ms) | Baseline allocated (MiB) | Draft allocated (MiB) |
+| Workload | Baseline round means (ms) | Candidate round means (ms) | Baseline allocation (MiB) | Candidate allocation (MiB) |
 | --- | ---: | ---: | ---: | ---: |
-| Plain | 45.61 | 34.12 | 93.86 | 58.39 |
-| Table | 118.39 | 101.49 | 199.89 | 162.35 |
-| Multilingual | 35.43 | 27.86 | 94.67 | 58.26 |
+| Plain text | 53.82 / 47.56 | 35.32 / 46.72 | 94.31 | 47.24 |
+| Table | 122.60 / 121.27 | 110.09 / 107.64 | 200.21 | 156.51 |
+| Multilingual | 36.95 / 37.03 | 29.26 / 28.29 | 95.15 | 50.75 |
+| 250 rows, prepared layout | 170.69 / 333.43 | 286.52 / 370.54 | 187.42 | 181.76 |
+| 250 rows, PDF export | 189.41 / 487.08 | 303.80 / 468.35 | 284.32 | 270.93 |
+| 2,500 rows, prepared layout | 2462.52 / 4167.55 | 3567.96 / 4040.27 | 2383.14 | 1783.38 |
+| 2,500 rows, PDF export | 4672.48 / 5465.79 | 4769.81 / 4878.84 | 3364.08 | 2731.97 |
 
-This is an initial dirty-source trial, before geometry reuse, rather than final
-qualification or an isolated attribution to either change. All raw samples,
-actual runtime inputs and the initial test-fixture compilation failure are
-retained. The fixture was corrected to use the existing linked scalar-advance
-font helper; no product behavior was changed to satisfy that failed compile.
+The plain-text, table and multilingual combined means are 19.1%, 10.7% and
+22.2% lower. Both candidate round means are below both baseline round means for
+these three payloads. Their managed allocation falls by 49.9%, 21.8% and 46.7%.
+Plain-text errors overlap widely in the second pair; these are observed warm
+workload results, without a portable or formal significance claim.
 
-The next draft included the private glyph-placement workspace. It passed 114
-focused PDF cases and the six HTML cases on .NET 10, all nine payload admissions
-and syntax checks, and byte-identical OfficeIMO output for all three payloads.
-The first alternating-glyph assertion failed on both the draft and immutable
-baseline because separate documents repeat their own document-wide notices.
-The corrected comparison retains every distinct warning with its exact bounds,
-without multiplying those notices. Both failed controls remain in the raw record.
+The purchase-report results remain mixed. The 250-row layout and export means
+are 30.3% and 14.1% higher, and the 2,500-row layout mean is 14.8% higher. The
+2,500-row export mean is 4.8% lower. Managed allocation falls across all seven
+workloads, but does not erase slower timings. Baseline round means themselves
+vary substantially, and paired contrasts change direction for the export and
+large-layout paths. No throughput improvement or general no-regression claim is
+made for these routes; their remaining costs stay on the roadmap. No cause for
+the timing variation is inferred, and no whole matrix is repeated to seek a
+favorable result.
 
-| Payload | Baseline mean (ms) | Geometry draft mean (ms) | Draft standard deviation (ms) | Draft allocated (MiB) |
-| --- | ---: | ---: | ---: | ---: |
-| Plain | 45.61 | 45.98 | 11.74 | 47.25 |
-| Table | 118.39 | 100.01 | 5.20 | 154.33 |
-| Multilingual | 35.43 | 27.43 | 0.49 | 50.73 |
+Built-in short-text measurements are reused within a conversion, keyed by the
+complete font descriptor and invalidated when font definitions change. Caller
+providers and dynamically selected host fonts retain their existing paths.
+Border/outline reuse includes the original numeric, color and character context;
+mutable parent boxes are resolved afresh. Both caches are bounded and bypass
+further probes once saturated. The writer copies immutable glyph outlines into
+bounded private placement storage and allocates afresh above its retention caps.
+Scroll-extent traversal uses the existing indexed lists with the same ordering,
+clipping, transforms and arithmetic. There is no public API or runtime dependency
+change.
 
-The plain-text mean lost the earlier trial's timing benefit and varied widely;
-its samples are retained rather than removed. Allocation fell for all three
-payloads. This preliminary trial does not close the speed objective. Final
-qualification uses a stable committed candidate, rotated baseline/candidate
-pairs, larger purchase reports and saved warning/geometry controls.
+All 13 matched saved reports preserve exact PDF bytes, text, row markers and
+complete diagnostics, including the 42- and 417-page purchase reports. Both
+producers pass fresh syntax checks. Eight previous rendered views are reused
+only where PDF and image hashes match; any changed view is inspected afresh.
+These known report inputs do not establish engine-wide appearance, native or
+accessibility equivalence.
 
-
-### Stable reuse candidates and follow-up profiling
-
-The first committed candidate, `fc604c6f`, reduced some allocations but ran
-substantially slower in its 28-row paired cohort. It did not pass the speed
-objective. The next candidate, `e8b79548`, removed redundant font-snapshot scans
-on misses and bypassed further cache probes after saturation. All 13 saved
-reports, their text and complete diagnostics remained exact, and the selected
-.NET 8 and .NET 10 correctness suites passed.
-
-The complete second 28-row cohort reduced managed allocation by about 50% for
-plain text, 22% for the table payload and 47% for multilingual text. Both
-multilingual candidate rounds ran faster. Plain-text and large-report timings
-varied substantially between launches. One targeted 12-row reverse-order check
-retained every observation and did not establish a reliable elapsed-time winner;
-large prepared-layout means were higher. These results do not close the speed
-objective or establish a cause for the timing variation.
-
-A subsequent profile invoked the maintained 2,500-row prepared-layout method
-three times per producer using the same immutable runtime inputs. Both retained
-417 pages, all 2,500 row markers, identical text and complete diagnostics. About
-a quarter of the sampled allocation estimate in each producer occurred beneath
-`MaximumScrollBottom`, where recursive traversal boxed list enumerators. The
-font-measurement and PDF-writer geometry changes are outside this layout-only
-path. Sampled allocations and CPU stacks are diagnostic evidence, not elapsed
-time measurements.
-
-The next bounded attempt uses the scene's existing indexed-list contract in
-both private scroll-extent helpers. It preserves traversal order, arithmetic,
-clip rules and transform handling, without retaining geometry or adding a cache.
-Its compile, exact-output and changed-source measurement results are pending;
-the earlier slower and inconclusive cohorts remain part of the investigation.
+Earlier dirty trials, the slower `fc604c6f` cohort, the inconclusive `e8b79548`
+cohort and its targeted confirmation, and the selected `2f76ef25` results remain
+in the evidence with their original runtime inputs and dispositions. The last
+of those used the earlier `8cc38e17` baseline; its gains are historical. Shared
+font-width, glyph/flow and HTML-normalization changes prompted this separate
+matched baseline and candidate qualification. None of the older timings,
+packages or native observations are relabeled as this combined source.
