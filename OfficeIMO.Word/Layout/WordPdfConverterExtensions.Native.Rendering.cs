@@ -245,7 +245,8 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeHeading(pdf, headingLevel, headingText,
                     builder => AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns || inlineImages.Count > 0,
                         renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, inlineImages: inlineImages),
-                    align, headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
+                    paragraphStyle.UseWordJustificationSpacing ? align : objectAlign,
+                    headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
                 }
