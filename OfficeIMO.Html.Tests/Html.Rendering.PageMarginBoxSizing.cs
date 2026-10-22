@@ -24,7 +24,8 @@ public sealed partial class HtmlRenderingTests {
             HtmlRenderSemanticGroup box = PageMarginGeometryBox(page, position);
             Assert.Equal(expectedWidth, box.Width, 6);
             Assert.Equal(170D, box.X + box.Width / 2D, 6);
-            Assert.Equal(4, box.Visuals.OfType<HtmlRenderShape>().Count());
+            Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape =>
+                shape.Shape.StrokeColor == OfficeColor.Red && shape.Shape.StrokeWidth == 2D);
         }
         rendered.RequireNoLoss();
     }
