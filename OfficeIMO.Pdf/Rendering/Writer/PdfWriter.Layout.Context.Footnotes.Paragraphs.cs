@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             var frame = GetParagraphTextFrame(style, frameX, frameWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                 frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
-                style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, useWordJustificationSpacing: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify);
+                style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
             var captured = new RichParagraphBlock(paragraph.Runs, paragraph.Align, paragraph.DefaultColor, style);
             for (int index = 0; index < wrapped.Lines.Count; index++) {
                 if (units.Count >= MaximumTextLayoutLines) throw new InvalidDataException("Footnote flow exceeded the 100,000-fragment limit.");

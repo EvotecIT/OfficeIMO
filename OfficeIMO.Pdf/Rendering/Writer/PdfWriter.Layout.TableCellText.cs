@@ -139,7 +139,7 @@ internal static partial class PdfWriter {
                 options,
                 paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing, purpose: purpose,
                 inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth,
-                useWordJustificationSpacing: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify);
+                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }

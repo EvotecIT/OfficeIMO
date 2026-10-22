@@ -23,12 +23,12 @@ internal static partial class PdfWriter {
         return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing, bool useWordJustificationSpacing = false) =>
-        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, lineSpacing: lineSpacing, useWordJustificationSpacing: useWordJustificationSpacing);
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null) =>
+        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode);
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, bool useWordJustificationSpacing = false) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null) {
         PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
-        bool compressWordSpaces = useWordJustificationSpacing && purpose == RichWrapPurpose.Layout;
+        bool compressWordSpaces = wordJustificationMode.HasValue && purpose == RichWrapPurpose.Layout;
         var admittedLineWidths = new List<double>();
         bool preserveWhitespace = whitespaceMode != PdfTextWhitespaceMode.Collapse;
         bool preformattedWhitespace = whitespaceMode == PdfTextWhitespaceMode.Preformatted;
@@ -93,15 +93,16 @@ internal static partial class PdfWriter {
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         double MinimumLineWidth(IReadOnlyList<RichSeg> candidate, double naturalWidth) => compressWordSpaces
             ? MeasureWordCompressionMinimumWidth(candidate, naturalWidth) : naturalWidth;
-        double MinimumCandidateWidth(RichSeg probe, IReadOnlyList<RichSeg>? continuation, double naturalWidth) {
-            if (!compressWordSpaces) return naturalWidth;
+        List<RichSeg> CompressionCandidate(RichSeg probe, IReadOnlyList<RichSeg>? continuation) {
             bool includeLeading = lines[lines.Count - 1].Count > 0 || preserveWhitespace || pendingLeadingIsTab;
-            return MeasureWordCompressionMinimumWidth(WordCompressionCandidate(lines[lines.Count - 1],
+            return WordCompressionCandidate(lines[lines.Count - 1],
                 includeLeading ? pendingSpaceFragments : Array.Empty<PendingSpaceFragment>(),
                 includeLeading ? pendingLeadingAdvance : 0D, includeLeading ? pendingLeadingSpaceCount : 0,
                 pendingLeadingIsTab, pendingLeadingIsExpandable, includeLeading && pendingLeadingIsOrdinarySpace,
-                pendingLeadingTabAlignment, probe, continuation), naturalWidth);
+                pendingLeadingTabAlignment, probe, continuation);
         }
+        double MinimumCandidateWidth(RichSeg probe, IReadOnlyList<RichSeg>? continuation, double naturalWidth) =>
+            compressWordSpaces ? MeasureWordCompressionMinimumWidth(CompressionCandidate(probe, continuation), naturalWidth) : naturalWidth;
 
         void RegisterLineHeight(double runFontSize) {
             currentLineHeight = Math.Max(currentLineHeight, RunLineHeight(runFontSize) + (currentFrame?.Gap ?? 0));
@@ -593,10 +594,19 @@ internal static partial class PdfWriter {
                     ? 0D : pendingLeadingAdvance;
                 double candidateBoundary = !pendingLeadingSeparator && lines[lines.Count - 1].Count > 0
                     ? runKerning.MeasureBoundary(lines[lines.Count - 1], tokenProbe) : 0D;
-                bool completeWordFits = compressWordSpaces && token.Length > 0 &&
-                    MinimumCandidateWidth(tokenProbe, continuation.Parts,
-                        lineWidth + candidateLeading + wordWidth + candidateBoundary) <= CurrentMaxWidth() + RichTextWidthTolerance;
-                if (completeWordFits && preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0) {
+                var trialLine = lines[lines.Count - 1];
+                var completeWordCandidate = compressWordSpaces && token.Length > 0
+                    ? CompressionCandidate(tokenProbe, continuation.Parts) : null;
+                double completeWordNaturalWidth = lineWidth + candidateLeading + wordWidth + candidateBoundary;
+                bool completeWordFits = completeWordCandidate != null &&
+                    MeasureWordCompressionMinimumWidth(completeWordCandidate, completeWordNaturalWidth) <= CurrentMaxWidth() + RichTextWidthTolerance;
+                // Stateful frame callbacks cannot be replayed to compare alternatives. In a
+                // fixed frame, keep selection separate from feasibility and source consumption.
+                bool preferEarlierWordBreak = wordJustificationMode == PdfJustificationMode.Words && lineLayout == null &&
+                    completeWordFits && pendingLeadingSeparator && pendingLeadingIsOrdinarySpace && !pendingLeadingIsTab &&
+                    wordWidth <= maxWidthPts + RichTextWidthTolerance &&
+                    PreferWordExpansionBreak(trialLine, completeWordCandidate!, lineWidth, completeWordNaturalWidth, CurrentMaxWidth());
+                if (completeWordFits && !preferEarlierWordBreak && preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0) {
                     // Trial the complete word before natural-width clipping can discard
                     // its authored separators. Commit their full natural advances only.
                     lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
@@ -809,7 +819,8 @@ internal static partial class PdfWriter {
                     needed = tokenW;
                     currentMaxWidth = CurrentMaxWidth();
                 }
-                if (MinimumCandidateWidth(tokenProbe, continuation.Parts, lineWidth + needed + boundaryAdvance) > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
+                if ((preferEarlierWordBreak && ReferenceEquals(lastLine, trialLine) ||
+                     MinimumCandidateWidth(tokenProbe, continuation.Parts, lineWidth + needed + boundaryAdvance) > currentMaxWidth + RichTextWidthTolerance) && lastLine.Count > 0
                     && (token.Length > 0 || whitespaceMode != PdfTextWhitespaceMode.Preserve)) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(lastLine);

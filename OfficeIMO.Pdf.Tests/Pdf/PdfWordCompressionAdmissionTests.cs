@@ -10,6 +10,8 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfWordCompressionAdmissionTests {
+    private const string CandidateQualityPrefix = "one two three four five six seven eight nine ten";
+
     [Theory]
     [InlineData("preserve")]
     [InlineData("split-word")]
@@ -30,6 +32,74 @@ public sealed class PdfWordCompressionAdmissionTests {
         Assert.Equal("Alphabetagamma", string.Concat(actual.Select(letter => letter.Value)));
         Assert.Equal(frame, Span(actual), 3);
         for (int index = 0; index < control.Count; index++) Assert.Equal(control[index].Width, actual[index].Width, 3);
+    }
+
+    [Theory]
+    [InlineData("preserve")]
+    [InlineData("collapse")]
+    [InlineData("split-word")]
+    public void WordsCandidateQualityChoosesOppositeEndpointsWithinTheSameCompressionBudget(string scenario) {
+        PdfTextWhitespaceMode whitespace = scenario == "collapse" ? PdfTextWhitespaceMode.Collapse : PdfTextWhitespaceMode.Preserve;
+        string text = CandidateQualityPrefix + " it tail";
+        PdfTextRun[] runs = scenario == "split-word"
+            ? new[] { new PdfTextRun(CandidateQualityPrefix + " i"), new PdfTextRun("t", color: new PdfColor(1, 0, 0)), new PdfTextRun(" tail") }
+            : new[] { new PdfTextRun(scenario == "collapse" ? text.Replace(" ", "  ") : text) };
+        var frames = CandidateQualityFrames(runs, whitespace, scenario);
+        string prefix = CandidateQualityPrefix.Replace(" ", "");
+        foreach (var frame in new[] { (Width: frames.Narrow, First: prefix, Label: "narrow"),
+            (Width: frames.Wide, First: prefix + "it", Label: "wide") }) {
+            List<List<Letter>> lines = Lines(Render(runs, frame.Width, true, whitespace), "quality-" + scenario + "-" + frame.Label);
+            Assert.Equal(2, lines.Count);
+            Assert.Equal(frame.First, string.Concat(lines[0].Select(letter => letter.Value)));
+            Letter[] actual = lines.SelectMany(line => line).ToArray();
+            Assert.Equal(prefix + "ittail", string.Concat(actual.Select(letter => letter.Value)));
+            Assert.Equal(frames.Control.Count, actual.Length);
+            Assert.Equal(frame.Width, Span(lines[0]), 3);
+            for (int index = 0; index < actual.Length; index++) Assert.Equal(frames.Control[index].Width, actual[index].Width, 3);
+            Assert.All(actual, letter => {
+                Assert.True(letter.StartBaseLine.X >= 19.999D);
+                Assert.True(letter.EndBaseLine.X <= 20D + frame.Width + 0.001D);
+            });
+            if (scenario == "preserve") {
+                List<List<Letter>> generic = Lines(Render(runs, frame.Width, false), "quality-generic-" + frame.Label);
+                List<List<Letter>> characters = Lines(Render(runs, frame.Width, true, mode: PdfJustificationMode.Characters), "quality-characters-" + frame.Label);
+                Assert.Equal(prefix, string.Concat(generic[0].Select(letter => letter.Value)));
+                Assert.Equal(prefix + "it", string.Concat(characters[0].Select(letter => letter.Value)));
+                Assert.Equal(prefix + "ittail", string.Concat(generic.SelectMany(line => line).Select(letter => letter.Value)));
+                Assert.Equal(prefix + "ittail", string.Concat(characters.SelectMany(line => line).Select(letter => letter.Value)));
+            }
+        }
+    }
+
+    [Fact]
+    public void RejectedCompressionCandidateRetainsItsNoteAndFollowingHardBreakAcrossSerialization() {
+        var runs = new[] { new PdfTextRun(CandidateQualityPrefix + " it tail") };
+        double frame = CandidateQualityFrames(runs, PdfTextWhitespaceMode.Preserve, "note-break").Narrow;
+        PdfDocument document = PdfDocument.Create(Options(frame));
+        int noteCalls = 0, paragraphCalls = 0;
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
+            noteCalls++;
+            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = 8D, LineSpacing = PdfLineSpacing.Exactly(10D) });
+        });
+        document.Content.Paragraph(paragraph => {
+            paragraphCalls++;
+            paragraph.Text(CandidateQualityPrefix + " ").Runs(new[] { PdfTextRun.Normal("it").WithFootnoteReference(note) })
+                .LineBreak().Text("tail");
+        }, PdfAlign.Justify, style: new PdfParagraphStyle {
+            UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,
+            TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, JustifyExplicitLineBreaks = true
+        });
+        Assert.Equal(1, noteCalls);
+        Assert.Equal(1, paragraphCalls);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            List<List<Letter>> lines = Lines(document.ToBytes(), "quality-note-break-" + attempt);
+            string[] text = lines.Select(line => string.Concat(line.Select(letter => letter.Value))).ToArray();
+            Assert.Equal(4, text.Length);
+            Assert.Equal(new[] { CandidateQualityPrefix.Replace(" ", ""), "it", "tail" }, text.Where(line => line != "QualityNote").ToArray());
+            Assert.Single(text, line => line == "QualityNote");
+            Assert.Equal(1, noteCalls);
+            Assert.Equal(1, paragraphCalls);
+        }
     }
 
     [Fact]
@@ -88,9 +158,27 @@ public sealed class PdfWordCompressionAdmissionTests {
         }
     }
 
-    private static byte[] Render(PdfTextRun[] runs, double width, bool native, PdfTextWhitespaceMode whitespace = PdfTextWhitespaceMode.Preserve) =>
+    private static (double Narrow, double Wide, List<Letter> Control) CandidateQualityFrames(
+        PdfTextRun[] runs, PdfTextWhitespaceMode whitespace, string label) {
+        List<Letter> control = Assert.Single(Lines(Render(runs, 600D, false, whitespace), "quality-natural-" + label));
+        int prefixGlyphs = CandidateQualityPrefix.Replace(" ", "").Length;
+        double previousNatural = Span(control.Take(prefixGlyphs).ToList());
+        double candidateNatural = Span(control.Take(prefixGlyphs + "it".Length).ToList());
+        double ordinarySpace = Gap(control, "one".Length - 1, "one".Length);
+        // Fixture widths lie inside the existing quarter-space feasibility allowance.
+        // No quality score is computed here: expected legal endpoints are explicit above.
+        double capacity = (CandidateQualityPrefix.Count(character => character == ' ') + 1) * ordinarySpace / 4D;
+        double narrow = candidateNatural - capacity * 0.75D;
+        double wide = candidateNatural - capacity * 0.25D;
+        Assert.True(ordinarySpace > 0D && previousNatural < narrow && narrow < wide && wide < candidateNatural);
+        Assert.True(candidateNatural - narrow < capacity && candidateNatural - wide < capacity);
+        return (narrow, wide, control);
+    }
+
+    private static byte[] Render(PdfTextRun[] runs, double width, bool native, PdfTextWhitespaceMode whitespace = PdfTextWhitespaceMode.Preserve,
+        PdfJustificationMode mode = PdfJustificationMode.Words) =>
         PdfDocument.Create(Options(width)).Paragraph(p => p.Runs(runs), PdfAlign.Justify,
-            style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace }).ToBytes();
+            style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
     private static PdfOptions Options(double width) => new() { PageWidth = width + 40D, PageHeight = 300D,
         MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false };

@@ -128,7 +128,7 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, useWordJustificationSpacing: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -326,7 +326,7 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, useWordJustificationSpacing: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 

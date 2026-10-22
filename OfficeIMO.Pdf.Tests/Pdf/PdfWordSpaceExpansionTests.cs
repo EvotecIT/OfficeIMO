@@ -57,6 +57,66 @@ public sealed class PdfWordSpaceExpansionTests {
         Assert.Equal("Alphabetagamma", string.Concat(actual.Select(letter => letter.Value)));
     }
 
+    [Fact]
+    public void ImportedWordExpansionAfterALeftTabMatchesTheSameIndentedWordField() {
+        // Native Word preserves the body-word positions when an equal left-tab
+        // field replaces a paragraph indent, including differently sized spaces.
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D),
+            new PdfTextRun("gamma"), new PdfTextRun(" ", fontSize: 12D), new PdfTextRun("delta") };
+        byte[] Render(bool anchored) {
+            var style = new PdfParagraphStyle {
+                UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,
+                JustifyExplicitLineBreaks = true, JustifyLastLine = false,
+                LeftIndent = anchored ? 0D : 36D, LineSpacing = PdfLineSpacing.Exactly(36D),
+                TextWhitespaceMode = PdfTextWhitespaceMode.Preserve
+            };
+            if (anchored) style.AddTabStop(36D, PdfTabAlignment.Left);
+            return PdfDocument.Create(new PdfOptions {
+                PageWidth = 612D, PageHeight = 792D, MarginLeft = 72D, MarginRight = 360D,
+                MarginTop = 72D, MarginBottom = 72D, DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 12D, CompressContentStreams = false
+            }).Compose(document => document.Content(content => content.Paragraph(paragraph => {
+                if (anchored) paragraph.Text("TAG").Tab();
+                paragraph.Runs(runs).LineBreak().Text("NEXT");
+            }, PdfAlign.Justify, style: style))).ToBytes();
+        }
+        List<List<Letter>> Lines(byte[] bytes) {
+            using var pdf = PdfPigDocument.Open(bytes);
+            return Assert.Single(pdf.GetPages()).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).OrderByDescending(line => line.Key)
+                .Select(line => line.OrderBy(letter => letter.StartBaseLine.X).ToList()).ToList();
+        }
+
+        List<List<Letter>> ordinary = Lines(Render(false));
+        List<List<Letter>> anchoredLines = Lines(Render(true));
+        Assert.Equal(2, ordinary.Count);
+        Assert.Equal(2, anchoredLines.Count);
+        Assert.Equal("Alphabetagammadelta", string.Concat(ordinary[0].Select(letter => letter.Value)));
+        Assert.Equal("TAGAlphabetagammadelta", string.Concat(anchoredLines[0].Select(letter => letter.Value)));
+        List<Letter> body = anchoredLines[0].Skip("TAG".Length).ToList();
+        Assert.Equal(ordinary[0].Count, body.Count);
+        Assert.Equal(108D, body[0].StartBaseLine.X, 3);
+        Assert.Equal(252D, body[body.Count - 1].EndBaseLine.X, 3);
+        for (int index = 0; index < body.Count; index++) {
+            Assert.Equal(ordinary[0][index].Value, body[index].Value);
+            Assert.Equal(ordinary[0][index].StartBaseLine.X, body[index].StartBaseLine.X, 3);
+            Assert.Equal(ordinary[0][index].EndBaseLine.X, body[index].EndBaseLine.X, 3);
+            Assert.Equal(ordinary[0][index].StartBaseLine.Y, body[index].StartBaseLine.Y, 3);
+        }
+        Assert.Equal(72D, anchoredLines[0][0].StartBaseLine.X, 3);
+        Assert.True(anchoredLines[0]["TAG".Length - 1].EndBaseLine.X < body[0].StartBaseLine.X);
+        Assert.Equal("NEXT", string.Concat(ordinary[1].Select(letter => letter.Value)));
+        Assert.Equal("NEXT", string.Concat(anchoredLines[1].Select(letter => letter.Value)));
+        Assert.Equal(108D, ordinary[1][0].StartBaseLine.X, 3);
+        Assert.Equal(72D, anchoredLines[1][0].StartBaseLine.X, 3);
+        for (int index = 0; index < ordinary[1].Count; index++) {
+            Assert.Equal(ordinary[1][index].StartBaseLine.X - 36D, anchoredLines[1][index].StartBaseLine.X, 3);
+            Assert.Equal(ordinary[1][index].EndBaseLine.X - 36D, anchoredLines[1][index].EndBaseLine.X, 3);
+            Assert.Equal(ordinary[1][index].StartBaseLine.Y, anchoredLines[1][index].StartBaseLine.Y, 3);
+        }
+    }
+
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, bool lastLine, PdfTextWhitespaceMode whitespace) =>
         PdfDocument.Create(new PdfOptions { PageWidth = width + 40D, PageHeight = 300D,
             MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,

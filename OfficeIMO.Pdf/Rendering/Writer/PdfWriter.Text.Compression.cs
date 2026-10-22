@@ -34,13 +34,17 @@ internal static partial class PdfWriter {
         segment.LeadingSpaceIsExpandable && segment.LeadingAdvance > 0D
             ? segment.LeadingAdvance / 4D : 0D;
 
-    /// <summary>Tests the complete natural candidate in current PDF points, without allocating or consuming source state.</summary>
-    private static double MeasureWordCompressionMinimumWidth(IReadOnlyList<RichSeg> candidate, double naturalWidth) {
+    /// <summary>Measures the unchanged ordinary-space allowance without consuming candidate source state.</summary>
+    private static double MeasureWordCompressionCapacity(IReadOnlyList<RichSeg> candidate) {
         double capacity = 0D;
         for (int index = WordCompressionStart(candidate); index < candidate.Count; index++)
             capacity += WordCompressionCapacity(candidate[index]);
-        return naturalWidth - capacity;
+        return capacity;
     }
+
+    /// <summary>Tests the complete natural candidate in current PDF points, without allocating or consuming source state.</summary>
+    private static double MeasureWordCompressionMinimumWidth(IReadOnlyList<RichSeg> candidate, double naturalWidth) =>
+        naturalWidth - MeasureWordCompressionCapacity(candidate);
 
     /// <summary>Snapshots pending source separators for a trial; footnote ownership is transferred only by actual consumption.</summary>
     private static List<RichSeg> WordCompressionCandidate(IReadOnlyList<RichSeg> line,

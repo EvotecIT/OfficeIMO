@@ -39,9 +39,11 @@ internal static partial class PdfWriter {
         if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);
         int lastTab = segments.FindLastIndex(segment => segment.LeadingIsTab);
         if (lastTab >= 0) {
-            return segments[lastTab].LeadingTabAlignment == PdfTabAlignment.Left
-                ? PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth)
-                : new RichLineJustification(segments, 0D, naturalWidth);
+            if (segments[lastTab].LeadingTabAlignment != PdfTabAlignment.Left)
+                return new RichLineJustification(segments, 0D, naturalWidth);
+            if (policy.UseWordJustificationSpacing && policy.Mode == PdfJustificationMode.Words)
+                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth, lastTab + 1);
+            return PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth);
         }
         if (policy.Mode != PdfJustificationMode.Characters) {
             if (policy.UseWordJustificationSpacing)
@@ -56,18 +58,18 @@ internal static partial class PdfWriter {
 
     /// <summary>Consumes source-space preferred expansion before sharing the remaining width per ordinary space.</summary>
     private static RichLineJustification PlanRichWordSpaceDistribution(List<RichSeg> segments,
-        double naturalWidth, double availableWidth) {
-        int spaces = segments.Where(IsWordExpansionSpace).Sum(segment => segment.LeadingSpaceCount);
+        double naturalWidth, double availableWidth, int startIndex = 0) {
+        int spaces = segments.Skip(startIndex).Where(IsWordExpansionSpace).Sum(segment => segment.LeadingSpaceCount);
         if (spaces == 0) return new RichLineJustification(segments, 0D, naturalWidth);
         double adjustment = availableWidth - naturalWidth;
         var resources = new List<OfficeTextSpacingResource>();
-        for (int index = 0; index < segments.Count; index++) {
+        for (int index = startIndex; index < segments.Count; index++) {
             RichSeg segment = segments[index];
             if (!IsWordExpansionSpace(segment)) continue;
             // Preferred capacity follows the actual source-space metrics. The later
             // tier needs only the finite remaining request, shared per source space;
             // it does not introduce a font-specific or native-unit ceiling.
-            resources.Add(new OfficeTextSpacingResource(index, 0, 0D, Math.Max(0D, segment.LeadingAdvance / 2D)));
+            resources.Add(new OfficeTextSpacingResource(index, 0, 0D, WordPreferredExpansionCapacity(segment)));
             resources.Add(new OfficeTextSpacingResource(index, 4, 0D, adjustment * (segment.LeadingSpaceCount / (double)spaces)));
         }
         OfficeTextSpacingAllocation allocation = OfficeTextSpacingAllocator.Allocate(segments.Count, resources, adjustment);
@@ -82,6 +84,10 @@ internal static partial class PdfWriter {
 
     private static bool IsWordExpansionSpace(RichSeg segment) => segment.LeadingSpace &&
         segment.LeadingIsOrdinarySpace && !segment.LeadingIsTab && segment.LeadingSpaceIsExpandable && segment.LeadingSpaceCount > 0;
+
+    /// <summary>The source-space preferred tier shared by positive paint and whole-word break selection.</summary>
+    private static double WordPreferredExpansionCapacity(RichSeg segment) =>
+        IsWordExpansionSpace(segment) ? Math.Max(0D, segment.LeadingAdvance / 2D) : 0D;
 
     private static RichLineJustification PlanRichAnchoredWordDistribution(List<RichSeg> segments,
         int lastTab, double naturalWidth, double availableWidth) {

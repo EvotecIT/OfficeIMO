@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
                     var frame = GetFloatingTextFrame(left, available, start - completedHeight, requiredHeight, minimumWidth);
                     if (index == 0) firstLineGap = frame.Gap;
                     return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                }, lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, useWordJustificationSpacing: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify);
+                }, lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
             return spacing + (firstVisualOnly ? wrapped.Lines.Count == 0 ? 0D
                 : GetRichLineFrameFitHeight(wrapped.Lines[0], wrapped.LineHeights[0], firstLineGap)
                 : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));

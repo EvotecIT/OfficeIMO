@@ -48,7 +48,7 @@ internal static partial class PdfWriter {
                 var frame = GetParagraphTextFrame(style, frameX, frameWidth);
                 var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                     frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
-                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, useWordJustificationSpacing: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify);
+                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
                 int count = style?.KeepTogether == true ? wrap.Lines.Count : Math.Min(wrap.Lines.Count, style == null ? 1 : Math.Max(1, ResolveMinimumOrphanLines(style)));
                 if (style != null && wrap.Lines.Count < Math.Max(1, ResolveMinimumOrphanLines(style)) + Math.Max(1, ResolveMinimumWidowLines(style))) count = wrap.Lines.Count;
                 return wrap.Lines.Take(count).SelectMany(line => line);
