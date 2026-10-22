@@ -6,6 +6,7 @@ import type { PdfObjects } from "./objects.js";
 import { pdfNumber } from "./objects.js";
 import { color } from "./settings.js";
 import type { PdfSettings } from "./settings.js";
+import { PdfTableBandFlow } from "./table-band-flow.js";
 import type { PdfTableLayout, PdfLayoutRow } from "./table-layout.js";
 import { wrapText, wrapTextCooperatively, synchronousText } from "./text.js";
 import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
@@ -20,6 +21,8 @@ import { captureSection, captureBookmark } from "./section-types.js";
 import { sectionSettings } from "./page-context.js";
 import type { PdfOutlines } from "./outlines.js";
 import type { PdfPageContext } from "./types.js";
+
+interface PdfPaintTableLayout { readonly lefts: readonly number[]; readonly lineHeight: number; headers(): Promise<readonly PdfLayoutRow[]>; }
 
 interface ParagraphFrame {
   readonly parent?: number;
@@ -51,12 +54,14 @@ export class PdfPages {
   private pageNumberWidth = 0;
   private readonly colors = new Map<string, string>();
   private readonly externalObjects = new Map<string, number>();
+  private bandFlow: PdfTableBandFlow | undefined;
+  private bandCellBudget = false;
   private tableElement: number | undefined;
   private tableHeadingsDrawn = false;
   private continuationCaption: PdfPreparedParagraph | undefined;
   private continuationCaptionPaints = 0;
   constructor(readonly objects: PdfObjects, private readonly baseSettings: PdfSettings, readonly fonts: PdfFontResources,
-    private readonly parent: number, private readonly resources: number, private layout?: PdfTableLayout, private readonly structure?: PdfStructure, private readonly outlines?: PdfOutlines) {
+    private readonly parent: number, private readonly resources: number, private layout?: PdfPaintTableLayout, private readonly structure?: PdfStructure, private readonly outlines?: PdfOutlines) {
     this.activeSettings = baseSettings;
   }
   private measurePageNumbers(): number {
@@ -230,6 +235,7 @@ export class PdfPages {
     this.bodyAdded = true;
     const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
     for (const [index, cell] of row.cells.entries()) {
+      if (this.bandCellBudget) this.settings.budget.cell((cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
       const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
       if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
       this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
@@ -243,6 +249,7 @@ export class PdfPages {
     this.y -= row.structured ? row.height : height;
   }
   async block(rows: readonly PdfLayoutRow[]): Promise<void> {
+    if (this.bandFlow) return this.bandFlow.block(rows);
     const height = rows.reduce((n, row) => n + row.height, 0), bottom = this.settings.margins.bottom;
     if (height > this.y - bottom) { await this.finishPage(); await this.start(); }
     if (height > this.dataTop - bottom) throw new RangeError("A structured footer must fit on one page below the repeated headings.");
@@ -252,6 +259,7 @@ export class PdfPages {
     }
   }
   async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
+    if (this.bandFlow) return this.bandFlow.row(row, allowFirstFragment);
     const elements = this.rowElements(row);
     const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
     if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) { await this.finishPage(); await this.start(); }
@@ -268,6 +276,7 @@ export class PdfPages {
   /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
    * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
   async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
+    if (this.bandFlow) return this.bandFlow.keptRows(rows, allowFirstFragment);
     const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
     const fits = height <= this.continuationTop - bottom + .001;
     if (fits && height > this.y - bottom + .001) { await this.finishPage(); await this.start(); }
@@ -334,6 +343,7 @@ export class PdfPages {
   /** Begin an independent table on the current page, retaining its headings on continuation pages. */
   async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
     continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false): Promise<void> {
+    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
     await this.ensureStarted();
     this.layout = layout;
     this.continuationCaption = continuationCaption; this.continuationCaptionPaints = 0;
@@ -354,7 +364,44 @@ export class PdfPages {
     await this.drawHeadings(initialHeadings);
     this.dataTop = this.y;
   }
+  /** Bind the bounded logical-window owner to the existing physical page painter. */
+  private async beginBands(layout: PdfTableLayout, preparedHeadings: readonly PdfLayoutRow[] | undefined, minimumDataHeight: number,
+    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined): Promise<void> {
+    await this.ensureStarted();
+    const headings = await layout.bandRows(preparedHeadings ?? await layout.headers(), true);
+    const headerHeight = headings[0]!.reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
+    const firstFullCapacity = page.height - margins.top - margins.bottom - headerHeight - (caption?.height ?? 0);
+    const minimum = minimumDataHeight <= firstFullCapacity + .001 ? minimumDataHeight : layout.lineHeight + padding * 2;
+    const continuationCapacity = page.height - margins.top - margins.bottom - headerHeight - (continuation?.height ?? 0);
+    if (continuationCapacity + .001 < layout.lineHeight + padding * 2) throw new RangeError("PDF band headings and continuation context leave no room for a data line.");
+    if (this.y - margins.bottom - headerHeight - (caption?.height ?? 0) + .001 < minimum) await this.pageBreak();
+    let initialOffset = page.height - margins.top - this.y;
+    const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
+    if (firstCapacity + .001 < minimum) throw new RangeError("PDF band caption and headings leave no room for a data line.");
+    let captionPaints = 0, continuationPaints = 0;
+    this.layout = undefined; this.continuationCaption = undefined;
+    this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
+      moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
+      paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
+        if (!(firstWindow && firstBand)) await this.pageBreak();
+        if (firstWindow && !firstBand) this.y -= initialOffset;
+        const frame = layout.bands![band]!;
+        this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
+        this.bandCellBudget = true; this.tableHeadingsDrawn = false;
+        try {
+          if (currentCaption?.lines.length) {
+            const paints = firstWindow ? captionPaints++ : continuationPaints++;
+            if (paints > 0) this.settings.budget.cell(currentCaption.text.text);
+            await this.paragraphs([currentCaption], headerHeight + minimum, true);
+          }
+          await this.drawHeadings(headers); this.dataTop = this.y;
+          for (const row of rows) { checkAbort(this.settings.options.signal); this.draw(row, 0, row.lines); }
+        } finally { this.bandCellBudget = false; }
+      }
+    }, caption, continuation);
+  }
   async endTable(): Promise<void> {
+    if (this.bandFlow) { const flow = this.bandFlow; await flow.flush(true); this.bandFlow = undefined; }
     await this.structure?.complete(this.tableElement);
     this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.continuationCaption = undefined; this.continuationCaptionPaints = 0; this.y -= 8;
   }
@@ -412,6 +459,7 @@ export class PdfPages {
     await this.objects.flush();
   }
   async finish(): Promise<void> {
+    if (this.bandFlow) { const flow = this.bandFlow; await flow.flush(true); this.bandFlow = undefined; }
     await this.ensureStarted();
     await this.structure?.complete(this.tableElement);
     await this.finishPage();

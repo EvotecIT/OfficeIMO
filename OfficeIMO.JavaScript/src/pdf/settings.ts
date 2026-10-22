@@ -19,14 +19,16 @@ export const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "te
   "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
   "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"] as const;
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
-export const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
+export const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
   "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
   "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"] as const;
 
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 export function capturePdfOptions<T extends object>(input: T): T {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("PDF options must be an object.");
-  return captureFields(input, pdfOptionFields as unknown as readonly (keyof T)[]);
+  const captured = captureFields(input, pdfOptionFields as unknown as readonly (keyof T)[]);
+  const policy = (captured as unknown as PdfOptions).wideTable;
+  return { ...captured, ...(policy === undefined ? {} : { wideTable: captureWideTable(policy) }) };
 }
 /** @internal Capture the complete PDF budget before an adapter adds its shared row/output limits. */
 export function capturePdfLimits(input: PdfLimits): Readonly<PdfLimits> {
@@ -44,6 +46,20 @@ function captureFooter(input: PdfTableFooter, columns: number): Readonly<PdfTabl
     ...(totals === undefined ? {} : { totals: Object.freeze({ ...totals }) }),
     ...(rows === undefined ? {} : { rows: captureTableSpans(rows, columns) }) });
 }
+/** @internal Capture a band policy and its array before asynchronous layout or row production. */
+export function captureWideTable(input: PdfOptions["wideTable"]): PdfOptions["wideTable"] {
+  if (input === undefined || input === "fit" || input === "reject") return input;
+  if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).some(key => !["mode", "minimumColumnWidth", "repeatColumns"].includes(key)))
+    throw new TypeError("wideTable must be fit, reject or a bands policy.");
+  const { mode, minimumColumnWidth, repeatColumns } = input;
+  if (mode !== "bands") throw new TypeError("wideTable.mode must be bands.");
+  if (minimumColumnWidth !== undefined) positive(minimumColumnWidth, "Minimum PDF column width");
+  if (repeatColumns !== undefined && !Array.isArray(repeatColumns)) throw new TypeError("repeatColumns must be an array.");
+  const repeats = repeatColumns === undefined ? [] : [...repeatColumns];
+  if (repeats.some((value, index) => !Number.isSafeInteger(value) || value < 0 || index > 0 && value <= repeats[index - 1]!))
+    throw new RangeError("repeatColumns must contain sorted unique nonnegative indices.");
+  return Object.freeze({ mode, ...(minimumColumnWidth === undefined ? {} : { minimumColumnWidth }), repeatColumns: Object.freeze(repeats) });
+}
 export interface PdfSettings {
   readonly options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">;
   readonly paragraphStyles: Readonly<Record<string, Readonly<PdfParagraphStyle>>>;
@@ -51,7 +67,7 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxTextRuns" | "maxGroupBlocks" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences" | "maxListItems" | "maxParagraphStyles" | "maxSections" | "maxBookmarks">> & Pick<PdfLimits, "maxImageWorkingBytes">;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxTableBands" | "maxTableWindowRows" | "maxCellCharacters" | "maxTextRuns" | "maxGroupBlocks" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences" | "maxListItems" | "maxParagraphStyles" | "maxSections" | "maxBookmarks">> & Pick<PdfLimits, "maxImageWorkingBytes">;
   readonly budget: ExportBudget;
 }
 export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">, document = false): PdfSettings {
@@ -85,7 +101,7 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
     headerPresentation: Object.freeze({ background: "e7edf5", bold: true, ...presentation(configuration.headerPresentation) }),
     footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+  const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
     maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
     maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
     maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
@@ -104,7 +120,7 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
   if (margins.left + margins.right >= page.width || margins.top + margins.bottom >= page.height) throw new RangeError("PDF margins leave no content area.");
   const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
   if (!Number.isFinite(padding) || padding < 0 || padding > 72) throw new RangeError("PDF padding must be from 0 through 72 points.");
-  if (options.wideTable !== undefined && !["fit", "reject"].includes(options.wideTable)) throw new TypeError("wideTable must be fit or reject.");
+  if (typeof options.wideTable === "object" && options.tagged) throw new TypeError("Tagged PDF horizontal bands are unsupported.");
   for (const key of ["title", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
   for (const key of ["pageHeader", "pageFooter"] as const) if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function") throw new TypeError(key + " must be text or a synchronous callback.");
   for (const key of ["formatValue", "formatRuns"] as const)
