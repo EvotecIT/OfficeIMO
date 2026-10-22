@@ -331,8 +331,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
-            paragraph.BiDi ||
-            paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.BiDi>() != null;
+            ReadNativeDirectParagraphOnOff<W.BiDi>(paragraph) == true;
 
         private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
             MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
