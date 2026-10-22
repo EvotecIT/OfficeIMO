@@ -35,7 +35,12 @@ public partial class WordChart {
         foreach (C.DataLabels labels in root.Descendants<C.DataLabels>()) {
             if (!percentageLabels) {
                 labels.RemoveAllChildren<C.DataLabelPosition>();
-                labels.AddChild(new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
+                bool supportsOutsideEnd = labels.Ancestors<C.PieChart>().Any() || labels.Ancestors<C.Pie3DChart>().Any()
+                    || labels.Ancestors<C.OfPieChart>().Any() || labels.Ancestors<C.BarChart>()
+                        .Any(bar => bar.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered);
+                if (supportsOutsideEnd) {
+                    labels.AddChild(new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
+                }
             }
             labels.RemoveAllChildren<C.ShowValue>();
             labels.RemoveAllChildren<C.ShowPercent>();
