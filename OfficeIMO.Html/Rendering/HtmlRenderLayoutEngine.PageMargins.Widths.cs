@@ -76,12 +76,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Auto horizontal margins have used value zero in page-margin boxes.
             Margins = Generated && style != null ? style.MarginLeft + style.MarginRight : 0D;
             OuterEdges = Insets + Margins;
-            double? width = Generated ? style?.ExplicitWidth : 0D;
+            // Strip allocation uses content coordinates. The shared intrinsic
+            // owner has already converted keywords into the selected box edges.
+            double borderBoxInsets = style?.BorderBox == true ? Insets : 0D;
+            double? ContentWidth(double? value) => value.HasValue
+                ? Math.Max(0D, value.Value - borderBoxInsets) : null;
+            double? width = Generated ? ContentWidth(style?.ExplicitWidth) : 0D;
             OuterWidth = width.HasValue ? width.Value + Insets + Margins : null;
             OuterMinimum = (width ?? size.Minimum) + Insets + Margins;
             OuterMaximum = (width ?? size.Maximum) + Insets + Margins;
-            MinimumConstraint = Generated ? style?.MinWidth : null;
-            MaximumConstraint = Generated ? style?.MaxWidth : null;
+            MinimumConstraint = Generated ? ContentWidth(style?.MinWidth) : null;
+            MaximumConstraint = Generated ? ContentWidth(style?.MaxWidth) : null;
         }
 
         internal PageMarginWidthState(bool generated, double minimum, double maximum, double? width, double outerEdges) {

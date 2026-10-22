@@ -20,6 +20,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _activeCharacterAdvance = computed.Properties.Any(pair =>
                 HtmlCssPageSettingsResolver.IsMarginGeometryDeclaration(pair.Key) && ContainsCharacterUnit(pair.Value))
                 ? _measureCharacterAdvance(style) : double.NaN;
+            style.BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase);
             style.ExplicitWidth = ReadLength(computed.GetValue("width"), null, stripWidth, style.Font.Size);
             style.MinWidth = ReadLength(computed.GetValue("min-width"), null, stripWidth, style.Font.Size);
             style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, stripWidth, style.Font.Size);

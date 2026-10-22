@@ -123,4 +123,16 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(PageMarginTypographyDrawingText(page.CreateDrawing()), text => text.Text == "A");
         rendered.RequireNoLoss();
     }
+
+    [Fact]
+    public void HtmlPageMarginBoxSizing_RunningPaintOutsideTheReducedContentHeightReportsLoss() {
+        HtmlRenderDocument rendered = RenderMarginSizing(300D,
+            "@top-center{content:element(heading);box-sizing:border-box;"
+            + "width:80px;height:30px;padding:5px 10px;border:2px solid red}",
+            body: "<p style='position:running(heading);height:20px;background:blue'>A</p><p>BODY</p>");
+
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center element(heading)"
+            && diagnostic.Detail == "margin-height" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+    }
 }

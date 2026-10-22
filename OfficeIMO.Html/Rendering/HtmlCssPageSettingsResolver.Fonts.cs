@@ -34,7 +34,7 @@ internal static partial class HtmlCssPageSettingsResolver {
     }
 
     internal static bool IsMarginGeometryDeclaration(string name) =>
-        name.ToLowerInvariant() is "width" or "min-width" or "max-width" or "height" or "min-height" or "max-height"
+        name.ToLowerInvariant() is "box-sizing" or "width" or "min-width" or "max-width" or "height" or "min-height" or "max-height"
             or "margin" or "margin-top" or "margin-right" or "margin-bottom" or "margin-left" or "padding"
             or "padding-top" or "padding-right" or "padding-bottom" or "padding-left"
             or "border" or "border-width" or "border-style" or "border-color"
