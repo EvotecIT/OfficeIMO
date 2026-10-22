@@ -13,13 +13,13 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
-        return (text, font, descriptor) => {
+        return ReuseTextMeasurement<HtmlTextFaceMetrics>(options, measurementOptions, (text, font, descriptor) => {
             string family = ResolvePdfFontFamilyForText(font.FamilyName, text, font.IsBold,
                 font.IsItalic, descriptor, useInstalledFonts, measurementOptions);
             return ResolveNamedFaceMetrics(measurementOptions, family, text, font.Size,
                 font.IsBold, font.IsItalic, allowStyleFallback: true)
                 ?? ResolveStandardFaceMetrics(measurementOptions, family, text, font.Size, font.IsBold, font.IsItalic);
-        };
+        });
     }
 
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?> CreateFallbackTextMeasurement(
@@ -29,7 +29,7 @@ internal static partial class HtmlPdfRenderedConverter {
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
         var attemptedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int loadedFamilies = 0;
-        return (text, font, descriptor) => {
+        return ReuseTextMeasurement<double>(options, measurementOptions, (text, font, descriptor) => {
             string measuredFamily = font.FamilyName;
             if (useInstalledFonts && font.FamilyName.Length > 0
                 && HtmlRenderCssValues.TrySplitTopLevelCommas(
@@ -71,7 +71,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
                     fontSize: font.Size, font: MapStandardFont(measuredFamily), fontFamily: measuredFamily),
                 measurementOptions);
-        };
+        });
     }
 
     private static bool NeedsNumericSystemFace(OfficeFontFaceDescriptor descriptor) =>

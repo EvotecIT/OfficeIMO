@@ -117,3 +117,68 @@ when those supported workloads identify another material cost. Stop an optimizat
 that weakens content, diagnostics, cancellation or resource limits, or requires an
 unrelated redesign. Preserve slower and failed observations; do not repeat exhausted
 ideas unless the relevant source has changed.
+
+
+## Font, style and geometry reuse investigation: 22 October 2026
+
+The baseline for this round is `8cc38e17423cc434a8306b1cd9cfc184ae30ba6c`.
+The selected goal is lower warm conversion time and managed allocation on the
+maintained 21 KiB payloads and purchase-table exports, with byte-identical saved
+PDFs, unchanged diagnostic behavior and existing resource/cancellation limits.
+The immutable baseline archive and compiled runtimes are retained with the run records.
+
+The normal Apple M4 development host uses the repository SDK and .NET 10 runtime,
+with `DOTNET_PROCESSOR_COUNT=3`, no affinity or power changes, six warmups,
+twelve measured iterations and no outlier removal for final paired measurements.
+Use the maintained commands above. Keep different workloads and earlier source
+revisions in separate cohorts; allocation is total managed allocation, not peak
+or retained memory.
+
+| Attempt | Observation and disposition |
+| --- | --- |
+| Reuse short built-in fallback measurements within one prepared conversion | Initial draft; full text/font/size/face key, font-definition snapshot invalidation, 1,024 entries and 256-character text/family limits. Host-selected faces and caller shaping providers keep their ordinary path. Included in the initial paired trial below; final qualification is pending. |
+| Reuse resolved border and outline values | Initial draft; one resolver, immutable computed-style identity and every original numeric/color/character context. Resolved parent boxes are never memoized. Included in the initial paired trial below; final qualification is pending. |
+| Reuse private glyph-placement workspace | Owner-confirmed separate placement workspace draft. Immutable origin outlines remain unchanged; every point is copied before the original placement arithmetic, with bounded writer-local storage. First compiled trial below; final qualification is pending. |
+
+Stop or revert an attempt that changes saved content, geometry, diagnostics,
+requested compliance or bounded-resource behavior. Keep failed and slower trials.
+A smaller allocation without a reliable throughput improvement is reported as
+such, and does not close the speed objective. No public API, provider or production
+dependency change is part of this round.
+
+The initial font/stroke draft passed six focused .NET 10 cases and all nine
+payload admissions, with the three OfficeIMO PDFs byte-identical to the fresh
+baseline. One preliminary pair used the maintained in-process benchmark job
+with six warmups and twelve measurements:
+
+| Payload | Baseline mean (ms) | Draft mean (ms) | Baseline allocated (MiB) | Draft allocated (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Plain | 45.61 | 34.12 | 93.86 | 58.39 |
+| Table | 118.39 | 101.49 | 199.89 | 162.35 |
+| Multilingual | 35.43 | 27.86 | 94.67 | 58.26 |
+
+This is an initial dirty-source trial, before geometry reuse, rather than final
+qualification or an isolated attribution to either change. All raw samples,
+actual runtime inputs and the initial test-fixture compilation failure are
+retained. The fixture was corrected to use the existing linked scalar-advance
+font helper; no product behavior was changed to satisfy that failed compile.
+
+The next draft included the private glyph-placement workspace. It passed 114
+focused PDF cases and the six HTML cases on .NET 10, all nine payload admissions
+and syntax checks, and byte-identical OfficeIMO output for all three payloads.
+The first alternating-glyph assertion failed on both the draft and immutable
+baseline because separate documents repeat their own document-wide notices.
+The corrected comparison retains every distinct warning with its exact bounds,
+without multiplying those notices. Both failed controls remain in the raw record.
+
+| Payload | Baseline mean (ms) | Geometry draft mean (ms) | Draft standard deviation (ms) | Draft allocated (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Plain | 45.61 | 45.98 | 11.74 | 47.25 |
+| Table | 118.39 | 100.01 | 5.20 | 154.33 |
+| Multilingual | 35.43 | 27.43 | 0.49 | 50.73 |
+
+The plain-text mean lost the earlier trial's timing benefit and varied widely;
+its samples are retained rather than removed. Allocation fell for all three
+payloads. This preliminary trial does not close the speed objective. Final
+qualification uses a stable committed candidate, rotated baseline/candidate
+pairs, larger purchase reports and saved warning/geometry controls.
