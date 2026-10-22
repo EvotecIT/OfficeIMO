@@ -203,6 +203,22 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("height:max-content", "'AAAA'", 20D)]
+    [InlineData("height:0;min-height:max-content", "'AAAA'", 20D)]
+    [InlineData("height:80px;max-height:min-content", "'AAAA'", 20D)]
+    [InlineData("height:fit-content", "'AAAA\\A BBBB'", 40D)]
+    public void HtmlPageMarginIntrinsicHeights_ZeroSizeTextCannotSoftWrapAtANarrowAssignedWidth(
+        string declarations, string content, double height) {
+        HtmlRenderDocument rendered = RenderPageMarginDimensions("width:1px;font-size:0;line-height:20px;" + declarations, content);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+
+        AssertPageMarginDimensionFrames(rendered, 60D - height, 240D, height);
+        Assert.DoesNotContain(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin");
+        Assert.Equal("BODY", rendered.Text.Trim());
+        rendered.RequireNoLoss();
+    }
+
     // Each fixture has one generated box per opposite strip and a distinct
     // BODY marker. Glyph origins may cross the exact strip boundary.
     private static OfficeDrawingText[] IntrinsicHeightPaintedText(HtmlRenderPage page, HtmlRenderText margin) =>

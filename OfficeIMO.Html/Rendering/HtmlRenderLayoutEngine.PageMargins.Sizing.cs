@@ -80,6 +80,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasurePageMarginText(string value, HtmlCssPageMarginTemplate box) {
         CheckCancellation();
         ChargeLayoutOperations(value.Length, "@page @" + GetMarginBoxName(box.Position) + " text measurement");
+        // Zero-size generated text can retain leading and hard lines, but it
+        // must not reach positive-size fallback measurers or request a face.
+        if (box.Font.Size <= 0D) return 0D;
         return MeasureText(value, box.Font, box.Typography.FontDescriptor);
     }
 
