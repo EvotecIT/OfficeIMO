@@ -1,0 +1,20 @@
+name: Pinned PowerShell test modules
+description: Cache exact test tools and avoid the legacy NuGet.exe installer on PowerShell 7.
+inputs:
+  shell:
+    description: PowerShell host used by the tests
+    default: pwsh
+  packaging:
+    description: Include the existing PSPublishModule build tool
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/officeimo-ci-modules
+        key: ${{ runner.os }}-${{ inputs.shell }}-modules-pester6.1.0-color1.0.3-publish3.0.170-${{ inputs.packaging }}-v1
+    - shell: ${{ inputs.shell }}
+      env:
+        OFFICEIMO_CI_PACKAGING: ${{ inputs.packaging }}
+      run: '& "$env:GITHUB_ACTION_PATH/Install-TestModules.ps1"'

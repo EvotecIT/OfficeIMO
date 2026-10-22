@@ -1,0 +1,43 @@
+name: Select repository contracts
+description: Use the same dependency closure for .NET, PowerShell, website and comparison jobs.
+inputs:
+  suite:
+    description: Entry in Build/Ci/pr-suites.json
+    required: true
+outputs:
+  selected:
+    description: Whether this suite is affected or full CI was requested
+    value: ${{ steps.suite.outputs.selected }}
+runs:
+  using: composite
+  steps:
+    - if: github.event_name == 'pull_request'
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        PR_BASE: ${{ github.event.pull_request.base.sha }}
+      run: git fetch --no-tags --depth=1 origin "$PR_BASE"
+    - id: selection
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        PR_BASE: ${{ github.event.pull_request.base.sha }}
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          python3 Build/Ci/select.py --base "$PR_BASE" --output "$RUNNER_TEMP/ci-selection.json"
+        else
+          python3 Build/Ci/select.py --full --output "$RUNNER_TEMP/ci-selection.json"
+        fi
+    - id: suite
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        CI_SUITE: ${{ inputs.suite }}
+      run: |
+        python3 - <<'PY'
+        import json, os
+        from pathlib import Path
+        selection = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ci-selection.json').read_text())
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+            output.write('selected=' + str(selection['suites'][os.environ['CI_SUITE']]).lower() + '\n')
+        PY
