@@ -5885,7 +5885,7 @@ const { OfficeIMOError } = _m2;
 
 const { pdfXrefChunks, pdfXrefEntryBytes } = _m61;
 
-const compactObjectCount = 100, compactObjectBytes = 32768;
+const compactObjectCount = 200, compactObjectBytes = 32768;
 function pdfNumber(value) {
     if (!Number.isFinite(value) || Math.abs(value) > 1e9)
         throw new RangeError("PDF coordinates and metrics must be finite and bounded.");

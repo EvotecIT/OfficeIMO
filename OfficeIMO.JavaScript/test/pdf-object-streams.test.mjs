@@ -53,7 +53,7 @@ test("compressed structure containers preserve banded grouped reports, headers, 
   const containers = [...compact.objects.values()].filter(object => /\/Type \/ObjStm\b/.test(object.body));
   assert.ok(containers.length > 1, "The report must exercise several completed batches");
   for (const container of containers) {
-    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 100);
+    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 200);
     assert.ok(container.stream.length <= 32768, "Decoded batches retain a bounded member index and body");
     const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
     assert.match(compact.objects.get(lengthId).body, /^\d+$/, "A container length stays an ordinary scalar object");

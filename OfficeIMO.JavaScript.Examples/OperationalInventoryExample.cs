@@ -44,14 +44,20 @@ internal static class OperationalInventoryExample {
                 object? value = row.Values[field.Key];
                 var span = new HtmlTag("span").Attribute("data-field", field.Key).Attribute("data-value-type", value is null ? "null" : field.Type)
                     .Attribute("data-raw-value", Raw(value)).Value(Display(value, field));
+                if (field.Key == "supportWindow" && value is string note && note.Contains('\n'))
+                    span.Class("d-block").Style("width", "20rem").Style("max-height", "4.5rem")
+                        .Style("overflow-y", "auto").Style("white-space", "pre-wrap")
+                        .Attribute("tabindex", "0").Attribute("role", "region")
+                        .Attribute("aria-label", "Full support note for " + row.Id);
                 if (field.Key == "service") span.Attribute("data-row-id", row.Id).Attribute("data-portfolio", row.Path[0])
                     .Attribute("data-environment", row.Path[1]).Attribute("data-owner", row.Path[2]);
                 cells.Add(TableCell.FromElement(span));
             }
             table.AddRow(cells);
         }
-        // Table owns the actual headers and cells; this wrapper supplies stable table identity only.
-        document.Body.Add(new HtmlTag("div").Style("overflow-x", "auto").Value(new HtmlTag("table").Id("operational-inventory")
+        // Table owns the headers and cells; the wrappers attach identity and existing Tabler table styles.
+        document.Body.Add(new HtmlTag("div").Class("table-responsive").Value(new HtmlTag("table")
+            .Class("table table-nowrap align-top").Style("min-width", "100rem").Id("operational-inventory")
             .Attribute("data-column-fields", string.Join(' ', Fields.Select(field => field.Key)))
             .Attribute("data-column-schema", JsonSerializer.Serialize(Fields.Select(field => new {
                 key = field.Key, type = field.Type, width = field.Width, format = field.Format, rowHeader = field.Key == "service"

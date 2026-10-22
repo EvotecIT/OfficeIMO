@@ -33,6 +33,7 @@ internal static class HfxOperationalInterop {
             var cases = new List<object>();
             foreach (JsonElement contract in expected.RootElement.GetProperty("cases").EnumerateArray()) {
                 string name = contract.GetProperty("name").GetString()!;
+                JsonElement? compactNote = null;
                 if (name == "selected") {
                     await session.Page.Locator("#inventory-filter").FillAsync("Warsaw");
                     await session.Page.Locator("#inventory-sort").ClickAsync();
@@ -71,9 +72,22 @@ internal static class HfxOperationalInterop {
                     await session.Page.SetViewportSizeAsync(390, 844);
                     WorkbookVerifier.Require(await session.Page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"), "Actual HFX compact page overflows horizontally.");
                     await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "hfx-operational-selected-compact.png"), FullPage = true });
+                    await session.Page.Locator("#operational-inventory tr:not([hidden]) [data-field='supportWindow'][role='region']").FocusAsync();
+                    await session.Page.Keyboard.PressAsync("PageDown");
+                    await session.Page.WaitForFunctionAsync("document.activeElement?.dataset.field === 'supportWindow' && document.activeElement.scrollTop > 0");
+                    compactNote = await session.Page.EvaluateAsync<JsonElement>("""
+                        () => {
+                          const note = document.activeElement;
+                          return { label:note.getAttribute('aria-label'), text:note.textContent, raw:note.dataset.rawValue,
+                            scrollTop:note.scrollTop, scrollHeight:note.scrollHeight, clientHeight:note.clientHeight };
+                        }
+                        """);
+                    await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "hfx-operational-note-compact.png"), FullPage = false });
+                    await session.Page.Locator("#inventory-export-pdf").FocusAsync();
+                    await session.Page.EvaluateAsync("document.getElementById('operational-inventory').parentElement.scrollLeft = 0");
                     await session.Page.SetViewportSizeAsync(1440, 1000);
                 }
-                cases.Add(new { name, captured, files });
+                cases.Add(new { name, captured, files, compactNote });
             }
             WorkbookVerifier.Require(errors.Count == 0 && external.Count == 0, "Actual offline HFX fixture had errors or external requests: " + string.Join("; ", errors.Concat(external)));
             var report = new { engine = engine.ToString(), browser = session.Browser?.Version, producer = expected.RootElement.GetProperty("producer").GetString(),
