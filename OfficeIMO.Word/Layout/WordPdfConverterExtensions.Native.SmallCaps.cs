@@ -39,6 +39,7 @@ public static partial class WordPdfConverterExtensions {
 
     private static void AddNativeCasedText(PdfCore.PdfParagraphBuilder builder, string text, NativeResolvedTextStyle style,
         IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null) {
+        text = WordPaperText.NormalizeIdentifierBreaksForLayout(text);
         // Body runs explicitly restore the inherited full size after a reduced
         // segment. Cell runs keep their nullable size for configured typography.
         if (style.SmallCaps && !style.AllCaps)

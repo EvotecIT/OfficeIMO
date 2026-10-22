@@ -262,18 +262,6 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Native TOC second section heading").SetStyle(WordParagraphStyles.Heading1);
                 secondSection.AddParagraph("Native TOC second section body");
 
-                MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("BuildNativeTableOfContentsEntries", BindingFlags.NonPublic | BindingFlags.Static)!;
-                object entries = method.Invoke(null, new object[] {
-                    document,
-                    new WordToPdfOptions { IncludePageNumbers = false },
-                    new Dictionary<DocumentFormat.OpenXml.Wordprocessing.Paragraph, string>()
-                })!;
-                object secondEntry = ((System.Collections.IEnumerable)entries)
-                    .Cast<object>()
-                    .First(entry => string.Equals((string)entry.GetType().GetProperty("Text")!.GetValue(entry)!, "Native TOC second section heading", StringComparison.Ordinal));
-                int secondEntryPage = (int)secondEntry.GetType().GetProperty("PageNumber")!.GetValue(secondEntry)!;
-                Assert.Equal(2, secondEntryPage);
-
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
@@ -284,6 +272,8 @@ namespace OfficeIMO.Tests {
             Assert.True(pdf.NumberOfPages >= 2, "Expected the second Word section to start on a new PDF page.");
             string secondPageText = pdf.GetPage(2).Text;
             Assert.Contains("Native TOC second section heading", secondPageText);
+            string contents = OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(pdfPath)).Reader.TextByPage()[0];
+            Assert.Matches(@"Native TOC second section heading[\s.]*2\b", contents);
         }
 
         [Fact]

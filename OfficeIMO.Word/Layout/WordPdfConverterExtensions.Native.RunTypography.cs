@@ -40,6 +40,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string ApplyNativeTextTransform(string text, WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
+            text = WordPaperText.NormalizeIdentifierBreaksForLayout(text);
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, fallback, tableRunStyleDefaults, nativeDefaults, nativeFontMap);
             return style.AllCaps || style.SmallCaps ? text.ToUpperInvariant() : text;
         }

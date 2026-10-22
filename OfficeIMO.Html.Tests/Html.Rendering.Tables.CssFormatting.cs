@@ -197,7 +197,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("table", true)]
     [InlineData("table-row", true)]
     [InlineData("table-row-group", true)]
-    public void HtmlCssTable_GeneratedContentOnFormattingBoxesReportsOmission(string display, bool native) {
+    public void HtmlCssTable_GeneratedContentOnFormattingBoxesRetainsSourceOrder(string display, bool native) {
         string table = native ? "table" : "div";
         string group = native ? "tbody" : "div";
         string row = native ? "tr" : "div";
@@ -208,13 +208,15 @@ public sealed partial class HtmlRenderingTests {
             + " style='display:table-row-group'><" + row + target("table-row") + " style='display:table-row'><" + cell
             + " style='display:table-cell'>Retained</" + cell + "></" + row + "></" + group + "></" + table + ">";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Source == (display == "table" ? table : display == "table-row" ? row : group) + "#target::before");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Source!.EndsWith("#target::after", StringComparison.Ordinal));
-        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.StartsWith("Generated", StringComparison.Ordinal));
-        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Retained");
-        Assert.True(rendered.HasLoss);
+        string text = string.Concat(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(item => item.Text));
+        Assert.Contains("GeneratedBefore", text);
+        Assert.Contains("Retained", text);
+        Assert.Contains("GeneratedAfter", text);
+        Assert.Equal(text.IndexOf("GeneratedBefore", StringComparison.Ordinal), text.LastIndexOf("GeneratedBefore", StringComparison.Ordinal));
+        Assert.Equal(text.IndexOf("GeneratedAfter", StringComparison.Ordinal), text.LastIndexOf("GeneratedAfter", StringComparison.Ordinal));
+        Assert.True(text.IndexOf("GeneratedBefore", StringComparison.Ordinal) < text.IndexOf("Retained", StringComparison.Ordinal));
+        Assert.True(text.IndexOf("Retained", StringComparison.Ordinal) < text.IndexOf("GeneratedAfter", StringComparison.Ordinal));
+        Assert.False(rendered.HasLoss);
     }
 
     [Theory]

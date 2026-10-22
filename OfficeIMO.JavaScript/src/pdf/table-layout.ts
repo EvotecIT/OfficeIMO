@@ -17,6 +17,10 @@ import type { PdfInlineLine } from "./inline-text.js";
 import type { PdfText } from "./inline-types.js";
 
 export interface PdfLayoutCell {
+  /** Original source anchor when a captured cell is projected into a physical band. */
+  readonly source?: PdfLayoutCell;
+  /** Repeated visual content has no second logical reading occurrence. */
+  readonly semanticArtifact?: boolean;
   readonly first: number;
   readonly span: number;
   readonly width: number;
@@ -30,7 +34,9 @@ export interface PdfLayoutCell {
   /** Captured once for band span projection; ordinary layouts do not retain it. */
   readonly captured?: PdfCapturedText;
 }
-export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly lineHeight: number; readonly height: number; readonly structured?: boolean; }
+export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly lineHeight: number; readonly height: number; readonly structured?: boolean;
+  /** Original logical row retained only by its bounded physical window. */
+  readonly source?: PdfLayoutRow; }
 interface HeadingCell { readonly first: number; readonly span: number; readonly text: string; }
 export class PdfTableLayout {
   readonly bands: readonly PdfTableBand[] | undefined;
@@ -168,8 +174,14 @@ export class PdfTableLayout {
     return prepared;
   }
   private async projectBandRows(rows: readonly PdfLayoutRow[], structured: boolean): Promise<readonly (readonly PdfLayoutRow[])[]> {
-    const projected = [];
-    for (const band of this.bands!) projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
+    const projected = [], seen = new Set<PdfLayoutCell>();
+    for (const band of this.bands!) {
+      const physical = await projectBandRows(rows, band, this.widths, this.settings, this.fonts);
+      projected.push(physical.map(row => ({ ...row, cells: row.cells.map(cell => {
+        const source = cell.source!, repeated = seen.has(source); seen.add(source);
+        return repeated ? { ...cell, semanticArtifact: true } : cell;
+      }) })));
+    }
     return structured ? alignBandBlocks(projected, this.settings) : projected;
   }
   async data(values: readonly ExportValue[], index: number, footer = false): Promise<PdfLayoutRow> {

@@ -120,7 +120,6 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
   if (margins.left + margins.right >= page.width || margins.top + margins.bottom >= page.height) throw new RangeError("PDF margins leave no content area.");
   const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
   if (!Number.isFinite(padding) || padding < 0 || padding > 72) throw new RangeError("PDF padding must be from 0 through 72 points.");
-  if (typeof options.wideTable === "object" && options.tagged) throw new TypeError("Tagged PDF horizontal bands are unsupported.");
   for (const key of ["title", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
   for (const key of ["pageHeader", "pageFooter"] as const) if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function") throw new TypeError(key + " must be text or a synchronous callback.");
   for (const key of ["formatValue", "formatRuns"] as const)
@@ -135,8 +134,6 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
       throw new TypeError("tagged.language must be a language tag such as en or en-US.");
     try { if (Intl.getCanonicalLocales(options.tagged.language).length !== 1) throw new RangeError(); }
     catch { throw new TypeError("tagged.language must be a language tag such as en or en-US."); }
-    if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
-      throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
   }
   const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
   return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,

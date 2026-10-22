@@ -15,13 +15,13 @@ interface GroupedPdfLabels {
   readonly includeGrandTotal?: boolean;
   /** Repeated before column headings on continued group pages. Defaults to the exact captured group label. */
   readonly continuationLabel?: (group: Extract<GroupedReportEvent, { readonly kind: "groupStart" }>) => string;
+  /** Tagged heading level for the outermost group, followed by one level per nested group. Default 2.
+   * Every opened group must fit through heading level 6; choose 1 for a titleless standalone report. */
+  readonly groupHeadingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 /** A composed analytical table inherits fonts, page geometry, cancellation and cumulative limits from its document. */
 export interface GroupedPdfTableOptions extends Omit<PdfTableOptions<readonly ExportValue[]>, "columns" | "footer" | "headerRows">, GroupedPdfLabels {}
 
 /** Analytical groups use the composed document/table layout owner and its resource policy. */
-export interface GroupedPdfOptions extends Omit<PdfOptions<readonly ExportValue[]>, "columns" | "footer" | "headerRows" | "tagged">, GroupedPdfLabels {
-  /** Group/table semantic associations are not qualified for tagged output. */
-  readonly tagged?: never;
-}
+export interface GroupedPdfOptions extends Omit<PdfOptions<readonly ExportValue[]>, "columns" | "footer" | "headerRows">, GroupedPdfLabels {}

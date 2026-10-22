@@ -43,13 +43,6 @@ public partial class Word {
             document.AddParagraph("Native heading after cover").SetStyle(WordParagraphStyles.Heading1);
             document.AddParagraph("Native body after cover");
 
-            object entries = BuildNativeTableOfContentsEntries(document);
-            object entry = ((System.Collections.IEnumerable)entries)
-                .Cast<object>()
-                .Single(item => string.Equals((string)item.GetType().GetProperty("Text")!.GetValue(item)!, "Native heading after cover", StringComparison.Ordinal));
-            int pageNumber = (int)entry.GetType().GetProperty("PageNumber")!.GetValue(entry)!;
-            Assert.Equal(3, pageNumber);
-
             document.Save();
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false
@@ -63,6 +56,8 @@ public partial class Word {
         Assert.Contains("Table of Contents", allText);
         Assert.Contains("Native heading after cover", allText);
         Assert.True(allText.IndexOf("Native cover title", StringComparison.Ordinal) < allText.IndexOf("Table of Contents", StringComparison.Ordinal));
+        string contents = OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(pdfPath)).Reader.TextByPage()[1];
+        Assert.Matches(@"Native heading after cover[\s.]*3\b", contents);
     }
 
     [Fact]
@@ -76,13 +71,11 @@ public partial class Word {
         document.AddPageBreak();
         document.AddParagraph("Native heading after explicit cover break").SetStyle(WordParagraphStyles.Heading1);
 
-        object entries = BuildNativeTableOfContentsEntries(document);
-        object entry = ((System.Collections.IEnumerable)entries)
-            .Cast<object>()
-            .Single(item => string.Equals((string)item.GetType().GetProperty("Text")!.GetValue(item)!, "Native heading after explicit cover break", StringComparison.Ordinal));
-        int pageNumber = (int)entry.GetType().GetProperty("PageNumber")!.GetValue(entry)!;
-
-        Assert.Equal(3, pageNumber);
+        byte[] bytes = document.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        var pages = OfficeIMO.Pdf.PdfDocument.Load(bytes).Reader.TextByPage();
+        Assert.Equal(3, pages.Count);
+        Assert.Matches(@"Native heading after explicit cover break[\s.]*3\b", pages[1]);
+        Assert.Contains("Native heading after explicit cover break", pages[2]);
     }
 
     [Fact]
@@ -124,20 +117,6 @@ public partial class Word {
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("Cover with existing separator", pdf.GetPage(1).Text);
         Assert.Contains("Body after existing separator", pdf.GetPage(2).Text);
-    }
-
-    [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Toc_Entries_Use_Content_Right_Edge_Tab_Stop() {
-        object level1Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 0, contentWidth: 468D);
-        object level2Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 1, contentWidth: 468D);
-        object level3Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 2, contentWidth: 468D);
-
-        Assert.Equal(0D, GetPdfParagraphStyleDouble(level1Style, "LeftIndent"));
-        Assert.Equal(468D, GetPdfParagraphStyleDouble(level1Style, "DefaultTabStopWidth"));
-        Assert.Equal(22D, GetPdfParagraphStyleDouble(level2Style, "LeftIndent"));
-        Assert.Equal(446D, GetPdfParagraphStyleDouble(level2Style, "DefaultTabStopWidth"));
-        Assert.Equal(44D, GetPdfParagraphStyleDouble(level3Style, "LeftIndent"));
-        Assert.Equal(424D, GetPdfParagraphStyleDouble(level3Style, "DefaultTabStopWidth"));
     }
 
     [Fact]
@@ -2613,20 +2592,6 @@ public partial class Word {
         return new Paragraph(new Run(new Picture(shape)));
     }
 
-    private static object BuildNativeTableOfContentsEntries(WordDocument document) {
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("BuildNativeTableOfContentsEntries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        return method.Invoke(null, new object[] {
-            document,
-            new WordToPdfOptions { IncludePageNumbers = false },
-            new Dictionary<Paragraph, string>()
-        })!;
-    }
-
-    private static object CreateNativeTableOfContentsEntryStyle(int relativeLevel, double contentWidth) {
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeTableOfContentsEntryStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
-        return method.Invoke(null, new object?[] { relativeLevel, contentWidth })!;
-    }
-
     private static void ApplyNumberFormat(ValueAxis axis, string formatCode) {
         DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat? numberingFormat =
             axis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat>();
@@ -2644,11 +2609,6 @@ public partial class Word {
             new A.BodyProperties(),
             new A.ListStyle(),
             new A.Paragraph(new A.Run(new A.Text(text))))));
-
-    private static double GetPdfParagraphStyleDouble(object style, string propertyName) {
-        object? value = style.GetType().GetProperty(propertyName)!.GetValue(style);
-        return Assert.IsType<double>(value);
-    }
 
     private static byte[] CreateNativeMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
 

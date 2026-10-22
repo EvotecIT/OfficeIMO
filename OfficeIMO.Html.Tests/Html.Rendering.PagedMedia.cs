@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
             <style>
               @page { size:240px 120px; margin:10px; }
               body, p { margin:0; font-size:12px; line-height:18px; }
-              .card { overflow:auto; }
+              .card { overflow:auto; break-inside:avoid; }
               .note { float:footnote; font-size:10px; line-height:12px; }
             </style>
             <section>

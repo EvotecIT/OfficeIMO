@@ -65,9 +65,10 @@ internal static partial class PdfWriter {
             for (int index = _start; index < _end; index++) {
                 RichSeg segment = _segments[index];
                 if (segment.LeadingSpace && (index > _start || !segment.LeadingIsTab)) advance += segment.LeadingAdvance;
+                string paintedText = WithoutOptionalBreaks(segment.Text);
                 int decimalIndex = segment.InlineElement != null ? -1 : separator.HasValue
-                    ? segment.Text.IndexOf(separator.Value) : segment.Text.IndexOfAny(DecimalTabAnchorChars);
-                if (decimalIndex >= 0) return advance + MeasureRichSegmentDecimalAnchor(segment, decimalIndex, options);
+                    ? paintedText.IndexOf(separator.Value) : paintedText.IndexOfAny(DecimalTabAnchorChars);
+                if (decimalIndex >= 0) return advance + MeasureRichSegmentDecimalAnchor(segment, paintedText, decimalIndex, options);
                 advance += GetRichSegmentWidth(segment);
             }
             // A field without the selected separator is right-aligned in full.
@@ -76,7 +77,7 @@ internal static partial class PdfWriter {
     }
 
     /// <summary>Uses the prepared token's encoded glyph origins, including cross-run kerning and authored tracking.</summary>
-    private static double MeasureRichSegmentDecimalAnchor(RichSeg segment, int decimalIndex, PdfOptions? options) {
+    private static double MeasureRichSegmentDecimalAnchor(RichSeg segment, string paintedText, int decimalIndex, PdfOptions? options) {
         PdfTextShowCommand command = segment.KerningCommand ?? EncodeTextShowCommand(segment.Text, segment.Font,
             segment.NamedFont, options, segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale,
             segment.HorizontalTextScaling, segment.PreservesPaintedGlyphs, requireGlyphClusters: true);
@@ -88,12 +89,12 @@ internal static partial class PdfWriter {
                 return advance + offset * EffectiveRichFontSize(segment.FontSize, segment.Baseline) / 1000D
                     * segment.HorizontalTextScaling / 100D;
             }
-            advance += GetRichGlyphAdvance(segment, segment.Text, command, index, options);
+            advance += GetRichGlyphAdvance(segment, paintedText, command, index, options);
         }
         // Preserve the existing per-token behavior if an inseparable shaped
         // cluster supplies no distinct source glyph for the selected character.
-        return MeasureDecimalAnchorWidth(segment.Text, segment.Font, segment.FontSize, segment.Baseline,
+        return MeasureDecimalAnchorWidth(paintedText, segment.Font, segment.FontSize, segment.Baseline,
             options, segment.NamedFont, segment.FeatureSettings, segment.HorizontalTextScaling,
-            segment.CharacterSpacing, segment.Text[decimalIndex]);
+            segment.CharacterSpacing, paintedText[decimalIndex]);
     }
 }

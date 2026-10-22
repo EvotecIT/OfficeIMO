@@ -26,7 +26,7 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    /// <summary>Materializes HTML no-break defaults before descendants inherit computed values.</summary>
+    /// <summary>Materializes HTML whitespace defaults before descendants inherit computed values.</summary>
     private static void ApplyHtmlWhiteSpaceDefaults(
         IElement element,
         bool hasLocalDeclaration,
@@ -37,7 +37,8 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, HtmlCssCascadePriority> cascadePriorities,
         IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces) {
         if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return;
-        string? defaultValue = element.LocalName == "nobr" ? "nowrap"
+        string? defaultValue = element.LocalName == "pre" ? "pre"
+            : element.LocalName == "nobr" ? "nowrap"
             : element.LocalName == "wbr" && HasHtmlNoBreakAncestor(element) ? "normal"
             : null;
         if (defaultValue == null) return;

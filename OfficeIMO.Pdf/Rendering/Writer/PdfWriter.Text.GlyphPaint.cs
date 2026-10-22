@@ -33,6 +33,7 @@ internal static partial class PdfWriter {
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
             : EncodeTextShowCommand(text, segment.Font, segment.NamedFont, encodingOptions ?? options, segment.FeatureSettings,
                 segment.TextDirection, segment.FontMetricScale, preservesPaintedGlyphs: segment.PreservesPaintedGlyphs));
+        text = WithoutOptionalBreaks(text);
         IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, options, fontCache, fontCacheCleared);
         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
         double scale = segment.HorizontalTextScaling / 100D;

@@ -5733,8 +5733,6 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    if (typeof options.wideTable === "object" && options.tagged)
-        throw new TypeError("Tagged PDF horizontal bands are unsupported.");
     for (const key of ["title", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
@@ -5765,8 +5763,6 @@ function settings(input, document = false) {
         catch {
             throw new TypeError("tagged.language must be a language tag such as en or en-US.");
         }
-        if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
-            throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
     }
     const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
@@ -7619,13 +7615,13 @@ async function projectBandRows(rows, band, widths, settings, fonts) {
                     end++;
                 const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index], 0);
                 const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
-                cells.push({ ...cell, first, span: end - first, width, lines,
+                cells.push({ ...cell, source: cell.source ?? cell, first, span: end - first, width, lines,
                     lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
                 first = end;
             }
         }
         cells.sort((a, b) => a.first - b.first);
-        result.push({ ...row, cells });
+        result.push({ ...row, source: row.source ?? row, cells });
     }
     return result;
 }
@@ -7832,9 +7828,15 @@ class PdfTableLayout {
         return prepared;
     }
     async projectBandRows(rows, structured) {
-        const projected = [];
-        for (const band of this.bands)
-            projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
+        const projected = [], seen = new Set();
+        for (const band of this.bands) {
+            const physical = await projectBandRows(rows, band, this.widths, this.settings, this.fonts);
+            projected.push(physical.map(row => ({ ...row, cells: row.cells.map(cell => {
+                    const source = cell.source, repeated = seen.has(source);
+                    seen.add(source);
+                    return repeated ? { ...cell, semanticArtifact: true } : cell;
+                }) })));
+        }
         return structured ? alignBandBlocks(projected, this.settings) : projected;
     }
     async data(values, index, footer = false) {
@@ -7917,6 +7919,7 @@ class PdfTableBandFlow {
             await this.painter.moveFirstToFreshPage();
             this.firstCapacity = this.painter.firstFullCapacity;
         }
+        await this.painter.prepareRow?.(row);
         let first = 0;
         while (first < row.lines) {
             checkAbort(options.signal);
@@ -7938,9 +7941,9 @@ class PdfTableBandFlow {
                         const source = this.layout.bands[index].columns[cell.first];
                         const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
                         const { height: _height, ...plain } = cell;
-                        return { ...plain, lines: visible };
+                        return { ...plain, lines: visible, ...(first > 0 && this.layout.repeatedColumn(source) ? { semanticArtifact: true } : {}) };
                     }) }]);
-            await this.accept({ rows: fragments, height, count: 1 });
+            await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [] });
             first += lines;
             if (first < row.lines)
                 await this.flush();
@@ -7950,7 +7953,9 @@ class PdfTableBandFlow {
         const projected = await this.layout.bandRows(rows, true), height = projected[0].reduce((sum, row) => sum + row.height, 0);
         if (rows.length > this.layout.settings.limits.maxTableWindowRows)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
-        await this.accept({ rows: projected, height, count: rows.length });
+        for (const row of rows)
+            await this.painter.prepareRow?.(row);
+        await this.accept({ rows: projected, height, count: rows.length, completed: rows });
     }
     async keptRows(rows, allowFirstFragment = false) {
         const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
@@ -7966,6 +7971,9 @@ class PdfTableBandFlow {
             checkAbort(this.layout.settings.options.signal);
             await this.painter.paint(band, this.headings[band], this.entries.flatMap(entry => entry.rows[band]), this.firstWindow ? this.caption : this.continuation, this.firstWindow, band === 0);
         }
+        for (const entry of this.entries)
+            for (const row of entry.completed)
+                await this.painter.completeRow?.(row);
         this.entries = [];
         this.height = 0;
         this.count = 0;
@@ -7978,6 +7986,103 @@ return _exports;
 })();
 
 const _m74 = (() => {
+/** @internal Source-cell identities survive page fragments and horizontal band projections.
+ * Only column headers and still-owned row objects remain reachable from this table owner. */
+class PdfTableStructure {
+    structure;
+    table;
+    headers;
+    cells = new WeakMap();
+    rows = new WeakMap();
+    columnHeaders = [];
+    headerCount = 0;
+    headersPrepared = false;
+    constructor(structure, table, headers) {
+        this.structure = structure;
+        this.table = table;
+        this.headers = headers;
+    }
+    /** Allocate the complete logical header grid before its first visual band is painted. */
+    async prepareHeaders() {
+        if (this.headersPrepared)
+            return;
+        for (let rowIndex = 0; rowIndex < this.headers.length; rowIndex++) {
+            const row = this.headers[rowIndex], parent = this.structure.element("TR", this.table);
+            this.rows.set(row, parent);
+            for (const cell of row.cells) {
+                const header = cell.lines.some(line => line.text.trim().length > 0);
+                const associations = this.associations(cell, rowIndex);
+                const id = this.structure.element(header ? "TH" : "TD", parent, this.attributes(cell, associations, header ? "Column" : undefined));
+                this.cells.set(cell, id);
+                if (header) {
+                    const heading = { row: rowIndex, order: this.headerCount++, identifier: await this.structure.identifier(id) };
+                    for (let column = cell.first; column < cell.first + cell.span; column++)
+                        (this.columnHeaders[column] ??= []).push(heading);
+                }
+            }
+        }
+        this.headersPrepared = true;
+    }
+    /** Call after every initial physical band; repeated visual headings then become artifacts. */
+    async completeHeaders() {
+        for (const row of this.headers)
+            await this.completeRow(row);
+    }
+    /** Register one original row before projecting or painting it. Summary label headings are explicit. */
+    async prepareRow(row, _kind = "data", parent = this.table, rowHeaderIndex) {
+        const existing = this.rows.get(row);
+        if (existing !== undefined)
+            return row.cells.map(cell => this.cells.get(cell));
+        const rowId = this.structure.element("TR", parent);
+        this.rows.set(row, rowId);
+        const ids = [];
+        let rowHeaderIdentifier;
+        // Allocating in source-column order preserves the record's logical reading order.
+        for (let index = 0; index < row.cells.length; index++) {
+            const cell = row.cells[index], isRowHeader = index === rowHeaderIndex;
+            const associations = this.associations(cell);
+            if (rowHeaderIdentifier !== undefined && !isRowHeader)
+                associations.push(rowHeaderIdentifier);
+            const id = this.structure.element(isRowHeader ? "TH" : "TD", rowId, this.attributes(cell, associations, isRowHeader ? "Row" : undefined));
+            this.cells.set(cell, id);
+            ids.push(id);
+            if (isRowHeader)
+                rowHeaderIdentifier = await this.structure.identifier(id);
+        }
+        return ids;
+    }
+    owner(cell) { return this.cells.get(cell); }
+    async completeRow(row) {
+        await this.structure.complete(this.rows.get(row));
+    }
+    async finish() {
+        await this.completeHeaders();
+        await this.structure.complete(this.table);
+    }
+    associations(cell, beforeRow = Number.POSITIVE_INFINITY) {
+        // Ordinary cells visit only their heading depth, independent of the table's width.
+        if (cell.span === 1)
+            return (this.columnHeaders[cell.first] ?? []).filter(header => header.row < beforeRow).map(header => header.identifier);
+        const headers = new Set();
+        for (let column = cell.first; column < cell.first + cell.span; column++)
+            for (const header of this.columnHeaders[column] ?? [])
+                if (header.row < beforeRow)
+                    headers.add(header);
+        // Spans can encounter a shared ancestor through several columns. Preserve logical allocation
+        // order, rather than column visitation order, and name that ancestor exactly once.
+        return [...headers].sort((left, right) => left.order - right.order).map(header => header.identifier);
+    }
+    attributes(cell, headers, scope) {
+        return " /A << /O /Table" + (scope === undefined ? "" : " /Scope /" + scope) +
+            (cell.span > 1 ? " /ColSpan " + cell.span : "") + ((cell.rowSpan ?? 1) > 1 ? " /RowSpan " + cell.rowSpan : "") +
+            (headers.length ? " /Headers [" + headers.map(id => "(" + id + ")").join(" ") + "]" : "") + " >>";
+    }
+}
+const _exports = Object.freeze({ PdfTableStructure: PdfTableStructure });
+return _exports;
+})();
+
+const _m75 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { pdfNumber, unicodeHex } = _m59;
@@ -8022,7 +8127,7 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m75 = (() => {
+const _m76 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { unicodeHex } = _m59;
@@ -8070,7 +8175,7 @@ const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSectio
 return _exports;
 })();
 
-const _m76 = (() => {
+const _m77 = (() => {
 const { settings } = _m55;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -8099,15 +8204,17 @@ const { color } = _m55;
 
 const { PdfTableBandFlow } = _m73;
 
+const { PdfTableStructure } = _m74;
+
 const { wrapText, wrapTextCooperatively, synchronousText } = _m68;
 
-const { linkAnnotation } = _m74;
+const { linkAnnotation } = _m75;
 
 const { unicodeHex } = _m59;
 
-const { captureSection, captureBookmark } = _m75;
+const { captureSection, captureBookmark } = _m76;
 
-const { sectionSettings } = _m76;
+const { sectionSettings } = _m77;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -8143,8 +8250,14 @@ class PdfPages {
     bandFlow;
     bandCellBudget = false;
     tableElement;
-    tableHeadingsDrawn = false;
+    tableStructure;
+    activeHeadings;
+    paintedHeaderCells = new WeakSet();
+    paintedHeaderBudgetCells = new WeakSet();
+    summaryRows = new WeakSet();
+    groups = [];
     continuationCaption;
+    tableCaptionOwner;
     continuationCaptionPaints = 0;
     constructor(objects, baseSettings, fonts, parent, resources, layout, structure, outlines) {
         this.objects = objects;
@@ -8230,12 +8343,12 @@ class PdfPages {
         if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
         const id = this.objects.reserve();
-        const parentKey = this.structure ? this.structure.annotation(element, id) : undefined;
+        const parentKey = this.structure && element !== undefined ? this.structure.annotation(element, id) : undefined;
         const annotation = linkAnnotation(link, x, bottom, width, height, this.settings.limits.maxPageBytes - this.commandBytes, parentKey, this.structure ? this.current : undefined);
         this.retainPageBytes(annotation.length);
         this.annotations.push({ id, body: annotation });
     }
-    inline(line, size, x, baseline, element) {
+    inline(line, size, x, baseline, element, annotationParent = element) {
         const lineActualText = !this.structure && line.actualText !== undefined && line.actualText.length > 0;
         if (lineActualText)
             this.add("/Span << /ActualText <FEFF" + unicodeHex(line.actualText) + "> >> BDC\n");
@@ -8265,7 +8378,8 @@ class PdfPages {
             if (segment.link) {
                 const ascent = (segment.font.program?.ascent ?? 800) * size / 1000;
                 const descent = (segment.font.program?.descent ?? -200) * size / 1000;
-                this.link(segment.link, x, baseline + descent, segment.width, ascent - descent, owner);
+                const annotationOwner = owner ?? (this.structure && annotationParent !== undefined ? this.structure.link(annotationParent, segment.link) : undefined);
+                this.link(segment.link, x, baseline + descent, segment.width, ascent - descent, annotationOwner);
             }
             x += segment.width;
         }
@@ -8340,34 +8454,46 @@ class PdfPages {
             if (options.messageTop)
                 await this.paragraph(options.messageTop, {}, fontSize, false);
         }
-        const headers = preparedHeadings ?? (tableHeadings && this.layout ? await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0), continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
+        const headers = preparedHeadings ?? (tableHeadings && this.layout ? this.activeHeadings ??= await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0), continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
         if (continuation?.lines.length) {
             if (this.continuationCaptionPaints++ > 0)
                 this.settings.budget.cell(continuation.text.text);
-            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true);
+            else
+                this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
+            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
         }
         this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
         if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
             throw new RangeError("PDF title and repeated headings leave no room for a data line.");
-        if (tableHeadings && this.layout && this.structure && this.tableElement === undefined)
-            this.tableElement = this.structure.element("Table");
+        if (tableHeadings && this.layout && this.structure && this.tableElement === undefined) {
+            this.tableElement = this.structure.element("Table", this.groupParent);
+            this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headers);
+            await this.tableStructure.prepareHeaders();
+        }
         await this.drawHeadings(headers);
         this.dataTop = this.y;
     }
     async drawHeadings(headers) {
         for (const header of headers) {
-            const elements = this.structure && this.tableElement !== undefined && !this.tableHeadingsDrawn ?
-                this.structure.tableRow(this.tableElement, header.cells.map(cell => cell.lines.some(line => line.text.trim().length > 0))) : undefined;
-            this.draw(header, 0, header.lines, elements);
-            await this.structure?.completeRow(elements);
+            // Prepared headings can be reused by continuation pages and several logical summary tables.
+            // Charge physical repeats without recapturing callbacks or making them semantic duplicates.
+            for (const cell of header.cells)
+                if (!this.bandCellBudget && this.paintedHeaderBudgetCells.has(cell.source ?? cell))
+                    this.settings.budget.cell(cell.lines.map(line => line.text).join(""));
+            const elements = this.tableStructure ? header.cells.map(cell => this.tableStructure.owner(cell.source ?? cell)) : undefined;
+            const repeated = header.cells.map(cell => this.paintedHeaderCells.has(cell.source ?? cell));
+            this.draw(header, 0, header.lines, elements, repeated);
+            for (const cell of header.cells) {
+                this.paintedHeaderCells.add(cell.source ?? cell);
+                this.paintedHeaderBudgetCells.add(cell.source ?? cell);
+            }
         }
-        if (headers.length)
-            this.tableHeadingsDrawn = true;
     }
-    rowElements(row) {
-        return this.structure && this.tableElement !== undefined ? this.structure.tableRow(this.tableElement, row.cells.map(() => false)) : undefined;
+    async rowElements(row) {
+        const source = row.source ?? row;
+        return this.tableStructure?.prepareRow(source, "data", this.tableElement, this.summaryRows.has(source) ? 0 : undefined);
     }
-    draw(row, firstLine, lineCount, elements) {
+    draw(row, firstLine, lineCount, elements, repeated = []) {
         if (!this.layout)
             throw new Error("A table layout is required before drawing rows.");
         this.bodyAdded = true;
@@ -8379,10 +8505,10 @@ class PdfPages {
             if (cell.style.background)
                 this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
             this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
-            const element = elements?.[index], owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
+            const element = elements?.[index], artifact = cell.semanticArtifact || repeated[index], owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
-                this.inline(text, fontSize, x + left, this.y - padding - text.ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), owner);
+                this.inline(text, fontSize, x + left, this.y - padding - text.ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), artifact ? undefined : owner, owner);
             }
             if (cell.link)
                 this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
@@ -8400,15 +8526,15 @@ class PdfPages {
         if (height > this.dataTop - bottom)
             throw new RangeError("A structured footer must fit on one page below the repeated headings.");
         for (const row of rows) {
-            const elements = this.rowElements(row);
+            const elements = await this.rowElements(row);
             this.draw(row, 0, row.lines, elements);
-            await this.structure?.completeRow(elements);
+            await this.tableStructure?.completeRow(row.source ?? row);
         }
     }
     async row(row, allowFirstFragment = false) {
         if (this.bandFlow)
             return this.bandFlow.row(row, allowFirstFragment);
-        const elements = this.rowElements(row);
+        const elements = await this.rowElements(row);
         const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
         if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
             await this.finishPage();
@@ -8431,7 +8557,7 @@ class PdfPages {
                 await this.start();
             }
         }
-        await this.structure?.completeRow(elements);
+        await this.tableStructure?.completeRow(row.source ?? row);
     }
     /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
      * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
@@ -8503,7 +8629,7 @@ class PdfPages {
             this.y -= paragraph.spaceBefore;
             if (paragraph.bookmark)
                 this.addBookmark(paragraph.bookmark);
-            const element = this.structure?.element(frame.role ?? (paragraph.headingLevel ? "H" + paragraph.headingLevel : "P"), frame.parent);
+            const element = frame.artifact ? undefined : frame.owner ?? this.structure?.element(frame.role ?? (paragraph.headingLevel ? "H" + paragraph.headingLevel : "P"), frame.parent ?? this.groupParent);
             let firstLine = true;
             for (const line of paragraph.lines) {
                 if (line.lineHeight > page.height - margins.top - margins.bottom + .001)
@@ -8515,32 +8641,64 @@ class PdfPages {
                 if (firstLine && frame.marker)
                     this.inline(frame.marker.line, paragraph.size, left - frame.marker.gap - frame.marker.line.width, this.y - line.ascent, frame.marker.owner);
                 this.bodyAdded = true;
-                this.inline(line, paragraph.size, x, this.y - line.ascent, element);
+                this.inline(line, paragraph.size, x, this.y - line.ascent, element, frame.annotationParent ?? element);
                 this.y -= line.lineHeight;
                 firstLine = false;
             }
             this.y -= paragraph.spaceAfter;
-            await this.structure?.complete(element);
+            if (!frame.keepOpen)
+                await this.structure?.complete(element);
         }
     }
-    /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
+    get groupParent() { return this.groups.at(-1)?.element; }
+    /** Nest a real report group around its visible heading, tables and closing summary. */
+    async beginGroup(level, heading, minimumNextHeight) {
+        if (level !== this.groups.length)
+            throw new Error("PDF analytical groups must open in hierarchical order.");
+        await this.ensureStarted();
+        const element = this.structure?.element("Sect", this.groupParent);
+        this.groups.push({ level, headingLevel: heading.headingLevel ?? level + 2, element });
+        await this.paragraphs([heading], minimumNextHeight, true, { role: "H" + (heading.headingLevel ?? level + 2), ...(element === undefined ? {} : { parent: element }) });
+    }
+    async endGroup(level) {
+        const current = this.groups.at(-1);
+        if (!current || current.level !== level)
+            throw new Error("PDF analytical groups must close in hierarchical order.");
+        await this.structure?.complete(current.element);
+        this.outlines?.closeGroup(current.headingLevel);
+        this.groups.pop();
+    }
+    /** The generated summary label is a row heading; no localized text/style inference is used. */
+    summary(row) { this.summaryRows.add(row); }
+    /** Begin an independent table on the current page, retaining its headings on continuation pages.
+     * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false, captionArtifact = false) {
         if (layout.bands)
-            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
+            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
         await this.ensureStarted();
         this.layout = layout;
+        this.paintedHeaderCells = new WeakSet();
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
-        this.tableElement = this.structure?.element("Table");
-        this.tableHeadingsDrawn = false;
+        this.tableCaptionOwner = undefined;
+        this.tableElement = this.structure?.element("Table", this.groupParent);
         const headings = preparedHeadings ?? await layout.headers();
+        this.activeHeadings = headings;
         // A closing summary can share the preceding table's headings on the current page.
         // Its own headings remain available when it moves or splits onto a fresh page.
-        const initialHeadings = headingsOnNewPageOnly && this.bodyAdded ? [] : headings;
+        const initialHeadings = headingsOnNewPageOnly && this.bodyAdded && !this.structure ? [] : headings;
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-            await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+            this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
+                : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
+            await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
+                ? { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) }
+                : { role: "Caption", keepOpen: true, ...(this.tableCaptionOwner === undefined ? {} : { owner: this.tableCaptionOwner }) });
+        }
+        if (this.structure) {
+            this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headings);
+            await this.tableStructure.prepareHeaders();
         }
         if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
             await this.finishPage();
@@ -8552,9 +8710,9 @@ class PdfPages {
         this.dataTop = this.y;
     }
     /** Bind the bounded logical-window owner to the existing physical page painter. */
-    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation) {
+    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation, captionArtifact) {
         await this.ensureStarted();
-        const headings = await layout.bandRows(preparedHeadings ?? await layout.headers(), true);
+        const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
         const headerHeight = headings[0].reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
         const firstFullCapacity = page.height - margins.top - margins.bottom - headerHeight - (caption?.height ?? 0);
         const minimum = minimumDataHeight <= firstFullCapacity + .001 ? minimumDataHeight : layout.lineHeight + padding * 2;
@@ -8568,9 +8726,19 @@ class PdfPages {
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
         let captionPaints = 0, continuationPaints = 0;
+        this.tableElement = this.structure?.element("Table", this.groupParent);
+        this.paintedHeaderCells = new WeakSet();
+        let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+            : this.structure.element("Caption", this.tableElement) : undefined;
+        if (this.structure) {
+            this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, logicalHeadings);
+        }
         this.layout = undefined;
         this.continuationCaption = undefined;
+        this.activeHeadings = undefined;
         this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
+            prepareRow: async (row) => { await this.tableStructure?.prepareHeaders(); await this.rowElements(row); },
+            completeRow: async (row) => { await this.tableStructure?.completeRow(row.source ?? row); },
             moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
             paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
                 if (!(firstWindow && firstBand))
@@ -8580,19 +8748,24 @@ class PdfPages {
                 const frame = layout.bands[band];
                 this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
                 this.bandCellBudget = true;
-                this.tableHeadingsDrawn = false;
                 try {
                     if (currentCaption?.lines.length) {
                         const paints = firstWindow ? captionPaints++ : continuationPaints++;
                         if (paints > 0)
                             this.settings.budget.cell(currentCaption.text.text);
-                        await this.paragraphs([currentCaption], headerHeight + minimum, true);
+                        if (!firstWindow && paints === 0)
+                            captionElement = this.captionAnnotations(currentCaption, captionElement);
+                        const annotationParent = captionElement;
+                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+                            : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
+                    await this.tableStructure?.prepareHeaders();
                     await this.drawHeadings(headers);
                     this.dataTop = this.y;
                     for (const row of rows) {
                         checkAbort(this.settings.options.signal);
-                        this.draw(row, 0, row.lines);
+                        const elements = this.tableStructure ? row.cells.map(cell => this.tableStructure.owner(cell.source ?? cell)) : undefined;
+                        this.draw(row, 0, row.lines, elements);
                     }
                 }
                 finally {
@@ -8607,13 +8780,25 @@ class PdfPages {
             await flow.flush(true);
             this.bandFlow = undefined;
         }
-        await this.structure?.complete(this.tableElement);
+        await this.tableStructure?.finish();
         this.layout = undefined;
         this.tableElement = undefined;
-        this.tableHeadingsDrawn = false;
+        this.tableStructure = undefined;
+        this.activeHeadings = undefined;
         this.continuationCaption = undefined;
+        this.tableCaptionOwner = undefined;
         this.continuationCaptionPaints = 0;
         this.y -= 8;
+    }
+    /** Repeated context stays an artifact; its interactive links retain one authored label/owner. */
+    captionAnnotations(caption, existingOwner) {
+        if (!this.structure || !caption.text.runs.some(run => run.link && run.text.trim()))
+            return existingOwner;
+        const owner = existingOwner ?? this.structure.element("Caption", this.tableElement);
+        for (const run of caption.text.runs)
+            if (run.link && run.text.trim())
+                this.structure.link(owner, run.link, run.text);
+        return owner;
     }
     async pageBreak() { await this.ensureStarted(); await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
@@ -8681,7 +8866,7 @@ class PdfPages {
             this.bandFlow = undefined;
         }
         await this.ensureStarted();
-        await this.structure?.complete(this.tableElement);
+        await this.tableStructure?.finish();
         await this.finishPage();
         if (this.totalPages) {
             const font = this.fonts.select(), count = String(this.references.length), text = count + (this.numberSettings.options.pageNumberLabels?.suffix ?? ""), size = this.numberSettings.fontSize;
@@ -8703,7 +8888,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m78 = (() => {
+const _m79 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -8765,15 +8950,73 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m77 = (() => {
+const _m78 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
 const { unicodeHex } = _m59;
 
-const { PdfParentTree } = _m78;
+const { PdfParentTree } = _m79;
 
+/** A sorted name tree retains only a small open leaf and branch at each level. */
+class PdfStructureIds {
+    objects;
+    root;
+    entries = [];
+    levels = [];
+    lastKey = "";
+    constructor(objects, root) {
+        this.objects = objects;
+        this.root = root;
+    }
+    async append(key, value) {
+        if (key <= this.lastKey)
+            throw new Error("PDF structure IDs must be appended in increasing order.");
+        this.lastKey = key;
+        this.entries.push({ key, value });
+        if (this.entries.length === 64)
+            await this.leaf();
+    }
+    async leaf() {
+        if (!this.entries.length)
+            return;
+        const id = this.objects.reserve(), first = this.entries[0].key, last = this.entries.at(-1).key;
+        const body = "<< /Limits [(" + first + ") (" + last + ")] /Names [" +
+            this.entries.map(entry => "(" + entry.key + ") " + entry.value + " 0 R").join(" ") + "] >>";
+        this.entries.length = 0;
+        await this.objects.object(id, body);
+        await this.node({ id, first, last }, 0);
+    }
+    async node(node, level) {
+        const nodes = this.levels[level] ??= [];
+        nodes.push(node);
+        if (nodes.length === 64) {
+            const parent = await this.branch(nodes);
+            nodes.length = 0;
+            await this.node(parent, level + 1);
+        }
+    }
+    async branch(nodes) {
+        const id = this.objects.reserve(), first = nodes[0].first, last = nodes.at(-1).last;
+        await this.objects.object(id, "<< /Limits [(" + first + ") (" + last + ")] /Kids [" +
+            nodes.map(node => node.id + " 0 R").join(" ") + "] >>");
+        return { id, first, last };
+    }
+    async finish() {
+        await this.leaf();
+        for (let level = 0; level < this.levels.length - 1; level++) {
+            const nodes = this.levels[level];
+            if (nodes.length) {
+                const parent = await this.branch(nodes);
+                nodes.length = 0;
+                await this.node(parent, level + 1);
+            }
+        }
+        const nodes = this.levels.at(-1) ?? [];
+        await this.objects.object(this.root, nodes.length ? "<< /Kids [" + nodes.map(node => node.id + " 0 R").join(" ") + "] >>" : "<< /Names [] >>");
+    }
+}
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
     objects;
@@ -8785,6 +9028,7 @@ class PdfStructure {
     parentTreeWriter;
     annotations = [];
     links = new WeakMap();
+    identifiers;
     pageParents = [];
     pageId = 0;
     pageKey = 0;
@@ -8806,7 +9050,13 @@ class PdfStructure {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
         const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes, linkIdentities: [] };
         this.elements.set(id, element);
-        this.elements.get(parent)?.children.push(id);
+        const owner = this.elements.get(parent);
+        // A continuation-only linked caption is discovered during painting, after rows may exist.
+        // Its one logical Caption still precedes the Table's rows; other owners retain source order.
+        if (role === "Caption" && owner?.role === "Table")
+            owner.children.unshift(id);
+        else
+            owner?.children.push(id);
         return id;
     }
     /** Flat visual sections share the same logical Document and cumulative resource policy. */
@@ -8814,13 +9064,24 @@ class PdfStructure {
         await this.complete(this.section);
         this.section = this.element("Sect", this.document);
     }
-    tableRow(table, headers) {
-        const row = this.element("TR", table);
-        return headers.map(header => this.element(header ? "TH" : "TD", row, header ? " /A << /O /Table /Scope /Column >>" : ""));
+    /** Register an explicit header identity in allocation order, without retaining completed headers. */
+    async identifier(elementId) {
+        checkAbort(this.settings.options.signal);
+        const element = this.elements.get(elementId);
+        if (!element)
+            throw new Error("PDF structure IDs require an open logical owner.");
+        if (element.identifier !== undefined)
+            return element.identifier;
+        // Object numbers increase monotonically. Fixed-width ASCII preserves name-tree lexical ordering.
+        const identifier = "e" + String(elementId).padStart(16, "0");
+        this.identifiers ??= new PdfStructureIds(this.objects, this.objects.reserve());
+        await this.identifiers.append(identifier, elementId);
+        element.identifier = identifier;
+        return identifier;
     }
     beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageKey = this.nextParentKey++; }
     /** A source link retains one logical identity when its text/annotation continues on another page. */
-    link(parent, identity) {
+    link(parent, identity, alternativeText) {
         let parents = this.links.get(identity);
         if (!parents) {
             parents = new Map();
@@ -8829,7 +9090,7 @@ class PdfStructure {
         const existing = parents.get(parent);
         if (existing !== undefined)
             return existing;
-        const id = this.element("Link", parent);
+        const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">");
         parents.set(parent, id);
         this.elements.get(parent).linkIdentities.push(identity);
         return id;
@@ -8881,7 +9142,8 @@ class PdfStructure {
             if (typeof child === "number" && this.elements.has(child))
                 await this.complete(child);
         checkAbort(this.settings.options.signal);
-        const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+        const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+            (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
         const remaining = 32768 - prefix.length - element.attributes.length - 4;
         let children = "", small = remaining >= 0;
         if (small)
@@ -8904,7 +9166,8 @@ class PdfStructure {
         this.elements.delete(id);
     }
     *body(element) {
-        yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+        yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+            (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
         for (const child of element.children)
             yield typeof child === "number" ? child + " 0 R " : child + " ";
         yield "]" + element.attributes + " >>";
@@ -8916,8 +9179,10 @@ class PdfStructure {
     async finish() {
         await this.complete(this.document);
         await this.parentTreeWriter.finish();
+        await this.identifiers?.finish();
         await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
-            this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey + " >>");
+            this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey +
+            (this.identifiers ? " /IDTree " + this.identifiers.root + " 0 R" : "") + " >>");
     }
 }
 /** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
@@ -8944,7 +9209,7 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m79 = (() => {
+const _m80 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8981,6 +9246,11 @@ class PdfOutlines {
         this.stack.push(item);
     }
     get count() { return this.items.length; }
+    /** A completed analytical group cannot parent later groups, including unnamed ones. */
+    closeGroup(level) {
+        while (this.stack.length && this.stack.at(-1).level >= level)
+            this.stack.pop();
+    }
     get catalogDictionary() { return this.root === undefined ? "" : " /Outlines " + this.root + " 0 R"; }
     async finish() {
         if (this.root === undefined)
@@ -9011,9 +9281,9 @@ const { PdfTableLayout } = _m67;
 
 const { PdfPages } = _m72;
 
-const { PdfStructure } = _m77;
+const { PdfStructure } = _m78;
 
-const { PdfOutlines } = _m79;
+const { PdfOutlines } = _m80;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -9136,7 +9406,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m83 = (() => {
+const _m84 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -9358,12 +9628,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m82 = (() => {
+const _m83 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m83;
+const { pngPixels } = _m84;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -9491,7 +9761,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m84 = (() => {
+const _m85 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -9577,7 +9847,7 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m85 = (() => {
+const _m86 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -9823,7 +10093,7 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m86 = (() => {
+const _m87 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { capturePdfText, wrapPdfText } = _m69;
@@ -9832,7 +10102,7 @@ const { positive } = _m55;
 
 const { resolveParagraphStyle } = _m56;
 
-const { captureBookmark } = _m75;
+const { captureBookmark } = _m76;
 
 const { captureFields } = _m10;
 
@@ -9900,10 +10170,10 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCapt
 return _exports;
 })();
 
-const _m87 = (() => {
+const _m88 = (() => {
 const { capturePdfText, wrapPdfText } = _m69;
 
-const { captureParagraph, prepareParagraph } = _m86;
+const { captureParagraph, prepareParagraph } = _m87;
 
 const { resolveParagraphStyle } = _m56;
 
@@ -9957,7 +10227,7 @@ const _exports = Object.freeze({ captureListOptions: captureListOptions, prepare
 return _exports;
 })();
 
-const _m89 = (() => {
+const _m90 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -9967,7 +10237,7 @@ const { captureWideTable } = _m55;
 const { presentation } = _m57;
 
 /** @internal Capture schemas shared by the block factory and standalone convenience writers. */
-const groupedPdfLabelFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
+const groupedPdfLabelFields = ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"];
 /** @internal A grouped table may override presentation but not its document's resource/lifetime policy. */
 const groupedPdfTableFields = ["includeHeader", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns", ...groupedPdfLabelFields];
 /** Capture an analytical table without opening its row iterator or attaching cancellation listeners.
@@ -9982,7 +10252,7 @@ function captureGroupedPdfTableOptions(configuration) {
         Object.keys(configuration).some(key => !groupedPdfTableFields.includes(key)))
         throw new TypeError("Grouped PDF table options support table presentation and labels; document settings belong on writePdfDocument.");
     const captured = captureFields(configuration, groupedPdfTableFields);
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, continuationLabel } = captured;
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, continuationLabel, groupHeadingLevel } = captured;
     if (!labelColumn || typeof labelColumn !== "object")
         throw new TypeError("Grouped PDF needs a leading labelColumn.");
     const { header, width } = labelColumn;
@@ -9995,6 +10265,8 @@ function captureGroupedPdfTableOptions(configuration) {
         throw new TypeError("continuationLabel must be a synchronous text callback.");
     if (includeGrandTotal !== undefined && typeof includeGrandTotal !== "boolean")
         throw new TypeError("includeGrandTotal must be boolean.");
+    if (groupHeadingLevel !== undefined && (!Number.isInteger(groupHeadingLevel) || groupHeadingLevel < 1 || groupHeadingLevel > 6))
+        throw new TypeError("groupHeadingLevel must be an integer from 1 through 6.");
     return Object.freeze({ ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }), labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
         ...(captured.columnWidths === undefined ? {} : { columnWidths: Object.freeze([...captured.columnWidths]) }),
         ...(captured.headerPresentation === undefined ? {} : { headerPresentation: presentation(captured.headerPresentation) }),
@@ -10004,20 +10276,20 @@ const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, g
 return _exports;
 })();
 
-const _m88 = (() => {
+const _m89 = (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
 
 const { ExportCell } = _m5;
 
-const { captureGroupedPdfTableOptions } = _m89;
+const { captureGroupedPdfTableOptions } = _m90;
 
 const { settings } = _m55;
 
 const { PdfTableLayout } = _m67;
 
-const { captureCaption, prepareParagraph } = _m86;
+const { captureCaption, captureParagraph, prepareParagraph } = _m87;
 
 const { synchronousText } = _m68;
 
@@ -10026,10 +10298,9 @@ const { synchronousText } = _m68;
 async function renderGroupedPdfTable(block, context) {
     const { report } = block, { pages, fonts, prepared, controller } = context;
     assertGroupedReportSource(report);
-    if (prepared.options.tagged)
-        throw new TypeError("Tagged grouped PDF reports are unsupported.");
+    const semantic = prepared.options.tagged !== undefined;
     const captured = captureGroupedPdfTableOptions(block.options);
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captured;
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, groupHeadingLevel = 2, ...input } = captured;
     const columns = Object.freeze([Object.freeze({ ...labelColumn }), ...report.columns]);
     let rowIndex = -1;
     const sourceContext = (value) => ({ rowIndex,
@@ -10045,13 +10316,30 @@ async function renderGroupedPdfTable(block, context) {
         abort();
     try {
         const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
-        let path = [], started = false, firstFragment = false, firstBundleOversized = false;
+        let path = [], started = false, firstFragment = false, firstBundleOversized = false, semanticDepth = 0;
+        const continuationLabels = new WeakMap();
         let pending;
         const closing = [];
         const summaryValues = (label, values) => Object.freeze([
             new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
             ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
         ]);
+        const prepareGroupContext = async () => {
+            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => {
+                    if (continuationLabel === undefined)
+                        return group.label;
+                    const existing = semantic ? continuationLabels.get(group) : undefined;
+                    if (existing !== undefined)
+                        return existing;
+                    const label = synchronousText(continuationLabel(group), "continuationLabel");
+                    if (semantic)
+                        continuationLabels.set(group, label);
+                    return label;
+                }).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            return { caption, continuation };
+        };
         const flushLastDetail = async () => {
             if (pending) {
                 if (!started)
@@ -10082,18 +10370,46 @@ async function renderGroupedPdfTable(block, context) {
             started = false;
         };
         const startLeaf = async (row) => {
-            const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
-                presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
-            const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
-                    synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+            const { caption, continuation } = await prepareGroupContext();
             const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
-            const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
+            const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption?.height ?? 0, continuation.height);
             firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
             const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : layout.minimumRowHeight(row);
-            await context.flushParagraphs(caption.height + headingHeight + minimum);
-            await pages.beginTable(layout, headings, minimum, caption, continuation);
+            // Defer new group headings until their first real row is known. The complete, at-most-four
+            // heading chain stays with a meaningful first table fragment without retaining a group body.
+            const groupHeadings = [];
+            if (semantic)
+                for (const group of path.slice(semanticDepth))
+                    groupHeadings.push(await prepareParagraph(captureParagraph({
+                        kind: "paragraph", text: group.label.trim() ? group.label : "", headingLevel: (groupHeadingLevel + group.level),
+                        presentation: { bold: true }, keepTogether: true, keepWithNext: true, spaceAfter: 4,
+                        ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) } } : {})
+                    }, pages.settings, fonts), pages.settings, fonts));
+            const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
+            await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
+            let followingHeight = groupHeight + caption.height + headingHeight + minimum;
+            for (const heading of groupHeadings) {
+                followingHeight -= heading.height;
+                await pages.beginGroup(semanticDepth++, heading, followingHeight);
+            }
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
             started = true;
-            firstFragment = caption.lines.length > 0;
+            firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
+        };
+        const semanticSubtotal = async (row, level) => {
+            await finishLeaf();
+            const { caption, continuation } = await prepareGroupContext();
+            const minimum = layout.minimumRowHeight(row);
+            await context.flushParagraphs(caption.height + headingHeight + minimum);
+            // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
+            // Its own visible column headings keep the separate logical summary table truthful.
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
+            pages.summary(row);
+            await pages.row(row, caption.lines.length > 0 || headings.length > 0);
+            await pages.endTable();
+            await pages.endGroup(level);
+            semanticDepth = level;
+            path = path.slice(0, level);
         };
         const complete = async (summary) => {
             await finishLeaf();
@@ -10117,15 +10433,20 @@ async function renderGroupedPdfTable(block, context) {
                 return;
             const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
             await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
-            await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
-            if (total)
+            await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, !semantic && summary.rows !== 0);
+            if (total) {
+                if (semantic)
+                    pages.summary(total);
                 await pages.row(total);
+            }
             await pages.endTable();
         };
         await consumeRows(operation.events, operation.signal, async (event) => {
             switch (event.kind) {
                 case "groupStart":
                     await finishLeaf();
+                    if (semantic && groupHeadingLevel + event.level > 6)
+                        throw new RangeError("groupHeadingLevel and the opened group depth exceed heading level 6.");
                     path = Object.freeze([...path.slice(0, event.level), event]);
                     break;
                 case "row": {
@@ -10137,11 +10458,16 @@ async function renderGroupedPdfTable(block, context) {
                     pending = row;
                     break;
                 }
-                case "groupEnd":
+                case "groupEnd": {
                     rowIndex = -1;
                     context.acceptRow(false);
-                    closing.push(await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true));
+                    const row = await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true);
+                    if (semantic)
+                        await semanticSubtotal(row, event.level);
+                    else
+                        closing.push(row);
                     break;
+                }
                 case "complete":
                     await complete(event);
                     break;
@@ -10157,7 +10483,7 @@ const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable })
 return _exports;
 })();
 
-const _m81 = (() => {
+const _m82 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -10178,21 +10504,21 @@ const { PdfTableLayout } = _m67;
 
 const { PdfWriteSession } = _m58;
 
-const { PdfDocumentImages } = _m82;
+const { PdfDocumentImages } = _m83;
 
-const { vectorCommands } = _m84;
+const { vectorCommands } = _m85;
 
-const { graphicAlternative } = _m77;
+const { graphicAlternative } = _m78;
 
-const { checkDrawingBlock, prepareDrawing } = _m85;
+const { checkDrawingBlock, prepareDrawing } = _m86;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m86;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m87;
 
-const { captureListOptions, prepareListItem } = _m87;
+const { captureListOptions, prepareListItem } = _m88;
 
-const { captureSection } = _m75;
+const { captureSection } = _m76;
 
-const { renderGroupedPdfTable } = _m88;
+const { renderGroupedPdfTable } = _m89;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -10332,8 +10658,6 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
                         const tableOptions = captureTableOptions(inputTableOptions);
                         const capturedCaption = snapshotCaption(inputCaption);
-                        if (inputContinuationCaption !== undefined && options.tagged)
-                            throw new TypeError("Tagged PDF table continuation captions are unsupported.");
                         const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
                         const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
                         const caption = await prepareCaption(capturedCaption);
@@ -10452,18 +10776,18 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m80 = (() => {
+const _m81 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
 
-const { writePdfDocumentTo } = _m81;
+const { writePdfDocumentTo } = _m82;
 
 const { pdfOptionFields } = _m55;
 
 const { captureFields } = _m10;
 
-const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m89;
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m90;
 
 
 
@@ -10481,14 +10805,13 @@ async function writeGroupedPdf(report, configuration) {
     }
 }
 /** Result/progress rows count source data. Generated subtotals and grand totals also consume maxRows.
- * Tagged group associations are unsupported; oversized detail/subtotal bundles use ordinary row pagination. */
+ * Tagged output uses nested group sections and separately headed summary tables. Untagged oversized
+ * detail/subtotal bundles use ordinary row pagination. */
 async function writeGroupedPdfTo(report, destination, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped PDF options are required.");
     const captured = captureFields(configuration, groupedOptionFields);
-    if (captured.tagged !== undefined)
-        throw new TypeError("Tagged grouped PDF reports are unsupported.");
     const tableOptions = Object.fromEntries(groupedPdfTableFields.filter(name => Object.hasOwn(captured, name)).map(name => [name, captured[name]]));
     const documentOptions = { ...captured };
     for (const name of groupedPdfTableFields)
@@ -10498,11 +10821,11 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     delete documentOptions.footer;
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ pdfGroupedTable: _m89.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+const _exports = Object.freeze({ pdfGroupedTable: _m90.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
 return _exports;
 })();
 
-const _m90 = (() => {
+const _m91 = (() => {
 const { fontProgram } = _m61;
 
 const { resolveScalar, selectFont, validateFonts } = _m65;
@@ -10543,13 +10866,13 @@ return _exports;
 
 const _m53 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m80.writeGroupedPdf, writeGroupedPdfTo: _m80.writeGroupedPdfTo, pdfGroupedTable: _m80.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m81.writePdfDocument, writePdfDocumentTo: _m81.writePdfDocumentTo, pdfTable: _m81.pdfTable, PdfFont: _m61.PdfFont, preflightPdfText: _m90.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m81.writeGroupedPdf, writeGroupedPdfTo: _m81.writeGroupedPdfTo, pdfGroupedTable: _m81.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m82.writePdfDocument, writePdfDocumentTo: _m82.writePdfDocumentTo, pdfTable: _m82.pdfTable, PdfFont: _m61.PdfFont, preflightPdfText: _m91.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m80.writeGroupedPdf, writeGroupedPdfTo: _m80.writeGroupedPdfTo, pdfGroupedTable: _m80.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
+const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m81.writeGroupedPdf, writeGroupedPdfTo: _m81.writeGroupedPdfTo, pdfGroupedTable: _m81.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
 const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;

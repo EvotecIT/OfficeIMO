@@ -168,13 +168,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contribution = ResolveFormControlIntrinsicOuterWidth(item.Element, style, availableSize);
             return true;
         }
-        if (style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
-            double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-            if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-            contribution = Math.Max(1D, boxWidth + style.MarginLeft + style.MarginRight);
-            return true;
-        }
+        if (TryResolveDefiniteIntrinsicBoxContribution(style, out contribution)) return true;
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
             contribution = Math.Max(1D, ResolveIntrinsicReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
             return true;

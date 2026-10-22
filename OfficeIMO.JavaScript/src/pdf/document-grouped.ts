@@ -11,7 +11,7 @@ import { PdfTableLayout } from "./table-layout.js";
 import type { PdfLayoutRow } from "./table-layout.js";
 import type { PdfPages } from "./pages.js";
 import type { PdfFontResources } from "./font-resources.js";
-import { captureCaption, prepareParagraph } from "./paragraph-layout.js";
+import { captureCaption, captureParagraph, prepareParagraph } from "./paragraph-layout.js";
 import { synchronousText } from "./text.js";
 
 type GroupStart = Extract<GroupedReportEvent, { readonly kind: "groupStart" }>;
@@ -31,9 +31,9 @@ interface GroupedPdfContext {
 export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context: GroupedPdfContext): Promise<void> {
   const { report } = block, { pages, fonts, prepared, controller } = context;
   assertGroupedReportSource(report);
-  if (prepared.options.tagged) throw new TypeError("Tagged grouped PDF reports are unsupported.");
+  const semantic = prepared.options.tagged !== undefined;
   const captured = captureGroupedPdfTableOptions(block.options);
-  const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captured;
+  const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, groupHeadingLevel = 2, ...input } = captured;
   const columns = Object.freeze([Object.freeze({ ...labelColumn }), ...report.columns]);
   let rowIndex = -1;
   const sourceContext = (value: ColumnValueContext): ColumnValueContext => ({ rowIndex,
@@ -48,13 +48,27 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
   if (operation.signal?.aborted) abort();
   try {
     const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
-    let path: readonly GroupStart[] = [], started = false, firstFragment = false, firstBundleOversized = false;
+    let path: readonly GroupStart[] = [], started = false, firstFragment = false, firstBundleOversized = false, semanticDepth = 0;
+    const continuationLabels = new WeakMap<GroupStart, string>();
     let pending: PdfLayoutRow | undefined;
     const closing: PdfLayoutRow[] = [];
     const summaryValues = (label: string, values: readonly (number | null)[]): readonly ExportValue[] => Object.freeze([
       new ExportCell(label, { text: label, presentation: table.options.footerPresentation! }),
       ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation! }))
     ]);
+    const prepareGroupContext = async () => {
+      const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
+        presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+      const continuation = await prepareParagraph(captureCaption({ text: path.map(group => {
+        if (continuationLabel === undefined) return group.label;
+        const existing = semantic ? continuationLabels.get(group) : undefined;
+        if (existing !== undefined) return existing;
+        const label = synchronousText(continuationLabel(group), "continuationLabel");
+        if (semantic) continuationLabels.set(group, label);
+        return label;
+      }).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+      return { caption, continuation };
+    };
     const flushLastDetail = async (): Promise<void> => {
       if (pending) {
         if (!started) await startLeaf(pending);
@@ -72,17 +86,39 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
       await flushLastDetail(); await pages.endTable(); started = false;
     };
     const startLeaf = async (row: PdfLayoutRow): Promise<void> => {
-      const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
-        presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
-      const continuation = await prepareParagraph(captureCaption({ text: path.map(group => continuationLabel === undefined ? group.label :
-        synchronousText(continuationLabel(group), "continuationLabel")).join("\n"), presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
+      const { caption, continuation } = await prepareGroupContext();
       const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
-      const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
+      const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption?.height ?? 0, continuation.height);
       firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
       const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : layout.minimumRowHeight(row);
+      // Defer new group headings until their first real row is known. The complete, at-most-four
+      // heading chain stays with a meaningful first table fragment without retaining a group body.
+      const groupHeadings = [];
+      if (semantic) for (const group of path.slice(semanticDepth)) groupHeadings.push(await prepareParagraph(captureParagraph({
+        kind: "paragraph", text: group.label.trim() ? group.label : "", headingLevel: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6,
+        presentation: { bold: true }, keepTogether: true, keepWithNext: true, spaceAfter: 4,
+        ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6 } } : {})
+      }, pages.settings, fonts), pages.settings, fonts));
+      const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
+      await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
+      let followingHeight = groupHeight + caption.height + headingHeight + minimum;
+      for (const heading of groupHeadings) {
+        followingHeight -= heading.height;
+        await pages.beginGroup(semanticDepth++, heading, followingHeight);
+      }
+      await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
+      started = true; firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
+    };
+    const semanticSubtotal = async (row: PdfLayoutRow, level: number): Promise<void> => {
+      await finishLeaf();
+      const { caption, continuation } = await prepareGroupContext();
+      const minimum = layout.minimumRowHeight(row);
       await context.flushParagraphs(caption.height + headingHeight + minimum);
-      await pages.beginTable(layout, headings, minimum, caption, continuation);
-      started = true; firstFragment = caption.lines.length > 0;
+      // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
+      // Its own visible column headings keep the separate logical summary table truthful.
+      await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
+      pages.summary(row); await pages.row(row, caption.lines.length > 0 || headings.length > 0); await pages.endTable();
+      await pages.endGroup(level); semanticDepth = level; path = path.slice(0, level);
     };
     const complete = async (summary: GroupedReportSummary): Promise<void> => {
       await finishLeaf();
@@ -103,14 +139,16 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
       if (!completeHeadings.length && !total) return;
       const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
       await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
-      await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
-      if (total) await pages.row(total);
+      await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, !semantic && summary.rows !== 0);
+      if (total) { if (semantic) pages.summary(total); await pages.row(total); }
       await pages.endTable();
     };
     await consumeRows(operation.events, operation.signal, async event => {
       switch (event.kind) {
         case "groupStart":
           await finishLeaf();
+          if (semantic && groupHeadingLevel + event.level > 6)
+            throw new RangeError("groupHeadingLevel and the opened group depth exceed heading level 6.");
           path = Object.freeze([...path.slice(0, event.level), event]);
           break;
         case "row": {
@@ -119,10 +157,12 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
           const row = await layout.data([new ExportCell("", { text: "" }), ...event.values], event.rowIndex);
           pending = row; break;
         }
-        case "groupEnd":
+        case "groupEnd": {
           rowIndex = -1; context.acceptRow(false);
-          closing.push(await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true));
+          const row = await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true);
+          if (semantic) await semanticSubtotal(row, event.level); else closing.push(row);
           break;
+        }
         case "complete": await complete(event); break;
       }
     });

@@ -43,6 +43,10 @@ string htmlDocument = document.ToHtmlDocument();
 
 ## Common tasks
 
+### Literal text without HTML entities
+
+Use `document.ToMarkdown(new MarkdownWriteOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash })` to write literal model text with Markdown backslash escapes. Ordinary parentheses and ampersands remain literal; HTML-like text and entity starts are escaped. Unstructured table strings are treated as literal text, while parsed and structured table nodes retain explicit Markdown formatting. The default writer mode keeps its existing behavior.
+
 ### Tables from typed objects
 
 ```csharp

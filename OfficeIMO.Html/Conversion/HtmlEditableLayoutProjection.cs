@@ -114,8 +114,6 @@ internal readonly struct HtmlEditableLayoutPicture {
 
 /// <summary>Creates one shared editable-layout plan for DOCX, RTF, XLSX, and PPTX adapters.</summary>
 public static partial class HtmlEditableLayoutProjector {
-    internal const string RegionAttribute = "data-officeimo-editable-layout-region";
-    internal const string ImageAttribute = "data-officeimo-editable-layout-image";
     private const string ImageSourcePrefix = "img[officeimo-layout-image=";
     private static readonly HashSet<string> SemanticRichElementNames = new(StringComparer.OrdinalIgnoreCase) {
         "a", "abbr", "audio", "b", "big", "blockquote", "br", "button", "canvas", "center", "cite", "code", "dd", "del",
@@ -522,63 +520,34 @@ public static partial class HtmlEditableLayoutProjector {
            region => region.SourceKey,
             region => CreateOrderedSourceImages(region, candidateElements[region.SourceKey], styles),
             StringComparer.Ordinal);
-        var originalRegionAttributeValues = candidateElements.ToDictionary(
-            pair => pair.Key,
-            pair => pair.Value.GetAttribute(RegionAttribute),
-            StringComparer.Ordinal);
-        foreach (KeyValuePair<string, IElement> pair in candidateElements) {
-            pair.Value.SetAttribute(RegionAttribute, pair.Key);
-        }
-        IReadOnlyList<IHtmlImageElement> markedImages = adapterDocument.QuerySelectorAll("img")
+        foreach (IHtmlStyleElement style in callerStyles) style.Remove();
+        IHtmlDocument remainingDocument = document.CreatePolicyNormalizedDocumentForConversion(adapterDocument, CopyMarkers);
+        IReadOnlyDictionary<string, IHtmlImageElement> normalizedImagesByKey = remainingDocument
+            .QuerySelectorAll("img")
             .OfType<IHtmlImageElement>()
             .Where(image => GetImageSourceKey(image) != null)
-            .ToList();
-        var originalImageAttributeValues = markedImages.ToDictionary(
-            image => GetImageSourceKey(image)!,
-            image => image.GetAttribute(ImageAttribute),
-            StringComparer.Ordinal);
-        foreach (IHtmlImageElement image in markedImages) {
-            image.SetAttribute(ImageAttribute, GetImageSourceKey(image)!);
-        }
-        foreach (IHtmlStyleElement style in callerStyles) style.Remove();
-        IHtmlDocument remainingDocument = document.CreatePolicyNormalizedDocumentForConversion(adapterDocument);
-        IReadOnlyDictionary<string, IHtmlImageElement> normalizedImagesByMarker = remainingDocument
-            .QuerySelectorAll("img[" + ImageAttribute + "]")
-            .OfType<IHtmlImageElement>()
-            .Where(image => !string.IsNullOrWhiteSpace(image.GetAttribute(ImageAttribute)))
-            .ToDictionary(image => image.GetAttribute(ImageAttribute)!, image => image, StringComparer.Ordinal);
+            .ToDictionary(image => GetImageSourceKey(image)!, image => image, StringComparer.Ordinal);
         IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = orderedSourceImages.ToDictionary(
             pair => pair.Key,
             pair => (IReadOnlyList<IHtmlImageElement>)pair.Value
-                .Select(image => image.GetAttribute(ImageAttribute))
-                .Where(marker => marker != null && normalizedImagesByMarker.ContainsKey(marker))
-                .Select(marker => normalizedImagesByMarker[marker!])
+                .Select(image => GetImageSourceKey(image))
+                .Where(sourceKey => sourceKey != null && normalizedImagesByKey.ContainsKey(sourceKey))
+                .Select(sourceKey => normalizedImagesByKey[sourceKey!])
                 .ToArray(),
             StringComparer.Ordinal);
         IReadOnlyDictionary<string, IHtmlImageElement> sourceImagesByRenderKey = sourceImages.Values
            .SelectMany(images => images)
-            .ToDictionary(image => DescribeImageSource(image.GetAttribute(ImageAttribute)), image => image,
+            .ToDictionary(image => DescribeImageSource(GetImageSourceKey(image)), image => image,
                 StringComparer.Ordinal);
-        foreach (KeyValuePair<string, IHtmlImageElement> pair in normalizedImagesByMarker) {
-            RestoreAuthoredAttribute(pair.Value, ImageAttribute, pair.Key, originalImageAttributeValues);
-        }
-        foreach (IHtmlImageElement image in markedImages) {
-            RestoreAuthoredAttribute(image, ImageAttribute, GetImageSourceKey(image), originalImageAttributeValues);
-        }
-        foreach (KeyValuePair<string, IElement> pair in candidateElements) {
-            RestoreAuthoredAttribute(pair.Value, RegionAttribute, pair.Key, originalRegionAttributeValues);
-        }
-        foreach (IElement element in remainingDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
-            string? sourceKey = element.GetAttribute(RegionAttribute);
+        foreach (IElement element in remainingDocument.QuerySelectorAll("*")
+            .Where(element => GetRegionSourceKey(element) != null).ToArray()) {
+            string? sourceKey = GetRegionSourceKey(element);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) {
                 if (semanticSectionOwnerKeys.Contains(sourceKey)) {
                     foreach (INode child in element.ChildNodes.ToArray()) element.RemoveChild(child);
-                    RestoreAuthoredAttribute(element, RegionAttribute, sourceKey, originalRegionAttributeValues);
                 } else {
                     element.Remove();
                 }
-            } else {
-                RestoreAuthoredAttribute(element, RegionAttribute, sourceKey, originalRegionAttributeValues);
             }
         }
         IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.Diagnostics

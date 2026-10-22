@@ -8,6 +8,18 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfCrossRunKerningTests {
+    [Fact]
+    public void OptionalBreaksKeepCrossRunKerningSourceIndicesAndPaintPositions() {
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D,
+            fontFamily: ManagedTextShapingTestAssets.FamilyName)
+            .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
+        using var joined = PdfPigDocument.Open(Create(300D, PdfAlign.Left, Run("A\u200BVA\u200BV")));
+        using var split = PdfPigDocument.Open(Create(300D, PdfAlign.Left, Run("A\u200BV"), Run("A\u200BV")));
+        Assert.Equal(joined.GetPage(1).Letters.Select(letter => letter.StartBaseLine),
+            split.GetPage(1).Letters.Select(letter => letter.StartBaseLine));
+        Assert.Equal("AVAV", PdfReadDocument.Open(Create(300D, PdfAlign.Left, Run("A\u200BV"), Run("A\u200BV"))).ExtractText().Trim());
+    }
+
     [Theory]
     [InlineData(-200, 29D)]
     [InlineData(200, 42D)]

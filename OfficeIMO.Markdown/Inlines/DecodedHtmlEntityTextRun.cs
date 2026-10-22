@@ -19,7 +19,7 @@ internal sealed class DecodedHtmlEntityTextRun : MarkdownInline, IRenderableMark
         SourceTextSourceSpan = sourceTextSourceSpan;
     }
 
-    string IRenderableMarkdownInline.RenderMarkdown() => MarkdownEscaper.EscapeLiteralText(Text);
+    string IRenderableMarkdownInline.RenderMarkdown() => MarkdownEscaper.EscapeLiteralTextForWriter(Text);
     string IRenderableMarkdownInline.RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

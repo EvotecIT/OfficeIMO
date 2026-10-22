@@ -84,6 +84,13 @@ public sealed class MarkdownWriteOptions {
     public MarkdownImageRenderingMode ImageRenderingMode { get; set; } = MarkdownImageRenderingMode.RichMarkdown;
 
     /// <summary>
+    /// Controls escaping of literal inline text and unstructured table strings. The default preserves existing
+    /// output. <see cref="MarkdownTextEscapingMode.LiteralBackslash"/> prevents HTML and entity interpretation
+    /// without introducing HTML character references or escaping ordinary parentheses.
+    /// </summary>
+    public MarkdownTextEscapingMode TextEscapingMode { get; set; } = MarkdownTextEscapingMode.Default;
+
+    /// <summary>
     /// Controls how YAML front matter is emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
     /// </summary>
     public MarkdownFrontMatterRenderingMode FrontMatterRendering { get; set; } = MarkdownFrontMatterRenderingMode.Preserve;
@@ -149,6 +156,7 @@ public sealed class MarkdownWriteOptions {
     public MarkdownWriteOptions Clone() {
         var clone = new MarkdownWriteOptions {
             ImageRenderingMode = ImageRenderingMode,
+            TextEscapingMode = TextEscapingMode,
             FrontMatterRendering = FrontMatterRendering,
             AbbreviationDefinitionRendering = AbbreviationDefinitionRendering,
             OutputLineEnding = OutputLineEnding,
