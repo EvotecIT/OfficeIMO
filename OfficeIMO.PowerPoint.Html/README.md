@@ -49,6 +49,17 @@ and resolved CSS custom properties. Heading titles retain their own text and fon
 
 Use `PowerPointHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
 
+Both profiles start with an `h1` heading showing `Title`, or a profile name when no title is set; set `IncludeHeading = false` to omit it. Visual review lists each slide's render diagnostics as visible text below the slide; set `IncludeRenderDiagnostics = false` to leave them out of the HTML. They are still reported through `PowerPointToHtmlResult.ImageDiagnostics`. The following settings omit the presentation heading, snapshot diagnostic lists, master inventory, and extraction proof; slide headings and enabled SmartArt or media review sections remain:
+
+```csharp
+var options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+options.IncludeHeading = false;
+options.IncludeRenderDiagnostics = false;
+options.IncludeMasterInventory = false;
+options.IncludeExtractionProof = false;
+PowerPointToHtmlResult result = presentation.ToHtmlResult(options);
+```
+
 ## Targets
 
 `netstandard2.0`, `net8.0`, and `net10.0`; `net472` is included when building on Windows.

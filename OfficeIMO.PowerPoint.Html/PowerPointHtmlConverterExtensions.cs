@@ -43,7 +43,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
         body.Append('>');
-        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Presentation"))).Append("</h1>");
+        AppendHeading(body, options, "PowerPoint Presentation");
         if (options.IncludeMasterInventory) AppendMasterInventory(body, presentation, diagnostics);
 
         int visibleIndex = 0;
@@ -68,7 +68,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
         body.Append('>');
-        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Visual Review"))).Append("</h1>");
+        AppendHeading(body, options, "PowerPoint Visual Review");
         if (options.IncludeMasterInventory) AppendMasterInventory(body, presentation, diagnostics);
 
         for (int i = 0; i < presentation.Slides.Count; i++) {
@@ -142,10 +142,15 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("</div></div></div>");
-        AppendSnapshotDiagnostics(body, slideDiagnostics);
+        if (options.IncludeRenderDiagnostics) AppendSnapshotDiagnostics(body, slideDiagnostics);
         AppendAdvancedReviewInventory(body, slide, options, diagnostics);
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
+    }
+
+    private static void AppendHeading(StringBuilder body, PowerPointHtmlSaveOptions options, string fallback) {
+        if (!options.IncludeHeading) return;
+        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, fallback))).Append("</h1>");
     }
 
     private static void AppendSnapshotDiagnostics(StringBuilder body,
