@@ -182,13 +182,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || style.OverflowX is "auto" or "hidden" or "scroll"
         || style.OverflowY is "auto" or "hidden" or "scroll";
 
-    private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle, int depth) {
+    private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle, int depth,
+        IEnumerable<INode>? sourceNodes = null, bool includeGeneratedBefore = true, bool includeGeneratedAfter = true) {
         EnsureDepth(depth, element);
-        if (IncludeColumnGeneratedContent(element, HtmlPseudoElementKind.Before)
+        if (includeGeneratedBefore && IncludeColumnGeneratedContent(element, HtmlPseudoElementKind.Before)
                 && HasBlockGeneratedContent(element, HtmlPseudoElementKind.Before, width, parentStyle)
-            || IncludeColumnGeneratedContent(element, HtmlPseudoElementKind.After)
+            || includeGeneratedAfter && IncludeColumnGeneratedContent(element, HtmlPseudoElementKind.After)
                 && HasBlockGeneratedContent(element, HtmlPseudoElementKind.After, width, parentStyle)) return true;
-        foreach (IElement child in SelectedColumnChildNodes(element).OfType<IElement>()) {
+        foreach (IElement child in (sourceNodes ?? SelectedColumnChildNodes(element)).OfType<IElement>()) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
             if (style.FloatSide != "none") return true;

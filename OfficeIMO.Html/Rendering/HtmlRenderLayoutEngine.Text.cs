@@ -16,7 +16,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int skipLogicalCharacters = 0,
         PagedFloatBoundary? pageBoundary = null,
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
-        bool applyTextIndent = true, InlineFloatContext? floatContext = null) {
+        bool applyTextIndent = true, InlineFloatContext? floatContext = null,
+        bool includeGeneratedBefore = true, bool includeGeneratedAfter = true) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
         if (marker != null && !marker.IsOutside) {
@@ -25,7 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         string? inheritedLink = formattingContainer == null ? null : ResolveAncestorLink(formattingContainer);
-        if (generatedContentOwner != null && IncludeColumnGeneratedContent(generatedContentOwner, HtmlPseudoElementKind.Before)) {
+        if (includeGeneratedBefore && generatedContentOwner != null && IncludeColumnGeneratedContent(generatedContentOwner, HtmlPseudoElementKind.Before)) {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
 
@@ -33,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CollectInlineRuns(node, width, containingHeight, parentStyle, inheritedLink, depth, 0D, 0D, runs);
         }
 
-        if (generatedContentOwner != null && IncludeColumnGeneratedContent(generatedContentOwner, HtmlPseudoElementKind.After)) {
+        if (includeGeneratedAfter && generatedContentOwner != null && IncludeColumnGeneratedContent(generatedContentOwner, HtmlPseudoElementKind.After)) {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
 

@@ -48,20 +48,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? caption = null;
         IElement? headerGroup = null;
         IElement? footerGroup = null;
-        if (anonymousNodes == null) ReportOmittedTableGeneratedContent(table, width, tableStyle);
-        AppendRows(table, anonymousNodes ?? table.ChildNodes.ToArray(), tableStyle, null, null, depth);
+        AppendRows(table, anonymousNodes ?? table.ChildNodes.ToArray(), tableStyle, null, null, depth,
+            includeGeneratedContent: anonymousNodes == null);
         return new TableFormattingStructure(table, rows, caption, anonymousNodes != null, headerGroup, footerGroup);
 
         void AppendRows(IElement owner, IEnumerable<INode> nodes, HtmlRenderBoxStyle parentStyle,
-            IElement? group, HtmlRenderBoxStyle? groupStyle, int currentDepth) {
+            IElement? group, HtmlRenderBoxStyle? groupStyle, int currentDepth, bool includeGeneratedContent = true) {
             EnsureDepth(currentDepth, owner);
             var cells = new List<TableFormattingCell>();
             var content = new List<INode>();
+            bool generatedBefore = includeGeneratedContent && IncludeTableGeneratedContent(owner, HtmlPseudoElementKind.Before, width, parentStyle);
+            bool generatedAfter = false;
             void FlushContent() {
-                if (content.Count == 0) return;
+                if (content.Count == 0 && !generatedBefore && !generatedAfter) return;
                 cells.Add(new TableFormattingCell(owner, parentStyle, content.ToArray(),
-                    GetAnonymousTableStructureElementKey(owner, content[0], "cell")));
+                    content.Count > 0 ? GetAnonymousTableStructureElementKey(owner, content[0], "cell")
+                        : GetTableStructureElementKey(owner) + (generatedBefore ? ":generated-before" : ":generated-after"),
+                    generatedBefore, generatedAfter));
                 content.Clear();
+                generatedBefore = generatedAfter = false;
             }
             void FlushRow() {
                 FlushContent();
@@ -69,7 +74,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 IElement anchor = cells.Select(cell => cell.ContinuationElement).FirstOrDefault(element => element != null) ?? owner;
                 rows.Add(new TableFormattingRow(anchor, CreateAnonymousBoxStyle(parentStyle, "table-row", "anonymous-table-row"),
                     group, groupStyle, cells.ToArray(), anonymous: true,
-                    GetAnonymousTableStructureElementKey(owner, cells[0].SourceNode, "row")));
+                    cells[0].Nodes?.Count == 0 && cells[0].HasGeneratedContent
+                        ? cells[0].StructureKey + ":row"
+                        : GetAnonymousTableStructureElementKey(owner, cells[0].SourceNode, "row")));
                 cells.Clear();
             }
             foreach (INode node in nodes) {
@@ -85,12 +92,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     FlushRow();
                     if (childStyle.Display == "table-header-group") headerGroup ??= child;
                     if (childStyle.Display == "table-footer-group") footerGroup ??= child;
-                    ReportOmittedTableGeneratedContent(child, width, childStyle);
                     _layoutStyles[child] = childStyle;
                     AppendRows(child, child.ChildNodes, childStyle, child, childStyle, currentDepth + 1);
                 } else if (childStyle.Display == "table-row") {
                     FlushRow();
-                    ReportOmittedTableGeneratedContent(child, width, childStyle);
                     _layoutStyles[child] = childStyle;
                     rows.Add(new TableFormattingRow(child, childStyle, group, groupStyle,
                         BuildCells(child, childStyle, currentDepth + 1), anonymous: false));
@@ -111,6 +116,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     content.Add(node);
                 }
             }
+            generatedAfter = includeGeneratedContent && IncludeTableGeneratedContent(owner, HtmlPseudoElementKind.After, width, parentStyle);
             FlushRow();
         }
 
@@ -118,11 +124,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             EnsureDepth(currentDepth, row);
             var cells = new List<TableFormattingCell>();
             var content = new List<INode>();
+            bool generatedBefore = IncludeTableGeneratedContent(row, HtmlPseudoElementKind.Before, width, rowStyle);
+            bool generatedAfter = false;
             void FlushContent() {
-                if (content.Count == 0) return;
+                if (content.Count == 0 && !generatedBefore && !generatedAfter) return;
                 cells.Add(new TableFormattingCell(row, rowStyle, content.ToArray(),
-                    GetAnonymousTableStructureElementKey(row, content[0], "cell")));
+                    content.Count > 0 ? GetAnonymousTableStructureElementKey(row, content[0], "cell")
+                        : GetTableStructureElementKey(row) + (generatedBefore ? ":generated-before" : ":generated-after"),
+                    generatedBefore, generatedAfter));
                 content.Clear();
+                generatedBefore = generatedAfter = false;
             }
             foreach (INode node in row.ChildNodes) {
                 CheckCancellation();
@@ -139,6 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (node is not IText) continue;
                 content.Add(node);
             }
+            generatedAfter = IncludeTableGeneratedContent(row, HtmlPseudoElementKind.After, width, rowStyle);
             FlushContent();
             return cells;
         }
@@ -162,22 +174,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return GetTableStructureElementKey(owner) + ":anonymous-" + kind + ":" + sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    /// <summary>Reports effective generated content omitted by the bounded table, row, and row-group formatter.</summary>
-    private void ReportOmittedTableGeneratedContent(IElement element, double width, HtmlRenderBoxStyle parentStyle) {
-        Report(HtmlPseudoElementKind.Before);
-        Report(HtmlPseudoElementKind.After);
-
-        void Report(HtmlPseudoElementKind kind) {
-            if (!_generatedContent.TryGetContent(element, kind, out HtmlGeneratedContent content)
-                || !content.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text || fragment.Value.Length > 0)
-                || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)
-                || style.Display == "none"
-                || !_reportedTableGeneratedContentOmissions.Add((element, kind))) return;
-            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableValueUnsupported,
-                "Generated content on a table, row, or row-group box was omitted.", HtmlDiagnosticSeverity.Warning,
-                DescribePseudoSource(element, kind), "generated content on " + parentStyle.Display,
-                OfficeConversionLossKind.Omission);
-        }
+    /// <summary>Retains in-flow generated content in anonymous table cells without adding nodes to the source DOM.</summary>
+    private bool IncludeTableGeneratedContent(IElement element, HtmlPseudoElementKind kind, double width, HtmlRenderBoxStyle parentStyle) {
+        if (!IncludeColumnGeneratedContent(element, kind)
+            || !_generatedContent.TryGetContent(element, kind, out HtmlGeneratedContent content)
+            || !content.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text || fragment.Value.Length > 0)
+            || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)
+            || style.Display == "none") return false;
+        if (style.Display is "inline" or "inline-block" or "block" or "flow-root" or "list-item"
+            && style.FloatSide == "none" && style.Position is not "absolute" and not "fixed") return true;
+        if (!_reportedTableGeneratedContentOmissions.Add((element, kind))) return false;
+        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableValueUnsupported,
+            "Generated content with unsupported table formatting or positioning was omitted.", HtmlDiagnosticSeverity.Warning,
+            DescribePseudoSource(element, kind), "generated content on " + parentStyle.Display + "; display=" + style.Display
+                + "; position=" + style.Position + "; float=" + style.FloatSide,
+            OfficeConversionLossKind.Omission);
+        return false;
     }
 
     private void ReportTableFormattingFallback(IElement element, string detail) {
@@ -268,16 +280,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>A cell retains its source element or the original nodes of anonymous cell content.</summary>
     private sealed class TableFormattingCell {
-        internal TableFormattingCell(IElement element, HtmlRenderBoxStyle parentStyle, IReadOnlyList<INode>? nodes = null, string? structureKey = null) {
+        internal TableFormattingCell(IElement element, HtmlRenderBoxStyle parentStyle, IReadOnlyList<INode>? nodes = null, string? structureKey = null,
+            bool generatedBefore = false, bool generatedAfter = false) {
             Element = element;
             ParentStyle = parentStyle;
             Nodes = nodes;
             StructureKey = structureKey;
+            GeneratedBefore = generatedBefore;
+            GeneratedAfter = generatedAfter;
         }
         internal IElement Element { get; }
         internal HtmlRenderBoxStyle ParentStyle { get; }
         internal IReadOnlyList<INode>? Nodes { get; }
         internal string? StructureKey { get; }
+        internal bool GeneratedBefore { get; }
+        internal bool GeneratedAfter { get; }
+        internal bool HasGeneratedContent => GeneratedBefore || GeneratedAfter;
         internal INode SourceNode => Nodes?.FirstOrDefault() ?? Element;
         internal int ColumnSpan => Nodes == null && IsTableCell(Element) ? ReadSpan(Element.GetAttribute("colspan"), 1000) : 1;
         internal string? RowSpan => Nodes == null && IsTableCell(Element) ? Element.GetAttribute("rowspan") : null;

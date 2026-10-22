@@ -3863,6 +3863,22 @@ Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine`
 - Clean package caches, lock files, `bin`, and `obj` outputs when old and new assemblies were restored together.
 - Run the application test suite on every supported operating system after the coordinated package upgrade.
 
+## HTML printed scroll panels and table content
+
+Paged HTML rendering no longer treats `overflow:auto` or `overflow:scroll` as
+an implicit request to keep the entire box on one page. Add
+`break-inside:avoid` when a panel must stay together. Authored clipping and
+bounded scroll snapshots still apply.
+
+In-flow `::before` and `::after` text on table, row and row-group boxes is
+retained, including destinations printed by `content:attr(href)`. Regenerate
+saved-page baselines that depended on its omission or the earlier implicit
+scroll-panel keep; text wrapping and page counts can change.
+
+Preformatted blocks retain spaces and line breaks inside nested styled text
+and generated content. Update snapshots that depended on collapsed whitespace,
+or use `white-space:normal` when ordinary text flow is intended.
+
 ## Excel encrypted-save persistence
 
 Saving encrypted output to the document's associated file or stream changes its
