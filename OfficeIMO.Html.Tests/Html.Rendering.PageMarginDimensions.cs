@@ -202,8 +202,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("height:min-content")]
-    [InlineData("min-height:max-content")]
     [InlineData("max-height:fit-content(20px)")]
     public void HtmlPageMarginDimensions_IntrinsicHeightFallbackReportsTheUnsupportedConstraint(string declaration) {
         HtmlRenderDocument rendered = RenderPageMarginDimensions("width:80px;" + declaration, "''");

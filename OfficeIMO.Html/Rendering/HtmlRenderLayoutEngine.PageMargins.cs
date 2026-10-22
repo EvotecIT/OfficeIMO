@@ -38,7 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
-                if (box.Font.Size <= 0D) {
+                if (box.Font.Size <= 0D && !box.Typography.HasPageMarginIntrinsicHeights) {
                     AppendEmptyPageMarginBox(visuals, page, box, horizontalBounds);
                     continue;
                 }
@@ -65,6 +65,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HtmlDiagnosticSeverity.Warning, marginBoxSource, "text-layout-limit", OfficeConversionLossKind.Omission);
                 }
                 double textHeight = lines.Count * lineHeight;
+                if (box.Font.Size <= 0D) {
+                    AppendEmptyPageMarginBox(visuals, page, box, horizontalBounds, textHeight);
+                    continue;
+                }
                 if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, textHeight, out double x, out double y, out double width, out double height)) continue;
                 if (box.HasBoxGeometry) y += Math.Max(0D, (height - textHeight) / 2D);
                 _fontUsage?.Observe(text, box.Font.FamilyName, box.Typography.FontDescriptor);
@@ -92,7 +96,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 }
                 AppendPageMarginVisuals(visuals, page, box, horizontalBounds,
-                    marginVisuals, x, y, width, height, marginBoxSource);
+                    marginVisuals, x, y, width, height, textHeight, marginBoxSource);
             }
 
             rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins, page.PrintProduction));
@@ -109,6 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         baseline = metrics.Baseline;
         paintHeight = Math.Max(lineHeight, box.Font.Size);
         paintTopOverflow = 0D;
+        if (box.Font.Size <= 0D) return;
         HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
         if (!IsUsableTextFaceMetrics(face)) return;
         paintHeight = Math.Max(lineHeight, box.Font.Size + face!.Value.Height - face.Value.BaselineOffset);
@@ -128,15 +133,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderFlowBlock block = snapshot.Block;
-        if (block.Visuals.Count == 0) {
-            AppendEmptyPageMarginBox(target, page, box, horizontalBounds);
-            return;
-        }
         if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, block.Height, out _, out _, out double availableWidth, out _)) return;
 
         block = ResolveRunningElementSnapshot(snapshot, page, availableWidth);
         if (block.Visuals.Count == 0) {
-            AppendEmptyPageMarginBox(target, page, box, horizontalBounds);
+            AppendEmptyPageMarginBox(target, page, box, horizontalBounds, block.Height);
             return;
         }
         if (!TryGetPageMarginContentBounds(page, box, horizontalBounds, block.Height, out double x, out double y, out double width, out double height)) return;
@@ -167,7 +168,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     source)
             }
             : translated;
-        AppendPageMarginVisuals(target, page, box, horizontalBounds, marginVisuals, x, y, width, height, source);
+        AppendPageMarginVisuals(target, page, box, horizontalBounds, marginVisuals, x, y, width, height, block.Height, source);
     }
 
     private HtmlRenderFlowBlock ResolveRunningElementSnapshot(HtmlCssRunningElementSnapshot snapshot, HtmlRenderPage page, double availableWidth) {

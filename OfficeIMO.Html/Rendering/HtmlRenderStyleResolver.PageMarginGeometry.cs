@@ -27,9 +27,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.IntrinsicWidth = ReadPageMarginIntrinsicWidth("width");
             style.IntrinsicMinWidth = ReadPageMarginIntrinsicWidth("min-width");
             style.IntrinsicMaxWidth = ReadPageMarginIntrinsicWidth("max-width");
-            style.ExplicitHeight = ReadPageMarginHeight("height");
-            style.MinHeight = ReadPageMarginHeight("min-height");
-            style.MaxHeight = ReadPageMarginHeight("max-height");
+            style.ExplicitHeight = ReadPageMarginHeight("height", out style.PageMarginIntrinsicHeight);
+            style.MinHeight = ReadPageMarginHeight("min-height", out style.PageMarginIntrinsicMinHeight);
+            style.MaxHeight = ReadPageMarginHeight("max-height", out style.PageMarginIntrinsicMaxHeight);
             ApplyAutoMargins(computed, style);
             ApplyMarginLength(computed.GetValue("margin-left"), stripWidth, style.Font.Size, ref style.MarginLeft);
             ApplyMarginLength(computed.GetValue("margin-right"), stripWidth, style.Font.Size, ref style.MarginRight);
@@ -72,13 +72,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             return null;
         }
 
-        double? ReadPageMarginHeight(string property) {
+        double? ReadPageMarginHeight(string property, out bool intrinsic) {
             string value = computed.GetValue(property).Trim();
-            double? height = ReadVerticalLength(value, null, stripHeight, style.Font.Size);
-            if (height.HasValue || !(value.Equals("min-content", StringComparison.OrdinalIgnoreCase)
+            intrinsic = value.Equals("min-content", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("max-content", StringComparison.OrdinalIgnoreCase)
-                || value.Equals("fit-content", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("fit-content(", StringComparison.OrdinalIgnoreCase))) return height;
+                || value.Equals("fit-content", StringComparison.OrdinalIgnoreCase);
+            if (intrinsic) return null;
+            double? height = ReadVerticalLength(value, null, stripHeight, style.Font.Size);
+            if (height.HasValue || !value.StartsWith("fit-content(", StringComparison.OrdinalIgnoreCase)) return height;
             if (_reportedPageMarginDimensions.Add(source + " " + property + "=" + value)) {
                 _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported,
                     "An intrinsic page-margin height used auto sizing or omitted its minimum or maximum constraint.",
