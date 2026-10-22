@@ -33,7 +33,11 @@ internal static partial class PdfWriter {
             (policy.IsExplicitBreak ? policy.ExplicitBreaks : !policy.IsFinalParagraphLine || policy.LastLine);
         if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);
         int lastTab = segments.FindLastIndex(segment => segment.LeadingIsTab);
-        if (lastTab >= 0) return PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth);
+        if (lastTab >= 0) {
+            return segments[lastTab].LeadingTabAlignment == PdfTabAlignment.Left
+                ? PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth)
+                : new RichLineJustification(segments, 0D, naturalWidth);
+        }
         if (policy.Mode != PdfJustificationMode.Characters) {
             int gaps = segments.Where(segment => segment.LeadingSpace && segment.LeadingSpaceIsExpandable)
                 .Sum(segment => segment.LeadingSpaceCount);
@@ -54,8 +58,8 @@ internal static partial class PdfWriter {
         var distributed = new List<RichSeg>(segments.Count);
         for (int index = 0; index < segments.Count; index++) {
             RichSeg segment = segments[index];
-            // A tab fixes the following field's anchor. Both policies retain all earlier
-            // advances and expand only word separators within the final anchored field.
+            // A left tab fixes the following field's start. Both policies retain all earlier
+            // advances and expand only word separators within the final left-tab field.
             bool expands = index > lastTab && segment.LeadingSpace && segment.LeadingSpaceIsExpandable;
             distributed.Add(expands ? segment.WithJustification(0D,
                 segment.LeadingAdvance + segment.LeadingSpaceCount * spacing, null) : segment);

@@ -201,7 +201,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             bool? previousKind = null;
-            foreach (PdfFootnote footnote in footnotes) {
+            // Each note kind forms one story group, retaining its authored reference order.
+            foreach (PdfFootnote footnote in footnotes.Where(note => !note.IsEndnote)
+                .Concat(footnotes.Where(note => note.IsEndnote))) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (previousKind != footnote.IsEndnote) {
                     W.FootnoteEndnoteType separator = footnote.IsEndnote

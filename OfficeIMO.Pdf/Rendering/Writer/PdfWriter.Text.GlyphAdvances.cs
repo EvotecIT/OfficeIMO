@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Returns the actual encoded glyph advance, including authored and line-distribution tracking.</summary>
     private static double GetRichGlyphAdvance(RichSeg segment, string text, PdfTextShowCommand command,
-        int index, PdfOptions options) {
+        int index, PdfOptions? options) {
         double advance;
         if (command.VisualGlyphs is { } glyphs) advance = glyphs[index].AdvanceWidth1000;
         else if (command.GlyphHex.Length == command.GlyphCount * 2) {
@@ -12,13 +12,13 @@ internal static partial class PdfWriter {
             advance += command.SimpleFontKerning?[index] ?? 0;
         } else {
             int glyphId = GetGlyphPaintId(command.GlyphHex, index * 4);
-            if (segment.NamedFont.HasValue && options.TryGetNamedFontProgram(segment.NamedFont.Value, out var named) && named != null)
+            if (options != null && segment.NamedFont.HasValue && options.TryGetNamedFontProgram(segment.NamedFont.Value, out var named) && named != null)
                 advance = named.GetGlyphWidth1000(glyphId);
-            else if (segment.NamedFont.HasValue && options.TryGetNamedOpenTypeCffFontProgram(segment.NamedFont.Value, out var namedCff) && namedCff != null)
+            else if (options != null && segment.NamedFont.HasValue && options.TryGetNamedOpenTypeCffFontProgram(segment.NamedFont.Value, out var namedCff) && namedCff != null)
                 advance = namedCff.GetGlyphWidth1000(glyphId);
-            else if (options.TryGetEmbeddedStandardFontProgram(segment.Font, out var standard) && standard != null)
+            else if (options != null && options.TryGetEmbeddedStandardFontProgram(segment.Font, out var standard) && standard != null)
                 advance = standard.GetGlyphWidth1000(glyphId);
-            else if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(segment.Font, out var standardCff) && standardCff != null)
+            else if (options != null && options.TryGetEmbeddedStandardOpenTypeCffFontProgram(segment.Font, out var standardCff) && standardCff != null)
                 advance = standardCff.GetGlyphWidth1000(glyphId);
             else throw new InvalidOperationException("The selected embedded glyph has no PDF advance metrics.");
         }

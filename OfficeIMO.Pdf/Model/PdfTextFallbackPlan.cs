@@ -236,7 +236,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithPlannedFontFallback(null).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
