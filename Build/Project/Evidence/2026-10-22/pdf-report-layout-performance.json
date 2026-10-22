@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.pdf-report-layout-performance-evidence/v2",
-  "assembledUtc": "2026-10-22T02:38:09.090869+00:00",
+  "assembledUtc": "2026-10-22T04:34:27.474137+00:00",
   "status": "Local qualification passed; delivery gates separate",
   "intendedRepositoryPath": "Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json",
   "runtimeSource": {
@@ -9,7 +9,7 @@
     "manifestRecord": "qualification-config.json",
     "sourceGuardGate": "currentCleanSource"
   },
-  "documentationCommit": "d53348af68fb5c6eef44f0834d9cd0f06368fa2d",
+  "documentationCommit": "07de4ab3a08ff8e0d2f7fc27c1bf5220b2585dce",
   "gates": {
     "currentCleanSource": {
       "status": "Passed",
@@ -18,7 +18,7 @@
       "manifestRecord": "qualification-config.json",
       "sourceRecordsSha256": "b3646dd8322b381394b9d9557c1f7772db1f0a69d122fc0e56cd4567dc88c155",
       "sourceFreezeUtc": "2026-10-22T01:23:41.717378+00:00",
-      "observedCheckoutHead": "d53348af68fb5c6eef44f0834d9cd0f06368fa2d",
+      "observedCheckoutHead": "07de4ab3a08ff8e0d2f7fc27c1bf5220b2585dce",
       "boundary": "Clean current checkout and measured source bytes verified read-only. Later documentation/evidence commits never become measured runtime identities."
     },
     "immutableHistory": {
@@ -353,7 +353,7 @@
       "pdfCount": 24,
       "pageCount": 834,
       "rfcWhitespaceCorrectionVerified": true,
-      "conclusion": "Bounded current-source report acceptance passed: allthreecompletepayloadPDFs andallsevenpubliccontrols byte-identicalbaseline;250/2500SKU exactlyonce with42/417pages. UKmatchedzeromarginreportretainsall11printedURLs exactlyonce/Contentsonpage1. Rootactuallyviewed8current/nativecaptures: RFCfooterthreecolumns nowpreserve nestedpre alignment and match nativehorizontal positions; same13pages/3600lexicaltokens acrossbaseline/current/native, butperpagegeometry/lineheightdistribution differs, so nofullnativefidelityclaim. IndependentpackageNativeAOT link/purchase pagesfitandlegible. NIST/NASAfrozenreports retainallpagelexicalcontent. UKdefaultstillhasexactlytwopre-existingout-of-media wordfragments inawidetable; zero-marginmatchedreportnone. Rotatedchartyearlabellexicalfragments02/201 remainrecordedasdiagnosticdifference, not asserted semantic equality. Fourcapturedwebreports retain known resource/font/renderinglosses; successfulconversion isnotblanketappearanceacceptance. RFCwasunusedearlierinthisgoal butknownbyengineowner; notenginewideheldout. Rawexternalinputs/nativecaptures private/no redistributionclaim.",
+      "conclusion": "Bounded report checks passed. All three complete payload PDFs and all seven public controls are byte-identical to the baseline. Every 250-row and 2,500-row marker appears once across 42 and 417 pages. The UK report with matching zero margins retains all 11 printed URLs once, with its contents on page 1. Eight current and native captures were inspected. The RFC footer now preserves nested preformatted alignment and closely matches native horizontal positions. Baseline, current and native RFC outputs all have 13 pages and 3,600 lexical tokens, but line heights and page geometry differ; full native fidelity is not established. NativeAOT link and purchase-report pages fit and are legible. Frozen NIST and NASA reports retain their lexical content across all pages. The UK default profile still has two pre-existing word fragments outside the media box in a wide table; the zero-margin report has none. Chart-year fragments 02 and 201 remain diagnostic differences, without an assertion of semantic equality. The four captured web reports retain known resource, font and rendering losses. The RFC source was unused earlier in this goal but known to the engine owner, so it is not an engine-wide held-out case. Raw external inputs and native captures remain private; redistribution rights are not asserted.",
       "boundary": "All-page text/media-box scans and actual selected native/product image inspection. Lexical equality is diagnostic; unfamiliar reports, font matching, wide tables and broad native/platform acceptance remain open."
     },
     "pairedPerformance": {
@@ -606,7 +606,21 @@
           }
         }
       ],
-      "conclusion": "Current-source paired cohort accepted for selected large-table speed/allocation improvement with byte-identical417page savedoutput/all2500markers. All20rows and raw noisy/slower cases retained; assess each workload separately. No peakmemory, coldstart, quiet-host, portable-ranking or isolated-optimization attribution. EarlierDDDD/83efd timings remain historical.",
+      "conclusion": "The current-source paired runs support a speed and allocation improvement for the selected large table. The saved 417-page PDF is byte-identical, with all 2,500 row markers present. All 20 measurements, including noisy and slower cases, are retained; assess each workload separately. These runs do not establish peak memory, cold start, quiet-host performance, a portable ranking or attribution to one optimization. Earlier DDDD and 83efd timings remain historical.",
+      "executionControl": {
+        "hostLogicalProcessorCount": 10,
+        "dotnetProcessorCountOverride": 3,
+        "cpuAffinity": "Not set; OS scheduling",
+        "records": [
+          "executions/whitespace-bdn-payload-baseline-a.json",
+          "executions/whitespace-bdn-payload-current-a.json",
+          "executions/whitespace-bdn-payload-current-b.json",
+          "executions/whitespace-bdn-payload-baseline-b.json",
+          "executions/whitespace-bdn-purchase-baseline.json",
+          "executions/whitespace-bdn-purchase-current.json"
+        ],
+        "boundary": "The ten-processor hardware report and the child .NET processor-count override are separate. No restriction to three physical cores is claimed."
+      },
       "boundary": "Normal development load; all slower/noisy rows retained. Warm managed allocation is not peak process memory, cold start, a portable ranking, or isolated-change attribution."
     },
     "canonicalSharedNine": {
@@ -701,6 +715,8 @@
         "run-whitespace-comparison.py",
         "compact-whitespace-tests.py"
       ],
+      "documentationFeedback": "review-wave1/documentation-inputs-acceptance.json",
+      "priorPresentation": "review-wave1/original-inputs-manifest.json",
       "boundary": "Retained reproduction/assembly recipes; their present hashes are not retroactive execution bookends."
     }
   },
@@ -719,8 +735,8 @@
   "references": [
     {
       "record": "assemble-final-whitespace-evidence.py",
-      "bytes": 44745,
-      "sha256": "5b5fd8a214b7ffd6b9488f00f2f7e045f608eb1a95cea7ab1793fec4e415476a"
+      "bytes": 45949,
+      "sha256": "313cf839bf5fb6287b46746da378cb7ea5dbed5ab85c24c01b8a6b2ff087f8b6"
     },
     {
       "record": "assemble-portable-evidence.py",
@@ -729,8 +745,8 @@
     },
     {
       "record": "assess-whitespace-performance.py",
-      "bytes": 3967,
-      "sha256": "729374db0d9721146a9aac5fe5360f280112d2aea5f007b22f10927b26e97b34"
+      "bytes": 4127,
+      "sha256": "8e3b96ae993de4407a0816fed80a23dbb0c117b998030debfb519297ddf9c270"
     },
     {
       "record": "baseline-source-manifest.json",
@@ -899,8 +915,8 @@
     },
     {
       "record": "candidate/whitespace-inspection/assessment.json",
-      "bytes": 4890,
-      "sha256": "273a6105686b74c8d921b932b9f4da903be35bfadfda9a36de92428adbb80de1"
+      "bytes": 5077,
+      "sha256": "7b6e5fee6411dbfa904e2352fded83e9fe99206887cf67a427dcd2d418afae69"
     },
     {
       "record": "candidate/whitespace-inspection/pdf-0.bbox.xml",
@@ -1226,6 +1242,36 @@
       "record": "corpus-plan.json",
       "bytes": 5892,
       "sha256": "ae09aa0a024603523fd4260882671480c8ad98807a19f8f289edee79750e0226"
+    },
+    {
+      "record": "executions/whitespace-bdn-payload-baseline-a.json",
+      "bytes": 1229,
+      "sha256": "e5429dd6476a2edde0254bd30d5f9b09739eaf4e80fd65078f71867bb3b81588"
+    },
+    {
+      "record": "executions/whitespace-bdn-payload-baseline-b.json",
+      "bytes": 1229,
+      "sha256": "cf126a855bd49dc8fd78e4d580632cc7f285db118cf2bdf9c1fe4c70c5aafd4c"
+    },
+    {
+      "record": "executions/whitespace-bdn-payload-current-a.json",
+      "bytes": 1234,
+      "sha256": "7d7c3ace12d2993e13261ea5a8a1660d215eea6142c46c6887bc26204ad2b976"
+    },
+    {
+      "record": "executions/whitespace-bdn-payload-current-b.json",
+      "bytes": 1234,
+      "sha256": "15a49f768d535135ab70da4ca949f2d179667a741add2f463b3955c19d1c7784"
+    },
+    {
+      "record": "executions/whitespace-bdn-purchase-baseline.json",
+      "bytes": 1194,
+      "sha256": "f7aa6a0b058258f013b4e0ec9b58302e5a4b17445d2987929aa8ff0a616a87e9"
+    },
+    {
+      "record": "executions/whitespace-bdn-purchase-current.json",
+      "bytes": 1209,
+      "sha256": "95ffd12979256958f2e98580f59b8d37b40ff784da42cf9b01e7d1be858964f0"
     },
     {
       "record": "executions/whitespace-layer-probe-run.log",
@@ -2159,8 +2205,8 @@
     },
     {
       "record": "performance/whitespace-7650/assessment.json",
-      "bytes": 13090,
-      "sha256": "61de333f0eb7d6b206e71d000729c5323e5d5a0d07f61349ad5c07101d97c453"
+      "bytes": 13250,
+      "sha256": "8548d67d7d79f00cb3ed28e0a1781eb2536a334085f5c1bc268ee08e5566357f"
     },
     {
       "record": "performance/whitespace-7650/payload-baseline-a/results/OfficeIMO.Pdf.Benchmarks.Comparisons.PdfHtmlPayloadBenchmarks-report-full-compressed.json",
@@ -2301,6 +2347,51 @@
       "record": "qualification-results-whitespace-platform/OfficeIMO.Word.Tests-net8.0.trx",
       "bytes": 5005420,
       "sha256": "eb264c7f5424a0ec61c48507abe9ea4d2f2c3b92964d961185e2fa0e5ec6dd71"
+    },
+    {
+      "record": "review-wave1/documentation-inputs-acceptance.json",
+      "bytes": 3391,
+      "sha256": "6215520e65be766705fe8d2ff16adae82efe6663a5cb2e8589393e95a6781cbb"
+    },
+    {
+      "record": "review-wave1/original-inputs-manifest.json",
+      "bytes": 2385,
+      "sha256": "2fea245a7b2cbb88633984c59b5b5ff285fcd23383219b84587ad68bff986d9e"
+    },
+    {
+      "record": "review-wave1/original-inputs/assemble-final-whitespace-evidence.py",
+      "bytes": 44745,
+      "sha256": "5b5fd8a214b7ffd6b9488f00f2f7e045f608eb1a95cea7ab1793fec4e415476a"
+    },
+    {
+      "record": "review-wave1/original-inputs/assess-whitespace-performance.py",
+      "bytes": 3967,
+      "sha256": "729374db0d9721146a9aac5fe5360f280112d2aea5f007b22f10927b26e97b34"
+    },
+    {
+      "record": "review-wave1/original-inputs/candidate/whitespace-inspection/assessment.json",
+      "bytes": 4890,
+      "sha256": "273a6105686b74c8d921b932b9f4da903be35bfadfda9a36de92428adbb80de1"
+    },
+    {
+      "record": "review-wave1/original-inputs/performance/whitespace-7650/assessment.json",
+      "bytes": 13090,
+      "sha256": "61de333f0eb7d6b206e71d000729c5323e5d5a0d07f61349ad5c07101d97c453"
+    },
+    {
+      "record": "review-wave1/original-inputs/portable-whitespace-documentation-evidence-final.json",
+      "bytes": 95752,
+      "sha256": "eef5aff1007927d46dc9446f5a694f7a78acb6502996fcccb83d76a188616985"
+    },
+    {
+      "record": "review-wave1/original-inputs/published-b70-proof.json",
+      "bytes": 95752,
+      "sha256": "eef5aff1007927d46dc9446f5a694f7a78acb6502996fcccb83d76a188616985"
+    },
+    {
+      "record": "review-wave1/original-inputs/whitespace-remediation/root-final-evidence-acceptance.json",
+      "bytes": 627,
+      "sha256": "9df0b080e40dc37aa41df155da94e5dba73a9b0aa97797397142f516accf2d42"
     },
     {
       "record": "run-stable.py",
