@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
-        string text = run.Text ?? string.Empty;
+        string text = WithoutOptionalBreaks(run.Text ?? string.Empty);
         if (text.Length == 0 || IsLayoutControlRun(run)) {
             return true;
         }
@@ -128,6 +128,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+        text = WithoutOptionalBreaks(text);
         int index = 0;
         while (index < text.Length) {
             int scalarStart = index;
@@ -171,6 +172,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+        text = WithoutOptionalBreaks(text);
         int index = 0;
         while (index < text.Length) {
             int scalarStart = index;

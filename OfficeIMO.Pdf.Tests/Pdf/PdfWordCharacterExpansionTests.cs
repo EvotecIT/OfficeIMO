@@ -37,6 +37,39 @@ namespace OfficeIMO.Tests.Pdf {
             AssertNaturalGlyphWidths(natural, actual);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OptionalBreakKeepsWeightedWordGlyphPositions(bool embedded) {
+            string? smallAverage = embedded ? "Small Average" : null;
+            string? largeAverage = embedded ? "Large Average" : null;
+            var controlRuns = new[] {
+                new PdfTextRun("AB", fontFamily: smallAverage, fontSize: 12D),
+                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: 8D),
+                new PdfTextRun("CD", fontFamily: largeAverage, fontSize: 16D).WithHorizontalTextScaling(75D),
+                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: 16D),
+                new PdfTextRun("EF", fontFamily: smallAverage, fontSize: 12D)
+            };
+            var optionalBreakRuns = (PdfTextRun[])controlRuns.Clone();
+            optionalBreakRuns[2] = new PdfTextRun("C\u200BD", fontFamily: largeAverage, fontSize: 16D)
+                .WithHorizontalTextScaling(75D);
+            string label = "optional-break-" + (embedded ? "embedded" : "standard");
+            Letter[] natural = Read(Render(controlRuns, 200D, distributed: false), label + "-natural");
+            double width = Span(natural) + 10.55D;
+            Letter[] control = Read(Render(controlRuns, width, distributed: true), label + "-control");
+            Letter[] actual = Read(Render(optionalBreakRuns, width, distributed: true), label + "-actual");
+
+            Assert.Equal("ABCDEF", string.Concat(actual.Select(letter => letter.Value)));
+            Assert.Equal(control.Length, actual.Length);
+            for (int index = 0; index < control.Length; index++) {
+                Assert.Equal(control[index].StartBaseLine.X, actual[index].StartBaseLine.X, 3);
+                Assert.Equal(control[index].StartBaseLine.Y, actual[index].StartBaseLine.Y, 3);
+                Assert.Equal(control[index].EndBaseLine.X, actual[index].EndBaseLine.X, 3);
+            }
+            Assert.Equal(width, Span(actual), 3);
+            AssertNaturalGlyphWidths(control, actual);
+        }
+
         [Fact]
         public void UnavailableSourceAverageLeavesItsGlyphBoundariesForResidualOnly() {
             var runs = new[] {

@@ -68,6 +68,8 @@ internal static partial class PdfWriter {
             unit.Paragraph is { } paragraph && HasContinuousColumnDecoration(paragraph.Units));
 
         private List<ColumnBalanceUnit>? MeasureColumnBalanceUnits(IPdfBlock block, ColumnFlowScope scope, double frameWidth) {
+            if (block is TableOfContentsBlock contents)
+                return MeasureColumnBalanceContent(new ColumnBalanceContent(CreateTableOfContentsBlocks(contents)), scope, frameWidth);
             if (block is SemanticBlock or FlowBlock or ContainerBlock)
                 return MeasureNestedColumnBalanceUnits(block, null, scope, frameWidth);
             if (block is PdfListBlock list)

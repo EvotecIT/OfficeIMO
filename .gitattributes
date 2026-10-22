@@ -56,6 +56,9 @@ OfficeIMO.TestAssets/EnglishLayout/*-provider.tsv -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.pdf -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
+
+# Native iWork reference manifests pin exact producer and decoded evidence bytes.
+OfficeIMO.TestAssets/Documents/IWorkCorpus/** -text -whitespace
 OfficeIMO.TestAssets/TableGeometry/*.pdf -text -diff
 OfficeIMO.TestAssets/TableGeometry/manifest.json text eol=lf
 OfficeIMO.TestAssets/TableGeometry/ruling-controls-manifest.json text eol=lf

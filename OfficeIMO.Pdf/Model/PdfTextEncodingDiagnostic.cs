@@ -8,6 +8,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfTextEncodingDiagnostic {
     private readonly string? _code;
+    private readonly Func<int, string>? _messageFactory;
 
     /// <summary>
     /// Creates a text encoding diagnostic.
@@ -21,7 +22,7 @@ public sealed class PdfTextEncodingDiagnostic {
         : this(source, index, codePoint, text, isControlCharacter, string.Empty, string.Empty, string.Empty) {
     }
 
-    internal PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter, string? code, string? message, bool customCode) {
+    internal PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter, string? code, Func<int, string> messageFactory) {
         Source = source ?? string.Empty;
         Index = index;
         CodePoint = codePoint ?? string.Empty;
@@ -36,9 +37,8 @@ public sealed class PdfTextEncodingDiagnostic {
         TableColumnIndex = null;
         FieldName = string.Empty;
         _code = string.IsNullOrWhiteSpace(code) ? null : code;
-        Message = string.IsNullOrWhiteSpace(message)
-            ? CreateMessage(Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation)
-            : message!;
+        _messageFactory = messageFactory;
+        Message = messageFactory(Index);
     }
 
     /// <summary>
@@ -172,6 +172,36 @@ public sealed class PdfTextEncodingDiagnostic {
         Message = CreateMessage(Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation);
     }
 
+    // Copies retain custom diagnostic identity and regenerate its message for the selected source index.
+    private PdfTextEncodingDiagnostic(PdfTextEncodingDiagnostic original, int index, int? pageNumber,
+        int? tableRowIndex, int? tableColumnIndex, string fieldName, string location, int? runIndex) {
+        Source = original.Source;
+        Index = index;
+        CodePoint = original.CodePoint;
+        Text = original.Text;
+        IsControlCharacter = original.IsControlCharacter;
+        Encoding = original.Encoding;
+        Remediation = original.Remediation;
+        Location = location;
+        RunIndex = runIndex;
+        PageNumber = pageNumber;
+        TableRowIndex = tableRowIndex;
+        TableColumnIndex = tableColumnIndex;
+        FieldName = fieldName;
+        _code = original._code;
+        _messageFactory = original._messageFactory;
+        Message = _messageFactory?.Invoke(Index)
+            ?? CreateMessage(Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation);
+    }
+
+    /// <summary>Copies the diagnostic to its original source offset without losing font-specific details.</summary>
+    internal PdfTextEncodingDiagnostic WithIndex(int index) =>
+        new(this, index, PageNumber, TableRowIndex, TableColumnIndex, FieldName, Location, RunIndex);
+
+    /// <summary>Annotates page-level running text, whose location has no rich-text run index.</summary>
+    internal PdfTextEncodingDiagnostic WithPageLocation(string location, int pageNumber) =>
+        new(this, Index, pageNumber, TableRowIndex, TableColumnIndex, FieldName, location, runIndex: null);
+
     /// <summary>Caller-provided source label such as a block, field, sheet, slide, or converter area.</summary>
     public string Source { get; }
 
@@ -280,7 +310,7 @@ public sealed class PdfTextEncodingDiagnostic {
     /// <returns>A diagnostic carrying the same text details and the supplied page number.</returns>
     public PdfTextEncodingDiagnostic WithPageNumber(int pageNumber) {
         Guard.PositiveInteger(pageNumber, nameof(pageNumber));
-        return new PdfTextEncodingDiagnostic(Source, Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation, Location, RunIndex, pageNumber, TableRowIndex, TableColumnIndex, FieldName);
+        return new PdfTextEncodingDiagnostic(this, Index, pageNumber, TableRowIndex, TableColumnIndex, FieldName, Location, RunIndex);
     }
 
     /// <summary>
@@ -298,7 +328,7 @@ public sealed class PdfTextEncodingDiagnostic {
             throw new ArgumentOutOfRangeException(nameof(columnIndex), columnIndex, "PDF diagnostic table column index must be zero or greater.");
         }
 
-        return new PdfTextEncodingDiagnostic(Source, Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation, Location, RunIndex, PageNumber, rowIndex, columnIndex, FieldName);
+        return new PdfTextEncodingDiagnostic(this, Index, PageNumber, rowIndex, columnIndex, FieldName, Location, RunIndex);
     }
 
     /// <summary>
@@ -311,7 +341,7 @@ public sealed class PdfTextEncodingDiagnostic {
             return this;
         }
 
-        return new PdfTextEncodingDiagnostic(Source, Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation, Location, RunIndex, PageNumber, TableRowIndex, TableColumnIndex, fieldName);
+        return new PdfTextEncodingDiagnostic(this, Index, PageNumber, TableRowIndex, TableColumnIndex, fieldName, Location, RunIndex);
     }
 
     private static string CreateMessage(int index, string codePoint, string text, bool isControlCharacter, string encoding, string remediation) {

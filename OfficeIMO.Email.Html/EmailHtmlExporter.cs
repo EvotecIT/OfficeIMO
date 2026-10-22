@@ -18,8 +18,27 @@ public sealed class EmailHtmlExportResult {
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
 }
 
+/// <summary>A self-contained HTML message copy whose embedded resources are inline <c>data:</c> URIs.</summary>
+public sealed class EmailHtmlContent {
+    internal EmailHtmlContent(string html, IReadOnlyList<EmailDiagnostic> diagnostics) {
+        Html = html; Diagnostics = diagnostics;
+    }
+    /// <summary>Complete HTML document.</summary>
+    public string Html { get; }
+    /// <summary>Body and unresolved resource diagnostics.</summary>
+    public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
+
+    /// <summary>Writes <see cref="Html"/> to a caller-owned stream as UTF-8 without a byte order mark.</summary>
+    public void WriteTo(Stream destination) {
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+        using var writer = new StreamWriter(destination, new UTF8Encoding(false), 4096, leaveOpen: true);
+        writer.Write(Html);
+    }
+}
+
 /// <summary>Creates safe local HTML copies, saving embedded images without downloading remote resources.</summary>
-/// <remarks>The caller selects the output path. Copies retain the body, sender and To recipients; HTML sanitization does not anonymize message content.</remarks>
+/// <remarks>The caller selects the output path. Copies retain the body, sender, date, and To and Cc recipients; HTML sanitization does not anonymize message content.</remarks>
 public static class EmailHtmlExporter {
     /// <summary>Exports a handle-free message with an operation-scoped full read.</summary>
     public static EmailHtmlExportResult Export(EmailMessage message, string path, bool includeAttachments = false,
@@ -63,11 +82,64 @@ public static class EmailHtmlExporter {
             if (extraction.Truncated || extraction.Entries.Any(e => e.OutputPath == null))
                 throw new InvalidDataException("HTML resources could not all be exported. Earlier resource files remain; inspect the source's content availability and extraction limits.");
         }
+        string body = CreateSafeBody(projection, diagnostics, _ => {
+            paths.TryGetValue(document.Attachments.IndexOf(_.SourceAttachment), out string? local);
+            return local;
+        }, cancellationToken);
+        var links = new StringBuilder();
+        if (includeAttachments) foreach (KeyValuePair<int, string> item in paths.OrderBy(p => p.Key)) {
+            if (document.Attachments[item.Key].IsInline) continue;
+            links.Append("<li><a href=\"").Append(WebUtility.HtmlEncode(item.Value)).Append("\">")
+                .Append(WebUtility.HtmlEncode(document.Attachments[item.Key].FileName ?? "attachment")).Append("</a></li>");
+        }
+        byte[] bytes = new UTF8Encoding(false).GetBytes(CreatePage(document, body, links.ToString()));
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeFileCommit.WriteAtomically(output, stream => stream.Write(bytes, 0, bytes.Length), cancellationToken,
+            overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+        return new EmailHtmlExportResult(output, assets, extraction, diagnostics.AsReadOnly());
+    }
+
+    /// <summary>Creates self-contained HTML for a handle-free message with an operation-scoped full read.</summary>
+    public static EmailHtmlContent ExportContent(EmailMessage message, CancellationToken cancellationToken = default) {
+        if (message == null) throw new ArgumentNullException(nameof(message));
+        return message.UseDocument(d => ExportContent(d, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Creates sanitized, self-contained HTML in memory without writing output files.</summary>
+    /// <remarks>Embedded body resources, such as <c>cid:</c> images, become <c>data:</c> URIs read within the projection budgets.
+    /// Regular attachments are not included. Use <see cref="EmailHtmlContent.WriteTo(Stream)"/> to stream the result.</remarks>
+    public static EmailHtmlContent ExportContent(EmailDocument document, CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
+        var diagnostics = projection.Diagnostics.ToList();
+        HtmlConversionLimits limits = projection.Document.Limits;
+        var dataUrls = new Dictionary<EmailBodyResource, string>();
+        string body = CreateSafeBody(projection, diagnostics, _ => {
+            if (!dataUrls.TryGetValue(_, out string? url)) {
+                string prefix = "data:" + DataUrlMediaType(_.ContentType) + ";base64,";
+                byte[] content = _.ReadAllBytes(cancellationToken);
+                long characters = prefix.Length + 4L * ((content.LongLength + 2L) / 3L);
+                // Declared lengths remain read-budget metadata. Actual decoded
+                // bytes decide whether an encoded value fits the shared boundary.
+                HtmlConversionSourceWriter.ValidateLength(characters, limits);
+                url = prefix + Convert.ToBase64String(content);
+                dataUrls.Add(_, url);
+            }
+            return url;
+        }, cancellationToken);
+        string html = CreatePage(document, body, string.Empty, limits, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new EmailHtmlContent(html, diagnostics.AsReadOnly());
+    }
+
+    private static string CreateSafeBody(EmailBodyProjectionResult projection, List<EmailDiagnostic> diagnostics,
+        Func<EmailBodyResource, string?> resourceUrl, CancellationToken cancellationToken) {
         HtmlUrlPolicy resources = HtmlUrlPolicy.CreateOfficeIMOProfile();
         resources.ResolvedUrlTransform = reference => {
             EmailBodyResource? resource = projection.ResolveResource(reference);
-            int index = resource == null ? -1 : document.Attachments.IndexOf(resource.SourceAttachment);
-            if (paths.TryGetValue(index, out string? local)) return local;
+            string? url = resource == null ? null : resourceUrl(resource);
+            if (url != null) return url;
             if (reference.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return reference;
             diagnostics.Add(new EmailDiagnostic("EMAIL_HTML_RESOURCE_UNRESOLVED",
                 "A resource reference has no saved local resource.", EmailDiagnosticSeverity.Warning, reference));
@@ -76,24 +148,44 @@ public static class EmailHtmlExporter {
         var htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
         htmlOptions.ResourceUrlPolicy = resources;
         HtmlConversionDocument html = HtmlConversionDocument.Parse(projection.Html, htmlOptions, cancellationToken);
-        string body = EmailBodyProjection.CreateSafeEmailHtml(html);
-        var links = new StringBuilder();
-        if (includeAttachments) foreach (KeyValuePair<int, string> item in paths.OrderBy(p => p.Key)) {
-            if (document.Attachments[item.Key].IsInline) continue;
-            links.Append("<li><a href=\"").Append(WebUtility.HtmlEncode(item.Value)).Append("\">")
-                .Append(WebUtility.HtmlEncode(document.Attachments[item.Key].FileName ?? "attachment")).Append("</a></li>");
+        return EmailBodyProjection.CreateSafeEmailHtml(html);
+    }
+
+    private static string CreatePage(EmailDocument document, string body, string attachmentLinks,
+        HtmlConversionLimits? limits = null, CancellationToken cancellationToken = default) {
+        string subject = WebUtility.HtmlEncode(document.Subject ?? "Message");
+        var header = new StringBuilder();
+        AppendHeaderField(header, "From", document.From?.ToString());
+        AppendHeaderField(header, "Date", document.Date?.ToString("dddd, d MMMM yyyy HH:mm zzz", System.Globalization.CultureInfo.InvariantCulture));
+        AppendHeaderField(header, "To", FormatRecipients(document, EmailRecipientKind.To));
+        AppendHeaderField(header, "Cc", FormatRecipients(document, EmailRecipientKind.Cc));
+        using var content = new HtmlConversionSourceWriter.BoundedWriter(
+            limits ?? HtmlConversionLimits.CreateTrustedProfile(), cancellationToken);
+        content.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>")
+            .Append(subject).Append("</title></head><body><header><h1>").Append(subject)
+            .Append("</h1><p>").Append(header.ToString()).Append("</p></header><hr>").Append(body);
+        if (attachmentLinks.Length > 0)
+            content.Append("<hr><h2>Attachments</h2><ul>").Append(attachmentLinks).Append("</ul>");
+        return content.Append("</body></html>").ToString();
+    }
+
+    private static void AppendHeaderField(StringBuilder header, string name, string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (header.Length > 0) header.Append("<br>");
+        header.Append(name).Append(": ").Append(WebUtility.HtmlEncode(value));
+    }
+
+    private static string FormatRecipients(EmailDocument document, EmailRecipientKind kind) =>
+        string.Join(", ", document.Recipients.Where(_ => _.Kind == kind).Select(_ => _.Address?.ToString()).Where(_ => !string.IsNullOrEmpty(_)));
+
+    private static string DataUrlMediaType(string contentType) {
+        int parameters = contentType.IndexOf(';');
+        string value = (parameters >= 0 ? contentType.Substring(0, parameters) : contentType).Trim().ToLowerInvariant();
+        int slash = value.IndexOf('/');
+        if (slash <= 0 || slash == value.Length - 1 || value.IndexOf('/', slash + 1) >= 0) return "application/octet-stream";
+        foreach (char c in value) {
+            if (c != '/' && !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && "!#$&^_.+-".IndexOf(c) < 0) return "application/octet-stream";
         }
-        string content = "<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>" +
-            WebUtility.HtmlEncode(document.Subject ?? "Message") + "</title></head><body><header><h1>" +
-            WebUtility.HtmlEncode(document.Subject ?? "Message") + "</h1><p>From: " +
-            WebUtility.HtmlEncode(document.From?.ToString()) + "<br>To: " +
-            WebUtility.HtmlEncode(string.Join(", ", document.Recipients.Where(r => r.Kind == EmailRecipientKind.To).Select(r => r.Address))) +
-            "<br>Date: " + WebUtility.HtmlEncode(document.Date?.ToString("u")) + "</p></header><hr>" +
-            body + (links.Length > 0 ? "<hr><h2>Attachments</h2><ul>" + links + "</ul>" : string.Empty) + "</body></html>";
-        byte[] bytes = new UTF8Encoding(false).GetBytes(content);
-        cancellationToken.ThrowIfCancellationRequested();
-        OfficeFileCommit.WriteAtomically(output, stream => stream.Write(bytes, 0, bytes.Length), cancellationToken,
-            overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
-        return new EmailHtmlExportResult(output, assets, extraction, diagnostics.AsReadOnly());
+        return value;
     }
 }

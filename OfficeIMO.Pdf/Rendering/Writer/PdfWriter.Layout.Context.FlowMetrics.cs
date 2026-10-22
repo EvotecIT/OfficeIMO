@@ -382,6 +382,10 @@ internal static partial class PdfWriter {
 
         private double MeasureNextBlockFirstVisualHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize,
             bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false, double closingPadding = 0D) {
+            if (block is TableOfContentsBlock contents) {
+                return MeasureFirstNestedVisualHeight(CreateTableOfContentsBlocks(contents), frameX, frameWidth,
+                    fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingPadding);
+            }
             if (block is SemanticBlock semantic) {
                 return MeasureFirstNestedVisualHeight(semantic.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingPadding);
             }

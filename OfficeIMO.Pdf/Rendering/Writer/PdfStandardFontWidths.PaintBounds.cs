@@ -554,7 +554,7 @@ internal static partial class PdfStandardFontWidths {
         // WinAnsiEncoding paints the space and hyphen glyphs for these characters.
         if (value == '\u00A0') value = ' ';
         else if (value == '\u00AD') value = '-';
-        int index = System.Array.BinarySearch(Characters, value);
+        int index = GetStandardCharacterIndex(value);
         if (index < 0) return false;
         bottom = bounds[index * 2];
         top = bounds[index * 2 + 1];

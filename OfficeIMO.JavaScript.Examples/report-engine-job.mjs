@@ -69,6 +69,7 @@ export async function writeGroupedOperationalReport(api, { input = {}, rows, col
   const decimal = new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const percent = new Intl.NumberFormat(language, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const options = { ...common, labelColumn: { header: text.group, width: 26 }, fonts, pageSize: "A4", orientation: "landscape", margins: 30,
+    tagged: { language }, title: text.title,
     fontSize: 9, pageNumberLabels: text.page, booleanText: text.booleanText, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
     continuationLabel: group => group.label + text.continued,
     formatValue(value, context) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")

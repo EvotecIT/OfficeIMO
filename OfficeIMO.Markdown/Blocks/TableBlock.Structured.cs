@@ -170,7 +170,9 @@ public sealed partial class TableBlock {
             : PrepareStructuredRowMarkdown(structuredRow, fallbackRow, expectedCount);
         var result = new string[source.Count];
         for (int i = 0; i < source.Count; i++) {
-            result[i] = EscapeMarkdownCell(source[i], preserveMarkdownEscapes);
+            result[i] = MarkdownEscaper.UsesBackslashLiteralText && !preserveMarkdownEscapes
+                ? EscapeMarkdownCell(MarkdownEscaper.EscapeBackslashLiteralText(source[i]), preserveMarkdownEscapes: true)
+                : EscapeMarkdownCell(source[i], preserveMarkdownEscapes);
         }
         return result;
     }

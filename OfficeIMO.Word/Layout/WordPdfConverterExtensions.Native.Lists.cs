@@ -20,9 +20,10 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
             NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
+            NativeFontMap nativeFontMap,
+            IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
             if (elements[index] is not WordParagraph firstParagraph ||
-                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out PdfCore.PdfAlign align, out PdfCore.PdfColor? color, out PdfCore.PdfListStyle? style)) {
+                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out PdfCore.PdfAlign align, out PdfCore.PdfColor? color, out PdfCore.PdfListStyle? style)) {
                 return false;
             }
 
@@ -33,7 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             // A Word keep-lines constraint applies to one numbered paragraph, not the whole list.
             while (style?.KeepTogether != true && nextIndex < elements.Count &&
                    elements[nextIndex] is WordParagraph paragraph &&
-                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out PdfCore.PdfColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
+                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out PdfCore.PdfColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
                    nextOrdered == ordered &&
                    nextLevel == level &&
                    nextAlign == align &&
@@ -80,6 +81,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
+            IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
             out bool ordered,
             out int level,
             out int index,
@@ -164,7 +166,9 @@ namespace OfficeIMO.Word.Pdf {
             ordered = itemOrdered;
             level = info.Value.Level;
             index = listIndex.Index;
-            item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
+            string? destination = paragraph.Bookmark?.Name;
+            if (string.IsNullOrEmpty(destination)) headingDestinations.TryGetValue(paragraph._paragraph, out destination);
+            item = new PdfCore.PdfListItem(richRuns, destination, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.Color;

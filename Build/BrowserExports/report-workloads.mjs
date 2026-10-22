@@ -21,6 +21,7 @@ const fixtures = [
   { name: "inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: false },
   { name: "inventory-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: false },
   { name: "wide-inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", kind: "wide", currentOnly: true },
+  { name: "tagged-wide-inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", kind: "wide", tagged: true, currentOnly: true },
   { name: "assessment-pdf-10000-blob", format: "pdf", rows: 10000, delivery: "blob", styled: true },
   { name: "tagged-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true },
   { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true },
@@ -43,6 +44,7 @@ function* rows(api, fixture) {
 function settings(fixture) {
   if (fixture.kind === "wide") return { columns: wideTitles.map(header => ({ header })), pageSize: "A3", orientation: "landscape",
     fontSize: 8, padding: 2, pageNumbers: false, compression: true, columnWidths: wideTitles.map(() => 100),
+    ...(fixture.tagged ? { tagged: { language: "en-US" } } : {}),
     wideTable: { mode: "bands", repeatColumns: [0, 1], minimumColumnWidth: 100 },
     limits: { maxTableBands: 4, maxTableWindowRows: 64, maxRows: fixture.rows, maxPages: 2000, maxCells: 1000000, maxOutputBytes: 128000000 },
     formatValue: value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? "") };
@@ -175,8 +177,11 @@ async function validate(output = required("output")) {
       }
       if (orders.some(order => order.length !== fixture.rows || order.some((value, index) => value !== index)) || [...windows.values()].some(covered => covered.size !== bands.length))
         throw Error("Wide PDF omitted a row/identifier or misaligned its horizontal windows.");
+      const dataCells = (bytes.toString("latin1").match(/\/S \/TD\b/g) ?? []).length;
+      if (fixture.tagged && dataCells !== fixture.rows * wideTitles.length) throw Error("Tagged wide PDF logical cells differ from source cells: " + dataCells);
       return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { rows: fixture.rows, columns: wideTitles.length, bands: bands.length,
-        windows: windows.size, everyCell: true, repeatedIdentifiers: true, alignedWindows: true, qpdf: true, poppler: true } };
+        windows: windows.size, everyCell: true, repeatedIdentifiers: true, alignedWindows: true, qpdf: true, poppler: true,
+        ...(fixture.tagged ? { dataCells, singleLogicalCellPerSourceValue: true } : {}) } };
     }
     const lines = extracted.stdout.split(/[\r\n\f]+/).map(line => line.trim()).filter(line => /^N\d{6}\s/.test(line));
     if (lines.length !== fixture.rows) throw Error("PDF row count differs: " + lines.length);

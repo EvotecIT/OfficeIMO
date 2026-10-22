@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
                     foundLeaf = true;
                 }
                 if (ReferenceEquals(sequence.Blocks, scope.Blocks)) return true;
-                if (sequence.Owner is not (ContainerBlock or SemanticBlock or FlowBlock)) return false;
+                if (sequence.Owner is not (ContainerBlock or SemanticBlock or FlowBlock or TableOfContentsBlock)) return false;
             }
             return false;
         }
@@ -54,10 +54,12 @@ internal static partial class PdfWriter {
         /// <summary>Measures children at their real container width; semantic and unconstrained static flow remain transparent.</summary>
         private List<ColumnBalanceUnit>? MeasureNestedColumnBalanceUnits(IPdfBlock wrapper, ColumnBalanceContent? remainder,
             ColumnFlowScope scope, double frameWidth) {
+            if (wrapper is TableOfContentsBlock contents)
+                return MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(CreateTableOfContentsBlocks(contents)), scope, frameWidth);
             if (wrapper is SemanticBlock semantic)
                 return MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(semantic.Blocks), scope, frameWidth);
             if (wrapper is FlowBlock flow) {
-                if (!PdfFlowNestingRules.IsColumnFlowSupported(flow)) return null;
+                if (!PdfFlowNestingRules.IsColumnFlowSupported(flow, allowTableOfContents: true)) return null;
                 if (flow.Options.KeepTogether) {
                     double? keptHeight = MeasureWholeBlockHeight(flow, scope.ParentOptions.MarginLeft, frameWidth, currentOpts.DefaultFontSize);
                     return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;

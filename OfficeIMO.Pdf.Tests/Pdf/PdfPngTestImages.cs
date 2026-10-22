@@ -201,6 +201,36 @@ internal static class PdfPngTestImages {
         return ms.ToArray();
     }
 
+    internal static byte[] CreateRgbaPngWithIccProfile(byte[] profile) {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 6, 0, 0, 0
+        });
+        byte[] compressed = BuildStoredZlib(profile);
+        byte[] iccp = new byte[compressed.Length + 5];
+        Encoding.ASCII.GetBytes("RGB").CopyTo(iccp, 0);
+        compressed.CopyTo(iccp, 5); // profile name, NUL, compression method zero
+        WritePngChunk(ms, "iCCP", iccp);
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 12, 34, 56, 128 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    /// <summary>Returns a copy whose tag types' reserved bytes read E0 00 00 00, as AppKit's PNG export writes them.</summary>
+    internal static byte[] MarkIccTagTypeReservedBytes(byte[] profile) {
+        byte[] marked = (byte[])profile.Clone();
+        int tagCount = (marked[128] << 24) | (marked[129] << 16) | (marked[130] << 8) | marked[131];
+        for (int index = 0; index < tagCount; index++) {
+            int entry = 132 + index * 12;
+            int tagOffset = (marked[entry + 4] << 24) | (marked[entry + 5] << 16) | (marked[entry + 6] << 8) | marked[entry + 7];
+            marked[tagOffset + 4] = 0xE0;
+        }
+
+        return marked;
+    }
+
     internal static byte[] CreateInterlacedRgbaPng() {
         using var ms = CreatePng();
         WritePngChunk(ms, "IHDR", new byte[] {

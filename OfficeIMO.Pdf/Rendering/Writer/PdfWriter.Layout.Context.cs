@@ -24,6 +24,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.List<SectionBlock> encounteredSectionDefinitions = new System.Collections.Generic.List<SectionBlock>();
         private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
+        private readonly HashSet<string> tableOfContentsDestinations = new(StringComparer.Ordinal);
         private PdfOptions currentOpts;
         private PdfOptions currentPageBaseOptions;
         private readonly Dictionary<PdfOptions, PdfOptions> mirroredPageOptions = new();

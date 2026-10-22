@@ -546,18 +546,7 @@ public sealed partial class PdfDocument {
 
             IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, fallbackFont, source, location);
             foreach (PdfTextEncodingDiagnostic diagnostic in runDiagnostics) {
-                var pageTextDiagnostic = new PdfTextEncodingDiagnostic(
-                    diagnostic.Source,
-                    diagnostic.Index,
-                    diagnostic.CodePoint,
-                    diagnostic.Text,
-                    diagnostic.IsControlCharacter,
-                    diagnostic.Encoding,
-                    diagnostic.Remediation,
-                    location,
-                    runIndex: null,
-                    pageNumber: pageNumber);
-                diagnostics.Add(pageTextDiagnostic);
+                diagnostics.Add(diagnostic.WithPageLocation(location, pageNumber));
             }
         }
     }

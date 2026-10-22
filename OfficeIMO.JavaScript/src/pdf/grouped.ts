@@ -20,13 +20,13 @@ export async function writeGroupedPdf(report: GroupedReportSource, configuration
 }
 
 /** Result/progress rows count source data. Generated subtotals and grand totals also consume maxRows.
- * Tagged group associations are unsupported; oversized detail/subtotal bundles use ordinary row pagination. */
+ * Tagged output uses nested group sections and separately headed summary tables. Untagged oversized
+ * detail/subtotal bundles use ordinary row pagination. */
 export async function writeGroupedPdfTo(report: GroupedReportSource, destination: OutputDestination,
   configuration: GroupedPdfOptions): Promise<ExportResult> {
   assertGroupedReportSource(report);
   if (!configuration || typeof configuration !== "object") throw new TypeError("Grouped PDF options are required.");
   const captured = captureFields(configuration, groupedOptionFields);
-  if (captured.tagged !== undefined) throw new TypeError("Tagged grouped PDF reports are unsupported.");
   const tableOptions = Object.fromEntries(groupedPdfTableFields.filter(name => Object.hasOwn(captured, name)).map(name => [name, captured[name]])) as unknown as GroupedPdfTableOptions;
   const documentOptions = { ...captured } as Record<string, unknown>;
   for (const name of groupedPdfTableFields) delete documentOptions[name];

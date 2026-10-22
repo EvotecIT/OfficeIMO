@@ -127,8 +127,6 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
           const tableOptions = captureTableOptions(inputTableOptions);
           const capturedCaption = snapshotCaption(inputCaption);
-          if (inputContinuationCaption !== undefined && options.tagged)
-            throw new TypeError("Tagged PDF table continuation captions are unsupported.");
           const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
           const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
           const caption = await prepareCaption(capturedCaption);

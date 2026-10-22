@@ -65,10 +65,8 @@ internal static class OfficeIccProfileValidator {
                 return false;
             }
 
-            int absoluteTag = offset + tagOffset;
-            if (ReadUInt32(bytes, absoluteTag) == 0 ||
-                bytes[absoluteTag + 4] != 0 || bytes[absoluteTag + 5] != 0 ||
-                bytes[absoluteTag + 6] != 0 || bytes[absoluteTag + 7] != 0) {
+            // A tag type's four reserved bytes are not checked: AppKit's PNG export writes 0xE0 there.
+            if (ReadUInt32(bytes, offset + tagOffset) == 0) {
                 return false;
             }
             for (int pad = (int)tagEndLong; pad < paddedEndLong; pad++) {

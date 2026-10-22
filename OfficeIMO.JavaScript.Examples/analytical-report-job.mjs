@@ -95,15 +95,16 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
     if (input.figure) yield { kind: "image", image: input.figure.image, width: input.figure.width ?? 420,
       alternativeText: input.figure.alternativeText, caption: { text: input.figure.caption, style: "caption" } };
     yield { kind: "section", title: text.detail, level: 2, headingStyle: "heading", orientation: "landscape" };
-    yield api.pdfGroupedTable(report, { ...labels, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
+    yield api.pdfGroupedTable(report, { ...labels, groupHeadingLevel: 3, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
       alternateRowColor: "F3F6FB", formatValue(value) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
         : typeof value === "number" ? decimal.format(value) : String(value ?? ""); }, ...pdfTableOptions });
     yield { kind: "section", title: text.next, level: 2, headingStyle: "heading" };
     yield { kind: "paragraph", text: text.advice, style: "body" };
     yield { kind: "paragraph", text: text.complete(consumed), style: "body" };
   }
-  const options = { signal, onProgress, fonts, pageSize: "A4", margins: 30, fontSize: 9, pageNumberLabels: text.page,
-    limits: { maxRows: 112010, maxCells: 112010 * (columns.length + 1), maxPages: 20000, maxOutputBytes: 128 * 1024 * 1024, ...pdfLimits },
+  const options = { signal, onProgress, fonts, tagged: { language }, pageSize: "A4", margins: 30, fontSize: 9, pageNumberLabels: text.page,
+    limits: { maxRows: 112010, maxCells: 112010 * (columns.length + 1), maxPages: 20000, maxOutputBytes: 128 * 1024 * 1024,
+      maxStructureElements: 2500000, maxMarkedContentReferences: 8000000, ...pdfLimits },
     paragraphStyles: { title: { fontSize: 22, spaceAfter: 12, presentation: { bold: true, color: "163C75" } },
       heading: { fontSize: 15, spaceAfter: 8, presentation: { bold: true, color: "163C75" } },
       body: { fontSize: 10, spaceAfter: 10 }, caption: { fontSize: 9, spaceAfter: 6 } },

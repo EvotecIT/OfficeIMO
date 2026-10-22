@@ -49,13 +49,13 @@ export async function projectBandRows(rows: readonly PdfLayoutRow[], band: PdfTa
         while (end < band.columns.length && band.columns[end] === band.columns[end - 1]! + 1 && band.columns[end]! < cell.first + cell.span) end++;
         const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index]!, 0);
         const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured!, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
-        cells.push({ ...cell, first, span: end - first, width, lines,
+        cells.push({ ...cell, source: cell.source ?? cell, first, span: end - first, width, lines,
           lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
         first = end;
       }
     }
     cells.sort((a, b) => a.first - b.first);
-    result.push({ ...row, cells });
+    result.push({ ...row, source: row.source ?? row, cells });
   }
   return result;
 }

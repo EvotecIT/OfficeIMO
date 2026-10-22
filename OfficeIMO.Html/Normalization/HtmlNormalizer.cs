@@ -55,7 +55,8 @@ public static partial class HtmlNormalizer {
         return Normalize(NativeDomBridge.GetNativeDocument(snapshot), resolved);
     }
 
-    internal static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null, CancellationToken cancellationToken = default,
+        IDictionary<int, IElement>? emittedElements = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -63,7 +64,7 @@ public static partial class HtmlNormalizer {
         HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
         resolved.Limits.Validate();
         HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits, cancellationToken);
-        return NormalizeDocument(document, resolved, 0, cancellationToken);
+        return NormalizeDocument(document, resolved, 0, cancellationToken, emittedElements);
     }
 
     /// <summary>Normalizes one already parsed element for a raw-fragment target without reparsing it.</summary>
@@ -71,7 +72,7 @@ public static partial class HtmlNormalizer {
         if (element == null) throw new ArgumentNullException(nameof(element));
         HtmlNormalizationOptions resolved = CopyOptions(options ?? throw new ArgumentNullException(nameof(options)));
         resolved.Limits.Validate();
-        var builder = new StringBuilder();
+        using var builder = new HtmlConversionSourceWriter.BoundedWriter(resolved.Limits, cancellationToken);
         AppendElement(builder, element, resolved, 0, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
@@ -94,16 +95,17 @@ public static partial class HtmlNormalizer {
         }
     }
 
-    private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth, CancellationToken cancellationToken = default) {
+    private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth, CancellationToken cancellationToken = default,
+        IDictionary<int, IElement>? emittedElements = null) {
         cancellationToken.ThrowIfCancellationRequested();
         INode root = HtmlDocumentParser.GetConversionRoot(document, options.UseBodyContentsOnly);
 
-        var builder = new StringBuilder();
+        using var builder = new HtmlConversionSourceWriter.BoundedWriter(options.Limits, cancellationToken, trimOuterWhitespace: true);
         if (!options.UseBodyContentsOnly && root is IElement documentElement) {
-            AppendElement(builder, documentElement, options, srcDocDepth, cancellationToken: cancellationToken);
+            AppendElement(builder, documentElement, options, srcDocDepth, cancellationToken: cancellationToken, emittedElements: emittedElements);
         } else {
             foreach (INode child in root.ChildNodes) {
-                AppendNode(builder, child, options, srcDocDepth, preserveWhitespace: false, cancellationToken);
+                AppendNode(builder, child, options, srcDocDepth, preserveWhitespace: false, cancellationToken, emittedElements);
             }
         }
 
@@ -111,7 +113,8 @@ public static partial class HtmlNormalizer {
         return builder.ToString().Trim();
     }
 
-    private static void AppendNode(StringBuilder builder, INode node, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false, CancellationToken cancellationToken = default) {
+    private static void AppendNode(HtmlConversionSourceWriter.BoundedWriter builder, INode node, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false,
+        CancellationToken cancellationToken = default, IDictionary<int, IElement>? emittedElements = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (node.NodeType == NodeType.Text) {
             AppendText(builder, node.TextContent, options, preserveWhitespace, cancellationToken);
@@ -127,16 +130,18 @@ public static partial class HtmlNormalizer {
         }
 
         if (node is IElement element) {
-            AppendElement(builder, element, options, srcDocDepth, preserveWhitespace, cancellationToken);
+            AppendElement(builder, element, options, srcDocDepth, preserveWhitespace, cancellationToken, emittedElements);
         }
     }
 
-    private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false, CancellationToken cancellationToken = default) {
+    private static void AppendElement(HtmlConversionSourceWriter.BoundedWriter builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false,
+        CancellationToken cancellationToken = default, IDictionary<int, IElement>? emittedElements = null) {
         cancellationToken.ThrowIfCancellationRequested();
         string name = element.TagName.ToLowerInvariant();
         if (SkippedElements.Contains(name)) {
             if (options.PreserveSkippedElementMarkers) {
-                builder.Append('<').Append(name).Append("></").Append(name).Append('>');
+                AppendElementStart(builder, name, element, emittedElements);
+                builder.Append("></").Append(name).Append('>');
             }
 
             return;
@@ -147,7 +152,7 @@ public static partial class HtmlNormalizer {
         }
 
         string emittedName = IsForeignContent(element) ? element.TagName : name;
-        builder.Append('<').Append(emittedName);
+        AppendElementStart(builder, emittedName, element, emittedElements);
         foreach (KeyValuePair<string, string> attribute in NormalizeAttributes(element, options, srcDocDepth, cancellationToken)) {
             builder.Append(' ').Append(attribute.Key);
             if (!BooleanAttributes.Contains(attribute.Key) || !IsBooleanValue(attribute.Key, attribute.Value)) {
@@ -158,19 +163,28 @@ public static partial class HtmlNormalizer {
         builder.Append('>');
         if (!VoidElements.Contains(name)) {
             if (name == "style" && options.PreserveStyleElements) {
-                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options), cancellationToken);
+                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options), options.Limits, cancellationToken);
                 if (styleText.Length > 0) {
                     builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }
             } else {
                 bool childPreserveWhitespace = preserveWhitespace || IsPreformattedElement(name);
                 foreach (INode child in element.ChildNodes) {
-                    AppendNode(builder, child, options, srcDocDepth, childPreserveWhitespace, cancellationToken);
+                    AppendNode(builder, child, options, srcDocDepth, childPreserveWhitespace, cancellationToken, emittedElements);
                 }
             }
 
             builder.Append("</").Append(emittedName).Append('>');
         }
+    }
+
+    private static void AppendElementStart(HtmlConversionSourceWriter.BoundedWriter builder, string name, IElement source,
+        IDictionary<int, IElement>? emittedElements) {
+        // Record only a real, admitted opening tag. The parser retains this exact
+        // UTF-16 offset; no private metadata needs to enter serialized HTML.
+        builder.Append('<');
+        emittedElements?.Add(builder.WrittenCharacters - 1, source);
+        builder.Append(name);
     }
 
     private static IReadOnlyList<KeyValuePair<string, string>> NormalizeAttributes(IElement element, HtmlNormalizationOptions options, int srcDocDepth, CancellationToken cancellationToken) {
@@ -217,7 +231,8 @@ public static partial class HtmlNormalizer {
                 options.BaseUri,
                 GetResourceUrlPolicy(options),
                 options.MaxResponsiveImageCandidates,
-                cancellationToken);
+                cancellationToken,
+                options.Limits);
         }
 
         if (IsMetaRefreshContentAttribute(element, name)) {
@@ -239,7 +254,7 @@ public static partial class HtmlNormalizer {
         }
 
         if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) {
-            return NormalizeCssUrls(value, options.BaseUri, GetResourceUrlPolicy(options), cancellationToken).Trim();
+            return NormalizeCssUrls(value, options.BaseUri, GetResourceUrlPolicy(options), options.Limits, cancellationToken, trimOuterWhitespace: true);
         }
 
         if (string.Equals(name, "class", StringComparison.OrdinalIgnoreCase)) {
@@ -279,7 +294,7 @@ public static partial class HtmlNormalizer {
         };
     }
 
-    private static void AppendText(StringBuilder builder, string? text, HtmlNormalizationOptions options, bool preserveWhitespace, CancellationToken cancellationToken) {
+    private static void AppendText(HtmlConversionSourceWriter.BoundedWriter builder, string? text, HtmlNormalizationOptions options, bool preserveWhitespace, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(text)) {
             return;
         }
@@ -290,10 +305,10 @@ public static partial class HtmlNormalizer {
         if (value.Length > 0) {
             if (options.CollapseTextWhitespace && !preserveWhitespace) {
                 if (value == " ") {
-                    if (builder.Length == 0 || char.IsWhiteSpace(builder[builder.Length - 1])) {
+                    if (builder.IsEmpty || builder.EndsWithWhitespace) {
                         return;
                     }
-                } else if (value[0] == ' ' && (builder.Length == 0 || char.IsWhiteSpace(builder[builder.Length - 1]))) {
+                } else if (value[0] == ' ' && (builder.IsEmpty || builder.EndsWithWhitespace)) {
                     value = value.TrimStart();
                 }
             }
