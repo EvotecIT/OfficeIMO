@@ -18,11 +18,13 @@ public static partial class MarkdownEscaper {
     internal static string EscapeBackslashLiteralText(string? text) {
         if (string.IsNullOrEmpty(text)) { return string.Empty; }
         var escaped = new StringBuilder(text!.Length);
+        bool superscriptPair = text.IndexOf('^') != text.LastIndexOf('^');
         for (int index = 0; index < text.Length; index++) {
             char character = text[index];
             bool entity = character == '&' && IsEntityLikeAmpersand(text, index);
             bool highlight = character == '=' && ((index > 0 && text[index - 1] == '=') || (index + 1 < text.Length && text[index + 1] == '='));
-            if ("<>\\`*_{}[]|#~".IndexOf(character) >= 0 || entity || highlight) { escaped.Append('\\'); }
+            bool insertion = character == '+' && ((index > 0 && text[index - 1] == '+') || (index + 1 < text.Length && text[index + 1] == '+'));
+            if ("<>\\`*_{}[]|#~".IndexOf(character) >= 0 || entity || highlight || insertion || (character == '^' && superscriptPair)) { escaped.Append('\\'); }
             escaped.Append(character);
         }
         return EscapeMarkdownLineStarts(escaped.ToString(), preserveDefinitionText: true);

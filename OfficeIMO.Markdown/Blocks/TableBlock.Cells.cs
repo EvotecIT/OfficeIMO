@@ -320,6 +320,7 @@ public sealed partial class TableBlock {
             '|' => true,
             '>' => true,
             '<' or '&' => MarkdownEscaper.UsesBackslashLiteralText,
+            '^' => MarkdownEscaper.UsesBackslashLiteralText,
             '=' => true,
             '~' => true,
             _ => false

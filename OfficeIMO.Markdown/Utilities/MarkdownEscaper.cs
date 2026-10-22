@@ -379,8 +379,8 @@ public static partial class MarkdownEscaper {
     }
 
     private static bool IsEntityLikeAmpersand(string value, int index) {
-        int semicolonIndex = value.IndexOf(';', index + 1);
-        if (semicolonIndex < 0 || semicolonIndex - index > 32) {
+        int semicolonIndex = value.IndexOf(';', index + 1, Math.Min(32, value.Length - index - 1));
+        if (semicolonIndex < 0) {
             return false;
         }
 
