@@ -87,7 +87,11 @@ export class PdfStructure {
       throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
     const id = this.objects.reserve(), element: StructureElement = { id, parent, role, children: [], attributes, linkIdentities: [] };
     this.elements.set(id, element);
-    this.elements.get(parent)?.children.push(id);
+    const owner = this.elements.get(parent);
+    // A continuation-only linked caption is discovered during painting, after rows may exist.
+    // Its one logical Caption still precedes the Table's rows; other owners retain source order.
+    if (role === "Caption" && owner?.role === "Table") owner.children.unshift(id);
+    else owner?.children.push(id);
     return id;
   }
   /** Flat visual sections share the same logical Document and cumulative resource policy. */

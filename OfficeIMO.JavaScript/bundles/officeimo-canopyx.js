@@ -8317,7 +8317,7 @@ _modules.set("31017b0c80e6e8ace64ed268298a4f155b992b295138be6ad0bffe8d9365710d",
 return _exports;
 })();
 
-const _m73 = _modules.get("6a6eb91d05079d182d13e43b4067324bc9968eaf259a60e0a2409080fd1aaf11") ?? (() => {
+const _m73 = _modules.get("d0559c6c6f06cb5c1ba8d2494280159aa12c9514566498ca28b1a4a7fefd92db") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8381,7 +8381,7 @@ class PdfPages {
     summaryRows = new WeakSet();
     groups = [];
     continuationCaption;
-    continuationCaptionOwner;
+    tableCaptionOwner;
     continuationCaptionPaints = 0;
     constructor(objects, baseSettings, fonts, parent, resources, layout, structure, outlines) {
         this.objects = objects;
@@ -8582,8 +8582,9 @@ class PdfPages {
         if (continuation?.lines.length) {
             if (this.continuationCaptionPaints++ > 0)
                 this.settings.budget.cell(continuation.text.text);
-            this.continuationCaptionOwner ??= this.captionAnnotations(continuation);
-            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.continuationCaptionOwner === undefined ? {} : { annotationParent: this.continuationCaptionOwner }) });
+            else
+                this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
+            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
         }
         this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
         if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
@@ -8803,7 +8804,7 @@ class PdfPages {
         this.paintedHeaderCells = new WeakSet();
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
-        this.continuationCaptionOwner = undefined;
+        this.tableCaptionOwner = undefined;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         const headings = preparedHeadings ?? await layout.headers();
         this.activeHeadings = headings;
@@ -8813,10 +8814,11 @@ class PdfPages {
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-            const annotationParent = captionArtifact ? this.captionAnnotations(caption) : undefined;
+            this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
+                : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
             await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
-                ? { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) }
-                : { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+                ? { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) }
+                : { role: "Caption", keepOpen: true, ...(this.tableCaptionOwner === undefined ? {} : { owner: this.tableCaptionOwner }) });
         }
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headings);
@@ -8847,10 +8849,10 @@ class PdfPages {
         const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
-        let captionPaints = 0, continuationPaints = 0, continuationOwner;
+        let captionPaints = 0, continuationPaints = 0;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
-        const captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+        let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
             : this.structure.element("Caption", this.tableElement) : undefined;
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, logicalHeadings);
@@ -8875,9 +8877,9 @@ class PdfPages {
                         const paints = firstWindow ? captionPaints++ : continuationPaints++;
                         if (paints > 0)
                             this.settings.budget.cell(currentCaption.text.text);
-                        if (!firstWindow)
-                            continuationOwner ??= this.captionAnnotations(currentCaption);
-                        const annotationParent = firstWindow ? captionElement : continuationOwner;
+                        if (!firstWindow && paints === 0)
+                            captionElement = this.captionAnnotations(currentCaption, captionElement);
+                        const annotationParent = captionElement;
                         await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
                             : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
@@ -8908,15 +8910,15 @@ class PdfPages {
         this.tableStructure = undefined;
         this.activeHeadings = undefined;
         this.continuationCaption = undefined;
-        this.continuationCaptionOwner = undefined;
+        this.tableCaptionOwner = undefined;
         this.continuationCaptionPaints = 0;
         this.y -= 8;
     }
     /** Repeated context stays an artifact; its interactive links retain one authored label/owner. */
-    captionAnnotations(caption) {
+    captionAnnotations(caption, existingOwner) {
         if (!this.structure || !caption.text.runs.some(run => run.link && run.text.trim()))
-            return undefined;
-        const owner = this.structure.element("Caption", this.tableElement);
+            return existingOwner;
+        const owner = existingOwner ?? this.structure.element("Caption", this.tableElement);
         for (const run of caption.text.runs)
             if (run.link && run.text.trim())
                 this.structure.link(owner, run.link, run.text);
@@ -9007,7 +9009,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("6a6eb91d05079d182d13e43b4067324bc9968eaf259a60e0a2409080fd1aaf11", _exports);
+_modules.set("d0559c6c6f06cb5c1ba8d2494280159aa12c9514566498ca28b1a4a7fefd92db", _exports);
 return _exports;
 })();
 
@@ -9074,7 +9076,7 @@ _modules.set("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887",
 return _exports;
 })();
 
-const _m79 = _modules.get("02235a36e204a538d9ce2dd23d7ad99b026c0a21230a018b2f91b4282f730832") ?? (() => {
+const _m79 = _modules.get("b37e74556d1c4d6d8617e6b585127f56635e2ea8e03105a026031f5d3adbce9e") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -9174,7 +9176,13 @@ class PdfStructure {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
         const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes, linkIdentities: [] };
         this.elements.set(id, element);
-        this.elements.get(parent)?.children.push(id);
+        const owner = this.elements.get(parent);
+        // A continuation-only linked caption is discovered during painting, after rows may exist.
+        // Its one logical Caption still precedes the Table's rows; other owners retain source order.
+        if (role === "Caption" && owner?.role === "Table")
+            owner.children.unshift(id);
+        else
+            owner?.children.push(id);
         return id;
     }
     /** Flat visual sections share the same logical Document and cumulative resource policy. */
@@ -9324,7 +9332,7 @@ function graphicAlternative(value, settings) {
     return alternativeText;
 }
 const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative: graphicAlternative });
-_modules.set("02235a36e204a538d9ce2dd23d7ad99b026c0a21230a018b2f91b4282f730832", _exports);
+_modules.set("b37e74556d1c4d6d8617e6b585127f56635e2ea8e03105a026031f5d3adbce9e", _exports);
 return _exports;
 })();
 
@@ -9392,7 +9400,7 @@ _modules.set("29578404bfc3df4d4b6b8036db67bd83212dbfe6182fadb62c55beb0584b5ca8",
 return _exports;
 })();
 
-const _m59 = _modules.get("12bd2581b910ab316233e4673aaa77a3fa0cc90e5f47265f0ec2920b43be321d") ?? (() => {
+const _m59 = _modules.get("50d54cd77023f226b6e16a5fd158bb587e58b21cbf9b731e51b093c4bc32afac") ?? (() => {
 const { PdfObjects, unicodeHex } = _m60;
 
 const { PdfFontResources } = _m61;
@@ -9455,11 +9463,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("12bd2581b910ab316233e4673aaa77a3fa0cc90e5f47265f0ec2920b43be321d", _exports);
+_modules.set("50d54cd77023f226b6e16a5fd158bb587e58b21cbf9b731e51b093c4bc32afac", _exports);
 return _exports;
 })();
 
-const _m58 = _modules.get("d0bea837cad04b3ab43ef8dde707dff7f636b80127d453e61c19ef312a91f99e") ?? (() => {
+const _m58 = _modules.get("b236032efbf4bb6015fe9a546f753fac23127635b62114367e3c67776de83f5b") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9524,7 +9532,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("d0bea837cad04b3ab43ef8dde707dff7f636b80127d453e61c19ef312a91f99e", _exports);
+_modules.set("b236032efbf4bb6015fe9a546f753fac23127635b62114367e3c67776de83f5b", _exports);
 return _exports;
 })();
 
@@ -10405,7 +10413,7 @@ _modules.set("0c51d89c5cf0ebfeddbe03d5cd04c8bd29a78cdf70b244a68d44fdf82f0f0016",
 return _exports;
 })();
 
-const _m90 = _modules.get("5127530428c74613e9f9ccf7d8ee5b8fd642824210234c900fed612f24279f59") ?? (() => {
+const _m90 = _modules.get("1b926dd1b74341a9639f4b5672eff09e7f4454be52608ee78d5782bf3417f0f7") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -10510,7 +10518,7 @@ async function renderGroupedPdfTable(block, context) {
             if (semantic)
                 for (const group of path.slice(semanticDepth))
                     groupHeadings.push(await prepareParagraph(captureParagraph({
-                        kind: "paragraph", text: group.label, headingLevel: (groupHeadingLevel + group.level),
+                        kind: "paragraph", text: group.label.trim() ? group.label : "", headingLevel: (groupHeadingLevel + group.level),
                         presentation: { bold: true }, keepTogether: true, keepWithNext: true, spaceAfter: 4,
                         ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) } } : {})
                     }, pages.settings, fonts), pages.settings, fonts));
@@ -10609,11 +10617,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("5127530428c74613e9f9ccf7d8ee5b8fd642824210234c900fed612f24279f59", _exports);
+_modules.set("1b926dd1b74341a9639f4b5672eff09e7f4454be52608ee78d5782bf3417f0f7", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("93b2ae4f3ba856444d4bdb4e177cdab855b12652957771867093647e73551465") ?? (() => {
+const _m83 = _modules.get("34bea94af0f10e8fa645d9ca81a19d8df7de5dc0d90b7e3917f8f028576d2bc3") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -10903,11 +10911,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("93b2ae4f3ba856444d4bdb4e177cdab855b12652957771867093647e73551465", _exports);
+_modules.set("34bea94af0f10e8fa645d9ca81a19d8df7de5dc0d90b7e3917f8f028576d2bc3", _exports);
 return _exports;
 })();
 
-const _m82 = _modules.get("846b8b3e5f32fb917f59ef7cedc750c682ab3f3a978f10d3e0730551093c59a8") ?? (() => {
+const _m82 = _modules.get("818ed718fc953974b68de0e41ec5c5c53de02fa7a1e3afaef86bb871b4520ae4") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -10953,7 +10961,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("846b8b3e5f32fb917f59ef7cedc750c682ab3f3a978f10d3e0730551093c59a8", _exports);
+_modules.set("818ed718fc953974b68de0e41ec5c5c53de02fa7a1e3afaef86bb871b4520ae4", _exports);
 return _exports;
 })();
 
@@ -10997,10 +11005,10 @@ _modules.set("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9",
 return _exports;
 })();
 
-const _m57 = _modules.get("619208d1e731e90b5a821b487f56b7da90a9c11b24a0a1976e7042ad9a4ff5a1") ?? (() => {
+const _m57 = _modules.get("26d7844b3dd5b2a9805982990c0280fc030cb8ddc4e3075b24db2aee1b534153") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("619208d1e731e90b5a821b487f56b7da90a9c11b24a0a1976e7042ad9a4ff5a1", _exports);
+_modules.set("26d7844b3dd5b2a9805982990c0280fc030cb8ddc4e3075b24db2aee1b534153", _exports);
 return _exports;
 })();
 
@@ -11168,7 +11176,7 @@ _modules.set("20013c352d57841d53f13cbdd4e143293f2233f5ae601646738aab07e3d4043e",
 return _exports;
 })();
 
-const _m0 = _modules.get("dd1fee29b7cc3071b30ec44402b05576e2446d49456a163601f56d838db00d7c") ?? (() => {
+const _m0 = _modules.get("2e423139eb7ef3448473dcb44e0cd5f0951f0780f7742ee6a65b765935f347bd") ?? (() => {
 const { BlobByteSink } = _m1;
 
 const { notifyProgress } = _m14;
@@ -11226,7 +11234,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m93.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m62.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("dd1fee29b7cc3071b30ec44402b05576e2446d49456a163601f56d838db00d7c", _exports);
+_modules.set("2e423139eb7ef3448473dcb44e0cd5f0951f0780f7742ee6a65b765935f347bd", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -8257,7 +8257,7 @@ class PdfPages {
     summaryRows = new WeakSet();
     groups = [];
     continuationCaption;
-    continuationCaptionOwner;
+    tableCaptionOwner;
     continuationCaptionPaints = 0;
     constructor(objects, baseSettings, fonts, parent, resources, layout, structure, outlines) {
         this.objects = objects;
@@ -8458,8 +8458,9 @@ class PdfPages {
         if (continuation?.lines.length) {
             if (this.continuationCaptionPaints++ > 0)
                 this.settings.budget.cell(continuation.text.text);
-            this.continuationCaptionOwner ??= this.captionAnnotations(continuation);
-            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.continuationCaptionOwner === undefined ? {} : { annotationParent: this.continuationCaptionOwner }) });
+            else
+                this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
+            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
         }
         this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
         if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
@@ -8679,7 +8680,7 @@ class PdfPages {
         this.paintedHeaderCells = new WeakSet();
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
-        this.continuationCaptionOwner = undefined;
+        this.tableCaptionOwner = undefined;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         const headings = preparedHeadings ?? await layout.headers();
         this.activeHeadings = headings;
@@ -8689,10 +8690,11 @@ class PdfPages {
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
         if (caption) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
-            const annotationParent = captionArtifact ? this.captionAnnotations(caption) : undefined;
+            this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
+                : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
             await this.paragraphs([caption], height + minimumDataHeight, true, captionArtifact
-                ? { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) }
-                : { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+                ? { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) }
+                : { role: "Caption", keepOpen: true, ...(this.tableCaptionOwner === undefined ? {} : { owner: this.tableCaptionOwner }) });
         }
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, headings);
@@ -8723,10 +8725,10 @@ class PdfPages {
         const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
-        let captionPaints = 0, continuationPaints = 0, continuationOwner;
+        let captionPaints = 0, continuationPaints = 0;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
-        const captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
+        let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
             : this.structure.element("Caption", this.tableElement) : undefined;
         if (this.structure) {
             this.tableStructure = new PdfTableStructure(this.structure, this.tableElement, logicalHeadings);
@@ -8751,9 +8753,9 @@ class PdfPages {
                         const paints = firstWindow ? captionPaints++ : continuationPaints++;
                         if (paints > 0)
                             this.settings.budget.cell(currentCaption.text.text);
-                        if (!firstWindow)
-                            continuationOwner ??= this.captionAnnotations(currentCaption);
-                        const annotationParent = firstWindow ? captionElement : continuationOwner;
+                        if (!firstWindow && paints === 0)
+                            captionElement = this.captionAnnotations(currentCaption, captionElement);
+                        const annotationParent = captionElement;
                         await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
                             : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
@@ -8784,15 +8786,15 @@ class PdfPages {
         this.tableStructure = undefined;
         this.activeHeadings = undefined;
         this.continuationCaption = undefined;
-        this.continuationCaptionOwner = undefined;
+        this.tableCaptionOwner = undefined;
         this.continuationCaptionPaints = 0;
         this.y -= 8;
     }
     /** Repeated context stays an artifact; its interactive links retain one authored label/owner. */
-    captionAnnotations(caption) {
+    captionAnnotations(caption, existingOwner) {
         if (!this.structure || !caption.text.runs.some(run => run.link && run.text.trim()))
-            return undefined;
-        const owner = this.structure.element("Caption", this.tableElement);
+            return existingOwner;
+        const owner = existingOwner ?? this.structure.element("Caption", this.tableElement);
         for (const run of caption.text.runs)
             if (run.link && run.text.trim())
                 this.structure.link(owner, run.link, run.text);
@@ -9048,7 +9050,13 @@ class PdfStructure {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
         const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes, linkIdentities: [] };
         this.elements.set(id, element);
-        this.elements.get(parent)?.children.push(id);
+        const owner = this.elements.get(parent);
+        // A continuation-only linked caption is discovered during painting, after rows may exist.
+        // Its one logical Caption still precedes the Table's rows; other owners retain source order.
+        if (role === "Caption" && owner?.role === "Table")
+            owner.children.unshift(id);
+        else
+            owner?.children.push(id);
         return id;
     }
     /** Flat visual sections share the same logical Document and cumulative resource policy. */
@@ -10373,7 +10381,7 @@ async function renderGroupedPdfTable(block, context) {
             if (semantic)
                 for (const group of path.slice(semanticDepth))
                     groupHeadings.push(await prepareParagraph(captureParagraph({
-                        kind: "paragraph", text: group.label, headingLevel: (groupHeadingLevel + group.level),
+                        kind: "paragraph", text: group.label.trim() ? group.label : "", headingLevel: (groupHeadingLevel + group.level),
                         presentation: { bold: true }, keepTogether: true, keepWithNext: true, spaceAfter: 4,
                         ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) } } : {})
                     }, pages.settings, fonts), pages.settings, fonts));

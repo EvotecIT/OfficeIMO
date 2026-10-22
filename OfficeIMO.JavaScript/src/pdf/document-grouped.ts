@@ -95,7 +95,7 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
       // heading chain stays with a meaningful first table fragment without retaining a group body.
       const groupHeadings = [];
       if (semantic) for (const group of path.slice(semanticDepth)) groupHeadings.push(await prepareParagraph(captureParagraph({
-        kind: "paragraph", text: group.label, headingLevel: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6,
+        kind: "paragraph", text: group.label.trim() ? group.label : "", headingLevel: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6,
         presentation: { bold: true }, keepTogether: true, keepWithNext: true, spaceAfter: 4,
         ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6 } } : {})
       }, pages.settings, fonts), pages.settings, fonts));

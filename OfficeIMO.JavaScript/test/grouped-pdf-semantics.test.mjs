@@ -130,8 +130,9 @@ test("tagged grouping captures projected values once and returns the source when
     await assert.rejects(writeGroupedPdf(source([]), { ...options, ...labels, groupHeadingLevel }), /groupHeadingLevel/);
 });
 
-test("native group outlines close named ancestors before null, blank and whitespace-labelled sibling paths", async () => {
-  for (const authoredLabels of [false, true]) {
+test("group headings and native outlines omit blank labels while preserving unnamed sibling sections", async () => {
+  for (const authoredLabels of [false, true]) for (const composed of [false, true]) {
+    const namedLabel = authoredLabels ? "  Named  " : "Named", capturedLabels = [];
     const rows = [
       { outer: "A", inner: "X", name: "Service-X", amount: 1 },
       { outer: null, inner: "Y", name: "Service-Y", amount: 2 },
@@ -141,13 +142,26 @@ test("native group outlines close named ancestors before null, blank and whitesp
       { outer: "Named", inner: "Named-second", name: "Service-second", amount: 6 }
     ];
     const grouped = createGroupedReport(rows, { columns, totals: { amount: "sum" }, groupBy: [
-      { key: "outer", value: row => row.outer, ...(authoredLabels ? { label: value => value === "hidden-blank" ? "" : value === "hidden-space" ? "   " : String(value ?? "") } : {}) },
+      { key: "outer", value: row => row.outer, ...(authoredLabels ? { label: value => {
+        capturedLabels.push(value);
+        return value === "hidden-blank" ? "" : value === "hidden-space" ? "   " : value === "Named" ? namedLabel : String(value ?? "");
+      } } : {}) },
       { key: "inner", value: row => row.inner }
     ] });
-    const pdf = await semanticPdf(await writePdfDocument([
+    const pdf = await semanticPdf(composed ? await writePdfDocument([
       { kind: "section", title: "Scope", level: 1 }, pdfGroupedTable(grouped, { ...labels, groupHeadingLevel: 2 }),
       { kind: "section", title: "After", level: 1 }, { kind: "paragraph", text: "Recommendations" }
-    ], options));
+    ], options) : await writeGroupedPdf(grouped, { ...options, ...labels, groupHeadingLevel: 2 }));
+    const groupHeadings = [...pdf.nodes.values()].filter(node => /^H[23]$/.test(node.role));
+    assert.ok(groupHeadings.every(heading => heading.text.trim()), "Unnamed groups must not manufacture empty or whitespace-only semantic headings");
+    assert.deepEqual(groupHeadings.map(heading => heading.text), ["A", "X", "Y", "Blank-child", "Space-child", namedLabel, "Named-first", "Named-second"],
+      "Every nonblank authored heading is preserved exactly once without trimming its displayed text");
+    for (const title of ["Y", "Blank-child", "Space-child"]) {
+      const [heading] = pdf.find("H3", title), child = pdf.nodes.get(heading.parent), ancestor = pdf.nodes.get(child.parent);
+      assert.equal(child.role, "Sect"); assert.equal(ancestor.role, "Sect", "Blank groups retain their real section depth");
+      assert.ok(ancestor.children.every(id => !/^H[1-6]$/.test(pdf.nodes.get(id).role)), "An unnamed parent section has no manufactured heading");
+    }
+    assert.equal(capturedLabels.length, authoredLabels ? 5 : 0, "Semantic heading preparation does not replay group label callbacks");
     const root = [...pdf.objects].find(([, object]) => /\/Type \/Outlines /.test(object.body));
     assert.ok(root);
     const outlines = new Map([...pdf.objects].filter(([, object]) => /\/Title <feff[0-9a-f]*> \/Parent \d+ 0 R.*\/Dest \[/i.test(object.body)).map(([id, object]) => {
@@ -155,14 +169,18 @@ test("native group outlines close named ancestors before null, blank and whitesp
       const destination = /\/Dest \[(\d+) 0 R \/XYZ null ([\d.-]+) null\]/.exec(object.body);
       return [title, { id, parent: Number(/\/Parent (\d+) 0 R/.exec(object.body)[1]), page: Number(destination[1]), y: Number(destination[2]) }];
     }));
-    assert.deepEqual([...outlines.keys()], ["Scope", "A", "X", "Y", "Blank-child", "Space-child", "Named", "Named-first", "Named-second", "After"]);
+    assert.deepEqual([...outlines.keys()], [...(composed ? ["Scope"] : []), "A", "X", "Y", "Blank-child", "Space-child", namedLabel,
+      "Named-first", "Named-second", ...(composed ? ["After"] : [])]);
     const parent = title => outlines.get(title).parent;
-    assert.equal(parent("Scope"), root[0]); assert.equal(parent("After"), root[0], "Later composed sections retain their own root ancestry");
-    assert.equal(parent("A"), outlines.get("Scope").id); assert.equal(parent("X"), outlines.get("A").id);
-    for (const title of ["Y", "Blank-child", "Space-child", "Named"])
-      assert.equal(parent(title), outlines.get("Scope").id, `${title} must not become a child of a closed named sibling`);
+    const enclosing = composed ? outlines.get("Scope").id : root[0];
+    if (composed) {
+      assert.equal(parent("Scope"), root[0]); assert.equal(parent("After"), root[0], "Later composed sections retain their own root ancestry");
+    }
+    assert.equal(parent("A"), enclosing); assert.equal(parent("X"), outlines.get("A").id);
+    for (const title of ["Y", "Blank-child", "Space-child", namedLabel])
+      assert.equal(parent(title), enclosing, `${title} must not become a child of a closed named sibling`);
     for (const title of ["Named-first", "Named-second"])
-      assert.equal(parent(title), outlines.get("Named").id, "An actual open named ancestor retains all of its children");
+      assert.equal(parent(title), outlines.get(namedLabel).id, "An actual open named ancestor retains all of its children");
     for (const [title, destination] of outlines) {
       const page = pdf.pages.find(page => page.id === destination.page); assert.ok(page, `${title} targets a real page`);
       assert.ok(page.lines.includes(title), `${title} targets the page where its real heading is painted`);
