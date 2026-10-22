@@ -140,6 +140,43 @@ public sealed class EmailMessageWorkflowTests : IDisposable {
         Assert.True(Directory.Exists(firstAssets));
     }
 
+    [Theory]
+    [InlineData(EmailFileFormat.Eml)]
+    [InlineData(EmailFileFormat.OutlookMsg)]
+    public void HtmlContentEmbedsCidImagesAsDataUrisInMemory(EmailFileFormat format) {
+        var source = CreateMessage("Invoice <2026>");
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.Cc, new EmailAddress("carol@example.test", "Carol")));
+        source.Attachments[0].ContentId = "<LOGO>";
+        source.Body.Html += "<script>alert(1)</script><img src=\"https://example.test/tracker.png\">" +
+            "<div style=\"background-image:url(cid:logo)\">Inline background</div>";
+        using var stream = new MemoryStream();
+        Assert.False(source.Save(stream, format).HasErrors);
+        stream.Position = 0;
+        EmailDocument document = EmailDocument.Load(stream);
+
+        EmailHtmlContent content = EmailHtmlExporter.ExportContent(document);
+
+        string html = content.Html;
+        string png = Convert.ToBase64String(source.Attachments[0].Content!);
+        Assert.Contains("<img src=\"data:image/png;base64," + png + "\"", html);
+        Assert.Contains("background-image:url(&quot;data:image/png;base64," + png + "&quot;)", html);
+        Assert.DoesNotContain("cid:", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.test/tracker.png", html);
+        Assert.Contains("http-equiv=\"Content-Security-Policy\"", html);
+        Assert.Contains("<h1>Invoice &lt;2026&gt;</h1>", html);
+        Assert.Contains("From: Alice &lt;alice@example.test&gt;", html);
+        Assert.Contains("Date: Thursday, 1 October 2026 12:00 +00:00", html);
+        Assert.Contains("To: bob@example.test", html);
+        Assert.Contains("Cc: Carol &lt;carol@example.test&gt;", html);
+        Assert.DoesNotContain("invoice.bin", html);
+        Assert.DoesNotContain(content.Diagnostics, _ => _.Code == "EMAIL_HTML_RESOURCE_UNRESOLVED");
+
+        using var output = new MemoryStream();
+        content.WriteTo(output);
+        Assert.Equal(new UTF8Encoding(false).GetBytes(html), output.ToArray());
+    }
+
     [Fact]
     public void FlatExtractionPrefixesPreventDifferentMessagesFromColliding() {
         string destination = Path.Combine(_root, "flat");
