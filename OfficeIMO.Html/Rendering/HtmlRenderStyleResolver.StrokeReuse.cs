@@ -10,9 +10,13 @@ internal sealed partial class HtmlRenderStyleResolver {
     /// <remarks>Layout callers receive value copies; parent boxes and other mutable resolved style fields are never cached.</remarks>
     private ResolvedBoxStroke ResolveBoxStroke(HtmlComputedStyle computed, double reference, double fontSize,
         OfficeColor color) {
-        var context = new BoxStrokeContext(computed, reference, fontSize, _rootFontSize,
-            _viewportWidth, _viewportHeight, color, _activeCharacterAdvance, _activeUprightVerticalText);
-        if (_boxStrokes.TryGetValue(context, out ResolvedBoxStroke found)) return found;
+        bool reuse = _boxStrokes.Count < MaximumReusedBoxStrokes;
+        BoxStrokeContext context = default;
+        if (reuse) {
+            context = new BoxStrokeContext(computed, reference, fontSize, _rootFontSize,
+                _viewportWidth, _viewportHeight, color, _activeCharacterAdvance, _activeUprightVerticalText);
+            if (_boxStrokes.TryGetValue(context, out ResolvedBoxStroke found)) return found;
+        }
 
         bool borderSupported = HtmlCssBoxStrokeParser.TryParseBorder(computed, reference, fontSize,
             _rootFontSize, _viewportWidth, _viewportHeight, color, out HtmlRenderBorderEdges borders,
@@ -24,7 +28,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         var result = new ResolvedBoxStroke(HtmlCssBoxStrokeParser.HasBorderDeclaration(computed),
             borderSupported, borders, borderDetail, outlineSupported, outlineWidth, outlineStyle,
             outlineColor, outlineInvert, outlineOffset, outlineDetail);
-        if (_boxStrokes.Count < MaximumReusedBoxStrokes) _boxStrokes.Add(context, result);
+        if (reuse) _boxStrokes.Add(context, result);
         return result;
     }
 

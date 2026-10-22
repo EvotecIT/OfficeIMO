@@ -21,14 +21,16 @@ internal static partial class HtmlPdfRenderedConverter {
         var results = new Dictionary<(string Text, OfficeFontInfo Font, OfficeFontFaceDescriptor Face), TValue>();
         PdfCore.PdfOptions? fontSnapshot = null;
         return (text, font, descriptor) => {
-            if (text.Length > MaximumReusedMeasurementTextLength
+            // Once bounded reuse is exhausted, the ordinary callback avoids
+            // repeated font-identity scans and unsuccessful key lookups.
+            if (results.Count >= MaximumReusedTextMeasurements
+                || text.Length > MaximumReusedMeasurementTextLength
                 || font.FamilyName.Length > MaximumReusedMeasurementTextLength) {
                 return measure(text, font, descriptor);
             }
 
-            RefreshFontSnapshot();
             var key = (text, font, descriptor);
-            if (results.TryGetValue(key, out TValue found)) return found;
+            if (results.TryGetValue(key, out TValue found) && !RefreshFontSnapshot()) return found;
 
             TValue? value = measure(text, font, descriptor);
             // Fallback planning may have registered a face while measuring. Never
@@ -40,10 +42,11 @@ internal static partial class HtmlPdfRenderedConverter {
             return value;
         };
 
-        void RefreshFontSnapshot() {
-            if (fontSnapshot != null && fontSnapshot.HasSameMeasurementFonts(measurementOptions)) return;
+        bool RefreshFontSnapshot() {
+            if (fontSnapshot != null && fontSnapshot.HasSameMeasurementFonts(measurementOptions)) return false;
             results.Clear();
             fontSnapshot = measurementOptions.CreateTextMeasurementSnapshot();
+            return true;
         }
     }
 }
