@@ -1882,6 +1882,13 @@ Increase this limit when an authored tree or its escaped serialization exceeds t
 configured budget. Template content participates in node, depth, CSS and semantic
 metadata limits on the default conversion parser as well as the owned provider.
 
+`MaxInputCharacters` also bounds serialized normalized markup and the complete
+page returned by `EmailHtmlExporter.ExportContent`. Resource rewriting can expand
+markup, particularly when images, responsive sources or CSS resources become
+data URLs. If a trusted document exceeds this character budget, reduce embedded
+content or raise the limit deliberately. Decoded resource byte budgets remain
+separate and still apply.
+
 Standalone normalization and resource discovery apply the shared
 `Limits.MaxResponsiveImageCandidates` cap. Their separate candidate settings can
 tighten that cap; a larger setting does not relax the shared limit.

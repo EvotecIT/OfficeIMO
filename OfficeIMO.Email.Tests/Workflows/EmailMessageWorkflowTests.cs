@@ -148,18 +148,27 @@ public sealed class EmailMessageWorkflowTests : IDisposable {
         source.Recipients.Add(new EmailRecipient(EmailRecipientKind.Cc, new EmailAddress("carol@example.test", "Carol")));
         source.Attachments[0].ContentId = "<LOGO>";
         source.Body.Html += "<script>alert(1)</script><img src=\"https://example.test/tracker.png\">" +
-            "<div style=\"background-image:url(cid:logo)\">Inline background</div>";
+            "<div style=\"background-image:url(cid:logo)\">Inline background</div>" +
+            "<img srcset=\"cid:logo 1x, cid:logo 2x\"><p>Résumé \U0001f642</p>";
         using var stream = new MemoryStream();
         Assert.False(source.Save(stream, format).HasErrors);
         stream.Position = 0;
         EmailDocument document = EmailDocument.Load(stream);
+        string? authoredHtml = document.Body.Html;
+        string[] authoredAttachmentIdentities = document.Attachments.Select(a =>
+            a.FileName + "|" + a.ContentId + "|" + a.ContentType + "|" + a.Length).ToArray();
 
         EmailHtmlContent content = EmailHtmlExporter.ExportContent(document);
 
         string html = content.Html;
+        Assert.Equal(authoredHtml, document.Body.Html);
+        Assert.Equal(authoredAttachmentIdentities, document.Attachments.Select(a =>
+            a.FileName + "|" + a.ContentId + "|" + a.ContentType + "|" + a.Length).ToArray());
         string png = Convert.ToBase64String(source.Attachments[0].Content!);
         Assert.Contains("<img src=\"data:image/png;base64," + png + "\"", html);
         Assert.Contains("background-image:url(&quot;data:image/png;base64," + png + "&quot;)", html);
+        Assert.Contains("srcset=\"data:image/png;base64," + png + " 1x, data:image/png;base64," + png + " 2x\"", html);
+        Assert.Contains("Résumé \U0001f642", html);
         Assert.DoesNotContain("cid:", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://example.test/tracker.png", html);
@@ -174,7 +183,65 @@ public sealed class EmailMessageWorkflowTests : IDisposable {
 
         using var output = new MemoryStream();
         content.WriteTo(output);
+        Assert.True(output.CanWrite);
         Assert.Equal(new UTF8Encoding(false).GetBytes(html), output.ToArray());
+    }
+
+    [Fact]
+    public void HtmlContentReadsReferencedResourcesOnceAndClosesTheirStreams() {
+        var document = CreateMessage("Repeated inline image");
+        var inline = new ObservedContentSource(document.Attachments[0].Content!);
+        var regular = new ObservedContentSource(new byte[] { 1, 2, 3 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = inline;
+        document.Attachments[1].Content = null;
+        document.Attachments[1].ContentSource = regular;
+        document.Body.Html += "<img srcset=\"cid:logo 1x, cid:logo 2x\">" +
+            "<div style=\"background-image:url(cid:logo)\"></div>";
+
+        EmailHtmlContent content = EmailHtmlExporter.ExportContent(document);
+
+        Assert.Contains("data:image/png;base64,", content.Html);
+        Assert.DoesNotContain("cid:", content.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, inline.OpenCount);
+        Assert.Equal(1, inline.DisposeCount);
+        Assert.Equal(0, regular.OpenCount);
+    }
+
+    [Fact]
+    public void HtmlContentEncodesActualBytesWhenDeclaredLengthOverstatesContent() {
+        var document = CreateMessage("Declared metadata");
+        byte[] bytes = document.Attachments[0].Content!;
+        var contentSource = new ObservedContentSource(bytes);
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = contentSource;
+        document.Attachments[0].Length = 64L * 1024 * 1024;
+
+        EmailHtmlContent content = EmailHtmlExporter.ExportContent(document);
+
+        Assert.Contains("data:image/png;base64," + Convert.ToBase64String(bytes), content.Html);
+        Assert.Equal(1, contentSource.OpenCount);
+        Assert.Equal(1, contentSource.DisposeCount);
+        Assert.Equal(64L * 1024 * 1024, document.Attachments[0].Length);
+    }
+
+    [Theory]
+    [InlineData("eml")]
+    [InlineData("msg")]
+    public void HtmlContentFromMessageDoesNotRetainItsSource(string extension) {
+        string path = Path.Combine(_root, "html-lifetime." + extension);
+        Assert.False(CreateMessage("Scoped content").Save(path).HasErrors);
+        EmailMessage message = Assert.Single(EmailMessageReader.Read(path).Messages);
+
+        EmailHtmlContent content = EmailHtmlExporter.ExportContent(message);
+
+        using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+        File.Delete(path);
+        using var destination = new MemoryStream();
+        content.WriteTo(destination);
+        Assert.True(destination.CanWrite);
+        Assert.Equal(content.Html, Encoding.UTF8.GetString(destination.ToArray()));
+        Assert.Contains("data:image/png;base64,", content.Html);
     }
 
     [Fact]
@@ -224,6 +291,31 @@ public sealed class EmailMessageWorkflowTests : IDisposable {
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(entry.OutputPath!));
         Assert.EndsWith(".bin", entry.OutputPath);
         Assert.Equal("<invoice>\"\0.bin", entry.OriginalName);
+    }
+
+    private sealed class ObservedContentSource : IEmailContentSource {
+        private readonly byte[] _bytes;
+        internal ObservedContentSource(byte[] bytes) { _bytes = bytes; }
+        public long? Length => _bytes.LongLength;
+        internal int OpenCount { get; private set; }
+        internal int DisposeCount { get; private set; }
+        public Stream OpenRead() {
+            OpenCount++;
+            return new ObservedStream(_bytes, () => DisposeCount++);
+        }
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+        private sealed class ObservedStream : MemoryStream {
+            private readonly Action _closed;
+            private bool _disposed;
+            internal ObservedStream(byte[] bytes, Action closed) : base(bytes, writable: false) { _closed = closed; }
+            protected override void Dispose(bool disposing) {
+                if (disposing && !_disposed) { _disposed = true; _closed(); }
+                base.Dispose(disposing);
+            }
+        }
     }
 
     private static EmailDocument CreateMessage(string subject) {

@@ -38,7 +38,7 @@ public sealed class HtmlConversionLimits {
     /// <summary>Creates compatibility-oriented limits for caller-trusted HTML.</summary>
     public static HtmlConversionLimits CreateTrustedProfile() => new HtmlConversionLimits();
 
-    /// <summary>Maximum UTF-16 source characters, or <c>null</c> for no source-length limit.</summary>
+    /// <summary>Maximum UTF-16 source or normalized serialized characters, or <c>null</c> for no character limit.</summary>
     /// <remarks>Owned conversion input also checks aggregate attached node names and values before capture,
     /// then bounds canonical HTML as it is serialized. Namespace URIs are not counted as node data.</remarks>
     public int? MaxInputCharacters { get; set; }

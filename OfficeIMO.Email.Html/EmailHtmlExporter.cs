@@ -32,8 +32,8 @@ public sealed class EmailHtmlContent {
     public void WriteTo(Stream destination) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-        byte[] bytes = new UTF8Encoding(false).GetBytes(Html);
-        destination.Write(bytes, 0, bytes.Length);
+        using var writer = new StreamWriter(destination, new UTF8Encoding(false), 4096, leaveOpen: true);
+        writer.Write(Html);
     }
 }
 
@@ -105,7 +105,7 @@ public static class EmailHtmlExporter {
         return message.UseDocument(d => ExportContent(d, cancellationToken), cancellationToken);
     }
 
-    /// <summary>Creates sanitized, self-contained HTML in memory without filesystem access.</summary>
+    /// <summary>Creates sanitized, self-contained HTML in memory without writing output files.</summary>
     /// <remarks>Embedded body resources, such as <c>cid:</c> images, become <c>data:</c> URIs read within the projection budgets.
     /// Regular attachments are not included. Use <see cref="EmailHtmlContent.WriteTo(Stream)"/> to stream the result.</remarks>
     public static EmailHtmlContent ExportContent(EmailDocument document, CancellationToken cancellationToken = default) {
@@ -113,16 +113,22 @@ public static class EmailHtmlExporter {
         cancellationToken.ThrowIfCancellationRequested();
         EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
         var diagnostics = projection.Diagnostics.ToList();
+        HtmlConversionLimits limits = projection.Document.Limits;
         var dataUrls = new Dictionary<EmailBodyResource, string>();
         string body = CreateSafeBody(projection, diagnostics, _ => {
             if (!dataUrls.TryGetValue(_, out string? url)) {
-                url = "data:" + DataUrlMediaType(_.ContentType) + ";base64," +
-                    Convert.ToBase64String(_.ReadAllBytes(cancellationToken));
+                string prefix = "data:" + DataUrlMediaType(_.ContentType) + ";base64,";
+                byte[] content = _.ReadAllBytes(cancellationToken);
+                long characters = prefix.Length + 4L * ((content.LongLength + 2L) / 3L);
+                // Declared lengths remain read-budget metadata. Actual decoded
+                // bytes decide whether an encoded value fits the shared boundary.
+                HtmlConversionSourceWriter.ValidateLength(characters, limits);
+                url = prefix + Convert.ToBase64String(content);
                 dataUrls.Add(_, url);
             }
             return url;
         }, cancellationToken);
-        string html = CreatePage(document, body, string.Empty);
+        string html = CreatePage(document, body, string.Empty, limits, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return new EmailHtmlContent(html, diagnostics.AsReadOnly());
     }
@@ -145,16 +151,22 @@ public static class EmailHtmlExporter {
         return EmailBodyProjection.CreateSafeEmailHtml(html);
     }
 
-    private static string CreatePage(EmailDocument document, string body, string attachmentLinks) {
+    private static string CreatePage(EmailDocument document, string body, string attachmentLinks,
+        HtmlConversionLimits? limits = null, CancellationToken cancellationToken = default) {
         string subject = WebUtility.HtmlEncode(document.Subject ?? "Message");
         var header = new StringBuilder();
         AppendHeaderField(header, "From", document.From?.ToString());
         AppendHeaderField(header, "Date", document.Date?.ToString("dddd, d MMMM yyyy HH:mm zzz", System.Globalization.CultureInfo.InvariantCulture));
         AppendHeaderField(header, "To", FormatRecipients(document, EmailRecipientKind.To));
         AppendHeaderField(header, "Cc", FormatRecipients(document, EmailRecipientKind.Cc));
-        return "<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>" +
-            subject + "</title></head><body><header><h1>" + subject + "</h1><p>" + header + "</p></header><hr>" +
-            body + (attachmentLinks.Length > 0 ? "<hr><h2>Attachments</h2><ul>" + attachmentLinks + "</ul>" : string.Empty) + "</body></html>";
+        using var content = new HtmlConversionSourceWriter.BoundedWriter(
+            limits ?? HtmlConversionLimits.CreateTrustedProfile(), cancellationToken);
+        content.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>")
+            .Append(subject).Append("</title></head><body><header><h1>").Append(subject)
+            .Append("</h1><p>").Append(header.ToString()).Append("</p></header><hr>").Append(body);
+        if (attachmentLinks.Length > 0)
+            content.Append("<hr><h2>Attachments</h2><ul>").Append(attachmentLinks).Append("</ul>");
+        return content.Append("</body></html>").ToString();
     }
 
     private static void AppendHeaderField(StringBuilder header, string name, string? value) {
