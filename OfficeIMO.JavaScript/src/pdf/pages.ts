@@ -32,6 +32,8 @@ interface ParagraphFrame {
   readonly marker?: { readonly line: PdfInlineLine; readonly owner?: number; readonly gap: number };
   readonly artifact?: boolean;
   readonly owner?: number;
+  readonly annotationParent?: number;
+  readonly keepOpen?: boolean;
 }
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
@@ -63,9 +65,11 @@ export class PdfPages {
   private tableStructure: PdfTableStructure | undefined;
   private activeHeadings: readonly PdfLayoutRow[] | undefined;
   private paintedHeaderCells = new WeakSet<PdfLayoutCell>();
+  private readonly paintedHeaderBudgetCells = new WeakSet<PdfLayoutCell>();
   private readonly summaryRows = new WeakSet<PdfLayoutRow>();
-  private readonly groups: { readonly level: number; readonly element: number | undefined }[] = [];
+  private readonly groups: { readonly level: number; readonly headingLevel: number; readonly element: number | undefined }[] = [];
   private continuationCaption: PdfPreparedParagraph | undefined;
+  private continuationCaptionOwner: number | undefined;
   private continuationCaptionPaints = 0;
   constructor(readonly objects: PdfObjects, private readonly baseSettings: PdfSettings, readonly fonts: PdfFontResources,
     private readonly parent: number, private readonly resources: number, private layout?: PdfPaintTableLayout, private readonly structure?: PdfStructure, private readonly outlines?: PdfOutlines) {
@@ -218,7 +222,9 @@ export class PdfPages {
       continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
     if (continuation?.lines.length) {
       if (this.continuationCaptionPaints++ > 0) this.settings.budget.cell(continuation.text.text);
-      await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true });
+      this.continuationCaptionOwner ??= this.captionAnnotations(continuation);
+      await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true,
+        { artifact: true, ...(this.continuationCaptionOwner === undefined ? {} : { annotationParent: this.continuationCaptionOwner }) });
     }
     this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
     if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom) throw new RangeError("PDF title and repeated headings leave no room for a data line.");
@@ -232,10 +238,16 @@ export class PdfPages {
   }
   private async drawHeadings(headers: readonly PdfLayoutRow[]): Promise<void> {
     for (const header of headers) {
+      // Prepared headings can be reused by continuation pages and several logical summary tables.
+      // Charge physical repeats without recapturing callbacks or making them semantic duplicates.
+      for (const cell of header.cells) if (!this.bandCellBudget && this.paintedHeaderBudgetCells.has(cell.source ?? cell))
+        this.settings.budget.cell(cell.lines.map(line => line.text).join(""));
       const elements = this.tableStructure ? header.cells.map(cell => this.tableStructure!.owner(cell.source ?? cell)) : undefined;
       const repeated = header.cells.map(cell => this.paintedHeaderCells.has(cell.source ?? cell));
       this.draw(header, 0, header.lines, elements, repeated);
-      for (const cell of header.cells) this.paintedHeaderCells.add(cell.source ?? cell);
+      for (const cell of header.cells) {
+        this.paintedHeaderCells.add(cell.source ?? cell); this.paintedHeaderBudgetCells.add(cell.source ?? cell);
+      }
     }
   }
   private async rowElements(row: PdfLayoutRow): Promise<readonly number[] | undefined> {
@@ -347,10 +359,10 @@ export class PdfPages {
         const left = margins.left + (frame.indent ?? 0), width = page.width - margins.right - left;
         const x = paragraph.style.alignment === "right" ? page.width - margins.right - line.width : paragraph.style.alignment === "center" ? left + (width - line.width) / 2 : left;
         if (firstLine && frame.marker) this.inline(frame.marker.line, paragraph.size, left - frame.marker.gap - frame.marker.line.width, this.y - line.ascent, frame.marker.owner);
-        this.bodyAdded = true; this.inline(line, paragraph.size, x, this.y - line.ascent, element); this.y -= line.lineHeight; firstLine = false;
+        this.bodyAdded = true; this.inline(line, paragraph.size, x, this.y - line.ascent, element, frame.annotationParent ?? element); this.y -= line.lineHeight; firstLine = false;
       }
       this.y -= paragraph.spaceAfter;
-      await this.structure?.complete(element);
+      if (!frame.keepOpen) await this.structure?.complete(element);
     }
   }
   private get groupParent(): number | undefined { return this.groups.at(-1)?.element; }
@@ -359,13 +371,13 @@ export class PdfPages {
     if (level !== this.groups.length) throw new Error("PDF analytical groups must open in hierarchical order.");
     await this.ensureStarted();
     const element = this.structure?.element("Sect", this.groupParent);
-    this.groups.push({ level, element });
+    this.groups.push({ level, headingLevel: heading.headingLevel ?? level + 2, element });
     await this.paragraphs([heading], minimumNextHeight, true, { role: "H" + (heading.headingLevel ?? level + 2), ...(element === undefined ? {} : { parent: element }) });
   }
   async endGroup(level: number): Promise<void> {
     const current = this.groups.at(-1);
     if (!current || current.level !== level) throw new Error("PDF analytical groups must close in hierarchical order.");
-    await this.structure?.complete(current.element); this.groups.pop();
+    await this.structure?.complete(current.element); this.outlines?.closeGroup(current.headingLevel); this.groups.pop();
   }
   /** The generated summary label is a row heading; no localized text/style inference is used. */
   summary(row: PdfLayoutRow): void { this.summaryRows.add(row); }
@@ -377,6 +389,7 @@ export class PdfPages {
     this.layout = layout;
     this.paintedHeaderCells = new WeakSet();
     this.continuationCaption = continuationCaption; this.continuationCaptionPaints = 0;
+    this.continuationCaptionOwner = undefined;
     this.tableElement = this.structure?.element("Table", this.groupParent);
     const headings = preparedHeadings ?? await layout.headers();
     this.activeHeadings = headings;
@@ -413,7 +426,7 @@ export class PdfPages {
     let initialOffset = page.height - margins.top - this.y;
     const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
     if (firstCapacity + .001 < minimum) throw new RangeError("PDF band caption and headings leave no room for a data line.");
-    let captionPaints = 0, continuationPaints = 0;
+    let captionPaints = 0, continuationPaints = 0, continuationOwner: number | undefined;
     this.tableElement = this.structure?.element("Table", this.groupParent);
     this.paintedHeaderCells = new WeakSet();
     const captionElement = this.structure && caption?.lines.length ? this.structure.element("Caption", this.tableElement) : undefined;
@@ -436,8 +449,11 @@ export class PdfPages {
           if (currentCaption?.lines.length) {
             const paints = firstWindow ? captionPaints++ : continuationPaints++;
             if (paints > 0) this.settings.budget.cell(currentCaption.text.text);
+            if (!firstWindow) continuationOwner ??= this.captionAnnotations(currentCaption);
+            const annotationParent = firstWindow ? captionElement : continuationOwner;
             await this.paragraphs([currentCaption], headerHeight + minimum, true,
-              firstWindow && firstBand ? { role: "Caption", ...(captionElement === undefined ? {} : { owner: captionElement }) } : { artifact: true });
+              firstWindow && firstBand ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+                : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
           }
           await this.tableStructure?.prepareHeaders();
           await this.drawHeadings(headers); this.dataTop = this.y;
@@ -453,7 +469,14 @@ export class PdfPages {
   async endTable(): Promise<void> {
     if (this.bandFlow) { const flow = this.bandFlow; await flow.flush(true); this.bandFlow = undefined; }
     await this.tableStructure?.finish();
-    this.layout = undefined; this.tableElement = undefined; this.tableStructure = undefined; this.activeHeadings = undefined; this.continuationCaption = undefined; this.continuationCaptionPaints = 0; this.y -= 8;
+    this.layout = undefined; this.tableElement = undefined; this.tableStructure = undefined; this.activeHeadings = undefined; this.continuationCaption = undefined; this.continuationCaptionOwner = undefined; this.continuationCaptionPaints = 0; this.y -= 8;
+  }
+  /** Repeated context stays an artifact; its interactive links retain one authored label/owner. */
+  private captionAnnotations(caption: PdfPreparedParagraph): number | undefined {
+    if (!this.structure || !caption.text.runs.some(run => run.link && run.text.trim())) return undefined;
+    const owner = this.structure.element("Caption", this.tableElement);
+    for (const run of caption.text.runs) if (run.link && run.text.trim()) this.structure.link(owner, run.link, run.text);
+    return owner;
   }
   async pageBreak(): Promise<void> { await this.ensureStarted(); await this.finishPage(); await this.start(false); }
   registerXObject(name: string, id: number): void { this.externalObjects.set(name, id); }

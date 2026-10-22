@@ -129,3 +129,45 @@ test("tagged grouping captures projected values once and returns the source when
   for (const groupHeadingLevel of [0, 7, 1.5, "2"])
     await assert.rejects(writeGroupedPdf(source([]), { ...options, ...labels, groupHeadingLevel }), /groupHeadingLevel/);
 });
+
+test("native group outlines close named ancestors before null, blank and whitespace-labelled sibling paths", async () => {
+  for (const authoredLabels of [false, true]) {
+    const rows = [
+      { outer: "A", inner: "X", name: "Service-X", amount: 1 },
+      { outer: null, inner: "Y", name: "Service-Y", amount: 2 },
+      { outer: authoredLabels ? "hidden-blank" : "", inner: "Blank-child", name: "Service-blank", amount: 3 },
+      { outer: authoredLabels ? "hidden-space" : "   ", inner: "Space-child", name: "Service-space", amount: 4 },
+      { outer: "Named", inner: "Named-first", name: "Service-first", amount: 5 },
+      { outer: "Named", inner: "Named-second", name: "Service-second", amount: 6 }
+    ];
+    const grouped = createGroupedReport(rows, { columns, totals: { amount: "sum" }, groupBy: [
+      { key: "outer", value: row => row.outer, ...(authoredLabels ? { label: value => value === "hidden-blank" ? "" : value === "hidden-space" ? "   " : String(value ?? "") } : {}) },
+      { key: "inner", value: row => row.inner }
+    ] });
+    const pdf = await semanticPdf(await writePdfDocument([
+      { kind: "section", title: "Scope", level: 1 }, pdfGroupedTable(grouped, { ...labels, groupHeadingLevel: 2 }),
+      { kind: "section", title: "After", level: 1 }, { kind: "paragraph", text: "Recommendations" }
+    ], options));
+    const root = [...pdf.objects].find(([, object]) => /\/Type \/Outlines /.test(object.body));
+    assert.ok(root);
+    const outlines = new Map([...pdf.objects].filter(([, object]) => /\/Title <feff[0-9a-f]*> \/Parent \d+ 0 R.*\/Dest \[/i.test(object.body)).map(([id, object]) => {
+      const title = Buffer.from(/\/Title <feff([0-9a-f]*)>/i.exec(object.body)[1], "hex").swap16().toString("utf16le");
+      const destination = /\/Dest \[(\d+) 0 R \/XYZ null ([\d.-]+) null\]/.exec(object.body);
+      return [title, { id, parent: Number(/\/Parent (\d+) 0 R/.exec(object.body)[1]), page: Number(destination[1]), y: Number(destination[2]) }];
+    }));
+    assert.deepEqual([...outlines.keys()], ["Scope", "A", "X", "Y", "Blank-child", "Space-child", "Named", "Named-first", "Named-second", "After"]);
+    const parent = title => outlines.get(title).parent;
+    assert.equal(parent("Scope"), root[0]); assert.equal(parent("After"), root[0], "Later composed sections retain their own root ancestry");
+    assert.equal(parent("A"), outlines.get("Scope").id); assert.equal(parent("X"), outlines.get("A").id);
+    for (const title of ["Y", "Blank-child", "Space-child", "Named"])
+      assert.equal(parent(title), outlines.get("Scope").id, `${title} must not become a child of a closed named sibling`);
+    for (const title of ["Named-first", "Named-second"])
+      assert.equal(parent(title), outlines.get("Named").id, "An actual open named ancestor retains all of its children");
+    for (const [title, destination] of outlines) {
+      const page = pdf.pages.find(page => page.id === destination.page); assert.ok(page, `${title} targets a real page`);
+      assert.ok(page.lines.includes(title), `${title} targets the page where its real heading is painted`);
+      const height = Number(/\/MediaBox \[0 0 [\d.]+ ([\d.]+)\]/.exec(page.body)[1]);
+      assert.ok(Number.isFinite(destination.y) && destination.y >= 0 && destination.y <= height, `${title} has a bounded native destination`);
+    }
+  }
+});

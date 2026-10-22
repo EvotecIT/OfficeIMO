@@ -8297,9 +8297,11 @@ class PdfPages {
     tableStructure;
     activeHeadings;
     paintedHeaderCells = new WeakSet();
+    paintedHeaderBudgetCells = new WeakSet();
     summaryRows = new WeakSet();
     groups = [];
     continuationCaption;
+    continuationCaptionOwner;
     continuationCaptionPaints = 0;
     constructor(objects, baseSettings, fonts, parent, resources, layout, structure, outlines) {
         this.objects = objects;
@@ -8500,7 +8502,8 @@ class PdfPages {
         if (continuation?.lines.length) {
             if (this.continuationCaptionPaints++ > 0)
                 this.settings.budget.cell(continuation.text.text);
-            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true });
+            this.continuationCaptionOwner ??= this.captionAnnotations(continuation);
+            await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.continuationCaptionOwner === undefined ? {} : { annotationParent: this.continuationCaptionOwner }) });
         }
         this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
         if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
@@ -8515,11 +8518,18 @@ class PdfPages {
     }
     async drawHeadings(headers) {
         for (const header of headers) {
+            // Prepared headings can be reused by continuation pages and several logical summary tables.
+            // Charge physical repeats without recapturing callbacks or making them semantic duplicates.
+            for (const cell of header.cells)
+                if (!this.bandCellBudget && this.paintedHeaderBudgetCells.has(cell.source ?? cell))
+                    this.settings.budget.cell(cell.lines.map(line => line.text).join(""));
             const elements = this.tableStructure ? header.cells.map(cell => this.tableStructure.owner(cell.source ?? cell)) : undefined;
             const repeated = header.cells.map(cell => this.paintedHeaderCells.has(cell.source ?? cell));
             this.draw(header, 0, header.lines, elements, repeated);
-            for (const cell of header.cells)
+            for (const cell of header.cells) {
                 this.paintedHeaderCells.add(cell.source ?? cell);
+                this.paintedHeaderBudgetCells.add(cell.source ?? cell);
+            }
         }
     }
     async rowElements(row) {
@@ -8674,12 +8684,13 @@ class PdfPages {
                 if (firstLine && frame.marker)
                     this.inline(frame.marker.line, paragraph.size, left - frame.marker.gap - frame.marker.line.width, this.y - line.ascent, frame.marker.owner);
                 this.bodyAdded = true;
-                this.inline(line, paragraph.size, x, this.y - line.ascent, element);
+                this.inline(line, paragraph.size, x, this.y - line.ascent, element, frame.annotationParent ?? element);
                 this.y -= line.lineHeight;
                 firstLine = false;
             }
             this.y -= paragraph.spaceAfter;
-            await this.structure?.complete(element);
+            if (!frame.keepOpen)
+                await this.structure?.complete(element);
         }
     }
     get groupParent() { return this.groups.at(-1)?.element; }
@@ -8689,7 +8700,7 @@ class PdfPages {
             throw new Error("PDF analytical groups must open in hierarchical order.");
         await this.ensureStarted();
         const element = this.structure?.element("Sect", this.groupParent);
-        this.groups.push({ level, element });
+        this.groups.push({ level, headingLevel: heading.headingLevel ?? level + 2, element });
         await this.paragraphs([heading], minimumNextHeight, true, { role: "H" + (heading.headingLevel ?? level + 2), ...(element === undefined ? {} : { parent: element }) });
     }
     async endGroup(level) {
@@ -8697,6 +8708,7 @@ class PdfPages {
         if (!current || current.level !== level)
             throw new Error("PDF analytical groups must close in hierarchical order.");
         await this.structure?.complete(current.element);
+        this.outlines?.closeGroup(current.headingLevel);
         this.groups.pop();
     }
     /** The generated summary label is a row heading; no localized text/style inference is used. */
@@ -8710,6 +8722,7 @@ class PdfPages {
         this.paintedHeaderCells = new WeakSet();
         this.continuationCaption = continuationCaption;
         this.continuationCaptionPaints = 0;
+        this.continuationCaptionOwner = undefined;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         const headings = preparedHeadings ?? await layout.headers();
         this.activeHeadings = headings;
@@ -8750,7 +8763,7 @@ class PdfPages {
         const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
-        let captionPaints = 0, continuationPaints = 0;
+        let captionPaints = 0, continuationPaints = 0, continuationOwner;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
         const captionElement = this.structure && caption?.lines.length ? this.structure.element("Caption", this.tableElement) : undefined;
@@ -8777,7 +8790,11 @@ class PdfPages {
                         const paints = firstWindow ? captionPaints++ : continuationPaints++;
                         if (paints > 0)
                             this.settings.budget.cell(currentCaption.text.text);
-                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand ? { role: "Caption", ...(captionElement === undefined ? {} : { owner: captionElement }) } : { artifact: true });
+                        if (!firstWindow)
+                            continuationOwner ??= this.captionAnnotations(currentCaption);
+                        const annotationParent = firstWindow ? captionElement : continuationOwner;
+                        await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
+                            : { artifact: true, ...(annotationParent === undefined ? {} : { annotationParent }) });
                     }
                     await this.tableStructure?.prepareHeaders();
                     await this.drawHeadings(headers);
@@ -8806,8 +8823,19 @@ class PdfPages {
         this.tableStructure = undefined;
         this.activeHeadings = undefined;
         this.continuationCaption = undefined;
+        this.continuationCaptionOwner = undefined;
         this.continuationCaptionPaints = 0;
         this.y -= 8;
+    }
+    /** Repeated context stays an artifact; its interactive links retain one authored label/owner. */
+    captionAnnotations(caption) {
+        if (!this.structure || !caption.text.runs.some(run => run.link && run.text.trim()))
+            return undefined;
+        const owner = this.structure.element("Caption", this.tableElement);
+        for (const run of caption.text.runs)
+            if (run.link && run.text.trim())
+                this.structure.link(owner, run.link, run.text);
+        return owner;
     }
     async pageBreak() { await this.ensureStarted(); await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
@@ -9084,7 +9112,7 @@ class PdfStructure {
     }
     beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageKey = this.nextParentKey++; }
     /** A source link retains one logical identity when its text/annotation continues on another page. */
-    link(parent, identity) {
+    link(parent, identity, alternativeText) {
         let parents = this.links.get(identity);
         if (!parents) {
             parents = new Map();
@@ -9093,7 +9121,7 @@ class PdfStructure {
         const existing = parents.get(parent);
         if (existing !== undefined)
             return existing;
-        const id = this.element("Link", parent);
+        const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">");
         parents.set(parent, id);
         this.elements.get(parent).linkIdentities.push(identity);
         return id;
@@ -9249,6 +9277,11 @@ class PdfOutlines {
         this.stack.push(item);
     }
     get count() { return this.items.length; }
+    /** A completed analytical group cannot parent later groups, including unnamed ones. */
+    closeGroup(level) {
+        while (this.stack.length && this.stack.at(-1).level >= level)
+            this.stack.pop();
+    }
     get catalogDictionary() { return this.root === undefined ? "" : " /Outlines " + this.root + " 0 R"; }
     async finish() {
         if (this.root === undefined)

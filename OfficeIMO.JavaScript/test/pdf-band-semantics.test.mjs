@@ -70,6 +70,30 @@ test("tagged table captions precede logical headers and repeated continuation co
   assert.ok(![...pdf.elements.values()].some(element => pdf.text(element.id).includes("Continued context")));
 });
 
+test("repeated rich captions retain every native link with one logical label", async () => {
+  for (const bands of [false, true]) {
+    const pdf = await logicalPdf(await writePdfDocument([
+      { ...pdfTable(Array.from({ length: 5 }, (_, index) => ["R" + index, "detail", index, 2]), {
+        columns, ...(bands ? { wideTable: options.wideTable, columnWidths: options.columnWidths } : {}) }),
+      caption: { text: [{ text: "Documentation", link: { target: "https://example.org/main" } }] },
+      continuationCaption: { text: [{ text: "Continuation documentation", link: { target: "https://example.org/continued" } }] } }
+    ], { ...options, columns: undefined, wideTable: undefined, columnWidths: undefined,
+      pageSize: { width: 300, height: bands ? 220 : 112 }, orientation: "landscape", margins: 20, limits: { maxTableWindowRows: 2 } }));
+    const links = [...pdf.elements.values()].filter(element => element.role === "Link");
+    assert.equal(links.length, 2, "One authored link owner for each caption source");
+    assert.equal(links.filter(link => pdf.text(link.id) === "Documentation").length, 1);
+    assert.equal(links.filter(link => /\/Alt <feff0043006f006e00740069006e0075006100740069006f006e00200064006f00630075006d0065006e0074006100740069006f006e>/.test(link.body)).length, 1,
+      "Artifact-only continuation links retain their full authored label, not one wrapped segment");
+    assert.ok(!links.some(link => pdf.text(link.id).includes("Continuation")), "Repeated context is not duplicate marked text");
+    const annotations = [...pdf.objects].filter(([, object]) => /\/Subtype \/Link /.test(object.body));
+    assert.ok(annotations.length > links.length, "Actual continuation/band copies remain clickable");
+    for (const [id, annotation] of annotations) {
+      assert.match(annotation.body, /\/StructParent \d+/);
+      assert.equal(links.filter(link => new RegExp("/Type /OBJR /Obj " + id + " 0 R").test(link.body)).length, 1);
+    }
+  }
+});
+
 test("tagged band structure limits return the source and release its failed destination", async () => {
   let returned = 0;
   const source = { async *[Symbol.asyncIterator]() { try { yield ["R1", "detail", 1, 2]; yield ["R2", "detail", 3, 4]; } finally { returned++; } } };

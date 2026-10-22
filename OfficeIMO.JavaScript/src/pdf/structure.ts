@@ -110,11 +110,11 @@ export class PdfStructure {
   }
   beginPage(pageId: number): void { this.pageId = pageId; this.pageParents = []; this.pageKey = this.nextParentKey++; }
   /** A source link retains one logical identity when its text/annotation continues on another page. */
-  link(parent: number, identity: object): number {
+  link(parent: number, identity: object, alternativeText?: string): number {
     let parents = this.links.get(identity);
     if (!parents) { parents = new Map(); this.links.set(identity, parents); }
     const existing = parents.get(parent); if (existing !== undefined) return existing;
-    const id = this.element("Link", parent); parents.set(parent, id);
+    const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">"); parents.set(parent, id);
     this.elements.get(parent)!.linkIdentities.push(identity); return id;
   }
   /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
