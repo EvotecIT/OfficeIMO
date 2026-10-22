@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.pdf-report-layout-performance-evidence/v2",
-  "assembledUtc": "2026-10-22T04:34:27.474137+00:00",
+  "assembledUtc": "2026-10-22T05:03:08.011377+00:00",
   "status": "Local qualification passed; delivery gates separate",
   "intendedRepositoryPath": "Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json",
   "runtimeSource": {
@@ -9,7 +9,7 @@
     "manifestRecord": "qualification-config.json",
     "sourceGuardGate": "currentCleanSource"
   },
-  "documentationCommit": "07de4ab3a08ff8e0d2f7fc27c1bf5220b2585dce",
+  "documentationCommit": "d6407366960e5cb05f1f045d550054ac65f123f9",
   "gates": {
     "currentCleanSource": {
       "status": "Passed",
@@ -18,7 +18,7 @@
       "manifestRecord": "qualification-config.json",
       "sourceRecordsSha256": "b3646dd8322b381394b9d9557c1f7772db1f0a69d122fc0e56cd4567dc88c155",
       "sourceFreezeUtc": "2026-10-22T01:23:41.717378+00:00",
-      "observedCheckoutHead": "07de4ab3a08ff8e0d2f7fc27c1bf5220b2585dce",
+      "observedCheckoutHead": "d6407366960e5cb05f1f045d550054ac65f123f9",
       "boundary": "Clean current checkout and measured source bytes verified read-only. Later documentation/evidence commits never become measured runtime identities."
     },
     "immutableHistory": {
@@ -718,12 +718,40 @@
       "documentationFeedback": "review-wave1/documentation-inputs-acceptance.json",
       "priorPresentation": "review-wave1/original-inputs-manifest.json",
       "boundary": "Retained reproduction/assembly recipes; their present hashes are not retroactive execution bookends."
+    },
+    "prospectiveSharedPdfIntegration": {
+      "status": "Passed",
+      "measuredRuntime": "765057d2bdf16706be5e0cdec228fd541abf8ee8",
+      "featureDocumentationHead": "b791d6529d083a10e8d9d9e3ace2c5ac596b8051",
+      "upstreamHead": "96f39093db3c5a26054366a2ec150e3065dc7677",
+      "qualificationCommit": "1d1db4f7d50ba1564fc10d8741c3484a10296273",
+      "prospectiveTree": "10f8a94074d59dcebb6ca7874890dab6a537202d",
+      "selectedSourceFiles": 2850,
+      "sourceMapSha256": "9b07802c3bd6bdb059eb026dd3fd8e55e7736bed9fc1eb07843f3f6b607ece2a",
+      "componentProvenance": "Core/Pdf compiled from the named prospective tree on NET8 and NET10; other HTML components and report driver retain exact765057 development bytes. Explicitly composite component proof, not a newly packaged whole-source qualification.",
+      "managedWorkflowChecks": {
+        "net8.0": 24,
+        "net10.0": 24
+      },
+      "reportQpdfChecks": 12,
+      "consumerQpdfChecks": 34,
+      "byteIdenticalOfficeimoReports": 6,
+      "purchaseMarkersExactlyOnce": 2500,
+      "purchasePages": 417,
+      "tagOrderBoundary": "Complete saved bytes equal the qualified765 tagged report, including every structure-child array and logical-order relationship; no new broad PDF/UA claim.",
+      "executionBookendsVerified": true,
+      "newTimingsPackagesOrNativeAotClaimed": false,
+      "visualObservationBoundary": "RFC/footer/UK contents and large-table saved PDFs are byte-identical to the actually viewed765 outputs; their existing selected visual observation is reused honestly. This is combinedcomponent-output proof, not new native appearance acceptance or timing.",
+      "failedControlDisposition": "The first invented ASCII prepared-glyph reference failed identically on immutable765057 and combined source. Source and PDF bytes show ordinary LTR emission rather than eligible retained-glyph outlines. The ineligible control was removed intact; no assertion weakened or product code changed. The genuine maintained prepared-carrier test remains a prospective-merge CI gate.",
+      "requiredCi": "Fresh current-head CI on the actual prospective merge, including the maintained PdfDrawingPositionedTextTests prepared-carrier cases; prior b70 CI is not combined-tree evidence.",
+      "record": "review-wave1/integration/root-acceptance.json"
     }
   },
   "limits": [
     "Finite inputs and observed saved pages do not close unfamiliar-report, font-matched, wide-table, assistive-technology, native or platform acceptance.",
     "Managed correctness, private packages, actual NativeAOT, independent PDF checks, native images and human observation are separate evidence.",
     "Later documentation/evidence commits do not change measured runtime source or refresh historical timing.",
+    "The separately named prospective shared-PDF component check does not extend the 765057 timings, private packages or NativeAOT observations to a later combination. Fresh exact-head CI remains a merge gate.",
     "The original scratch-wide compaction equality check failed; removed logical bytes remain unmeasured. A separate historical readback verified decisive retained evidence; no whole-scratch equality claim.",
     "Historical v6 comparison executable was overwritten before complete physical retention; recorded hashes/source/raw BDN/output remain. No claim that all 128 v6 PEs, or all optional integration DLLs, were rebuilt/physically retained from the current runtime."
   ],
@@ -735,8 +763,8 @@
   "references": [
     {
       "record": "assemble-final-whitespace-evidence.py",
-      "bytes": 45949,
-      "sha256": "313cf839bf5fb6287b46746da378cb7ea5dbed5ab85c24c01b8a6b2ff087f8b6"
+      "bytes": 47688,
+      "sha256": "0f41fe4fc82eca2aadc2ae621ccfed7d599cd5457a2e55ae7098e93030b96584"
     },
     {
       "record": "assemble-portable-evidence.py",
@@ -2352,6 +2380,101 @@
       "record": "review-wave1/documentation-inputs-acceptance.json",
       "bytes": 3391,
       "sha256": "6215520e65be766705fe8d2ff16adae82efe6663a5cb2e8589393e95a6781cbb"
+    },
+    {
+      "record": "review-wave1/integration/build-receipt.json",
+      "bytes": 2752,
+      "sha256": "121d4cc2c542a1e982106633260effba926637fd26c4815b750075f61e49a02a"
+    },
+    {
+      "record": "review-wave1/integration/component-replacements.json",
+      "bytes": 1992,
+      "sha256": "088d1a9de3828e8f82fed05beffedc2caa0b06b6efdbded8a0089cce6ef5b7ac"
+    },
+    {
+      "record": "review-wave1/integration/consumer-acceptance.json",
+      "bytes": 21010,
+      "sha256": "0cd4520e1fe01050744a09e8f5625a701804bb786e5653d1e1789ab629947947"
+    },
+    {
+      "record": "review-wave1/integration/consumer-receipt.json",
+      "bytes": 118159,
+      "sha256": "193f462e0fa3e528f27988b0359c535f5b02e78999349bdc7c73d700ecaf67ca"
+    },
+    {
+      "record": "review-wave1/integration/consumer/IntegrationReportConsumer.csproj",
+      "bytes": 1723,
+      "sha256": "fe6eff119e289dd6d0225c70b3ff54d96b762032df10b53466318acb6037246d"
+    },
+    {
+      "record": "review-wave1/integration/consumer/Program.Integration.cs",
+      "bytes": 5216,
+      "sha256": "07c216333074f67de5025076a189b0e0a7f9b8aafd3a5128349033e10356e852"
+    },
+    {
+      "record": "review-wave1/integration/consumer/Program.cs",
+      "bytes": 17077,
+      "sha256": "c8fb3481ed4e541f1a5ba3324da4c8bec602fde8a1a1433a081519b9be4523b5"
+    },
+    {
+      "record": "review-wave1/integration/consumer/input-bindings.json",
+      "bytes": 11349,
+      "sha256": "78ebda3cc9105782664051d638c63ac7c62c8da3cccc4b5f6d633a17c789b6b9"
+    },
+    {
+      "record": "review-wave1/integration/diagnostics/first-public-prepared-fixture/Program.Integration.cs",
+      "bytes": 9609,
+      "sha256": "78323727f03f6ef46619af0b9e9d9eb96eadf7bced780d6932c7c53eac5d59a4"
+    },
+    {
+      "record": "review-wave1/integration/diagnostics/first-public-prepared-fixture/diagnosis.json",
+      "bytes": 5191,
+      "sha256": "3a8357c4b40386bd14fecbb184ce4e9048b14a8e13ef7dc493b55e734d3ec81e"
+    },
+    {
+      "record": "review-wave1/integration/initial-guard-control-rejection.json",
+      "bytes": 566,
+      "sha256": "31b7f529178a89737019260ab08eda66d5e06f810eaf93310fd5db15a4653d48"
+    },
+    {
+      "record": "review-wave1/integration/reports-acceptance.json",
+      "bytes": 9353,
+      "sha256": "43f1a2524224d786126da57124ebe62870b1773e6a608443719ac05493089959"
+    },
+    {
+      "record": "review-wave1/integration/reports-receipt.json",
+      "bytes": 65227,
+      "sha256": "96baa0746ef126d4310976f2210d696bc66c6344c27a802aa330ba62c5111bb7"
+    },
+    {
+      "record": "review-wave1/integration/root-acceptance.json",
+      "bytes": 5653,
+      "sha256": "8e55a2d267b60d6a8e476d623329259d055b2ba4ef05bf4ddb42aaffe6ea7b0a"
+    },
+    {
+      "record": "review-wave1/integration/run-consumer-v2.py",
+      "bytes": 2745,
+      "sha256": "eb4dbf089f01cf472e619e57cc1690af429b87084aa57ffafd5606e42026612a"
+    },
+    {
+      "record": "review-wave1/integration/run-reports.py",
+      "bytes": 2028,
+      "sha256": "33b3325c8dd70019c56d65ff4abe57fa3559062f4caa5b1ad8bb29bc49bad4dd"
+    },
+    {
+      "record": "review-wave1/integration/runtime-staging-before-replacement.json",
+      "bytes": 83413,
+      "sha256": "999e03f35a734317bc5d4014ede77bc376b93d06a9431580340552c851ebfd10"
+    },
+    {
+      "record": "review-wave1/integration/selected-source.tar",
+      "bytes": 30289920,
+      "sha256": "d519c2d1f357c28913880a9cc51a034065aff0c1a235878c2618978e596c3ae3"
+    },
+    {
+      "record": "review-wave1/integration/source-manifest.json",
+      "bytes": 712948,
+      "sha256": "0a151007facbcb73623d461b112c8571cc264f4744e521ef9d3dbd0a1f60b3f7"
     },
     {
       "record": "review-wave1/original-inputs-manifest.json",
