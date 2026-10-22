@@ -18,6 +18,19 @@ and writes to `Stream.Null`; it excludes parsing and filesystem I/O. The shared
 payload benchmark parses HTML and returns PDF bytes. Keep these contracts
 separate when interpreting results.
 
+Run the purchase-table cases through that project's maintained BenchmarkDotNet
+entrypoint, using separate output directories for each baseline and candidate:
+
+```powershell
+$env:DOTNET_PROCESSOR_COUNT = '3'
+dotnet build ./OfficeIMO.Html.Benchmarks/OfficeIMO.Html.Benchmarks.csproj -c Release -f net10.0 --artifacts-path <task-build> -m:3 -nodeReuse:false
+dotnet <task-build>/bin/OfficeIMO.Html.Benchmarks/release_net10.0/OfficeIMO.Html.Benchmarks.dll --filter '*HtmlPagedPurchaseTableBenchmarks*' --inProcess --warmupCount 6 --iterationCount 12 --outliers DontRemove --exporters json --artifacts <task-output>/purchase
+```
+
+Replace the output placeholders before running. These are the filter and job
+settings used for the purchase-table measurements below; the shared-payload
+command above selects a different benchmark class.
+
 The paired runs use the same inputs, fonts, page settings and benchmark drivers.
 Complete content, saved-page geometry and independent rendering checks run
 outside the timed section. Timing and allocation measurements stay opt-in.
@@ -26,8 +39,11 @@ outside the timed section. Timing and allocation measurements stay opt-in.
 
 Baseline: `0612ee6a8bd8a18ba13eb7c3b64fcb104d182945`.
 Candidate runtime: `765057d2bdf16706be5e0cdec228fd541abf8ee8`.
-The Apple M4 development host uses .NET 10 and three logical processors, with
-normal development activity and OS scheduling. It is not a quiet-host, cold-start,
+The Apple M4 host has ten logical processors and runs .NET 10.0.13. Each measured
+launch sets `DOTNET_PROCESSOR_COUNT=3`, overriding the processor count reported
+to .NET rather than pinning execution to three cores. The evidence retains both
+the hardware count and the child-process environment. Runs use normal development
+activity and OS scheduling. This is not a quiet-host, cold-start,
 peak-memory or portable ranking study. Each run has six warmups, twelve measured
 iterations and no outlier removal. Allocation is total managed allocation per
 operation, not retained or peak memory.
