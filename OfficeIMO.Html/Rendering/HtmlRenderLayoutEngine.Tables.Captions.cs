@@ -18,7 +18,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, tableWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth + 1, null, element);
+        bool hasGeneratedBlock = HasBlockGeneratedContent(element, HtmlPseudoElementKind.Before, contentWidth, style)
+            || HasBlockGeneratedContent(element, HtmlPseudoElementKind.After, contentWidth, style);
+        HtmlInlineLayout inline = hasGeneratedBlock
+            ? LayoutTableBoxContent(element, contentWidth, style, depth + 1)
+            : LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth + 1, null, element);
         // A caption participates in flow through actual line boxes or authored
         // box dimensions. An empty caption does not create an implicit strut.
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style, allowZeroHeight: true);

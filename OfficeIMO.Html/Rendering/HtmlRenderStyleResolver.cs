@@ -57,39 +57,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         _viewportHeight = height;
     }
 
-    private bool TryResolveLength(string? value, double reference, double fontSize, double rootFontSize, out double result) =>
-        HtmlRenderCssValues.TryLength(
-            value,
-            reference,
-            fontSize,
-            rootFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            out result,
-            _activeCharacterAdvance, _activeUprightVerticalText);
-
-    private bool TryResolveLength(
-        string? value,
-        double reference,
-        double fontSize,
-        double rootFontSize,
-        out double result,
-        out bool isCalculated) =>
-        HtmlRenderCssValues.TryLength(
-            value,
-            reference,
-            fontSize,
-            rootFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            out result,
-            out isCalculated,
-            _activeCharacterAdvance, _activeUprightVerticalText);
-
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
             ? found
@@ -295,9 +262,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
-            PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            PreserveWhitespace = IsPreformatted(computed.GetValue("white-space")),
             BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
-            PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            PreventTextWrapping = PreventsTextWrapping(computed.GetValue("white-space")),
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
@@ -853,11 +820,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private static bool IsPreformatted(string tag, string whiteSpace) =>
-        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+    private static bool IsPreformatted(string whiteSpace) =>
+        whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
 
-    private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
-        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "nowrap";
+    private static bool PreventsTextWrapping(string whiteSpace) =>
+        whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
         if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
@@ -1219,13 +1186,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (string.Equals(inside, "avoid-column", StringComparison.OrdinalIgnoreCase))
             style.UnsupportedColumnBreaks += ";break-inside=avoid-column";
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase)
-            // Scroll containers establish an independent formatting context. Keep a
-            // page-sized one intact when paginating, as Chromium does for WAI cards.
-            || style.OverflowX is "auto" or "scroll"
-            || style.OverflowY is "auto" or "scroll";
-        if (style.OverflowX is "auto" or "scroll" || style.OverflowY is "auto" or "scroll")
-            style.AvoidBreakInsideScope = HtmlFragmentationScope.All;
+            || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));

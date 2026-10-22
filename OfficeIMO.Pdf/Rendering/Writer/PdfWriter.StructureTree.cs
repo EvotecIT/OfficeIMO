@@ -22,6 +22,7 @@ internal static partial class PdfWriter {
         int? namespaceId = pdf20 ? AddObject(objects, "<< /Type /Namespace /NS (http://iso.org/pdf2/ssn) >>\n") : null;
         var structureParents = BuildStructureParents(pages);
         var tableHeaders = BuildTableHeaderAssociations(pages, structureParents);
+        var structureChildren = new StructureChildIndex(pages);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
             if (page.StructElements.Count == 0) {
@@ -57,7 +58,7 @@ internal static partial class PdfWriter {
                         element.AlternativeText,
                         contentStreamObjectId,
                         additionalContentStreamObjectIds,
-                        childElementIds: StructureChildren(pages, page, element, elementIndex));
+                        childElementIds: structureChildren.GetChildren(page, element, elementIndex));
                 } else if (element.MarkedContentId.HasValue) {
                     structElement = string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)
                         ? PdfStructTreeRootDictionaryBuilder.BuildFigureStructElement(
@@ -82,7 +83,7 @@ internal static partial class PdfWriter {
                         parentObjectId,
                         pageIds[pageIndex],
                         element.StructureType,
-                        StructureChildren(pages, page, element, elementIndex),
+                        structureChildren.GetChildren(page, element, elementIndex),
                         element.TableHeaderScope,
                         element.TableColumnSpan,
                         element.TableRowSpan,
@@ -160,16 +161,6 @@ internal static partial class PdfWriter {
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
         ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
             pages.SelectMany(page => page.StructElements).Select(element => element.StructureType), BuildStructureIdTree(objects, pages), namespaceId));
-    }
-
-    private static List<int> StructureChildren(IReadOnlyList<LayoutResult.Page> pages,
-        LayoutResult.Page page, PageStructElement element, int elementIndex) {
-        var children = page.StructElements.Where(child => child.ParentElementIndex == elementIndex)
-            .ToList();
-        foreach (var childPage in pages) {
-            children.AddRange(childPage.StructElements.Where(child => ReferenceEquals(child.ParentElement, element)));
-        }
-        return OrderStructureChildren(children);
     }
 
     // A paragraph/cell/heading with interleaved links owns ordered Span/Link children.
