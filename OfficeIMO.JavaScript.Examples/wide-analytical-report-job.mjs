@@ -54,7 +54,7 @@ export async function writeWideAnalyticalReport(api, context) {
   return writeAnalyticalReport(api, { ...context, columns,
     input: { ...input, scope: input.scope ?? text.scope, overview: input.overview ?? text.overview,
       totals: { latency: "average", availability: "average", requests: "sum", errorRate: "average", cpu: "average", memory: "average", storage: "average" } },
-    pdfTableOptions: { wideTable: { mode: "bands", repeatColumns: [0, 1], minimumColumnWidth: 72 },
+    pdfTableOptions: { wideTable: { mode: "bands", repeatColumns: [0, "service"], minimumColumnWidth: 72 },
       formatValue(value, cell) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
         : typeof value === "number" ? (percentages.has(cell.column.key) ? percent : decimal).format(value) : String(value ?? ""); } },
     // These finite physical-work budgets include repeated identifiers and headings, not only logical source cells.

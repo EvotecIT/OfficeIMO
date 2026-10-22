@@ -251,8 +251,33 @@ def verify(path, qpdf):
             require(target["role"] == "/TH", "Cell header association targets a non-heading")
     by_role = Counter(entry["role"] for entry in elements.values())
     rows = [entry for entry in elements.values() if entry["role"] == "/TR"]
-    bodies = [entry for entry in rows if re.search(r"S\d{4}", compact(entry["text"]))]
-    expected_ids = [row[0] for row in contract["rows"]]
+    columns = contract["columns"]
+    column_keys = [column["key"] for column in columns]
+    require(column_keys and len(column_keys) == len(set(column_keys)), "Expected source columns need unique stable keys")
+    source_id_key = contract.get("sourceIdColumn", column_keys[0])
+    require(column_keys.count(source_id_key) == 1, "Source ID key does not resolve to one selected column")
+    source_id_position = column_keys.index(source_id_key)
+    require(all(len(row) == len(columns) for row in contract["rows"]), "Expected source row shape differs")
+    expected_ids = [str(row[source_id_position]) for row in contract["rows"]]
+    expected_id_values = {compact(value) for value in expected_ids}
+    require(all(expected_id_values) and len(expected_id_values) == len(expected_ids), "Expected source IDs must be nonempty and unique")
+
+    def row_cells(row):
+        return [elements[reference(child)] for child in row["children"] if reference(child) in elements]
+
+    bodies = [row for row in rows if any(compact(cell["text"]) in expected_id_values for cell in row_cells(row))]
+    body_ids = {row["id"] for row in bodies}
+    declared_row_headers = contract.get("rowHeaderColumns", [])
+    require(isinstance(declared_row_headers, list), "Expected row-header columns must be a declared list")
+    row_header_positions = []
+    for declaration in declared_row_headers:
+        require(isinstance(declaration, dict) and type(declaration.get("columnIndex")) is int, "Expected row-header position must be an integer")
+        position = declaration["columnIndex"]
+        require(0 <= position < len(columns) and column_keys[position] == declaration.get("key"), "Expected row-header key/position differs from selected source metadata")
+        require(position not in row_header_positions, "Duplicate expected row-header position")
+        row_header_positions.append(position)
+    row_header_positions.sort()
+    detail_header_ids, forward_row_header_associations = set(), 0
 
     def owning_table(entry):
         return next((identity for identity in reversed(entry["ancestors"]) if elements[identity]["role"] == "/Table"), None)
@@ -273,14 +298,38 @@ def verify(path, qpdf):
         require(all(owning_table(target) == owning_table(entry) for target in targets), "Cell refers to another logical table's headings")
         return [compact(target["text"]) for target in targets if str(attributes(target["object"]).get("/Scope")) == "/Column"]
 
-    require([re.findall(r"S\d{4}", compact(row["text"])) for row in bodies] == [[identifier] for identifier in expected_ids], "Source IDs are missing, duplicated, or in visual-band order in the logical tree")
+    require([[compact(cell["text"]) for cell in row_cells(row) if compact(cell["text"]) in expected_id_values] for row in bodies] ==
+            [[compact(identifier)] for identifier in expected_ids], "Source IDs are missing, duplicated, or in visual-band order in the logical tree")
     for row, expected in zip(bodies, contract["rows"]):
-        cells = [elements[reference(child)] for child in row["children"] if reference(child) in elements]
+        cells = row_cells(row)
         actual = [compact(cell["text"]) for cell in cells]
-        require(actual == ([""] if contract["grouped"] else []) + [compact(value) for value in expected], "Logical source cell values/order differ for " + expected[0])
+        identifier = str(expected[source_id_position])
+        require(actual == ([""] if contract["grouped"] else []) + [compact(value) for value in expected], "Logical source cell values/order differ for " + identifier)
         require(all(sequence(attributes(cell["object"]).get("/Headers")) for cell in cells), "A body cell lacks its column-header relationships")
+        offset = 1 if contract["grouped"] else 0
+        detail_positions = [position + offset for position in row_header_positions]
+        row_header_names = []
+        for position in detail_positions:
+            heading = cells[position]
+            require(heading["role"] == "/TH" and str(attributes(heading["object"]).get("/Scope")) == "/Row", "Declared detail identifier lost its row-heading role")
+            name = str(heading["object"].get("/ID", ""))
+            require(name in identifiers and reference(identifiers[name]) == heading["id"], "Detail row heading lost its IDTree identity")
+            detail_header_ids.add(heading["id"]); row_header_names.append(name)
         for column, cell in enumerate(cells):
-            require(column_associations(cell) == expected_columns(column), "Body cell column-header identity/order differs for " + expected[0])
+            require(column_associations(cell) == expected_columns(column), "Body cell column-header identity/order differs for " + identifier)
+            associated_rows = []
+            for name in sequence(attributes(cell["object"]).get("/Headers")):
+                target = elements[reference(identifiers[str(name)])]
+                if str(attributes(target["object"]).get("/Scope")) == "/Row":
+                    require(reference(target["object"]["/P"]) == row["id"], "A detail cell refers to another source record's row heading")
+                    associated_rows.append(str(name))
+            if column in detail_positions:
+                require(not associated_rows, "Detail row headings have circular row-header associations")
+            else:
+                require(cell["role"] == "/TD" and str(attributes(cell["object"]).get("/Scope")) != "/Row", "An undeclared detail field became a row heading")
+                require(associated_rows == row_header_names, "Detail cell lost its exact declared row-header associations")
+                if any(position > column for position in detail_positions):
+                    forward_row_header_associations += 1
     require(compact(contract["expectedFragmentToken"]) in compact(logical_text), "Last overheight-cell fragment is missing")
     page_texts = [page.extract_text() or "" for page in reader.pages]
     physical_pages = [compact(text) for text in page_texts]
@@ -289,6 +338,12 @@ def verify(path, qpdf):
         require(compact(forbidden) not in compact(logical_text) and compact(forbidden) not in compact(physical), "Excluded host data leaked")
     require(all(compact(logical_text).count(identifier) == 1 for identifier in expected_ids), "A repeated visual ID appears more than once in logical reading")
     require(all(physical.count(identifier) >= 2 for identifier in expected_ids), "Fixture did not paint repeated identifier bands")
+    if "caption" in contract:
+        captions = [entry for entry in elements.values() if entry["role"] == "/Caption"]
+        require(len(captions) == 1 and compact(captions[0]["text"]) == compact(contract["caption"]), "Authored table caption is missing, duplicated or changed")
+        table = elements[owning_table(captions[0])]
+        require(reference(table["children"][0]) == captions[0]["id"], "Table caption does not precede its logical headings and records")
+        require(all(owning_table(body) == table["id"] for body in bodies), "A source record escaped its captioned logical table")
 
     def anchors(matrix):
         return [cell for row in matrix or [] for cell in row if cell is not None]
@@ -328,12 +383,13 @@ def verify(path, qpdf):
                 require(has_physical_context(contexts[index], expected_path),
                         "Physical detail page " + str(index + 1) + " lacks the full active ancestor context for " + identifier)
                 checked_contexts.add((index, tuple(compact(value) for value in expected_path)))
-        summaries = [entry for entry in elements.values() if entry["role"] == "/TH" and str(attributes(entry["object"]).get("/Scope")) == "/Row"]
+        summaries = [entry for entry in elements.values() if entry["role"] == "/TH" and str(attributes(entry["object"]).get("/Scope")) == "/Row"
+                     and reference(entry["object"]["/P"]) not in body_ids]
         require(len(summaries) == len(paths) + 1, "Subtotal/grand-total logical row headings differ")
         source_rows = contract.get("rawRows", contract["rows"])
         require(len(source_rows) == len(contract["groupPaths"]), "Summary oracle source/path counts differ")
         require(all(len(row) == len(contract["columns"]) for row in source_rows), "Raw summary source shape differs")
-        require([str(row[0]) for row in source_rows] == expected_ids, "Raw summary source record order differs")
+        require([str(row[source_id_position]) for row in source_rows] == expected_ids, "Raw summary source record order differs")
         aggregates = contract.get("aggregates", {"c6": "sum", "c8": "max"})
         require(aggregates and all(operation in ("sum", "count", "average", "min", "max") for operation in aggregates.values()), "Missing/unsupported fixture aggregate contract")
         metric_positions = {column["key"]: index for index, column in enumerate(contract["columns"]) if column["key"] in aggregates}
@@ -372,8 +428,18 @@ def verify(path, qpdf):
             owner_path = group_ancestry(row)
             require(owner_path in expected_summaries and owner_path not in seen_summaries, "Summary was duplicated or attached to the wrong ancestor section")
             seen_summaries.add(owner_path)
-            cells = [elements[reference(child)] for child in row["children"] if reference(child) in elements]
+            cells = row_cells(row)
             require([compact(cell["text"]) for cell in cells] == expected_summaries[owner_path], "Summary label/count/independently computed numeric totals differ")
+            require(cells[0] is summary and all(cell["role"] == "/TD" for cell in cells[1:]), "A summary did not retain label-only row-heading semantics")
+            if owner_path and contract.get("compactLeafSubtotals"):
+                descendants = [body for body, source_path in zip(bodies, contract["groupPaths"])
+                               if tuple(compact(value) for value in source_path[:len(owner_path)]) == owner_path]
+                require(descendants, "A group summary has no independently identified detail records")
+                detail_tables = {owning_table(body) for body in descendants}
+                if len(owner_path) == len(contract["groupPaths"][0]):
+                    require(detail_tables == {owning_table(row)}, "A compact leaf subtotal lost its own detail-table ownership")
+                else:
+                    require(owning_table(row) not in detail_tables, "An ancestor subtotal was attached to a descendant detail table")
             if owner_path:
                 summary_pages = {pages[key][0] for key in row["pages"]}
                 label = expected_summaries[owner_path][0]
@@ -388,8 +454,12 @@ def verify(path, qpdf):
                 entry = elements.get(reference(child))
                 if entry is not None:
                     require(column_associations(entry) == expected_columns(column), "Summary column-header association differs")
+                    row_associations = [str(value) for value in sequence(attributes(entry["object"]).get("/Headers"))
+                                        if str(attributes(elements[reference(identifiers[str(value)])]["object"]).get("/Scope")) == "/Row"]
                     if entry is not summary:
-                        require(identifier in [str(value) for value in sequence(attributes(entry["object"]).get("/Headers"))], "Summary value lost its explicit row-header association")
+                        require(str(attributes(entry["object"]).get("/Scope")) != "/Row" and row_associations == [identifier], "Summary value lost its exact label-only row-header association")
+                    else:
+                        require(not row_associations, "Summary label has circular row-header associations")
         require(seen_summaries == set(expected_summaries), "One or more source-derived summaries are missing")
         def outline_titles(items):
             result = []
@@ -399,6 +469,9 @@ def verify(path, qpdf):
         titles = outline_titles(reader.outline)
         expected_groups = [path[-1] for path in paths]
         require([title for title in titles if title in set(expected_groups)] == expected_groups, "Native outline loses group navigation/order")
+    else:
+        require(all(entry["id"] in detail_header_ids for entry in elements.values()
+                    if str(attributes(entry["object"]).get("/Scope")) == "/Row"), "An undeclared non-detail row heading was emitted")
     links = [resolved(item) for page in reader.pages for item in sequence(page.get("/Annots")) if str(resolved(item).get("/Subtype")) == "/Link"]
     require(links and len(annotations) == len(links), "Native links and logical OBJR associations differ")
     for prefix in contract["links"]:
@@ -406,6 +479,7 @@ def verify(path, qpdf):
     return {"file": str(path), "pages": len(reader.pages), "sourceRows": len(bodies), "logicalElements": len(elements), "roles": dict(by_role),
             "markedFragments": len(consumed), "headerIdentities": len(identifiers), "nativeLinks": len(links), "qpdf": "PASS",
             "sourceOrderExactlyOnce": True, "physicalRepeatedIds": True, "summaryValuesAndOwnership": bool(contract["grouped"]),
+            "sourceIdColumn": source_id_key, "detailRowHeadings": len(detail_header_ids), "forwardRowHeaderAssociations": forward_row_header_associations,
             "physicalAncestorContextPagePaths": len(checked_contexts), "physicalContextProof": "exact authored context-line presence/order, not per-row native-reader or AT acceptance",
             "typedSummarySource": bool(contract.get("rawRows")), "independentReader": "pypdf", "nativeAT": "separate acceptance"}
 

@@ -110,6 +110,13 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
       started = true; firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
     };
     const semanticSubtotal = async (row: PdfLayoutRow, level: number): Promise<void> => {
+      if (level === report.groupBy.length - 1) {
+        // A leaf's own subtotal shares its detail table and header identities. Keep the last
+        // detail/summary bundle when it fits; the existing flow owns continuation and limits.
+        pages.summary(row); closing.push(row); await finishLeaf();
+        await pages.endGroup(level); semanticDepth = level; path = path.slice(0, level);
+        return;
+      }
       await finishLeaf();
       const { caption, continuation } = await prepareGroupContext();
       const minimum = layout.minimumRowHeight(row);

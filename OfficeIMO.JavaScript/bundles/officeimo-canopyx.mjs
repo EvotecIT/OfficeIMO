@@ -38,7 +38,7 @@ return _exports;
 const _m4 = (() => {
 function checkAbort(signal) {
     if (signal?.aborted)
-        throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
+        throw signal.reason;
 }
 /** Race a pending producer or sink operation without leaving abort listeners behind. */
 function withAbort(promise, signal) {
@@ -46,7 +46,7 @@ function withAbort(promise, signal) {
         return Promise.resolve(promise);
     return new Promise((resolve, reject) => {
         const cleanup = () => signal.removeEventListener("abort", abort);
-        const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
+        const abort = () => { cleanup(); reject(signal.reason); };
         signal.addEventListener("abort", abort, { once: true });
         Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
         if (signal.aborted)
@@ -531,7 +531,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
     };
 }
 /** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
-const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "rowHeader", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
@@ -547,6 +547,8 @@ function copyColumns(columns, workbookStyles = false) {
             throw new TypeError("Each column needs a string header and an optional string key.");
         if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
+        if (captured.rowHeader !== undefined && typeof captured.rowHeader !== "boolean")
+            throw new TypeError("Column rowHeader must be boolean.");
         if (captured.groups !== undefined) {
             if (!Array.isArray(captured.groups))
                 throw new TypeError("Column groups must be an array of strings.");
@@ -1237,9 +1239,33 @@ function captureWideTable(input) {
     if (repeatColumns !== undefined && !Array.isArray(repeatColumns))
         throw new TypeError("repeatColumns must be an array.");
     const repeats = repeatColumns === undefined ? [] : [...repeatColumns];
-    if (repeats.some((value, index) => !Number.isSafeInteger(value) || value < 0 || index > 0 && value <= repeats[index - 1]))
-        throw new RangeError("repeatColumns must contain sorted unique nonnegative indices.");
+    if (repeats.some(value => typeof value === "number" ? !Number.isSafeInteger(value) || value < 0 : typeof value !== "string" || !value.length))
+        throw new RangeError("repeatColumns must contain nonnegative indices or nonempty stable keys.");
+    if (repeats.every(value => typeof value === "number") && repeats.some((value, index) => index > 0 && value <= repeats[index - 1]))
+        throw new RangeError("Numeric repeatColumns must contain sorted unique nonnegative indices.");
     return Object.freeze({ mode, ...(minimumColumnWidth === undefined ? {} : { minimumColumnWidth }), repeatColumns: Object.freeze(repeats) });
+}
+/** Resolve identities against this table's captured selection, without consulting a grid or opening its rows. */
+function repeatedColumns(policy, columns) {
+    if (typeof policy !== "object")
+        return Object.freeze([]);
+    const selected = new Set();
+    for (const selector of policy.repeatColumns ?? []) {
+        let position;
+        if (typeof selector === "number")
+            position = selector;
+        else {
+            position = columns.findIndex(column => column.key === selector);
+            if (position < 0 || columns.some((column, index) => index !== position && column.key === selector))
+                throw new TypeError("repeatColumns requires an unambiguous selected column key: " + selector);
+        }
+        if (position >= columns.length)
+            throw new RangeError("repeatColumns index exceeds the declared columns.");
+        if (selected.has(position))
+            throw new TypeError("repeatColumns selects the same column more than once.");
+        selected.add(position);
+    }
+    return Object.freeze([...selected].sort((left, right) => left - right));
 }
 function settings(input, document = false) {
     const configuration = { ...capturePdfOptions(input) };
@@ -1342,6 +1368,7 @@ function settings(input, document = false) {
     }
     const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
+        repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
 const _exports = Object.freeze({ positive: _m20.positive, color: _m20.color, presentation: _m20.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
@@ -1620,7 +1647,7 @@ class EntryWriter {
     closed = false;
     cleaned = false;
     lifetime = new AbortController();
-    abort = () => { this.fail(this.signal?.reason ?? new DOMException("Export cancelled.", "AbortError")); };
+    abort = () => { this.fail(this.signal?.reason); };
     constructor(compression, sink, signal) {
         this.sink = sink;
         this.signal = signal;
@@ -1784,7 +1811,7 @@ class ZipWriter {
     /** Pending header/directory writes and source reads must also stop on explicit discard. */
     async acceptance(operation) {
         const signal = this.options.signal;
-        const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        const abort = () => this.lifetime.abort(signal?.reason);
         signal?.addEventListener("abort", abort, { once: true });
         try {
             checkAbort(signal);
@@ -5816,11 +5843,49 @@ const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportC
 return _exports;
 })();
 
+const _m61 = (() => {
+/** @internal One type byte, an eight-byte offset/container number and a two-byte generation/index. */
+const pdfXrefEntryBytes = 11;
+function unsigned(bytes, offset, value, width) {
+    if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** (width * 8))
+        throw new RangeError("Invalid PDF cross-reference field.");
+    // Bitwise shifts truncate to 32 bits. Arithmetic preserves every supported byte offset.
+    for (let index = width - 1; index >= 0; index--) {
+        bytes[offset + index] = value % 256;
+        value = Math.floor(value / 256);
+    }
+}
+/** @internal Stream a complete single-section xref, including its own ordinary-object entry.
+ * A defined member index means that the location is an object-stream number rather than a byte offset. */
+function* pdfXrefChunks(locations, indices) {
+    if (locations.length !== indices.length)
+        throw new Error("PDF cross-reference locations must align.");
+    const perChunk = Math.floor(32768 / pdfXrefEntryBytes);
+    for (let first = 0; first < locations.length; first += perChunk) {
+        const count = Math.min(perChunk, locations.length - first), bytes = new Uint8Array(count * pdfXrefEntryBytes);
+        for (let index = 0; index < count; index++) {
+            const id = first + index, position = index * pdfXrefEntryBytes, location = locations[id], member = indices[id];
+            if (location === undefined)
+                throw new Error("PDF contains unwritten objects.");
+            bytes[position] = id === 0 ? 0 : member === undefined ? 1 : 2;
+            unsigned(bytes, position + 1, location, 8);
+            unsigned(bytes, position + 9, id === 0 ? 65535 : member ?? 0, 2);
+        }
+        yield bytes;
+    }
+}
+const _exports = Object.freeze({ pdfXrefEntryBytes: pdfXrefEntryBytes, pdfXrefChunks: pdfXrefChunks });
+return _exports;
+})();
+
 const _m60 = (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
 
+const { pdfXrefChunks, pdfXrefEntryBytes } = _m61;
+
+const compactObjectCount = 100, compactObjectBytes = 32768;
 function pdfNumber(value) {
     if (!Number.isFinite(value) || Math.abs(value) > 1e9)
         throw new RangeError("PDF coordinates and metrics must be finite and bounded.");
@@ -5837,25 +5902,32 @@ function unicodeHex(text) {
     }
     return hex;
 }
-/** @internal Forward-only PDF objects. Only xref offsets and page references survive a completed page. */
+/** @internal Forward-only PDF objects. Completed objects retain only their xref location. */
 class PdfObjects {
     sink;
     signal;
     maxBytes;
+    compressObjects;
     offsets = [0];
+    // A defined index changes the corresponding offset into an object-stream number. Parallel numeric
+    // arrays avoid retaining an allocated location object for every completed structure element.
+    compactIndices;
+    compactBatch;
+    compactUnavailable = false;
     encoder = new TextEncoder();
     buffer = new Uint8Array(32768);
     buffered = 0;
     bytes = 0;
-    constructor(sink, signal, maxBytes = Number.MAX_SAFE_INTEGER) {
+    constructor(sink, signal, maxBytes = Number.MAX_SAFE_INTEGER, compressObjects = false) {
         this.sink = sink;
         this.signal = signal;
         this.maxBytes = maxBytes;
+        this.compressObjects = compressObjects;
     }
-    reserve() { this.offsets.push(undefined); return this.offsets.length - 1; }
+    reserve() { this.offsets.push(undefined); this.compactIndices?.push(undefined); return this.offsets.length - 1; }
     async raw(bytes) {
         checkAbort(this.signal);
-        if (this.bytes + bytes.length > this.maxBytes)
+        if (!Number.isSafeInteger(this.bytes + bytes.length) || this.bytes + bytes.length > this.maxBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
         this.bytes += bytes.length;
         for (let offset = 0; offset < bytes.length;) {
@@ -5864,11 +5936,15 @@ class PdfObjects {
             offset += n;
             this.buffered += n;
             if (this.buffered === this.buffer.length)
-                await this.flush();
+                await this.flushBytes();
         }
     }
     async text(text) { await this.raw(this.encoder.encode(text)); }
     async flush() {
+        await this.flushCompact();
+        await this.flushBytes();
+    }
+    async flushBytes() {
         if (this.buffered) {
             const bytes = this.buffer.subarray(0, this.buffered);
             await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
@@ -5878,6 +5954,72 @@ class PdfObjects {
         if (taskYieldDue())
             await pause();
         checkAbort(this.signal);
+    }
+    /** Small logical structure values share one bounded compressed container. Other callers keep
+     * ordinary objects; unavailable deflate preserves the classic representation before packing starts. */
+    async compactObject(id, body) {
+        checkAbort(this.signal);
+        this.validateObject(id);
+        if (!this.compressObjects || this.compactUnavailable || body.length > compactObjectBytes)
+            return this.object(id, body);
+        if (typeof CompressionStream !== "function") {
+            if (this.compactIndices)
+                throw new Error("PDF object compression became unavailable.");
+            this.compactUnavailable = true;
+            return this.object(id, body);
+        }
+        const bytes = this.encoder.encode(body), firstIndexBytes = String(id).length + 4;
+        if (firstIndexBytes + bytes.length + 1 > compactObjectBytes)
+            return this.object(id, body);
+        let batch = this.compactBatch;
+        const indexBytes = String(id).length + String(batch?.bodyBytes ?? 0).length + 2;
+        if (batch && (batch.entries.length === compactObjectCount || batch.indexBytes + indexBytes + batch.bodyBytes + bytes.length + 2 > compactObjectBytes)) {
+            await this.flushCompact();
+            batch = undefined;
+        }
+        if (!batch) {
+            let compressor;
+            try {
+                compressor = new CompressionStream("deflate");
+            }
+            catch (error) {
+                if (this.compactIndices)
+                    throw error;
+                this.compactUnavailable = true;
+                return this.object(id, body);
+            }
+            batch = { id: this.reserve(), compressor, entries: [], bodyBytes: 0, indexBytes: 1 };
+            this.compactIndices ??= this.offsets.map(() => undefined);
+            this.compactBatch = batch;
+        }
+        this.offsets[id] = batch.id;
+        this.compactIndices[id] = batch.entries.length;
+        batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
+        batch.entries.push({ id, bytes });
+        batch.bodyBytes += bytes.length + 1;
+        if (batch.entries.length === compactObjectCount)
+            await this.flushCompact();
+    }
+    async flushCompact() {
+        const batch = this.compactBatch;
+        if (!batch)
+            return;
+        this.compactBatch = undefined;
+        let offset = 0, index = "";
+        for (const entry of batch.entries) {
+            index += entry.id + " " + offset + " ";
+            offset += entry.bytes.length + 1;
+        }
+        const header = this.encoder.encode(index + "\n"), payload = new Uint8Array(header.length + batch.bodyBytes), count = batch.entries.length;
+        payload.set(header);
+        offset = header.length;
+        for (const entry of batch.entries) {
+            payload.set(entry.bytes, offset);
+            offset += entry.bytes.length;
+            payload[offset++] = 10;
+        }
+        batch.entries.length = 0;
+        await this.compressedStream(batch.id, payload, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor);
     }
     async object(id, body) {
         this.start(id);
@@ -5902,9 +6044,12 @@ class PdfObjects {
         }
         await this.text(chunk + "\nendobj\n");
     }
-    start(id) {
-        if (!Number.isInteger(id) || id <= 0 || id >= this.offsets.length || this.offsets[id] !== undefined)
+    validateObject(id) {
+        if (!Number.isSafeInteger(id) || id <= 0 || id >= this.offsets.length || this.offsets[id] !== undefined)
             throw new Error("Invalid PDF object state.");
+    }
+    start(id) {
+        this.validateObject(id);
         this.offsets[id] = this.bytes;
     }
     async stream(id, source, dictionary = "", compression = true, owned = false) {
@@ -5925,6 +6070,9 @@ class PdfObjects {
         }
         // Verified internal producers can transfer immutable ownership; other byte sources retain the defensive snapshot.
         const sourceBytes = typeof source === "string" || owned ? bytes : new Uint8Array(bytes);
+        await this.compressedStream(id, sourceBytes, dictionary, compressor);
+    }
+    async compressedStream(id, sourceBytes, dictionary, compressor) {
         const input = new ReadableStream({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
         const reader = input.pipeThrough(compressor).getReader(), lengthId = this.reserve();
         let length = 0, complete = false;
@@ -5950,10 +6098,14 @@ class PdfObjects {
         }
     }
     async finish(root, info) {
-        if (this.offsets.slice(1).some(offset => offset === undefined))
-            throw new Error("PDF contains unwritten objects.");
+        await this.flushCompact();
+        for (let id = 1; id < this.offsets.length; id++)
+            if (this.offsets[id] === undefined)
+                throw new Error("PDF contains unwritten objects.");
         if (this.bytes > 9999999999)
             throw new OfficeIMOError("RESOURCE_LIMIT", "PDF exceeds classic cross-reference offset capacity.");
+        if (this.compactIndices)
+            return this.finishCompact(root, info);
         const start = this.bytes;
         await this.text("xref\n0 " + this.offsets.length + "\n0000000000 65535 f \n");
         for (let i = 1; i < this.offsets.length; i++)
@@ -5961,12 +6113,26 @@ class PdfObjects {
         await this.text("trailer\n<< /Size " + this.offsets.length + " /Root " + root + " 0 R /Info " + info + " 0 R >>\nstartxref\n" + start + "\n%%EOF\n");
         await this.flush();
     }
+    /** Xref payloads have a known length and are emitted in bounded chunks, without another copy
+     * of the document's random-access location arrays or a whole-xref compression buffer. */
+    async finishCompact(root, info) {
+        const id = this.reserve(), start = this.bytes, length = this.offsets.length * pdfXrefEntryBytes;
+        if (!Number.isSafeInteger(length))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "PDF cross-reference stream is too large.");
+        this.start(id);
+        await this.text(id + " 0 obj\n<< /Type /XRef /Size " + this.offsets.length + " /W [1 8 2] /Root " + root + " 0 R /Info " + info +
+            " 0 R /Length " + length + " >>\nstream\n");
+        for (const chunk of pdfXrefChunks(this.offsets, this.compactIndices))
+            await this.raw(chunk);
+        await this.text("\nendstream\nendobj\nstartxref\n" + start + "\n%%EOF\n");
+        await this.flushBytes();
+    }
 }
 const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, PdfObjects: PdfObjects });
 return _exports;
 })();
 
-const _m64 = (() => {
+const _m65 = (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -5995,8 +6161,8 @@ const _exports = Object.freeze({ FontReader: FontReader, checksum: checksum, ali
 return _exports;
 })();
 
-const _m65 = (() => {
-const { align4 } = _m64;
+const _m66 = (() => {
+const { align4 } = _m65;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6219,12 +6385,12 @@ const _exports = Object.freeze({ subsetTrueType: subsetTrueType, subsetTrueTypeC
 return _exports;
 })();
 
-const _m63 = (() => {
+const _m64 = (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m64;
+const { FontReader } = _m65;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m65;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m66;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -6463,8 +6629,8 @@ const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
 })();
 
-const _m62 = (() => {
-const { TrueTypeFont } = _m63;
+const _m63 = (() => {
+const { TrueTypeFont } = _m64;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -6526,7 +6692,7 @@ const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
 return _exports;
 })();
 
-const _m67 = (() => {
+const _m68 = (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -6848,12 +7014,12 @@ const _exports = Object.freeze({ helveticaWidths: helveticaWidths });
 return _exports;
 })();
 
-const _m66 = (() => {
+const _m67 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m62;
+const { PdfFont, fontProgram } = _m63;
 
-const { helveticaWidths } = _m67;
+const { helveticaWidths } = _m68;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -6916,12 +7082,12 @@ const _exports = Object.freeze({ standardCode: standardCode, resolveScalar: reso
 return _exports;
 })();
 
-const _m61 = (() => {
+const _m62 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m62;
+const { fontProgram } = _m63;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m66;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m67;
 
 const { pdfNumber, unicodeHex } = _m60;
 
@@ -7127,7 +7293,7 @@ const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResour
 return _exports;
 })();
 
-const _m69 = (() => {
+const _m70 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -7233,7 +7399,7 @@ const _exports = Object.freeze({ synchronousText: synchronousText, displayText: 
 return _exports;
 })();
 
-const _m71 = (() => {
+const _m72 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7445,7 +7611,7 @@ const _exports = Object.freeze({ wrapShapedPdfText: wrapShapedPdfText });
 return _exports;
 })();
 
-const _m70 = (() => {
+const _m71 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
@@ -7454,9 +7620,9 @@ const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { presentation, color } = _m17;
 
-const { wrapShapedPdfText } = _m71;
+const { wrapShapedPdfText } = _m72;
 
-const { PdfFont } = _m62;
+const { PdfFont } = _m63;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -7598,19 +7764,17 @@ const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wr
 return _exports;
 })();
 
-const _m72 = (() => {
+const _m73 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { wrapPdfText } = _m70;
+const { wrapPdfText } = _m71;
 
 /** Plan without opening a source. Exact column widths never shrink in band mode. */
 function planTableBands(widths, settings) {
     const policy = settings.options.wideTable;
     if (typeof policy !== "object")
         return undefined;
-    const available = settings.page.width - settings.margins.left - settings.margins.right, repeats = policy.repeatColumns ?? [];
-    if (repeats.some(index => index >= widths.length))
-        throw new RangeError("repeatColumns index exceeds the declared columns.");
+    const available = settings.page.width - settings.margins.left - settings.margins.right, repeats = settings.repeatedColumns;
     const repeated = new Set(repeats), rest = widths.map((_, index) => index).filter(index => !repeated.has(index));
     const prefix = repeats.reduce((sum, index) => sum + widths[index], 0);
     if (prefix > available + .001)
@@ -7690,7 +7854,7 @@ const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows
 return _exports;
 })();
 
-const _m68 = (() => {
+const _m69 = (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -7701,11 +7865,11 @@ const { createTotals } = _m12;
 
 const { presentation, positive } = _m17;
 
-const { displayText } = _m69;
+const { displayText } = _m70;
 
-const { capturePdfText, wrapPdfText } = _m70;
+const { capturePdfText, wrapPdfText } = _m71;
 
-const { planTableBands, projectBandRows, alignBandBlocks } = _m72;
+const { planTableBands, projectBandRows, alignBandBlocks } = _m73;
 
 class PdfTableLayout {
     settings;
@@ -7722,7 +7886,7 @@ class PdfTableLayout {
         this.settings = settings;
         this.fonts = fonts;
         const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
-        this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
+        this.repeatedColumns = new Set(settings.repeatedColumns);
         let digit;
         if (options.columnWidths && options.columnWidths.length !== columns.length)
             throw new RangeError("columnWidths must declare one point width per column.");
@@ -7891,7 +8055,8 @@ class PdfTableLayout {
             if (!footer)
                 this.totals[column].accept(raw);
             const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-            cells.push(await this.cell(value, column, 1, index, style));
+            const cell = await this.cell(value, column, 1, index, style);
+            cells.push(!footer && options.columns[column].rowHeader ? { ...cell, rowHeader: true } : cell);
         }
         return this.row(cells);
     }
@@ -7908,7 +8073,7 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m74 = (() => {
+const _m75 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8029,7 +8194,7 @@ const _exports = Object.freeze({ PdfTableBandFlow: PdfTableBandFlow });
 return _exports;
 })();
 
-const _m75 = (() => {
+const _m76 = (() => {
 /** @internal Source-cell identities survive page fragments and horizontal band projections.
  * Only column headers and still-owned row objects remain reachable from this table owner. */
 class PdfTableStructure {
@@ -8079,19 +8244,23 @@ class PdfTableStructure {
             return row.cells.map(cell => this.cells.get(cell));
         const rowId = this.structure.element("TR", parent);
         this.rows.set(row, rowId);
-        const ids = [];
-        let rowHeaderIdentifier;
-        // Allocating in source-column order preserves the record's logical reading order.
-        for (let index = 0; index < row.cells.length; index++) {
-            const cell = row.cells[index], isRowHeader = index === rowHeaderIndex;
-            const associations = this.associations(cell);
-            if (rowHeaderIdentifier !== undefined && !isRowHeader)
-                associations.push(rowHeaderIdentifier);
-            const id = this.structure.element(isRowHeader ? "TH" : "TD", rowId, this.attributes(cell, associations, isRowHeader ? "Row" : undefined));
+        const headers = row.cells.map((cell, index) => rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex);
+        // Allocate in source order, then resolve every row header before associating even earlier data cells.
+        // Generated summary labels override detail roles so numeric subtotal cells never become row headers.
+        const ids = row.cells.map((cell, index) => {
+            const id = this.structure.element(headers[index] ? "TH" : "TD", rowId);
             this.cells.set(cell, id);
-            ids.push(id);
-            if (isRowHeader)
-                rowHeaderIdentifier = await this.structure.identifier(id);
+            return id;
+        });
+        const rowHeaders = [];
+        for (let index = 0; index < ids.length; index++)
+            if (headers[index])
+                rowHeaders.push(await this.structure.identifier(ids[index]));
+        for (let index = 0; index < row.cells.length; index++) {
+            const cell = row.cells[index], associations = this.associations(cell);
+            if (!headers[index])
+                associations.push(...rowHeaders);
+            this.structure.setAttributes(ids[index], this.attributes(cell, associations, headers[index] ? "Row" : undefined));
         }
         return ids;
     }
@@ -8126,7 +8295,7 @@ const _exports = Object.freeze({ PdfTableStructure: PdfTableStructure });
 return _exports;
 })();
 
-const _m76 = (() => {
+const _m77 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { pdfNumber, unicodeHex } = _m60;
@@ -8171,7 +8340,7 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m77 = (() => {
+const _m78 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { unicodeHex } = _m60;
@@ -8219,7 +8388,7 @@ const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSectio
 return _exports;
 })();
 
-const _m78 = (() => {
+const _m79 = (() => {
 const { settings } = _m17;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -8237,7 +8406,7 @@ const _exports = Object.freeze({ sectionSettings: sectionSettings });
 return _exports;
 })();
 
-const _m73 = (() => {
+const _m74 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8246,19 +8415,19 @@ const { pdfNumber } = _m60;
 
 const { color } = _m17;
 
-const { PdfTableBandFlow } = _m74;
+const { PdfTableBandFlow } = _m75;
 
-const { PdfTableStructure } = _m75;
+const { PdfTableStructure } = _m76;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m69;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m70;
 
-const { linkAnnotation } = _m76;
+const { linkAnnotation } = _m77;
 
 const { unicodeHex } = _m60;
 
-const { captureSection, captureBookmark } = _m77;
+const { captureSection, captureBookmark } = _m78;
 
-const { sectionSettings } = _m78;
+const { sectionSettings } = _m79;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -8932,7 +9101,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m80 = (() => {
+const _m81 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -8994,14 +9163,14 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m79 = (() => {
+const _m80 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
 const { unicodeHex } = _m60;
 
-const { PdfParentTree } = _m80;
+const { PdfParentTree } = _m81;
 
 /** A sorted name tree retains only a small open leaf and branch at each level. */
 class PdfStructureIds {
@@ -9103,6 +9272,13 @@ class PdfStructure {
             owner?.children.push(id);
         return id;
     }
+    /** Attach resolved table associations while a source-ordered logical element is still open. */
+    setAttributes(elementId, attributes) {
+        const element = this.elements.get(elementId);
+        if (!element)
+            throw new Error("PDF structure attributes require an open logical owner.");
+        element.attributes = attributes;
+    }
     /** Flat visual sections share the same logical Document and cumulative resource policy. */
     async beginSection() {
         await this.complete(this.section);
@@ -9200,7 +9376,10 @@ class PdfStructure {
                 children += token;
             }
         // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
-        await this.objects.object(id, small ? prefix + children + "]" + element.attributes + " >>" : this.body(element));
+        if (small)
+            await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
+        else
+            await this.objects.object(id, this.body(element));
         for (const identity of element.linkIdentities) {
             const parents = this.links.get(identity);
             parents?.delete(id);
@@ -9253,7 +9432,7 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m81 = (() => {
+const _m82 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -9319,15 +9498,15 @@ return _exports;
 const _m59 = (() => {
 const { PdfObjects, unicodeHex } = _m60;
 
-const { PdfFontResources } = _m61;
+const { PdfFontResources } = _m62;
 
-const { PdfTableLayout } = _m68;
+const { PdfTableLayout } = _m69;
 
-const { PdfPages } = _m73;
+const { PdfPages } = _m74;
 
-const { PdfStructure } = _m79;
+const { PdfStructure } = _m80;
 
-const { PdfOutlines } = _m81;
+const { PdfOutlines } = _m82;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -9344,7 +9523,7 @@ class PdfWriteSession {
     info;
     constructor(sink, settings, table = false) {
         this.settings = settings;
-        this.objects = new PdfObjects(sink, settings.options.signal, settings.budget.limits.maxOutputBytes);
+        this.objects = new PdfObjects(sink, settings.options.signal, settings.budget.limits.maxOutputBytes, settings.options.compression !== false);
         this.root = this.objects.reserve();
         this.parent = this.objects.reserve();
         this.resources = this.objects.reserve();
@@ -9450,7 +9629,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m85 = (() => {
+const _m86 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -9672,12 +9851,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m84 = (() => {
+const _m85 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m85;
+const { pngPixels } = _m86;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -9805,7 +9984,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m86 = (() => {
+const _m87 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -9891,7 +10070,7 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m87 = (() => {
+const _m88 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -10137,16 +10316,16 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m88 = (() => {
+const _m89 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m70;
+const { capturePdfText, wrapPdfText } = _m71;
 
 const { positive } = _m17;
 
 const { resolveParagraphStyle } = _m19;
 
-const { captureBookmark } = _m77;
+const { captureBookmark } = _m78;
 
 const { captureFields } = _m10;
 
@@ -10214,10 +10393,10 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCapt
 return _exports;
 })();
 
-const _m89 = (() => {
-const { capturePdfText, wrapPdfText } = _m70;
+const _m90 = (() => {
+const { capturePdfText, wrapPdfText } = _m71;
 
-const { captureParagraph, prepareParagraph } = _m88;
+const { captureParagraph, prepareParagraph } = _m89;
 
 const { resolveParagraphStyle } = _m19;
 
@@ -10271,7 +10450,7 @@ const _exports = Object.freeze({ captureListOptions: captureListOptions, prepare
 return _exports;
 })();
 
-const _m91 = (() => {
+const _m92 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { captureFields } = _m10;
@@ -10320,22 +10499,22 @@ const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, g
 return _exports;
 })();
 
-const _m90 = (() => {
+const _m91 = (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
 
 const { ExportCell } = _m5;
 
-const { captureGroupedPdfTableOptions } = _m91;
+const { captureGroupedPdfTableOptions } = _m92;
 
 const { settings } = _m17;
 
-const { PdfTableLayout } = _m68;
+const { PdfTableLayout } = _m69;
 
-const { captureCaption, captureParagraph, prepareParagraph } = _m88;
+const { captureCaption, captureParagraph, prepareParagraph } = _m89;
 
-const { synchronousText } = _m69;
+const { synchronousText } = _m70;
 
 /** @internal Render one analytical source in the existing document session. Retain one detail row and
  * at most four closing subtotals. All captions, rows, pages, bytes and fonts use the document owners. */
@@ -10441,6 +10620,17 @@ async function renderGroupedPdfTable(block, context) {
             firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
         };
         const semanticSubtotal = async (row, level) => {
+            if (level === report.groupBy.length - 1) {
+                // A leaf's own subtotal shares its detail table and header identities. Keep the last
+                // detail/summary bundle when it fits; the existing flow owns continuation and limits.
+                pages.summary(row);
+                closing.push(row);
+                await finishLeaf();
+                await pages.endGroup(level);
+                semanticDepth = level;
+                path = path.slice(0, level);
+                return;
+            }
             await finishLeaf();
             const { caption, continuation } = await prepareGroupContext();
             const minimum = layout.minimumRowHeight(row);
@@ -10527,7 +10717,7 @@ const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable })
 return _exports;
 })();
 
-const _m83 = (() => {
+const _m84 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -10544,25 +10734,25 @@ const { settings, captureWideTable } = _m17;
 
 const { pdfNumber: n } = _m60;
 
-const { PdfTableLayout } = _m68;
+const { PdfTableLayout } = _m69;
 
 const { PdfWriteSession } = _m59;
 
-const { PdfDocumentImages } = _m84;
+const { PdfDocumentImages } = _m85;
 
-const { vectorCommands } = _m86;
+const { vectorCommands } = _m87;
 
-const { graphicAlternative } = _m79;
+const { graphicAlternative } = _m80;
 
-const { checkDrawingBlock, prepareDrawing } = _m87;
+const { checkDrawingBlock, prepareDrawing } = _m88;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m88;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m89;
 
-const { captureListOptions, prepareListItem } = _m89;
+const { captureListOptions, prepareListItem } = _m90;
 
-const { captureSection } = _m77;
+const { captureSection } = _m78;
 
-const { renderGroupedPdfTable } = _m90;
+const { renderGroupedPdfTable } = _m91;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -10820,18 +11010,18 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m82 = (() => {
+const _m83 = (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
 
-const { writePdfDocumentTo } = _m83;
+const { writePdfDocumentTo } = _m84;
 
 const { pdfOptionFields } = _m17;
 
 const { captureFields } = _m10;
 
-const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m91;
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m92;
 
 
 
@@ -10865,14 +11055,14 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     delete documentOptions.footer;
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+const _exports = Object.freeze({ pdfGroupedTable: _m92.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
 return _exports;
 })();
 
-const _m92 = (() => {
-const { fontProgram } = _m62;
+const _m93 = (() => {
+const { fontProgram } = _m63;
 
-const { resolveScalar, selectFont, validateFonts } = _m66;
+const { resolveScalar, selectFont, validateFonts } = _m67;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -10910,11 +11100,11 @@ return _exports;
 
 const _m57 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m84.writePdfDocument, writePdfDocumentTo: _m84.writePdfDocumentTo, pdfTable: _m84.pdfTable, PdfFont: _m63.PdfFont, preflightPdfText: _m93.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 return _exports;
 })();
 
-const _m94 = (() => {
+const _m95 = (() => {
 /** @internal Typed conversion follows declared datetime intent, never localized display text. */
 function datetime(value, mode, clock) {
     if (mode === "text")
@@ -10953,13 +11143,19 @@ const _exports = Object.freeze({ datetime: datetime });
 return _exports;
 })();
 
-const _m93 = (() => {
+const _m94 = (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
-const { datetime } = _m94;
+const { datetime } = _m95;
 
+const { captureFields } = _m10;
+
+const { copyColumns } = _m11;
+
+const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
+    options = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "signal", "onDiagnostic"]);
     if (format !== "xlsx" && format !== "csv" && format !== "pdf")
         throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
     if (!capture || typeof capture.rows !== "function" || !capture.request)
@@ -11026,15 +11222,16 @@ function createCanopyExport(capture, format, options = {}) {
             throw new TypeError("Invalid or duplicate Canopy export column.");
         ids.add(column.id);
         diagnostics(column.diagnostics, undefined, column.id);
-        const override = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions[column.id] : {};
-        for (const key of Object.keys(override))
-            if (!["width", "format", "wrapText", "alignment", "groups"].includes(key))
+        const selected = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions[column.id] : {};
+        for (const key of Object.keys(selected))
+            if (!columnFields.includes(key))
                 throw new TypeError("Unsupported Canopy column option: " + key);
-        return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze({ ...override, key: column.id, header: column.title,
+        const override = captureFields(selected, columnFields);
+        const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
                 ...(values === "raw" && column.kind === "number" ? { type: "number" } : {}),
                 ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
-                ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }),
-                ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
+                ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }) }]);
+        return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
     return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
@@ -11091,7 +11288,7 @@ const { writeCsvTo } = _m55;
 
 const { writePdfTo } = _m57;
 
-const { createCanopyExport } = _m93;
+const { createCanopyExport } = _m94;
 
 
 
@@ -11133,7 +11330,7 @@ async function exportCanopy(capture, format, options = {}) {
         throw error;
     }
 }
-const _exports = Object.freeze({ createCanopyExport: _m93.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m62.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+const _exports = Object.freeze({ createCanopyExport: _m94.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
 return _exports;
 })();
 const { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy } = _m0;

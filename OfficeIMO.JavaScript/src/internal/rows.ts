@@ -37,7 +37,7 @@ export function createRowProjector(columns: readonly ProjectionColumn[],
 }
 
 /** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
-export const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"] as const;
+export const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "rowHeader", "groups", "style", "valueFormatter"] as const;
 
 export function copyColumns<C extends ProjectionColumn>(columns: readonly C[], workbookStyles = false): C[] {
   if (!Array.isArray(columns)) throw new TypeError("Declare the columns in export order.");
@@ -51,6 +51,7 @@ export function copyColumns<C extends ProjectionColumn>(columns: readonly C[], w
     if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
       throw new TypeError("Each column needs a string header and an optional string key.");
     if (captured.value !== undefined && typeof captured.value !== "function") throw new TypeError("Column value getters must be functions.");
+    if (captured.rowHeader !== undefined && typeof captured.rowHeader !== "boolean") throw new TypeError("Column rowHeader must be boolean.");
     if (captured.groups !== undefined) {
       if (!Array.isArray(captured.groups)) throw new TypeError("Column groups must be an array of strings.");
       const groups: readonly unknown[] = Array.from(captured.groups);

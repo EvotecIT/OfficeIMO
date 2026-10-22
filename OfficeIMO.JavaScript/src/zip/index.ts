@@ -59,7 +59,7 @@ export class ZipWriter {
   /** Pending header/directory writes and source reads must also stop on explicit discard. */
   private async acceptance<T>(operation: () => T | PromiseLike<T>): Promise<T> {
     const signal = this.options.signal;
-    const abort = () => this.lifetime.abort(signal?.reason ?? new DOMException("Export cancelled.", "AbortError"));
+    const abort = () => this.lifetime.abort(signal?.reason);
     signal?.addEventListener("abort", abort, { once: true });
     try {
       checkAbort(signal); checkAbort(this.lifetime.signal);

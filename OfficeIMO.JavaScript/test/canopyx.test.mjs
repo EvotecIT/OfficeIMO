@@ -63,6 +63,24 @@ test("Canopy raw numeric metadata supports grouped metrics without typing render
   await assert.rejects(exportCanopy(contradictory, "xlsx"), /does not match column type number/);
 });
 
+test("Canopy selected column roles and presentation overrides are captured once without reading unselected options", async () => {
+  let roleReads = 0, groupReads = 0, optionsReads = 0, role = true;
+  const groups = ["Identity"], override = Object.create({
+    get rowHeader() { roleReads++; return role; }, get groups() { groupReads++; return groups; }
+  });
+  const columnOptions = { Name: override, get Private() { throw Error("Unselected options were read"); } };
+  const options = { get columnOptions() { optionsReads++; return columnOptions; } };
+  const cols = [column("Amount", "number"), column("Name")];
+  const input = capture([{ id: "r", cells: { Name: cell("SVC-1"), Amount: cell(12.5) } }], cols);
+  const source = createCanopyExport(input, "csv", options);
+  role = false; groups[0] = "Changed"; cols.reverse();
+  assert.equal(optionsReads, 1); assert.equal(roleReads, 1); assert.equal(groupReads, 1);
+  assert.deepEqual(source.columns.map(column => [column.key, column.rowHeader]), [["Amount", undefined], ["Name", true]]);
+  assert.deepEqual(source.columns[1].groups, ["Identity"]);
+  assert.deepEqual(await collect(source), [[12.5, "SVC-1"]]);
+  assert.throws(() => createCanopyExport(input, "csv", { columnOptions: { Name: { rowHeader: "yes" } } }), /rowHeader must be boolean/);
+});
+
 test("Canopy row and cell tones compose without replacing values or number formats", async () => {
   const style = { background: "E2F0D9", bold: true, numberFormat: "0.00" };
   const input = capture([{ id: "r", tone: "good", cells: { Name: cell(12.5, "12.50 USD", { tone: "alert", link: { target: "https://example.com/report" } }) } }]);

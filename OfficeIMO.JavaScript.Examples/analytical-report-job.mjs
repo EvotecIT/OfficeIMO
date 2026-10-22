@@ -98,9 +98,11 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
     yield api.pdfGroupedTable(report, { ...labels, groupHeadingLevel: 3, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
       alternateRowColor: "F3F6FB", formatValue(value) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
         : typeof value === "number" ? decimal.format(value) : String(value ?? ""); }, ...pdfTableOptions });
-    yield { kind: "section", title: text.next, level: 2, headingStyle: "heading" };
-    yield { kind: "paragraph", text: text.advice, style: "body" };
-    yield { kind: "paragraph", text: text.complete(consumed), style: "body" };
+    yield { kind: "group", keepTogether: true, blocks: [
+      { kind: "paragraph", text: text.next, headingLevel: 2, style: "heading", bookmark: { title: text.next, level: 2 } },
+      { kind: "paragraph", text: text.advice, style: "body" },
+      { kind: "paragraph", text: text.complete(consumed), style: "body" }
+    ] };
   }
   const options = { signal, onProgress, fonts, tagged: { language }, pageSize: "A4", margins: 30, fontSize: 9, pageNumberLabels: text.page,
     limits: { maxRows: 112010, maxCells: 112010 * (columns.length + 1), maxPages: 20000, maxOutputBytes: 128 * 1024 * 1024,

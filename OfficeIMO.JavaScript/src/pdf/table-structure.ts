@@ -52,17 +52,19 @@ export class PdfTableStructure {
     if (existing !== undefined) return row.cells.map(cell => this.cells.get(cell)!);
     const rowId = this.structure.element("TR", parent);
     this.rows.set(row, rowId);
-    const ids: number[] = [];
-    let rowHeaderIdentifier: string | undefined;
-    // Allocating in source-column order preserves the record's logical reading order.
+    const headers = row.cells.map((cell, index) => rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex);
+    // Allocate in source order, then resolve every row header before associating even earlier data cells.
+    // Generated summary labels override detail roles so numeric subtotal cells never become row headers.
+    const ids = row.cells.map((cell, index) => {
+      const id = this.structure.element(headers[index] ? "TH" : "TD", rowId);
+      this.cells.set(cell, id); return id;
+    });
+    const rowHeaders: string[] = [];
+    for (let index = 0; index < ids.length; index++) if (headers[index]) rowHeaders.push(await this.structure.identifier(ids[index]!));
     for (let index = 0; index < row.cells.length; index++) {
-      const cell = row.cells[index]!, isRowHeader = index === rowHeaderIndex;
-      const associations = this.associations(cell);
-      if (rowHeaderIdentifier !== undefined && !isRowHeader) associations.push(rowHeaderIdentifier);
-      const id = this.structure.element(isRowHeader ? "TH" : "TD", rowId,
-        this.attributes(cell, associations, isRowHeader ? "Row" : undefined));
-      this.cells.set(cell, id); ids.push(id);
-      if (isRowHeader) rowHeaderIdentifier = await this.structure.identifier(id);
+      const cell = row.cells[index]!, associations = this.associations(cell);
+      if (!headers[index]) associations.push(...rowHeaders);
+      this.structure.setAttributes(ids[index]!, this.attributes(cell, associations, headers[index] ? "Row" : undefined));
     }
     return ids;
   }

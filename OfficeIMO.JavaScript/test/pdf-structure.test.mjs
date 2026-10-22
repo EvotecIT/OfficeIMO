@@ -249,33 +249,39 @@ test("cached nonband table headings consume physical cell/text budgets without r
   }
 });
 
-test("tagged grouped subtotal tables charge shared prepared headings again while retaining single source projection", async () => {
+test("tagged leaf subtotal shares captured headings and charges only actually painted content", async () => {
   const run = async limits => {
-    let headerReads = 0, projected = 0, subtotalLabels = 0, continuationLabels = 0;
+    let headerReads = 0, projected = 0, subtotalLabels = 0, continuationLabels = 0, completed = false;
     const declared = Array.from({ length: 8 }, (_, index) => ({ key: "m" + index, type: "number",
       get header() { headerReads++; return "Metric" + index + "-" + "X".repeat(32); },
       value(row) { projected++; return row[index]; } }));
     const report = createGroupedReport([Array(8).fill(1)], { columns: declared,
       groupBy: [{ key: "team", value: () => "Group-A" }], totals: { m0: "sum" } });
     try {
-      return await writePdfDocument([pdfGroupedTable(report, { labelColumn: { header: "Group" }, includeGrandTotal: false,
+      const document = await writePdfDocument([pdfGroupedTable(report, { labelColumn: { header: "Group" }, includeGrandTotal: false,
         subtotalLabel(group) { subtotalLabels++; return "Subtotal " + group.label; }, grandTotalLabel: () => "Unused",
         continuationLabel(group) { continuationLabels++; return group.label; } })], {
         tagged, pageSize: { width: 1000, height: 600 }, orientation: "landscape", margins: 20,
         pageNumbers: false, compression: false, limits
       });
+      completed = true; return document;
     } finally {
-      assert.equal(headerReads, 8, "Summary tables reuse captured headings without invoking authored getters");
-      assert.equal(projected, 8, "The one report record is projected once");
-      assert.equal(subtotalLabels, 1); assert.equal(continuationLabels, 1);
+      assert.equal(headerReads, 8, "The leaf subtotal reuses captured headings without invoking authored getters");
+      assert.ok(projected <= 8, "The record is never projected twice, including early budget failures");
+      assert.ok(subtotalLabels <= 1);
+      assert.ok(continuationLabels <= 1, "An early resource rejection must not recapture continuation text");
+      if (completed) {
+        assert.equal(projected, 8, "A completed export projects the one record exactly once");
+        assert.equal(subtotalLabels, 1); assert.equal(continuationLabels, 1);
+      }
     }
   };
-  const pdf = await inspectStructure(await run({ maxCells: 100, maxTextCharacters: 5000 }));
-  assert.equal(pdf.pages.length, 1, "Separate summary-table headings repeat even without a page break");
-  assert.equal([...pdf.elements.values()].filter(element => element.role === "Table").length, 2);
+  const pdf = await inspectStructure(await run({ maxCells: 34, maxTextCharacters: 500 }));
+  assert.equal(pdf.pages.length, 1, "The detail and its leaf subtotal share one physical table");
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "Table").length, 1);
   const heading = "Metric0-" + "X".repeat(32);
-  assert.equal([...pdf.elements.values()].filter(element => element.role === "TH" && element.content.map(part => part.text).join("") === heading).length, 2);
-  for (const limits of [{ maxCells: 34 }, { maxTextCharacters: 500 }])
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "TH" && element.content.map(part => part.text).join("") === heading).length, 1);
+  for (const limits of [{ maxCells: 26 }, { maxTextCharacters: 320 }])
     await assert.rejects(run(limits), error => error.code === "RESOURCE_LIMIT" && error.message.includes(Object.keys(limits)[0]));
 });
 

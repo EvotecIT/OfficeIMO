@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writePdf, writePdfDocument, pdfTable } from "../dist/pdf/index.js";
+import { writePdf, writePdfDocument, pdfTable, writeGroupedPdf } from "../dist/pdf/index.js";
+import { createGroupedReport } from "../dist/core/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
 const references = body => [...body.matchAll(/(\d+) 0 R/g)].map(match => Number(match[1]));
@@ -87,4 +88,60 @@ test("many composed tables retain unique resolvable header IDs in a bounded sort
   assert.equal([...pdf.elements.values()].filter(element => element.role === "TH").length, 80);
   assert.equal([...pdf.elements.values()].filter(element => element.role === "TD").length, 80);
   for (const cell of [...pdf.elements.values()].filter(element => element.role === "TD")) assert.equal(cell.headers.length, 1);
+});
+
+test("explicit detail row headers associate preceding cells without changing footer or column-heading roles", async () => {
+  const columns = [{ header: "Wartosc", key: "amount", type: "number" },
+    { header: "Usluga", key: "service", rowHeader: true }, { header: "Miejsce", key: "site", rowHeader: true }];
+  const pdf = await tableStructure(await writePdf([[12, "SVC-1", "HQ"]], {
+    columns, tagged: { language: "pl" }, compression: false, pageNumbers: false,
+    footer: { rows: [[{ value: "Totals", columnSpan: 2 }, null, { value: 12 }]] }
+  }));
+  const elements = [...pdf.elements.values()], rowHeaders = elements.filter(element => /\/Scope \/Row/.test(element.body));
+  assert.deepEqual(rowHeaders.map(element => element.text), ["SVC-1", "HQ"]);
+  const ids = rowHeaders.map(element => element.identifier);
+  const amount = elements.find(element => element.role === "TD" && element.text === "12");
+  assert.deepEqual(amount.headers.slice(-2), ids, "A row heading after its metric still identifies that earlier data cell");
+  for (const heading of rowHeaders) assert.ok(heading.headers.every(id => !ids.includes(id)), "Row headings do not create circular associations");
+  const footer = elements.find(element => element.text === "Totals");
+  assert.equal(footer.role, "TD");
+  assert.ok(footer.headers.every(id => !ids.includes(id)), "Footer matrices do not inherit a detail record's identifiers");
+  const row = elements.find(element => element.id === reference(amount.body, "P"));
+  assert.deepEqual(references(/\/K \[([^\]]*)\]/.exec(row.body)[1]), [amount.id, ...rowHeaders.map(element => element.id)]);
+});
+
+test("captured key-selected bands retain one row heading across repeated visual identifiers", async () => {
+  let roleReads = 0, selectorReads = 0, formatted = 0, opened = 0;
+  const identifier = Object.assign(Object.create({ get rowHeader() { roleReads++; return true; } }), { header: "Usluga", key: "0" });
+  const columns = [{ header: "Wartosc", key: "amount" }, identifier, { header: "Miejsce", key: "site" }, { header: "Opis", key: "detail" }];
+  const selectors = ["site", 1], policy = { mode: "bands", get repeatColumns() { selectorReads++; return selectors; } };
+  function* rows() { opened++; yield [12, "SVC-1", "HQ", "Detail"]; }
+  const block = pdfTable(rows(), { columns, columnWidths: [80, 80, 80, 80], wideTable: policy,
+    formatValue(value) { formatted++; return String(value); } });
+  identifier.key = "changed"; selectors.length = 0;
+  const pdf = await tableStructure(await writePdfDocument([block], { tagged: { language: "pl" }, compression: false,
+    pageNumbers: false, pageSize: { width: 330, height: 210 }, orientation: "landscape", margins: 20 }));
+  assert.equal(roleReads, 1); assert.equal(selectorReads, 1); assert.equal(opened, 1); assert.equal(formatted, 4);
+  assert.equal(pdf.pages.length, 2);
+  for (const page of pdf.pages) assert.deepEqual(page.lines.slice(0, 2), ["Usluga", "Miejsce"], "Repeated prefix follows selected source order");
+  const rowHeaders = [...pdf.elements.values()].filter(element => /\/Scope \/Row/.test(element.body));
+  assert.equal(rowHeaders.length, 1); assert.equal(rowHeaders[0].text, "SVC-1");
+  assert.ok(pdf.pages.every(page => page.lines.includes("SVC-1") && page.lines.includes("HQ")));
+  for (const cell of [...pdf.elements.values()].filter(element => element.role === "TD")) assert.ok(cell.headers.includes(rowHeaders[0].identifier));
+});
+
+test("grouped summaries use their authored label rather than inheriting numeric detail row-header roles", async () => {
+  const columns = [{ header: "Name", key: "name", rowHeader: true }, { header: "Amount", key: "amount", type: "number", rowHeader: true }];
+  const source = createGroupedReport([["A", 12], ["A", 1]], { columns, groupBy: "name", totals: { amount: "sum" } });
+  const pdf = await tableStructure(await writeGroupedPdf(source, { labelColumn: { header: "Summary" },
+    subtotalLabel: () => "Group A", grandTotalLabel: () => "All records", tagged: { language: "en" }, compression: false, pageNumbers: false }));
+  const elements = [...pdf.elements.values()];
+  for (const text of ["Group A", "All records"]) {
+    const label = elements.find(element => element.text === text && /\/Scope \/Row/.test(element.body));
+    assert.ok(label);
+    const row = reference(label.body, "P"), siblings = elements.filter(element => reference(element.body, "P") === row);
+    assert.equal(siblings.filter(element => element.role === "TH").length, 1);
+    assert.ok(siblings.filter(element => element.id !== label.id).every(element => element.role === "TD"));
+    assert.ok(siblings.some(element => element.text === "13" && element.headers.includes(label.identifier)));
+  }
 });

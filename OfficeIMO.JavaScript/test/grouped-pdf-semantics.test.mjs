@@ -96,6 +96,37 @@ test("empty tagged analytical reports preserve optional headings and grand summa
   }
 });
 
+test("tagged leaf subtotals share their own detail table while ancestor totals keep independent ownership", async () => {
+  const rows = [
+    { region: "Root", site: "Site", environment: "Env", team: "LeafA", name: "REC-A", amount: 2 },
+    { region: "Root", site: "Site", environment: "Env", team: "LeafB", name: "REC-B", amount: 3 }
+  ];
+  for (const bands of [false, true]) {
+    const pdf = await semanticPdf(await writeGroupedPdf(source(rows), { ...options, ...labels,
+      pageSize: { width: 300, height: 380 }, columnWidths: [90, 90, 120],
+      ...(bands ? { wideTable: { mode: "bands", repeatColumns: [0], minimumColumnWidth: 80 } } : {}) }));
+    const tableFor = cell => pdf.nodes.get(pdf.nodes.get(cell.parent).parent);
+    for (const [name, leaf] of [["REC-A", "LeafA"], ["REC-B", "LeafB"]]) {
+      const [detail] = pdf.find("TD", name), [summary] = pdf.find("TH", "SUM:" + leaf);
+      assert.ok(detail); assert.ok(summary);
+      assert.equal(tableFor(detail).id, tableFor(summary).id, "The leaf total reuses its own logical detail table");
+      const [heading] = pdf.find("H5", leaf);
+      assert.equal(tableFor(summary).parent, heading.parent);
+      assert.equal(pdf.find("TD", name).length, 1, "Repeated physical bands do not repeat logical source cells");
+    }
+    const tables = [...pdf.nodes.values()].filter(node => node.role === "Table");
+    assert.equal(tables.length, 6, "Two leaf tables, three ancestor summary tables and one grand-total table");
+    for (const ancestor of ["Root", "Site", "Env"]) {
+      const [summary] = pdf.find("TH", "SUM:" + ancestor), table = tableFor(summary);
+      const heading = [...pdf.nodes.values()].find(node => /^H[2-4]$/.test(node.role) && node.text === ancestor);
+      assert.equal(table.parent, heading.parent);
+      assert.equal(table.children.map(id => pdf.nodes.get(id)).filter(node => node.role === "TR").length, 3,
+        "The ancestor has its own two-row header and one summary, without the final child's data");
+    }
+    assert.equal(pdf.find("TH", "ALL:2").length, 1);
+  }
+});
+
 test("tagged grouping captures projected values once and returns the source when structure limits reject", async () => {
   let reads = 0, returned = 0;
   function* rows() {
@@ -242,9 +273,9 @@ test("tagged grouped detail and subtotal tables repeat complete physical context
   }
 });
 
-test("tagged subtotal context and headings retain their reserved first fragment near the page boundary", async () => {
+test("tagged leaf subtotal shares its detail headers and retains context through a long-label continuation", async () => {
   const selected = [{ header: "Item", key: "name" }, { header: "Amount", key: "amount", type: "number" }];
-  const summaryLines = Array.from({ length: 9 }, (_, index) => `Subtotal-${index}`);
+  const summaryLines = Array.from({ length: 22 }, (_, index) => `Subtotal-${index}`);
   const preface = Array.from({ length: 6 }, (_, index) => `Preface-${index}`).join("\n");
   const table = { labelColumn: { header: "Summary", width: 100 }, columnWidths: [100, 90, 90],
     subtotalLabel: () => summaryLines.join("\n"), grandTotalLabel: () => "Grand" };
@@ -256,11 +287,12 @@ test("tagged subtotal context and headings retain their reserved first fragment 
     const pdf = await semanticPdf(composed
       ? await writePdfDocument([{ kind: "paragraph", text: preface }, pdfGroupedTable(grouped, table)], configuration)
       : await writeGroupedPdf(grouped, { ...configuration, ...table, messageTop: preface }));
-    const first = pdf.pages[0];
-    assert.ok(first.lines.filter(line => line === "Summary").length >= 2,
-      "The fixture must paint both the detail headings and the reserved subtotal headings on the first page");
+    const first = pdf.pages.find(page => page.lines.includes("Only"));
+    assert.ok(first);
+    assert.equal(first.lines.filter(line => line === "Summary").length, 1,
+      "The leaf subtotal shares its detail headings rather than creating another table");
     assert.ok(first.lines.includes("Subtotal-0"),
-      "An ordinary fitting-on-fresh-page subtotal must use its reserved first fragment after its new context/headings");
+      "An overheight leaf subtotal starts below its detail while retaining its existing context/headings");
     const summaryPages = pdf.pages.filter(page => page.lines.some(line => summaryLines.includes(line)));
     assert.ok(summaryPages.length > 1, "The wrapped subtotal must exercise continuation");
     for (const page of summaryPages) {

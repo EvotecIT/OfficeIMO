@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory)][string] $BaselineBundle,
     [Parameter(Mandatory)][string] $OutputRoot,
     [string[]] $Cases,
+    [string[]] $EquivalentBaselineCases,
     [ValidateSet('baseline','current')][string[]] $Engine = @('baseline','current'),
     [bool] $Compare = $true,
     [int] $WarmupCount = 1,
@@ -17,6 +18,7 @@ $evidence = [IO.Path]::GetFullPath($OutputRoot)
 $manifest = Join-Path $evidence 'workloads.json'
 $selection = @()
 if ($Cases) { $selection = @('--cases', ($Cases -join ',')) }
+if ($EquivalentBaselineCases) { $selection += @('--equivalent-baseline-cases', ($EquivalentBaselineCases -join ',')) }
 & $node $helper prepare --baseline (Resolve-Path -LiteralPath $BaselineBundle).Path --current (Join-Path $repository 'OfficeIMO.JavaScript/bundles/officeimo.mjs') --evidence $evidence @selection
 if ($LASTEXITCODE -ne 0) { throw 'Workload preparation failed.' }
 if (@((Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).cases | Where-Object currentOnly).Count -gt 0 -and ($Compare -or $Engine -contains 'baseline')) {

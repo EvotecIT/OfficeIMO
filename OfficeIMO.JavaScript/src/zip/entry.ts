@@ -30,7 +30,7 @@ export class EntryWriter implements ByteSink {
   private closed = false;
   private cleaned = false;
   private readonly lifetime = new AbortController();
-  private readonly abort = () => { this.fail(this.signal?.reason ?? new DOMException("Export cancelled.", "AbortError")); };
+  private readonly abort = () => { this.fail(this.signal?.reason); };
 
   constructor(compression: Compression, private readonly sink: ByteSink, private readonly signal?: AbortSignal) {
     if (compression !== "auto" && compression !== "store") throw new RangeError("compression must be auto or store.");

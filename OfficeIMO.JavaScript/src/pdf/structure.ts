@@ -11,7 +11,7 @@ interface StructureElement {
   readonly role: string;
   readonly children: (number | string)[];
   readonly linkIdentities: object[];
-  readonly attributes: string;
+  attributes: string;
   identifier?: string;
 }
 
@@ -94,6 +94,12 @@ export class PdfStructure {
     else owner?.children.push(id);
     return id;
   }
+  /** Attach resolved table associations while a source-ordered logical element is still open. */
+  setAttributes(elementId: number, attributes: string): void {
+    const element = this.elements.get(elementId);
+    if (!element) throw new Error("PDF structure attributes require an open logical owner.");
+    element.attributes = attributes;
+  }
   /** Flat visual sections share the same logical Document and cumulative resource policy. */
   async beginSection(): Promise<void> {
     await this.complete(this.section);
@@ -169,7 +175,8 @@ export class PdfStructure {
       children += token;
     }
     // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
-    await this.objects.object(id, small ? prefix + children + "]" + element.attributes + " >>" : this.body(element));
+    if (small) await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
+    else await this.objects.object(id, this.body(element));
     for (const identity of element.linkIdentities) {
       const parents = this.links.get(identity); parents?.delete(id);
       if (!parents?.size) this.links.delete(identity);

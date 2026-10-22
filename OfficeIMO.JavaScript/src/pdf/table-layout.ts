@@ -21,6 +21,8 @@ export interface PdfLayoutCell {
   readonly source?: PdfLayoutCell;
   /** Repeated visual content has no second logical reading occurrence. */
   readonly semanticArtifact?: boolean;
+  /** Captured detail-column intent; headings and generated footer/summary values never inherit it. */
+  readonly rowHeader?: boolean;
   readonly first: number;
   readonly span: number;
   readonly width: number;
@@ -49,7 +51,7 @@ export class PdfTableLayout {
   private readonly structuredBandRows = new WeakMap<readonly PdfLayoutRow[], Promise<readonly (readonly PdfLayoutRow[])[]>>();
   constructor(readonly settings: PdfSettings, readonly fonts: PdfFontResources) {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
-    this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
+    this.repeatedColumns = new Set(settings.repeatedColumns);
     let digit: number | undefined;
     if (options.columnWidths && options.columnWidths.length !== columns.length) throw new RangeError("columnWidths must declare one point width per column.");
     const minimum = typeof options.wideTable === "object" ? options.wideTable.minimumColumnWidth ?? 72 : 0;
@@ -191,7 +193,8 @@ export class PdfTableLayout {
       const value = values[column], raw = value instanceof ExportCell ? value.value : value;
       if (!footer) this.totals[column]!.accept(raw);
       const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-      cells.push(await this.cell(value, column, 1, index, style));
+      const cell = await this.cell(value, column, 1, index, style);
+      cells.push(!footer && options.columns[column]!.rowHeader ? { ...cell, rowHeader: true } : cell);
     }
     return this.row(cells);
   }
