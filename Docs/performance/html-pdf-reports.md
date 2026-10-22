@@ -57,8 +57,9 @@ a throughput improvement or a portable memory budget.
 | Candidate investigation | Required evidence | Disposition |
 | --- | --- | --- |
 | Reject empty and nonnumeric CSS length defaults before allocating a resolution context | Existing CSS math/context controls, equivalent saved payloads, and paired BenchmarkDotNet runs | About 6.4% less table allocation in the first combined draft; no throughput win established |
-| Reuse parsed short length expressions within one style resolver | Recompute used values for each percentage/font/container context, retain limits and diagnostics, and compare complete payloads and table stages | Trial; implementation and focused context proof in progress |
-| Index tagged-PDF children within one write | Preserve local and cross-page parent identity, child ordering and saved tagged artifacts; measure scaling | Profiled lead; coordinate shared-owner changes first |
+| Reuse parsed short length expressions within one style resolver | Recompute used values for each percentage/font/container context, retain limits and diagnostics, and compare complete payloads and table stages | Kept for lower allocation; no isolated throughput improvement established |
+| Reuse the private synchronous length-resolution workspace | Overwrite every context input, retain percentage/font/container and cancellation controls | Kept for lower allocation; no isolated throughput improvement established |
+| Index tagged-PDF children within one write | Preserve local and cross-page parent identity, child ordering and saved tagged artifacts; measure scaling | Strong first scaling result with identical saved PDFs; final combined qualification remains required |
 | Repeated font analysis, shaping or diagnostic copies | Current allocation stacks and retained semantic/appearance controls | Lower priority in the current profile; do not repeat the earlier outline-cache work |
 
 The first trial combines the generated table-content correction with early
@@ -78,6 +79,39 @@ parser remains the grammar and limit owner. Percentage, font, viewport and
 container values are resolved afresh for each use; neither resolved lengths nor
 cross-document state are cached. Longer or additional expressions use the usual
 uncached path.
+
+On the same development host, two clean `6a741e7f` parsed-expression launches
+measured the table at 117.36–118.49 ms against 116.85–119.42 ms for their paired
+baseline launches. Allocation volume was 203.83–204.26 MiB against
+222.33–222.45 MiB. Reusing the synchronous resolver's private context workspace
+then measured 118.19–122.04 ms against 117.68–118.13 ms, with
+200.28–200.57 MiB against 222.45 MiB. These trials support the allocation
+reduction, without an isolated throughput claim. Every resolution overwrites
+the context inputs; cached expressions retain no context or resolved value.
+
+The next development candidate builds a private child index for each tagged PDF
+write. It retains local-parent children before reference-parent children, page
+and source order, duplicate membership, and the existing logical-order sort.
+The shared 21 KiB table payload measured 107.06–109.19 ms with
+199.56–199.69 MiB allocated in two launches. This is a combined candidate result,
+not an attribution to the index alone.
+
+The maintained purchase-table stage benchmark exposes the larger scaling effect:
+
+| Workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
+| --- | ---: | ---: | ---: | ---: |
+| 250 rows, complete PDF | 221.9 ms | 173.3 ms | 325.76 MiB | 285.94 MiB |
+| 2,500 rows, prepared layout | 1,954.3 ms | 1,834.0 ms | 2,717.64 MiB | 2,408.60 MiB |
+| 2,500 rows, complete PDF | 6,129.1 ms | 2,572.7 ms | 4,528.19 MiB | 3,381.35 MiB |
+
+These are first-stage measurements of frozen development binaries on Apple M4,
+.NET 10, with six warmups, twelve measured iterations and no outlier removal.
+The candidate includes the workspace and child-index changes on top of
+`6a741e7f`; it is not a clean integrated release measurement. The 250-row layout
+measurements were noisy and do not establish a layout regression or improvement.
+Both 42-page and 417-page public saved PDFs are byte-identical to the baseline;
+all page SVG, logical-text and diagnostic fingerprints also match. Native
+appearance and the later print-panel correction are separate qualification work.
 
 Stop expanding an optimization when it does not improve the selected equivalent
 workload, weakens output or defensive limits, or needs an unrelated redesign.

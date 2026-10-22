@@ -1186,13 +1186,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (string.Equals(inside, "avoid-column", StringComparison.OrdinalIgnoreCase))
             style.UnsupportedColumnBreaks += ";break-inside=avoid-column";
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase)
-            // Scroll containers establish an independent formatting context. Keep a
-            // page-sized one intact when paginating, as Chromium does for WAI cards.
-            || style.OverflowX is "auto" or "scroll"
-            || style.OverflowY is "auto" or "scroll";
-        if (style.OverflowX is "auto" or "scroll" || style.OverflowY is "auto" or "scroll")
-            style.AvoidBreakInsideScope = HtmlFragmentationScope.All;
+            || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));

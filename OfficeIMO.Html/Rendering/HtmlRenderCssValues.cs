@@ -92,19 +92,18 @@ internal static class HtmlRenderCssValues {
             || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return false;
-        var context = new HtmlCssLengthResolutionContext {
-                PercentageReference = FiniteOrNull(reference),
-                FontSize = FiniteOrNull(fontSize),
-                RootFontSize = FiniteOrNull(rootFontSize),
-                UprightVerticalText = uprightVerticalText,
-                CharacterAdvance = FiniteOrNull(characterAdvance),
-                ViewportWidth = FiniteOrNull(viewportWidth),
-                ViewportHeight = FiniteOrNull(viewportHeight),
-                ContainerWidth = FiniteOrNull(containerWidth),
-                ContainerHeight = FiniteOrNull(containerHeight),
-                ContainerInlineSize = FiniteOrNull(containerWidth),
-                ContainerBlockSize = FiniteOrNull(containerHeight)
-        };
+        HtmlCssLengthResolutionContext context = expressionCache?.ResolutionContext ?? new HtmlCssLengthResolutionContext();
+        context.PercentageReference = FiniteOrNull(reference);
+        context.FontSize = FiniteOrNull(fontSize);
+        context.RootFontSize = FiniteOrNull(rootFontSize);
+        context.UprightVerticalText = uprightVerticalText;
+        context.CharacterAdvance = FiniteOrNull(characterAdvance);
+        context.ViewportWidth = FiniteOrNull(viewportWidth);
+        context.ViewportHeight = FiniteOrNull(viewportHeight);
+        context.ContainerWidth = FiniteOrNull(containerWidth);
+        context.ContainerHeight = FiniteOrNull(containerHeight);
+        context.ContainerInlineSize = FiniteOrNull(containerWidth);
+        context.ContainerBlockSize = FiniteOrNull(containerHeight);
         return TryLength(value, context, out result, out isCalculated, out _, expressionCache);
     }
 
