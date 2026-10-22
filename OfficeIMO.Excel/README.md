@@ -1897,7 +1897,7 @@ ExcelSheet? active = document.ActiveWorksheet;
 int index = document.ActiveWorksheetIndex;
 ```
 
-Both read the first workbook view's `activeTab`. A workbook without one reports the first worksheet, and a value past the last worksheet reports the last. A workbook with no worksheets reports `null` and `-1`. Hidden worksheets cannot be set active.
+Both resolve the first workbook view's `activeTab` in workbook-tab order. A missing value selects the first tab, and a value past the last tab selects the last. `ActiveWorksheetIndex` is relative to `Sheets`, which contains worksheets only. When the selected tab is a preserved chartsheet or another non-worksheet tab, or the workbook has no worksheets, the getters report `null` and `-1`. Hidden worksheets cannot be set active.
 
 ## Worksheet print areas
 
