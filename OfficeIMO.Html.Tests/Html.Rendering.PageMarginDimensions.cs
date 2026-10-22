@@ -206,7 +206,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("min-height:max-content")]
     [InlineData("max-height:fit-content(20px)")]
     public void HtmlPageMarginDimensions_IntrinsicHeightFallbackReportsTheUnsupportedConstraint(string declaration) {
-        HtmlRenderDocument rendered = RenderPageMarginDimensions(declaration, "''");
+        HtmlRenderDocument rendered = RenderPageMarginDimensions("width:80px;" + declaration, "''");
 
         AssertPageMarginDimensionFrames(rendered, 0D, 240D, 60D);
         foreach (string position in new[] { "top-center", "bottom-center" }) {
@@ -271,6 +271,51 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Detail == "margin-height" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Equal("BODY", rendered.Text.Trim());
         Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("width:80px;height:20px", "height:40px", "margin-height")]
+    [InlineData("width:40px;height:40px", "width:80px;height:20px", "margin-width")]
+    public void HtmlPageMarginDimensions_PositiveRunningClipReportsPaintOmission(
+        string boxStyle, string runningStyle, string expectedDetail) {
+        string running = expectedDetail == "margin-width"
+            ? "<table style='position:running(heading);display:inline-table;border-collapse:collapse;background:blue;"
+                + runningStyle + "'><tr><td style='padding:0'>HEADER</td></tr></table>"
+            : "<p style='position:running(heading);background:blue;" + runningStyle + "'>HEADER</p>";
+        HtmlRenderDocument rendered = RenderMarginSizing(300D,
+            "@top-center{content:element(heading);" + boxStyle + "}"
+            + "@bottom-center{content:element(heading);" + boxStyle + "}",
+            body: running + "<p>BODY</p>");
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+
+        foreach (string position in new[] { "top-center", "bottom-center" }) {
+            string source = "@page @" + position + " element(heading)";
+            HtmlRenderSemanticGroup box = Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(), group => group.Source == source);
+            HtmlRenderClipGroup clip = Assert.Single(box.Visuals.OfType<HtmlRenderClipGroup>());
+            Assert.True(clip.ClipWidth > 0D && clip.ClipHeight > 0D);
+            Assert.Equal(expectedDetail == "margin-width", clip.ClipHorizontal);
+            Assert.Equal(expectedDetail == "margin-height", clip.ClipVertical);
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == source
+                && diagnostic.Detail == expectedDetail && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        }
+        Assert.Equal("BODY", rendered.Text.Trim());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
+    public void HtmlPageMarginDimensions_EmptyRunningFrameOverflowDoesNotInventPaintLoss() {
+        HtmlRenderDocument rendered = RenderMarginSizing(300D,
+            "@top-center{content:element(heading);width:80px;height:40px;text-align:left}",
+            body: "<table style='position:running(heading);display:inline-table;border-collapse:collapse;width:160px;height:20px'>"
+                + "<tr><td style='padding:0'>OK</td></tr></table><p>BODY</p>");
+        HtmlRenderSemanticGroup box = Assert.Single(Assert.Single(rendered.Pages).Scene.OfType<HtmlRenderSemanticGroup>(),
+            group => group.Source == "@page @top-center element(heading)");
+        HtmlRenderClipGroup clip = Assert.Single(box.Visuals.OfType<HtmlRenderClipGroup>());
+
+        Assert.True(clip.ClipHorizontal);
+        Assert.False(clip.ClipVertical);
+        Assert.Equal("OK", Assert.Single(EnumerateRenderVisuals(clip.Visuals).OfType<HtmlRenderText>()).Text);
+        rendered.RequireNoLoss();
     }
 
     [Fact]

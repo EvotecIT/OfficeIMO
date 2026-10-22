@@ -1773,7 +1773,7 @@ public sealed partial class HtmlRenderingTests {
                 @top-left { content: element(chapter, start); text-align:left; }
                 @top-right { content: element(chapter, first); text-align:right; }
               }
-              .running { position: running(chapter); margin:0; padding:2px; border-bottom:1px solid #225588; color:#225588; }
+              .running { position: running(chapter); margin:0; padding:2px; font-size:16px; line-height:20px; border-bottom:1px solid #225588; color:#225588; }
               .page { margin:0; height:80px; }
             </style>
             <h1 class="running">Chapter Alpha</h1>

@@ -151,6 +151,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = "@page @" + GetMarginBoxName(box.Position) + " element(" + name + ")";
         bool clipHorizontal = offsetX < x - 0.0001D || offsetX + block.Width > x + width + 0.0001D;
         bool clipVertical = offsetY < y - 0.0001D || offsetY + block.Height > y + height + 0.0001D;
+        if (clipHorizontal || clipVertical)
+            ReportPageMarginContentClip(translated, x, y, width, height, clipHorizontal, clipVertical, source);
         IReadOnlyList<HtmlRenderVisual> marginVisuals = clipHorizontal || clipVertical
             ? new HtmlRenderVisual[] {
                 new HtmlRenderClipGroup(

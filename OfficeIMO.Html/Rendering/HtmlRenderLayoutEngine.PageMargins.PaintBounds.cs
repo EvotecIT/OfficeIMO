@@ -3,6 +3,24 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Reports paint removed by a running-content clip, ignoring unused formatting-frame overflow.</summary>
+    private void ReportPageMarginContentClip(IReadOnlyList<HtmlRenderVisual> visuals,
+        double x, double y, double width, double height, bool clipHorizontal, bool clipVertical, string source) {
+        if (_reportedMarginTextOverflow.Contains(source)) return;
+        foreach (HtmlRenderVisual visual in visuals) {
+            foreach (HtmlRenderRectangle paint in EnumeratePageMarginPaintBounds(visual)) {
+                bool horizontal = clipHorizontal && (paint.X < x - 0.0001D || paint.Right > x + width + 0.0001D);
+                bool vertical = clipVertical && (paint.Y < y - 0.0001D || paint.Bottom > y + height + 0.0001D);
+                if (!horizontal && !vertical) continue;
+                _reportedMarginTextOverflow.Add(source);
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                    "Generated running-element paint exceeded its page-margin content area and was clipped.",
+                    HtmlDiagnosticSeverity.Warning, source, horizontal ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
+                return;
+            }
+        }
+    }
+
     /// <summary>Checks generated paint rather than an authored margin box's potentially empty frame.</summary>
     private void ReportPageMarginPhysicalOverflow(IReadOnlyList<HtmlRenderVisual> visuals, HtmlRenderPage page, string source) {
         foreach (HtmlRenderVisual visual in visuals) {
