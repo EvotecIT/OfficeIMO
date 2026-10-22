@@ -62,6 +62,14 @@ public sealed class PdfImageColorPreservationTests {
         Assert.Contains("compatible", reason);
     }
 
+    [Fact]
+    public void PngKeepsProfileWhoseTagTypesHaveNonZeroReservedBytes() {
+        byte[] profile = PdfPngTestImages.MarkIccTagTypeReservedBytes(PdfIccProfiles.SrgbIec6196621);
+        byte[] png = CreateTaggedPng(profile, false);
+        Assert.True(PdfDocument.TryValidateImageBytes(png, out _, out string? reason), reason);
+        AssertTaggedPng(PdfDocument.Create().Image(png, 20, 10).ToBytes(), profile, false);
+    }
+
     private static void AssertTaggedPng(byte[] pdf, byte[] profile, bool indexed) {
         var objects = PdfSyntax.ParseObjects(pdf).Map;
         PdfStream image = Images(objects).Single(stream => stream.Dictionary.Items.ContainsKey("SMask"));
