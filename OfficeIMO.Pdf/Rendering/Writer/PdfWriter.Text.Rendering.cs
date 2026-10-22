@@ -268,6 +268,10 @@ internal static partial class PdfWriter {
         if (foregroundGraphicsState != null) {
             new ContentStreamBuilder(sb).SaveState().GraphicsState(foregroundGraphicsState);
         }
+        // The logical replacement encloses all paragraph/link marked-content
+        // transitions, so a hyperlink cannot close the identifier span early.
+        bool optionalBreakText = TryBeginOptionalBreakText(sb, block, lines, suppressActualText, opts, xOrigin, startY, widthUsed, fontSize);
+        if (optionalBreakText) suppressActualText = true;
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         bool textMarkedContentOpen = markedContentId.HasValue;
         int? textStructElementIndex = FindStructElementIndex(structurePage, markedContentId, structureType);
@@ -447,7 +451,7 @@ internal static partial class PdfWriter {
 
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
-                if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
+                if (hasLinkTarget && wSeg > 0D && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
                     PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     linkStructElementIndex = structurePage.StructElements.Count;
@@ -574,6 +578,7 @@ internal static partial class PdfWriter {
         if (textMarkedContentOpen) {
             AppendMarkedContentEnd(sb, markedContentId);
         }
+        if (optionalBreakText) EndOptionalBreakText(sb, block, lines, opts, xOrigin, startY, widthUsed, fontSize);
         if (foregroundGraphicsState != null) {
             new ContentStreamBuilder(sb).RestoreState();
         }
@@ -709,6 +714,9 @@ internal static partial class PdfWriter {
     }
 
     private static void AddRichTextLinkAnnotation(System.Collections.Generic.List<LinkAnnotation> annots, LayoutResult.Page? structurePage, double x1, double y1, double x2, double y2, string? uri, string? destinationName, string? contents, int? structElementIndex) {
+        // Optional breaks and other non-painting runs retain their logical text,
+        // but have no clickable area. Do not serialize or merge empty rectangles.
+        if (x2 <= x1 || y2 <= y1) { return; }
         if (annots.Count > 0) {
             LinkAnnotation previous = annots[annots.Count - 1];
             double gap = x1 - previous.X2;

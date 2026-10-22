@@ -168,6 +168,12 @@ internal static partial class PdfWriter {
             if (pageNumbers != null && runningStable &&
                 SectionPageNumbersEqual(pageNumbers, resolved) &&
                 SectionDefinitionsEqual(sections, resolvedSections)) {
+                try {
+                    context.ValidateTableOfContentsDestinations(resolved);
+                } catch {
+                    result.Dispose();
+                    throw;
+                }
                 ApplySectionReferences(result);
                 return result;
             }
@@ -202,6 +208,9 @@ internal static partial class PdfWriter {
     private static Dictionary<string, int> BuildSectionPageNumbers(LayoutResult result) {
         var pageNumbers = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int pageIndex = 0; pageIndex < result.Pages.Count; pageIndex++) {
+            foreach (PageNamedDestination destination in result.Pages[pageIndex].NamedDestinations) {
+                pageNumbers[destination.Name] = pageIndex + 1;
+            }
             foreach (PageSection section in result.Pages[pageIndex].Sections) {
                 pageNumbers[section.DestinationName] = pageIndex + 1;
             }

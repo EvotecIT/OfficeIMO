@@ -158,7 +158,10 @@ internal static partial class PdfWriter {
                 } finally { y = flowStart; }
             }
 
-            if (block is PageBreakBlock or PageBlock or DeferredTableBlock or TableOfContentsBlock or
+            if (block is TableOfContentsBlock contents) {
+                return MeasureBlockSequence(CreateTableOfContentsBlocks(contents), frameX, frameWidth, fontSize);
+            }
+            if (block is PageBreakBlock or PageBlock or DeferredTableBlock or
                 MultiColumnBlock or ColumnBreakBlock or PdfCanvasBlock) {
                 return null;
             }

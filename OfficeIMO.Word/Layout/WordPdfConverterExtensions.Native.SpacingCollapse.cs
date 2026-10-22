@@ -48,6 +48,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             public void Bookmark(string name) => _inner.Bookmark(name);
+            public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) { _inner.TableOfContents(options); ResetSpacingCollapse(); }
 
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) {
                 _inner.HR(thickness, color, spacingBefore, spacingAfter, style);

@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Shared helper for escaping Markdown-reserved characters across inline renderers.
 /// </summary>
-public static class MarkdownEscaper {
+public static partial class MarkdownEscaper {
     // Inline HTML is allowed in rendered Markdown (e.g., <u> for underline), so we intentionally
     // do not escape angle brackets here to preserve legitimate HTML passthroughs.
     // Allows: "Use <u>underline</u> for emphasis" -> "Use <u>underline</u> for emphasis"
@@ -33,7 +33,7 @@ public static class MarkdownEscaper {
     internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
     internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
     internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
-    internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
+    internal static string EscapeEmphasis(string? text) => EscapeTextForWriter(text);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeInsertedText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '+']);
     /// <summary>Escapes literal text for placement between Markdown superscript delimiters.</summary>
@@ -141,6 +141,12 @@ public static class MarkdownEscaper {
         int orderedSeparatorIndex = GetOrderedListSeparatorIndex(line, markerIndex);
         if (orderedSeparatorIndex >= 0) {
             return line.Insert(orderedSeparatorIndex, "\\");
+        }
+
+        // Literal-backslash text has already escaped reference-label brackets in the inline writer.
+        // Its colon is ordinary text; retaining it also keeps subsequent paragraph/list passes entity-free.
+        if (UsesBackslashLiteralText) {
+            return line;
         }
 
         int definitionSeparatorIndex = GetDefinitionListSeparatorIndex(line, markerIndex);
@@ -373,8 +379,8 @@ public static class MarkdownEscaper {
     }
 
     private static bool IsEntityLikeAmpersand(string value, int index) {
-        int semicolonIndex = value.IndexOf(';', index + 1);
-        if (semicolonIndex < 0 || semicolonIndex - index > 32) {
+        int semicolonIndex = value.IndexOf(';', index + 1, Math.Min(32, value.Length - index - 1));
+        if (semicolonIndex < 0) {
             return false;
         }
 

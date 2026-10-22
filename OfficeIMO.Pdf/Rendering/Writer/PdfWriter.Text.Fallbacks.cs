@@ -321,6 +321,10 @@ internal static partial class PdfWriter {
         ch == '\n' || ch == '\r' || ch == '\t';
 
     private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfTextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
+        if (text[index] == '\u200B') {
+            length = 1;
+            return true;
+        }
         string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
         length = textElement.Length;
         if (options != null &&
