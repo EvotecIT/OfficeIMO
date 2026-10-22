@@ -72,7 +72,25 @@ public sealed class PowerPointConnectorDiagramExportTests {
 
         Assert.Contains("User Experience", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Click to edit", html, StringComparison.Ordinal);
-        Assert.Contains("<path", html, StringComparison.Ordinal);
+        // Read the visible snapshot, rather than the hidden positioned-shape metadata.
+        int snapshotStart = html.IndexOf("<div class=\"officeimo-shared-slide-snapshot\"", StringComparison.Ordinal);
+        Assert.True(snapshotStart >= 0, "Visual HTML must contain the slide snapshot.");
+        int svgStart = html.IndexOf("<svg ", snapshotStart, StringComparison.Ordinal);
+        Assert.True(svgStart >= 0, "The slide snapshot must contain SVG.");
+        int svgEnd = html.IndexOf("</svg>", svgStart, StringComparison.Ordinal);
+        Assert.True(svgEnd >= 0, "The slide snapshot SVG must be complete.");
+        string svg = html.Substring(svgStart, svgEnd + "</svg>".Length - svgStart);
+        Assert.Contains("User Experience", svg, StringComparison.Ordinal);
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing),
+            "The slide snapshot SVG must be readable as a drawing.");
+
+        // SVG point units may become CSS pixels on import. Sample in the authored slide coordinates.
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing!,
+            presentation.SlideSize.WidthPoints / drawing!.Width, OfficeColor.White);
+        foreach ((string name, double x, double y, bool painted) in samples) {
+            OfficeColor pixel = rendered.GetPixel((int)x, (int)y);
+            Assert.True(IsWhite(pixel) != painted, $"{name} in visual HTML: observed {pixel}.");
+        }
     }
 
     static bool IsWhite(OfficeColor color) => color.R > 245 && color.G > 245 && color.B > 245;
