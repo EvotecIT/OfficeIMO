@@ -43,6 +43,7 @@ export async function writePdfTo(rows: Iterable<unknown> | AsyncIterable<unknown
       if (options.footer?.rows) await pages.block(footer);
       else await pages.row(footer[0]!);
     }
+    if (layout.bands) await pages.endTable();
     if (options.messageBottom) await pages.paragraph(options.messageBottom);
     await session.finish();
     notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes: objects.bytes });

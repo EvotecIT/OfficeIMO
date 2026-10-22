@@ -259,7 +259,7 @@ saveBlob(report, "sales.pdf");
 
 PDF uses `ExportCell.text` first, then a synchronous `formatValue(value, context)` callback, then scalar text. Dates default to UTC ISO strings; null and nonfinite numbers are blank. Empty report titles, messages and page decorations are omitted without reserving space or consuming the cell/text budget. Excel number-format strings and live conditional rules are not evaluated by the PDF writer. Resolve display text and highlights in the shared getter or DataTables `project` callback when they must appear in both formats. Footer totals operate on typed numeric values and support `sum`, `count`, `average`, `min` and `max`.
 
-Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point margins, 9-point text, 4-point cell padding and page numbers. Named sizes are A3, A4, A5, LETTER, LEGAL and TABLOID; custom `{ width, height }` sizes are accepted. `columnWidths` supplies point widths; otherwise `Column.width` uses the width of the font's zero character. `wideTable: "fit"` fits column widths within the printable width while retaining font size and wrapping text. `"reject"` rejects widths that exceed the page. A column that cannot fit one glyph fails explicitly. Use a wider page, fewer columns or a smaller font for very wide reports.
+Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point margins, 9-point text, 4-point cell padding and page numbers. Named sizes are A3, A4, A5, LETTER, LEGAL and TABLOID; custom `{ width, height }` sizes are accepted. `columnWidths` supplies point widths; otherwise `Column.width` uses the width of the font's zero character. `wideTable: "fit"` fits column widths within the printable width while retaining font size and wrapping text. `"reject"` rejects widths that exceed the page. A column that cannot fit one glyph fails explicitly.
 
 `Column.groups` provides simple grouped headings. `headerRows` replaces them with a rectangular `TableSpanRows` matrix: each anchor declares `{ value, columnSpan?, rowSpan? }`, and every covered position is `null`. `footer.rows` uses the same model instead of `footer.values`/`totals`. Matrices support up to 16 rows and must cover the declared columns without overlap. Repeated headings must leave space for data; a structured footer must fit below the headings on one page. Titles/messages, page headers/footers and final `Page N of M` labels are separate from the table. Message-only continuation pages retain page decorations without repeating table headings. Page decoration callbacks receive the [page and section context](#compose-a-pdf-report) and return a synchronous string. Page-number space is measured from the selected font and `maxPages`; for large fonts or narrow pages, reduce that limit or set `pageNumbers: false`. Table and paragraph heights respect the selected font face's ascent and descent.
 
@@ -272,6 +272,38 @@ The default writer handles scalar text layout for Latin, Greek, Cyrillic, Han, H
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
 Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
+
+### Readable wide tables
+
+Use horizontal bands when an inventory has more columns than one page can display comfortably. The writer keeps each requested width instead of shrinking all columns to one page. Declare identifier columns to repeat at the left of every band:
+
+```js
+import { writePdf, saveBlob } from "@evotecit/officeimo";
+
+const rows = [{ service: "WEB-000001", site: "Warsaw", owner: "Operations", environment: "Production",
+  availability: 99.98, latency: 4.9, errors: 0, cpu: 21, memory: 48, disk: 35, requests: 12340, checks: 120 }];
+const columns = [
+  { header: "Service", key: "service" }, { header: "Site", key: "site" },
+  { header: "Owner", key: "owner" }, { header: "Environment", key: "environment" },
+  { header: "Availability %", key: "availability", type: "number" },
+  { header: "Latency ms", key: "latency", type: "number" },
+  { header: "Errors", key: "errors", type: "number" }, { header: "CPU %", key: "cpu", type: "number" },
+  { header: "Memory %", key: "memory", type: "number" }, { header: "Disk %", key: "disk", type: "number" },
+  { header: "Requests", key: "requests", type: "number" }, { header: "Checks", key: "checks", type: "number" }
+];
+const report = await writePdf(rows, {
+  columns,
+  wideTable: { mode: "bands", minimumColumnWidth: 90, repeatColumns: [0, 1] },
+  limits: { maxRows: 100_000, maxPages: 10_000, maxTableBands: 16, maxTableWindowRows: 128 }
+});
+saveBlob(report, "service-inventory.pdf");
+```
+
+`minimumColumnWidth` defaults to 72 points for inferred widths. Explicit `columnWidths` remain exact point widths. `repeatColumns` contains sorted, unique, zero-based indices in the table's declared columns; it does not refer to hidden fields or the original grid's column positions. Repeated columns lead each band in declared order. If the identifiers and one further column cannot fit, the writer rejects the layout rather than clipping or shrinking it.
+
+Each bounded record window is emitted through all its bands before the next window. Long records use aligned line fragments, so adjacent bands contain the same logical records. Repeated identifier cells must fit below the repeated headings and group context on a fresh page; taller identifiers are rejected. A short final fragment retains the full identifier and enough row height to display it. Sources are consumed once, values and formatters are captured once, and numeric totals are accumulated once. Repeated headings, identifiers, links and page decorations still consume the document's physical output budgets. `maxTableBands` defaults to 64 per table; `maxTableWindowRows` defaults to 256 retained row fragments per window. These bounds do not imply constant memory for fonts, page references or caller-owned destinations.
+
+The same `wideTable` option applies to `pdfTable`, `writeGroupedPdf` and `pdfGroupedTable`. Grouped tables add a leading label column: repeat `[0, 1]` to retain that label and the first data column. Continued analytical bands retain the active ancestor context. A deliberately small `maxTableWindowRows` can separate the last detail and closing subtotals even when they would fit on one page; the retained-fragment bound takes precedence. Structured headings and footers preserve their intersecting span labels in each band. An indivisible footer span matrix must fit the window bound and the physical page. Tagged banded output is explicitly unsupported; use the existing tagged table profile when its supported semantics are required.
 
 ### Display language
 

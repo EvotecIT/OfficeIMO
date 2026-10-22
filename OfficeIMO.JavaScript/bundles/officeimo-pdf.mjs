@@ -818,14 +818,16 @@ const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShape
     "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
     "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
 /** @internal Complete PDF limit schema used when a host combines format and shared limits. */
-const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
+const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxTableBands", "maxTableWindowRows", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
     "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
     "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
 /** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
 function capturePdfOptions(input) {
     if (!input || typeof input !== "object" || Array.isArray(input))
         throw new TypeError("PDF options must be an object.");
-    return captureFields(input, pdfOptionFields);
+    const captured = captureFields(input, pdfOptionFields);
+    const policy = captured.wideTable;
+    return { ...captured, ...(policy === undefined ? {} : { wideTable: captureWideTable(policy) }) };
 }
 /** @internal Capture the complete PDF budget before an adapter adds its shared row/output limits. */
 function capturePdfLimits(input) {
@@ -846,6 +848,24 @@ function captureFooter(input, columns) {
     return Object.freeze({ ...(values === undefined ? {} : { values: Object.freeze(values.map(copyExportValue)) }),
         ...(totals === undefined ? {} : { totals: Object.freeze({ ...totals }) }),
         ...(rows === undefined ? {} : { rows: captureTableSpans(rows, columns) }) });
+}
+/** @internal Capture a band policy and its array before asynchronous layout or row production. */
+function captureWideTable(input) {
+    if (input === undefined || input === "fit" || input === "reject")
+        return input;
+    if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).some(key => !["mode", "minimumColumnWidth", "repeatColumns"].includes(key)))
+        throw new TypeError("wideTable must be fit, reject or a bands policy.");
+    const { mode, minimumColumnWidth, repeatColumns } = input;
+    if (mode !== "bands")
+        throw new TypeError("wideTable.mode must be bands.");
+    if (minimumColumnWidth !== undefined)
+        positive(minimumColumnWidth, "Minimum PDF column width");
+    if (repeatColumns !== undefined && !Array.isArray(repeatColumns))
+        throw new TypeError("repeatColumns must be an array.");
+    const repeats = repeatColumns === undefined ? [] : [...repeatColumns];
+    if (repeats.some((value, index) => !Number.isSafeInteger(value) || value < 0 || index > 0 && value <= repeats[index - 1]))
+        throw new RangeError("repeatColumns must contain sorted unique nonnegative indices.");
+    return Object.freeze({ mode, ...(minimumColumnWidth === undefined ? {} : { minimumColumnWidth }), repeatColumns: Object.freeze(repeats) });
 }
 function settings(input, document = false) {
     const configuration = { ...capturePdfOptions(input) };
@@ -886,7 +906,7 @@ function settings(input, document = false) {
         headerPresentation: Object.freeze({ background: "e7edf5", bold: true, ...presentation(configuration.headerPresentation) }),
         footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
-    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+    const limits = { maxPages: 10000, maxColumns: 1024, maxTableBands: 64, maxTableWindowRows: 256, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
         maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
         maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
@@ -915,8 +935,8 @@ function settings(input, document = false) {
     const fontSize = positive(options.fontSize ?? 9, "Font size", 144), padding = options.padding ?? 4;
     if (!Number.isFinite(padding) || padding < 0 || padding > 72)
         throw new RangeError("PDF padding must be from 0 through 72 points.");
-    if (options.wideTable !== undefined && !["fit", "reject"].includes(options.wideTable))
-        throw new TypeError("wideTable must be fit or reject.");
+    if (typeof options.wideTable === "object" && options.tagged)
+        throw new TypeError("Tagged PDF horizontal bands are unsupported.");
     for (const key of ["title", "messageTop", "messageBottom"])
         if (options[key] !== undefined && typeof options[key] !== "string")
             throw new TypeError(key + " must be text.");
@@ -954,7 +974,7 @@ function settings(input, document = false) {
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m16.positive, color: _m16.color, presentation: _m16.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, settings: settings });
+const _exports = Object.freeze({ positive: _m16.positive, color: _m16.color, presentation: _m16.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, captureWideTable: captureWideTable, settings: settings });
 return _exports;
 })();
 
@@ -2787,6 +2807,98 @@ const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wr
 return _exports;
 })();
 
+const _m32 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { wrapPdfText } = _m30;
+
+/** Plan without opening a source. Exact column widths never shrink in band mode. */
+function planTableBands(widths, settings) {
+    const policy = settings.options.wideTable;
+    if (typeof policy !== "object")
+        return undefined;
+    const available = settings.page.width - settings.margins.left - settings.margins.right, repeats = policy.repeatColumns ?? [];
+    if (repeats.some(index => index >= widths.length))
+        throw new RangeError("repeatColumns index exceeds the declared columns.");
+    const repeated = new Set(repeats), rest = widths.map((_, index) => index).filter(index => !repeated.has(index));
+    const prefix = repeats.reduce((sum, index) => sum + widths[index], 0);
+    if (prefix > available + .001)
+        throw new RangeError("Repeated PDF columns exceed the printable width.");
+    const groups = [];
+    let current = [...repeats], used = prefix;
+    for (const index of rest) {
+        const width = widths[index];
+        if (prefix + width > available + .001)
+            throw new RangeError("A PDF column and its repeated identifiers cannot fit a band.");
+        if (used + width > available + .001) {
+            groups.push(current);
+            current = [...repeats];
+            used = prefix;
+        }
+        current.push(index);
+        used += width;
+    }
+    if (current.length)
+        groups.push(current);
+    if (groups.length > settings.limits.maxTableBands)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxTableBands exceeded.");
+    if (settings.limits.maxTableWindowRows < 1)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxTableWindowRows must allow at least one row fragment.");
+    return Object.freeze(groups.map(columns => {
+        let x = settings.margins.left;
+        const lefts = columns.map(index => { const left = x; x += widths[index]; return left; });
+        return Object.freeze({ columns: Object.freeze(columns), lefts: Object.freeze(lefts) });
+    }));
+}
+/** A span crossing a band boundary repeats its captured text at each visible intersection.
+ * Runs/formatters are never recaptured, and vertical spans retain their original row ownership. */
+async function projectBandRows(rows, band, widths, settings, fonts) {
+    const result = [];
+    for (const row of rows) {
+        const cells = [];
+        for (const cell of row.cells) {
+            for (let first = 0; first < band.columns.length;) {
+                const source = band.columns[first];
+                if (source < cell.first || source >= cell.first + cell.span) {
+                    first++;
+                    continue;
+                }
+                let end = first + 1;
+                while (end < band.columns.length && band.columns[end] === band.columns[end - 1] + 1 && band.columns[end] < cell.first + cell.span)
+                    end++;
+                const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index], 0);
+                const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
+                cells.push({ ...cell, first, span: end - first, width, lines,
+                    lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
+                first = end;
+            }
+        }
+        cells.sort((a, b) => a.first - b.first);
+        result.push({ ...row, cells });
+    }
+    return result;
+}
+/** Equal row heights across every physical band keep structured headings and row windows aligned. */
+function alignBandBlocks(bands, settings) {
+    if (!bands.length || !bands[0].length)
+        return bands;
+    const rows = bands[0].length;
+    const heights = Array.from({ length: rows }, (_, index) => Math.max(...bands.map(band => Math.max(settings.padding * 2 + band[index].lineHeight, ...band[index].cells.filter(cell => (cell.rowSpan ?? 1) === 1).map(cell => cell.lines.length * cell.lineHeight + settings.padding * 2)))));
+    for (const band of bands)
+        for (const [index, row] of band.entries())
+            for (const cell of row.cells) {
+                const span = cell.rowSpan ?? 1, height = heights.slice(index, index + span).reduce((sum, value) => sum + value, 0), needed = cell.lines.length * cell.lineHeight + settings.padding * 2;
+                if (needed > height)
+                    for (let i = index; i < index + span; i++)
+                        heights[i] += (needed - height) / span;
+            }
+    return bands.map(band => band.map((row, index) => ({ ...row, structured: true, height: heights[index],
+        cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
+}
+const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
+return _exports;
+})();
+
 const _m27 = (() => {
 const { ExportCell } = _m7;
 
@@ -2802,27 +2914,35 @@ const { displayText } = _m29;
 
 const { capturePdfText, wrapPdfText } = _m30;
 
+const { planTableBands, projectBandRows, alignBandBlocks } = _m32;
+
 class PdfTableLayout {
     settings;
     fonts;
+    bands;
     widths;
     lefts;
     lineHeight;
     headings;
     totals;
+    repeatedColumns;
+    structuredBandRows = new WeakMap();
     constructor(settings, fonts) {
         this.settings = settings;
         this.fonts = fonts;
         const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
+        this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
         let digit;
         if (options.columnWidths && options.columnWidths.length !== columns.length)
             throw new RangeError("columnWidths must declare one point width per column.");
-        const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length :
+        const minimum = typeof options.wideTable === "object" ? options.wideTable.minimumColumnWidth ?? 72 : 0;
+        const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? Math.max(minimum, column.width === undefined ? available / columns.length :
             positive(column.width, "Column width", 255) * (digit ??= fonts.select().width(48) * fontSize / 1000) + padding * 2), "PDF column width"));
         const sum = widths.reduce((n, w) => n + w, 0);
         if (sum > available + .001 && options.wideTable === "reject")
             throw new RangeError("Table widths exceed the printable page width.");
-        this.widths = sum > available ? widths.map(w => w * available / sum) : widths;
+        this.bands = planTableBands(widths, settings);
+        this.widths = !this.bands && sum > available ? widths.map(w => w * available / sum) : widths;
         let left = margins.left;
         this.lefts = this.widths.map(width => { const position = left; left += width; return position; });
         if (this.widths.some(w => w <= padding * 2))
@@ -2877,10 +2997,13 @@ class PdfTableLayout {
             throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
         if (link && captured.runs.some(run => run.link))
             throw new TypeError("A PDF cell link cannot be combined with inline run links.");
-        budget.cell(captured.text, captured.text.length);
+        if (this.bands)
+            budget.release(1, captured.text.length);
+        else
+            budget.cell(captured.text, captured.text.length);
         const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
         return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
-            ...(link ? { link } : {}),
+            ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),
             lines };
     }
     row(cells) {
@@ -2926,6 +3049,43 @@ class PdfTableLayout {
         return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
             lines: Math.max(1, Math.ceil((heights[r] - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r], structured: true }));
     }
+    /** Repeated identifiers stay complete on every vertical fragment at the row's shared line height. */
+    minimumRowLines(row) {
+        let lines = 1;
+        if (this.bands)
+            for (const cell of row.cells)
+                if (this.repeatedColumns.has(cell.first))
+                    lines = Math.max(lines, cell.lines.length);
+        return lines;
+    }
+    minimumRowHeight(row) { return this.minimumRowLines(row) * row.lineHeight + this.settings.padding * 2; }
+    repeatedColumn(index) { return this.repeatedColumns.has(index); }
+    /** Measure the physical block before kept content is painted. Structured band projections are
+     * shared with the painter, so measurement cannot disagree with narrower span intersections. */
+    async blockHeight(rows) {
+        const physical = this.bands ? (await this.bandRows(rows, true))[0] : rows;
+        return physical.reduce((height, row) => height + row.height, 0);
+    }
+    /** Project already captured cells. Cache only bounded structured headings/footer matrices;
+     * ordinary data windows remain owned and released by PdfTableBandFlow. */
+    async bandRows(rows, structured = false) {
+        if (!this.bands)
+            throw new Error("Horizontal bands were not planned.");
+        if (!structured)
+            return this.projectBandRows(rows, false);
+        let prepared = this.structuredBandRows.get(rows);
+        if (!prepared) {
+            prepared = this.projectBandRows(rows, true);
+            this.structuredBandRows.set(rows, prepared);
+        }
+        return prepared;
+    }
+    async projectBandRows(rows, structured) {
+        const projected = [];
+        for (const band of this.bands)
+            projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
+        return structured ? alignBandBlocks(projected, this.settings) : projected;
+    }
     async data(values, index, footer = false) {
         const { options } = this.settings;
         const cells = [];
@@ -2951,7 +3111,122 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m33 = (() => {
+const _m34 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { checkAbort } = _m3;
+
+/** One source pass and one bounded window. A slow sink is awaited before accepting further source rows.
+ * Data projection, formatting and numeric totals belong to the logical layout, never the physical bands. */
+class PdfTableBandFlow {
+    layout;
+    headings;
+    painter;
+    caption;
+    continuation;
+    entries = [];
+    height = 0;
+    count = 0;
+    firstWindow = true;
+    firstCapacity;
+    painted = false;
+    constructor(layout, headings, painter, caption, continuation) {
+        this.layout = layout;
+        this.headings = headings;
+        this.painter = painter;
+        this.caption = caption;
+        this.continuation = continuation;
+        this.firstCapacity = painter.firstCapacity;
+    }
+    get capacity() { return this.firstWindow ? this.firstCapacity : this.painter.continuationCapacity; }
+    async accept(entry) {
+        if (this.entries.length && (this.height + entry.height > this.capacity + .001 || this.count + entry.count > this.layout.settings.limits.maxTableWindowRows))
+            await this.flush();
+        if (this.firstWindow && !this.entries.length && entry.height > this.capacity + .001 && entry.height <= this.painter.firstFullCapacity + .001) {
+            await this.painter.moveFirstToFreshPage();
+            this.firstCapacity = this.painter.firstFullCapacity;
+        }
+        if (entry.height > this.capacity + .001)
+            throw new RangeError("PDF band window cannot fit the requested table fragment.");
+        this.entries.push(entry);
+        this.height += entry.height;
+        this.count += entry.count;
+        if (this.count >= this.layout.settings.limits.maxTableWindowRows)
+            await this.flush();
+    }
+    async row(row, allowFirstFragment = false) {
+        const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+        if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
+            throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
+        // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
+        // retain the first fragment here instead of being orphaned by a later table-only page move.
+        if (this.entries.length && row.height <= this.painter.continuationCapacity + .001 && row.height > this.capacity - this.height + .001)
+            await this.flush();
+        if (!allowFirstFragment && this.firstWindow && !this.entries.length && row.height > this.capacity + .001 && row.height <= this.painter.firstFullCapacity + .001) {
+            await this.painter.moveFirstToFreshPage();
+            this.firstCapacity = this.painter.firstFullCapacity;
+        }
+        let first = 0;
+        while (first < row.lines) {
+            checkAbort(options.signal);
+            if (this.entries.length && this.capacity - this.height + .001 < minimumHeight)
+                await this.flush();
+            if (this.firstWindow && !this.entries.length && this.capacity + .001 < minimumHeight) {
+                await this.painter.moveFirstToFreshPage();
+                this.firstCapacity = this.painter.firstFullCapacity;
+            }
+            if (this.capacity - this.height + .001 < minimumHeight)
+                throw new RangeError("PDF band window cannot fit its complete repeated identifiers.");
+            const lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
+            if (lines < 1)
+                throw new RangeError("PDF page cannot fit a table line below horizontal band headings.");
+            const paintedLines = Math.max(lines, minimumLines), height = paintedLines * row.lineHeight + padding * 2;
+            const projected = await this.layout.bandRows([row]);
+            const fragments = projected.map((rows, index) => [{ ...rows[0], lines: paintedLines, height,
+                    cells: rows[0].cells.map(cell => {
+                        const source = this.layout.bands[index].columns[cell.first];
+                        const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
+                        const { height: _height, ...plain } = cell;
+                        return { ...plain, lines: visible };
+                    }) }]);
+            await this.accept({ rows: fragments, height, count: 1 });
+            first += lines;
+            if (first < row.lines)
+                await this.flush();
+        }
+    }
+    async block(rows) {
+        const projected = await this.layout.bandRows(rows, true), height = projected[0].reduce((sum, row) => sum + row.height, 0);
+        if (rows.length > this.layout.settings.limits.maxTableWindowRows)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
+        await this.accept({ rows: projected, height, count: rows.length });
+    }
+    async keptRows(rows, allowFirstFragment = false) {
+        const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
+        if (this.entries.length && fits && height > this.capacity - this.height + .001)
+            await this.flush();
+        for (const [index, row] of rows.entries())
+            await this.row(row, !fits && index === 0 && allowFirstFragment);
+    }
+    async flush(forceHeadings = false) {
+        if (!this.entries.length && (!forceHeadings || this.painted || !this.headings.some(rows => rows.length)))
+            return;
+        for (let band = 0; band < this.layout.bands.length; band++) {
+            checkAbort(this.layout.settings.options.signal);
+            await this.painter.paint(band, this.headings[band], this.entries.flatMap(entry => entry.rows[band]), this.firstWindow ? this.caption : this.continuation, this.firstWindow, band === 0);
+        }
+        this.entries = [];
+        this.height = 0;
+        this.count = 0;
+        this.firstWindow = false;
+        this.painted = true;
+    }
+}
+const _exports = Object.freeze({ PdfTableBandFlow: PdfTableBandFlow });
+return _exports;
+})();
+
+const _m35 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { pdfNumber, unicodeHex } = _m19;
@@ -2996,7 +3271,7 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m34 = (() => {
+const _m36 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { unicodeHex } = _m19;
@@ -3044,7 +3319,7 @@ const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSectio
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m37 = (() => {
 const { settings } = _m11;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
@@ -3062,7 +3337,7 @@ const _exports = Object.freeze({ sectionSettings: sectionSettings });
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m33 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -3071,15 +3346,17 @@ const { pdfNumber } = _m19;
 
 const { color } = _m11;
 
+const { PdfTableBandFlow } = _m34;
+
 const { wrapText, wrapTextCooperatively, synchronousText } = _m29;
 
-const { linkAnnotation } = _m33;
+const { linkAnnotation } = _m35;
 
 const { unicodeHex } = _m19;
 
-const { captureSection, captureBookmark } = _m34;
+const { captureSection, captureBookmark } = _m36;
 
-const { sectionSettings } = _m35;
+const { sectionSettings } = _m37;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -3112,6 +3389,8 @@ class PdfPages {
     pageNumberWidth = 0;
     colors = new Map();
     externalObjects = new Map();
+    bandFlow;
+    bandCellBudget = false;
     tableElement;
     tableHeadingsDrawn = false;
     continuationCaption;
@@ -3343,6 +3622,8 @@ class PdfPages {
         this.bodyAdded = true;
         const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
         for (const [index, cell] of row.cells.entries()) {
+            if (this.bandCellBudget)
+                this.settings.budget.cell((cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
             if (cell.style.background)
                 this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
@@ -3358,6 +3639,8 @@ class PdfPages {
         this.y -= row.structured ? row.height : height;
     }
     async block(rows) {
+        if (this.bandFlow)
+            return this.bandFlow.block(rows);
         const height = rows.reduce((n, row) => n + row.height, 0), bottom = this.settings.margins.bottom;
         if (height > this.y - bottom) {
             await this.finishPage();
@@ -3372,6 +3655,8 @@ class PdfPages {
         }
     }
     async row(row, allowFirstFragment = false) {
+        if (this.bandFlow)
+            return this.bandFlow.row(row, allowFirstFragment);
         const elements = this.rowElements(row);
         const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
         if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
@@ -3400,6 +3685,8 @@ class PdfPages {
     /** Keep a last detail row and its closing subtotals together when the complete bundle fits below
      * fresh repeated context/headings. Oversized bundles deliberately use ordinary row splitting. */
     async keptRows(rows, allowFirstFragment = false) {
+        if (this.bandFlow)
+            return this.bandFlow.keptRows(rows, allowFirstFragment);
         const height = rows.reduce((total, row) => total + row.height, 0), bottom = this.settings.margins.bottom;
         const fits = height <= this.continuationTop - bottom + .001;
         if (fits && height > this.y - bottom + .001) {
@@ -3487,6 +3774,8 @@ class PdfPages {
     }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
     async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false) {
+        if (layout.bands)
+            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption);
         await this.ensureStarted();
         this.layout = layout;
         this.continuationCaption = continuationCaption;
@@ -3511,7 +3800,62 @@ class PdfPages {
         await this.drawHeadings(initialHeadings);
         this.dataTop = this.y;
     }
+    /** Bind the bounded logical-window owner to the existing physical page painter. */
+    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation) {
+        await this.ensureStarted();
+        const headings = await layout.bandRows(preparedHeadings ?? await layout.headers(), true);
+        const headerHeight = headings[0].reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
+        const firstFullCapacity = page.height - margins.top - margins.bottom - headerHeight - (caption?.height ?? 0);
+        const minimum = minimumDataHeight <= firstFullCapacity + .001 ? minimumDataHeight : layout.lineHeight + padding * 2;
+        const continuationCapacity = page.height - margins.top - margins.bottom - headerHeight - (continuation?.height ?? 0);
+        if (continuationCapacity + .001 < layout.lineHeight + padding * 2)
+            throw new RangeError("PDF band headings and continuation context leave no room for a data line.");
+        if (this.y - margins.bottom - headerHeight - (caption?.height ?? 0) + .001 < minimum)
+            await this.pageBreak();
+        let initialOffset = page.height - margins.top - this.y;
+        const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
+        if (firstCapacity + .001 < minimum)
+            throw new RangeError("PDF band caption and headings leave no room for a data line.");
+        let captionPaints = 0, continuationPaints = 0;
+        this.layout = undefined;
+        this.continuationCaption = undefined;
+        this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
+            moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
+            paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
+                if (!(firstWindow && firstBand))
+                    await this.pageBreak();
+                if (firstWindow && !firstBand)
+                    this.y -= initialOffset;
+                const frame = layout.bands[band];
+                this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
+                this.bandCellBudget = true;
+                this.tableHeadingsDrawn = false;
+                try {
+                    if (currentCaption?.lines.length) {
+                        const paints = firstWindow ? captionPaints++ : continuationPaints++;
+                        if (paints > 0)
+                            this.settings.budget.cell(currentCaption.text.text);
+                        await this.paragraphs([currentCaption], headerHeight + minimum, true);
+                    }
+                    await this.drawHeadings(headers);
+                    this.dataTop = this.y;
+                    for (const row of rows) {
+                        checkAbort(this.settings.options.signal);
+                        this.draw(row, 0, row.lines);
+                    }
+                }
+                finally {
+                    this.bandCellBudget = false;
+                }
+            }
+        }, caption, continuation);
+    }
     async endTable() {
+        if (this.bandFlow) {
+            const flow = this.bandFlow;
+            await flow.flush(true);
+            this.bandFlow = undefined;
+        }
         await this.structure?.complete(this.tableElement);
         this.layout = undefined;
         this.tableElement = undefined;
@@ -3580,6 +3924,11 @@ class PdfPages {
         await this.objects.flush();
     }
     async finish() {
+        if (this.bandFlow) {
+            const flow = this.bandFlow;
+            await flow.flush(true);
+            this.bandFlow = undefined;
+        }
         await this.ensureStarted();
         await this.structure?.complete(this.tableElement);
         await this.finishPage();
@@ -3603,7 +3952,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m37 = (() => {
+const _m39 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -3665,14 +4014,14 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m36 = (() => {
+const _m38 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
 
 const { unicodeHex } = _m19;
 
-const { PdfParentTree } = _m37;
+const { PdfParentTree } = _m39;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -3844,7 +4193,7 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m40 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -3909,11 +4258,11 @@ const { PdfFontResources } = _m20;
 
 const { PdfTableLayout } = _m27;
 
-const { PdfPages } = _m32;
+const { PdfPages } = _m33;
 
-const { PdfStructure } = _m36;
+const { PdfStructure } = _m38;
 
-const { PdfOutlines } = _m38;
+const { PdfOutlines } = _m40;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -3944,7 +4293,9 @@ class PdfWriteSession {
     async start() {
         await this.objects.text("%PDF-1.7\n");
         await this.objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
-        if (this.layout)
+        if (this.layout?.bands)
+            await this.pages.beginTable(this.layout);
+        else if (this.layout)
             await this.pages.start(true);
     }
     async finish() {
@@ -4020,6 +4371,8 @@ async function writePdfTo(rows, destination, configuration) {
             else
                 await pages.row(footer[0]);
         }
+        if (layout.bands)
+            await pages.endTable();
         if (options.messageBottom)
             await pages.paragraph(options.messageBottom);
         await session.finish();
@@ -4032,7 +4385,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m40 = (() => {
+const _m42 = (() => {
 const { ExportCell, assertScalar } = _m7;
 
 const { isDate } = _m8;
@@ -4297,7 +4650,7 @@ const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportS
 return _exports;
 })();
 
-const _m44 = (() => {
+const _m46 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -4319,12 +4672,12 @@ const _exports = Object.freeze({ Crc32: Crc32 });
 return _exports;
 })();
 
-const _m43 = (() => {
+const _m45 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
 
-const { Crc32 } = _m44;
+const { Crc32 } = _m46;
 
 const signature = [137, 80, 78, 71, 13, 10, 26, 10];
 const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
@@ -4541,12 +4894,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m42 = (() => {
+const _m44 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { pngPixels } = _m43;
+const { pngPixels } = _m45;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -4674,7 +5027,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m45 = (() => {
+const _m47 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -4760,7 +5113,7 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m46 = (() => {
+const _m48 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -5006,7 +5359,7 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m47 = (() => {
+const _m49 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { capturePdfText, wrapPdfText } = _m30;
@@ -5015,7 +5368,7 @@ const { positive } = _m11;
 
 const { resolveParagraphStyle } = _m15;
 
-const { captureBookmark } = _m34;
+const { captureBookmark } = _m36;
 
 const { captureFields } = _m10;
 
@@ -5083,10 +5436,10 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCapt
 return _exports;
 })();
 
-const _m48 = (() => {
+const _m50 = (() => {
 const { capturePdfText, wrapPdfText } = _m30;
 
-const { captureParagraph, prepareParagraph } = _m47;
+const { captureParagraph, prepareParagraph } = _m49;
 
 const { resolveParagraphStyle } = _m15;
 
@@ -5140,10 +5493,12 @@ const _exports = Object.freeze({ captureListOptions: captureListOptions, prepare
 return _exports;
 })();
 
-const _m50 = (() => {
-const { assertGroupedReportSource } = _m40;
+const _m52 = (() => {
+const { assertGroupedReportSource } = _m42;
 
 const { captureFields } = _m10;
+
+const { captureWideTable } = _m11;
 
 const { presentation } = _m16;
 
@@ -5176,7 +5531,7 @@ function captureGroupedPdfTableOptions(configuration) {
         throw new TypeError("continuationLabel must be a synchronous text callback.");
     if (includeGrandTotal !== undefined && typeof includeGrandTotal !== "boolean")
         throw new TypeError("includeGrandTotal must be boolean.");
-    return Object.freeze({ ...captured, labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
+    return Object.freeze({ ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }), labelColumn: Object.freeze({ header, ...(width === undefined ? {} : { width }) }),
         ...(captured.columnWidths === undefined ? {} : { columnWidths: Object.freeze([...captured.columnWidths]) }),
         ...(captured.headerPresentation === undefined ? {} : { headerPresentation: presentation(captured.headerPresentation) }),
         ...(captured.footerPresentation === undefined ? {} : { footerPresentation: presentation(captured.footerPresentation) }) });
@@ -5185,20 +5540,20 @@ const _exports = Object.freeze({ groupedPdfLabelFields: groupedPdfLabelFields, g
 return _exports;
 })();
 
-const _m49 = (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m40;
+const _m51 = (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m42;
 
 const { consumeRows } = _m3;
 
 const { ExportCell } = _m7;
 
-const { captureGroupedPdfTableOptions } = _m50;
+const { captureGroupedPdfTableOptions } = _m52;
 
 const { settings } = _m11;
 
 const { PdfTableLayout } = _m27;
 
-const { captureCaption, prepareParagraph } = _m47;
+const { captureCaption, prepareParagraph } = _m49;
 
 const { synchronousText } = _m29;
 
@@ -5225,7 +5580,7 @@ async function renderGroupedPdfTable(block, context) {
     if (operation.signal?.aborted)
         abort();
     try {
-        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+        const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
         let path = [], started = false, firstFragment = false, firstBundleOversized = false;
         let pending;
         const closing = [];
@@ -5270,7 +5625,7 @@ async function renderGroupedPdfTable(block, context) {
             const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
             const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
             firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
-            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : layout.minimumRowHeight(row);
             await context.flushParagraphs(caption.height + headingHeight + minimum);
             await pages.beginTable(layout, headings, minimum, caption, continuation);
             started = true;
@@ -5296,8 +5651,8 @@ async function renderGroupedPdfTable(block, context) {
             }
             if (!completeHeadings.length && !total)
                 return;
-            const minimum = total ? total.lineHeight + table.padding * 2 : 0;
-            await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+            const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
+            await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
             await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
             if (total)
                 await pages.row(total);
@@ -5338,7 +5693,7 @@ const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable })
 return _exports;
 })();
 
-const _m41 = (() => {
+const _m43 = (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -5351,7 +5706,7 @@ const { copyColumns, createRowProjector } = _m6;
 
 const { captureFields } = _m10;
 
-const { settings } = _m11;
+const { settings, captureWideTable } = _m11;
 
 const { pdfNumber: n } = _m19;
 
@@ -5359,21 +5714,21 @@ const { PdfTableLayout } = _m27;
 
 const { PdfWriteSession } = _m18;
 
-const { PdfDocumentImages } = _m42;
+const { PdfDocumentImages } = _m44;
 
-const { vectorCommands } = _m45;
+const { vectorCommands } = _m47;
 
-const { graphicAlternative } = _m36;
+const { graphicAlternative } = _m38;
 
-const { checkDrawingBlock, prepareDrawing } = _m46;
+const { checkDrawingBlock, prepareDrawing } = _m48;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m47;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m49;
 
-const { captureListOptions, prepareListItem } = _m48;
+const { captureListOptions, prepareListItem } = _m50;
 
-const { captureSection } = _m34;
+const { captureSection } = _m36;
 
-const { renderGroupedPdfTable } = _m49;
+const { renderGroupedPdfTable } = _m51;
 
 const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -5522,12 +5877,12 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         const project = createRowProjector(table.options.columns, undefined, options.signal);
                         let count = 0, started = false;
                         columns = Math.max(columns, table.options.columns.length);
-                        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+                        const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
                         await consumeRows(source, options.signal, async (row) => {
                             budget.row(++budgetRows);
                             const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                             if (!started) {
-                                const minimum = laidOut.lineHeight + table.padding * 2;
+                                const minimum = layout.minimumRowHeight(laidOut);
                                 await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                                 await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
                                 started = true;
@@ -5545,8 +5900,8 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         if (!started) {
                             if (!headings.length && !footer?.length)
                                 break;
-                            const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-                                footer[0].lineHeight + table.padding * 2 : 0;
+                            const minimum = footer?.length ? table.options.footer?.rows ? await layout.blockHeight(footer) :
+                                layout.minimumRowHeight(footer[0]) : 0;
                             await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                             await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
                         }
@@ -5626,24 +5981,25 @@ function graphicAlignment(value) {
 function captureTableOptions(options) {
     if (!options || typeof options !== "object" || Object.keys(options).some(key => !tableOptionFields.includes(key)))
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
-    return captureFields(options, tableOptionFields);
+    const captured = captureFields(options, tableOptionFields);
+    return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
 return _exports;
 })();
 
-const _m39 = (() => {
-const { assertGroupedReportSource } = _m40;
+const _m41 = (() => {
+const { assertGroupedReportSource } = _m42;
 
 const { BlobByteSink } = _m2;
 
-const { writePdfDocumentTo } = _m41;
+const { writePdfDocumentTo } = _m43;
 
 const { pdfOptionFields } = _m11;
 
 const { captureFields } = _m10;
 
-const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m50;
+const { pdfGroupedTable, groupedPdfLabelFields, groupedPdfTableFields } = _m52;
 
 
 
@@ -5678,11 +6034,11 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     delete documentOptions.footer;
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
-const _exports = Object.freeze({ pdfGroupedTable: _m50.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
+const _exports = Object.freeze({ pdfGroupedTable: _m52.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
 return _exports;
 })();
 
-const _m51 = (() => {
+const _m53 = (() => {
 const { fontProgram } = _m21;
 
 const { resolveScalar, selectFont, validateFonts } = _m25;
@@ -5721,7 +6077,7 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m52 = (() => {
+const _m54 = (() => {
 
 
 
@@ -5765,13 +6121,13 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m7.ExportCell, createGroupedReport: _m40.createGroupedReport, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m7.ExportCell, createGroupedReport: _m42.createGroupedReport, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m39.writeGroupedPdf, writeGroupedPdfTo: _m39.writeGroupedPdfTo, pdfGroupedTable: _m39.pdfGroupedTable, createGroupedReport: _m40.createGroupedReport, writePdfDocument: _m41.writePdfDocument, writePdfDocumentTo: _m41.writePdfDocumentTo, pdfTable: _m41.pdfTable, PdfFont: _m21.PdfFont, preflightPdfText: _m51.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m52.saveBlob });
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m41.writeGroupedPdf, writeGroupedPdfTo: _m41.writeGroupedPdfTo, pdfGroupedTable: _m41.pdfGroupedTable, createGroupedReport: _m42.createGroupedReport, writePdfDocument: _m43.writePdfDocument, writePdfDocumentTo: _m43.writePdfDocumentTo, pdfTable: _m43.pdfTable, PdfFont: _m21.PdfFont, preflightPdfText: _m53.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m54.saveBlob });
 return _exports;
 })();
 const { writePdf, writePdfTo, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, createGroupedReport, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, ExportCell, saveBlob } = _m0;

@@ -23,7 +23,7 @@ public sealed class PdfOptionalBreakEncodingDiagnosticsTests {
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OffsetFont");
         Type writer = typeof(PdfDocument).Assembly.GetType("OfficeIMO.Pdf.PdfWriter", throwOnError: true)!;
         MethodInfo encoder = writer.GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(method =>
-            method.Name == "EncodeTextShowCommand" && method.GetParameters().Length == (named ? 9 : 8));
+            method.Name == "EncodeTextShowCommand" && method.GetParameters().Any(parameter => parameter.Name == "namedFont") == named);
         object?[] arguments = encoder.GetParameters().Select(parameter => parameter.HasDefaultValue ? parameter.DefaultValue : null).ToArray();
         arguments[0] = "AV\u200B\uFFFF";
         arguments[1] = PdfStandardFont.Helvetica;

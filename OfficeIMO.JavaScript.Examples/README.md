@@ -21,3 +21,7 @@ This example stays outside the default solution. HtmlForgeX is an example-only d
 Grouped mode writes XLSX outline controls and editable numeric subtotals, or PDF group sections with continued-page context. It preserves typed raw values and derives metrics from the entire exported capture. The example's explicit `language: "en"` and `"pl"` resource profiles own headings, summary labels, page counters and display formatting; stable column keys choose all semantic roles. CSV retains the flat analysis layout.
 
 The grouped source permits 100,000 data rows, 700,000 cells and 1,000 groups. Writer limits also cover generated summaries and cap output at 96 MiB. PDF uses host-loaded, embedding-permitted Carlito regular/bold font bytes. Grouping, metrics, formulas, pagination and byte writing remain in the OfficeIMO engine; the job supplies data, labels and report appearance.
+
+## Wide analytical reports
+
+`wide-analytical-report-job.mjs` extends the hierarchical service example to 16 typed fields, including request volume, error rate, CPU, memory, storage, certificate expiry, version and incident dates. `wideAnalyticalRows(count)` produces the ordered data lazily; `writeWideAnalyticalReport` accepts the same worker context and explicit English/Polish resources as the analytical example. XLSX retains all fields in one editable detail sheet. PDF selects the engine's horizontal-band policy with repeated service IDs and ancestor context. The example owns no band planner, source replay or PDF renderer. Its finite physical-work limits also cover repeated output.

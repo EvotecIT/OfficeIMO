@@ -8,11 +8,15 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static IReadOnlyDictionary<OpenXmlElement, PdfCore.PdfTextRun> CreateNativeBodyInlineImages(
+        private static IReadOnlyDictionary<OpenXmlElement, PdfCore.PdfTextRun> CreateNativeFlowInlineImages(
             WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, bool supported, WordToPdfOptions? options) {
             var images = new Dictionary<OpenXmlElement, PdfCore.PdfTextRun>();
             if (!supported) return images;
-            bool allowFrameOverflow = paragraph._paragraph?.Ancestors<W.Body>().Any() == true &&
+            // Main and note stories share Word's imported paragraph-picture
+            // behavior, including the exact-line paragraph-segment clip. Cells,
+            // text boxes and running stories retain their existing frame policy.
+            bool allowFrameOverflow = paragraph._paragraph?.Ancestors().Any(story =>
+                    story is W.Body or W.FootnoteEndnoteType) == true &&
                 !paragraph._paragraph.Ancestors<W.TableCell>().Any() &&
                 !paragraph._paragraph.Ancestors<W.TextBoxContent>().Any();
             if (!allowFrameOverflow && !runs.Any(run => IsNativeRenderableTextRun(run, paragraph))) return images;
@@ -27,23 +31,23 @@ namespace OfficeIMO.Word.Pdf {
                     if (image._Image?.Inline != null && !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
                         ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
                             paragraph._paragraph?.Ancestors<W.TextBoxContent>().FirstOrDefault()) &&
-                        TryCreateNativeBodyInlineImage(image, out PdfCore.PdfTextRun? inline, options,
+                        TryCreateNativeFlowInlineImage(image, out PdfCore.PdfTextRun? inline, options,
                             options?.CancellationToken ?? default, allowFrameOverflow))
                         images[image._Image] = inline!;
                 }
             }
             return images;
         }
-        private static bool TryCreateNativeBodyInlineImage(WordImage image, out PdfCore.PdfTextRun? inline, WordToPdfOptions? options,
+        private static bool TryCreateNativeFlowInlineImage(WordImage image, out PdfCore.PdfTextRun? inline, WordToPdfOptions? options,
             System.Threading.CancellationToken cancellationToken, bool allowFrameOverflow) {
             try {
                 if (!allowFrameOverflow)
                     return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken,
                         reportPreparationWarnings: false);
                 inline = null;
-                // The ordinary body renderer owns unavailable-image diagnostics.
+                // The ordinary paragraph renderer owns unavailable-image diagnostics.
                 // A successful probe still maps crop diagnostics through options.
-                if (!TryPrepareNativeBodyImage(image, null, "body inline image", out byte[] prepared,
+                if (!TryPrepareNativeBodyImage(image, null, "flow inline image", out byte[] prepared,
                         cancellationToken: cancellationToken)) return false;
                 double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
                 double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;

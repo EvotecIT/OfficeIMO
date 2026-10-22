@@ -264,7 +264,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
                         if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {
-                            RenderNativeFootnotes(flow, footnotes);
+                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -281,7 +281,7 @@ namespace OfficeIMO.Word.Pdf {
                             nativeDefaults,
                             nativeFontMap,
                             balanceColumns: currentSectionIndex + 1 < sectionGroupEnd)) {
-                            RenderNativeFootnotes(flow, footnotes);
+                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -325,7 +325,7 @@ namespace OfficeIMO.Word.Pdf {
                                 nextElement: GetNextNativeRenderableElement(elements, i));
                         }
 
-                        RenderNativeFootnotes(flow, footnotes);
+                        RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                     }
                 });
 

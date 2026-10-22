@@ -108,7 +108,8 @@ namespace OfficeIMO.Word.Pdf {
             if (source == null) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText))
+                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)),
+                ReferenceId = referenceId, Source = source
             });
         }
 
@@ -130,7 +131,7 @@ namespace OfficeIMO.Word.Pdf {
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
                 Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)),
-                IsEndnote = true
+                IsEndnote = true, ReferenceId = referenceId, Source = source
             });
         }
 
@@ -192,13 +193,39 @@ namespace OfficeIMO.Word.Pdf {
 
         private static NativeNoteKey GetNativeEndnoteKey(long referenceId) => new(NativeNoteKind.Endnote, referenceId);
 
-        private static void RenderNativeFootnotes(INativePdfFlow pdf, IReadOnlyList<PdfFootnote> footnotes) {
+        private static void RenderNativeFootnotes(INativePdfFlow pdf, IReadOnlyList<PdfFootnote> footnotes,
+            WordSection section, NativeNoteNumbering notes, WordToPdfOptions? options,
+            NativeDocumentDefaults defaults, NativeFontMap fonts) {
             if (footnotes.Count == 0) {
                 return;
             }
 
-            pdf.HR(thickness: 0.5, color: PdfCore.PdfColor.LightGray, spacingBefore: 8, spacingAfter: 4);
-            foreach (PdfFootnote footnote in footnotes) {
+            bool? previousKind = null;
+            // Each note kind forms one story group, retaining its authored reference order.
+            foreach (PdfFootnote footnote in footnotes.Where(note => !note.IsEndnote)
+                .Concat(footnotes.Where(note => note.IsEndnote))) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                if (previousKind != footnote.IsEndnote) {
+                    W.FootnoteEndnoteType separator = footnote.IsEndnote
+                        ? ResolveNativeEndnoteSeparator(section._document)
+                        : ResolveNativePageFootnoteStories(section._document).Separator;
+                    if (CanProjectNativePageNote(separator, section, defaults, fonts))
+                        RenderNativeNoteParagraphs(pdf, separator, section, notes, options, defaults, fonts, label: null);
+                    else if (options != null) AddNativeExportWarning(options, "NativeNoteFlowSeparatorOmitted",
+                        footnote.IsEndnote ? "endnotes" : "footnotes",
+                        "The section-flow separator story is outside the supported paragraph profile and was omitted.");
+                    previousKind = footnote.IsEndnote;
+                }
+                NativeNoteKey key = footnote.IsEndnote ? GetNativeEndnoteKey(footnote.ReferenceId)
+                    : GetNativeFootnoteKey(footnote.ReferenceId);
+                pdf.Bookmark(GetNativePageNoteDestination(key));
+                if (footnote.Source != null && CanProjectNativePageNote(footnote.Source, section, defaults, fonts)) {
+                    RenderNativeNoteParagraphs(pdf, footnote.Source, section, notes, options, defaults, fonts, footnote.Label);
+                    continue;
+                }
+                if (footnote.Source != null && footnote.IsEndnote && options != null)
+                    AddNativeExportWarning(options, "NativeEndnoteContentApproximated", "endnote",
+                        "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
                 pdf.Paragraph(builder => {
                     builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
                     builder.Text(footnote.Label);

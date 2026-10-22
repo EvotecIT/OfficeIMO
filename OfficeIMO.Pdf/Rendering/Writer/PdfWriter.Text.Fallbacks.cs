@@ -97,6 +97,8 @@ internal static partial class PdfWriter {
         if (run.InlineElement != null) {
             return null;
         }
+        PdfTextRun resolved = options?.ResolvePlannedNamedFallbackRun(run) ?? run;
+        if (!ReferenceEquals(resolved, run)) return new[] { resolved };
 
         bool preferSelectedCallerFamily =
             options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
@@ -224,7 +226,8 @@ internal static partial class PdfWriter {
         }
 
         if (fallbackSet.UsesNamedFontFamilies) {
-            plannedRuns = plan.ToNamedTextRuns(fallbackSet.FontFamilyNames, styleTemplate);
+            plannedRuns = fallbackSet.CreateNamedTextRuns(plan, styleTemplate)
+                .Select(options.ResolvePlannedNamedFallbackRun).ToArray();
             return true;
         }
 

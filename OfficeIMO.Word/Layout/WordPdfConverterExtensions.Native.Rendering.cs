@@ -147,7 +147,8 @@ namespace OfficeIMO.Word.Pdf {
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
             if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
                 content = AppendNativeHeaderFooterFormControlText(string.Concat(runs.Select(run => run.Text)), paragraph) ?? string.Empty;
-            bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
+            bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph) ||
+                !IsNativeHiddenTextRun(run, paragraph) && HasNativeNoteContent(run, footnoteNumbersById, nativeDefaults));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
             List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, footnoteNumbers, footnoteNumbersById);
@@ -182,7 +183,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> inlineImages =
-                CreateNativeBodyInlineImages(paragraph, runs, !hasEquationContent, options);
+                CreateNativeFlowInlineImages(paragraph, runs, !hasEquationContent, options);
             renderedFlowObject |= RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount, objectSpacing, inlineImages,
                 nativeDefaults.RunningContentSection);
             needsAnchorLine = style.AnchoredCanvas != null && inlineImages.Count == 0 &&
@@ -218,7 +219,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
-            int headingLevel = GetHeadingLevel(paragraph);
+            int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
             string headingText = !needsAnchorLine && headingLevel > 0 && marker == null
                 ? GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent)
                 : string.Empty;

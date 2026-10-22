@@ -5,7 +5,7 @@ import { notifyProgress } from "../core/progress.js";
 import type { ExportResult, ExportValue, OutputDestination } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { captureFields } from "../internal/capture.js";
-import { settings } from "./settings.js";
+import { settings, captureWideTable } from "./settings.js";
 import { pdfNumber as n } from "./objects.js";
 import { PdfTableLayout } from "./table-layout.js";
 import { PdfWriteSession } from "./session.js";
@@ -135,12 +135,12 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           const continuationCaption = await prepareCaption(capturedContinuationCaption);
           const project = createRowProjector(table.options.columns, undefined, options.signal);
           let count = 0, started = false; columns = Math.max(columns, table.options.columns.length);
-          const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+          const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
           await consumeRows(source, options.signal, async row => {
             budget.row(++budgetRows);
             const laidOut = await layout.data(project(row, count) as readonly ExportValue[], count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
             if (!started) {
-              const minimum = laidOut.lineHeight + table.padding * 2;
+              const minimum = layout.minimumRowHeight(laidOut);
               await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
               await pages.beginTable(layout, headings, minimum, caption, continuationCaption); started = true;
             }
@@ -151,8 +151,8 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
           if (!started) {
             if (!headings.length && !footer?.length) break;
-            const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-              footer[0]!.lineHeight + table.padding * 2 : 0;
+            const minimum = footer?.length ? table.options.footer?.rows ? await layout.blockHeight(footer) :
+              layout.minimumRowHeight(footer[0]!) : 0;
             await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum); await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
           }
           if (footer) { if (table.options.footer?.rows) await pages.block(footer); else await pages.row(footer[0]!, keptFooterHeading); }
@@ -209,5 +209,6 @@ function graphicAlignment(value: string | undefined): "left" | "center" | "right
 function captureTableOptions<T>(options: PdfTableOptions<T>): PdfTableOptions<T> {
   if (!options || typeof options !== "object" || Object.keys(options).some(key => !(tableOptionFields as readonly string[]).includes(key)))
     throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
-  return captureFields(options, tableOptionFields);
+  const captured = captureFields(options, tableOptionFields);
+  return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable)! }) };
 }

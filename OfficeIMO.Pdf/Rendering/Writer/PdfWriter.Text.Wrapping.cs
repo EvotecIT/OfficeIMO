@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         }
 
         return tabStops
-            .Where(tabStop => tabStop.Position > 0 && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Where(tabStop => !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
             .Select(tabStop => tabStop.ResolveFramePosition(frameWidth))
             .OrderBy(tabStop => tabStop.Position)
             .ToArray();
@@ -35,6 +35,8 @@ internal static partial class PdfWriter {
         PdfTextRun? currentTextRun = null;
         var wordContinuations = MeasureRichWordContinuations(effectiveRuns, baseFont, fontSize, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops, maxWidthPts);
+        // A field selected at a left stop can wrap and select an earlier non-left stop.
+        bool mayReselectNonLeftTabStop = explicitTabStops?.Any(stop => AlignsCompleteTabField(stop.Alignment)) == true;
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -231,7 +233,7 @@ internal static partial class PdfWriter {
             ? new PdfTabStop(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset), run.TabAlignment, run.TabLeader)
             : null;
 
-        void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline) {
+        void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline, RichTabFieldMeasurement? field = null) {
             PdfTabAlignment fallbackAlignment = pendingLeadingTabAlignment;
             PdfTabLeaderStyle fallbackLeader = pendingLeadingTabLeader;
             // Same-line inline measurement retains the selected stop. A new
@@ -242,7 +244,9 @@ internal static partial class PdfWriter {
             pendingLeadingTabLeader = explicitTabStop?.Leader ?? fallbackLeader;
             pendingLeadingTabStop = explicitTabStop;
             pendingTabSourceLine = lines.Count - 1;
-            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingTextWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, followingText, followingFont, followingFontSize, followingBaseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+            double selectedWidth = field != null && AlignsCompleteTabField(pendingLeadingTabAlignment)
+                ? field.Width : followingTextWidth;
+            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, selectedWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, followingText, followingFont, followingFontSize, followingBaseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing, decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, pendingLeadingTabAlignment, pendingLeadingTabStop, options));
         }
 
         void ResetPendingLeading() {
@@ -264,13 +268,16 @@ internal static partial class PdfWriter {
             pendingRelativeTabRun = null;
         }
 
-        void RevalidateLeadingTabFrame(double contentHeight, double followingWidth, double spaceWidth, string followingText, PdfStandardFont font, double size, PdfTextBaseline baseline) {
+        void RevalidateLeadingTabFrame(double contentHeight, double followingWidth, double spaceWidth, string followingText, PdfStandardFont font, double size, PdfTextBaseline baseline, RichTabFieldMeasurement? field = null) {
             if (lineLayout == null || !pendingLeadingIsTab || lines[lines.Count - 1].Count != 0) return;
-            PrepareLineFrame(contentHeight, pendingLeadingAdvance + followingWidth);
-            // The selected interval may change the tab's origin. Retain its resolved stop,
-            // then validate the complete advance again rather than consuming another stop.
-            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingWidth, spaceWidth, pendingLeadingTabAlignment, tabStopWidth, followingText, font, size, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-            PrepareLineFrame(contentHeight, pendingLeadingAdvance + followingWidth);
+            double selectedWidth = field != null && AlignsCompleteTabField(pendingLeadingTabAlignment)
+                ? field.Width : followingWidth;
+            PrepareLineFrame(contentHeight, pendingLeadingAdvance + selectedWidth);
+            // Retain the same-line stop, or resolve the new line if the frame refit moved it.
+            ResolvePendingLeadingTabForCurrentLine(followingWidth, spaceWidth, followingText, font, size, baseline, field);
+            selectedWidth = field != null && AlignsCompleteTabField(pendingLeadingTabAlignment)
+                ? field.Width : followingWidth;
+            PrepareLineFrame(contentHeight, pendingLeadingAdvance + selectedWidth);
         }
 
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
@@ -328,15 +335,18 @@ internal static partial class PdfWriter {
         }
 
         void ResolveBufferedTab(double followingWidth, double spaceWidth, string followingText,
-            PdfStandardFont font, double size, PdfTextBaseline baseline) {
+            PdfStandardFont font, double size, PdfTextBaseline baseline, RichTabFieldMeasurement? field = null) {
             if (pendingSpaceFragments.Count == 0 || !pendingSpaceFragments[0].Style.LeadingIsTab) return;
             PendingSpaceFragment fragment = pendingSpaceFragments[0];
             RichSeg tab = fragment.Style;
             double spaces = pendingLeadingAdvance - fragment.Advance;
-            double advance = CalculateTabAdvance(lineWidth, spaces + followingWidth, spaceWidth,
+            double selectedWidth = field != null && AlignsCompleteTabField(tab.LeadingTabStop?.Alignment ?? tab.LeadingTabAlignment)
+                ? field.Width : followingWidth;
+            double advance = CalculateTabAdvance(lineWidth, spaces + selectedWidth, spaceWidth,
                 tab.LeadingTabAlignment, tabStopWidth, new string(' ', pendingLeadingSpaceCount) + followingText,
                 font, size, baseline, options, CurrentMaxWidth(), tab.LeadingTabStop, CurrentLineOriginOffset(),
-                currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing,
+                decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, tab.LeadingTabAlignment, tab.LeadingTabStop, options, spaces));
             pendingLeadingAdvance += advance - fragment.Advance;
             fragment.Advance = advance;
         }
@@ -447,18 +457,18 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Inline element width exceeds the available paragraph width.");
                 }
 
-                double tabFieldWidth = pendingLeadingIsTab && AlignsCompleteTabField(pendingLeadingTabAlignment) ||
+                RichTabFieldMeasurement? tabField = pendingLeadingIsTab && (AlignsCompleteTabField(pendingLeadingTabAlignment) || mayReselectNonLeftTabStop) ||
                     pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab &&
-                    AlignsCompleteTabField(pendingSpaceFragments[0].Style.LeadingTabAlignment)
+                    (AlignsCompleteTabField(pendingSpaceFragments[0].Style.LeadingTabAlignment) || mayReselectNonLeftTabStop)
                         ? MeasureRichTabField(effectiveRuns, runIndex, 0, baseFont, fontSize, options, whitespaceMode)
-                        : inlineElement.Width;
+                        : null;
                 if (pendingLeadingIsTab) {
-                    ResolvePendingLeadingTabForCurrentLine(tabFieldWidth, spaceW, string.Empty, fontForRun, runFontSize, baseline);
-                    RevalidateLeadingTabFrame(inlineHeight, tabFieldWidth, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     currentMaxWidth = CurrentMaxWidth();
                 }
 
-                ResolveBufferedTab(tabFieldWidth, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                ResolveBufferedTab(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
 
                 List<RichSeg> currentLine = lines[lines.Count - 1];
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
@@ -472,8 +482,8 @@ internal static partial class PdfWriter {
                     PrepareLineFrame(inlineHeight, inlineElement.Width);
                     currentLine = lines[lines.Count - 1];
                     if (pendingLeadingIsTab) {
-                        ResolvePendingLeadingTabForCurrentLine(tabFieldWidth, spaceW, string.Empty, fontForRun, runFontSize, baseline);
-                        RevalidateLeadingTabFrame(inlineHeight, tabFieldWidth, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
@@ -553,13 +563,13 @@ internal static partial class PdfWriter {
                     continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
                 if (whitespaceMode == PdfTextWhitespaceMode.Preserve && hadNewline && token.Length == 0 && !pendingLeadingIsTab)
                     ResetPendingLeading();
-                double tabFieldWidth = token.Length > 0 &&
-                    (pendingLeadingIsTab && AlignsCompleteTabField(pendingLeadingTabAlignment) ||
+                RichTabFieldMeasurement? tabField = token.Length > 0 &&
+                    (pendingLeadingIsTab && (AlignsCompleteTabField(pendingLeadingTabAlignment) || mayReselectNonLeftTabStop) ||
                      pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab &&
-                     AlignsCompleteTabField(pendingSpaceFragments[0].Style.LeadingTabAlignment))
+                     (AlignsCompleteTabField(pendingSpaceFragments[0].Style.LeadingTabAlignment) || mayReselectNonLeftTabStop))
                         ? MeasureRichTabField(effectiveRuns, runIndex, tokenStart, baseFont, fontSize, options, whitespaceMode)
-                        : wordWidth;
-                if (token.Length > 0) ResolveBufferedTab(tabFieldWidth, spaceW, token, fontForRun, runFontSize, baseline);
+                        : null;
+                if (token.Length > 0) ResolveBufferedTab(wordWidth, spaceW, token, fontForRun, runFontSize, baseline, tabField);
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0 && (token.Length > 0 || hadNewline)) {
                     // Retain the originating runs, including clipped portions of literal
                     // spaces, so a later cell/column continuation can remeasure them.
@@ -732,8 +742,8 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (token.Length > 0 && pendingLeadingIsTab) {
-                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tabFieldWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                    RevalidateLeadingTabFrame(RunLineHeight(runFontSize), tabFieldWidth, spaceW, token, fontForRun, runFontSize, baseline);
+                    ResolvePendingLeadingTabForCurrentLine(wordWidth, spaceW, token, fontForRun, runFontSize, baseline, tabField);
+                    RevalidateLeadingTabFrame(RunLineHeight(runFontSize), wordWidth, spaceW, token, fontForRun, runFontSize, baseline, tabField);
                     currentMaxWidth = CurrentMaxWidth();
                 }
                 // Formatting boundaries do not introduce a word-break opportunity.
@@ -786,8 +796,8 @@ internal static partial class PdfWriter {
                     // that fit the previous frame must obtain enough space again.
                     PrepareLineFrame(RunLineHeight(wordFontSize), wrappingWidth);
                     if (token.Length > 0 && pendingLeadingIsTab) {
-                        ResolvePendingLeadingTabForCurrentLine(tabFieldWidth, spaceW, token, fontForRun, runFontSize, baseline);
-                        RevalidateLeadingTabFrame(RunLineHeight(runFontSize), tabFieldWidth, spaceW, token, fontForRun, runFontSize, baseline);
+                        ResolvePendingLeadingTabForCurrentLine(wordWidth, spaceW, token, fontForRun, runFontSize, baseline, tabField);
+                        RevalidateLeadingTabFrame(RunLineHeight(runFontSize), wordWidth, spaceW, token, fontForRun, runFontSize, baseline, tabField);
                     }
                 }
                 if (token.Length > 0) {

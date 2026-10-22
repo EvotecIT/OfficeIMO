@@ -459,6 +459,28 @@ test("DataTables captures structural settings and column overrides before host c
   assert.equal(headers, 1); assert.equal(bodies, 1);
 });
 
+test("DataTables captures nested PDF band policy before reading native heading metadata", async () => {
+  const { host, table } = fixture({ grouped: false });
+  const repeats = [], reads = { mode: 0, width: 0, repeats: 0 };
+  let mode = "bands", width = 180, headings = 0;
+  const policy = { get mode() { reads.mode++; return mode; }, get minimumColumnWidth() { reads.width++; return width; },
+    get repeatColumns() { reads.repeats++; return repeats; } };
+  const exportData = table.buttons.exportData;
+  table.buttons.exportData = options => {
+    const data = exportData(options), original = data.header;
+    return { ...data, get header() {
+      headings++; mode = "reject"; width = 1; repeats.push(999);
+      return original;
+    } };
+  };
+  const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", { includeFooter: false,
+    pdf: { wideTable: policy, pageSize: { width: 300, height: 360 }, margins: 20, pageNumbers: false, compression: false } }));
+  assert.equal(headings, 1); assert.deepEqual(reads, { mode: 1, width: 1, repeats: 1 });
+  assert.equal(pdf.pages.length, 2, "The captured 180 point policy produces two bands despite the source callback mutation");
+  assert.deepEqual(pdf.pages[0].lines, ["Name", "first", "second"]);
+  assert.deepEqual(pdf.pages[1].lines, ["Amount", "7.5", "12.5"]);
+});
+
 test("format row limits survive undefined common overrides and explicit shared limits win", async () => {
   for (const format of ["xlsx", "csv", "pdf"]) {
     const { host, table } = fixture({ grouped: false });

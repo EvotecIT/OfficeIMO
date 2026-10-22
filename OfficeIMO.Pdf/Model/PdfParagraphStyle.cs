@@ -100,6 +100,23 @@ public class PdfParagraphStyle {
     }
     private PdfTextWhitespaceMode? _textWhitespaceMode;
 
+    /// <summary>Expandable boundaries when the paragraph uses <see cref="PdfAlign.Justify"/>. The default expands word separators.</summary>
+    public PdfJustificationMode JustificationMode {
+        get => _justificationMode;
+        set {
+            if (value < PdfJustificationMode.Words || value > PdfJustificationMode.Characters)
+                throw new System.ArgumentOutOfRangeException(nameof(value));
+            _justificationMode = value;
+        }
+    }
+    private PdfJustificationMode _justificationMode;
+
+    /// <summary>When true, a justified paragraph also expands lines ending with an explicit line break. The default retains natural spacing on those lines.</summary>
+    public bool JustifyExplicitLineBreaks { get; set; }
+
+    /// <summary>When true, a justified paragraph also expands its final line. The default retains natural spacing on that line.</summary>
+    public bool JustifyLastLine { get; set; }
+
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>Imported document policy when kept or minimum orphan lines exceed a complete continuation frame.</summary>
@@ -138,6 +155,9 @@ public class PdfParagraphStyle {
         var clone = new PdfParagraphStyle {
             AnchoredCanvas = AnchoredCanvas,
             TextWhitespaceMode = TextWhitespaceMode,
+            JustificationMode = JustificationMode,
+            JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
+            JustifyLastLine = JustifyLastLine,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
             LineHeight = LineHeight,

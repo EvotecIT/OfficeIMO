@@ -33,7 +33,7 @@ export function* analyticalRows(count) {
 }
 
 /** Compose existing workbook/PDF owners; there is no query, sorting, format codec or transport implementation here. */
-export async function writeAnalyticalReport(api, { input = {}, rows, columns, sink, signal, onProgress }) {
+export async function writeAnalyticalReport(api, { input = {}, rows, columns, sink, signal, onProgress, pdfTableOptions = {}, pdfLimits = {} }) {
   const language = input.language ?? "en";
   if (!Object.hasOwn(analyticalReportText, language)) throw new TypeError("This example has explicit en and pl resources.");
   const text = analyticalReportText[language], keys = input.groupKeys ?? ["portfolio", "environment", "owner"];
@@ -53,7 +53,7 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
   }
   const report = api.createGroupedReport(records(), { columns: selectedColumns, totals, signal,
     groupBy: keys.map((key, level) => columns.some(column => column.key === key) ? key : { key, value: record => record[columns.length + level] }),
-    maxGroups: 4000, limits: { maxRows: 100000, maxCells: 1000000, maxTextCharacters: 16000000 } });
+    maxGroups: 4000, limits: { maxRows: 100000, maxCells: 100001 * columns.length, maxTextCharacters: 16000000 } });
   const labels = { labelColumn: { header: text.group, width: 26 },
     subtotalLabel: group => `${text.subtotal} · ${group.label} · ${group.rows.toLocaleString(language)}`,
     grandTotalLabel: summary => `${text.total} · ${summary.rows.toLocaleString(language)}`,
@@ -61,7 +61,7 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
   const scope = input.scope ?? text.scope;
   if (input.format === "xlsx") {
     const book = new api.Workbook({ sink, signal, dateMode: "utc", compression: input.compression ?? "auto",
-      limits: { maxRows: 112010, maxCells: 1400000, maxOutputBytes: 128 * 1024 * 1024 },
+      limits: { maxRows: 112010, maxCells: 112010 * (columns.length + 1), maxOutputBytes: 128 * 1024 * 1024 },
       onProgress: event => onProgress?.({ ...event, rows: consumed }) });
     try {
       const context = book.addWorksheet(text.context, { columns: [{ header: text.context, width: 80, wrapText: true }] });
@@ -97,13 +97,13 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
     yield { kind: "section", title: text.detail, level: 2, headingStyle: "heading", orientation: "landscape" };
     yield api.pdfGroupedTable(report, { ...labels, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
       alternateRowColor: "F3F6FB", formatValue(value) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
-        : typeof value === "number" ? decimal.format(value) : String(value ?? ""); } });
+        : typeof value === "number" ? decimal.format(value) : String(value ?? ""); }, ...pdfTableOptions });
     yield { kind: "section", title: text.next, level: 2, headingStyle: "heading" };
     yield { kind: "paragraph", text: text.advice, style: "body" };
     yield { kind: "paragraph", text: text.complete(consumed), style: "body" };
   }
   const options = { signal, onProgress, fonts, pageSize: "A4", margins: 30, fontSize: 9, pageNumberLabels: text.page,
-    limits: { maxRows: 112010, maxCells: 1600000, maxPages: 20000, maxOutputBytes: 128 * 1024 * 1024 },
+    limits: { maxRows: 112010, maxCells: 112010 * (columns.length + 1), maxPages: 20000, maxOutputBytes: 128 * 1024 * 1024, ...pdfLimits },
     paragraphStyles: { title: { fontSize: 22, spaceAfter: 12, presentation: { bold: true, color: "163C75" } },
       heading: { fontSize: 15, spaceAfter: 8, presentation: { bold: true, color: "163C75" } },
       body: { fontSize: 10, spaceAfter: 10 }, caption: { fontSize: 9, spaceAfter: 6 } },

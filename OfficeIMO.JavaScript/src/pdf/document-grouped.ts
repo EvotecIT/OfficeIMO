@@ -47,7 +47,7 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
   operation.signal?.addEventListener("abort", abort, { once: true });
   if (operation.signal?.aborted) abort();
   try {
-    const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+    const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
     let path: readonly GroupStart[] = [], started = false, firstFragment = false, firstBundleOversized = false;
     let pending: PdfLayoutRow | undefined;
     const closing: PdfLayoutRow[] = [];
@@ -79,7 +79,7 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
       const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
       const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
       firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
-      const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+      const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : layout.minimumRowHeight(row);
       await context.flushParagraphs(caption.height + headingHeight + minimum);
       await pages.beginTable(layout, headings, minimum, caption, continuation);
       started = true; firstFragment = caption.lines.length > 0;
@@ -101,8 +101,8 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
         total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
       }
       if (!completeHeadings.length && !total) return;
-      const minimum = total ? total.lineHeight + table.padding * 2 : 0;
-      await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+      const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
+      await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
       await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
       if (total) await pages.row(total);
       await pages.endTable();

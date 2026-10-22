@@ -51,6 +51,8 @@ internal static partial class PdfWriter {
             bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
                 MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
+            double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter,
+                closesContainer: itemIndex == prepared.Items.Count - 1);
             void NewListFrame() {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
@@ -79,8 +81,7 @@ internal static partial class PdfWriter {
 
             while (lineIndex < lines.Count) {
                 double available = y - FootnoteBodyBottom;
-                double closingPadding = itemIndex == prepared.Items.Count - 1 ? GetClosingContainerPadding() : 0D;
-                if (closingPadding > 0D) closingPadding += spacingAfter;
+                double closingPadding = ClosingPadding();
                 double firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                 if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("List line height exceeds the available page content height.");
@@ -89,6 +90,7 @@ internal static partial class PdfWriter {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     NewListFrame();
                     available = y - FootnoteBodyBottom;
+                    closingPadding = ClosingPadding();
                     firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         throw new ArgumentException("List line height exceeds the available page content height.");

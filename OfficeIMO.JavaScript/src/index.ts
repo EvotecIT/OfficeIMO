@@ -22,7 +22,7 @@ export type { ErrorCode } from "./core/index.js";
 export type { CellValue, Column, ColumnSettings, ColumnValueContext, Row, Rows, ExportValue, CellPresentation, ExportCellOptions, ExportLink, ExportLimits, ExportProgress, ExportResult, OutputDestination, ByteSink, StreamOptions, TableSpanCell, TableSpanRows } from "./core/index.js";
 export type { XlsxOptions, XlsxColumn, WorkbookOptions, SheetOptions, WorkbookLimits, ChartType, ChartData, ChartSeries, ChartColumn, ChartRangeSeries, ChartRangeData, ChartDataLabels, ChartCategoryAxis, ChartValueAxis, WorksheetChart, WorksheetAnchor, ListValidation } from "./xlsx/index.js";
 export type { CsvOptions, CsvColumn, CsvValueContext } from "./csv/index.js";
-export type { PdfOptions, PdfPageSize, PdfMargins, PdfFonts, PdfLimits, PdfTaggedOptions, PdfTableFooter, PdfPageContext, PdfTotal } from "./pdf/index.js";
+export type { PdfOptions, PdfPageSize, PdfMargins, PdfFonts, PdfLimits, PdfTaggedOptions, PdfTableBands, PdfTableFooter, PdfPageContext, PdfTotal } from "./pdf/index.js";
 export type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode } from "./pdf/index.js";
 export type { PdfFontPreparationOptions } from "./pdf/index.js";
 export type { PdfTextDirection, PdfShapingRun, PdfShapedGlyph, PdfShapedRun, PdfShapeLineRequest, PdfTextShaper } from "./pdf/index.js";

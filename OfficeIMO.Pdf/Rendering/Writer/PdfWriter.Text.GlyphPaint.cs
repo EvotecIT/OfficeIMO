@@ -33,6 +33,7 @@ internal static partial class PdfWriter {
         PdfTextShowCommand command = paintCommand ?? (text == segment.Text && segment.KerningCommand != null ? segment.KerningCommand
             : EncodeTextShowCommand(text, segment.Font, segment.NamedFont, encodingOptions ?? options, segment.FeatureSettings,
                 segment.TextDirection, segment.FontMetricScale, preservesPaintedGlyphs: segment.PreservesPaintedGlyphs));
+        text = WithoutOptionalBreaks(text);
         IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, options, fontCache, fontCacheCleared);
         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
         double scale = segment.HorizontalTextScaling / 100D;
@@ -53,10 +54,7 @@ internal static partial class PdfWriter {
                         new(glyphLeft, glyphBottom), new(glyphRight, glyphBottom), new(glyphRight, glyphTop), new(glyphLeft, glyphTop)
                     } }, true);
                 }
-                double advance = segment.Font is PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique
-                    ? 600D : PdfStandardFontWidths.TryGetWidth1000(segment.Font, value, out int width) ? width : 0D;
-                advance += command.SimpleFontKerning?[index] ?? 0;
-                cursor += advance * size / 1000D * scale + segment.CharacterSpacing;
+                cursor += GetRichGlyphAdvance(segment, text, command, index, options);
             }
             yield break;
         }
@@ -85,19 +83,7 @@ internal static partial class PdfWriter {
                 }
                 yield return (contours, false);
             }
-            double advance;
-            if (glyphs != null) advance = glyphs[index].AdvanceWidth1000;
-            else if (segment.NamedFont.HasValue && options.TryGetNamedFontProgram(segment.NamedFont.Value, out var named) && named != null)
-                advance = named.GetGlyphWidth1000(glyphId);
-            else if (segment.NamedFont.HasValue && options.TryGetNamedOpenTypeCffFontProgram(segment.NamedFont.Value, out var namedCff) && namedCff != null)
-                advance = namedCff.GetGlyphWidth1000(glyphId);
-            else if (options.TryGetEmbeddedStandardFontProgram(segment.Font, out var standard) && standard != null)
-                advance = standard.GetGlyphWidth1000(glyphId);
-            else if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(segment.Font, out var standardCff) && standardCff != null)
-                advance = standardCff.GetGlyphWidth1000(glyphId);
-            else throw new InvalidOperationException("The selected embedded glyph has no PDF advance metrics.");
-            double tracking = command.TrackingBoundaries?[index] == true ? GetIntrinsicGlyphTrackingAdvance(command, size) : 0D;
-            cursor += (advance * size / 1000D + tracking) * scale + segment.CharacterSpacing;
+            cursor += GetRichGlyphAdvance(segment, text, command, index, options);
         }
     }
 

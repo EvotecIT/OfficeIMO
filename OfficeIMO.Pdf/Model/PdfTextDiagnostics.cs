@@ -241,12 +241,13 @@ internal static partial class PdfTextDiagnostics {
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int runIndex = 0;
-        foreach (PdfTextRun run in runs) {
-            if (run == null || IsLayoutControlRun(run)) {
+        foreach (PdfTextRun sourceRun in runs) {
+            if (sourceRun == null || IsLayoutControlRun(sourceRun)) {
                 runIndex++;
                 continue;
             }
 
+            PdfTextRun run = options.ResolvePlannedNamedFallbackRun(sourceRun);
             string runLocation = AppendRunLocation(location, runIndex);
             PdfEmbeddedFontFallbackSet? fallbackSet =
                 options.GetEffectiveRenderingProfileDeclaredFallbacks(

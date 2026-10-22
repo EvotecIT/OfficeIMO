@@ -303,7 +303,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -335,6 +335,8 @@ internal sealed class PdfTableCellParagraph {
 
         if (fontSize.HasValue && (fontSize.Value <= 0D || double.IsNaN(fontSize.Value) || double.IsInfinity(fontSize.Value)))
             throw new System.ArgumentOutOfRangeException(nameof(fontSize), "Table cell paragraph font size must be a positive finite value.");
+        if (justificationMode < PdfJustificationMode.Words || justificationMode > PdfJustificationMode.Characters)
+            throw new System.ArgumentOutOfRangeException(nameof(justificationMode));
 
         var snapshot = new System.Collections.Generic.List<PdfTextRun>();
         foreach (PdfTextRun run in runs) {
@@ -361,6 +363,9 @@ internal sealed class PdfTableCellParagraph {
         WidowControl = widowControl;
         KeepTogether = keepTogether;
         KeepWithNext = keepWithNext;
+        JustificationMode = justificationMode;
+        JustifyExplicitLineBreaks = justifyExplicitLineBreaks;
+        JustifyLastLine = justifyLastLine;
         Runs = snapshot.AsReadOnly();
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
@@ -400,11 +405,15 @@ internal sealed class PdfTableCellParagraph {
     /// <summary>Keeps the paragraph's last line with the next cell paragraph's first line.</summary>
     public bool KeepWithNext { get; }
 
+    public PdfJustificationMode JustificationMode { get; }
+    public bool JustifyExplicitLineBreaks { get; }
+    public bool JustifyLastLine { get; }
+
     public double? LineHeight { get; }
 
     public double? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext);
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine);
 }

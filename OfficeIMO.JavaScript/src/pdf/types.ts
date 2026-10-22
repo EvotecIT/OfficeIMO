@@ -4,6 +4,15 @@ import type { PdfTextRun } from "./inline-types.js";
 import type { PdfTextDirection, PdfTextShaper } from "./text-shaping-types.js";
 import type { BooleanText } from "../core/value-text.js";
 
+/** Readable horizontal page bands. Every band in a window contains the same logical row fragments. */
+export interface PdfTableBands {
+  readonly mode: "bands";
+  /** Minimum point width when columnWidths is absent. Default 72; shared Column.width can increase it. */
+  readonly minimumColumnWidth?: number;
+  /** Sorted unique zero-based source indices, repeated as a prefix on every band. Grouped tables include their leading label column.
+   * Repeated cell contents must fit below the headings/context on one fresh page. */
+  readonly repeatColumns?: readonly number[];
+}
 /** PDF lengths are points (72 points per inch). */
 export interface PdfPageSize { readonly width: number; readonly height: number; }
 export interface PdfMargins { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number; }
@@ -27,6 +36,10 @@ export type PdfTextPreflightResult = { readonly supported: true } | {
 export interface PdfLimits extends ExportLimits {
   readonly maxPages?: number;
   readonly maxColumns?: number;
+  /** Horizontal bands in one table; includes repeated identifier columns. Default 64. */
+  readonly maxTableBands?: number;
+  /** Retained logical row fragments in a band window. Smaller values flush earlier. Default 256. */
+  readonly maxTableWindowRows?: number;
   /** Bounds one projected cell before wrapping; text is never truncated. */
   readonly maxCellCharacters?: number;
   /** Captured styled runs per paragraph/cell, and in a kept paragraph group. */
@@ -119,7 +132,7 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   /** Explicit point widths. Otherwise shared Column.width is measured in zero-character widths. */
   readonly columnWidths?: readonly number[];
   /** Fit preserves every column at the requested font size by wrapping. Reject requires widths to fit. */
-  readonly wideTable?: "fit" | "reject";
+  readonly wideTable?: "fit" | "reject" | PdfTableBands;
   readonly pageHeader?: string | ((context: PdfPageContext) => string);
   readonly pageFooter?: string | ((context: PdfPageContext) => string);
   readonly pageNumbers?: boolean;

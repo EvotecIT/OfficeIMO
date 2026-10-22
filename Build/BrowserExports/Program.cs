@@ -3,6 +3,12 @@ using HtmlTinkerX;
 using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
+if (args.Length == 2 && args[0] == "--validate-wide") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.pdf", SearchOption.AllDirectories);
+    if (files.Length == 0) throw new InvalidDataException("No wide report fixtures to validate.");
+    foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(WideReportVerifier.Verify(file)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate-analytical") {
     string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*", SearchOption.AllDirectories)
         .Where(file => file.EndsWith(".xlsx", StringComparison.Ordinal) || file.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
@@ -85,6 +91,7 @@ if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evid
 if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--analytical-report")) { await HierarchicalReportInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--wide-report")) { await WideReportInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf-professional")) { await ProfessionalPdfInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }

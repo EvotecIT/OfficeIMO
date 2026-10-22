@@ -4,13 +4,13 @@ using HtmlTinkerX;
 using Microsoft.Playwright;
 
 /// <summary>Actual report-workbench UI qualification through HtmlTinkerX-owned browser sessions.</summary>
-internal static class ReportEngineInterop {
+internal static partial class ReportEngineInterop {
     internal static async Task RunAsync(string repository, string evidence, string[] args) {
         var uri = new Uri(args.FirstOrDefault(a => a.StartsWith("--site-url=", StringComparison.Ordinal))?[11..]
             ?? throw new ArgumentException("--report-engine requires --site-url=<loopback report-engine URL>."));
         if (!uri.IsLoopback || uri.Scheme != "http") throw new ArgumentException("Workbench qualification requires loopback HTTP.");
         using var http = new HttpClient();
-        string[] paths = [uri.AbsolutePath, "/js/report-engine-job.mjs", "/js/analytical-report-job.mjs", "/js/report-engine.mjs", "/js/report-engine-loader.mjs", "/js/report-engine-worker.mjs", "/assets/officeimo/officeimo.mjs", "/assets/officeimo/officeimo-execution.mjs", "/css/report-engine.css"];
+        string[] paths = [uri.AbsolutePath, "/js/report-engine-job.mjs", "/js/analytical-report-job.mjs", "/js/wide-analytical-report-job.mjs", "/js/report-engine.mjs", "/js/report-engine-loader.mjs", "/js/report-engine-worker.mjs", "/assets/officeimo/officeimo.mjs", "/assets/officeimo/officeimo-execution.mjs", "/css/report-engine.css"];
         async Task<Dictionary<string, string>> ServedHashesAsync() {
             var hashes = new Dictionary<string, string>();
             foreach (string path in paths) hashes.Add(path, Convert.ToHexString(SHA256.HashData(await http.GetByteArrayAsync(new Uri(uri, path)))).ToLowerInvariant());
@@ -21,6 +21,7 @@ internal static class ReportEngineInterop {
         bool lifecycleOnly = args.Contains("--report-engine-lifecycle-only");
         bool refreshOnly = args.Contains("--report-engine-refresh-only");
         bool hierarchicalOnly = args.Contains("--report-engine-hierarchical-only");
+        bool wideOnly = args.Contains("--report-engine-wide-only");
         var reports = new List<object>();
         foreach (HtmlBrowserEngine engine in DataTablesInterop.Engines(args)) {
             string output = Path.Combine(evidence, engine.ToString().ToLowerInvariant()); Directory.CreateDirectory(output);
@@ -45,6 +46,15 @@ internal static class ReportEngineInterop {
             Require(await page.Locator("#report-preview tr").CountAsync() == 8, "Default preview must contain eight rows.");
             Require(await page.Locator("#report-preview tr").Nth(1).Locator("td").Nth(3).InnerTextAsync() == "4.9 ms", "Preview numeric rounding differs from PDF.");
             Require(await page.EvaluateAsync<bool>("document.querySelector('#report-status').getAttribute('role') === 'status' && document.querySelector('#report-status').getAttribute('aria-live') === 'polite'"), "Status is not a live region.");
+
+            if (wideOnly) {
+                await VerifyWideAsync(page, engine, output, files, states);
+                Require(errors.Count == 0 && network.Count == 0, "Wide workbench had page or HTTP failures.");
+                var wide = new { engine = engine.ToString(), browser = session.Browser?.Version, mode = "wide-only", site = uri.AbsoluteUri, served, files, states, pageErrors = errors, console, network };
+                reports.Add(wide); File.WriteAllText(Path.Combine(output, "wide.json"), JsonSerializer.Serialize(wide, new JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine($"Wide workbench passed {engine}: typed/localized/empty XLSX and PDF, cancellation, flat CSV recovery and completed action layout.");
+                continue;
+            }
 
             if (hierarchicalOnly) {
                 await page.AddScriptTagAsync(new() { Path = Path.Combine(repository, "Build", "BrowserExports", "hierarchical-report-contracts.js") });
@@ -177,7 +187,8 @@ internal static class ReportEngineInterop {
         Require(served.OrderBy(pair => pair.Key).SequenceEqual((await ServedHashesAsync()).OrderBy(pair => pair.Key)), "The served workbench candidate changed during qualification.");
         File.WriteAllText(Path.Combine(evidence, "report-engine-interop.json"), JsonSerializer.Serialize(new {
             exampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "report-engine-job.mjs")),
-            analyticalExampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "analytical-report-job.mjs")), served, reports
+            analyticalExampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "analytical-report-job.mjs")),
+            wideExampleSha256 = Hash(Path.Combine(repository, "OfficeIMO.JavaScript.Examples", "wide-analytical-report-job.mjs")), served, reports
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
@@ -244,19 +255,23 @@ internal static class ReportEngineInterop {
         foreach (string theme in new[] { "light", "dark" }) {
             await page.EvaluateAsync("theme => { localStorage.setItem('imo-theme',theme); localStorage.setItem('imo-bg','blueprint'); }", theme);
             await page.ReloadAsync(); await ReadyAsync(page); await SelectHierarchyAsync(100, "pdf", "pl");
-            foreach ((int width, int height, string label) in new[] { (1280, 900, "wide"), (390, 844, "phone") }) {
+            await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Tab");
+            if (await page.EvaluateAsync<string>("document.activeElement.id") != "report-generate" && engine == HtmlBrowserEngine.WebKit) {
+                await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Alt+Tab");
+            }
+            Require(await page.EvaluateAsync<string>("document.activeElement.id") == "report-generate", "Hierarchical language control does not lead to Generate by keyboard.");
+            Require(await page.EvaluateAsync<bool>("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2 && getComputedStyle(document.activeElement).outlineStyle !== 'none'"), "Hierarchical keyboard focus lacks a visible outline.");
+            await GenerateAsync(page);
+            foreach ((int width, int height, string label) in new[] { (1280, 900, "wide"), (1024, 768, "sidebar"), (862, 650, "intermediate-short"), (390, 844, "phone") }) {
                 await page.SetViewportSizeAsync(width, height); await page.EvaluateAsync("() => document.fonts.ready.then(() => true)");
-                await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Tab");
-                if (await page.EvaluateAsync<string>("document.activeElement.id") != "report-generate" && engine == HtmlBrowserEngine.WebKit) {
-                    await page.Locator("#report-language").FocusAsync(); await page.Keyboard.PressAsync("Alt+Tab");
-                }
-                Require(await page.EvaluateAsync<string>("document.activeElement.id") == "report-generate", "Hierarchical language control does not lead to Generate by keyboard.");
-                Require(await page.EvaluateAsync<bool>("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2 && getComputedStyle(document.activeElement).outlineStyle !== 'none'"), "Hierarchical keyboard focus lacks a visible outline.");
+                await SettleViewportAsync(page);
+                await page.Locator("#report-download").FocusAsync();
+                await VerifyCompletedActionsAsync(page);
                 await ScrollTopAsync(page); JsonElement layout = await LayoutAsync(page);
                 Require(layout.GetProperty("overflow").GetInt32() <= 1 && layout.GetProperty("controlsVisible").GetBoolean() && layout.GetProperty("theme").GetString() == theme, "Hierarchical layout overflow, controls or theme differ.");
                 Require(layout.GetProperty("selectHeights").EnumerateArray().All(value => value.GetDouble() >= 44), "Hierarchical select controls are smaller than 44px.");
                 await page.ScreenshotAsync(new() { Path = Path.Combine(output, $"hierarchical-{label}-{theme}.png"), FullPage = true });
-                states.Add(new { theme, width, height, layout, hierarchicalLanguage = "pl", keyboardFocus = "language to generate" });
+                states.Add(new { theme, width, height, layout, hierarchicalLanguage = "pl", completedReportActions = true, keyboardFocus = "language to generate before completion; download after completion" });
             }
         }
         await page.Locator("#report-rows").SelectOptionAsync("0"); await ScrollTopAsync(page);
@@ -267,12 +282,49 @@ internal static class ReportEngineInterop {
         () => ({ viewport: innerWidth, overflow: document.documentElement.scrollWidth - innerWidth,
           theme: document.documentElement.dataset.theme, background: document.documentElement.dataset.bg,
           controlsVisible: ['report-rows','report-format','report-layout','report-language','report-generate','report-cancel'].every(id => {
+            if (id === 'report-cancel' && document.getElementById(id).hidden) return true;
             const r = document.getElementById(id).getBoundingClientRect(); return r.width > 0 && r.left >= -1 && r.right <= innerWidth + 1;
           }), font: getComputedStyle(document.body).fontFamily,
           selectHeights: ['report-rows','report-format','report-layout','report-language'].map(id => document.getElementById(id).getBoundingClientRect().height),
           status: { live: document.querySelector('#report-status').getAttribute('aria-live'), busy: document.querySelector('#report-form').getAttribute('aria-busy') },
           previewScrollable: document.querySelector('.imo-report-lab__table-scroll').scrollWidth > document.querySelector('.imo-report-lab__table-scroll').clientWidth })
         """);
+    private static async Task<JsonElement> VerifyCompletedActionsAsync(IPage page) {
+        Require(await page.EvaluateAsync<bool>("""
+            () => {
+              const download = document.querySelector('#report-download'), generate = document.querySelector('#report-generate');
+              const cancel = document.querySelector('#report-cancel'), measurement = document.querySelector('#report-measurement');
+              const progress = document.querySelector('#report-progress'), status = document.querySelector('#report-status');
+              const link = download.getBoundingClientRect(), action = generate.getBoundingClientRect(), meter = progress.getBoundingClientRect();
+              const summary = status.getBoundingClientRect(), timing = measurement.getBoundingClientRect();
+              return !download.hidden && download.classList.contains('imo-btn-primary') && generate.classList.contains('imo-btn-ghost')
+                && cancel.hidden && !measurement.hidden && link.height >= 44 && action.height >= 44
+                && link.left >= 0 && link.right <= innerWidth && link.bottom <= action.top + 1
+                && action.bottom < meter.top && summary.top >= meter.bottom + 8 && timing.top >= summary.bottom + 8;
+            }
+            """), "Completed report actions or separated progress/timing layout differ.");
+        JsonElement measurement = await page.EvaluateAsync<JsonElement>("""
+            () => {
+              const element = document.querySelector('#report-measurement'), result = document.querySelector('.imo-report-lab__result');
+              const controls = document.querySelector('.imo-report-lab__controls'), range = document.createRange();
+              range.selectNodeContents(element);
+              const content = Array.from(range.getClientRects()), parent = result.getBoundingClientRect(), panel = controls.getBoundingClientRect();
+              const bounds = rect => ({left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom});
+              const inside = (rect,outer) => rect.left >= outer.left - 1 && rect.right <= outer.right + 1 && rect.top >= outer.top - 1 && rect.bottom <= outer.bottom + 1;
+              return {text:element.textContent,lines:content.map(bounds),result:bounds(parent),controls:bounds(panel),
+                renderedInsideResult:!element.hidden && content.length > 0 && content.every(rect => rect.width > 0 && rect.height > 0 && inside(rect,parent) && inside(rect,panel))};
+            }
+            """);
+        Require(measurement.GetProperty("renderedInsideResult").GetBoolean(), "Completed timing text is not fully rendered inside its result/control bounds.");
+        return measurement;
+    }
+    private static async Task SettleViewportAsync(IPage page) {
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await page.WaitForFunctionAsync("""
+            () => !document.getAnimations().some(animation => animation instanceof CSSTransition && animation.playState === 'running'
+              && Number.isFinite(animation.effect?.getComputedTiming().endTime))
+            """, null, new() { Timeout = 5000 });
+    }
     private static async Task ScrollTopAsync(IPage page) {
         await page.EvaluateAsync("scrollTo({ top: 0, left: 0, behavior: 'instant' })");
         await page.WaitForFunctionAsync("scrollY === 0");

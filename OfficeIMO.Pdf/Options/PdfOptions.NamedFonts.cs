@@ -99,6 +99,7 @@ public sealed partial class PdfOptions {
     /// <summary>Removes every embedded named family and its parsed program cache.</summary>
     public PdfOptions ClearNamedFontFamilies() {
         _namedFontFamilies?.Clear();
+        _namedFallbackPlanBindings?.Clear();
         _namedFontPrograms?.Clear();
         _namedOpenTypeCffFontPrograms?.Clear();
         _namedFontProgramFailures?.Clear();

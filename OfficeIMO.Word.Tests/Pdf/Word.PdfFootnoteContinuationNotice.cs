@@ -1,4 +1,3 @@
-using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -13,10 +12,11 @@ public partial class WordPdfPageFootnoteTests {
     [Theory]
     [InlineData("14")]
     [InlineData("15")]
-    public void SaveAsPdf_RegisteredFootnoteNoticeAppearsOnceOnlyWhenNotesContinue(string mode) {
+    public void SaveAsPdf_RegisteredFootnoteNoticeWithKeepNextAppearsOnceOnlyWhenNotesContinue(string mode) {
         using WordDocument document = LoadFootnoteStorySelectionFixture();
         SetFootnoteStorySelectionMode(document, mode);
-        AddFootnoteNoticeStory(document, registered: true, empty: false);
+        W.Footnote noticeStory = AddFootnoteNoticeStory(document, registered: true, empty: false);
+        noticeStory.Elements<W.Paragraph>().Single().ParagraphProperties!.KeepNext = new W.KeepNext();
 
         using var pdf = PdfPigDocument.Open(ConvertFootnoteStorySelection(document));
         AssertFootnoteStorySelectionInventory(pdf);
@@ -57,40 +57,6 @@ public partial class WordPdfPageFootnoteTests {
         AssertFootnoteStorySelectionInventory(pdf);
         Assert.DoesNotContain(PageFootnoteCompact(FootnoteNoticeToken),
             PageFootnoteCompact(string.Concat(pdf.GetPages().Select(page => page.Text))), StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("14")]
-    [InlineData("15")]
-    public void SaveAsPdf_UnsupportedRegisteredFootnoteNoticeSelectsReportedFlowFallback(string mode) {
-        using WordDocument document = LoadFootnoteStorySelectionFixture();
-        SetFootnoteStorySelectionMode(document, mode);
-        W.Footnote notice = AddFootnoteNoticeStory(document, registered: true, empty: false);
-        notice.Elements<W.Paragraph>().Single().ParagraphProperties!.KeepNext = new W.KeepNext();
-        Assert.Empty(document.ValidateDocument());
-        var main = document._wordprocessingDocument.MainDocumentPart!;
-        string[] before = { main.Document.OuterXml, main.FootnotesPart!.Footnotes!.OuterXml,
-            main.DocumentSettingsPart!.Settings!.OuterXml, main.StyleDefinitionsPart!.Styles!.OuterXml };
-
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        using var pdf = PdfPigDocument.Open(result.ToBytes());
-        // The fallback joins the note into one paragraph, so a multiword token
-        // can cross a page boundary. Remove only this fixture's verified footer
-        // letters before joining the complete body inventory across pages.
-        string body = PageFootnoteCompact(string.Concat(pdf.GetPages().Select(page => {
-            var footer = PageFootnoteToken(page, "FOOTER");
-            return string.Concat(page.Letters.Except(footer).Select(letter => letter.Value));
-        })));
-        foreach (string token in Enumerable.Range(1, 70).Select(number => $"NOTE LONG {number:000}")
-            .Concat(Enumerable.Range(1, 6).Select(number => $"AFTER LONG {number:00}")))
-            Assert.Single(System.Text.RegularExpressions.Regex.Matches(body,
-                System.Text.RegularExpressions.Regex.Escape(PageFootnoteCompact(token))));
-        Assert.Single(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
-        Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Equal(before, new[] { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,
-            main.DocumentSettingsPart.Settings.OuterXml, main.StyleDefinitionsPart.Styles.OuterXml });
-        Assert.Empty(document.ValidateDocument());
     }
 
     private static W.Footnote AddFootnoteNoticeStory(WordDocument document, bool registered, bool empty) {

@@ -15,7 +15,7 @@ public partial class Word {
     [InlineData("separator", true)]
     [InlineData("continuation", false)]
     [InlineData("continuation", true)]
-    public void SaveAsPdf_NoteKeepWithNextSelectsFlowFallbackBeforeDefinitions(string story, bool inherited) {
+    public void SaveAsPdf_NoteKeepWithNextUsesSharedNoteParagraphFlow(string story, bool inherited) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
         source.AddParagraph("FIRSTREFERENCE").AddFootNote("FIRSTNOTEBODY");
         source.AddParagraph("SECONDREFERENCE").AddFootNote("SECONDNOTEBODY");
@@ -40,10 +40,12 @@ public partial class Word {
                 Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, token));
             Assert.True(text.IndexOf("LASTBODY", StringComparison.Ordinal) < text.IndexOf("FIRSTNOTEBODY", StringComparison.Ordinal));
             Assert.True(text.IndexOf("FIRSTNOTEBODY", StringComparison.Ordinal) < text.IndexOf("SECONDNOTEBODY", StringComparison.Ordinal));
-            var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
-            Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
-            Assert.True(result.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
+            var page = pdf.GetPages().Single(item => item.Text.Contains("FIRSTNOTEBODY", StringComparison.Ordinal));
+            var letters = page.Letters.ToArray();
+            Assert.True(FindRichNoteToken(letters, "FIRSTNOTEBODY")[0].StartBaseLine.Y <
+                FindRichNoteToken(letters, "LASTBODY")[0].StartBaseLine.Y,
+                "Supported keep-with-next must preserve the page-note area below the body.");
         }
         Assert.Equal(bodyBefore, main.Document.OuterXml);
         Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);

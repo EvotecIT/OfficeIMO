@@ -1,10 +1,11 @@
+using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -99,6 +100,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Renders_Endnote_Markers_And_Text() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeEndnotes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeEndnotes.pdf");
+            string destinationName;
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph footnoteParagraph = document.AddParagraph("Native footnote here");
@@ -107,20 +109,51 @@ namespace OfficeIMO.Tests {
                 endnoteParagraph.AddEndNote("Native endnote text");
                 document.AddParagraph("Native after notes");
                 document.Save();
+                long noteId = Assert.Single(endnoteParagraph._paragraph.Descendants<W.EndnoteReference>()).Id!.Value;
+                destinationName = "OfficeIMO.Endnote." + noteId;
+                var main = document._wordprocessingDocument.MainDocumentPart!;
+                string documentBefore = main.Document.OuterXml;
+                string notesBefore = main.EndnotesPart!.Endnotes!.OuterXml;
+                byte[] sourceBefore = File.ReadAllBytes(docPath);
                 document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                     IncludePageNumbers = false
                 });
+                Assert.Equal(documentBefore, main.Document.OuterXml);
+                Assert.Equal(notesBefore, main.EndnotesPart.Endnotes.OuterXml);
+                Assert.Equal(sourceBefore, File.ReadAllBytes(docPath));
             }
 
             Assert.True(File.Exists(pdfPath));
             using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
-                string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
                 Assert.Contains("Native endnote herei", allText);
                 AssertPdfFootnoteAssociation(pdf, "Native footnote here", "Native footnote text", "1");
-                Assert.Contains("i Native endnote text", normalizedText);
+                // Keep the supplied phrase's authored spaces; no space is
+                // authored between its separate endnote marker and the text.
+                Assert.Contains("Native endnote text", allText);
                 Assert.Contains("Native after notes", allText);
+                var notePage = Assert.Single(pdf.GetPages(), page => page.Text.Contains("Native endnote text", StringComparison.Ordinal));
+                var noteText = AnchoredRunningLetters(notePage, "Native endnote text");
+                var label = Assert.Single(notePage.Letters, letter => letter.Value == "i" &&
+                    letter.StartBaseLine.Y > noteText[0].StartBaseLine.Y &&
+                    letter.StartBaseLine.Y - noteText[0].StartBaseLine.Y < noteText[0].PointSize &&
+                    Math.Abs(letter.EndBaseLine.X - noteText[0].StartBaseLine.X) <= .15D);
+                Assert.True(label.PointSize < noteText[0].PointSize);
+                var followingPage = Assert.Single(pdf.GetPages(), page => page.Text.Contains("Native after notes", StringComparison.Ordinal));
+                Assert.True(followingPage.Number <= notePage.Number);
+                if (followingPage.Number == notePage.Number)
+                    Assert.True(AnchoredRunningLetters(followingPage, "Native after notes")[0].StartBaseLine.Y > label.StartBaseLine.Y);
+                PdfDocumentInfo navigation = PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
+                PdfLinkAnnotation annotation = Assert.Single(navigation.LinkAnnotations,
+                    link => link.DestinationName == destinationName);
+                Assert.True(annotation.IsNamedDestinationLink);
+                Assert.True(annotation.Width > 0D && annotation.Height > 0D);
+                Assert.Equal(Assert.Single(pdf.GetPages(), page => page.Text.Contains("Native endnote here", StringComparison.Ordinal)).Number,
+                    annotation.PageNumber);
+                PdfNamedDestination destination = Assert.Single(navigation.NamedDestinations,
+                    item => item.Name == destinationName);
+                Assert.Equal(notePage.Number, destination.PageNumber);
             }
         }
 
