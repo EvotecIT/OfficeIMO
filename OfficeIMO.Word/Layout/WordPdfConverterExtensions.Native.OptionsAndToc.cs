@@ -68,9 +68,18 @@ namespace OfficeIMO.Word.Pdf {
                 EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies).Any(family =>
                     pdfOptions.TryResolveFontFamilySubstitution(family, out PdfCore.PdfFontFamilySubstitution? substitution) &&
                     substitution != null);
+            // Fallback candidates select no body font, so with no caller body font a registered
+            // document default family stays on the run-resolution path, as it does without them.
+            bool hasRegisteredDocumentDefaultFamily =
+                string.IsNullOrWhiteSpace(options?.FontFamily) &&
+                !pdfOptions.HasExplicitDefaultFont &&
+                !pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont) &&
+                EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies).Any(family =>
+                    pdfOptions.TryResolveNamedOfficeFontFamily(family, out _));
             if (hasConfiguredPdfOptions &&
                 !appliedNativeDefaultFont &&
-                !hasResolvedDocumentDefaultSubstitution) {
+                !hasResolvedDocumentDefaultSubstitution &&
+                !hasRegisteredDocumentDefaultFamily) {
                 nativeFontMap.PreferPdfDefaultForDocumentDefaultFont();
             }
 
