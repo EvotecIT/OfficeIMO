@@ -263,6 +263,62 @@ public class RtfParagraphLayoutTests {
     }
 
     [Fact]
+    public void Rtf_To_Word_Bridge_Applies_Paragraph_Alignment_And_Indents() {
+        const string rtf = @"{\rtf1\ansi\pard\qc Centred.\par\pard\qr Right.\par\pard\qj Justified.\par\pard\li720\ri360\fi-360 Indented.\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+        using WordDocument word = result.Document.ToWordDocument();
+
+        Assert.Equal(4, word.Paragraphs.Count);
+        Assert.Equal(WordParagraphAlignment.Center, word.Paragraphs[0].ParagraphAlignment);
+        Assert.Equal(WordParagraphAlignment.Right, word.Paragraphs[1].ParagraphAlignment);
+        Assert.Equal(WordParagraphAlignment.Both, word.Paragraphs[2].ParagraphAlignment);
+        Assert.Null(word.Paragraphs[3].ParagraphAlignment);
+        Assert.Equal(720, word.Paragraphs[3].IndentationBefore);
+        Assert.Equal(360, word.Paragraphs[3].IndentationAfter);
+        Assert.Null(word.Paragraphs[3].IndentationFirstLine);
+        Assert.Equal(360, word.Paragraphs[3].IndentationHanging);
+    }
+
+    [Fact]
+    public void Word_To_Rtf_Bridge_Carries_Paragraph_Alignment_And_Indents() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph centred = word.AddParagraph("Centred");
+        centred.ParagraphAlignment = WordParagraphAlignment.Center;
+        WordParagraph justified = word.AddParagraph("Justified");
+        justified.ParagraphAlignment = WordParagraphAlignment.Both;
+        WordParagraph indented = word.AddParagraph("Indented");
+        indented.IndentationBefore = 720;
+        indented.IndentationAfter = 360;
+        indented.IndentationHanging = 360;
+
+        RtfDocument rtfDocument = word.ToRtfDocument();
+        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+
+        Assert.Equal(RtfTextAlignment.Center, rtfDocument.Paragraphs[0].DirectAlignment);
+        Assert.Equal(RtfTextAlignment.Justify, rtfDocument.Paragraphs[1].DirectAlignment);
+        Assert.Equal(720, rtfDocument.Paragraphs[2].LeftIndentTwips);
+        Assert.Equal(360, rtfDocument.Paragraphs[2].RightIndentTwips);
+        Assert.Equal(-360, rtfDocument.Paragraphs[2].FirstLineIndentTwips);
+        Assert.Contains(@"\qc", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\qj", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\li720", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\ri360", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\fi-360", rtf, StringComparison.Ordinal);
+
+        Assert.Equal(3, roundTrip.Paragraphs.Count);
+        Assert.Equal(WordParagraphAlignment.Center, roundTrip.Paragraphs[0].ParagraphAlignment);
+        Assert.Equal(WordParagraphAlignment.Both, roundTrip.Paragraphs[1].ParagraphAlignment);
+        // The RTF writer always emits an explicit \ql for styleless paragraphs, so the round trip reads back as Left.
+        Assert.Equal(WordParagraphAlignment.Left, roundTrip.Paragraphs[2].ParagraphAlignment);
+        Assert.Equal(720, roundTrip.Paragraphs[2].IndentationBefore);
+        Assert.Equal(360, roundTrip.Paragraphs[2].IndentationAfter);
+        Assert.Null(roundTrip.Paragraphs[2].IndentationFirstLine);
+        Assert.Equal(360, roundTrip.Paragraphs[2].IndentationHanging);
+    }
+
+    [Fact]
     public void Read_Binds_Paragraph_Direction_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi\pard\rtlpar RTL\par\pard Plain\par}";
 

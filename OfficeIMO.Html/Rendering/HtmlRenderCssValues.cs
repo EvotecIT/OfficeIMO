@@ -82,21 +82,29 @@ internal static class HtmlRenderCssValues {
         double containerHeight,
         out double result,
         out bool isCalculated,
-        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
-        var context = new HtmlCssLengthResolutionContext {
-                PercentageReference = FiniteOrNull(reference),
-                FontSize = FiniteOrNull(fontSize),
-                RootFontSize = FiniteOrNull(rootFontSize),
-                UprightVerticalText = uprightVerticalText,
-                CharacterAdvance = FiniteOrNull(characterAdvance),
-                ViewportWidth = FiniteOrNull(viewportWidth),
-                ViewportHeight = FiniteOrNull(viewportHeight),
-                ContainerWidth = FiniteOrNull(containerWidth),
-                ContainerHeight = FiniteOrNull(containerHeight),
-                ContainerInlineSize = FiniteOrNull(containerWidth),
-                ContainerBlockSize = FiniteOrNull(containerHeight)
-        };
-        return TryLength(value, context, out result, out isCalculated, out _);
+        double characterAdvance = double.NaN, bool uprightVerticalText = false,
+        HtmlRenderLengthExpressionCache? expressionCache = null) {
+        result = 0D;
+        isCalculated = false;
+        // Common non-length defaults need no numeric resolution context. Other
+        // tokens still go through the authoritative bounded CSS math parser.
+        if (string.IsNullOrWhiteSpace(value)
+            || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return false;
+        HtmlCssLengthResolutionContext context = expressionCache?.ResolutionContext ?? new HtmlCssLengthResolutionContext();
+        context.PercentageReference = FiniteOrNull(reference);
+        context.FontSize = FiniteOrNull(fontSize);
+        context.RootFontSize = FiniteOrNull(rootFontSize);
+        context.UprightVerticalText = uprightVerticalText;
+        context.CharacterAdvance = FiniteOrNull(characterAdvance);
+        context.ViewportWidth = FiniteOrNull(viewportWidth);
+        context.ViewportHeight = FiniteOrNull(viewportHeight);
+        context.ContainerWidth = FiniteOrNull(containerWidth);
+        context.ContainerHeight = FiniteOrNull(containerHeight);
+        context.ContainerInlineSize = FiniteOrNull(containerWidth);
+        context.ContainerBlockSize = FiniteOrNull(containerHeight);
+        return TryLength(value, context, out result, out isCalculated, out _, expressionCache);
     }
 
     /// <summary>Resolves through the existing numeric owner while retaining typed root metadata for font provenance.</summary>
@@ -105,13 +113,15 @@ internal static class HtmlRenderCssValues {
         HtmlCssLengthResolutionContext context,
         out double result,
         out bool isCalculated,
-        out HtmlCssMathExpression? expression) {
+        out HtmlCssMathExpression? expression,
+        HtmlRenderLengthExpressionCache? expressionCache = null) {
         result = 0D;
         isCalculated = false;
         expression = null;
         if (string.IsNullOrWhiteSpace(value)) return false;
         try {
-            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value!);
+            HtmlCssMathParseResult parsed = expressionCache?.Parse(value!)
+                ?? HtmlCssMathParser.ParseLengthPercentage(value!);
             if (!parsed.IsParsed) return false;
             expression = parsed.Expression!;
             isCalculated = expression.IsCalculated;

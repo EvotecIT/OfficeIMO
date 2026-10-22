@@ -444,20 +444,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || style.Position == "absolute"
             || style.Position == "fixed") return;
         bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
-        if (establishesLineBoundary) {
-            result.Add(IntrinsicTextRun.ForcedBreak(style));
-            result.Add(IntrinsicTextRun.ParagraphStart(style));
-        }
+        List<IntrinsicTextRun>? blockRuns = establishesLineBoundary ? new List<IntrinsicTextRun>() : null;
+        ICollection<IntrinsicTextRun> generated = blockRuns != null ? blockRuns : result;
+        if (establishesLineBoundary) generated.Add(IntrinsicTextRun.ParagraphStart(style));
         var inlineRuns = new List<HtmlInlineRun>();
         AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
         foreach (HtmlInlineRun run in inlineRuns) {
             if (run.AtomicBlock != null) {
-                result.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
+                generated.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
             } else if (run.Text.Length > 0) {
-                result.Add(new IntrinsicTextRun(run.Text, run.Style, textTransformPending: run.TextTransformPending));
+                generated.Add(new IntrinsicTextRun(run.Text, run.Style, textTransformPending: run.TextTransformPending));
             }
         }
-        if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(style));
+        if (blockRuns != null) {
+            IReadOnlyList<IntrinsicTextRun> runs = NormalizeIntrinsicTextRuns(blockRuns);
+            double measuredMinimum = MeasureMinContentRuns(runs);
+            double measuredMaximum = MeasureMaxContentRuns(runs);
+            (double minimum, double maximum) = style.HasIntrinsicWidths
+                ? ResolveOrdinaryIntrinsicContributions(style, measuredMinimum, measuredMaximum, availableSize)
+                : TryResolveDefiniteIntrinsicBoxContribution(style, out double authored)
+                    ? (authored, authored)
+                    : (ResolveGridMeasuredContribution(style, measuredMinimum), ResolveGridMeasuredContribution(style, measuredMaximum));
+            result.Add(IntrinsicTextRun.ForcedBreak(style));
+            result.Add(IntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), style));
+            result.Add(IntrinsicTextRun.ForcedBreak(style));
+        }
     }
 
     private sealed class IntrinsicTextRun {

@@ -191,8 +191,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 includeDescendantInsets: true);
         } else {
             var rawRuns = new List<IntrinsicTextRun>();
+            if (cell.HasGeneratedContent) rawRuns.Add(IntrinsicTextRun.ParagraphStart(style, cell.Element, containingWidth));
+            if (cell.GeneratedBefore) AppendGeneratedIntrinsicText(cell.Element, HtmlPseudoElementKind.Before, style, containingWidth, rawRuns);
             AppendInFlowIntrinsicTextRuns(cell.Element, style, containingWidth, depth, rawRuns,
-                includeDescendantInsets: true, sourceNodes: cell.Nodes);
+                includeDescendantInsets: true, startsParagraph: !cell.HasGeneratedContent, sourceNodes: cell.Nodes);
+            if (cell.GeneratedAfter) AppendGeneratedIntrinsicText(cell.Element, HtmlPseudoElementKind.After, style, containingWidth, rawRuns);
             runs = NormalizeIntrinsicTextRuns(rawRuns);
         }
         double insets = style.HorizontalInsets;
