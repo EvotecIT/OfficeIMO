@@ -19,7 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var visuals = new List<HtmlRenderVisual>(page.Scene);
             IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> axisBounds =
                 ResolvePageMarginAxisBounds(page, boxes, pages.Count, out var preparedTextByPosition);
-            foreach (HtmlCssPageMarginTemplate box in boxes.Values.OrderBy(item => item.Position)) {
+            foreach (HtmlCssPageMarginTemplate box in boxes.Values.OrderBy(item => GetPageMarginPaintOrder(item.Position))) {
                 string marginBoxSource = "@page @" + GetMarginBoxName(box.Position);
                 if (!box.Content.IsEmpty && box.UnsupportedVerticalAlignment.Length > 0
                     && _reportedMarginTextOverflow.Add(marginBoxSource + " vertical-align")) {
@@ -59,17 +59,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!TryGetPageMarginContentBounds(page, box, axisBounds, lineHeight, out _, out _, out double availableWidth, out _)) continue;
                 // Retain the generated text and alignment in the public scene,
                 // reserving enough height for its measured wrapped lines.
-                OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(text, box.Font.Size,
-                    Math.Max(0.01D, availableWidth), double.MaxValue, 1D, box.Font.Size,
-                    (value, _) => MeasurePageMarginText(value ?? string.Empty, box),
-                    wrap: true, forceSingleLine: false, shrinkToFit: false,
-                    overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                OfficeTextBlockLayout measured = MeasurePageMarginWrappedText(text, box, availableWidth);
                 IReadOnlyList<OfficeTextLine> lines = measured.Lines;
-                if (measured.Clipped && _reportedMarginTextOverflow.Add(marginBoxSource + " text-layout-limit")) {
-                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
-                        "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
-                        HtmlDiagnosticSeverity.Warning, marginBoxSource, "text-layout-limit", OfficeConversionLossKind.Omission);
-                }
                 double textHeight = lines.Count * lineHeight;
                 if (box.Font.Size <= 0D) {
                     AppendEmptyPageMarginBox(visuals, page, box, axisBounds, textHeight);

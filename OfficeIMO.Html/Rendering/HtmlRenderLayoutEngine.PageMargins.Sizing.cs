@@ -25,12 +25,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 intrinsic = snapshot != null
                     ? MeasurePageMarginRunningSnapshot(snapshot, physical ? fixedExtent : availableWidth, box)
                     : new PageMarginIntrinsicSize(generated, 0D, 0D);
-            } else if (box.Content.ContainsRunningElement || box.Font.Size <= 0D || !generated) {
+            } else if (box.Content.ContainsRunningElement || !generated || box.Font.Size <= 0D && !physical) {
                 intrinsic = new PageMarginIntrinsicSize(generated, 0D, 0D);
             } else {
                 value = RenderPageMarginText(page, box, pageCount);
                 text.Add(box.Position, value);
-                intrinsic = MeasurePageMarginTextIntrinsics(value, box);
+                intrinsic = box.Font.Size <= 0D ? new PageMarginIntrinsicSize(true, 0D, 0D)
+                    : MeasurePageMarginTextIntrinsics(value, box);
             }
             if (!physical) {
                 sizes[box.Position] = intrinsic;
@@ -110,13 +111,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Measures side contributions after the fixed-axis width has been resolved.</summary>
     private double MeasurePageMarginWrappedHeight(string value, HtmlCssPageMarginTemplate box, double availableWidth) {
-        if (value.Length == 0 || box.Font.Size <= 0D && !box.Typography.HasPageMarginIntrinsicHeights) return 0D;
+        if (value.Length == 0) return 0D;
         ResolvePageMarginTextMetrics(box, value, out double lineHeight, out _, out _, out _);
+        return MeasurePageMarginWrappedText(value, box, availableWidth).Lines.Count * lineHeight;
+    }
+
+    /// <summary>Shares wrapped-line admission and its typed truncation loss between sizing and final painting.</summary>
+    private OfficeTextBlockLayout MeasurePageMarginWrappedText(string value, HtmlCssPageMarginTemplate box, double availableWidth) {
         OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(value, box.Font.Size,
             Math.Max(0.01D, availableWidth), double.MaxValue, 1D, box.Font.Size,
             (text, _) => MeasurePageMarginText(text ?? string.Empty, box),
             wrap: true, forceSingleLine: false, shrinkToFit: false, overflowBehavior: OfficeTextOverflowBehavior.Clip);
-        return measured.Lines.Count * lineHeight;
+        string source = "@page @" + GetMarginBoxName(box.Position);
+        if (measured.Clipped && _reportedMarginTextOverflow.Add(source + " text-layout-limit")) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
+                HtmlDiagnosticSeverity.Warning, source, "text-layout-limit", OfficeConversionLossKind.Omission);
+        }
+        return measured;
     }
 
     private string RenderPageMarginText(HtmlRenderPage page, HtmlCssPageMarginTemplate box, int pageCount) {

@@ -321,6 +321,51 @@ public sealed partial class HtmlRenderingTests {
         Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
     }
 
+    [Theory]
+    [InlineData("height:max-content")]
+    [InlineData("height:0;min-height:min-content")]
+    [InlineData("height:80px;max-height:max-content")]
+    public void HtmlPageMarginSideCorner_ZeroSizeTextRetainsIntrinsicLeadingWithoutGlyphPaint(string constraint) {
+        HtmlRenderDocument rendered = RenderSideCornerMargins(
+            "@left-top{content:'A\\A B';white-space:pre;font-size:0;line-height:20px;width:40px;"
+            + constraint + ";padding:3px;border:2px solid green;background:blue}");
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        AssertSideCornerMarginRectangle(SideCornerMarginFill(page, OfficeColor.Blue), 50D, 60D, 50D, 50D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
+            text => text.Source == "@page @left-top");
+        Assert.Equal("BODY", rendered.Text.Trim());
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlPageMarginSideCorner_ZeroSizeTextContributesLeadingToAutomaticPeerHeights() {
+        HtmlRenderDocument rendered = RenderSideCornerMargins(
+            "@left-top{content:'A\\A B';white-space:pre;font-size:0;line-height:20px;background:red}"
+            + "@left-middle{content:'M';background:blue}@left-bottom{content:'B';background:green}");
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal(120D, SideCornerMarginFill(page, OfficeColor.Red).Height, 6);
+        Assert.Equal(60D, SideCornerMarginFill(page, OfficeColor.Blue).Height, 6);
+        Assert.Equal(120D, SideCornerMarginFill(page, OfficeColor.Green).Height, 6);
+        Assert.DoesNotContain(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(), text => text.Source == "@page @left-top");
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("left", 70, 100)]
+    [InlineData("bottom", 120, 370)]
+    public void HtmlPageMarginSideCorner_OverlappingBoxesUseClockwiseDefaultPaintOrder(string pair, int x, int y) {
+        string boxes = pair == "left"
+            ? "@left-top{content:'';width:40px;height:200px;background:red}"
+                + "@left-middle{content:'';width:40px;height:300px;background:blue}"
+            : "@bottom-left-corner{content:'';width:150px;height:40px;margin-right:-60px;background:red}"
+                + "@bottom-left{content:'';height:40px;background:blue}";
+        HtmlRenderDocument rendered = RenderSideCornerMargins(boxes);
+        OfficeRasterImage pixels = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Equal(OfficeColor.Red, pixels.GetPixel(x, y));
+        Assert.Equal("BODY", rendered.Text.Trim());
+        rendered.RequireNoLoss();
+    }
+
     private static HtmlRenderDocument RenderSideCornerMargins(string boxes, string body = "<p>BODY</p>",
         HtmlRenderOptions? options = null) {
         string family = ManagedTextShapingTestAssets.FamilyName;
