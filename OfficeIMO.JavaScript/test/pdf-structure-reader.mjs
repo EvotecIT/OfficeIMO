@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 
+/** Select actual structure dictionaries, excluding stream payloads that contain packed members. */
+export function pdfStructureElements(pdf) {
+  return [...pdf.objects].filter(([, object]) => object.stream === undefined && /^\s*<<\s*\/Type\s+\/StructElem\b/.test(object.body));
+}
+
 // Narrow semantic reader over the independent xref reader's object bodies. It keeps
 // child references distinct from page-local MCIDs and consumes every K value.
 export function pdfStructureChildren(body) {

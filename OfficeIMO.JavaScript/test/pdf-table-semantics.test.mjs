@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, pdfTable, writeGroupedPdf } from "../dist/pdf/index.js";
 import { createGroupedReport } from "../dist/core/index.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const references = body => [...body.matchAll(/(\d+) 0 R/g)].map(match => Number(match[1]));
 const reference = (body, name) => Number(new RegExp("/" + name + " (\\d+) 0 R").exec(body)?.[1]);
@@ -11,7 +11,7 @@ const headerIds = body => [...(/\/Headers \[([^\]]*)\]/.exec(body)?.[1] ?? "").m
 
 async function tableStructure(blob) {
   const pdf = await inspectPdf(blob), elements = new Map();
-  for (const [id, object] of pdf.objects) if (/\/Type \/StructElem /.test(object.body)) {
+  for (const [id, object] of pdfStructureElements(pdf)) {
     const text = pdfStructureChildren(object.body).entries.filter(entry => entry.kind === "mark").map(entry => {
       const page = pdf.pages.find(page => page.id === entry.pageId);
       assert.ok(page, "Every semantic cell reference resolves to a physical page");

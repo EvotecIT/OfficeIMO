@@ -4,7 +4,7 @@ import { writePdfDocument, writePdfDocumentTo, pdfGroupedTable, createGroupedRep
 import { PdfObjects } from "../dist/pdf/objects.js";
 import { pdfXrefChunks } from "../dist/pdf/xref.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 function report(compression, { sink, signal, limits, returned } = {}) {
   const columns = [{ header: "ID", key: "id" }, { header: "Site", key: "site" }, { header: "Amount", key: "amount", type: "number" }];
@@ -27,7 +27,7 @@ function report(compression, { sink, signal, limits, returned } = {}) {
 /** Object numbers may change when containers are reserved. Compare the xref-resolved logical graph,
  * including its page-local marks, header identities and native annotation owners. */
 function semanticGraph(pdf) {
-  const nodes = [...pdf.objects].filter(([, object]) => /\/Type \/StructElem\b/.test(object.body));
+  const nodes = pdfStructureElements(pdf);
   const identities = new Map(nodes.map(([id], index) => [id, index])), pages = new Map(pdf.pages.map((page, index) => [page.id, index]));
   const annotations = new Map([...pdf.objects].filter(([, object]) => /\/Subtype \/Link\b/.test(object.body)).map(([id], index) => [id, index]));
   const headers = new Map(nodes.flatMap(([id, object]) => {
@@ -49,8 +49,11 @@ function semanticGraph(pdf) {
 }
 
 /** Resolve every synthetic value through the emitted xref, including ordinary overflow values. */
-async function compactFixture(bodies, afterMember, buffered = false) {
-  const chunks = [], expected = new Map(), objects = new PdfObjects({ write(bytes) { chunks.push(bytes.slice()); } }, undefined, undefined, true);
+async function compactFixture(bodies, afterMember, buffered = false, acknowledge) {
+  const chunks = [], expected = new Map(), objects = new PdfObjects({ write(bytes) {
+    if (acknowledge) return acknowledge(bytes).then(() => { chunks.push(bytes.slice()); });
+    chunks.push(bytes.slice());
+  } }, undefined, undefined, true);
   let bufferedMembers = 0;
   await objects.text("%PDF-1.7\n");
   const catalog = objects.reserve(), pages = objects.reserve(), page = objects.reserve(), resources = objects.reserve(), content = objects.reserve(), info = objects.reserve();
@@ -101,18 +104,27 @@ test("a fresh buffered compact attempt reserves nothing and retains synchronous 
   assert.throws(() => objects.tryCompactObject(first, "(fresh)"), error => error === reason);
 });
 
-test("compressed structure containers preserve banded grouped reports, headers, links and reading order", async () => {
+test("compact structure containers preserve banded grouped reports, headers, links and reading order", async () => {
   const plain = await inspectPdf(await report(false)), compact = await inspectPdf(await report(true));
   assert.deepEqual(compact.pages.map(page => page.content), plain.pages.map(page => page.content));
   assert.deepEqual(semanticGraph(compact), semanticGraph(plain));
-  assert.ok(compact.bytes.length < plain.bytes.length, "This repeated tagged workload benefits from structure compression");
+  assert.ok(compact.bytes.length < plain.bytes.length, "This repeated tagged workload benefits from structure compaction");
   const containers = [...compact.objects.values()].filter(object => /\/Type \/ObjStm\b/.test(object.body));
   assert.ok(containers.length > 1, "The report must exercise several completed batches");
-  for (const container of containers) {
+  for (const [index, container] of containers.entries()) {
     assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 256);
     assert.ok(container.stream.length <= 32768, "Decoded batches retain a bounded member index and body");
-    const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
-    assert.match(compact.objects.get(lengthId).body, /^\d+$/, "A container length stays an ordinary scalar object");
+    const dictionary = container.body.slice(0, container.body.indexOf("\nstream\n"));
+    const length = /\/Length (\d+)( 0 R)? /.exec(dictionary);
+    assert.ok(length);
+    if (index === 0) {
+      assert.match(dictionary, /\/Filter \/FlateDecode\b/, "The first container consumes the native capability probe");
+      assert.equal(length[2], " 0 R");
+      assert.match(compact.objects.get(Number(length[1])).body, /^\d+$/, "The compressed length stays an ordinary scalar object");
+    } else {
+      assert.doesNotMatch(dictionary, /\/Filter\b/, "Later containers store their complete payload directly");
+      assert.equal(length[2], undefined); assert.equal(Number(length[1]), container.stream.length);
+    }
   }
 });
 
@@ -137,9 +149,18 @@ test("the decoded byte ceiling includes the index and newlines, with UTF-8 overf
   assert.equal(pdf.objects.get(ids[2]).bodyOffset, undefined, "An ordinary overflow must leave subsequent compact xref membership valid");
 });
 
-test("completed payloads retain their bytes while later batches reuse the bounded member storage", async () => {
+test("raw payloads retain their bytes until acceptance before later batches reuse the bounded member storage", async () => {
+  let produced = 0, writes = 0;
   const { containers } = await compactFixture(Array.from({ length: 517 }, (_, index) =>
-    "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
+    "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(100) + (index % 2 ? "é" : "😀") + ")"), async objects => {
+    if (++produced === 256) await objects.object(objects.reserve(), "(" + "P".repeat(20000) + ")");
+  }, false, async bytes => {
+    const captured = bytes.slice(), before = produced; writes++;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(produced, before, "A pending raw write must hold the producer before the next arena batch");
+    assert.deepEqual(bytes, captured, "A borrowed output view stays stable through acceptance");
+  });
+  assert.ok(writes > 1, "Raw containers must cross consecutive sink windows");
   assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [256, 256, 5]);
 });
 
@@ -156,8 +177,8 @@ test("serialized compact xrefs preserve index 255 and ordinary entries across me
   }
   for (const container of containers) {
     assert.equal(Number(/\/N (\d+)/.exec(container.body)[1]), 256);
-    const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
-    for (const id of [container.id, lengthId]) {
+    const length = /\/Length (\d+) 0 R/.exec(container.body);
+    for (const id of [container.id, ...(length ? [Number(length[1])] : [])]) {
       assert.equal(xref.stream[id * 11], 1, "Untouched membership slots retain ordinary xref entries");
       assert.equal(xref.stream.readUInt16BE(id * 11 + 9), 0);
     }
@@ -171,7 +192,7 @@ test("page-byte delivery preserves pending structure members across bounded cont
   assert.deepEqual(pageFlushed.pdf.pages.map(page => page.content), ordinary.pdf.pages.map(page => page.content));
 });
 
-test("asynchronous native codecs consume each arena batch before the next batch overwrites it", async () => {
+test("the initial native codec consumes its arena batch before later raw batches overwrite it", async () => {
   const native = globalThis.CompressionStream;
   try {
     globalThis.CompressionStream = class {
@@ -216,17 +237,22 @@ test("disabled and unavailable native compression preserve the ordinary-object c
 });
 
 test("pending compact output awaits a slow sink and preserves sink failures and cancellation", async () => {
-  for (const mode of ["slow", "sink", "abort"]) {
+  for (const stage of ["initial", "raw"]) for (const mode of ["slow", "sink", "abort"]) {
     const controller = new AbortController(), reason = new Error(mode + " stopped");
-    let enter, accept, completed = false, borrowed, captured;
+    let enter, accept, completed = false, borrowed, captured, armed = stage === "initial";
     const observed = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { accept = resolve; });
     const objects = new PdfObjects({ async write(bytes) {
+      if (!armed) return;
       borrowed = bytes; captured = bytes.slice();
       enter();
       if (mode === "sink") throw reason;
       if (mode === "abort") { controller.abort(reason); return new Promise(() => {}); }
       await held;
     } }, controller.signal, undefined, true);
+    if (stage === "raw") {
+      await objects.compactObject(objects.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
+      await objects.flush(); armed = true;
+    }
     await objects.compactObject(objects.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
     assert.equal(objects.tryCompactObject(objects.reserve(), "<< /Type /StructElem /S /P /K [] >>"), true);
     const pending = objects.flush().then(() => { completed = true; });
@@ -251,16 +277,20 @@ test("PDF output stays intact until each asynchronous destination acknowledgemen
   await inspectPdf(new Blob(chunks));
 });
 
-test("compressed structure output ceilings include containers, length objects and the final xref", async () => {
+test("compact structure output ceilings include raw payloads, compressed lengths and the final xref", async () => {
   const expected = await report(true), chunks = [];
   let returned = 0;
   const result = await report(true, { sink: { write(bytes) { chunks.push(bytes.slice()); } }, limits: { maxOutputBytes: expected.size } });
   assert.equal(result.bytes, expected.size); await inspectPdf(new Blob(chunks));
   await assert.rejects(report(true, { sink: { write() {} }, limits: { maxOutputBytes: expected.size - 1 }, returned() { returned++; } }), { code: "RESOURCE_LIMIT" });
   assert.equal(returned, 1, "An output rejection still returns the single-use source");
+  const limited = new PdfObjects({ write() {} }, undefined, 1024, true);
+  await limited.compactObject(limited.reserve(), "(native probe)"); await limited.flush();
+  await limited.compactObject(limited.reserve(), "(" + "Z".repeat(2048) + ")");
+  await assert.rejects(limited.flush(), { code: "RESOURCE_LIMIT" }, "The raw container payload itself must respect maxOutputBytes");
 });
 
-test("compaction propagates codec failures and never silently changes representation after a completed batch", async () => {
+test("the initial compact codec propagates errors and selected compaction never falls back", async () => {
   const native = globalThis.CompressionStream, reason = new Error("Compaction codec stopped");
   try {
     globalThis.CompressionStream = class {
@@ -274,9 +304,8 @@ test("compaction propagates codec failures and never silently changes representa
     const changing = new PdfObjects({ write() {} }, undefined, undefined, true);
     await changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
     await changing.flush();
-    globalThis.CompressionStream = class { constructor() { throw reason; } };
-    await changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /P /K [] >>");
-    await assert.rejects(changing.flush(), error => error === reason);
+    globalThis.CompressionStream = undefined;
+    await assert.rejects(changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /P /K [] >>"), /compression became unavailable/);
   } finally { globalThis.CompressionStream = native; }
 });
 

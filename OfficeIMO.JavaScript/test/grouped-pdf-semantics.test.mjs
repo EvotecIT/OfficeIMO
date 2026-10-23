@@ -4,7 +4,7 @@ import { createGroupedReport } from "../dist/core/index.js";
 import { writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable } from "../dist/pdf/grouped.js";
 import { writePdfDocument } from "../dist/pdf/index.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Service", key: "name" }, { header: "Amount", key: "amount", type: "number", groups: ["Metrics"] }];
 const levels = ["region", "site", "environment", "team"];
@@ -38,7 +38,7 @@ async function semanticPdf(blob) {
   const pages = new Set(pdf.pages.map(page => page.id));
   for (const page of pdf.pages) for (const match of page.content.matchAll(/\/(\w+) << \/MCID (\d+)(?: \/ActualText <[^>]*>)? >> BDC\n([\s\S]*?)EMC/g))
     marked.set(`${page.id}:${match[2]}`, [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(part => Buffer.from(part[1], "hex").toString("latin1")).join(""));
-  const nodes = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => {
+  const nodes = new Map(pdfStructureElements(pdf).map(([id, object]) => {
     const { entries } = pdfStructureChildren(object.body);
     return [id, { id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
       children: entries.filter(entry => entry.kind === "element").map(entry => entry.id),

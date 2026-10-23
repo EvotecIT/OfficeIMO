@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { PdfFont, writePdf, writePdfDocument } from "../dist/pdf/index.js";
 import { TrueTypeFont } from "../dist/pdf/truetype.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 import { createHarfBuzzTextShaper } from "../dist/pdf/providers/harfbuzz.js";
 import { isUnicode13ProfileScalar } from "../dist/pdf/providers/unicode13-profile.js";
 
@@ -53,7 +54,7 @@ test("bounded shaped wrapping preserves logical whitespace, blank lines, page li
   }));
   assert.ok(pdf.pages.length > 1);
   assert.ok(pdf.pages.every(page => /\/Annots/.test(page.body)));
-  assert.ok([...pdf.objects.values()].some(object => /\/S \/Link/.test(object.body)));
+  assert.ok(pdfStructureElements(pdf).some(([, object]) => /\/S \/Link/.test(object.body)));
   const table = await inspectPdf(await writePdf([{ value: "AB" }], { ...options, textShaper: nominal, columns: [{ header: "H", key: "value" }] }));
   assert.equal((table.pages[0].content.match(/\/ActualText/g) ?? []).length, 2);
 });
@@ -114,7 +115,7 @@ test("tagged shaped table headings retain one semantic header and mark every rep
     pageSize: { width: 180, height: 150 }, orientation: "landscape", margins: 10
   }));
   assert.ok(pdf.pages.length >= 3, "The fixture must exercise several repeated headings");
-  assert.equal([...pdf.objects.values()].filter(object => /\/S \/TH\b/.test(object.body)).length, 1,
+  assert.equal(pdfStructureElements(pdf).filter(([, object]) => /\/S \/TH\b/.test(object.body)).length, 1,
     "The column heading has one logical TH even when painted on several pages");
   for (const [index, page] of pdf.pages.entries()) {
     const stack = []; let textObjects = 0, firstTextOwner;

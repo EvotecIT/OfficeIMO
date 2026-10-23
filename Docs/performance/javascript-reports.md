@@ -466,3 +466,44 @@ new initialization costs. Presentation's inclusive subtree instead rises from
 isolated saving came from reuse; the font change also exists outside this owner.
 They are allocation-traffic diagnostics, not retained-memory or RSS measurements.
 Both narrow RSS statistics still require the one fixed M8 comparison.
+
+Candidate `ff279b2b5e5bfd94d7cf84005a5f3dcd4d8764cb` passes all sixteen
+output validations in one fixed normal-host cohort. Narrow mean/median peak
+RSS is 2.84%/3.16% above M8; wide mean/median is 4.59%/3.58% lower. Narrow
+engine-time mean/median is 22.45%/20.17% lower, and wide mean/median is
+28.44%/31.61% lower. Output sizes remain 74.71%/77.02% lower. Sampled heap
+is 5.24%/5.95% lower for narrow, while sampled external memory is
+49.67%/48.83% higher. These memory layers are separate and not additive.
+Every warmup and measured sample remains included. Both narrow RSS criteria
+remain unmet, and the candidate is not repeated to seek a different result.
+No isolated RSS attribution or universal performance claim follows.
+
+## Raw structure containers after the native probe
+
+The first bounded structure container retains the existing compressed capability
+probe. Later containers write their existing index and body directly with a known
+length instead of constructing another native compressor. Object/xref streams
+permit an absent compression filter. The 256-member and 32 KiB decoded limits,
+plain fallback before compaction, page/font/image codecs and awaited sink ownership
+are unchanged. Raw bytes remain borrowed until acceptance, before arena reuse.
+
+All 517 ordinary and 199 focused PDF tests pass, including seventeen object-stream
+contracts. Independent qpdf/pypdf validation covers both full workloads; six
+semantic fixtures and twelve layout profiles pass. The actual built runtime
+produces the same narrow/wide hashes as the isolated serialization prototype.
+Decoded physical commands and font bindings remain identical to the preceding
+compressed-container candidate across all 193 and 386 pages.
+
+The test reader previously mistook two raw container payloads containing
+`/Type /StructElem` text for actual structure dictionaries. The shared eligibility
+selector now excludes streams and checks the outer structure dictionary. Its
+strict child-token parser and all expected structure/ownership graphs remain
+unchanged. The original failure and independent valid-PDF proof are retained.
+
+In the two instrumented diagnostic exports, native compressor constructions fell
+from the preceding source/artifact-derived 467/1,207 to 194/387. Every diagnostic
+codec group and producer closed. This establishes fewer constructions, not native
+C++ deallocation or an isolated RSS saving. The resulting files are 9,163,300 and
+28,185,805 bytes: larger than compressing every container, but still 35.00% and
+36.23% smaller than M8. This explicit file-size/codec-cost tradeoff requires its
+one fixed normal-host comparison; both narrow peak-RSS statistics remain required.

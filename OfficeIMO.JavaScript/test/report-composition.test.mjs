@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const small = { pageSize: { width: 200, height: 130 }, orientation: "landscape", margins: 10, pageNumbers: false, compression: false };
 const paragraph = (text, options = {}) => ({ kind: "paragraph", text, ...options });
@@ -161,12 +162,12 @@ test("single-run PDF lines preserve fit tolerance and the first validation failu
 test("tagged rich reports retain one logical paragraph and native inline link ownership", async () => {
   const pdf = await inspectPdf(await writePdfDocument([paragraph([{ text: "Normal " }, { text: "strong", bold: true }], { headingLevel: 2 })],
     { ...small, tagged: { language: "en-US" } }));
-  assert.equal([...pdf.objects.values()].filter(object => /\/Type \/StructElem \/S \/H2 /.test(object.body)).length, 1);
+  assert.equal(pdfStructureElements(pdf).filter(([, object]) => /\/S \/H2 /.test(object.body)).length, 1);
   assert.equal(joined(pdf), "Normal strong");
   const linked = await inspectPdf(await writePdfDocument([paragraph([{ text: "Link", link: { target: "https://example.com" } }])],
     { ...small, tagged: { language: "en-US" } }));
   assert.equal(annotations(linked).length, 1);
-  assert.ok([...linked.objects.values()].some(object => /\/S \/Link /.test(object.body) && /\/Type \/OBJR/.test(object.body)));
+  assert.ok(pdfStructureElements(linked).some(([, object]) => /\/S \/Link /.test(object.body) && /\/Type \/OBJR/.test(object.body)));
 });
 
 test("rich paragraph snapshots survive cooperative layout and stream output matches Blob output", async () => {

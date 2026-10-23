@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Amount", key: "amount" }];
 const tagged = { language: "en-US" };
@@ -20,7 +20,7 @@ async function inspectStructure(blob) {
   assert.match(catalog.body, /\/MarkInfo << \/Marked true >>/);
   assert.match(catalog.body, /\/Lang <feff0065006e002d00550053>/);
   assert.match(root.body, /\/Type \/StructTreeRoot /);
-  const elements = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => [id, {
+  const elements = new Map(pdfStructureElements(pdf).map(([id, object]) => [id, {
     id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
     ...pdfStructureChildren(object.body)
   }]));
@@ -324,7 +324,7 @@ test("graphic alternative getters preserve the validated text and decorative int
   const pdf = await inspectPdf(await writePdfDocument([described, decorative], {
     tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxCells: 1, maxTextCharacters: 1 }
   }));
-  const figures = [...pdf.objects.values()].filter(o => /\/S \/Figure /.test(o.body));
+  const figures = pdfStructureElements(pdf).filter(([, object]) => /\/S \/Figure /.test(object.body)).map(([, object]) => object);
   assert.equal(figures.length, 1);
   assert.match(figures[0].body, /\/Alt <feff0041>/);
   assert.doesNotMatch(figures[0].body, /0042004200420042/);
@@ -340,9 +340,9 @@ test("composed paragraph getters retain validated heading and text values", asyn
     tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxTextCharacters: 1 }
   }));
   assert.equal(pdf.text, "A");
-  const heading = [...pdf.objects.values()].find(o => /\/S \/H2 /.test(o.body));
+  const heading = pdfStructureElements(pdf).map(([, object]) => object).find(object => /\/S \/H2 /.test(object.body));
   assert.ok(heading, "The captured heading level owns the emitted text");
-  assert.doesNotMatch([...pdf.objects.values()].map(o => o.body).join("\n"), /\/S \/H9 /);
+  assert.doesNotMatch(pdfStructureElements(pdf).map(([, object]) => object.body).join("\n"), /\/S \/H9 /);
 });
 
 test("scalar and rich paragraph presentations capture getters before validating their emitted style", async () => {

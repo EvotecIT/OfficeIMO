@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PdfFont, writePdfDocument, writePdfDocumentTo } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const fonts = Object.fromEntries(await Promise.all([["regular", "Regular"], ["bold", "Bold"], ["italic", "Italic"], ["boldItalic", "BoldItalic"]].map(async ([slot, file]) =>
   [slot, new PdfFont(new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-" + file + ".ttf", import.meta.url))))])));
@@ -40,7 +41,7 @@ test("drawings scale and paginate as indivisible graphics and use the figure alt
   assert.match(pdf.pages[1].content, /\/Figure << \/MCID 0 >> BDC/);
   assert.ok(!pdf.pages[2].content.includes("/MCID"));
   assert.match(pdf.pages[2].content, /\/Artifact << \/Type \/Layout >> BDC/);
-  assert.equal([...pdf.objects.values()].filter(object => /\/S \/Figure /.test(object.body)).length, 1);
+  assert.equal(pdfStructureElements(pdf).filter(([, object]) => /\/S \/Figure /.test(object.body)).length, 1);
   await assert.rejects(writePdfDocument([block([path])], { ...options, tagged: { language: "en-US" } }), /alternativeText/);
 });
 

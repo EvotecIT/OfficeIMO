@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdfDocument, writePdfDocumentTo, pdfTable } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Asset", key: "name" }, { header: "Count", key: "count" }];
 const options = { pageSize: "A5", margins: 24, pageNumbers: true, compression: false };
@@ -70,7 +71,7 @@ test("bookmarks follow actual kept headings and tagged sections retain one share
   const destination = outlines(pdf).find(item => item.title === "Kept destination");
   assert.ok(pdf.pages[destination.page].lines.includes("Kept destination"));
   assert.ok(pdf.pages[destination.page].lines.includes("Next table"));
-  const structures = [...pdf.objects.entries()].filter(([, object]) => /\/Type \/StructElem/.test(object.body));
+  const structures = pdfStructureElements(pdf);
   const documents = structures.filter(([, object]) => /\/S \/Document /.test(object.body)); assert.equal(documents.length, 1);
   const sections = structures.filter(([, object]) => /\/S \/Sect /.test(object.body)); assert.equal(sections.length, 2);
   for (const [, section] of sections) assert.match(section.body, new RegExp("/P " + documents[0][0] + " 0 R"));

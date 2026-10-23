@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfTo, writePdfDocument, pdfTable, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 // This fixture uses the standard font. General Unicode and consumer reading order are
 // independently inspected by the real-report qualification runner.
 async function logicalPdf(blob) {
   const pdf = await inspectPdf(blob), elements = new Map();
-  for (const [id, object] of pdf.objects) if (/\/Type \/StructElem /.test(object.body)) {
+  for (const [id, object] of pdfStructureElements(pdf)) {
     const { entries } = pdfStructureChildren(object.body), content = [];
     for (const entry of entries) {
       if (entry.kind === "element") content.push(entry.id);

@@ -1,6 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
+
+test("structure selection distinguishes xref-resolved members from raw container and nested payload text", () => {
+  const body = "<< /Type /StructElem /S /TD /Pg 3 0 R /K [0] >>";
+  const payload = "1 0 " + body + "\n";
+  const pdf = { objects: new Map([
+    [1, { body, bodyOffset: 10 }],
+    [2, { body: "<< /Type /ObjStm /N 1 /First 4 /Length " + Buffer.byteLength(payload) + " >>\nstream\n" + payload + "endstream", stream: Buffer.from(payload) }],
+    [3, { body: "<< /Type /Metadata /Alt (" + body + ") >>" }],
+    [4, { body, bodyOffset: undefined }],
+    [5, { body: "<< /A " + body + " >>" }]
+  ]) };
+  const selected = pdfStructureElements(pdf);
+  assert.deepEqual(selected.map(([id]) => id), [1, 4]);
+  for (const [, object] of selected) assert.deepEqual(pdfStructureChildren(object.body).entries,
+    [{ kind: "mark", pageId: 3, mcid: 0, form: "integer" }]);
+  pdf.objects.set(6, { body: body + " junk" });
+  assert.throws(() => pdfStructureChildren(pdfStructureElements(pdf).find(([id]) => id === 6)[1].body), /Unconsumed/);
+});
 
 test("structure children preserve explicit MCRs, object references and annotation identity", () => {
   const body = "<< /Type /StructElem /S /P /P 1 0 R /K [12 0 R << /Type /MCR /Pg 3 0 R /MCID 0 >> << /Type /OBJR /Obj 9 0 R /Pg 3 0 R >>] >>";

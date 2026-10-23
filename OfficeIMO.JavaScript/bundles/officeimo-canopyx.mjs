@@ -5999,7 +5999,7 @@ class PdfObjects {
         this.storeCompactBody(batch, id, written);
         return true;
     }
-    /** Small logical structure values share one bounded compressed container. Other callers keep
+    /** Small logical structure values share one bounded object-stream container. Other callers keep
      * ordinary objects; unavailable deflate preserves the classic representation before packing starts. */
     async compactObject(id, body) {
         checkAbort(this.signal);
@@ -6081,12 +6081,21 @@ class PdfObjects {
         for (let member = 0; member < batch.ids.length; member++)
             index += batch.ids[member] + " " + batch.bodyOffsets[member] + " ";
         const header = this.encoder.encode(index + "\n"), count = batch.ids.length;
-        // This writer awaits the codec's complete read before another member can reuse the arena.
-        // Feed the small index separately instead of allocating/copying a full payload per batch.
+        // Keep the index separate from the arena. Reuse waits for the compressed read or all raw
+        // writes below, so later members cannot overwrite a borrowed batch body.
         const body = this.compactArena.subarray(0, batch.bodyBytes);
         batch.ids.length = 0;
         batch.bodyOffsets.length = 0;
-        await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor ?? new CompressionStream("deflate"), header);
+        if (batch.compressor) {
+            await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor, header);
+        }
+        else {
+            this.start(batch.id);
+            await this.text(batch.id + " 0 obj\n<< /Length " + (header.length + body.length) + " /Type /ObjStm /N " + count + " /First " + header.length + " >>\nstream\n");
+            await this.raw(header);
+            await this.raw(body);
+            await this.text("\nendstream\nendobj\n");
+        }
     }
     async object(id, body) {
         this.start(id);
