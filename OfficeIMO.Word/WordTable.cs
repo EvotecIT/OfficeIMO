@@ -264,7 +264,7 @@ namespace OfficeIMO.Word {
                 var list = new List<WordTableRow>(_table.ChildElements.Count);
 
                 foreach (TableRow row in WordTableContent.Rows(_table)) {
-                    list.Add(GetOrCreateRow(row, initializeCells: true));
+                    list.Add(GetOrCreateRow(row, initializeCells: !IsReadOnlyView));
                 }
 
                 return list;
@@ -289,6 +289,9 @@ namespace OfficeIMO.Word {
         }
 
         internal Table _table;
+        // Conversion views read valid omitted properties without provisioning the
+        // editing defaults used by ordinary public table wrappers.
+        internal bool IsReadOnlyView { get; }
         private readonly ConditionalWeakTable<TableRow, WordTableRow> _rowCache = new();
         private List<TableRow>? _rowElements;
 
@@ -407,13 +410,14 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Table table) : this(document, table, initializeChildren: true) {
         }
 
-        internal WordTable(WordDocument document, Table table, bool initializeChildren) {
-            document.MarkTableNormalizationRequired();
+        internal WordTable(WordDocument document, Table table, bool initializeChildren, bool readOnly = false) {
+            IsReadOnlyView = readOnly;
+            if (!readOnly) document.MarkTableNormalizationRequired();
             _table = table;
             _document = document;
             _rowElements = WordTableContent.Rows(table).ToList();
 
-            if (initializeChildren) {
+            if (initializeChildren && !readOnly) {
                 foreach (TableRow row in WordTableContent.Rows(table).ToList()) {
                     GetOrCreateRow(row, initializeCells: true);
                 }

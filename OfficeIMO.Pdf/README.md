@@ -163,6 +163,8 @@ document.Save("report.pdf");
 
 The reference and the first legal note fragment stay on the same page. Notes reserve space before later body content, can continue across pages, and retain rich paragraph text, inline images and links. Ordinary flow lists and decorated panels can also appear in note definitions. Their markers, borders, backgrounds and fragment boundaries pass through the shared note layout. Paragraph, list and panel keep constraints participate in choosing legal fragments; the fitting and continuation limits below still apply. References in split table rows attach to the page containing the actual reference fragment. Definitions belong to their document; each serialization has independent pagination state.
 
+Eager inline tables can also appear in note definitions. Flat grids support horizontal spans, text-only vertical merges and rows that continue across pages. Each cell retains its own continuation position, so a shorter neighboring cell is not replayed while a longer cell continues. Vertically merged cells require flexible rows that allow page breaks and stay within the table's body-row region. Table headers retain the configured header-repetition policy.
+
 `PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content before the first note and continued notes respectively; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
 
 `ContinuationNotice` captures flow to place after the page's notes when note content continues to another page. Its measured height is reserved before accepting note fragments; the notice is painted only when content continues. By default, a complete or final note page reserves no notice space. Set `ReserveContinuationNoticeSpaceOnFinalPage = true` to retain that measured space even for a short note that fits on one page, while keeping the notice hidden there.
@@ -174,6 +176,8 @@ Explicit page breaks and new-page section boundaries finish pending note continu
 Page notes require single-column body flow and statically authored references. `TableDeferred` batches and replayable `Deferred` callbacks cannot introduce note references; use ordinary tables or static `Flow` content for those references. Deferred content without note references can share pages with notes when it follows the same body-layout constraints.
 
 Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
+
+Note tables do not support floating placement, captions, rotated cells, recursive references, form fields or viewports. Vertically merged cells do not support inline images, cell data bars or icons, fixed row heights, or rows that prohibit page breaks. Separator and continuation-notice callbacks cannot contain tables.
 
 ## Inline rules
 
