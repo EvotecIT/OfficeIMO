@@ -10,7 +10,7 @@ interface StructureElement {
   readonly parent: number;
   readonly role: string;
   readonly children: (number | string)[];
-  readonly linkIdentities: object[];
+  linkIdentities?: object[];
   attributes: string;
   identifier?: string;
 }
@@ -85,7 +85,7 @@ export class PdfStructure {
     checkAbort(this.settings.options.signal);
     if (++this.allocated > this.settings.limits.maxStructureElements)
       throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
-    const id = this.objects.reserve(), element: StructureElement = { id, parent, role, children: [], attributes, linkIdentities: [] };
+    const id = this.objects.reserve(), element: StructureElement = { id, parent, role, children: [], attributes };
     this.elements.set(id, element);
     const owner = this.elements.get(parent);
     // A continuation-only linked caption is discovered during painting, after rows may exist.
@@ -132,7 +132,8 @@ export class PdfStructure {
     if (!parents) { parents = new Map(); this.links.set(identity, parents); }
     const existing = parents.get(parent); if (existing !== undefined) return existing;
     const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">"); parents.set(parent, id);
-    this.elements.get(parent)!.linkIdentities.push(identity); return id;
+    const owner = this.elements.get(parent)!;
+    (owner.linkIdentities ??= []).push(identity); return id;
   }
   /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
   annotation(elementId: number, annotationId: number): number {
@@ -184,7 +185,7 @@ export class PdfStructure {
     // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
     if (small) await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
     else await this.objects.object(id, this.body(element));
-    for (const identity of element.linkIdentities) {
+    if (element.linkIdentities) for (const identity of element.linkIdentities) {
       const parents = this.links.get(identity); parents?.delete(id);
       if (!parents?.size) this.links.delete(identity);
     }

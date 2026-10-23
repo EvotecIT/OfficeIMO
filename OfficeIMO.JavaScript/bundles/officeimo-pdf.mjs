@@ -4580,7 +4580,7 @@ class PdfStructure {
         checkAbort(this.settings.options.signal);
         if (++this.allocated > this.settings.limits.maxStructureElements)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
-        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes, linkIdentities: [] };
+        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes };
         this.elements.set(id, element);
         const owner = this.elements.get(parent);
         // A continuation-only linked caption is discovered during painting, after rows may exist.
@@ -4638,7 +4638,8 @@ class PdfStructure {
             return existing;
         const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">");
         parents.set(parent, id);
-        this.elements.get(parent).linkIdentities.push(identity);
+        const owner = this.elements.get(parent);
+        (owner.linkIdentities ??= []).push(identity);
         return id;
     }
     /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
@@ -4706,12 +4707,13 @@ class PdfStructure {
             await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
         else
             await this.objects.object(id, this.body(element));
-        for (const identity of element.linkIdentities) {
-            const parents = this.links.get(identity);
-            parents?.delete(id);
-            if (!parents?.size)
-                this.links.delete(identity);
-        }
+        if (element.linkIdentities)
+            for (const identity of element.linkIdentities) {
+                const parents = this.links.get(identity);
+                parents?.delete(id);
+                if (!parents?.size)
+                    this.links.delete(identity);
+            }
         this.elements.delete(id);
     }
     *body(element) {
