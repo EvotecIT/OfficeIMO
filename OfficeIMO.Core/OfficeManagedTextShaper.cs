@@ -12,6 +12,19 @@ internal static class OfficeManagedTextShaper {
             or OfficeBidiClass.LRO or OfficeBidiClass.RLO or OfficeBidiClass.PDF or OfficeBidiClass.LRI
             or OfficeBidiClass.RLI or OfficeBidiClass.FSI or OfficeBidiClass.PDI;
 
+    /// <summary>Finds controls that require explicit nonpainting glyphs and original-source ownership.</summary>
+    internal static bool ContainsNonPaintingControl(string text, System.Threading.CancellationToken cancellationToken) {
+        for (int index = 0; index < text.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = text[index];
+            if (current is >= ' ' and <= '~') continue;
+            int scalar = char.IsHighSurrogate(current) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])
+                ? char.ConvertToUtf32(current, text[++index]) : current;
+            if (IsNonPaintingControl(scalar)) return true;
+        }
+        return false;
+    }
+
     internal static OfficeManagedTextFallback Resolve(
         string text,
         IOfficeFontProgram font,

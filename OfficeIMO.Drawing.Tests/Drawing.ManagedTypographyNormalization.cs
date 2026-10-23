@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -55,6 +56,9 @@ public sealed class DrawingManagedTypographyNormalizationTests {
     [InlineData('\u200C')]
     [InlineData('\u200D')]
     [InlineData('\u034F')]
+    [InlineData('\u200B')]
+    [InlineData('\u202E')]
+    [InlineData('\u2068')]
     public void NonPaintingControlsKeepOriginalLogicalCoverageAndZeroAdvance(char control) {
         byte[] data = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "NotoSansArabic-Regular.ttf"));
         IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Arabic AMTRA", data).Faces).Program;
@@ -68,6 +72,89 @@ public sealed class DrawingManagedTypographyNormalizationTests {
         Assert.Equal(0, ghost.AdvanceWidth);
         Assert.Equal(0, ghost.AdvanceHeight);
         AssertExactLogicalCoverage(source, shaped);
+    }
+
+    [Theory]
+    [InlineData(0x200C, false)]
+    [InlineData(0x200D, false)]
+    [InlineData(0x034F, false)]
+    [InlineData(0x200B, false)]
+    [InlineData(0x202E, false)]
+    [InlineData(0x2068, false)]
+    [InlineData(0x200C, true)]
+    [InlineData(0x2068, true)]
+    public void InkedSpaceAndControlCandidatesDeclineWithoutThrowingOrLegacySourceLoss(int control, bool withSubstitution) {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(control, withSubstitution: withSubstitution);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Inked control", data).Faces).Program;
+        string source = "ب" + char.ConvertFromUtf32(control) + "ب";
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(source,
+            "Inked control", data, false, font.UnitsPerEm, OfficeTextDirection.RightToLeft, "ar")));
+    }
+
+    [Theory]
+    [InlineData(0x200C)]
+    [InlineData(0x034F)]
+    [InlineData(0x2068)]
+    public void AnActuallyBlankMappedControlCanReplaceAnInkedSpaceCandidate(int control) {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(control, blankControl: true);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Blank control", data).Faces).Program;
+        Assert.True(font.TryGetGlyphMetrics(control, out int controlGlyph, out _));
+        string source = "A" + char.ConvertFromUtf32(control) + "A";
+
+        OfficeTextShapingResult shaped = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(source,
+                "Blank control", data, false, font.UnitsPerEm, OfficeTextDirection.LeftToRight, "en")));
+
+        OfficeShapedGlyph glyph = Assert.Single(shaped.Glyphs, item => item.GlyphId == controlGlyph);
+        Assert.Equal(0, glyph.AdvanceWidth); Assert.Equal(0, glyph.AdvanceHeight);
+        AssertExactLogicalCoverage(source, shaped);
+    }
+
+    [Fact]
+    public void BlankControlAdmissionPropagatesCancellation() {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(blankSpace: true);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Cancelled control", data).Faces).Program;
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest("A\u200CA", "Cancelled control", data, false, font.UnitsPerEm,
+                OfficeTextDirection.LeftToRight, "en", cancellationToken: cancellation.Token)));
+    }
+
+    [Fact]
+    public void SimpleArabicJoiningRetainsTheAuthoredBlankZwnjAndOriginalSource() {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(blankSpace: true);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Simple joining", data).Faces).Program;
+        Assert.True(font.TryGetGlyphMetrics(0xFE8F, out int isolatedBeh, out _));
+        Assert.True(font.TryGetGlyphMetrics(' ', out int blank, out _));
+        const string source = "ب\u200Cب";
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(source,
+                "Simple joining", data, false, font.UnitsPerEm, OfficeTextDirection.RightToLeft, "ar")));
+
+        Assert.Equal(new[] { isolatedBeh, isolatedBeh }, result.Glyphs.Where(glyph => glyph.GlyphId != blank).Select(glyph => glyph.GlyphId));
+        Assert.Equal(0, Assert.Single(result.Glyphs, glyph => glyph.GlyphId == blank).AdvanceWidth);
+        AssertExactLogicalCoverage(source, result);
+    }
+
+    [Fact]
+    public void FontDirectedLatinOverrideDeclinesUntilItsReversedLookupOrderIsSupported() {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x202E, blankSpace: true, withSubstitution: true);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Reversed Latin", data).Faces).Program;
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest("\u202Eabc\u202C",
+            "Reversed Latin", data, false, font.UnitsPerEm, OfficeTextDirection.RightToLeft, "en")));
+
+        // A font-directed request containing only source controls has no reversed
+        // Latin lookup order to execute, and may retain its proven blank glyphs.
+        const string controls = "\u202E\u202C";
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(controls,
+                "Reversed Latin", data, false, font.UnitsPerEm, OfficeTextDirection.RightToLeft, "en")));
+        Assert.All(result.Glyphs, glyph => Assert.Equal(0, glyph.AdvanceWidth));
+        AssertExactLogicalCoverage(controls, result);
     }
 
     [Fact]

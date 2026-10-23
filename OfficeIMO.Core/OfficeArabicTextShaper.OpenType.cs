@@ -4,6 +4,16 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeArabicTextShaper {
+    /// <summary>Projects the existing bounded presentation-form mapping without changing logical Unicode ownership.</summary>
+    internal static bool TryGetContextualPresentationScalar(int scalar, string? joiningForm, out int presentation) {
+        presentation = scalar;
+        if ((uint)scalar > char.MaxValue) return false;
+        char logical = LogicalForms.TryGetValue((char)scalar, out char mapped) ? mapped : (char)scalar;
+        if (!Forms.TryGetValue(logical, out ArabicForms forms)) return false;
+        presentation = forms.Resolve(joiningForm is "fina" or "medi", joiningForm is "init" or "medi");
+        return true;
+    }
+
     /// <summary>Resolves joining features in logical source order without replacing Unicode characters.</summary>
     /// <remarks>Two linear passes retain transparent marks and joining controls without rescanning their source spans.</remarks>
     internal static string?[]? GetOpenTypeJoiningForms(string source, Action? charge = null) {

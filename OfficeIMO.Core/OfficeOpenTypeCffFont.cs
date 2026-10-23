@@ -387,7 +387,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
             }
             glyphs[index] = new PositionedGlyph(
                 glyph.GlyphId,
-                glyph.AdvanceWidth ?? AdvanceWidth(glyph.GlyphId),
+                checked((glyph.AdvanceWidth ?? AdvanceWidth(glyph.GlyphId)) + result.GetAdvanceAdjustment(index)),
                 glyph.AdvanceHeight ?? 0,
                 glyph.OffsetX,
                 glyph.OffsetY);

@@ -275,7 +275,8 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphWidths = null,
         IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
         IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null,
-        IReadOnlyDictionary<int, ushort>? glyphAdvances = null) {
+        IReadOnlyDictionary<int, ushort>? glyphAdvances = null,
+        IReadOnlyCollection<int>? blankGlyphIds = null) {
         // A zero-contour glyph still carries its header and empty instruction stream.
         // Keep the glyf table present so both drawing and PDF readers can admit the fixture.
         byte[] glyph = emptyGlyphs ? new byte[12] : CreateVisibleGlyph(400);
@@ -290,6 +291,7 @@ internal static partial class ManagedTextShapingTestAssets {
                 currentGlyph = CreateVisibleGlyph(glyphWidths != null && glyphWidths.TryGetValue(glyphIndex, out int glyphWidth) ? glyphWidth : 400, height,
                     glyphBottoms != null && glyphBottoms.TryGetValue(glyphIndex, out int bottom) ? bottom : 0,
                     glyphLefts != null && glyphLefts.TryGetValue(glyphIndex, out int left) ? left : 0);
+            if (blankGlyphIds != null && blankGlyphIds.Contains(glyphIndex)) currentGlyph = new byte[glyph.Length];
             int byteOffset = (glyphIndex - (inkedNotdef ? 0 : 1)) * glyph.Length;
             Array.Copy(currentGlyph, 0, glyf, byteOffset, glyph.Length);
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));

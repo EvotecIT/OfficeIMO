@@ -48,6 +48,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.MarkPositioning.cs" Link="ManagedTextShapingTestAssets.MarkPositioning.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.PositioningComposition.cs" Link="ManagedTextShapingTestAssets.PositioningComposition.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ControlAdmission.cs" Link="ManagedTextShapingTestAssets.ControlAdmission.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Arabic.cs" Link="ManagedTextShapingTestAssets.Arabic.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ContextualPositioning.cs" Link="ManagedTextShapingTestAssets.ContextualPositioning.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Measurement.cs" Link="ManagedTextShapingTestAssets.Measurement.cs" />

@@ -209,6 +209,12 @@ public sealed partial class OfficeManagedTextShapingProvider {
             empty = true;
             foreach (List<OfficePoint> contour in contours) if (contour.Count != 0) { empty = false; break; }
         } catch (InvalidDataException) { empty = false; }
+        catch (InvalidOperationException exception) when ((font is OfficeTrueTypeFont or OfficeOpenTypeCffFont)
+            && exception.Message == "Font outline expansion exceeded the configured point budget.") {
+            // The owned one-point proof intentionally rejects inked candidates.
+            // Other provider failures and cancellation retain their normal behavior.
+            empty = false;
+        }
         blankGlyphs.Add(glyphId, empty);
         return empty;
     }

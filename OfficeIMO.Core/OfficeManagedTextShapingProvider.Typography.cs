@@ -35,22 +35,29 @@ public sealed partial class OfficeManagedTextShapingProvider {
             byte[] levels = paragraph.GetLineLevels(0, scalars.Length);
             if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels,
                 out List<OfficeOpenTypeSubstitution.GlyphToken> tokens)) return null;
-            if (tokens.Count == 0 || !ApplyTypographySubstitutions(cached.Substitution, tokens, request)) return null;
+            if (tokens.Count == 0 || cached.Substitution != null && HasReversedLatinTypography(tokens, starts, levels, request)) return null;
+            if (!ApplyTypographySubstitutions(cached.Substitution, font, tokens, request, starts, levels)) return null;
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
+            List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
             OfficeOpenTypeGlyphPositioning[] positions;
             if (request.FeatureSettings.TryGetValue("kern", out int kern) && kern == 0)
                 positions = new OfficeOpenTypeGlyphPositioning[tokens.Count];
-            else if (!TryPositionTypography(font, tokens, request, out positions)) return null;
-            return CompleteTypography(request, reader, tokens, attachments, positions, starts, levels,
+            else if (cached.Substitution == null && !attachments.Any(item => item.IsMark)) {
+                // Preserve the established simple-font visual positioning route;
+                // source controls now remain explicit zero-advance glyphs.
+                if (!TryPositionVisualTypography(font, tokens, visual, request, out positions)) return null;
+            } else if (!TryPositionTypography(font, tokens, request, out positions)) return null;
+            return CompleteTypography(request, reader, tokens, attachments, positions, logicalClusters, visual,
                 (paragraph.ParagraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException or
             ArgumentOutOfRangeException or IndexOutOfRangeException) { return null; }
     }
 
     private static bool ApplyTypographySubstitutions(OfficeOpenTypeSubstitution? substitution,
-        List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request) {
-        if (substitution == null) return !OfficeTextElements.ContainsJoiningScript(request.Text);
+        IOfficeFontProgram font, List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request,
+        int[] scalarStarts, byte[] levels) {
+        if (substitution == null) return TryApplySimpleTypographyJoining(font, tokens, request);
         OfficeOpenTypeSubstitution.ScriptShapingContext context = substitution.CreateScriptShapingContext(
             request.Text, request.FeatureSettings, request.Language, request.CancellationToken);
         var output = new List<OfficeOpenTypeSubstitution.GlyphToken>(tokens.Count);
@@ -75,8 +82,10 @@ public sealed partial class OfficeManagedTextShapingProvider {
         for (int start = 0; start < tokens.Count;) {
             context.Charge();
             string script = scripts[start];
+            byte level = TypographyLevel(tokens[start].TextIndex, scalarStarts, levels);
             int end = start + 1;
-            while (end < tokens.Count && scripts[end] == script) { context.Charge(); end++; }
+            while (end < tokens.Count && scripts[end] == script
+                && TypographyLevel(tokens[end].TextIndex, scalarStarts, levels) == level) { context.Charge(); end++; }
             var segment = tokens.GetRange(start, end - start);
             if (script == "arab") {
                 if (!substitution.TryApplyArabicDefaults(segment, request.FeatureSettings, request.Language,
@@ -106,37 +115,16 @@ public sealed partial class OfficeManagedTextShapingProvider {
     private static OfficeTextShapingResult CompleteTypography(OfficeTextShapingRequest request,
         OfficeOpenTypeReader reader, List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
         OfficeOpenTypeMarkAttachment[] attachments, OfficeOpenTypeGlyphPositioning[] positions,
-        int[] scalarStarts, byte[] levels, OfficeTextDirection direction) {
-        var groups = new List<List<int>>();
-        var groupLevels = new List<byte>();
-        var byCluster = new Dictionary<int, int>();
-        var logicalClusters = new int[tokens.Count];
-        for (int index = 0; index < tokens.Count; index++) {
-            request.CancellationToken.ThrowIfCancellationRequested();
-            int parent = attachments[index].ParentGlyphIndex;
-            if (parent >= index) throw new InvalidDataException("A mark attachment must refer to an earlier logical glyph.");
-            int cluster = parent < 0 ? tokens[index].ClusterStart : logicalClusters[parent];
-            logicalClusters[index] = cluster;
-            if (!byCluster.TryGetValue(cluster, out int group)) {
-                group = groups.Count; byCluster.Add(cluster, group); groups.Add(new List<int>());
-                int scalarIndex = Array.BinarySearch(scalarStarts, cluster);
-                if (scalarIndex < 0) scalarIndex = Math.Max(0, ~scalarIndex - 1);
-                groupLevels.Add(levels[scalarIndex]);
-            }
-            groups[group].Add(index);
-        }
-        int[] order = OfficeUnicodeBidi.ReorderLine(groupLevels.ToArray());
+        int[] logicalClusters, List<int> visual, OfficeTextDirection direction) {
         int[] advances = new int[tokens.Count], pen = new int[tokens.Count], penY = new int[tokens.Count];
-        var visual = new List<int>(tokens.Count);
         int cursor = 0, cursorY = 0;
-        foreach (int group in order) for (int offset = 0; offset < groups[group].Count; offset++) {
-            int index = groups[group][(groupLevels[group] & 1) == 1 ? groups[group].Count - offset - 1 : offset];
+        foreach (int index in visual) {
             request.CancellationToken.ThrowIfCancellationRequested();
             if ((attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar))
                 && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0
                     || positions[index].XAdvance != 0 || positions[index].YAdvance != 0))
                 throw new InvalidDataException("A zero-advance mark cannot discard font positioning.");
-            visual.Add(index); pen[index] = cursor; penY[index] = cursorY;
+            pen[index] = cursor; penY[index] = cursorY;
             advances[index] = attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar) ? 0
                 : checked(reader.AdvanceWidth(tokens[index].GlyphId) + positions[index].XAdvance);
             cursor = checked(cursor + advances[index]);
