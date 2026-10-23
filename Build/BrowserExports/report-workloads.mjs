@@ -67,7 +67,7 @@ async function manifest() {
 }
 async function run() {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case")), engine = required("engine");
-  if (!fixture || !input.engines[engine]) throw Error("Unknown workload or engine.");
+  if (!fixture || !Object.hasOwn(input.engines, engine)) throw Error("Unknown workload or engine.");
   if (fixture.currentOnly && engine !== "current") throw Error("Analytical reports are current-only diagnostics; the snapshot baseline is not equivalent work.");
   const source = input.engines[engine];
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Measured runtime changed after preparation.");
@@ -122,6 +122,7 @@ async function run() {
     ...(analytical ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
       acknowledgementOverlapWrites, maxRowsAdvancedDuringAcknowledgement, nativeCompressionMayReadAhead: true } } : {}),
     outputScope: fixture.delivery === "sink" ? "Complete export through awaited regular-file writes; OS page cache applies; first byte is first sink acceptance." : "Complete Blob generation; later Blob read and file copy excluded; first-byte metric unavailable.",
+    executionScope: "Fresh Node process for this sample; module import precedes EngineMs, but JIT state is fresh. PowerForge warmup exports ran in different processes; this is not steady-state warmed export latency.",
     memoryScope: "Fresh Node process lifetime peakRSS through operation end includes import/native memory; sampled JS heap/external are separate and not additive. Sampling can miss synchronous peaks.",
     runtime: source, host: { node: process.version, platform: process.platform, arch: process.arch, release: os.release(), cpus: os.cpus().length, model: os.cpus()[0]?.model,
       loadBefore, loadAfter: os.loadavg(), priority: os.getPriority(), affinity: "not pinned; platform scheduler", pid: process.pid } };
@@ -284,8 +285,17 @@ try {
   let result;
   if (command === "prepare") {
     const evidence = path.resolve(required("evidence")); await mkdir(evidence, { recursive: true });
-    const engines = {};
-    for (const engine of ["baseline", "current"]) { const file = path.resolve(required(engine)); engines[engine] = { path: file, sha256: sha(await readFile(file)) }; }
+    if (opts.baseline && opts.baselines !== undefined) throw Error("Choose --baseline or --baselines, not both.");
+    const baselines = opts.baselines === undefined ? { baseline: required("baseline") } : JSON.parse(await readFile(path.resolve(opts.baselines), "utf8"));
+    if (!baselines || typeof baselines !== "object" || Array.isArray(baselines) || !Object.keys(baselines).length)
+      throw Error("Named baselines must be a nonempty object mapping labels to bundle paths.");
+    const engines = Object.create(null), baselineNames = Object.keys(baselines).sort();
+    for (const engine of baselineNames) {
+      if (!/^[a-z][a-z0-9-]*$/.test(engine) || engine === "current") throw Error("Baseline labels must be lowercase names other than current.");
+      if (typeof baselines[engine] !== "string" || !baselines[engine].trim()) throw Error("A named baseline must provide a bundle path.");
+      const file = path.resolve(baselines[engine]); engines[engine] = { path: file, sha256: sha(await readFile(file)) };
+    }
+    const current = path.resolve(required("current")); engines.current = { path: current, sha256: sha(await readFile(current)) };
     const names = opts.cases?.split(","), selected = names ? names.map(name => { const item = fixtures.find(item => item.name === name); if (!item) throw Error("Unknown case " + name); return item; }) : fixtures.filter(item => !item.currentOnly);
     const equivalentBaselineCases = opts["equivalent-baseline-cases"]?.split(",") ?? [];
     if (new Set(equivalentBaselineCases).size !== equivalentBaselineCases.length) throw Error("Equivalent baseline cases must be unique.");
@@ -305,6 +315,7 @@ try {
       groupedHelperSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))),
       additionalSources,
       verifierSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))), engines, cases, equivalentBaselineCases,
+      comparisonBaselines: baselineNames, executionMode: "fresh-process-module-preloaded-jit-fresh",
       ...(cases.some(item => item.kind === "editable-analysis") ? { example: { path: examplePath, sha256: sha(await readFile(examplePath)) } } : {}) };
     await writeFile(path.join(evidence, "workloads.json"), JSON.stringify(result, null, 2) + "\n");
   } else if (command === "run") result = await run();

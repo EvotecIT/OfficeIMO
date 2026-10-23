@@ -2,14 +2,15 @@
 
 ## Workload and measurement boundary
 
-The current investigation targets peak process memory for tagged, streamed
-analytical PDFs. It preserves the complete logical table, header associations,
-identifiers, page content and navigation. Smaller files alone do not satisfy the
-narrow-report memory target.
+The measurements cover tagged analytical PDFs and typed XLSX exports through
+awaited file sinks. PDF validation preserves the complete logical table, header
+associations, identifiers, page content and navigation. Smaller files alone do
+not satisfy memory or latency criteria.
 
-The [latest source comparison](#lazy-inline-ownership-comparison) meets both
-narrow peak-RSS criteria in its fixed cohort. Earlier failed comparisons and
-their measured tradeoffs remain below with their exact source bindings.
+The [latest fixed comparison](#bounded-pdf-and-xlsx-comparison) meets the M8
+wide-PDF time and narrow/wide peak-RSS targets. It also records material latency
+losses against M9, including a higher XLSX median. Earlier failed comparisons
+and their measured tradeoffs remain below with their exact source bindings.
 
 Run the maintained PowerForge suite from the repository root:
 
@@ -604,3 +605,58 @@ failed source and earlier faster cohorts are not substituted or pooled. The
 allocation-count change does not isolate its contribution to RSS; one normal-host
 n=3 comparison does not establish a universal speedup, performance-no-regression
 or constant-memory guarantee.
+
+## Bounded PDF and XLSX comparison
+
+Measured 23 October 2026 UTC.
+
+One fixed PowerForge cohort compares the committed M8 and M9 runtimes with the current measured runtime: three workloads × three runtimes × one warmup and three measurements. All 36 actual outputs passed independent readback. This is a normal shared Apple M4 development host, macOS Arm64 and Node 24.18.0, with rotated ordering, no affinity or priority changes, and no outlier removal. Host-load observations and every sample remain in the record.
+
+Each sample imports its module in a fresh process before timing; its JIT state is fresh. Lazy row construction and awaited regular-file sink writes are included. OS page cache applies. Peak RSS covers that Node process through operation completion, including imports and native memory. These results do not describe persistent warm exports, retained Blob/buffer delivery, durable file flushes or constant memory.
+
+Values below are mean / median; timings are milliseconds and RSS is MiB. Rounding is for display.
+
+| Workload | Runtime | Export ms: mean / median | Peak RSS MiB: mean / median |
+|---|---|---:|---:|
+| Tagged PDF, 10,000 × 6 | M8 | 883.70 / 858.30 | 134.77 / 134.38 |
+| Tagged PDF, 10,000 × 6 | M9 | 977.71 / 806.43 | 129.11 / 130.97 |
+| Tagged PDF, 10,000 × 6 | Current | 1,824.44 / 860.31 | 128.21 / 129.67 |
+| Wide tagged PDF, 10,000 × 20 | M8 | 6,843.80 / 5,503.76 | 253.83 / 251.33 |
+| Wide tagged PDF, 10,000 × 20 | M9 | 2,370.94 / 1,131.97 | 236.07 / 238.03 |
+| Wide tagged PDF, 10,000 × 20 | Current | 3,924.04 / 4,105.39 | 229.37 / 227.47 |
+| Typed XLSX, 100,000 × 6 | M8 | 1,986.29 / 1,888.75 | 81.68 / 82.55 |
+| Typed XLSX, 100,000 × 6 | M9 | 1,676.31 / 1,367.55 | 81.04 / 81.16 |
+| Typed XLSX, 100,000 × 6 | Current | 1,247.75 / 1,518.41 | 78.74 / 78.89 |
+
+The three frozen M8 checks pass in this run: narrow-PDF RSS mean and median are at or below M8; wide-PDF RSS mean and median are lower; and wide-PDF time mean and median are lower. That does not establish no regression against M9. The following material M9 latency losses remain **unwaived**:
+
+- Narrow PDF time: **+86.60% mean, +6.68% median**. Its current raw times are 378.71, 4,234.30 and 860.31 ms; the long sample is retained. Against M8, narrow time is +106.45% mean and +0.23% median.
+- Wide PDF time: **+65.51% mean, +262.68% median**. Its current raw times are 5,957.99, 4,105.39 and 1,708.75 ms.
+- XLSX time: mean is 25.57% lower than M9, but **median is 11.03% higher**. Both results are retained rather than selecting the favorable statistic.
+
+Current RSS mean/median is below M9 for all three workloads: narrow PDF by 0.70% / 0.99%, wide PDF by 2.84% / 4.44%, and XLSX by 2.84% / 2.79%. The tagged PDFs retain the same bytes as M9: 9,163,300 bytes for the narrow report and 28,185,805 bytes for the wide report. Smaller files or lower memory do not waive latency losses.
+
+An earlier integrated runtime, `d265fdea78c04366a5088a0425cbb2658905a8596135b87df9336e34bb81b6a7`, remains separate evidence. Its 24 PDF outputs passed, but narrow time was 1,117.39 / 359.89 ms against M9 523.98 / 314.21 ms, including a retained 2,694.18-ms sample; wide mean RSS was 0.35% above M9. A separate 100,000 × 6 XLSX trial measured 3,833.95 / 3,797.73 ms against M9 3,311.41 / 3,645.82 ms. CRC loop unrolling did not earn its predeclared full-workload retention criterion and was reverted. This changed runtime received the new 36-output cohort above; the earlier losses were not erased by an unchanged rerun.
+
+One bounded narrow-PDF trace of that earlier runtime produced byte-identical, independently readable PDFs with the same 397 sink writes and 582 compressed reads. It did not establish the cause of the original 2,694-ms sample or a new production hotspot. Instrumented timing/RSS is diagnostic only and does not replace acceptance samples; CPU samples, phase durations and GC intervals are not additive. This trace does not qualify the later runtime.
+
+One separate wide-PDF diagnostic pair also produced byte-identical, independently readable output with matching 1,088 sink writes and 1,161 compressed reads. That perturbed pair did not reproduce a current-only bottleneck or establish the cause of the fixed-cohort latency difference. It provides no acceptance timing or RSS result, does not replace the 36-output cohort, and does not waive its M9 losses.
+
+For reproduction, use the committed `OfficeIMO.JavaScript/bundles/officeimo.mjs` bytes for M8 and M9 without rebuilding them, and verify the hashes before running the existing canonical wrapper:
+
+| Runtime | Revision | `officeimo.mjs` SHA-256 |
+|---|---|---|
+| M8 | `d72b7acaeae6c5d68c6a1b33fbd363c355692071` | `8de50e9fca18c9efc14f4f266513f7dc90ca0855420273364ad00fc3392ad407` |
+| M9 | `7f27e4dfe28a8e61c5042a730778bb0d9bcd8990` | `5cb3e153d6de0821e6f4a517701c7e4a0107aa05e8ecb20d725daf8a3397fbab` |
+| Current measured bytes | Source identified by hash | `efc8e4d16d24d19a4df3b023a665123a198476ab03aefba5b9c7e4915ff8a99b` |
+
+```powershell
+$refs = @{ m8 = './baseline/m8.mjs'; m9 = './baseline/m9.mjs' }
+./Build/BrowserExports/Run-ReportWorkloads.ps1 `
+    -BaselineBundles $refs -OutputRoot ./Ignore/Benchmarks/report-sinks-20261023 `
+    -Cases tagged-pdf-10000-sink,tagged-wide-inventory-pdf-10000-sink,inventory-xlsx-100000-sink `
+    -EquivalentBaselineCases tagged-wide-inventory-pdf-10000-sink `
+    -Engine m8,m9,current -WarmupCount 1 -IterationCount 3
+```
+
+Run identity: `20261023-220212-951eba5a`. The shared runner and independent readers own scheduling and validation; keep all raw samples and losses. This finite cohort provides no universal speedup, no universal no-regression result and no quiet-machine or cross-host guarantee.

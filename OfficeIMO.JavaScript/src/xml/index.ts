@@ -4,6 +4,8 @@ import type { ByteSink } from "../core/sinks.js";
 
 export type InvalidCharacterPolicy = "strip" | "reject";
 export const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+const xmlEscapes: Readonly<Record<string, string>> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
+  "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
 
 /** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
 export function cleanXml(value: unknown, policy: InvalidCharacterPolicy = "strip"): string {
@@ -15,9 +17,7 @@ export function cleanXml(value: unknown, policy: InvalidCharacterPolicy = "strip
 
 /** Escape data, including whitespace that XML parsers otherwise normalize. */
 export function escapeXml(value: unknown, policy: InvalidCharacterPolicy = "strip"): string {
-  const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
-    "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
-  return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]!);
+  return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => xmlEscapes[c]!);
 }
 
 /** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
