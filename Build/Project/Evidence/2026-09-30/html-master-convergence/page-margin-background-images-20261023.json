@@ -1,0 +1,3420 @@
+{
+  "schema": "officeimo.html.page-margin-background-images-qualification/v1",
+  "collectedUtc": "2026-10-23T11:38:12.211869+00:00",
+  "collector": {
+    "path": "$TASK_ROOT/prep/portable-images-v1.py",
+    "bytes": 30495,
+    "sha256": "85967793d2fc232774d1052a88c62660e4d5d74718bc2e789804b2c88d1e4d9f"
+  },
+  "outcome": "Actual bounded qualification, ROOT acceptance and cleanup/readback verified",
+  "source": {
+    "originalQualifiedCandidate": {
+      "head": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+      "tree": "91e0b62d9c690332e116a5096ebfbef808d5df20"
+    },
+    "trackedSourceSeal": {
+      "path": "$TASK_ROOT/source-seal-images-v2.json",
+      "bytes": 12231290,
+      "sha256": "47fa2c43ee03a68d339d8aecca08bb06169b7fa84a6f0cb10d55c6c4fd8793fb"
+    },
+    "trackedFileCount": 58572,
+    "currentCheckout": {
+      "head": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+      "tree": "91e0b62d9c690332e116a5096ebfbef808d5df20"
+    },
+    "bookkeepingDiffPathsFromQualifiedCandidate": [],
+    "qualificationSourceUnchanged": true,
+    "startingCheckpoint": {
+      "head": "926945ad3e0e7822130248551d909c0fcba0126e",
+      "tree": "6d1e2500d2127076cb0edeebeba613a5eb003a97"
+    },
+    "masterBase": {
+      "head": "b232a3513ede20f4c78e8056ca5794bc88b38edc",
+      "tree": "c133ab7ae4566eae7abda049558f9dc9004d76d3"
+    },
+    "protectedProviderBoundary": "Existing provider retained; fork72130c7 untouched by this milestone; provider convergence was not undertaken.",
+    "providerAdapterDiffPaths": []
+  },
+  "frozenInputs": {
+    "matrix": {
+      "path": "$TASK_ROOT/prep/fixture-matrix-background-images.json",
+      "bytes": 39256,
+      "sha256": "ea8072c0c92eddf185b474f8793b1ec1f839d49adc66ffab9032fee9f671ff37"
+    },
+    "resourceManifest": {
+      "path": "$TASK_ROOT/inputs-background-images/resource-assets.json",
+      "bytes": 2499,
+      "sha256": "f194910634172baf6599db955775ad6bdfc67bd98fd89a5ae07a61a0c0a7a989"
+    },
+    "fonts": [
+      {
+        "path": "$TASK_ROOT/inputs-background-images/regular.ttf",
+        "bytes": 628032,
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+      }
+    ],
+    "resources": [
+      {
+        "path": "$TASK_ROOT/inputs-background-images/checker.png",
+        "bytes": 84,
+        "sha256": "72cecd888aa8f5d135cb47701dab31772f621cf40203ea40bbac8f351c10260e",
+        "kind": "Image",
+        "contentType": "image/png",
+        "uri": "file://$TASK_ROOT/inputs-background-images/checker.png"
+      },
+      {
+        "path": "$TASK_ROOT/inputs-background-images/checker-alpha.png",
+        "bytes": 83,
+        "sha256": "8f79c661c64fa9289ee0918e12797e525f5b61f4f1d80dc70d3c158de23915ec",
+        "kind": "Image",
+        "contentType": "image/png",
+        "uri": "file://$TASK_ROOT/inputs-background-images/checker-alpha.png"
+      },
+      {
+        "path": "$TASK_ROOT/inputs-background-images/checker.svg",
+        "bytes": 306,
+        "sha256": "7d3dcae0cf673a4c393afcd7aa8c819837614492ef7fe358a27ab9c9d4a5d826",
+        "kind": "Image",
+        "contentType": "image/svg+xml",
+        "uri": "file://$TASK_ROOT/inputs-background-images/checker.svg"
+      },
+      {
+        "path": "$TASK_ROOT/inputs-background-images/checker.png",
+        "bytes": 84,
+        "sha256": "72cecd888aa8f5d135cb47701dab31772f621cf40203ea40bbac8f351c10260e",
+        "kind": "Image",
+        "contentType": "image/png",
+        "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAG0lEQVR4nGN84ODwPyFBgIHBIeHC/w8HDP4DAESgCH/IHrWAAAAAAElFTkSuQmCC"
+      }
+    ],
+    "resourceBudgetPolicy": {
+      "MaxResourceBytes": 10485760,
+      "MaxTotalResourceBytes": 52428800,
+      "MaxResourceCount": 256,
+      "MaxResourceRequests": 512,
+      "MaxConcurrentResourceLoads": 8,
+      "ResourceTimeoutSeconds": 30,
+      "MaxBackgroundImageTiles": 16384,
+      "MaxBackgroundImageLayers": 32,
+      "MaxGradientStops": 64,
+      "ConicGradientQualitySegments": 360
+    },
+    "paintInventorySources": [
+      {
+        "path": "$TASK_ROOT/prep/source-observer/PaintInventory.cs",
+        "bytes": 12557,
+        "sha256": "a842ad5dce088579bc7bcc42058fc264c396c4f1c6c11869c84be303749a11ce"
+      }
+    ],
+    "fixtures": 12,
+    "observationsPerFramework": 24,
+    "pagesPerFramework": 48,
+    "scope": "Bounded existing canonical image/gradient paint profile on six horizontal page-margin positions; no new provider or dependency.",
+    "excludedClaims": [
+      "side/corner boxes",
+      "vertical writing",
+      "running elements",
+      "explicit gradient background-size",
+      "general gradient background tiling",
+      "unfamiliar SVG features",
+      "exact browser/source raster interpolation or alpha identity",
+      "universal browser parity"
+    ]
+  },
+  "tests": {
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/images-full-html-net8-v1.trx",
+        "bytes": 12371241,
+        "sha256": "e57eaa79bb6dfcde6af1e4151d0113b5d860bc1022ccf7a594cbb74ceb346944"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 7988,
+        "executed": 7988,
+        "passed": 7988,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/images-full-html-net10-v1.trx",
+        "bytes": 12387218,
+        "sha256": "21c9955676de04362c8ed09467b7ca6caab60d4a858b68c26d7658b4e8320b45"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 7988,
+        "executed": 7988,
+        "passed": 7988,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "initialFocusedRemediation": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/images-focused-net8-v4.trx",
+        "bytes": 68834,
+        "sha256": "0ddc0e5447210e975c812e36e29bb86249e125c9c9d550df6f8403951f89d925"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 43,
+        "executed": 43,
+        "passed": 43,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    }
+  },
+  "closures": {
+    "full": {
+      "receipt": {
+        "path": "$TASK_ROOT/full-validation-images-v1-closure.json",
+        "bytes": 1443,
+        "sha256": "bfc8db1e7d1cc365c64776dbefabaeb9cb6a6fc20995e251f366b78557ae0ace"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-full-html-net8-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-full-html-net8-v1-execution.json",
+            "bytes": 1882,
+            "sha256": "9e88fcad1e883f5c958ed92b2d60d9166e9ef1aeacce0b82b66120abfb250c5c"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-full-html-net8-v1.log",
+            "bytes": 8293,
+            "sha256": "0961c42651777fb38dfc1608dbda939cedcf446108cfd3ff0d0408d8c92cc2f9"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-full-html-net10-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-full-html-net10-v1-execution.json",
+            "bytes": 1883,
+            "sha256": "d7d04e07c9a7cc977eb959d32370d54566f7f5500d1733bec340a7dfcb4839ae"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-full-html-net10-v1.log",
+            "bytes": 8334,
+            "sha256": "14093eaa9e54ebc77cf303534a6d37a1795997bb7e86339056fcc7bc43808d41"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-html-net472-compile-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-html-net472-compile-v1-execution.json",
+            "bytes": 1683,
+            "sha256": "77e643b42c3d50b3500d91431a4ae9b71e8193595987179e903844eca77bafb8"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-html-net472-compile-v1.log",
+            "bytes": 1704,
+            "sha256": "9dc418e433b1af154e7da37250a7d4c8487a343472b87963969d3b8989e9df53"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "source": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-images-v2-closure.json",
+        "bytes": 1816,
+        "sha256": "63e8dd555ee8725eea8dc43933fe8174bc5d82d7a37bac3a94eedd1cf428402e"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-observer-net8-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net8-build-v2-execution.json",
+            "bytes": 1919,
+            "sha256": "091966a7013f5573a99b29adbae7a4563f5277d5bec1a31cf82dcaf8e48c4757"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net8-build-v2.log",
+            "bytes": 1905,
+            "sha256": "d33fd98038194100c277eb12e528851e6e74ea543df431b5f0d2e2dce6cebc70"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net8-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net8-run-v2-execution.json",
+            "bytes": 1616,
+            "sha256": "e9ae298ed9e31b745e9f443eee6c3491d20a8db5c13ba5c8a4286104030bdc3e"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net8-run-v2.log",
+            "bytes": 116,
+            "sha256": "972d8aad50b87ae6210f982816169d0c0e09ddd3b265c42209b713d2c0d514d3"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net10-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net10-build-v2-execution.json",
+            "bytes": 1924,
+            "sha256": "10a8615dc64926f78c66aff884f3317d1246ed479a2b21b4e4976ec66f80ebc0"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net10-build-v2.log",
+            "bytes": 1217,
+            "sha256": "4fbe58aae38dec439b9de5936cabc6f713e80641e2a2abc57553730b4a2b34ea"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net10-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net10-run-v2-execution.json",
+            "bytes": 1620,
+            "sha256": "f39785ba03193e45d0928d0f4cc82f68e517687dccc10146d3096a0cccc378cb"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net10-run-v2.log",
+            "bytes": 117,
+            "sha256": "c6332bee8a5163996c902ef2a9d17635fae53fdb7197f488ef16154356606b60"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "producer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-producer-images-v2-closure.json",
+        "bytes": 3978,
+        "sha256": "e7aeb1b4e944b2d07eb82d0ec296d3bcf6832d1d249084c72f818b5419b2de49"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-package-preflight-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-preflight-v2-execution.json",
+            "bytes": 1796,
+            "sha256": "93f3499080dc5005920c258fa4c346639b200fd9a7206f34f2346860376e5f13"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-preflight-v2.log",
+            "bytes": 89,
+            "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-source-restore-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-source-restore-v2-execution.json",
+            "bytes": 2788,
+            "sha256": "51020d14dbcc1d15ce9fcf33587bdc250edadf9c3b1d89cfa6e408ea11ff42ca"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-source-restore-v2.log",
+            "bytes": 791,
+            "sha256": "169f5789f486fb9bddbfebaf8ee07c137ad7e25087ad5af41faa9ccbba098b33"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-source-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-source-build-v2-execution.json",
+            "bytes": 2783,
+            "sha256": "743a4bc63cf4e2ff836a2b0eb3c899c4b71a61ad4129643ca90058628a8de1e9"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-source-build-v2.log",
+            "bytes": 4221,
+            "sha256": "639f57331fb4207cac0730b9fbfb2ef5ec91f4ab8428e7f7ee10c9760af32b2e"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-pack-officeimo-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-pack-officeimo-core-v2-execution.json",
+            "bytes": 2826,
+            "sha256": "e67a5e9522ae1fcbd81e46611987c19f63aba9e91dcf81d4b639442d1973860b"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-pack-officeimo-core-v2.log",
+            "bytes": 177,
+            "sha256": "4c3073b4d6c61082b979731a068318f19ed2ed6590dcfaafe0cb18eafc277aa0"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-pack-officeimo-pdf-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-pack-officeimo-pdf-v2-execution.json",
+            "bytes": 2822,
+            "sha256": "49c57f8f50cf6e07bbb0d7a9ba861b979d8472d0d4255e149e40b09fd59b1cf5"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-pack-officeimo-pdf-v2.log",
+            "bytes": 176,
+            "sha256": "f7bd10d2baa80e9c6b3ecd23a6a33dfc63b963d8b2fcca3e7f8ce6b29d5f39e4"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-pack-officeimo-html-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-pack-officeimo-html-core-v2-execution.json",
+            "bytes": 2847,
+            "sha256": "443230e730e01628aaf5bb3dacd86e10ed6f12342f6ab18b9c52b773e3a95126"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-pack-officeimo-html-core-v2.log",
+            "bytes": 182,
+            "sha256": "0c94cbe5bd3263f0b528916dbd705ef50d9022991e51e885981a1a83239421d8"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-pack-officeimo-html-anglesharp-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-pack-officeimo-html-anglesharp-v2-execution.json",
+            "bytes": 2870,
+            "sha256": "b3729ad1492e17d9f9c1c029c8fe41ee1c7f6a02d0627ac987609e4d1efc05ad"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-pack-officeimo-html-anglesharp-v2.log",
+            "bytes": 188,
+            "sha256": "8e02dd06e1d261e034785d128ffca6c9c338cc19fee64bbbc53c7fef4bb61f38"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-pack-officeimo-html-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-pack-officeimo-html-v2-execution.json",
+            "bytes": 2827,
+            "sha256": "f3678abf25498fa8a83bade4a2a4ce64b591e418c6b5fb6c69e9f729bc111df7"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-pack-officeimo-html-v2.log",
+            "bytes": 177,
+            "sha256": "2a160afeecff2f41b466f2794548137b820cb626bacee3407624a607aef135a6"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-inspect-packages-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-inspect-packages-v2-execution.json",
+            "bytes": 1808,
+            "sha256": "cd06fc16a6461065ea8e63619cf72cd285aeaa7a39b8e6690d7503dcbf963317"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-inspect-packages-v2.log",
+            "bytes": 81,
+            "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "consumer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-consumer-images-v2-closure.json",
+        "bytes": 3507,
+        "sha256": "0cac497296c5b92c934fdbd08916694c775fe0d5df0ca04c603a7268b2b753b6"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-package-bind-acceptance-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-bind-acceptance-v2-execution.json",
+            "bytes": 1799,
+            "sha256": "6fc6f9cc0968975591566a3e3582f9c819580b1087a015dc198cc1b22f649cdb"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-bind-acceptance-v2.log",
+            "bytes": 98,
+            "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-net8-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-net8-build-v2-execution.json",
+            "bytes": 2605,
+            "sha256": "ce2cd57d371cb3dd486137ffde96c1b419494260a3058e35cbd4e8d996f2e65f"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-net8-build-v2.log",
+            "bytes": 462,
+            "sha256": "cfc855d5c4040e87b4f05d65cc86eb5f5ae2ce9fad1fab60acc3689ac3ddc127"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-net8-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-net8-run-v2-execution.json",
+            "bytes": 2220,
+            "sha256": "2028a0ee3077d6770442d1229b104cd7c648aef1388a7da9c0409a95192953ce"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-net8-run-v2.log",
+            "bytes": 245,
+            "sha256": "0cbecd82cead97f0af680da15f35a6c51ec89b44f785f08e94c1091c33510457"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-net10-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-net10-build-v2-execution.json",
+            "bytes": 2610,
+            "sha256": "1a9a11c395076fd3a6c125944fdd4f07efa878bd73a9bdc16af9f7592ff93382"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-net10-build-v2.log",
+            "bytes": 463,
+            "sha256": "0fd4ad2de253047082bd4fd914c79ddcedb8ec0e59703074d19eb1dca4b0a615"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-net10-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-net10-run-v2-execution.json",
+            "bytes": 2225,
+            "sha256": "dfb621299e19f71d34a80ed4a37f772d17fbac96a852f28fa568de4cd7edb4d3"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-net10-run-v2.log",
+            "bytes": 246,
+            "sha256": "b8a7b438931dae75a81adbd618d039a5238fc30a4e65b37f8327d2c5c0f0204e"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-aot-publish-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-aot-publish-v2-execution.json",
+            "bytes": 2668,
+            "sha256": "8cb02c945216ac616e9ead0998b11438dfd5818247c6dfab99411ef500f09252"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-aot-publish-v2.log",
+            "bytes": 583,
+            "sha256": "b82b71591937462a9e2156839883887f57ea6743479b163d13c7403406447041"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-aot-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-aot-run-v2-execution.json",
+            "bytes": 2168,
+            "sha256": "c305b115ca98f23ffe073969b76d91f8e12fc2689fc368a8ef7397cdeb819f5d"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-aot-run-v2.log",
+            "bytes": 279,
+            "sha256": "f48bac2acac2ff319369b6ec6182ea1b5a27da5b8737ba0827df037ab51c2b2f"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-package-inspect-consumers-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/images-package-inspect-consumers-v2-execution.json",
+            "bytes": 1810,
+            "sha256": "25d610723f602ed53fcabf51847ad71cf0f5d8122107f4a803801c9963e3ce36"
+          },
+          "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceHeadAfter": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-package-inspect-consumers-v2.log",
+            "bytes": 89,
+            "sha256": "434e06a1337c0cfae66ae6e5c40a77532d933ceff9c1ed5603bd1406f579fdd6"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "native": {
+      "receipt": {
+        "path": "$TASK_ROOT/native-images-v1-closure.json",
+        "bytes": 611,
+        "sha256": "11cdff5c820cd5404d0511f16e2f043fea6fbad6e2999865efea97b034598eca"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-native-edge-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-native-edge-v1-execution.json",
+            "bytes": 4398,
+            "sha256": "3a2897db82b248ac78e989dc696ae0b0c1ab8dc0ecce8b26f77d29e5e9ab9cb6"
+          },
+          "sourceHead": "926945ad3e0e7822130248551d909c0fcba0126e",
+          "sourceHeadAfter": "926945ad3e0e7822130248551d909c0fcba0126e",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-native-edge-v1.log",
+            "bytes": 811,
+            "sha256": "a6d5de2d91b27cbe8b53d460cd4ce67ce1fdf5e9fc1c3aba01641a9ebae7a9f0"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "initialFocusedRemediation": {
+      "receipt": {
+        "path": "$TASK_ROOT/focused-images-v4-closure.json",
+        "bytes": 614,
+        "sha256": "0fdd73226dc57ea59683b92cc01d9921a4e51f5574f1cbd2ec4eb88f270caf74"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-focused-net8-v4",
+          "receipt": {
+            "path": "$TASK_ROOT/images-focused-net8-v4-execution.json",
+            "bytes": 5953,
+            "sha256": "4d8de76c292234e17bf03d54648d41fda9bb3eaafd98c98e37beb68b14411dfa"
+          },
+          "sourceHead": "926945ad3e0e7822130248551d909c0fcba0126e",
+          "sourceHeadAfter": "926945ad3e0e7822130248551d909c0fcba0126e",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundLengthContexts.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundLengthContexts.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-focused-net8-v4.log",
+            "bytes": 8290,
+            "sha256": "1848aa6b927695434905ea7de49846878ff4ea0d0e47e4e9e1a09201cee7ed4e"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    }
+  },
+  "historicalFocusedAttempts": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "closure": {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-images-v1-closure.json",
+            "bytes": 615,
+            "sha256": "32c4896d605040b3a7b0cbd83169f8de3bdaa8418c0ad0222d205a9d2a1245a3"
+          },
+          "passed": false,
+          "executions": [
+            {
+              "role": "images-focused-net8-v1",
+              "receipt": {
+                "path": "$TASK_ROOT/images-focused-net8-v1-execution.json",
+                "bytes": 3351,
+                "sha256": "da3512c225c277fdb24083a6c9a29aa0d76e0db20d0c3fea0bc9e6edc24b1d6b"
+              },
+              "sourceHead": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceHeadAfter": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs",
+              "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs",
+              "exitCode": 1,
+              "log": {
+                "path": "$TASK_ROOT/logs/images-focused-net8-v1.log",
+                "bytes": 19195,
+                "sha256": "1293a5105f52548f799be3fad9e74d48c0e3a06a1be132007d4f51788cde2720"
+              },
+              "ownedGroupAbsent": true
+            }
+          ]
+        },
+        "trx": {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/images-focused-net8-v1.trx",
+            "bytes": 737140,
+            "sha256": "5643ade5fdfca3d5a631863a0767e6b01f46abf262ce2b1d9e6aba14d1fef1ae"
+          },
+          "outcome": "Failed",
+          "counters": {
+            "total": 447,
+            "executed": 447,
+            "passed": 444,
+            "failed": 3,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      },
+      {
+        "attempt": 2,
+        "closure": {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-images-v2-closure.json",
+            "bytes": 615,
+            "sha256": "3aeb7a4319a8a8f997992190edae8487f52542c554ff4c58192cb58f62489fd1"
+          },
+          "passed": false,
+          "executions": [
+            {
+              "role": "images-focused-net8-v2",
+              "receipt": {
+                "path": "$TASK_ROOT/images-focused-net8-v2-execution.json",
+                "bytes": 6063,
+                "sha256": "952d80915def64950d82f0f1b3ff1c64671ae658957d5fafc5b82299c2fdfcef"
+              },
+              "sourceHead": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceHeadAfter": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceStatusBefore": "M Docs/ROADMAP.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+              "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+              "exitCode": 1,
+              "log": {
+                "path": "$TASK_ROOT/logs/images-focused-net8-v2.log",
+                "bytes": 17725,
+                "sha256": "3a61d9498c26a779d7251d85afb5fc6f562b8dc436e17e950facbf32993f115a"
+              },
+              "ownedGroupAbsent": true
+            }
+          ]
+        },
+        "trx": {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/images-focused-net8-v2.trx",
+            "bytes": 784290,
+            "sha256": "26724c7a81d351cb53f9f13858c0739dda4d6dbb1ddc579849b54ea31a46c665"
+          },
+          "outcome": "Failed",
+          "counters": {
+            "total": 471,
+            "executed": 471,
+            "passed": 465,
+            "failed": 6,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      },
+      {
+        "attempt": 3,
+        "closure": {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-images-v3-closure.json",
+            "bytes": 615,
+            "sha256": "413c20e19ce3a3315ffd54bafd9f24fa3aa392186a76df321b555c7684fe2c29"
+          },
+          "passed": false,
+          "executions": [
+            {
+              "role": "images-focused-net8-v3",
+              "receipt": {
+                "path": "$TASK_ROOT/images-focused-net8-v3-execution.json",
+                "bytes": 6260,
+                "sha256": "9a29e1c97fe66ac4be3e3b3e546eb2dbcf18f532373d0571b818a3be2d87694f"
+              },
+              "sourceHead": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceHeadAfter": "926945ad3e0e7822130248551d909c0fcba0126e",
+              "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+              "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSizing.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.GeneratedContent.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs\n M OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssDiscovery.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSelectors.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.ExternalStylesheets.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipeline.FontFaces.cs\n M OfficeIMO.Html/Resources/HtmlResourcePipelineOptions.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginImages.cs\n?? OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderResourceLoader.GeneratedBackgrounds.cs\n?? OfficeIMO.Html/Resources/HtmlResourcePipeline.PageMarginBackgrounds.cs",
+              "exitCode": 1,
+              "log": {
+                "path": "$TASK_ROOT/logs/images-focused-net8-v3.log",
+                "bytes": 9946,
+                "sha256": "5c4352f2489ad81cd4f2553e65f766ae22865f0726d81474192253fde7c9624c"
+              },
+              "ownedGroupAbsent": true
+            }
+          ]
+        },
+        "trx": {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/images-focused-net8-v3.trx",
+            "bytes": 777686,
+            "sha256": "1984d839653ea4b25b78807e92e8502e6174bc698695dde514f0c031b894c824"
+          },
+          "outcome": "Failed",
+          "counters": {
+            "total": 477,
+            "executed": 477,
+            "passed": 475,
+            "failed": 2,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      }
+    ],
+    "boundary": "Failed1/2/3remain failed. The475passing cases within failed477-case attempt3 are not a separately green broad/full suite. Initial focused4passes43 at its recorded source identity; corrected-candidate fullNET8/NET10 results above own final qualification."
+  },
+  "sourceObservations": {
+    "net8": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net8-v2/summary.json",
+        "bytes": 3383993,
+        "sha256": "4533c2d470dd04104506cc720641e6df4d01c3ba905323e0cff28e9db1a5ef00"
+      },
+      "declaredSourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+      "observations": 24,
+      "pages": 48,
+      "diagnosticsAndLossByObservation": [
+        {
+          "lane": "net8",
+          "fixture": "01-relative-png-svg",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "01-relative-png-svg",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "02-data-contain-cover",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "02-data-contain-cover",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "03-explicit-repeat-modes",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "03-explicit-repeat-modes",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "04-alpha-image-over-gradient",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "04-alpha-image-over-gradient",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "05-origin-clip-final-color",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "05-origin-clip-final-color",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "06-linear-hard-stops",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "06-linear-hard-stops",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "07-repeating-linear",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "07-repeating-linear",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "08-radial-repeating-radial",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "08-radial-repeating-radial",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "09-conic-repeating-conic",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "09-conic-repeating-conic",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "10-inherit-currentcolor-cascade",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "10-inherit-currentcolor-cascade",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "11-empty-none-zero-area",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "11-empty-none-zero-area",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net8",
+          "fixture": "12-negative-margins-physical-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ]
+        },
+        {
+          "lane": "net8",
+          "fixture": "12-negative-margins-physical-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ]
+        }
+      ],
+      "runtime": [
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.dll",
+          "bytes": 3006976,
+          "sha256": "63f4f69ef3fea9c66568938a0365b15f1464694f16ce375d9a57890605b1e2f5"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "72e0d3bd215e177a03d2ad986b27f612d278c4e17270c0bf0cf5f845abbcaf1a"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "b8b1aed1f94f78e1ae89939d25d8f746e274295a5c6a55f503e6b820e0d4661b"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "b3265edd1a87394e96d69a8805b3f1064ec3c55847186224489970609cd4639a"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "1d9072946ef197a196a9b327fdf36fee0c48f0fda63028049be5c36ca3ba421c"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        }
+      ]
+    },
+    "net10": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net10-v2/summary.json",
+        "bytes": 3384120,
+        "sha256": "01ddc90b09d087d65ccfb92b8c5ad9f1e5688da53c5e29bbd42a1ac29e7fcce4"
+      },
+      "declaredSourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+      "observations": 24,
+      "pages": 48,
+      "diagnosticsAndLossByObservation": [
+        {
+          "lane": "net10",
+          "fixture": "01-relative-png-svg",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "01-relative-png-svg",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "02-data-contain-cover",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "02-data-contain-cover",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "03-explicit-repeat-modes",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "03-explicit-repeat-modes",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "04-alpha-image-over-gradient",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "04-alpha-image-over-gradient",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "05-origin-clip-final-color",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "05-origin-clip-final-color",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "06-linear-hard-stops",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "06-linear-hard-stops",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "07-repeating-linear",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "07-repeating-linear",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "08-radial-repeating-radial",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "08-radial-repeating-radial",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "09-conic-repeating-conic",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "09-conic-repeating-conic",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "10-inherit-currentcolor-cascade",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "10-inherit-currentcolor-cascade",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "11-empty-none-zero-area",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "11-empty-none-zero-area",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": []
+        },
+        {
+          "lane": "net10",
+          "fixture": "12-negative-margins-physical-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ]
+        },
+        {
+          "lane": "net10",
+          "fixture": "12-negative-margins-physical-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ]
+        }
+      ],
+      "runtime": [
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "1591ae553292bfb6c6c87ab5715353d90c4a461c3103bfd7fc6be50a1d9ad8df"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "c1d07bc4f05b9546e9e76c5998b20a4cd4aa1e27acd08e41a787dbacedc6367c"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "dc29218c842025f395cddb88a3fea95d7e102ce4759959f75fd2bb4966169bfc"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "2721a549e5893ae1596c02fa218241af192acd8f9e13fde25d156d655a0727f5"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "180ddb9525b8f1b599128346ff4dade39bceb1a71ead9040f9de45f6fbfb478b"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        }
+      ]
+    }
+  },
+  "native": {
+    "execution": {
+      "path": "$TASK_ROOT/native-background-images/execution.json",
+      "bytes": 1139315,
+      "sha256": "93bed6a4bbef3b7bcb6e70bc02134b1ce4138aaa2fde70efdeb4dca53057e44f"
+    },
+    "appearance": {
+      "path": "$TASK_ROOT/prep/native-current-appearance-v2.json",
+      "bytes": 17168104,
+      "sha256": "28c6fdee8c2ca7403ad520669d474c1c58505d3d7518ec42af7daa1a055a9204"
+    },
+    "authoredSamples": {
+      "path": "$TASK_ROOT/prep/native-current-paint-samples-v2.json",
+      "bytes": 6799169,
+      "sha256": "afa88c9e498c6358327d31242f3906b387122a2d5e7113c9e0dd7da75187e031"
+    },
+    "actualPdfObservations": 24,
+    "actualPdfPages": 48,
+    "serverClosed": true,
+    "remainingOwnedEdge": [],
+    "printParameterBoundary": "PreferCSSPageSize=true; declared CSS paper360x480px/reference270x360pt; actual parsed page sizes retained separately with bounded<=0.5pt Chromium paper rounding; exact360x480 raster at96dpi still required; viewport360x480; Scale1; no browser header/footer templates.",
+    "qualificationBoundary": "Prepared image/gradient cohort records actual native PDFs only. Asset events prove exact served preload bytes, not active CSS painting. Image/pattern/gradient/vector inventory, geometry, source PNG/PDF replay and native visual acceptance remain separate ROOT-owned gates. No explicit gradient sizing/tiling or universal parity is claimed."
+  },
+  "rootAcceptance": {
+    "receipt": {
+      "path": "$TASK_ROOT/root-render-acceptance-v2.json",
+      "bytes": 8348,
+      "sha256": "a59dd7dd52bc677ba302eff1cc53f819146c265b6b671f7bb9e360eec5115501"
+    },
+    "nativeComparisonLimits": "Actual Edge24PDF/48pages in print/screen, exact bound inputs/font/resources and saved-page observations. ROOT viewed the all12comparison contact,8full main pages (repeat,radial,page-variable,physical-clip pairs) plus3supplemental round pages. Main source shapes, images, gradients, repeats, clips and page counts are accepted as bounded current behavior. Case10 page-scoped variable background differs: native remains currentColor while source paints the inherited variable gradient; this is retained as unmatched native appearance. Native image interpolation, antialiasing, text baseline/placement and gradient edges differ; authored probes retain exact deltas with no universal tolerance. Supplemental round authored phase is corrected but native exact raster phase differs. Full-size radial inspection confirms centre paint in both; reduced contact appearance is not treated as a missing native feature. No universal pixel/spec, vertical/side/corner/radius/functional-size, accessibility or physical-print claim.",
+    "ownComparisonLimits": "Both current source lanes have24observations/48pages with48same-framework directPNG=saved/reopenedPDF encoded pairs each. Cross-framework48decoded pages happen to match but encoded byte equality is not asserted across frameworks. Required active paint inventory and secured resource bytes/MIME/budgets are inspected; hidden preloads alone are not paint proof. Only case12 physical-paper clipping has typed generated-margin omission diagnostics; all other source rows require no loss. Shared gradient explicit image-size/tiling approximation remains diagnosed and outside expanded sizing support.",
+    "physicalOverflowLossReview": [
+      {
+        "lane": "net8",
+        "fixture": "12-negative-margins-physical-clip",
+        "profile": "PrintPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net8",
+        "fixture": "12-negative-margins-physical-clip",
+        "profile": "ScreenMediaPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net10",
+        "fixture": "12-negative-margins-physical-clip",
+        "profile": "PrintPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net10",
+        "fixture": "12-negative-margins-physical-clip",
+        "profile": "ScreenMediaPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      }
+    ]
+  },
+  "privatePackages": {
+    "privateVersion": "3.5.32",
+    "plan": {
+      "path": "$TASK_ROOT/prep/package-qualification-images-v2/plan.json",
+      "bytes": 41498,
+      "sha256": "7ccf5ad628062fc21fc32dab6bf8ef17b602f496fa9c1bcb74e6f662c49108c4"
+    },
+    "binding": {
+      "path": "$TASK_ROOT/packages/images-qualified-v2/package-binding.json",
+      "bytes": 25450,
+      "sha256": "0f2ef681e01b533d5151f4fc89ef785c35e07deb9e81f17ff5a5ad6cb39d38ba"
+    },
+    "packages": {
+      "OfficeIMO.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/feed/OfficeIMO.Core.3.5.32.nupkg",
+          "bytes": 8803383,
+          "sha256": "0f65ea6607fde0f8973754b2ab57642c9ad3716133ee037c7a029888b20d753b"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Core.dll": "acf9c217c3ae99a67b700e7eb9889e1b307a9fbef0a6bd955097d6b28dccc646",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "cf46f420f492637aafd70a52a9549e93a7441184a7347aa93066f5d2c45f9da2",
+          "lib/net8.0/OfficeIMO.Core.dll": "ab4016c57a71a4d4c18621f8588d8f3fe8d1958c4110a3b011a500f0bafee5e1",
+          "lib/net10.0/OfficeIMO.Core.dll": "2eba00a58d2c4ff9f2b4c5d6e031e82b10adeb25bad79a7939cb49e481cd35e6"
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Core.nuspec",
+          "bytes": 1629,
+          "sha256": "61c39a4e28d8062474c3c971216bb066191a37fb6609cd4b4ba86cada26dc28e",
+          "packageId": "OfficeIMO.Core",
+          "version": "3.5.32",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      "OfficeIMO.Pdf": {
+        "package": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/feed/OfficeIMO.Pdf.3.5.32.nupkg",
+          "bytes": 14058124,
+          "sha256": "9393189bb2d345fcae1f071d925fc91892e947144854bdb4f3433b36161e4b88"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Pdf.dll": "fa559b5c38375c59f547744b6af75fe2d4ae859b1447a3cfd9643307bf3a9e77",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "3484f44f51d9c7fc1de486e666d574f9e5c2f68cbbd169caf4428d0459eee46b",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "a85e9963feeb2110e74af4e9225cfbe943febde85a38da9b11f94f9f6a81ed5e",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "abaff30a4e9bfd7d601290aa032b0759975fdf6b3aa4a35e084a0663f812a419"
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Pdf.nuspec",
+          "bytes": 1549,
+          "sha256": "31972a9199dd44cfffcbe9cf4bd1b16908651435cd59593a9604205a5a4d2970",
+          "packageId": "OfficeIMO.Pdf",
+          "version": "3.5.32",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      "OfficeIMO.Html.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/feed/OfficeIMO.Html.Core.3.5.32.nupkg",
+          "bytes": 325407,
+          "sha256": "ba78a53d26834edd616c78ba2b182aa3b4178f148f120a1bd519b3c15a436cf7"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "75f3ea7951b39d9ede61429212f68422d26f9b47c6263d706dd1f4745c4ac80b",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "5b644d1c898836b6703c6bbfa6d32b87edae728b5092e0384800dc8a7740a36d",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "6dc996c49bdab3690fec0bcc36d45d7551616d1c975b8b0c857fa6103b1b65ba",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "bf1ac426978a519f0188b3cc856bf6008ff3c27857738a38e05243c5ac061360"
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.Core.nuspec",
+          "bytes": 935,
+          "sha256": "3e28be9e22160f0d98f6644f5c3484c2e0cd1f3270a60f500a636203d7f2c2aa",
+          "packageId": "OfficeIMO.Html.Core",
+          "version": "3.5.32",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "package": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/feed/OfficeIMO.Html.AngleSharp.3.5.32.nupkg",
+          "bytes": 104239,
+          "sha256": "a3e8b0a7f129b73dad9fef411741bdd82a7929e846700933903f30994e73091c"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "b74f1fe6bea935d02c62111a70ca29895301f0bdab93d344e28dee1eff285bcc",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "27c36b4ef30a610984a30f8c776f709bbc6b84a0007466093ae12f6ed716ade3",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "ef9f1a7e921450eada4a9ee7258a4b97a5efbb507df91bc5ed9ee1a17a1488e7",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "b608839c0d175571a62c7900fba2a5df812ced9067dc115e18761c6245774a9a"
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.AngleSharp.nuspec",
+          "bytes": 1884,
+          "sha256": "eb66888fc57ee123ebfddddf0c18b78dbe16022e95b7abf7562e203f47b1ce56",
+          "packageId": "OfficeIMO.Html.AngleSharp",
+          "version": "3.5.32",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      "OfficeIMO.Html": {
+        "package": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/feed/OfficeIMO.Html.3.5.32.nupkg",
+          "bytes": 4786913,
+          "sha256": "c60d592d48f16e867ffee46b35d5699634e837f1445193b0a67d2d91f61c47f9"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.dll": "780c82eff798deca6f1c302abe1b109830fc710c7170f76eab097a18637b8b2c",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "90df97335c1222e3dd80767203dcb39cbcd91f8ec76e8c97eca4743c622ded69",
+          "lib/net8.0/OfficeIMO.Html.dll": "7c84c8d1b7dc0b165cc8ad6860df2c819425f4b401d46c1d0857ab15ddb6e13f",
+          "lib/net10.0/OfficeIMO.Html.dll": "84143a24db1a6cef65c082d4f2a5c6afa494fcfe93e77e3794ca6534ce0db143"
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.nuspec",
+          "bytes": 3515,
+          "sha256": "3b4a33784fcbefa21ac0b1582346aa81f5cd02dc2cb31968fdd5b88743c5619c",
+          "packageId": "OfficeIMO.Html",
+          "version": "3.5.32",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.32",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "published": false
+  },
+  "publicApiConsumers": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/images-qualified-v2/consumer-binding.json",
+      "bytes": 62285,
+      "sha256": "b740d4ed4862d69c1354692909576046f4a34b0e45c7519d0a72ee59360ee8e6"
+    },
+    "acceptance": {
+      "path": "$TASK_ROOT/prep/package-qualification-images-v2/acceptance.json",
+      "bytes": 91496,
+      "sha256": "c9e51292d4b3464ca2ef5081104bc53ca4a7ebb10b4101d6dc40b4dbde8bd45a"
+    },
+    "lanes": [
+      {
+        "label": "net8",
+        "result": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/results/net8/result.json",
+          "bytes": 3070688,
+          "sha256": "957ebe834c7fb7ac77c93af0a843b5b5a8b6222cfc1a77f9110da3017348af6c"
+        },
+        "framework": ".NET 8.0.23",
+        "observations": 24,
+        "pages": 48
+      },
+      {
+        "label": "net10",
+        "result": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/results/net10/result.json",
+          "bytes": 3070817,
+          "sha256": "47a821c2eadb565aba2cb0c53b2406052b24eb4ceca9680d4343d46c919cb947"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "pages": 48
+      },
+      {
+        "label": "aot",
+        "result": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/results/aot/result.json",
+          "bytes": 3068757,
+          "sha256": "05b4f7b198269d00f6bd3f0ec10d2662f672e0b0ebc97df503102637d662daac"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "pages": 48,
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/aot/PageMarginBackgroundImagesPackageaot",
+          "bytes": 34942568,
+          "sha256": "30af0e2f34d5c1e3e4cfe7cd9a2482ff04eab6e9b8e8d910a167517d142f2e02"
+        }
+      }
+    ],
+    "observations": 72,
+    "pageObservations": 144
+  },
+  "originalSourceV1": {
+    "sourceHead": {
+      "head": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+      "tree": "2e154dc0b83cfad26fa5497fe675a5119b0f369a"
+    },
+    "plan": {
+      "path": "$TASK_ROOT/prep/package-qualification-images-v1/plan.json",
+      "bytes": 41129,
+      "sha256": "6eadafe0fc80406666c0368f950abdd0f3c301a0d74d0b8a54af89a0bd4629da"
+    },
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-images-v1.json",
+      "bytes": 12231091,
+      "sha256": "ad47d4db4de815ae93cc09d1ddd143debd24a011e9417461ccecd2dfb42d9b19"
+    },
+    "sourceClosure": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-images-v1-closure.json",
+        "bytes": 1816,
+        "sha256": "0d5b693af969b107d1ba939b37530a2633a970279f7bda5fece3cd02e604dfd9"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "images-observer-net8-build-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net8-build-v1-execution.json",
+            "bytes": 1913,
+            "sha256": "672348bee316f344160370e3efb4b3f167d635a96346efe9dc9cc00f5638c134"
+          },
+          "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net8-build-v1.log",
+            "bytes": 1889,
+            "sha256": "519ea56985c4f7c42266f12a199cfa959e877afe11c14b44e94b4df0c2bf37c5"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net8-run-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net8-run-v1-execution.json",
+            "bytes": 1610,
+            "sha256": "f57d11016c86561800253e42338a95e139db987e60c5d95912b478de5184dad7"
+          },
+          "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net8-run-v1.log",
+            "bytes": 116,
+            "sha256": "972d8aad50b87ae6210f982816169d0c0e09ddd3b265c42209b713d2c0d514d3"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net10-build-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net10-build-v1-execution.json",
+            "bytes": 1919,
+            "sha256": "73e1a3f5a02bc4f6e47fd2b2044b68b5c5d199f5a75b94cae40d28ce767bc63e"
+          },
+          "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net10-build-v1.log",
+            "bytes": 1199,
+            "sha256": "f2293587d29b582b16cf44611471a61b6f3452477501362251abc6a5388519af"
+          },
+          "ownedGroupAbsent": true
+        },
+        {
+          "role": "images-observer-net10-run-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/images-observer-net10-run-v1-execution.json",
+            "bytes": 1615,
+            "sha256": "6c5dcf202b03975cac6464cdd5023a0996cf70797d8f5e74ef3c6645758bc301"
+          },
+          "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "log": {
+            "path": "$TASK_ROOT/logs/images-observer-net10-run-v1.log",
+            "bytes": 117,
+            "sha256": "c6332bee8a5163996c902ef2a9d17635fae53fdb7197f488ef16154356606b60"
+          },
+          "ownedGroupAbsent": true
+        }
+      ]
+    },
+    "sourceObservations": {
+      "net8": {
+        "summary": {
+          "path": "$TASK_ROOT/source-net8/summary.json",
+          "bytes": 3383484,
+          "sha256": "b8c37f50fb28299f09d342b27f1d800cdcdf3cf2727e9d224a81094728ea30e0"
+        },
+        "declaredSourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+        "observations": 24,
+        "pages": 48,
+        "ownPngPdfReplayEqual": true
+      },
+      "net10": {
+        "summary": {
+          "path": "$TASK_ROOT/source-net10/summary.json",
+          "bytes": 3383611,
+          "sha256": "a12cd7045079f0749799a5a887e6467a43ee1279485e36d8b724fec0cb247e41"
+        },
+        "declaredSourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+        "observations": 24,
+        "pages": 48,
+        "ownPngPdfReplayEqual": true
+      }
+    },
+    "disposition": "Observed source only. Two subsequently validated P2 defects prevent this original276 run from qualifying the corrected v2 candidate. Original records remain unchanged; no v1 producer/consumer success is claimed."
+  },
+  "supplemental": {
+    "receipt": {
+      "path": "$TASK_ROOT/supplemental-qualification.json",
+      "bytes": 4496,
+      "sha256": "e86cc5b1fef5e8e369fe098000acfff994ceb7bb427652cbb5558f7d82d5fb30"
+    },
+    "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+    "sourceLabels": {
+      "original276": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+      "finalV2": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec"
+    },
+    "files": {
+      "roundNativePhase": {
+        "path": "$TASK_ROOT/prep/round-position-control/native/execution.json",
+        "bytes": 18613,
+        "sha256": "fa60c0669cc03eb9d16d6b2c7a3603df608c00d37347e3f5b8704696a74b77e7"
+      },
+      "roundSourceNet10Phase": {
+        "path": "$TASK_ROOT/prep/round-position-control/source-net10/summary.json",
+        "bytes": 53104,
+        "sha256": "0dffbdee693bdf6d984a8396dfb1c833077913cc1c4414b8ff21859e75e9185b"
+      },
+      "roundBefore276Phase": {
+        "path": "$TASK_ROOT/prep/round-position-control/source-before-net10/summary.json",
+        "bytes": 53125,
+        "sha256": "2eca97579e14a3ec06f7514c3ec4a03f4dee89b96004ecf6abd022bfff427b91"
+      },
+      "roundMeasuredPhase": {
+        "path": "$TASK_ROOT/prep/round-position-control/phase-current.json",
+        "bytes": 1060813,
+        "sha256": "cd0e46425da0528aec4f6919e6ec710bf987639726480abdbcde6a02a306e1ab"
+      },
+      "supplementalExecution": {
+        "path": "$TASK_ROOT/supplemental-images-v2-closure.json",
+        "bytes": 1823,
+        "sha256": "12644588cb7c2dafd27036290d04b0f054aba10707ad52a1b85516069c5f4a25"
+      },
+      "redirectBefore": {
+        "path": "$TASK_ROOT/redirect-repro-before.json",
+        "bytes": 382,
+        "sha256": "b8f3dfb89421ce165c2296d895a139b54d37ef1640dc991478fa0a534de934e9"
+      },
+      "redirectAfter": {
+        "path": "$TASK_ROOT/redirect-repro-after.json",
+        "bytes": 229,
+        "sha256": "ded80775b3e3485342d76316d38d7bae182843debe15972c90df934a42007f97"
+      },
+      "originalToFinalPngDiff": {
+        "path": "$TASK_ROOT/before-current-images-v2.json",
+        "bytes": 82659,
+        "sha256": "de8c5f2e3bf703bb05e275d68f901a4b610f28103393c18c584bb500dbc1db0b"
+      },
+      "crossFrameworkPixels": {
+        "path": "$TASK_ROOT/cross-framework-pixel-observations.json",
+        "bytes": 179,
+        "sha256": "cba272e51dd785c7ca6509a4779a427a82487b061185c0f0d7e31404c62e6842"
+      },
+      "redirectHarnessBindings": {
+        "path": "$TASK_ROOT/redirect-harness-bindings-v2.json",
+        "bytes": 729,
+        "sha256": "2b6dfba82639799330d1f34f3080206e98c01e6cdb0beb79c551e5d66985b9f4"
+      }
+    },
+    "counts": {
+      "roundNative": {
+        "pdfObservations": 2,
+        "pages": 2
+      },
+      "roundSourceNet10": {
+        "ownPngPdfPairs": 2
+      },
+      "roundBefore276": {
+        "ownPngPdfPairs": 2
+      },
+      "pngDiffByFramework": {
+        "net8.0": {
+          "comparedPairs": 48,
+          "differentPairs": 4
+        },
+        "net10.0": {
+          "comparedPairs": 48,
+          "differentPairs": 4
+        }
+      }
+    },
+    "limits": [
+      "Supplemental round phase only: actual Edge centre/10px starts differ from origin; corrected NET10 source preserves both phases, original276 ignored them. Exact native raster phase/interpolation is not equal: measured native shifts include 11/9mod20, corrected source10mod20. BODY is a retained content marker, not a body baseline acceptance.",
+      "Redirect repro CSS/resolver is identical. The original harness counted only direct image visuals; the final harness also counts HtmlRenderImagePattern and separately exposes directImages=0/imagePatterns=1. Accepted FinalUri request is corrected and the actual resource omission is gone; focused redirect tests independently protect active paint.",
+      "Original276 to final same-framework comparison observes96encoded/decoded pages:88unchanged,8changes confined to fixture03repeat spacing/phase. Supplemental evidence is separate from main24PDF/48Edgepages; no universal browser appearance claim."
+    ],
+    "boundary": "Extra round2PDF/2pages and NET10-only2ownPNG/PDFpairs remain separate from main24PDF/48pages. No supplemental universal acceptance or pixel-array payload is assigned."
+  },
+  "reviewFixValidation": {
+    "failedOriginal": {
+      "closure": {
+        "receipt": {
+          "path": "$TASK_ROOT/review-fixes-images-v1-closure.json",
+          "bytes": 630,
+          "sha256": "574d6a42f9cfe48cd5181a4d88d558118a6c0cc260d857f52ac446731e89ba2f"
+        },
+        "passed": false,
+        "executions": [
+          {
+            "role": "images-review-fixes-net8-v1",
+            "receipt": {
+              "path": "$TASK_ROOT/images-review-fixes-net8-v1-execution.json",
+              "bytes": 2575,
+              "sha256": "fc821c1ade962155dabb50f444bdc528ab04bce9b1ba7640ec734d04558dda88"
+            },
+            "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+            "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+            "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundRepeatContexts.cs",
+            "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundRepeatContexts.cs",
+            "exitCode": 1,
+            "log": {
+              "path": "$TASK_ROOT/logs/images-review-fixes-net8-v1.log",
+              "bytes": 15199,
+              "sha256": "9ea2c4ec61729dda3b794777d13aa18c2dea64f93b8b2c896d26d340899edeea"
+            },
+            "ownedGroupAbsent": true
+          }
+        ]
+      },
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/images-review-fixes-net8-v1.trx",
+          "bytes": 114245,
+          "sha256": "d302bac6c85c3769957730252c94cbe595a2394649aef01f6835ea97855ab514"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 61,
+          "executed": 61,
+          "passed": 53,
+          "failed": 8,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      }
+    },
+    "correctedFocused": {
+      "closure": {
+        "receipt": {
+          "path": "$TASK_ROOT/review-fixes-images-v2-closure.json",
+          "bytes": 629,
+          "sha256": "0d5f6c3a4e28681e48d7a89e7a136967ddb0c301eec450c442a82e51987fc96a"
+        },
+        "passed": true,
+        "executions": [
+          {
+            "role": "images-review-fixes-net8-v2",
+            "receipt": {
+              "path": "$TASK_ROOT/images-review-fixes-net8-v2-execution.json",
+              "bytes": 2576,
+              "sha256": "a5d291a5850f024cf4aaa690b0b3c20749d1233f52939c81fb405aa0aad599be"
+            },
+            "sourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+            "sourceHeadAfter": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+            "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundRepeatContexts.cs",
+            "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStylesheetApplier.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundRepeatContexts.cs",
+            "exitCode": 0,
+            "log": {
+              "path": "$TASK_ROOT/logs/images-review-fixes-net8-v2.log",
+              "bytes": 8292,
+              "sha256": "b07e612acb3a20d539e9da44a22aa13008319fa394fb028ec190996d6f9d2797"
+            },
+            "ownedGroupAbsent": true
+          }
+        ]
+      },
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/images-review-fixes-net8-v2.trx",
+          "bytes": 102157,
+          "sha256": "0867c5e01594f3c4f1ac8d2ed389a1730071e6f15c1f80a30193fddba851e56a"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 61,
+          "executed": 61,
+          "passed": 61,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      }
+    },
+    "boundary": "Failed review-fixes-v1 preserves53passes/8failures caused by fixture default-repeat Image assumptions. Review-fixes-v2passes61; current fullHTMLproof remains separate."
+  },
+  "localReview": {
+    "ledger": {
+      "path": "$TASK_ROOT/review-ledger.json",
+      "bytes": 2224,
+      "sha256": "afcbc6bae7e0807e30f185e5d9e0110e30adf3f2ffb2cf2e0d697c9374f94b1f"
+    },
+    "report": {
+      "path": "$TASK_ROOT/prep/review-images-v1.md",
+      "bytes": 6067,
+      "sha256": "f2b493c8aa18e6d09c483b4f2d55a1f6cba1b3e71b0c64474b87e83307041615"
+    },
+    "reviewedSourceHead": "27624a0db01ceb25ab5f7bdd8deb7b71cda624ce",
+    "finalSourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+    "confirmation": {
+      "sourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+      "report": {
+        "path": "$TASK_ROOT/prep/review-images-confirmation-v1.md",
+        "bytes": 4415,
+        "sha256": "c50d01cba0f81a076688201b2e888c4dab1d17c7850285bdb5b0e6238e178280"
+      }
+    },
+    "reviewer": "/root/page_margin_images_review",
+    "independence": "Fresh local read-only subagent forked without parent history; did not author implementation or run tests. ROOT reproduced and qualified findings.",
+    "findings": [
+      {
+        "priority": "P2",
+        "contract": "Imported redirected stylesheet final base",
+        "state": "closed",
+        "before": {
+          "path": "$TASK_ROOT/redirect-repro-before.json",
+          "bytes": 382,
+          "sha256": "b8f3dfb89421ce165c2296d895a139b54d37ef1640dc991478fa0a534de934e9"
+        },
+        "fix": "Canonical accepted FinalUri feeds recursive import rebasing and cycle identity. Eight public linked/imported, ordinary/generated, sync/async cases pass."
+      },
+      {
+        "priority": "P2",
+        "contract": "Background repeat positioning vs clipping area",
+        "state": "closed",
+        "before": "Original276 source/native fixture03 saved images; independent report binding retains exact paths.",
+        "fix": "Space distributions use positioning area; round preserves authored position after rounding size. Twelve public ordinary/generated origin/clip/phase cases plus actual Edge phase control."
+      }
+    ],
+    "targetedConfirmations": 1,
+    "noUnresolvedP0P2": true
+  },
+  "storage": {
+    "cleanup": {
+      "path": "$TASK_ROOT/prep/cleanup-images-v2/cleanup-result.json",
+      "bytes": 33485,
+      "sha256": "6f002c505f5fc2e5edc7658b4e29ba2f486d8397921abef10126027fb5745c8e"
+    },
+    "cleanupOriginalSourceHead": "a4d140fbf74a92ad57fc3d2f7bc09cf4dcc035ec",
+    "retentionManifest": {
+      "path": "$TASK_ROOT/prep/cleanup-images-v2/retention-manifest.json",
+      "bytes": 608458,
+      "sha256": "079178d312552d04da1e96f1cecca8ae2cf3626cd59980a24cc7c3c1f4932b5f"
+    },
+    "archive": {
+      "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+      "bytes": 146544103,
+      "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+    },
+    "archiveMappingsReadBack": 431,
+    "originalReferencesResolvedFromArchive": [
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/OfficeIMO.Html.dll",
+          "bytes": 3006976,
+          "sha256": "549ffe7fbac3b3c0019d20a43a4255d20cffd7ccd212a0c247f65760e8d2224e"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "549ffe7fbac3b3c0019d20a43a4255d20cffd7ccd212a0c247f65760e8d2224e-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "822311bb1e5de096cb08301b415aa401eec8324c113527ab20808706e2fb1b34"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "822311bb1e5de096cb08301b415aa401eec8324c113527ab20808706e2fb1b34-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "2f49a884153ea6e1c88b929ed832f3958264246e1bd9c1365d8b7fed3eefc84d"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "2f49a884153ea6e1c88b929ed832f3958264246e1bd9c1365d8b7fed3eefc84d-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "f71d2ce8bae075d2c761704f68d677608b8419c2053b522df61665cccc5bb76b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "f71d2ce8bae075d2c761704f68d677608b8419c2053b522df61665cccc5bb76b-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "fbbe83161b0b02bf5b3ecf18f7456e6531cebb69c9aa050551e563ec1414598b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "fbbe83161b0b02bf5b3ecf18f7456e6531cebb69c9aa050551e563ec1414598b-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "026f19926e0482cef1816881c729a4a8465e7e6826ff8a62de430a1a9da9fda8"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "026f19926e0482cef1816881c729a4a8465e7e6826ff8a62de430a1a9da9fda8-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "39f78b9420157797d497a52e21cb02701fa8f0288a173c28bf2289083f936d67"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "39f78b9420157797d497a52e21cb02701fa8f0288a173c28bf2289083f936d67-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "caf733f3332a2c16be3e98425a44e2b216d6d654717c71d5f3e47a1c480532cb"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "caf733f3332a2c16be3e98425a44e2b216d6d654717c71d5f3e47a1c480532cb-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "f7d8c07529806d0dc32c8331a8849a0cfcb19b2b47c184c5d3e982c501f830ab"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "f7d8c07529806d0dc32c8331a8849a0cfcb19b2b47c184c5d3e982c501f830ab-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "3d9755e4139f328402a275049c784331061894e7c57d5f7993f928691143c34f"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "3d9755e4139f328402a275049c784331061894e7c57d5f7993f928691143c34f-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.dll",
+          "bytes": 3006976,
+          "sha256": "63f4f69ef3fea9c66568938a0365b15f1464694f16ce375d9a57890605b1e2f5"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "63f4f69ef3fea9c66568938a0365b15f1464694f16ce375d9a57890605b1e2f5-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "72e0d3bd215e177a03d2ad986b27f612d278c4e17270c0bf0cf5f845abbcaf1a"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "72e0d3bd215e177a03d2ad986b27f612d278c4e17270c0bf0cf5f845abbcaf1a-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "b8b1aed1f94f78e1ae89939d25d8f746e274295a5c6a55f503e6b820e0d4661b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b8b1aed1f94f78e1ae89939d25d8f746e274295a5c6a55f503e6b820e0d4661b-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "b3265edd1a87394e96d69a8805b3f1064ec3c55847186224489970609cd4639a"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b3265edd1a87394e96d69a8805b3f1064ec3c55847186224489970609cd4639a-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "1d9072946ef197a196a9b327fdf36fee0c48f0fda63028049be5c36ca3ba421c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "1d9072946ef197a196a9b327fdf36fee0c48f0fda63028049be5c36ca3ba421c-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "1591ae553292bfb6c6c87ab5715353d90c4a461c3103bfd7fc6be50a1d9ad8df"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "1591ae553292bfb6c6c87ab5715353d90c4a461c3103bfd7fc6be50a1d9ad8df-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "c1d07bc4f05b9546e9e76c5998b20a4cd4aa1e27acd08e41a787dbacedc6367c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "c1d07bc4f05b9546e9e76c5998b20a4cd4aa1e27acd08e41a787dbacedc6367c-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "dc29218c842025f395cddb88a3fea95d7e102ce4759959f75fd2bb4966169bfc"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "dc29218c842025f395cddb88a3fea95d7e102ce4759959f75fd2bb4966169bfc-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "2721a549e5893ae1596c02fa218241af192acd8f9e13fde25d156d655a0727f5"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "2721a549e5893ae1596c02fa218241af192acd8f9e13fde25d156d655a0727f5-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "180ddb9525b8f1b599128346ff4dade39bceb1a71ead9040f9de45f6fbfb478b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "180ddb9525b8f1b599128346ff4dade39bceb1a71ead9040f9de45f6fbfb478b-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Core/release_net472/OfficeIMO.Core.dll",
+          "bytes": 4992000,
+          "sha256": "acf9c217c3ae99a67b700e7eb9889e1b307a9fbef0a6bd955097d6b28dccc646"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "acf9c217c3ae99a67b700e7eb9889e1b307a9fbef0a6bd955097d6b28dccc646-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Core/release_netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4991488,
+          "sha256": "cf46f420f492637aafd70a52a9549e93a7441184a7347aa93066f5d2c45f9da2"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "cf46f420f492637aafd70a52a9549e93a7441184a7347aa93066f5d2c45f9da2-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "ab4016c57a71a4d4c18621f8588d8f3fe8d1958c4110a3b011a500f0bafee5e1"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ab4016c57a71a4d4c18621f8588d8f3fe8d1958c4110a3b011a500f0bafee5e1-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "2eba00a58d2c4ff9f2b4c5d6e031e82b10adeb25bad79a7939cb49e481cd35e6"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "2eba00a58d2c4ff9f2b4c5d6e031e82b10adeb25bad79a7939cb49e481cd35e6-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Pdf/release_net472/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "fa559b5c38375c59f547744b6af75fe2d4ae859b1447a3cfd9643307bf3a9e77"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "fa559b5c38375c59f547744b6af75fe2d4ae859b1447a3cfd9643307bf3a9e77-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Pdf/release_netstandard2.0/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "3484f44f51d9c7fc1de486e666d574f9e5c2f68cbbd169caf4428d0459eee46b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "3484f44f51d9c7fc1de486e666d574f9e5c2f68cbbd169caf4428d0459eee46b-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "a85e9963feeb2110e74af4e9225cfbe943febde85a38da9b11f94f9f6a81ed5e"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "a85e9963feeb2110e74af4e9225cfbe943febde85a38da9b11f94f9f6a81ed5e-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "abaff30a4e9bfd7d601290aa032b0759975fdf6b3aa4a35e084a0663f812a419"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "abaff30a4e9bfd7d601290aa032b0759975fdf6b3aa4a35e084a0663f812a419-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.Core/release_net472/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "75f3ea7951b39d9ede61429212f68422d26f9b47c6263d706dd1f4745c4ac80b"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "75f3ea7951b39d9ede61429212f68422d26f9b47c6263d706dd1f4745c4ac80b-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.Core/release_netstandard2.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "5b644d1c898836b6703c6bbfa6d32b87edae728b5092e0384800dc8a7740a36d"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "5b644d1c898836b6703c6bbfa6d32b87edae728b5092e0384800dc8a7740a36d-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.Core/release_net8.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "6dc996c49bdab3690fec0bcc36d45d7551616d1c975b8b0c857fa6103b1b65ba"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "6dc996c49bdab3690fec0bcc36d45d7551616d1c975b8b0c857fa6103b1b65ba-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.Core/release_net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "bf1ac426978a519f0188b3cc856bf6008ff3c27857738a38e05243c5ac061360"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "bf1ac426978a519f0188b3cc856bf6008ff3c27857738a38e05243c5ac061360-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.AngleSharp/release_net472/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "b74f1fe6bea935d02c62111a70ca29895301f0bdab93d344e28dee1eff285bcc"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b74f1fe6bea935d02c62111a70ca29895301f0bdab93d344e28dee1eff285bcc-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.AngleSharp/release_netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "27c36b4ef30a610984a30f8c776f709bbc6b84a0007466093ae12f6ed716ade3"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "27c36b4ef30a610984a30f8c776f709bbc6b84a0007466093ae12f6ed716ade3-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.AngleSharp/release_net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "ef9f1a7e921450eada4a9ee7258a4b97a5efbb507df91bc5ed9ee1a17a1488e7"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ef9f1a7e921450eada4a9ee7258a4b97a5efbb507df91bc5ed9ee1a17a1488e7-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html.AngleSharp/release_net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "b608839c0d175571a62c7900fba2a5df812ced9067dc115e18761c6245774a9a"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b608839c0d175571a62c7900fba2a5df812ced9067dc115e18761c6245774a9a-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html/release_net472/OfficeIMO.Html.dll",
+          "bytes": 3006464,
+          "sha256": "780c82eff798deca6f1c302abe1b109830fc710c7170f76eab097a18637b8b2c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "780c82eff798deca6f1c302abe1b109830fc710c7170f76eab097a18637b8b2c-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html/release_netstandard2.0/OfficeIMO.Html.dll",
+          "bytes": 3005952,
+          "sha256": "90df97335c1222e3dd80767203dcb39cbcd91f8ec76e8c97eca4743c622ded69"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "90df97335c1222e3dd80767203dcb39cbcd91f8ec76e8c97eca4743c622ded69-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll",
+          "bytes": 3006976,
+          "sha256": "7c84c8d1b7dc0b165cc8ad6860df2c819425f4b401d46c1d0857ab15ddb6e13f"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "7c84c8d1b7dc0b165cc8ad6860df2c819425f4b401d46c1d0857ab15ddb6e13f-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-images-qualified-v2/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "84143a24db1a6cef65c082d4f2a5c6afa494fcfe93e77e3794ca6534ce0db143"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "84143a24db1a6cef65c082d4f2a5c6afa494fcfe93e77e3794ca6534ce0db143-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/OfficeIMO.Html.dll",
+          "bytes": 3006976,
+          "sha256": "7c84c8d1b7dc0b165cc8ad6860df2c819425f4b401d46c1d0857ab15ddb6e13f"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "7c84c8d1b7dc0b165cc8ad6860df2c819425f4b401d46c1d0857ab15ddb6e13f-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "a85e9963feeb2110e74af4e9225cfbe943febde85a38da9b11f94f9f6a81ed5e"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "a85e9963feeb2110e74af4e9225cfbe943febde85a38da9b11f94f9f6a81ed5e-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "ab4016c57a71a4d4c18621f8588d8f3fe8d1958c4110a3b011a500f0bafee5e1"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ab4016c57a71a4d4c18621f8588d8f3fe8d1958c4110a3b011a500f0bafee5e1-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "6dc996c49bdab3690fec0bcc36d45d7551616d1c975b8b0c857fa6103b1b65ba"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "6dc996c49bdab3690fec0bcc36d45d7551616d1c975b8b0c857fa6103b1b65ba-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "ef9f1a7e921450eada4a9ee7258a4b97a5efbb507df91bc5ed9ee1a17a1488e7"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ef9f1a7e921450eada4a9ee7258a4b97a5efbb507df91bc5ed9ee1a17a1488e7-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "84143a24db1a6cef65c082d4f2a5c6afa494fcfe93e77e3794ca6534ce0db143"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "84143a24db1a6cef65c082d4f2a5c6afa494fcfe93e77e3794ca6534ce0db143-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "abaff30a4e9bfd7d601290aa032b0759975fdf6b3aa4a35e084a0663f812a419"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "abaff30a4e9bfd7d601290aa032b0759975fdf6b3aa4a35e084a0663f812a419-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "2eba00a58d2c4ff9f2b4c5d6e031e82b10adeb25bad79a7939cb49e481cd35e6"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "2eba00a58d2c4ff9f2b4c5d6e031e82b10adeb25bad79a7939cb49e481cd35e6-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "bf1ac426978a519f0188b3cc856bf6008ff3c27857738a38e05243c5ac061360"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "bf1ac426978a519f0188b3cc856bf6008ff3c27857738a38e05243c5ac061360-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "b608839c0d175571a62c7900fba2a5df812ced9067dc115e18761c6245774a9a"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b608839c0d175571a62c7900fba2a5df812ced9067dc115e18761c6245774a9a-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/images-qualified-v2/out/aot/PageMarginBackgroundImagesPackageaot",
+          "bytes": 34942568,
+          "sha256": "30af0e2f34d5c1e3e4cfe7cd9a2482ff04eab6e9b8e8d910a167517d142f2e02"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-images-v2.zip",
+          "bytes": 146544103,
+          "sha256": "50232c6208f16a7413ccc1ae8c5b89aa9b847e558c9e944037a5dcaa171b3ee1"
+        },
+        "archiveEntry": "30af0e2f34d5c1e3e4cfe7cd9a2482ff04eab6e9b8e8d910a167517d142f2e02-755/PageMarginBackgroundImagesPackageaot"
+      }
+    ],
+    "removedLogicalBytes": 3864634959,
+    "manifest": {
+      "path": "$TASK_ROOT/storage-manifest.json",
+      "bytes": 42454,
+      "sha256": "e353040b4612b492e818f917dca746f41667bb93244705d1bd0c49db4f225c1c"
+    },
+    "retainedLogicalBytes": 298286839
+  },
+  "delivery": {
+    "prOpened": false,
+    "publicPackagePublished": false,
+    "trackedReceiptPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-background-images-20261023.json",
+    "tracking": "Collector writes scratch only; ROOT inspects and copies the final receipt into the owning repository.",
+    "checkpointPush": "Separate ROOT remote verification; collector writes no Git state."
+  },
+  "limits": [
+    "Selected horizontal page-margin image/gradient cohort only; ROOT records current native and owned differences separately.",
+    "Hidden resource preloads do not prove activepaint; package/source required-paint gates remain authoritative.",
+    "NET472 is compilation only. Windows profiling is explicitly deferred.",
+    "Provider fork convergence, general browser/runtime/accessibility parity, public release and completion of the HTML programme are not claimed."
+  ]
+}
