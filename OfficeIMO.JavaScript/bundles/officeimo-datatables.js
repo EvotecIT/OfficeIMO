@@ -7995,7 +7995,7 @@ _modules.set("d645fdb204c8606f494151c27b14dab443c9387e260d5f632d6f16ffa7a36cab",
 return _exports;
 })();
 
-const _m68 = _modules.get("67d19c9a8e11f32e25958ca45fc71a7b2eecb99855fbce3c364b55f3488a81b0") ?? (() => {
+const _m68 = _modules.get("d8d4b04cbed5b73debc348801124b20e16080c8ecdbfb3281eaadc6d6b4253bf") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8023,6 +8023,8 @@ class PdfTableLayout {
     totals;
     repeatedColumns;
     structuredBandRows = new WeakMap();
+    /** Plain/alternate ordinary-data defaults, validated only when a column first needs them. */
+    dataPresentations = [];
     constructor(settings, fonts) {
         this.settings = settings;
         this.fonts = fonts;
@@ -8068,12 +8070,21 @@ class PdfTableLayout {
         this.headings = headings;
         this.totals = createTotals(columns, options.footer?.totals);
     }
-    async cell(value, first, span, row, style) {
+    async cell(value, first, span, row, style, ordinaryData = false) {
         const { options, padding, fontSize, budget } = this.settings, column = options.columns[first];
         const own = value instanceof ExportCell ? value.presentation : undefined;
         const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
-        const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
-            ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
+        const alternate = ordinaryData && row % 2 && options.alternateRowColor ? options.alternateRowColor : undefined;
+        const slot = first * 2 + (alternate ? 1 : 0), reusable = ordinaryData && own === undefined;
+        let combined = reusable ? this.dataPresentations[slot] : undefined;
+        if (!combined) {
+            const rowStyle = ordinaryData ? alternate ? { background: alternate } : {} : style;
+            combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
+                ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...rowStyle, ...own });
+            // Validate only the first reached default; an authored cell may override invalid column defaults.
+            if (reusable)
+                this.dataPresentations[slot] = combined;
+        }
         const font = this.fonts.select(combined.bold, combined.italic), width = span === 1 ? this.widths[first] : this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
         const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
         let text;
@@ -8195,8 +8206,7 @@ class PdfTableLayout {
             const value = values[column], raw = value instanceof ExportCell ? value.value : value;
             if (!footer)
                 this.totals[column].accept(raw);
-            const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-            const cell = await this.cell(value, column, 1, index, style);
+            const cell = await this.cell(value, column, 1, index, footer ? options.footerPresentation ?? {} : undefined, !footer);
             cells.push(!footer && options.columns[column].rowHeader ? { ...cell, rowHeader: true } : cell);
         }
         return this.row(cells);
@@ -8211,7 +8221,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("67d19c9a8e11f32e25958ca45fc71a7b2eecb99855fbce3c364b55f3488a81b0", _exports);
+_modules.set("d8d4b04cbed5b73debc348801124b20e16080c8ecdbfb3281eaadc6d6b4253bf", _exports);
 return _exports;
 })();
 
@@ -9713,7 +9723,7 @@ _modules.set("1dd7db8f255fc1ac73aa700178243eb1a35614aab6fbf2363df2563a5ee780b9",
 return _exports;
 })();
 
-const _m58 = _modules.get("315c652e3b1d3c131ff0022229bb24814b0ee7a97eac61df1d7cd015515aded3") ?? (() => {
+const _m58 = _modules.get("005db12fa7a781f60759eea5507502714c3262b814546d52017e981855c17b18") ?? (() => {
 const { PdfObjects, unicodeHex } = _m59;
 
 const { PdfFontResources } = _m61;
@@ -9776,11 +9786,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("315c652e3b1d3c131ff0022229bb24814b0ee7a97eac61df1d7cd015515aded3", _exports);
+_modules.set("005db12fa7a781f60759eea5507502714c3262b814546d52017e981855c17b18", _exports);
 return _exports;
 })();
 
-const _m54 = _modules.get("ef1a015a7df9722e5ac5a70bf3d20b848574cd9ba7f3a9065a2ee1d30afa1bf1") ?? (() => {
+const _m54 = _modules.get("c55082b39a8a4533708929ec929a00323a94b581936b9f3782338b8dbd192bd7") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9845,7 +9855,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("ef1a015a7df9722e5ac5a70bf3d20b848574cd9ba7f3a9065a2ee1d30afa1bf1", _exports);
+_modules.set("c55082b39a8a4533708929ec929a00323a94b581936b9f3782338b8dbd192bd7", _exports);
 return _exports;
 })();
 
@@ -10728,7 +10738,7 @@ _modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343",
 return _exports;
 })();
 
-const _m90 = _modules.get("324e0fefc63237b78adf88bff8072a47f3377a231c43c6125a8f4fa338b5c2bb") ?? (() => {
+const _m90 = _modules.get("7bc01ad6ee375259953f8432ea15f20a9aa4462274adf0cce4d49398b7da20d6") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -10982,11 +10992,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("324e0fefc63237b78adf88bff8072a47f3377a231c43c6125a8f4fa338b5c2bb", _exports);
+_modules.set("7bc01ad6ee375259953f8432ea15f20a9aa4462274adf0cce4d49398b7da20d6", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("2d7e2dbf5cfe5509ad335189f93b080ad674991ea7f896b7cc9fb10518898863") ?? (() => {
+const _m83 = _modules.get("344745571f62cd67f68779da928afa4fa3e8d3904d8bfbd71c60931f530f5ad8") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11276,11 +11286,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("2d7e2dbf5cfe5509ad335189f93b080ad674991ea7f896b7cc9fb10518898863", _exports);
+_modules.set("344745571f62cd67f68779da928afa4fa3e8d3904d8bfbd71c60931f530f5ad8", _exports);
 return _exports;
 })();
 
-const _m82 = _modules.get("288a6e9626cc3456ece3432c598d02ecb64cd8c7c6c27851d5605c5ab4134b5d") ?? (() => {
+const _m82 = _modules.get("e98fd92b852dab39e65e1bbcf7411bc2068cf0889cbe5330b76764d77817b612") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11326,7 +11336,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("288a6e9626cc3456ece3432c598d02ecb64cd8c7c6c27851d5605c5ab4134b5d", _exports);
+_modules.set("e98fd92b852dab39e65e1bbcf7411bc2068cf0889cbe5330b76764d77817b612", _exports);
 return _exports;
 })();
 
@@ -11370,10 +11380,10 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m53 = _modules.get("9cfbf0820d74e8447805201bd19a10d40c0cdb90ef578ae8b17b8d11054d7dfb") ?? (() => {
+const _m53 = _modules.get("e1e75f5afef9639820a7b12d3735ed770f30925a26b6b311aef5e2e0178caf45") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("9cfbf0820d74e8447805201bd19a10d40c0cdb90ef578ae8b17b8d11054d7dfb", _exports);
+_modules.set("e1e75f5afef9639820a7b12d3735ed770f30925a26b6b311aef5e2e0178caf45", _exports);
 return _exports;
 })();
 
@@ -11747,7 +11757,7 @@ _modules.set("58066519dce31ad3bb7f5f5c377585d3374a84578358ad519e2c021efa1a26f8",
 return _exports;
 })();
 
-const _m0 = _modules.get("dfa55903e3c1219bb25362ad416138dd5a30e0aa8e385588287b36f04dc0de4d") ?? (() => {
+const _m0 = _modules.get("090debd23fdde041442ef1ae1cc93674b32a6bffa9f5be04781c882e669fde62") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { notifyProgress } = _m14;
@@ -11930,7 +11940,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m95.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m62.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("dfa55903e3c1219bb25362ad416138dd5a30e0aa8e385588287b36f04dc0de4d", _exports);
+_modules.set("090debd23fdde041442ef1ae1cc93674b32a6bffa9f5be04781c882e669fde62", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

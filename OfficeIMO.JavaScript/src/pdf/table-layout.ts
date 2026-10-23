@@ -49,6 +49,8 @@ export class PdfTableLayout {
   readonly totals: readonly NumericAggregate[];
   private readonly repeatedColumns: ReadonlySet<number>;
   private readonly structuredBandRows = new WeakMap<readonly PdfLayoutRow[], Promise<readonly (readonly PdfLayoutRow[])[]>>();
+  /** Plain/alternate ordinary-data defaults, validated only when a column first needs them. */
+  private readonly dataPresentations: (Readonly<CellPresentation> | undefined)[] = [];
   constructor(readonly settings: PdfSettings, readonly fonts: PdfFontResources) {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
     this.repeatedColumns = new Set(settings.repeatedColumns);
@@ -85,12 +87,20 @@ export class PdfTableLayout {
     this.headings = headings;
     this.totals = createTotals(columns, options.footer?.totals);
   }
-  private async cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): Promise<PdfLayoutCell> {
+  private async cell(value: ExportValue, first: number, span: number, row: number, style?: CellPresentation, ordinaryData = false): Promise<PdfLayoutCell> {
     const { options, padding, fontSize, budget } = this.settings, column = options.columns[first]!;
     const own = value instanceof ExportCell ? value.presentation : undefined;
     const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
-    const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
-      ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
+    const alternate = ordinaryData && row % 2 && options.alternateRowColor ? options.alternateRowColor : undefined;
+    const slot = first * 2 + (alternate ? 1 : 0), reusable = ordinaryData && own === undefined;
+    let combined = reusable ? this.dataPresentations[slot] : undefined;
+    if (!combined) {
+      const rowStyle = ordinaryData ? alternate ? { background: alternate } : {} : style;
+      combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
+        ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...rowStyle, ...own });
+      // Validate only the first reached default; an authored cell may override invalid column defaults.
+      if (reusable) this.dataPresentations[slot] = combined;
+    }
     const font = this.fonts.select(combined.bold, combined.italic), width = span === 1 ? this.widths[first]! : this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
     const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
     let text: PdfText;
@@ -192,8 +202,7 @@ export class PdfTableLayout {
     for (let column = 0; column < options.columns.length; column++) {
       const value = values[column], raw = value instanceof ExportCell ? value.value : value;
       if (!footer) this.totals[column]!.accept(raw);
-      const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-      const cell = await this.cell(value, column, 1, index, style);
+      const cell = await this.cell(value, column, 1, index, footer ? options.footerPresentation ?? {} : undefined, !footer);
       cells.push(!footer && options.columns[column]!.rowHeader ? { ...cell, rowHeader: true } : cell);
     }
     return this.row(cells);

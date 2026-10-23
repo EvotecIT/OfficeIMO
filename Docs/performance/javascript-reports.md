@@ -429,3 +429,40 @@ sampled, which does not mean its cost is zero. The font method remains identical
 after removing the transport prototype. These observations justify the bounded
 font change, not an RSS claim. The selected candidate still needs its one fixed
 M8 comparison; both narrow RSS criteria remain required.
+
+Candidate `768e1483117dcbf31194c67887c9923403f1eed2`, containing the font
+lookup with the original compressor transport, passes all sixteen output
+validations in one fixed normal-host cohort. Narrow mean/median peak RSS is
+2.71%/2.20% above M8; wide mean/median is 10.05%/8.89% lower. Narrow engine-time
+mean/median is 37.15%/28.13% lower, and wide mean/median is 40.81%/10.96% lower.
+Output sizes remain 74.71%/77.02% lower. Sampled external memory is
+49.96%/52.42% higher for narrow and 77.85%/79.74% higher for wide. Every warmup
+and measured sample remains included.
+
+Both narrow RSS criteria remain unmet, and the candidate is not repeated.
+The next bounded cause is repeated ordinary-cell default presentation capture;
+explicit cell styles and special table rows must retain their current path.
+No isolated RSS effect or universal performance claim follows from this cohort.
+
+## Table-local default presentations
+
+Ordinary cells without an authored presentation now reuse a table-local frozen
+default for their column and plain or alternate row. Defaults are created only
+when reached, at most twice per column. Explicit cell styles, headings, spans,
+footers and generated summaries retain their full merge path. Format callbacks,
+captured getters, lazy validation, links, geometry and cancellation are unchanged.
+
+All 516 ordinary and 198 focused PDF tests pass; the final five input-contract
+tests also pass after refining a cancellation assertion to check no later writes.
+Twelve geometry profiles, six semantic fixtures and both full workloads preserve
+exact independently validated bytes. One fresh independent ownership review
+accepted this private sharing boundary without actionable findings.
+
+Comparing the historical buffered-completion profile with the current capture,
+sampled cell self traffic falls from 80.65 MB to 66.84 MB. The deduplicated
+cell/data/construction scope falls from 206.25 MB to 184.25 MB, including sampled
+new initialization costs. Presentation's inclusive subtree instead rises from
+8.30 MB to 9.41 MB. These overlapping sampled scopes cannot establish how much
+isolated saving came from reuse; the font change also exists outside this owner.
+They are allocation-traffic diagnostics, not retained-memory or RSS measurements.
+Both narrow RSS statistics still require the one fixed M8 comparison.
