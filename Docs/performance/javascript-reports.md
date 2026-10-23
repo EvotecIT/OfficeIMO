@@ -79,25 +79,46 @@ outputs in one fixed baseline/current cohort. Narrow mean/median peak RSS was
 still 3.87%/4.48% above M8; wide mean/median was 1.88%/3.34% lower. Output sizes
 were 3,637,087 and 10,728,693 bytes. Narrow sampled heap was lower, while sampled
 external memory remained higher. The reduced stream count is proven; it does
-not isolate a separate RSS gain for either lifetime change. Publication remains
-held because narrow memory acceptance is unmet.
+not isolate a separate RSS gain for either lifetime change. The narrow memory target remains unmet in that cohort.
 
-## Next comparison and stop rule
+## Member-capacity comparison
 
-The next bounded experiment changes the member ceiling from 200 to 256 while
-retaining the exact 32 KiB decoded-byte ceiling, arena size and sink chunks.
-The current packing now reaches 200 members in every full batch; this cause
-was previously obscured by page-induced partial batches. Read-only packing of
-retained member bytes projects 315 narrow and 1,025 wide containers. Actual ID
-widths can change, so those counts are a hypothesis, not acceptance. The
-README/architecture member bound is revised explicitly; no public option,
-provider or dependency is added. The two-byte xref member index must resolve
-index 255 and repeated arena reuse correctly.
+Candidate `a3c6160c84eca1f96fd76daf6514cffbd19ea75a` raises the member
+ceiling from 200 to 256 while retaining the 32 KiB decoded-byte ceiling, arena
+size and sink chunks. Actual narrow/wide outputs contain 315/1,025 object
+streams, down from 351/1,051; their decoded maxima are 32,766/32,767 bytes.
+Both independently retain the same 70,008/210,022 members and 193/386 pages.
+The documented member policy is revised explicitly, with index 255 and buffer
+reuse covered by the existing compiled-byte fixture.
 
-First check actual container counts, bounds, page content, logical order,
-headers, ParentTree/IDTree, links, fallback, cancellation, output limits and
-slow sinks. Only then run one fixed baseline/current narrow-and-wide cohort.
-Do not repeat an unchanged candidate to obtain a favorable number. If this
-capacity experiment still misses narrow memory acceptance, stop tuning the
-member ceiling and retain the loss. Any next experiment needs a different
-measured cause; do not silently enlarge the decoded arena or waive the target.
+All sixteen outputs in one fixed M8/current cohort passed independent
+validation. Narrow mean/median peak RSS is still 1.62%/1.93% above M8. Wide
+mean/median peak RSS is 4.60%/4.00% lower. Outputs are 3,630,112 and 10,723,143
+bytes. Narrow engine-time mean/median is 13.71%/14.53% lower; wide mean/median
+is 9.85%/40.30% lower. These normal-host results retain all samples and their
+launch variation; they do not establish a universal speed or memory claim.
+The member-capacity experiment therefore does not meet the narrow-memory
+target. Stop increasing the member ceiling; the decoded arena remains 32 KiB.
+
+## Next cause and stop rule
+
+Retained capacity-256 PDFs expose a different source of repeated input. The
+six-column report serializes six distinct 46-byte table-attribute dictionaries
+10,000 times each; the twenty-column report serializes twenty such dictionaries
+10,000 times each. Their 2.76 MB/9.20 MB occupy about 26.84%/27.49% of decoded
+object-stream bytes. The existing per-column cache avoids rebuilding the strings,
+but each cell still includes and encodes its dictionary.
+
+The next bounded candidate shares immutable ordinary-cell attribute objects
+inside their existing table owner. Row-specific headers, spans, IDs, logical
+children, structure budgets and physical marked-content ownership must retain
+their current meaning. No document-wide interning registry, public option,
+provider or dependency is needed. The same semantic representation applies
+when compression is disabled or unavailable.
+
+First qualify actual header associations, repeated/reordered/banded tables,
+compressed and classic fallback, cancellation and limits, then independently
+read narrow/wide outputs. Only then run one fixed baseline/current cohort.
+Repeated decoded payload is proven; a memory benefit is still a hypothesis.
+Do not repeat an unchanged candidate to obtain a favorable number, enlarge the
+decoded arena or substitute file-size savings for the narrow-memory target.

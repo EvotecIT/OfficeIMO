@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createGroupedReport } from "../dist/core/index.js";
 import { writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable } from "../dist/pdf/grouped.js";
 import { writePdfDocument } from "../dist/pdf/index.js";
-import { inspectPdf } from "./pdf-reader.mjs";
+import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
 
 const columns = [{ header: "Service", key: "name" }, { header: "Amount", key: "amount", type: "number", groups: ["Metrics"] }];
 const levels = ["region", "site", "environment", "team"];
@@ -39,7 +39,7 @@ async function semanticPdf(blob) {
     marked.set(`${page.id}:${match[2]}`, [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(part => Buffer.from(part[1], "hex").toString("latin1")).join(""));
   const nodes = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => {
     const kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1];
-    return [id, { id, body: object.body, role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
+    return [id, { id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
       children: references(kids.replace(/<<[\s\S]*?>>/g, "")), text: [...kids.matchAll(/\/MCR \/Pg (\d+) 0 R \/MCID (\d+)/g)]
         .map(part => { const value = marked.get(`${part[1]}:${part[2]}`); assert.notEqual(value, undefined); return value; }).join("") }];
   }));
@@ -72,12 +72,12 @@ test("tagged four-level reports keep group headings, details and ancestor summar
       const headings = pdf.find(`H${level + groupHeadingLevel}`, label); assert.equal(headings.length, 1, `One semantic heading: ${label}`);
       const section = pdf.nodes.get(headings[0].parent); assert.equal(section.role, "Sect"); sections.set(label, section);
       const summaries = pdf.find("TH", `SUM:${label}`); assert.equal(summaries.length, 1, `One row-heading subtotal: ${label}`);
-      assert.match(summaries[0].body, /\/Scope \/Row/);
+      assert.match(summaries[0].attributes, /\/Scope \/Row/);
       const row = pdf.nodes.get(summaries[0].parent), table = pdf.nodes.get(row.parent);
       assert.equal(row.role, "TR"); assert.equal(table.role, "Table"); assert.equal(table.parent, section.id);
       assert.ok(table.children.some(id => pdf.nodes.get(id).children.some(cell => pdf.nodes.get(cell).text === "Amount")), "A summary's own visible column heading has its own semantic owner");
       const metrics = row.children.map(id => pdf.nodes.get(id)).filter(cell => cell.role === "TD");
-      assert.ok(metrics.every(cell => /\/Headers \[/.test(cell.body)), "Summary values retain explicit header associations");
+      assert.ok(metrics.every(cell => /\/Headers \[/.test(cell.attributes)), "Summary values retain explicit header associations");
     }
     for (const [label, , parent] of expected) if (parent) assert.equal(sections.get(label).parent, sections.get(parent).id, label);
     for (const [text, group] of [[long.replaceAll("\n", ""), "Team-A"], ["Service-B", "Team-B"], ["Service-C", "Team-C"]]) {
@@ -368,7 +368,7 @@ test("separate analytical summaries retain only declared aggregate fields with o
   for (const label of ["SUM:Region", "ALL:1"]) {
     const [summary] = pdf.find("TH", label), table = pdf.nodes.get(pdf.nodes.get(summary.parent).parent);
     const cells = table.children.flatMap(id => pdf.nodes.get(id).children.map(child => pdf.nodes.get(child)));
-    assert.deepEqual(cells.filter(cell => cell.role === "TH" && /\/Scope \/Column/.test(cell.body)).map(cell => cell.text),
+    assert.deepEqual(cells.filter(cell => cell.role === "TH" && /\/Scope \/Column/.test(cell.attributes)).map(cell => cell.text),
       ["Summary", "Zero sum", "Empty average"], "Standalone headings describe only the actual aggregate values");
     assert.deepEqual(cells.filter(cell => cell.role === "TD").map(cell => cell.text), ["0", "empty"], "Declared zero and null results are retained");
     const pages = pdf.pages.filter(page => page.lines.includes(label));

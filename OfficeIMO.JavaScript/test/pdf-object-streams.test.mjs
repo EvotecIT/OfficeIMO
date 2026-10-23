@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { writePdfDocument, writePdfDocumentTo, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
 import { PdfObjects } from "../dist/pdf/objects.js";
 import { pdfXrefChunks } from "../dist/pdf/xref.js";
-import { inspectPdf } from "./pdf-reader.mjs";
+import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
 
 function report(compression, { sink, signal, limits, returned } = {}) {
   const columns = [{ header: "ID", key: "id" }, { header: "Site", key: "site" }, { header: "Amount", key: "amount", type: "number" }];
@@ -33,15 +33,15 @@ function semanticGraph(pdf) {
     const identifier = /\/ID \(([^)]+)\)/.exec(object.body)?.[1]; return identifier ? [[identifier, identities.get(id)]] : [];
   }));
   return nodes.map(([, object]) => {
-    const body = object.body, kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(body)[1];
-    const headerNames = [...(/\/Headers \[([^\]]*)\]/.exec(body)?.[1] ?? "").matchAll(/\(([^)]+)\)/g)].map(match => {
+    const body = object.body, attributes = pdfStructureAttributes(pdf, body), kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(body)[1];
+    const headerNames = [...(/\/Headers \[([^\]]*)\]/.exec(attributes)?.[1] ?? "").matchAll(/\(([^)]+)\)/g)].map(match => {
       assert.ok(headers.has(match[1])); return headers.get(match[1]);
     });
     return { role: /\/S \/(\w+)/.exec(body)[1], parent: identities.get(Number(/\/P (\d+) 0 R/.exec(body)[1])) ?? "root",
       children: [...kids.replace(/<<[\s\S]*?>>/g, "").matchAll(/(\d+) 0 R/g)].map(match => identities.get(Number(match[1]))),
       marks: [...kids.matchAll(/\/MCR \/Pg (\d+) 0 R \/MCID (\d+)/g)].map(match => [pages.get(Number(match[1])), Number(match[2])]),
       annotations: [...kids.matchAll(/\/OBJR \/Obj (\d+) 0 R \/Pg (\d+) 0 R/g)].map(match => [annotations.get(Number(match[1])), pages.get(Number(match[2]))]),
-      scope: /\/Scope \/(\w+)/.exec(body)?.[1], colSpan: /\/ColSpan (\d+)/.exec(body)?.[1], rowSpan: /\/RowSpan (\d+)/.exec(body)?.[1], headers: headerNames };
+      scope: /\/Scope \/(\w+)/.exec(attributes)?.[1], colSpan: /\/ColSpan (\d+)/.exec(attributes)?.[1], rowSpan: /\/RowSpan (\d+)/.exec(attributes)?.[1], headers: headerNames };
   });
 }
 

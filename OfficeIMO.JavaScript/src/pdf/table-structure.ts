@@ -13,7 +13,7 @@ export class PdfTableStructure {
   private readonly cells = new WeakMap<PdfLayoutCell, number>();
   private readonly rows = new WeakMap<PdfLayoutRow, number>();
   private readonly columnHeaders: ColumnHeader[][] = [];
-  /** Ordinary cells without row headers share immutable associations, bounded by column count. */
+  /** Ordinary cells without row headers share immutable dictionary references, bounded by column count. */
   private readonly ordinaryAttributes: string[] = [];
   private headerCount = 0;
   private headersPrepared = false;
@@ -67,7 +67,7 @@ export class PdfTableStructure {
       const cell = row.cells[index]!;
       if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
         const attributes = this.ordinaryAttributes[cell.first] ??=
-          this.attributes(cell, this.associations(cell));
+          await this.structure.attributeReference(this.attributeDictionary(cell, this.associations(cell)));
         this.structure.setAttributes(ids[index]!, attributes);
         continue;
       }
@@ -101,7 +101,11 @@ export class PdfTableStructure {
   }
 
   private attributes(cell: PdfLayoutCell, headers: readonly string[], scope?: "Column" | "Row"): string {
-    return " /A << /O /Table" + (scope === undefined ? "" : " /Scope /" + scope) +
+    return " /A " + this.attributeDictionary(cell, headers, scope);
+  }
+
+  private attributeDictionary(cell: PdfLayoutCell, headers: readonly string[], scope?: "Column" | "Row"): string {
+    return "<< /O /Table" + (scope === undefined ? "" : " /Scope /" + scope) +
       (cell.span > 1 ? " /ColSpan " + cell.span : "") + ((cell.rowSpan ?? 1) > 1 ? " /RowSpan " + cell.rowSpan : "") +
       (headers.length ? " /Headers [" + headers.map(id => "(" + id + ")").join(" ") + "]" : "") + " >>";
   }

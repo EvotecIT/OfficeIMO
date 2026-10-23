@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
-import { inspectPdf } from "./pdf-reader.mjs";
+import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Amount", key: "amount" }];
 const tagged = { language: "en-US" };
@@ -20,7 +20,7 @@ async function inspectStructure(blob) {
   assert.match(catalog.body, /\/Lang <feff0065006e002d00550053>/);
   assert.match(root.body, /\/Type \/StructTreeRoot /);
   const elements = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => [id, {
-    id, body: object.body, role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
+    id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
     kids: /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1]
   }]));
   const document = elements.get(refs(/\/K \[([^\]]*)\]/.exec(root.body)[1])[0]);
@@ -105,7 +105,7 @@ test("tagged composed reports retain logical paragraphs and table cells across p
   assert.equal(rows.length, 4, "One header, two data rows and one ordinary footer; no repeated semantic headers");
   assert.ok(rows.every(row => row.role === "TR"));
   const header = refs(rows[0].kids).map(id => pdf.elements.get(id));
-  assert.ok(header.every(cell => cell.role === "TH" && cell.body.includes("/A << /O /Table /Scope /Column >>")));
+  assert.ok(header.every(cell => cell.role === "TH" && cell.attributes === "<< /O /Table /Scope /Column >>"));
   const cells = refs(rows[1].kids).map(id => pdf.elements.get(id));
   assert.equal(cells[0].role, "TD"); assert.equal(cells[0].content.length, 45);
   assert.equal(cells[0].content.map(part => part.text).join("|"), long.replaceAll("\n", "|"));

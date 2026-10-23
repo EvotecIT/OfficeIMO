@@ -3458,7 +3458,7 @@ class PdfTableStructure {
     cells = new WeakMap();
     rows = new WeakMap();
     columnHeaders = [];
-    /** Ordinary cells without row headers share immutable associations, bounded by column count. */
+    /** Ordinary cells without row headers share immutable dictionary references, bounded by column count. */
     ordinaryAttributes = [];
     headerCount = 0;
     headersPrepared = false;
@@ -3516,7 +3516,7 @@ class PdfTableStructure {
             const cell = row.cells[index];
             if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
                 const attributes = this.ordinaryAttributes[cell.first] ??=
-                    this.attributes(cell, this.associations(cell));
+                    await this.structure.attributeReference(this.attributeDictionary(cell, this.associations(cell)));
                 this.structure.setAttributes(ids[index], attributes);
                 continue;
             }
@@ -3549,7 +3549,10 @@ class PdfTableStructure {
         return [...headers].sort((left, right) => left.order - right.order).map(header => header.identifier);
     }
     attributes(cell, headers, scope) {
-        return " /A << /O /Table" + (scope === undefined ? "" : " /Scope /" + scope) +
+        return " /A " + this.attributeDictionary(cell, headers, scope);
+    }
+    attributeDictionary(cell, headers, scope) {
+        return "<< /O /Table" + (scope === undefined ? "" : " /Scope /" + scope) +
             (cell.span > 1 ? " /ColSpan " + cell.span : "") + ((cell.rowSpan ?? 1) > 1 ? " /RowSpan " + cell.rowSpan : "") +
             (headers.length ? " /Headers [" + headers.map(id => "(" + id + ")").join(" ") + "]" : "") + " >>";
     }
@@ -4539,6 +4542,13 @@ class PdfStructure {
         if (!element)
             throw new Error("PDF structure attributes require an open logical owner.");
         element.attributes = attributes;
+    }
+    /** Write one immutable attribute dictionary. Its caller owns the bounded scope of reference reuse. */
+    async attributeReference(dictionary) {
+        checkAbort(this.settings.options.signal);
+        const id = this.objects.reserve();
+        await this.objects.object(id, dictionary);
+        return " /A " + id + " 0 R";
     }
     /** Flat visual sections share the same logical Document and cumulative resource policy. */
     async beginSection() {

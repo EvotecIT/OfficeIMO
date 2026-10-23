@@ -100,6 +100,13 @@ export class PdfStructure {
     if (!element) throw new Error("PDF structure attributes require an open logical owner.");
     element.attributes = attributes;
   }
+  /** Write one immutable attribute dictionary. Its caller owns the bounded scope of reference reuse. */
+  async attributeReference(dictionary: string): Promise<string> {
+    checkAbort(this.settings.options.signal);
+    const id = this.objects.reserve();
+    await this.objects.object(id, dictionary);
+    return " /A " + id + " 0 R";
+  }
   /** Flat visual sections share the same logical Document and cumulative resource policy. */
   async beginSection(): Promise<void> {
     await this.complete(this.section);

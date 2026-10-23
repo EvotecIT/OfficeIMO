@@ -58,6 +58,16 @@ function xrefEntries(bytes, text, start) {
   return { count, entries };
 }
 
+/** Resolve the fixture writer's inline or indirect structure attribute dictionary through its xref. */
+export function pdfStructureAttributes(pdf, body) {
+  const reference = /\/A (\d+) 0 R\b/.exec(body);
+  if (!reference) return /\/A (<<[\s\S]*?>>)/.exec(body)?.[1] ?? "";
+  const attributes = pdf.objects.get(Number(reference[1]));
+  assert.ok(attributes, "Every structure attribute reference must resolve through the xref");
+  assert.match(attributes.body, /^<< \/O \//);
+  return attributes.body;
+}
+
 export async function inspectPdf(blob) {
   const bytes = Buffer.from(await blob.arrayBuffer()), text = bytes.toString("latin1");
   assert.ok(text.startsWith("%PDF-1.7\n"));
