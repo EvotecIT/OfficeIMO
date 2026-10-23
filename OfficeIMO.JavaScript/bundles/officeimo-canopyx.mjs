@@ -7727,12 +7727,15 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
         return wrapShapedPdfText(captured, fonts, size, width, settings, wrap);
     const { signal } = settings.options, { text, runs } = captured;
     checkAbort(signal);
-    const faces = runs.map(run => fonts.select(run.style.bold, run.style.italic, run.font));
+    // Keep font-selection order while deferring a single-run face array until wrapping needs it.
+    const single = runs.length === 1 ? runs[0] : undefined;
+    const singleFace = single && fonts.select(single.style.bold, single.style.italic, single.font);
+    const selectedFaces = singleFace ? undefined : runs.map(run => fonts.select(run.style.bold, run.style.italic, run.font));
     const fallback = fonts.select();
     // Short fitting runs need no per-character layout arrays. Longer text keeps the existing
     // cooperative checkpoints; controls or the first overflowing advance use the general path.
-    if (runs.length === 1 && text.length > 0 && text.length < 4096) {
-        const run = runs[0], font = faces[0];
+    if (single && text.length > 0 && text.length < 4096) {
+        const run = single, font = singleFace;
         let widthSoFar = 0, fits = true;
         for (let offset = 0; offset < text.length;) {
             const scalar = text.codePointAt(offset);
@@ -7756,7 +7759,7 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
                     lineHeight: font.lineHeight(size), ascent: Math.max(0, (font.program?.ascent ?? 800) * size / 1000) }];
         }
     }
-    const lines = [];
+    const faces = selectedFaces ?? [singleFace], lines = [];
     let chars = [], advances = [], owners = [], measured = 0, breakAt = -1;
     let runIndex = 0, runEnd = runs[0]?.text.length ?? 0, scanned = 0;
     const emit = (count) => {
