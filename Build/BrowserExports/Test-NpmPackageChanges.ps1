@@ -5,7 +5,7 @@ Exercises the npm path gate against an isolated synthetic Git history.
 Uses local commits only, without npm, network calls, Pester or production files.
 Creates and removes a uniquely named repository under the scratch root.
 .PARAMETER ScratchRoot
-Parent for task-owned scratch. Defaults to EVOTEC_SCRATCH_ROOT or D:/Dev/Scratch.
+Parent for task-owned scratch. Uses RUNNER_TEMP, EVOTEC_SCRATCH_ROOT, then the process temp directory.
 .EXAMPLE
 ./Build/BrowserExports/Test-NpmPackageChanges.ps1
 .OUTPUTS
@@ -13,7 +13,7 @@ PSCustomObject reporting the number of passed cases and PowerShell version.
 #>
 [CmdletBinding()]
 param(
-    [string] $ScratchRoot = $(if ($env:EVOTEC_SCRATCH_ROOT) { $env:EVOTEC_SCRATCH_ROOT } else { 'D:/Dev/Scratch' })
+    [string] $ScratchRoot = $(if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } elseif ($env:EVOTEC_SCRATCH_ROOT) { $env:EVOTEC_SCRATCH_ROOT } else { [IO.Path]::GetTempPath() })
 )
 
 $ErrorActionPreference = 'Stop'
