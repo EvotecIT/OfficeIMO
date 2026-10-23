@@ -31,6 +31,28 @@ internal static partial class PdfWriter {
             }
         }
 
+        /// <summary>Copies only span progress; prepared cell content remains shared and preview registers no page resources.</summary>
+        public TableSpanFlow CloneCursor() {
+            var copy = new TableSpanFlow();
+            copy.nextCell = nextCell;
+            foreach (TableSpanCellFlow source in Cells) {
+                var cell = new TableSpanCellFlow(source.Row, source.Cell) {
+                    ConsumedLines = source.ConsumedLines, ProcessedHeight = source.ProcessedHeight,
+                    AlignmentLeadingHeight = source.AlignmentLeadingHeight, Top = source.Top, Height = source.Height,
+                    FirstFragmentRow = source.FirstFragmentRow, LastFragmentRow = source.LastFragmentRow,
+                    DestinationEmitted = source.DestinationEmitted
+                };
+                cell.FragmentRowHeights.AddRange(source.FragmentRowHeights);
+                copy.Cells.Add(cell);
+                copy.anchors.Add((cell.Row, cell.Cell.Column), cell);
+                if (ActiveCells.Contains(source)) copy.ActiveCells.Add(cell);
+            }
+            copy.coveredRows.UnionWith(coveredRows);
+            return copy;
+        }
+
+        private TableSpanFlow() { }
+
         public bool Contains(int row, int column) => anchors.ContainsKey((row, column));
         public int GetConsumedLines(int row, int column) => anchors.TryGetValue((row, column), out var span) ? span.ConsumedLines : 0;
         public bool CoversRow(int row) => coveredRows.Contains(row);

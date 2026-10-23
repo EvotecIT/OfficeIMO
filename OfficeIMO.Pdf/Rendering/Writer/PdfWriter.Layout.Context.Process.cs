@@ -78,6 +78,7 @@ internal static partial class PdfWriter {
                 if (block is SectionBlock section) { RenderSectionBlock(section); continue; }
                 if (block is TableOfContentsBlock tableOfContents) { RenderTableOfContentsBlock(tableOfContents); continue; }
                 if (block is FlowBlock flow) { RenderFlowBlock(flow); continue; }
+                if (block is ContinuedFlowBlock continuedFlow) { RenderContinuedFlow(continuedFlow); continue; }
                 if (block is LayerBlock layer) { RenderLayerBlock(layer); continue; }
                 if (block is MultiColumnBlock columns) { RenderMultiColumnBlock(columns); continue; }
                 if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }

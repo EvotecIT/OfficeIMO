@@ -5,12 +5,19 @@ internal static partial class PdfWriter {
         private readonly Dictionary<TableBlock, ContainerRenderScope> tableFrameScopes = new();
 
         private void PrepareTableFrameContinuation(TableBlock table, int rowIndex) {
-            if (!tableFrameScopes.TryGetValue(table, out ContainerRenderScope? scope) ||
-                scope.Container?.FrameTableTopOutsets is not { } outsets || outsets.Count == 0) return;
+            if (!tableFrameScopes.TryGetValue(table, out ContainerRenderScope? scope) || scope.Container == null) return;
+            double? padding = ResolveTableFrameContinuationTopPadding(scope.Container, rowIndex);
+            if (padding.HasValue) scope.Style.ContinuationPaddingTopOverride = padding;
+        }
+
+        /// <summary>Resolves a continued native grid's own outward paint without mutating captured frame styles during preview.</summary>
+        private static double? ResolveTableFrameContinuationTopPadding(ContainerBlock container, int rowIndex) {
+            if (container.FrameTableTopOutsets is not { } outsets || outsets.Count == 0 || container.FrameTable is not { } table)
+                return null;
             PdfTableStyle style = table.Style!;
             bool repeatsHeader = GetTableRepeatHeaderRowCount(style) > 0 && rowIndex >= style.HeaderRowCount;
             int firstRow = repeatsHeader ? 0 : Math.Min(rowIndex, outsets.Count - 1);
-            scope.Style.ContinuationPaddingTopOverride = outsets[firstRow];
+            return outsets[firstRow];
         }
 
         private void RecordTableFrameContentBottom(TableBlock table, double bottom) {
@@ -39,25 +46,36 @@ internal static partial class PdfWriter {
         }
 
         private static double ResolveContainerTableFrameBottom(ContainerRenderScope scope, double bottom, bool continues) {
-            if (continues && scope.Container?.FrameTable != null && scope.TableContentBottom.HasValue) {
+            return ResolveContainerTableFrameBottom(scope.Container, scope.TableContentBottom, bottom, continues);
+        }
+
+        private static double ResolveContainerTableFrameBottom(ContainerBlock? container, double? tableContentBottom,
+            double bottom, bool continues) {
+            if (continues && container?.FrameTable != null && tableContentBottom.HasValue) {
                 // Inter-row spacing does not belong below the fragment's last
                 // cell. Word closes this perimeter with half its cell gap.
-                return scope.TableContentBottom.Value - scope.Container.FrameTableContinuationBottomPadding;
+                return tableContentBottom.Value - container.FrameTableContinuationBottomPadding;
             }
             return bottom;
         }
 
         private void DrawContainerTableFrame(StringBuilder output, ContainerRenderScope scope,
             double bottom, double height, bool drawTop, bool drawBottom) {
-            if (scope.Container?.FrameTableBorder is not { } source) return;
+            DrawContainerTableFrame(output, scope.Container, scope.OuterX, scope.OuterWidth, bottom, height, drawTop, drawBottom);
+        }
+
+        /// <summary>Paints the existing independent table perimeter for body and retained note fragments.</summary>
+        private void DrawContainerTableFrame(StringBuilder output, ContainerBlock? container, double outerX, double outerWidth,
+            double bottom, double height, bool drawTop, bool drawBottom) {
+            if (container?.FrameTableBorder is not { } source) return;
             PdfCellBorder border = source.Clone();
             border.Top &= drawTop;
             border.Bottom &= drawBottom;
-            double inset = scope.Container.FrameTableBorderInset;
+            double inset = container.FrameTableBorderInset;
             double topInset = border.Top ? border.TopBorderSnapshot?.Width / 2D ?? 0D : 0D;
             double bottomInset = border.Bottom ? border.BottomBorderSnapshot?.Width / 2D ?? 0D : 0D;
-            DrawCellBorder(output, border, scope.OuterX + inset, bottom + bottomInset,
-                scope.OuterWidth - 2D * inset, height - topInset - bottomInset, emitGeneratedStructure);
+            DrawCellBorder(output, border, outerX + inset, bottom + bottomInset,
+                outerWidth - 2D * inset, height - topInset - bottomInset, emitGeneratedStructure);
         }
     }
 }

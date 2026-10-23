@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
             var result = new PreparedFlowTableRows(table.Rows.Count);
             var textLayouts = new TableTextLayoutReuse(currentOpts);
             for (int row = 0; row < table.Rows.Count; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool continued = row == continuingRow && consumedLines > 0 && previous != null;
                 double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize);
                 bool bold = GetTableRowBold(style, row, headerCount, footerStart);
