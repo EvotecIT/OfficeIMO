@@ -199,8 +199,9 @@ async function withDestination(destination, operation) {
     // Native streams can belong to another browser realm; constructor identity is not portable.
     if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
+        // Native streams may retain accepted chunks after write resolves.
         try {
-            return await operation({ write: bytes => writer.write(bytes) });
+            return await operation({ write: bytes => writer.write(new Uint8Array(bytes)) });
         }
         finally {
             writer.releaseLock();
@@ -2591,6 +2592,11 @@ const { isDate } = _m8;
 
 const { defaultBooleanText } = _m17;
 
+/** @internal Charge displayed characters: tabs paint four spaces, while CR/LF only separate lines.
+ * Raw text remains authoritative for input limits and layout. Skip normalization when no text ceiling observes it. */
+function pdfBudgetText(text, budget) {
+    return budget.limits.maxTextCharacters === undefined ? text : text.replace(/[\t\r\n]/g, character => character === "\t" ? "    " : "");
+}
 function synchronousText(value, name) {
     if (typeof value === "string")
         return value;
@@ -2682,7 +2688,7 @@ function* wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap) {
     }
     return lines;
 }
-const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
+const _exports = Object.freeze({ pdfBudgetText: pdfBudgetText, synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
 return _exports;
 })();
 
@@ -2911,13 +2917,15 @@ const { wrapShapedPdfText } = _m32;
 
 const { PdfFont } = _m22;
 
+const { pdfBudgetText } = _m30;
+
 /** @internal Callers supply an owned, validated, frozen base presentation. A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true, reserveBudget = true) {
     if (typeof value === "string") {
         if (value.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
         if (reserveBudget && (value.length || countEmpty))
-            settings.budget.reserve(1, value.length);
+            settings.budget.reserve(1, pdfBudgetText(value, settings.budget).length);
         return Object.freeze({ text: value, runs: Object.freeze([Object.freeze({ text: value, style: base })]) });
     }
     const input = value;
@@ -2928,7 +2936,7 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
     }
     if (input.length > settings.limits.maxTextRuns)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
-    let characters = 0;
+    let characters = 0, budgetCharacters = 0;
     const runs = [];
     for (const run of input) {
         if (!run || typeof run !== "object" || Object.keys(run).some(key => !["text", "bold", "italic", "color", "link", "font"].includes(key)))
@@ -2944,6 +2952,8 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
         characters += text.length;
         if (characters > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        if (reserveBudget)
+            budgetCharacters += pdfBudgetText(text, settings.budget).length;
         const style = presentation({ ...base, ...(bold === undefined ? {} : { bold }), ...(italic === undefined ? {} : { italic }), ...(color === undefined ? {} : { color }) });
         if (settings.options.tagged && link !== undefined && text.length && !text.trim())
             throw new TypeError("Tagged PDF inline links require nonempty displayed text.");
@@ -2951,7 +2961,7 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
     }
     // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
     if (reserveBudget && (characters || countEmpty))
-        settings.budget.reserve(1, characters);
+        settings.budget.reserve(1, budgetCharacters);
     return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
 }
 /** @internal Greedy wrapping over the continuous text stream, preserving run emphasis and URI geometry. */
@@ -3190,7 +3200,7 @@ const { createTotals } = _m29;
 
 const { presentation, positive } = _m11;
 
-const { displayText } = _m30;
+const { displayText, pdfBudgetText } = _m30;
 
 const { capturePdfText, wrapPdfText } = _m31;
 
@@ -3288,10 +3298,11 @@ class PdfTableLayout {
             throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
         if (link && captured.runs.some(run => run.link))
             throw new TypeError("A PDF cell link cannot be combined with inline run links.");
+        const budgetText = pdfBudgetText(captured.text, budget);
         if (this.bands)
-            budget.release(1, captured.text.length);
+            budget.release(1, budgetText.length);
         else
-            budget.cell(captured.text, captured.text.length);
+            budget.cell(budgetText, budgetText.length);
         const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
         return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
             ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),
@@ -3781,7 +3792,7 @@ const { PdfTableBandFlow } = _m35;
 
 const { PdfTableStructure } = _m36;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m30;
+const { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } = _m30;
 
 const { linkAnnotation } = _m37;
 
@@ -3970,7 +3981,7 @@ class PdfPages {
     decoration(text, x, y, width) {
         if (!text)
             return;
-        this.settings.budget.cell(text);
+        this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
         const font = this.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
     }
@@ -4149,7 +4160,7 @@ class PdfPages {
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         await this.ensureStarted();
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
-        this.settings.budget.cell(text);
+        this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
         const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
         if (lineHeight > page.height - margins.top - margins.bottom)
             throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
@@ -4193,7 +4204,7 @@ class PdfPages {
             await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1), "Kept PDF paragraph group");
         for (const [index, paragraph] of visible.entries()) {
             if (paragraph.budgetOnPaint)
-                this.settings.budget.cell(paragraph.text.text);
+                this.settings.budget.cell(pdfBudgetText(paragraph.text.text, this.settings.budget));
             if (paragraph.keepTogether || paragraph.keepWithNext)
                 await this.reserveSpace(paragraph.height + reservations[index], "Kept PDF paragraph chain");
             const { margins, page } = this.settings;
@@ -6063,6 +6074,8 @@ const { captureBookmark } = _m38;
 
 const { captureFields } = _m10;
 
+const { pdfBudgetText } = _m30;
+
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts, budgetOnPaint = false) {
     if (!block || block.kind !== "paragraph")
@@ -6095,8 +6108,10 @@ function captureCaption(caption, settings, fonts) {
 async function prepareParagraph(captured, settings, fonts, width = settings.page.width - settings.margins.left - settings.margins.right) {
     if (!captured.text.text)
         return { ...captured, lines: [], height: 0, firstHeight: 0 };
-    if (!captured.budgetOnPaint)
-        settings.budget.cell(captured.text.text, captured.text.text.length);
+    if (!captured.budgetOnPaint) {
+        const budgetText = pdfBudgetText(captured.text.text, settings.budget);
+        settings.budget.cell(budgetText, budgetText.length);
+    }
     const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
     return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
         firstHeight: captured.spaceBefore + lines[0].lineHeight };

@@ -13,7 +13,8 @@ export async function withDestination<T>(destination: OutputDestination, operati
   // Native streams can belong to another browser realm; constructor identity is not portable.
   if (destination && typeof (destination as WritableStream<Uint8Array>).getWriter === "function") {
     const writer = (destination as WritableStream<Uint8Array>).getWriter();
-    try { return await operation({ write: bytes => writer.write(bytes) }); }
+    // Native streams may retain accepted chunks after write resolves.
+    try { return await operation({ write: bytes => writer.write(new Uint8Array(bytes)) }); }
     finally { writer.releaseLock(); }
   }
   if (!destination || typeof (destination as ByteSink).write !== "function") throw new TypeError("Destination must be a ByteSink or WritableStream.");

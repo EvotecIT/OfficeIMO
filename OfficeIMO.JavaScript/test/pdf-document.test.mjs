@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { writePdfDocument, writePdfDocumentTo, pdfTable } from "../dist/pdf/index.js";
+import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
 const columns = [{ header: "Item", key: "name" }, { header: "Amount", key: "amount" }];
@@ -147,6 +147,40 @@ test("PDF documents share row, text, page, image and vector budgets across block
   ]) await assert.rejects(writePdfDocument(blocks, { limits, pageNumbers: false }), error);
   const pdf = await inspectPdf(await writePdfDocument([{ kind: "image", image: logo }, { kind: "image", image: logo }], { limits: { maxImageBytes: 16 } }));
   assert.equal([...pdf.objects.values()].filter(o => /\/Subtype \/Image/.test(o.body)).length, 2);
+});
+
+test("PDF rendered-text ceilings count displayed tab spaces and omit line separators across report flows", async () => {
+  const configuration = { pageNumbers: false, compression: false };
+  for (const [text, characters, expected] of [["A\tB", 6, ["A    B"]], ["A\r\nB", 2, ["A", "B"]]]) {
+    for (const composed of [false, true]) for (const bands of [false, true]) {
+      const write = async maxTextCharacters => {
+        let reads = 0, formatted = 0;
+        const rows = [{ get value() { reads++; return text; } }];
+        const table = { columns: [{ header: "Value", key: "value" }], includeHeader: false, columnWidths: [100],
+          ...(bands ? { wideTable: { mode: "bands" } } : {}), formatValue(value) { formatted++; return value; } };
+        const options = { ...configuration, limits: { maxTextCharacters, maxCellCharacters: text.length } };
+        try { return composed ? await writePdfDocument([pdfTable(rows, table)], options) : await writePdf(rows, { ...options, ...table }); }
+        finally { assert.equal(reads, 1); assert.equal(formatted, 1, "Budget accounting never recaptures a projected value or formatter"); }
+      };
+      const pdf = await inspectPdf(await write(characters));
+      assert.deepEqual(pdf.pages.flatMap(page => page.lines), expected);
+      await assert.rejects(write(characters - 1), error => error.code === "RESOURCE_LIMIT" && /maxTextCharacters/.test(error.message));
+    }
+  }
+  const blocks = () => [
+    { kind: "paragraph", text: [{ text: "P\tX\r" }, { text: "\nY" }] },
+    { ...pdfTable([["D\tX"]], { columns: [{ header: "C\tX" }], footer: { values: ["S\tX"] } }),
+      caption: { text: "A\tX" }, continuationCaption: { text: "UNUSED\tCONTEXT" } }
+  ];
+  const options = { ...configuration, title: "T\tX", messageTop: "M\tX", messageBottom: "B\tX", pageHeader: "H\tX", pageFooter: "F\tX" };
+  // Ten displayed tabbed labels contain six characters each, plus the paragraph's Y: 61.
+  const pdf = await inspectPdf(await writePdfDocument(blocks(), { ...options, limits: { maxTextCharacters: 61 } }));
+  assert.equal(pdf.pages.length, 1);
+  for (const initial of ["T", "M", "B", "H", "F", "P", "C", "D", "S", "A"])
+    assert.ok(pdf.pages[0].lines.includes(initial + "    X"), initial + " retains the displayed tab expansion");
+  assert.ok(pdf.pages[0].lines.includes("Y"));
+  assert.ok(!pdf.text.includes("UNUSED"));
+  await assert.rejects(writePdfDocument(blocks(), { ...options, limits: { maxTextCharacters: 60 } }), /maxTextCharacters/);
 });
 
 test("PDF caption budgets count painted occurrences rather than unused continuation definitions", async () => {

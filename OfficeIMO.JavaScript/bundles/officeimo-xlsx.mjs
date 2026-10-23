@@ -214,8 +214,9 @@ async function withDestination(destination, operation) {
     // Native streams can belong to another browser realm; constructor identity is not portable.
     if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
+        // Native streams may retain accepted chunks after write resolves.
         try {
-            return await operation({ write: bytes => writer.write(bytes) });
+            return await operation({ write: bytes => writer.write(new Uint8Array(bytes)) });
         }
         finally {
             writer.releaseLock();
@@ -1843,12 +1844,13 @@ function sheetName(requested, names, policy, register = true) {
         throw new TypeError("Sheet name must be a string.");
     // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
     // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
-    let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
+    let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").replace(/^[\s']+|[\s']+$/g, "");
+    // Clipping can expose an internal apostrophe or the reserved History name.
+    base = clipName(base, 31).replace(/[\s']+$/g, "");
     if (!base)
         base = "Sheet";
     if (base.toLowerCase() === "history")
         base += "_";
-    base = clipName(base, 31);
     let name = base, suffix = 2;
     while (names.has(name.toLowerCase())) {
         const tail = " (" + suffix++ + ")";

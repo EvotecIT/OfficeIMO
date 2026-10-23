@@ -197,7 +197,7 @@ _modules.set("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea",
 return _exports;
 })();
 
-const _m2 = _modules.get("2adf3b26cb05acc46e3aa10390e7bfe0f392b39bc3cf6b7f4353c045417648a2") ?? (() => {
+const _m2 = _modules.get("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
@@ -207,8 +207,9 @@ async function withDestination(destination, operation) {
     // Native streams can belong to another browser realm; constructor identity is not portable.
     if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
+        // Native streams may retain accepted chunks after write resolves.
         try {
-            return await operation({ write: bytes => writer.write(bytes) });
+            return await operation({ write: bytes => writer.write(new Uint8Array(bytes)) });
         }
         finally {
             writer.releaseLock();
@@ -302,7 +303,7 @@ async function writeBytes(source, sink, signal) {
     });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("2adf3b26cb05acc46e3aa10390e7bfe0f392b39bc3cf6b7f4353c045417648a2", _exports);
+_modules.set("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b", _exports);
 return _exports;
 })();
 
@@ -2612,7 +2613,7 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m30 = _modules.get("26a2cd54cb6aafc1636775f956691b3f33b9691cc36049847405af5ca38386be") ?? (() => {
+const _m30 = _modules.get("253db2c0eab1f298fda61fb40a5ddaacbf6ad12a7408ee3d8c12d27f88e7ca27") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { ExportCell, assertExportValue } = _m7;
@@ -2623,6 +2624,11 @@ const { isDate } = _m8;
 
 const { defaultBooleanText } = _m17;
 
+/** @internal Charge displayed characters: tabs paint four spaces, while CR/LF only separate lines.
+ * Raw text remains authoritative for input limits and layout. Skip normalization when no text ceiling observes it. */
+function pdfBudgetText(text, budget) {
+    return budget.limits.maxTextCharacters === undefined ? text : text.replace(/[\t\r\n]/g, character => character === "\t" ? "    " : "");
+}
 function synchronousText(value, name) {
     if (typeof value === "string")
         return value;
@@ -2714,8 +2720,8 @@ function* wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap) {
     }
     return lines;
 }
-const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
-_modules.set("26a2cd54cb6aafc1636775f956691b3f33b9691cc36049847405af5ca38386be", _exports);
+const _exports = Object.freeze({ pdfBudgetText: pdfBudgetText, synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
+_modules.set("253db2c0eab1f298fda61fb40a5ddaacbf6ad12a7408ee3d8c12d27f88e7ca27", _exports);
 return _exports;
 })();
 
@@ -2932,7 +2938,7 @@ _modules.set("8be3fb029e08d100ce8ffcf50916d5ba7f7bc00d62156cc33815fd58554a9ed6",
 return _exports;
 })();
 
-const _m31 = _modules.get("ad53caae7a83c45f8a3de1c9ded4250b09239a07ba98600989d94d140e64815b") ?? (() => {
+const _m31 = _modules.get("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { copyExportLink } = _m9;
@@ -2945,13 +2951,15 @@ const { wrapShapedPdfText } = _m32;
 
 const { PdfFont } = _m22;
 
+const { pdfBudgetText } = _m30;
+
 /** @internal Callers supply an owned, validated, frozen base presentation. A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true, reserveBudget = true) {
     if (typeof value === "string") {
         if (value.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
         if (reserveBudget && (value.length || countEmpty))
-            settings.budget.reserve(1, value.length);
+            settings.budget.reserve(1, pdfBudgetText(value, settings.budget).length);
         return Object.freeze({ text: value, runs: Object.freeze([Object.freeze({ text: value, style: base })]) });
     }
     const input = value;
@@ -2962,7 +2970,7 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
     }
     if (input.length > settings.limits.maxTextRuns)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
-    let characters = 0;
+    let characters = 0, budgetCharacters = 0;
     const runs = [];
     for (const run of input) {
         if (!run || typeof run !== "object" || Object.keys(run).some(key => !["text", "bold", "italic", "color", "link", "font"].includes(key)))
@@ -2978,6 +2986,8 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
         characters += text.length;
         if (characters > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        if (reserveBudget)
+            budgetCharacters += pdfBudgetText(text, settings.budget).length;
         const style = presentation({ ...base, ...(bold === undefined ? {} : { bold }), ...(italic === undefined ? {} : { italic }), ...(color === undefined ? {} : { color }) });
         if (settings.options.tagged && link !== undefined && text.length && !text.trim())
             throw new TypeError("Tagged PDF inline links require nonempty displayed text.");
@@ -2985,7 +2995,7 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true, reserve
     }
     // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
     if (reserveBudget && (characters || countEmpty))
-        settings.budget.reserve(1, characters);
+        settings.budget.reserve(1, budgetCharacters);
     return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
 }
 /** @internal Greedy wrapping over the continuous text stream, preserving run emphasis and URI geometry. */
@@ -3120,11 +3130,11 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
     return lines;
 }
 const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wrapPdfText });
-_modules.set("ad53caae7a83c45f8a3de1c9ded4250b09239a07ba98600989d94d140e64815b", _exports);
+_modules.set("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47", _exports);
 return _exports;
 })();
 
-const _m33 = _modules.get("d645fdb204c8606f494151c27b14dab443c9387e260d5f632d6f16ffa7a36cab") ?? (() => {
+const _m33 = _modules.get("9a88773878eacc51df9f05bb5ee90cc2b683b083ebea8fb54375092301388e96") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { wrapPdfText } = _m31;
@@ -3211,11 +3221,11 @@ function alignBandBlocks(bands, settings) {
         cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
 }
 const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
-_modules.set("d645fdb204c8606f494151c27b14dab443c9387e260d5f632d6f16ffa7a36cab", _exports);
+_modules.set("9a88773878eacc51df9f05bb5ee90cc2b683b083ebea8fb54375092301388e96", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("d8d4b04cbed5b73debc348801124b20e16080c8ecdbfb3281eaadc6d6b4253bf") ?? (() => {
+const _m28 = _modules.get("07d2da8d8b93f12f172a48b97c1807e485555cf608e2eaa5b7610aa91d4a5305") ?? (() => {
 const { ExportCell } = _m7;
 
 const { copyExportLink } = _m9;
@@ -3226,7 +3236,7 @@ const { createTotals } = _m29;
 
 const { presentation, positive } = _m11;
 
-const { displayText } = _m30;
+const { displayText, pdfBudgetText } = _m30;
 
 const { capturePdfText, wrapPdfText } = _m31;
 
@@ -3324,10 +3334,11 @@ class PdfTableLayout {
             throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
         if (link && captured.runs.some(run => run.link))
             throw new TypeError("A PDF cell link cannot be combined with inline run links.");
+        const budgetText = pdfBudgetText(captured.text, budget);
         if (this.bands)
-            budget.release(1, captured.text.length);
+            budget.release(1, budgetText.length);
         else
-            budget.cell(captured.text, captured.text.length);
+            budget.cell(budgetText, budgetText.length);
         const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
         return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
             ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),
@@ -3441,7 +3452,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("d8d4b04cbed5b73debc348801124b20e16080c8ecdbfb3281eaadc6d6b4253bf", _exports);
+_modules.set("07d2da8d8b93f12f172a48b97c1807e485555cf608e2eaa5b7610aa91d4a5305", _exports);
 return _exports;
 })();
 
@@ -3810,7 +3821,7 @@ _modules.set("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052",
 return _exports;
 })();
 
-const _m34 = _modules.get("35135d26a0e6cb27b6f3b5e86c0a31bbd367bf107f8eb88501084b3aa3be3499") ?? (() => {
+const _m34 = _modules.get("d3a89fdcfeb35b04ea3a766af625eb58492f9e4ff2cb7355761f9552d40aadcc") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -3823,7 +3834,7 @@ const { PdfTableBandFlow } = _m35;
 
 const { PdfTableStructure } = _m36;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m30;
+const { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } = _m30;
 
 const { linkAnnotation } = _m37;
 
@@ -4012,7 +4023,7 @@ class PdfPages {
     decoration(text, x, y, width) {
         if (!text)
             return;
-        this.settings.budget.cell(text);
+        this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
         const font = this.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
     }
@@ -4191,7 +4202,7 @@ class PdfPages {
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         await this.ensureStarted();
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
-        this.settings.budget.cell(text);
+        this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
         const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
         if (lineHeight > page.height - margins.top - margins.bottom)
             throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
@@ -4235,7 +4246,7 @@ class PdfPages {
             await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1), "Kept PDF paragraph group");
         for (const [index, paragraph] of visible.entries()) {
             if (paragraph.budgetOnPaint)
-                this.settings.budget.cell(paragraph.text.text);
+                this.settings.budget.cell(pdfBudgetText(paragraph.text.text, this.settings.budget));
             if (paragraph.keepTogether || paragraph.keepWithNext)
                 await this.reserveSpace(paragraph.height + reservations[index], "Kept PDF paragraph chain");
             const { margins, page } = this.settings;
@@ -4500,7 +4511,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("35135d26a0e6cb27b6f3b5e86c0a31bbd367bf107f8eb88501084b3aa3be3499", _exports);
+_modules.set("d3a89fdcfeb35b04ea3a766af625eb58492f9e4ff2cb7355761f9552d40aadcc", _exports);
 return _exports;
 })();
 
@@ -4943,7 +4954,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m18 = _modules.get("1803ade3e977366e5f40bb735c80456a33b4ed333222441f3535ec33a0b94a31") ?? (() => {
+const _m18 = _modules.get("b3fb6674166086164c43d6da3b7dfe64d1724968c83ad37dd569fa8fdd60bbf6") ?? (() => {
 const { PdfObjects, unicodeHex } = _m19;
 
 const { PdfFontResources } = _m21;
@@ -5006,11 +5017,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("1803ade3e977366e5f40bb735c80456a33b4ed333222441f3535ec33a0b94a31", _exports);
+_modules.set("b3fb6674166086164c43d6da3b7dfe64d1724968c83ad37dd569fa8fdd60bbf6", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("fb9e8af94dab0a6a4e91a78420581135ac38ae503583552886e71b77e4fbb163") ?? (() => {
+const _m1 = _modules.get("0459e724cbf4e1007b622e96c62ffec139ff09f9f41dcd96548bfae222300465") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -5075,7 +5086,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("fb9e8af94dab0a6a4e91a78420581135ac38ae503583552886e71b77e4fbb163", _exports);
+_modules.set("0459e724cbf4e1007b622e96c62ffec139ff09f9f41dcd96548bfae222300465", _exports);
 return _exports;
 })();
 
@@ -6104,7 +6115,7 @@ _modules.set("da9ad00f94b9ae28e2e3de796928ff0c4eab1d73382b1441e7d779fad4278ef7",
 return _exports;
 })();
 
-const _m51 = _modules.get("1b324659d1200dc718124b6423f67234f19b2f2d263e528080970d3a2815b2db") ?? (() => {
+const _m51 = _modules.get("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { capturePdfText, wrapPdfText } = _m31;
@@ -6116,6 +6127,8 @@ const { resolveParagraphStyle } = _m15;
 const { captureBookmark } = _m38;
 
 const { captureFields } = _m10;
+
+const { pdfBudgetText } = _m30;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts, budgetOnPaint = false) {
@@ -6149,8 +6162,10 @@ function captureCaption(caption, settings, fonts) {
 async function prepareParagraph(captured, settings, fonts, width = settings.page.width - settings.margins.left - settings.margins.right) {
     if (!captured.text.text)
         return { ...captured, lines: [], height: 0, firstHeight: 0 };
-    if (!captured.budgetOnPaint)
-        settings.budget.cell(captured.text.text, captured.text.text.length);
+    if (!captured.budgetOnPaint) {
+        const budgetText = pdfBudgetText(captured.text.text, settings.budget);
+        settings.budget.cell(budgetText, budgetText.length);
+    }
     const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
     return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
         firstHeight: captured.spaceBefore + lines[0].lineHeight };
@@ -6180,11 +6195,11 @@ function paragraphStartHeight(paragraphs) {
     return required;
 }
 const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCaption: captureCaption, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
-_modules.set("1b324659d1200dc718124b6423f67234f19b2f2d263e528080970d3a2815b2db", _exports);
+_modules.set("5e4503b77b357ee6d9fad1f52690085b0f0b140cd3b550b63c5100ed95a92f88", _exports);
 return _exports;
 })();
 
-const _m52 = _modules.get("ee169146acb202cc048d9d80ae4600ee79e00f3270816e27b7f174ddcc5aa110") ?? (() => {
+const _m52 = _modules.get("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7") ?? (() => {
 const { capturePdfText, wrapPdfText } = _m31;
 
 const { captureParagraph, prepareParagraph } = _m51;
@@ -6238,7 +6253,7 @@ async function prepareListItem(item, index, options, settings, fonts) {
             height: paragraph.height + lineHeight - first.lineHeight, firstHeight: paragraph.spaceBefore + lineHeight } };
 }
 const _exports = Object.freeze({ captureListOptions: captureListOptions, prepareListItem: prepareListItem });
-_modules.set("ee169146acb202cc048d9d80ae4600ee79e00f3270816e27b7f174ddcc5aa110", _exports);
+_modules.set("1d57c429705ae0cbc14d98dcfef4c8a6c2df06f391c8f58e99cacb02f2d1cbc7", _exports);
 return _exports;
 })();
 
@@ -6292,7 +6307,7 @@ _modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343",
 return _exports;
 })();
 
-const _m53 = _modules.get("09d2997d69114142906bd4b9d376eb5b2005a408b5e45b88feedf8be38686b29") ?? (() => {
+const _m53 = _modules.get("d43e573fd5bad18a7ec2d71752168c422c4f8fabbc51f1cef8e3ba389f298715") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m44;
 
 const { consumeRows } = _m3;
@@ -6546,11 +6561,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("09d2997d69114142906bd4b9d376eb5b2005a408b5e45b88feedf8be38686b29", _exports);
+_modules.set("d43e573fd5bad18a7ec2d71752168c422c4f8fabbc51f1cef8e3ba389f298715", _exports);
 return _exports;
 })();
 
-const _m45 = _modules.get("8671027c515e4c4082d2c40ccf38150bc72a0f2aae0d4c181bbfcf2fece71be5") ?? (() => {
+const _m45 = _modules.get("2e9e26302b1778464c5a0be96ea18717f1b8663a0ed19d16f2d0aa561343948f") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -6840,11 +6855,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("8671027c515e4c4082d2c40ccf38150bc72a0f2aae0d4c181bbfcf2fece71be5", _exports);
+_modules.set("2e9e26302b1778464c5a0be96ea18717f1b8663a0ed19d16f2d0aa561343948f", _exports);
 return _exports;
 })();
 
-const _m43 = _modules.get("1f96f0c6adaa2034929bce93acf57a313eb9be156304089840341322c445797c") ?? (() => {
+const _m43 = _modules.get("b76b706c07e1092af84587bd2419553970b947cb36b82cdec9ed1d0af8c3442d") ?? (() => {
 const { assertGroupedReportSource } = _m44;
 
 const { BlobByteSink } = _m2;
@@ -6890,7 +6905,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m54.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("1f96f0c6adaa2034929bce93acf57a313eb9be156304089840341322c445797c", _exports);
+_modules.set("b76b706c07e1092af84587bd2419553970b947cb36b82cdec9ed1d0af8c3442d", _exports);
 return _exports;
 })();
 
@@ -6934,7 +6949,7 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m56 = _modules.get("1c1cd8fcf07c9139b570cd85bf68d2bc9f95f447b773f0d24df2c6e648d2cf9d") ?? (() => {
+const _m56 = _modules.get("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00") ?? (() => {
 
 
 
@@ -6979,14 +6994,14 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m7.ExportCell, createGroupedReport: _m44.createGroupedReport, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("1c1cd8fcf07c9139b570cd85bf68d2bc9f95f447b773f0d24df2c6e648d2cf9d", _exports);
+_modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8fc9d0bc6cad3a825f27d838d6546d50b19c94764dd34bca655fe3c5514a3e90") ?? (() => {
+const _m0 = _modules.get("7bc812eb3347f81dc086fadfa25007a54bcf8a8c4809c1519c30605c113d5431") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m43.writeGroupedPdf, writeGroupedPdfTo: _m43.writeGroupedPdfTo, pdfGroupedTable: _m43.pdfGroupedTable, createGroupedReport: _m44.createGroupedReport, writePdfDocument: _m45.writePdfDocument, writePdfDocumentTo: _m45.writePdfDocumentTo, pdfTable: _m45.pdfTable, PdfFont: _m22.PdfFont, preflightPdfText: _m55.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m56.saveBlob });
-_modules.set("8fc9d0bc6cad3a825f27d838d6546d50b19c94764dd34bca655fe3c5514a3e90", _exports);
+_modules.set("7bc812eb3347f81dc086fadfa25007a54bcf8a8c4809c1519c30605c113d5431", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m56, pdf: _m0 });

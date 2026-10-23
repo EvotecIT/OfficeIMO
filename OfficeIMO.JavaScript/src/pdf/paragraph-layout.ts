@@ -10,6 +10,7 @@ import { resolveParagraphStyle } from "./paragraph-styles.js";
 import { captureBookmark } from "./section-types.js";
 import type { PdfBookmark } from "./section-types.js";
 import { captureFields } from "../internal/capture.js";
+import { pdfBudgetText } from "./text.js";
 
 export interface PdfCapturedParagraph {
   readonly text: PdfCapturedText;
@@ -60,7 +61,10 @@ export function captureCaption(caption: PdfCaption, settings: PdfSettings, fonts
 export async function prepareParagraph(captured: PdfCapturedParagraph, settings: PdfSettings, fonts: PdfFontResources,
   width = settings.page.width - settings.margins.left - settings.margins.right): Promise<PdfPreparedParagraph> {
   if (!captured.text.text) return { ...captured, lines: [], height: 0, firstHeight: 0 };
-  if (!captured.budgetOnPaint) settings.budget.cell(captured.text.text, captured.text.text.length);
+  if (!captured.budgetOnPaint) {
+    const budgetText = pdfBudgetText(captured.text.text, settings.budget);
+    settings.budget.cell(budgetText, budgetText.length);
+  }
   const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
   return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
     firstHeight: captured.spaceBefore + lines[0]!.lineHeight };

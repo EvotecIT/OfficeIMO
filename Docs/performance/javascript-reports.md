@@ -36,7 +36,10 @@ process, including imported and native memory. Sampled heap and external memory
 can miss peaks, overlap other measures, and must not be added to RSS. Sink cases
 include awaited regular-file writes; they are not equivalent to Blob retention.
 
-## Accepted 23 October 2026 checkpoint
+## Historical 23 October 2026 checkpoint
+
+This checkpoint preceded the [integrated source comparison](#integrated-source-comparison).
+Its file sizes and memory conclusion describe that earlier candidate.
 
 Source: `07a9c74d23a25e24e825ef5f0706aa0d64e8edd9`.
 Runtime SHA-256:
@@ -524,7 +527,9 @@ is not called by either image-free workload. The integrated source receives one
 final fixed comparison, with the same M8 baseline and policy, before its package
 and browser acceptance. The preceding result remains bound to its exact source.
 
-The final integrated candidate `66533554d1fa0a7b7623c1521b6b3b3f9a626666`
+## Integrated source comparison
+
+The integrated candidate `66533554d1fa0a7b7623c1521b6b3b3f9a626666`
 passes all sixteen validations in its one fixed normal-host cohort, including the
 same exact narrow/wide PDF hashes. Narrow mean/median peak RSS is 0.88%/0.50%
 below M8; wide is 10.61%/11.67% below. Both narrow RSS criteria are met.

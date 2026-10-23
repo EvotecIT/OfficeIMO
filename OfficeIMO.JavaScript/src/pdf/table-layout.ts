@@ -8,7 +8,7 @@ import type { NumericAggregate } from "../internal/totals.js";
 import type { PdfFontResources, PdfFontResource } from "./font-resources.js";
 import type { PdfSettings } from "./settings.js";
 import { presentation, positive } from "./settings.js";
-import { displayText } from "./text.js";
+import { displayText, pdfBudgetText } from "./text.js";
 import { capturePdfText, wrapPdfText } from "./inline-text.js";
 import { planTableBands, projectBandRows, alignBandBlocks } from "./table-band-plan.js";
 import type { PdfTableBand } from "./table-band-plan.js";
@@ -116,8 +116,9 @@ export class PdfTableLayout {
     if (options.tagged && link && !captured.text.trim()) throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
     if (link && captured.runs.some(run => run.link))
       throw new TypeError("A PDF cell link cannot be combined with inline run links.");
-    if (this.bands) budget.release(1, captured.text.length);
-    else budget.cell(captured.text, captured.text.length);
+    const budgetText = pdfBudgetText(captured.text, budget);
+    if (this.bands) budget.release(1, budgetText.length);
+    else budget.cell(budgetText, budgetText.length);
     const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
     return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
       ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),

@@ -9,7 +9,7 @@ import type { PdfSettings } from "./settings.js";
 import { PdfTableBandFlow } from "./table-band-flow.js";
 import type { PdfTableLayout, PdfLayoutRow, PdfLayoutCell } from "./table-layout.js";
 import { PdfTableStructure } from "./table-structure.js";
-import { wrapText, wrapTextCooperatively, synchronousText } from "./text.js";
+import { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } from "./text.js";
 import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
 import { linkAnnotation } from "./annotations.js";
 import type { PdfStructure } from "./structure.js";
@@ -177,7 +177,7 @@ export class PdfPages {
   }
   private decoration(text: string, x: number, y: number, width: number): void {
     if (!text) return;
-    this.settings.budget.cell(text);
+    this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
     const font = this.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
     this.text(lines[0]!.text, font, this.settings.fontSize, x, y);
   }
@@ -309,7 +309,7 @@ export class PdfPages {
   async paragraph(text: string, style: CellPresentation = {}, size = this.settings.fontSize, paginate = true, headingLevel?: number): Promise<void> {
     await this.ensureStarted();
     const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
-    this.settings.budget.cell(text);
+    this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
     const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right,
       limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
     if (lineHeight > page.height - margins.top - margins.bottom) throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
@@ -344,7 +344,7 @@ export class PdfPages {
     }
     if (keepTogether && visible.length) await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1)!, "Kept PDF paragraph group");
     for (const [index, paragraph] of visible.entries()) {
-      if (paragraph.budgetOnPaint) this.settings.budget.cell(paragraph.text.text);
+      if (paragraph.budgetOnPaint) this.settings.budget.cell(pdfBudgetText(paragraph.text.text, this.settings.budget));
       if (paragraph.keepTogether || paragraph.keepWithNext) await this.reserveSpace(paragraph.height + reservations[index]!, "Kept PDF paragraph chain");
       const { margins, page } = this.settings;
       if (paragraph.firstHeight > page.height - margins.top - margins.bottom + .001) throw new RangeError("PDF page cannot fit a paragraph line and its leading spacing.");

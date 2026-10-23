@@ -9,6 +9,7 @@ import { presentation, color } from "./settings.js";
 import { wrapShapedPdfText } from "./shaped-text.js";
 import type { PdfShapedGlyph } from "./text-shaping-types.js";
 import { PdfFont } from "./font.js";
+import { pdfBudgetText } from "./text.js";
 
 export interface CapturedRun {
   readonly text: string;
@@ -41,7 +42,7 @@ export interface PdfInlineLine {
 export function capturePdfText(value: PdfText, base: Readonly<CellPresentation>, settings: PdfSettings, fonts: PdfFontResources, countEmpty = true, reserveBudget = true): PdfCapturedText {
   if (typeof value === "string") {
     if (value.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
-    if (reserveBudget && (value.length || countEmpty)) settings.budget.reserve(1, value.length);
+    if (reserveBudget && (value.length || countEmpty)) settings.budget.reserve(1, pdfBudgetText(value, settings.budget).length);
     return Object.freeze({ text: value, runs: Object.freeze([Object.freeze({ text: value, style: base })]) });
   }
   const input: readonly PdfTextRun[] = value;
@@ -50,7 +51,7 @@ export function capturePdfText(value: PdfText, base: Readonly<CellPresentation>,
     throw new TypeError("PDF text must be a string or a synchronous array of text runs.");
   }
   if (input.length > settings.limits.maxTextRuns) throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
-  let characters = 0;
+  let characters = 0, budgetCharacters = 0;
   const runs: CapturedRun[] = [];
   for (const run of input) {
     if (!run || typeof run !== "object" || Object.keys(run).some(key => !["text", "bold", "italic", "color", "link", "font"].includes(key)))
@@ -60,12 +61,13 @@ export function capturePdfText(value: PdfText, base: Readonly<CellPresentation>,
     if (font !== undefined) { if (!(font instanceof PdfFont)) throw new TypeError("A PDF run font must be a PdfFont."); fonts.registerFont(font); }
     characters += text.length;
     if (characters > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+    if (reserveBudget) budgetCharacters += pdfBudgetText(text, settings.budget).length;
     const style = presentation({ ...base, ...(bold === undefined ? {} : { bold }), ...(italic === undefined ? {} : { italic }), ...(color === undefined ? {} : { color }) });
     if (settings.options.tagged && link !== undefined && text.length && !text.trim()) throw new TypeError("Tagged PDF inline links require nonempty displayed text.");
     runs.push(Object.freeze({ text, style, ...(font === undefined ? {} : { font }), ...(link === undefined ? {} : { link: copyExportLink(link) }) }));
   }
   // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
-  if (reserveBudget && (characters || countEmpty)) settings.budget.reserve(1, characters);
+  if (reserveBudget && (characters || countEmpty)) settings.budget.reserve(1, budgetCharacters);
   return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
 }
 

@@ -85,17 +85,22 @@ test("empty workbook, one cell, unique names and stored fallback", async () => {
 
 test("OOXML attributes preserve literal escapes and validate the decoded worksheet names", async () => {
   const book = new Workbook({ compression: "store" });
-  const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_"];
-  const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_"];
+  const clipped = "x".repeat(30);
+  const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_",
+    clipped + "'Q4'", clipped, "History" + "'".repeat(24) + "Q4", "History_",
+    "'' 'Name", "Name' ''", " ' 'History' ' ", "' ' '", "O'Brien"];
+  const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_",
+    clipped, "x".repeat(27) + " (2)", "History_", "History_ (2)",
+    "Name", "Name (2)", "History_ (3)", "Sheet", "O'Brien"];
   for (const name of requests) book.addWorksheet(name);
   book.styles.add({ font: { name: "Font_x0041_" }, numberFormat: '"_x003A_"0' });
   const zip = await readZip(await book.toBlob());
-  const decode = text => text.replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const decode = text => text.replace(/&apos;/g, "'").replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   const names = [...zip.get("xl/workbook.xml").content.matchAll(/<sheet name="([^"]+)"/g)].map(match => decode(match[1]));
   assert.deepEqual(names, expected);
   assert.deepEqual(book.worksheets.map(sheet => sheet.name), expected);
   assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
-  assert.ok(names.every(name => name.length <= 31 && !/[\[\]:*?/\\]/.test(name)));
+  assert.ok(names.every(name => name.length <= 31 && !/[\[\]:*?/\\]/.test(name) && !name.startsWith("'") && !name.endsWith("'") && name.toLowerCase() !== "history"));
   const styles = zip.get("xl/styles.xml").content;
   assert.match(styles, /name val="Font_x005F_x0041_"/);
   assert.match(styles, /formatCode="&quot;_x005F_x003A_&quot;0"/);
