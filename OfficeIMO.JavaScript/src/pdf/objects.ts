@@ -5,7 +5,7 @@ import { pdfXrefChunks, pdfXrefEntryBytes } from "./xref.js";
 
 interface PdfCompactBatch {
   readonly id: number;
-  readonly compressor: CompressionStream;
+  readonly compressor: CompressionStream | undefined;
   readonly ids: number[];
   readonly bodyOffsets: number[];
   bodyBytes: number;
@@ -61,7 +61,8 @@ export class PdfObjects {
     await this.flushCompact();
     await this.flushBytes();
   }
-  private async flushBytes(): Promise<void> {
+  /** Publish completed page bytes without forcing a partial structure container to end. */
+  async flushBytes(): Promise<void> {
     if (this.buffered) {
       const bytes = this.buffer.subarray(0, this.buffered);
       await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
@@ -94,11 +95,12 @@ export class PdfObjects {
     if (!batch) {
       written = this.encodeCompactBody(body, 0, compactObjectBytes - firstIndexBytes - 1);
       if (written === undefined) return this.object(id, body);
-      let compressor: CompressionStream;
-      try { compressor = new CompressionStream("deflate"); }
-      catch (error) {
-        if (this.compactIndices) throw error;
-        this.compactUnavailable = true; return this.object(id, body);
+      let compressor: CompressionStream | undefined;
+      // Probe before selecting the compact representation. Later batches need no idle native
+      // codec while they accumulate, including while ordinary page streams are compressed.
+      if (!this.compactIndices) {
+        try { compressor = new CompressionStream("deflate"); }
+        catch { this.compactUnavailable = true; return this.object(id, body); }
       }
       batch = { id: this.reserve(), compressor, ids: [], bodyOffsets: [], bodyBytes: 0, indexBytes: 1 };
       this.compactIndices ??= this.offsets.map(() => undefined);
@@ -134,7 +136,8 @@ export class PdfObjects {
     // Feed the small index separately instead of allocating/copying a full payload per batch.
     const body = this.compactArena!.subarray(0, batch.bodyBytes);
     batch.ids.length = 0; batch.bodyOffsets.length = 0;
-    await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor, header);
+    await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length,
+      batch.compressor ?? new CompressionStream("deflate"), header);
   }
   async object(id: number, body: string | Iterable<string>): Promise<void> {
     this.start(id);

@@ -535,7 +535,7 @@ export class PdfPages {
       (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
     if (this.structure) await this.structure.finishPage();
     this.commands = []; this.annotations = []; this.commandBytes = 0; this.current = 0;
-    await this.objects.flush();
+    await this.objects.flushBytes();
   }
   async finish(): Promise<void> {
     if (this.bandFlow) { const flow = this.bandFlow; await flow.flush(true); this.bandFlow = undefined; }

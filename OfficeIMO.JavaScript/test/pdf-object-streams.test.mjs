@@ -46,7 +46,7 @@ function semanticGraph(pdf) {
 }
 
 /** Resolve every synthetic value through the emitted xref, including ordinary overflow values. */
-async function compactFixture(bodies) {
+async function compactFixture(bodies, afterMember) {
   const chunks = [], expected = new Map(), objects = new PdfObjects({ write(bytes) { chunks.push(bytes.slice()); } }, undefined, undefined, true);
   await objects.text("%PDF-1.7\n");
   const catalog = objects.reserve(), pages = objects.reserve(), page = objects.reserve(), resources = objects.reserve(), content = objects.reserve(), info = objects.reserve();
@@ -58,6 +58,7 @@ async function compactFixture(bodies) {
     const id = objects.reserve(), body = typeof value === "function" ? value(id) : value;
     expected.set(id, Buffer.from(body, "utf8").toString("latin1"));
     await objects.compactObject(id, body);
+    await afterMember?.(objects);
   }
   await objects.finish(catalog, info);
   const pdf = await inspectPdf(new Blob(chunks));
@@ -110,6 +111,13 @@ test("completed payloads retain their bytes while later batches reuse the bounde
   const { containers } = await compactFixture(Array.from({ length: 405 }, (_, index) =>
     "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
   assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [200, 200, 5]);
+});
+
+test("page-byte delivery preserves pending structure members across bounded containers", async () => {
+  const bodies = Array.from({ length: 405 }, (_, index) => "(" + index + ":" + "Z".repeat(24) + ")");
+  const ordinary = await compactFixture(bodies), pageFlushed = await compactFixture(bodies, objects => objects.flushBytes());
+  assert.deepEqual(pageFlushed.containers.map(container => container.stream), ordinary.containers.map(container => container.stream));
+  assert.deepEqual(pageFlushed.pdf.pages.map(page => page.content), ordinary.pdf.pages.map(page => page.content));
 });
 
 test("asynchronous native codecs consume each arena batch before the next batch overwrites it", async () => {
@@ -199,7 +207,8 @@ test("compaction propagates codec failures and never silently changes representa
     await changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
     await changing.flush();
     globalThis.CompressionStream = class { constructor() { throw reason; } };
-    await assert.rejects(changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /P /K [] >>"), error => error === reason);
+    await changing.compactObject(changing.reserve(), "<< /Type /StructElem /S /P /K [] >>");
+    await assert.rejects(changing.flush(), error => error === reason);
   } finally { globalThis.CompressionStream = native; }
 });
 

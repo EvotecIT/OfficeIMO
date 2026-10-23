@@ -5908,6 +5908,7 @@ class PdfObjects {
         await this.flushCompact();
         await this.flushBytes();
     }
+    /** Publish completed page bytes without forcing a partial structure container to end. */
     async flushBytes() {
         if (this.buffered) {
             const bytes = this.buffer.subarray(0, this.buffered);
@@ -5948,14 +5949,16 @@ class PdfObjects {
             if (written === undefined)
                 return this.object(id, body);
             let compressor;
-            try {
-                compressor = new CompressionStream("deflate");
-            }
-            catch (error) {
-                if (this.compactIndices)
-                    throw error;
-                this.compactUnavailable = true;
-                return this.object(id, body);
+            // Probe before selecting the compact representation. Later batches need no idle native
+            // codec while they accumulate, including while ordinary page streams are compressed.
+            if (!this.compactIndices) {
+                try {
+                    compressor = new CompressionStream("deflate");
+                }
+                catch {
+                    this.compactUnavailable = true;
+                    return this.object(id, body);
+                }
             }
             batch = { id: this.reserve(), compressor, ids: [], bodyOffsets: [], bodyBytes: 0, indexBytes: 1 };
             this.compactIndices ??= this.offsets.map(() => undefined);
@@ -6001,7 +6004,7 @@ class PdfObjects {
         const body = this.compactArena.subarray(0, batch.bodyBytes);
         batch.ids.length = 0;
         batch.bodyOffsets.length = 0;
-        await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor, header);
+        await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor ?? new CompressionStream("deflate"), header);
     }
     async object(id, body) {
         this.start(id);
@@ -9079,7 +9082,7 @@ class PdfPages {
         this.annotations = [];
         this.commandBytes = 0;
         this.current = 0;
-        await this.objects.flush();
+        await this.objects.flushBytes();
     }
     async finish() {
         if (this.bandFlow) {
