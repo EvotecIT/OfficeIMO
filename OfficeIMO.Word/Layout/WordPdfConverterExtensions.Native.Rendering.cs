@@ -245,7 +245,8 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeHeading(pdf, headingLevel, headingText,
                     builder => AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns || inlineImages.Count > 0,
                         renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, inlineImages: inlineImages),
-                    objectAlign, headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
+                    paragraphStyle.UseWordJustificationSpacing ? align : objectAlign,
+                    headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
                 }
@@ -1072,6 +1073,10 @@ namespace OfficeIMO.Word.Pdf {
 
             var style = new PdfCore.PdfHeadingStyle {
                 AnchoredCanvas = paragraphStyle.AnchoredCanvas,
+                UseWordJustificationSpacing = paragraphStyle.UseWordJustificationSpacing,
+                JustificationMode = paragraphStyle.JustificationMode,
+                JustifyExplicitLineBreaks = paragraphStyle.JustifyExplicitLineBreaks,
+                JustifyLastLine = paragraphStyle.JustifyLastLine,
                 FontSize = fontSize,
                 LineHeight = 1.18D,
                 SpacingBefore = level == 1 ? 24D : 10D,

@@ -48,7 +48,7 @@ internal static partial class PdfWriter {
                 var frame = GetParagraphTextFrame(style, frameX, frameWidth);
                 var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                     frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
-                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode);
+                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
                 int count = style?.KeepTogether == true ? wrap.Lines.Count : Math.Min(wrap.Lines.Count, style == null ? 1 : Math.Max(1, ResolveMinimumOrphanLines(style)));
                 if (style != null && wrap.Lines.Count < Math.Max(1, ResolveMinimumOrphanLines(style)) + Math.Max(1, ResolveMinimumWidowLines(style))) count = wrap.Lines.Count;
                 return wrap.Lines.Take(count).SelectMany(line => line);
@@ -56,8 +56,8 @@ internal static partial class PdfWriter {
             if (block is HeadingBlock heading) {
                 PdfHeadingStyle? style = ResolveHeadingStyle(heading, currentOpts);
                 double size = GetHeadingFontSize(heading, style);
-                var wrap = WrapRichRunsWithSpacing(CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color), frameWidth, size,
-                    ChooseNormal(currentOpts.DefaultFont), GetHeadingLeading(style, size), null, DefaultParagraphTabStopWidth, currentOpts, style?.LineSpacing);
+                var wrap = WrapRichHeadingRuns(CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color), frameWidth, size,
+                    ChooseNormal(currentOpts.DefaultFont), GetHeadingLeading(style, size), null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align);
                 return wrap.Lines.Take(1).SelectMany(line => line);
             }
             if (block is PdfListBlock list) {

@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
                 var frame = GetParagraphTextFrame(style, scope.ParentOptions.MarginLeft, frameWidth);
                 var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont),
                     leading, frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
-                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode);
+                    style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
                 var heights = wrapped.LineHeights.ToList();
                 if (heights.Count == 0) heights.Add(leading);
                 double spacingBefore = GetParagraphSpacingBefore(style);

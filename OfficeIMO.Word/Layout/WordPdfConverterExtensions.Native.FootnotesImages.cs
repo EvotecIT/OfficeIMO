@@ -223,6 +223,10 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeNoteParagraphs(pdf, footnote.Source, section, notes, options, defaults, fonts, footnote.Label);
                     continue;
                 }
+                if (footnote.Source != null && options != null)
+                    foreach (W.Paragraph paragraph in footnote.Source.Descendants<W.Paragraph>())
+                        RecordNativeFieldResultDiagnostics(new WordParagraph(section._document, paragraph), options,
+                            footnote.IsEndnote ? "endnote" : "footnote", runningStory: false);
                 if (footnote.Source != null && footnote.IsEndnote && options != null)
                     AddNativeExportWarning(options, "NativeEndnoteContentApproximated", "endnote",
                         "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
