@@ -211,3 +211,13 @@ The broad suite also exposed a collector that kept borrowed bytes after
 acknowledgement; that fixture now takes its own copy, matching the existing
 sink contract. The buffer-reuse allocation reduction is qualified; its effect
 on the narrow-memory target still requires the uninstrumented fixed cohort.
+
+Candidate `c303ead6144feb2087a70a9f2e8fa4aad062541f` independently validated
+all sixteen outputs in that fixed cohort. Narrow mean/median peak RSS remains
+1.93%/1.59% above M8; wide mean/median is 4.62%/2.11% lower. PDF bytes remain
+74.63%/76.21% below M8. Narrow engine-time mean/median is 20.17%/5.18% higher;
+wide is 41.04%/1.92% higher. Sampled external memory is 37.11%/37.51% higher
+for narrow and 23.93%/9.50% higher for wide. All samples remain in the results.
+The cumulative buffer-allocation reduction is proven, but the narrow-memory
+target is still unmet. No isolated RSS or timing improvement is attributed to
+this change, and no unchanged cohort retry is planned.
