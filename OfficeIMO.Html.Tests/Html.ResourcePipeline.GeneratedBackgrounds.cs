@@ -32,14 +32,16 @@ public partial class Html {
     }
 
     [Fact]
-    public void GeneratedBackgroundManifestSuppressesOverriddenAndUnsupportedBoxes() {
+    public void GeneratedBackgroundManifestKeepsEffectiveSideImagesAndSuppressesOverriddenSources() {
         const string css = "@page{@top-center{content:'';background-image:url(overridden.png);background-image:none}"
             + "@left-middle{content:'';background-image:url(vertical.png)}}"
             + ".used{background-image:url(ordinary.png)}";
 
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest("<style>" + css + "</style><div class='used'></div>");
 
-        Assert.Equal("ordinary.png", Assert.Single(manifest.Resources.Where(resource => resource.Kind == HtmlResourceKind.Image)).Source);
+        Assert.Equal(new[] { "ordinary.png", "vertical.png" }, manifest.Resources
+            .Where(resource => resource.Kind == HtmlResourceKind.Image).Select(resource => resource.Source)
+            .OrderBy(source => source, StringComparer.Ordinal));
     }
 
     [Fact]

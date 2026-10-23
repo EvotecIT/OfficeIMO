@@ -1,13 +1,13 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    /// <summary>Returns the inner frame of a horizontal generated box while preserving the legacy text-only route.</summary>
+    /// <summary>Returns the inner frame of a generated box while preserving the legacy text-only route.</summary>
     private bool TryGetPageMarginContentBounds(HtmlRenderPage page, HtmlCssPageMarginTemplate box,
-        IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> horizontalBounds,
+        IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> axisBounds,
         double desiredHeight, out double x, out double y, out double width, out double height) {
-        if (!box.HasBoxGeometry) return TryGetMarginBoxBounds(page, box.Position, horizontalBounds,
+        if (!box.HasBoxGeometry) return TryGetMarginBoxBounds(page, box.Position, axisBounds,
             desiredHeight, out x, out y, out width, out height);
-        if (!TryGetPageMarginBorderBounds(page, box, horizontalBounds, desiredHeight, out x, out y, out width, out height)) return false;
+        if (!TryGetPageMarginBorderBounds(page, box, axisBounds, desiredHeight, out x, out y, out width, out height)) return false;
         HtmlRenderBoxStyle style = box.Typography;
         x += style.BorderLeftWidth + style.PaddingLeft;
         y += style.BorderTopWidth + style.PaddingTop;
@@ -18,33 +18,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Resolves the border frame inside signed margins without allowing negative content dimensions.</summary>
     private bool TryGetPageMarginBorderBounds(HtmlRenderPage page, HtmlCssPageMarginTemplate box,
-        IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> horizontalBounds,
+        IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> axisBounds,
         double naturalContentHeight, out double x, out double y, out double width, out double height) {
         CheckCancellation();
-        bool top = box.Position is HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight;
+        bool side = IsSide(box.Position), corner = IsCorner(box.Position);
+        bool top = IsTopMargin(box.Position);
+        bool left = IsLeftMargin(box.Position);
         double reservedHeight = Math.Max(0D, top ? page.Margins.Top : page.Margins.Bottom);
-        if (!horizontalBounds.TryGetValue(box.Position, out PageMarginHorizontalBounds bounds)) {
+        if (!axisBounds.TryGetValue(box.Position, out PageMarginAxisBounds bounds)) {
             x = y = width = height = 0D;
             return false;
         }
         HtmlRenderBoxStyle style = box.Typography;
-        x = bounds.X + style.MarginLeft;
-        width = Math.Max(style.HorizontalInsets, bounds.Width - style.MarginLeft - style.MarginRight);
-        double autoContentHeight = Math.Max(0D, reservedHeight - style.VerticalInsets
-            - (style.MarginTopAuto ? 0D : style.MarginTop) - (style.MarginBottomAuto ? 0D : style.MarginBottom));
-        // Intrinsic block sizes use content after layout at the final assigned
-        // inner width. Convert to authored box coordinates before the common
-        // numeric constraint owner adds insets and applies minimum precedence.
-        double intrinsicHeight = naturalContentHeight + (style.BorderBox ? style.VerticalInsets : 0D);
-        height = !style.HasPageMarginIntrinsicHeights && !style.ExplicitHeight.HasValue && !style.MinHeight.HasValue && !style.MaxHeight.HasValue
-            && style.MarginTop == 0D && style.MarginBottom == 0D
-            ? Math.Max(reservedHeight, style.VerticalInsets)
-            : ResolveBoxHeight(autoContentHeight, width, style,
+        if (side || corner) {
+            double reservedWidth = Math.Max(0D, left ? page.Margins.Left : page.Margins.Right);
+            width = bounds.FixedWidth ?? 0D;
+            x = (left ? 0D : page.Width - reservedWidth) + ResolvePageMarginFixedStart(reservedWidth, width,
+                style.MarginLeft, style.MarginRight, style.MarginLeftAuto, style.MarginRightAuto, left);
+        } else {
+            x = bounds.Start + (style.MarginLeftAuto ? 0D : style.MarginLeft);
+            width = Math.Max(style.HorizontalInsets, bounds.Length
+                - (style.MarginLeftAuto ? 0D : style.MarginLeft) - (style.MarginRightAuto ? 0D : style.MarginRight));
+        }
+        if (side) {
+            y = bounds.Start + (style.MarginTopAuto ? 0D : style.MarginTop);
+            height = Math.Max(style.VerticalInsets, bounds.Length
+                - (style.MarginTopAuto ? 0D : style.MarginTop) - (style.MarginBottomAuto ? 0D : style.MarginBottom));
+        } else {
+            double autoContentHeight = Math.Max(0D, reservedHeight - style.VerticalInsets
+                - (style.MarginTopAuto ? 0D : style.MarginTop) - (style.MarginBottomAuto ? 0D : style.MarginBottom));
+            // Intrinsic block sizes use content laid out at the final inner width.
+            double intrinsicHeight = naturalContentHeight + (style.BorderBox ? style.VerticalInsets : 0D);
+            height = ResolveBoxHeight(autoContentHeight, width, style,
                 style.PageMarginIntrinsicHeight ? intrinsicHeight : style.ExplicitHeight,
                 style.PageMarginIntrinsicMinHeight ? intrinsicHeight : style.MinHeight,
                 style.PageMarginIntrinsicMaxHeight ? intrinsicHeight : style.MaxHeight, allowZeroHeight: true);
-        double marginTop = ResolvePageMarginTopMargin(style, reservedHeight, height, top);
-        y = (top ? 0D : page.Height - reservedHeight) + marginTop;
+            y = (top ? 0D : page.Height - reservedHeight) + ResolvePageMarginFixedStart(reservedHeight, height,
+                style.MarginTop, style.MarginBottom, style.MarginTopAuto, style.MarginBottomAuto, top);
+        }
         if (!Finite(x) || !Finite(y) || !Finite(width) || !Finite(height) || !Finite(x + width) || !Finite(y + height)) {
             string source = "@page @" + GetMarginBoxName(box.Position);
             if (_reportedMarginTextOverflow.Add(source + " geometry")) {
@@ -60,24 +71,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 
-    /// <summary>Balances the fixed-axis equation after height constraints, preserving the body-facing margin.</summary>
-    private static double ResolvePageMarginTopMargin(HtmlRenderBoxStyle style, double stripHeight, double borderHeight, bool top) {
-        bool topAuto = style.MarginTopAuto, bottomAuto = style.MarginBottomAuto;
-        double marginTop = topAuto ? 0D : style.MarginTop;
-        double marginBottom = bottomAuto ? 0D : style.MarginBottom;
-        if (borderHeight + marginTop + marginBottom > stripHeight) topAuto = bottomAuto = false;
-        // With no remaining auto value, the outer-facing margin absorbs the
-        // difference. This also preserves the existing body-edge inset floor.
-        if (!topAuto && !bottomAuto) {
-            if (top) topAuto = true;
-            else bottomAuto = true;
+    /// <summary>Resolves fixed-axis widths with shared intrinsic values and numeric box constraints.</summary>
+    private static double ResolvePageMarginFixedWidth(HtmlRenderBoxStyle style, PageMarginIntrinsicSize intrinsic, double availableWidth) {
+        style = ApplyIntrinsicWidthValues(style, intrinsic.Minimum, intrinsic.Maximum, availableWidth);
+        double available = availableWidth - (style.MarginLeftAuto ? 0D : style.MarginLeft)
+            - (style.MarginRightAuto ? 0D : style.MarginRight);
+        return ResolveBoxWidth(available, style, allowZeroWidth: true);
+    }
+
+    /// <summary>Balances either fixed axis, preserving the body-facing margin when overconstrained.</summary>
+    private static double ResolvePageMarginFixedStart(double available, double borderExtent,
+        double leading, double trailing, bool leadingAuto, bool trailingAuto, bool outerLeading) {
+        double before = leadingAuto ? 0D : leading;
+        double after = trailingAuto ? 0D : trailing;
+        if (borderExtent + before + after > available) leadingAuto = trailingAuto = false;
+        if (!leadingAuto && !trailingAuto) {
+            if (outerLeading) leadingAuto = true;
+            else trailingAuto = true;
         }
-        if (!topAuto) return marginTop;
-        return bottomAuto ? (stripHeight - borderHeight) / 2D : stripHeight - borderHeight - marginBottom;
+        if (!leadingAuto) return before;
+        return trailingAuto ? (available - borderExtent) / 2D : available - borderExtent - after;
     }
 
     private void AppendEmptyPageMarginBox(ICollection<HtmlRenderVisual> target, HtmlRenderPage page,
-        HtmlCssPageMarginTemplate box, IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> bounds,
+        HtmlCssPageMarginTemplate box, IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> bounds,
         double naturalContentHeight = 0D) {
         if (!box.HasBoxGeometry || box.Content.IsEmpty) return;
         if (!TryGetPageMarginBorderBounds(page, box, bounds, naturalContentHeight, out double x, out double y, out double width, out double height)) return;
@@ -86,7 +103,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void AppendPageMarginVisuals(ICollection<HtmlRenderVisual> target, HtmlRenderPage page,
-        HtmlCssPageMarginTemplate box, IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> bounds,
+        HtmlCssPageMarginTemplate box, IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> bounds,
         IReadOnlyList<HtmlRenderVisual> content, double x, double y, double width, double height,
         double naturalContentHeight, string source) {
         IReadOnlyList<HtmlRenderVisual> children = content;

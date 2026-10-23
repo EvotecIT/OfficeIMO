@@ -22,6 +22,7 @@ internal static partial class HtmlCssPageSettingsResolver {
                 || name.Equals("font-stretch", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("line-height", StringComparison.OrdinalIgnoreCase) || name.Equals("color", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("vertical-align", StringComparison.OrdinalIgnoreCase)
                 || IsMarginGeometryDeclaration(name) || IsMarginBackgroundDeclaration(name)) {
                 string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
                     HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();

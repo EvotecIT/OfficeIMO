@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
             + "@top-left{content:none;background-image:url(none.png)}"
             + "@top-center{content:normal;background-image:var(--image)}"
             + "@bottom-center{content:'';background-image:url(overridden.png);background-image:none}"
-            + "@left-middle{content:'';background-image:url(vertical.png)}}";
+            + "@left-middle{content:none;background-image:url(vertical.png)}}";
         var requests = new ConcurrentQueue<string>();
         HtmlRenderOptions options = CreateGeneratedResourceOptions(request => {
             requests.Enqueue(request.Uri.AbsoluteUri);

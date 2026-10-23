@@ -491,11 +491,16 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
 }
 
 internal sealed class HtmlCssPageMarginTemplate {
-    internal HtmlCssPageMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, HtmlRenderBoxStyle typography, OfficeTextAlignment alignment) {
+    internal HtmlCssPageMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content,
+        HtmlRenderBoxStyle typography, OfficeTextAlignment alignment, OfficeTextVerticalAlignment verticalAlignment,
+        bool hasAuthoredVerticalAlignment, string unsupportedVerticalAlignment) {
         Position = position;
         Content = content;
         Typography = typography;
         Alignment = alignment;
+        VerticalAlignment = verticalAlignment;
+        HasAuthoredVerticalAlignment = hasAuthoredVerticalAlignment;
+        UnsupportedVerticalAlignment = unsupportedVerticalAlignment;
     }
 
     internal HtmlCssPageMarginPosition Position { get; }
@@ -504,7 +509,18 @@ internal sealed class HtmlCssPageMarginTemplate {
     internal OfficeFontInfo Font => Typography.Font;
     internal OfficeColor Color => Typography.Color;
     internal OfficeTextAlignment Alignment { get; }
-    internal bool HasBoxGeometry => Typography.BackgroundColor is { A: > 0 } || Typography.HasDeclaredBackgroundImage || Typography.HasIntrinsicWidths || Typography.HasPageMarginIntrinsicHeights
+    /// <summary>Gets the physical vertical content alignment independently of text writing direction.</summary>
+    internal OfficeTextVerticalAlignment VerticalAlignment { get; }
+    /// <summary>Keeps authored alignment on the full box route even when its used value is middle.</summary>
+    internal bool HasAuthoredVerticalAlignment { get; }
+    /// <summary>Gets a resolved value outside the top/middle/bottom profile for the layout loss reporter.</summary>
+    internal string UnsupportedVerticalAlignment { get; }
+    internal bool HasBoxGeometry => HasAuthoredVerticalAlignment
+        || Position is (HtmlCssPageMarginPosition.TopLeftCorner or HtmlCssPageMarginPosition.TopRightCorner
+            or HtmlCssPageMarginPosition.BottomLeftCorner or HtmlCssPageMarginPosition.BottomRightCorner
+            or HtmlCssPageMarginPosition.LeftTop or HtmlCssPageMarginPosition.LeftMiddle or HtmlCssPageMarginPosition.LeftBottom
+            or HtmlCssPageMarginPosition.RightTop or HtmlCssPageMarginPosition.RightMiddle or HtmlCssPageMarginPosition.RightBottom)
+        || Typography.BackgroundColor is { A: > 0 } || Typography.HasDeclaredBackgroundImage || Typography.HasIntrinsicWidths || Typography.HasPageMarginIntrinsicHeights
         || Typography.ExplicitWidth.HasValue || Typography.MinWidth.HasValue
         || Typography.MaxWidth.HasValue || Typography.ExplicitHeight.HasValue || Typography.MinHeight.HasValue || Typography.MaxHeight.HasValue
         || Typography.MarginTop != 0D || Typography.MarginRight != 0D || Typography.MarginBottom != 0D || Typography.MarginLeft != 0D

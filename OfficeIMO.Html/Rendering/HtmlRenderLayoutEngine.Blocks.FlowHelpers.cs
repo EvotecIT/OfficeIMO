@@ -228,12 +228,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
     }
 
-    private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {
-        double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(1D, availableWidth - style.HorizontalInsets));
+    /// <summary>Applies numeric width constraints with an explicit zero-area profile for generated boxes.</summary>
+    private static double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style, bool allowZeroWidth = false) {
+        double floor = allowZeroWidth ? 0D : 1D;
+        double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(floor, availableWidth - style.HorizontalInsets));
         if (!style.BorderBox) width += style.HorizontalInsets;
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
+        return Math.Max(style.HorizontalInsets, Math.Max(floor, width));
     }
 
     private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style, bool allowZeroHeight = false) {
