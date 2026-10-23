@@ -99,7 +99,7 @@ test("kept headings reserve complete graphics and bounded groups move intact", a
 });
 
 test("non-rendering paragraphs and groups preserve keeps until the next visible block", async () => {
-  const gaps = [paragraph(""), paragraph([]), paragraph([{ text: "" }]),
+  const gaps = [paragraph(""), paragraph("", { keepWithNext: true }), paragraph([]), paragraph([{ text: "" }]),
     { kind: "group", blocks: [] }, { kind: "group", blocks: [paragraph(""), paragraph([])] },
     pdfTable([], { columns: [{ header: "Value", key: "value" }], includeHeader: false })];
   const following = [

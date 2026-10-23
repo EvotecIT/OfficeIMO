@@ -313,27 +313,29 @@ test("composed paragraph getters retain validated heading and text values", asyn
   assert.doesNotMatch([...pdf.objects.values()].map(o => o.body).join("\n"), /\/S \/H9 /);
 });
 
-test("paragraph presentation snapshots nested getters before validating its emitted style", async () => {
-  const reads = { bold: 0, italic: 0, color: 0, alignment: 0 };
-  const presentation = {
-    get bold() { return ++reads.bold <= 2 ? false : true; },
-    get italic() { return ++reads.italic <= 2 ? false : true; },
-    get color() { return ++reads.color <= 2 ? "008000" : "0000FF"; },
-    get alignment() { return ++reads.alignment <= 2 ? "left" : "right"; }
-  };
-  const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "A", presentation }], { compression: false, pageNumbers: false }));
-  assert.deepEqual(reads, { bold: 1, italic: 1, color: 1, alignment: 1 });
-  assert.match(pdf.pages[0].content, /q 0 0\.502 0 rg 0 0\.502 0 RG/);
-  assert.match(pdf.pages[0].content, /1 0 0 1 36 [\d.]+ Tm <41> Tj/);
-  const fonts = [...pdf.objects.values()].filter(o => /\/Type \/Font /.test(o.body));
-  assert.ok(fonts.some(font => /\/BaseFont \/Helvetica /.test(font.body)));
-  assert.ok(fonts.every(font => !/Helvetica-(?:Bold|Oblique)/.test(font.body)));
-  for (const [key, invalid, valid, error] of [["bold", "yes", false, /bold must be boolean/], ["italic", "yes", false, /italic must be boolean/],
-    ["color", "invalid", "008000", /six-digit RGB/], ["alignment", "justify", "left", /alignment supports/]]) {
-    let count = 0;
-    const invalidFirst = Object.defineProperty({}, key, { enumerable: true, get() { return ++count === 1 ? invalid : valid; } });
-    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A", presentation: invalidFirst }], { pageNumbers: false }), error);
-    assert.equal(count, 1);
+test("scalar and rich paragraph presentations capture getters before validating their emitted style", async () => {
+  for (const text of ["A", [{ text: "A" }]]) {
+    const reads = { bold: 0, italic: 0, color: 0, alignment: 0 };
+    const presentation = {
+      get bold() { return ++reads.bold <= 2 ? false : true; },
+      get italic() { return ++reads.italic <= 2 ? false : true; },
+      get color() { return ++reads.color <= 2 ? "008000" : "0000FF"; },
+      get alignment() { return ++reads.alignment <= 2 ? "left" : "right"; }
+    };
+    const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text, presentation }], { compression: false, pageNumbers: false }));
+    assert.deepEqual(reads, { bold: 1, italic: 1, color: 1, alignment: 1 });
+    assert.match(pdf.pages[0].content, /q 0 0\.502 0 rg 0 0\.502 0 RG/);
+    assert.match(pdf.pages[0].content, /1 0 0 1 36 [\d.]+ Tm <41> Tj/);
+    const fonts = [...pdf.objects.values()].filter(o => /\/Type \/Font /.test(o.body));
+    assert.ok(fonts.some(font => /\/BaseFont \/Helvetica /.test(font.body)));
+    assert.ok(fonts.every(font => !/Helvetica-(?:Bold|Oblique)/.test(font.body)));
+    for (const [key, invalid, valid, error] of [["bold", "yes", false, /bold must be boolean/], ["italic", "yes", false, /italic must be boolean/],
+      ["color", "invalid", "008000", /six-digit RGB/], ["alignment", "justify", "left", /alignment supports/]]) {
+      let count = 0;
+      const invalidFirst = Object.defineProperty({}, key, { enumerable: true, get() { return ++count === 1 ? invalid : valid; } });
+      await assert.rejects(writePdfDocument([{ kind: "paragraph", text, presentation: invalidFirst }], { pageNumbers: false }), error);
+      assert.equal(count, 1);
+    }
   }
 });
 

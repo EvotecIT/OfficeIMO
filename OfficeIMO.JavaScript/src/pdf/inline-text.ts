@@ -37,14 +37,19 @@ export interface PdfInlineLine {
   readonly actualText?: string;
 }
 
-/** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
-export function capturePdfText(value: PdfText, base: CellPresentation, settings: PdfSettings, fonts: PdfFontResources, countEmpty = true, reserveBudget = true): PdfCapturedText {
-  const input: readonly PdfTextRun[] = typeof value === "string" ? [{ text: value }] : value;
+/** @internal Callers supply an owned, validated, frozen base presentation. A run list is a PDF presentation value, never an alternate shared table value model. */
+export function capturePdfText(value: PdfText, base: Readonly<CellPresentation>, settings: PdfSettings, fonts: PdfFontResources, countEmpty = true, reserveBudget = true): PdfCapturedText {
+  if (typeof value === "string") {
+    if (value.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+    if (reserveBudget && (value.length || countEmpty)) settings.budget.reserve(1, value.length);
+    return Object.freeze({ text: value, runs: Object.freeze([Object.freeze({ text: value, style: base })]) });
+  }
+  const input: readonly PdfTextRun[] = value;
   if (!Array.isArray(input)) {
     if (input && typeof (input as unknown as { then?: unknown }).then === "function") void Promise.resolve(input).catch(() => {});
     throw new TypeError("PDF text must be a string or a synchronous array of text runs.");
   }
-  if (typeof value !== "string" && input.length > settings.limits.maxTextRuns) throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
+  if (input.length > settings.limits.maxTextRuns) throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
   let characters = 0;
   const runs: CapturedRun[] = [];
   for (const run of input) {

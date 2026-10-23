@@ -7678,15 +7678,22 @@ const { wrapShapedPdfText } = _m72;
 
 const { PdfFont } = _m63;
 
-/** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
+/** @internal Callers supply an owned, validated, frozen base presentation. A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true, reserveBudget = true) {
-    const input = typeof value === "string" ? [{ text: value }] : value;
+    if (typeof value === "string") {
+        if (value.length > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        if (reserveBudget && (value.length || countEmpty))
+            settings.budget.reserve(1, value.length);
+        return Object.freeze({ text: value, runs: Object.freeze([Object.freeze({ text: value, style: base })]) });
+    }
+    const input = value;
     if (!Array.isArray(input)) {
         if (input && typeof input.then === "function")
             void Promise.resolve(input).catch(() => { });
         throw new TypeError("PDF text must be a string or a synchronous array of text runs.");
     }
-    if (typeof value !== "string" && input.length > settings.limits.maxTextRuns)
+    if (input.length > settings.limits.maxTextRuns)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
     let characters = 0;
     const runs = [];
