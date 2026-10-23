@@ -373,6 +373,10 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     inspectedTabStops++;
+                    if (tabStop.Position == null) {
+                        continue;
+                    }
+
                     WordTabStop wordTabStop = new WordTabStop(paragraph, (W.TabStop)tabStop.CloneNode(true));
                     if (!tabStops.ContainsKey(wordTabStop.Position)) {
                         tabStops.Add(wordTabStop.Position, wordTabStop);

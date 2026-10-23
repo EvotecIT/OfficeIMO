@@ -16,6 +16,10 @@ namespace OfficeIMO.Word.Pdf {
             W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
             if (levelTabs != null) {
                 foreach (W.TabStop tab in levelTabs.Elements<W.TabStop>().Take(MaxNativeParagraphTabStops)) {
+                    if (tab.Position == null) {
+                        continue;
+                    }
+
                     var stop = new WordTabStop(paragraph, (W.TabStop)tab.CloneNode(true));
                     stops[stop.Position] = stop;
                 }

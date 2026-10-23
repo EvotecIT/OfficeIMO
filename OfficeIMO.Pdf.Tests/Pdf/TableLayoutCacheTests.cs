@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests.Pdf {
             const string styleId = "HostileTabStops";
             var tabs = new W.Tabs();
             for (int index = 0; index < 1_024; index++) {
-                tabs.Append(new W.TabStop { Position = 0, Val = W.TabStopValues.Left });
+                tabs.Append(new W.TabStop { Val = W.TabStopValues.Left });
             }
 
             tabs.Append(new W.TabStop { Position = 1_440, Val = W.TabStopValues.Left });
