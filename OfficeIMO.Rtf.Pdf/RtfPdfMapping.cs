@@ -143,7 +143,15 @@ internal static class RtfPdfMapping {
     }
 
     internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
-        PdfCore.PdfTableStyle style = options.PdfOptions?.DefaultTableStyle?.Clone() ?? new PdfCore.PdfTableStyle();
+        PdfCore.PdfTableStyle? callerStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+            ? options.PdfOptions.DefaultTableStyle
+            : null;
+        PdfCore.PdfTableStyle style = callerStyle?.Clone() ?? new PdfCore.PdfTableStyle {
+            BorderColor = null,
+            BorderWidth = 0D,
+            CellPaddingX = 0D,
+            CellPaddingY = 0D
+        };
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
         style.RepeatHeaderRowCount = headerRowCount;
@@ -170,7 +178,7 @@ internal static class RtfPdfMapping {
                     fills[key] = fill.Value;
                 }
 
-                PdfCore.PdfCellPadding? padding = ToPdfCellPadding(row, cell);
+                PdfCore.PdfCellPadding? padding = ToPdfCellPadding(row, cell, useRowGapFallback: callerStyle == null);
                 if (padding != null) {
                     paddings[key] = padding;
                 }
@@ -230,11 +238,14 @@ internal static class RtfPdfMapping {
         cell.HorizontalMerge == RtfTableCellMerge.Continue ||
         cell.VerticalMerge == RtfTableCellMerge.Continue;
 
-    private static PdfCore.PdfCellPadding? ToPdfCellPadding(RtfTableRow row, RtfTableCell cell) {
+    private static PdfCore.PdfCellPadding? ToPdfCellPadding(RtfTableRow row, RtfTableCell cell, bool useRowGapFallback) {
+        int? gap = useRowGapFallback && row.CellGapTwips.HasValue && row.CellGapTwips.Value >= 0
+            ? row.CellGapTwips
+            : null;
         double? top = ToOptionalNonNegativePoints(cell.PaddingTopTwips ?? row.PaddingTopTwips);
-        double? left = ToOptionalNonNegativePoints(cell.PaddingLeftTwips ?? row.PaddingLeftTwips);
+        double? left = ToOptionalNonNegativePoints(cell.PaddingLeftTwips ?? row.PaddingLeftTwips ?? gap);
         double? bottom = ToOptionalNonNegativePoints(cell.PaddingBottomTwips ?? row.PaddingBottomTwips);
-        double? right = ToOptionalNonNegativePoints(cell.PaddingRightTwips ?? row.PaddingRightTwips);
+        double? right = ToOptionalNonNegativePoints(cell.PaddingRightTwips ?? row.PaddingRightTwips ?? gap);
         if (!top.HasValue && !left.HasValue && !bottom.HasValue && !right.HasValue) {
             return null;
         }

@@ -25,14 +25,14 @@ internal sealed partial class RtfWriteContext {
         source.FontSize != resolved.FontSize || source.FontId != resolved.FontId ||
         source.ForegroundColorIndex != resolved.ForegroundColorIndex || source.HighlightColorIndex != resolved.HighlightColorIndex;
 
-    private static bool HasMaterializedParagraphFormatting(RtfParagraph source, RtfParagraph resolved) =>
+    private bool HasMaterializedParagraphFormatting(RtfParagraph source, RtfParagraph resolved) =>
         source.ListId != resolved.ListId || source.ListLevel != resolved.ListLevel ||
         source.DirectAlignment != resolved.DirectAlignment || source.Direction != resolved.Direction ||
         source.DirectPageBreakBefore != resolved.DirectPageBreakBefore || source.DirectKeepWithNext != resolved.DirectKeepWithNext ||
         source.DirectKeepLinesTogether != resolved.DirectKeepLinesTogether || source.DirectSuppressLineNumbers != resolved.DirectSuppressLineNumbers ||
         source.LeftIndentTwips != resolved.LeftIndentTwips || source.RightIndentTwips != resolved.RightIndentTwips ||
-        source.FirstLineIndentTwips != resolved.FirstLineIndentTwips || source.SpaceBeforeTwips != resolved.SpaceBeforeTwips ||
-        source.SpaceAfterTwips != resolved.SpaceAfterTwips || source.SpaceBeforeAuto != resolved.SpaceBeforeAuto ||
+        source.FirstLineIndentTwips != resolved.FirstLineIndentTwips || HasMaterializedParagraphSpacing(source, resolved, before: true) ||
+        HasMaterializedParagraphSpacing(source, resolved, before: false) || source.SpaceBeforeAuto != resolved.SpaceBeforeAuto ||
         source.SpaceAfterAuto != resolved.SpaceAfterAuto ||
         (!source.UseParsedParagraphDefaults && (source.LineSpacingTwips != resolved.LineSpacingTwips ||
             source.LineSpacingMultiple != resolved.LineSpacingMultiple)) || source.BackgroundColorIndex != resolved.BackgroundColorIndex ||
@@ -44,4 +44,15 @@ internal sealed partial class RtfWriteContext {
         (!source.TopBorder.HasAnyValue && resolved.TopBorder.HasAnyValue) || (!source.LeftBorder.HasAnyValue && resolved.LeftBorder.HasAnyValue) ||
         (!source.BottomBorder.HasAnyValue && resolved.BottomBorder.HasAnyValue) || (!source.RightBorder.HasAnyValue && resolved.RightBorder.HasAnyValue) ||
         (!source.Frame.HasAnyValue && resolved.Frame.HasAnyValue) || (!source.LegacyNumbering.HasAnyValue && resolved.LegacyNumbering.HasAnyValue);
+
+    private bool HasMaterializedParagraphSpacing(RtfParagraph source, RtfParagraph resolved, bool before) {
+        int? original = before ? source.SpaceBeforeTwips : source.SpaceAfterTwips;
+        int? effective = before ? resolved.SpaceBeforeTwips : resolved.SpaceAfterTwips;
+        bool? automatic = before ? resolved.SpaceBeforeAuto : resolved.SpaceAfterAuto;
+        if (original == effective) return false;
+        // Writing an implicit parsed zero does not flatten style inheritance.
+        // Preserve the diagnostic when an actual style supplied even that zero.
+        return !source.UseParsedParagraphDefaults || original.HasValue || automatic == true || effective != 0 ||
+            FormattingDocument!.HasParagraphStyleSpacing(source, before);
+    }
 }

@@ -14,6 +14,9 @@ internal static partial class RtfPdfConverter {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
+            pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
+        }
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
         IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(

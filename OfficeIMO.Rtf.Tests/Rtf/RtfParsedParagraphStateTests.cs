@@ -26,6 +26,10 @@ public class RtfParsedParagraphStateTests {
         Assert.Null(paragraph.LineSpacingTwips);
         Assert.Null(paragraph.LineSpacingMultiple);
         Assert.Empty(paragraph.TabStops);
+        Assert.Null(paragraph.SpaceBeforeTwips);
+        Assert.Null(paragraph.SpaceAfterTwips);
+        Assert.Equal(0, effective.SpaceBeforeTwips);
+        Assert.Equal(0, effective.SpaceAfterTwips);
         Assert.Equal(240, effective.LineSpacingTwips);
         Assert.True(effective.LineSpacingMultiple);
         Assert.Empty(effective.TabStops);
@@ -55,6 +59,8 @@ public class RtfParsedParagraphStateTests {
         RtfStyle authoredStyle = authored.AddStyle(1, "SpacedTabs");
         authoredStyle.LineSpacingTwips = 360;
         authoredStyle.LineSpacingMultiple = false;
+        authoredStyle.SpaceBeforeTwips = 120;
+        authoredStyle.SpaceAfterTwips = 240;
         authoredStyle.AddTabStop(4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
         RtfParagraph authoredParagraph = authored.AddParagraph("Plain").SetStyle(1);
         RtfDocument parsed = RtfDocument.Read(@"{\rtf1\ansi" + Styles + @"\pard\s1 Plain\par}").Document;
@@ -63,15 +69,26 @@ public class RtfParsedParagraphStateTests {
         RtfParagraph authoredEffective = authored.ResolveParagraphFormatting(authoredParagraph);
         Assert.Equal(360, authoredEffective.LineSpacingTwips);
         Assert.False(authoredEffective.LineSpacingMultiple);
+        Assert.Equal(120, authoredEffective.SpaceBeforeTwips);
+        Assert.Equal(240, authoredEffective.SpaceAfterTwips);
         Assert.Equal(4320, Assert.Single(authoredEffective.TabStops).PositionTwips);
         Assert.Equal(240, parsed.ResolveParagraphFormatting(parsedParagraph).LineSpacingTwips);
         Assert.Empty(parsed.ResolveParagraphFormatting(parsedParagraph).TabStops);
         authoredStyle.LineSpacingTwips = 720;
+        authoredStyle.SpaceAfterTwips = 480;
+        Assert.Equal(480, authored.ResolveParagraphFormatting(authoredParagraph).SpaceAfterTwips);
         Assert.Single(parsed.Styles, style => style.Id == 1).LineSpacingTwips = 720;
         Assert.Equal(720, authored.ResolveParagraphFormatting(authoredParagraph).LineSpacingTwips);
         Assert.Equal(240, parsed.ResolveParagraphFormatting(parsedParagraph).LineSpacingTwips);
         Assert.Null(authoredParagraph.LineSpacingTwips);
+        Assert.Null(authoredParagraph.SpaceBeforeTwips);
+        Assert.Null(authoredParagraph.SpaceAfterTwips);
         Assert.Null(parsedParagraph.LineSpacingTwips);
+        using WordDocument authoredWord = authored.ToWordDocument();
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(authoredWord.ToBytes()));
+        SpacingBetweenLines persisted = Assert.IsType<SpacingBetweenLines>(Assert.Single(reopened._document.Body!.Elements<Paragraph>()).ParagraphProperties?.SpacingBetweenLines);
+        Assert.Equal("120", persisted.Before?.Value);
+        Assert.Equal("480", persisted.After?.Value);
     }
 
     [Theory]
@@ -127,6 +144,8 @@ public class RtfParsedParagraphStateTests {
         RtfParagraph written = Assert.Single(materialized.Paragraphs);
         Assert.Equal(240, written.LineSpacingTwips);
         Assert.True(written.LineSpacingMultiple);
+        Assert.Equal(0, written.SpaceBeforeTwips);
+        Assert.Equal(0, written.SpaceAfterTwips);
         Assert.Empty(materialized.ResolveParagraphFormatting(written).TabStops);
         AssertParsedState(source);
 
@@ -135,9 +154,13 @@ public class RtfParsedParagraphStateTests {
             Assert.Null(raw.LineSpacingTwips);
             Assert.Null(raw.LineSpacingMultiple);
             Assert.Empty(raw.TabStops);
+            Assert.Null(raw.SpaceBeforeTwips);
+            Assert.Null(raw.SpaceAfterTwips);
             RtfParagraph effective = document.ResolveParagraphFormatting(raw);
             Assert.Equal(240, effective.LineSpacingTwips);
             Assert.True(effective.LineSpacingMultiple);
+            Assert.Equal(0, effective.SpaceBeforeTwips);
+            Assert.Equal(0, effective.SpaceAfterTwips);
             Assert.Empty(effective.TabStops);
         }
     }
@@ -146,6 +169,9 @@ public class RtfParsedParagraphStateTests {
     public void Parsed_Default_Normalization_Is_Not_Reported_As_Lost_Style_Inheritance() {
         RtfDocument parsed = RtfDocument.Read(@"{\rtf1\ansi\pard Plain\par}").Document;
         parsed.ToRtfResult().RequireNoLoss();
+        RtfDocument parsedStyleZero = RtfDocument.Read(@"{\rtf1\ansi{\stylesheet{\s0\sb0\sa0 Normal;}}\pard Plain\par}").Document;
+        Assert.Contains(parsedStyleZero.ToRtfResult().Report.Diagnostics,
+            diagnostic => diagnostic.Code == "RtfNormalizationFormattingInheritanceMaterialized");
         RtfDocument authored = RtfDocument.Create();
         authored.AddStyle(1, "Minimum").LineSpacingTwips = 360;
         authored.AddParagraph("Styled").SetStyle(1);
@@ -157,12 +183,16 @@ public class RtfParsedParagraphStateTests {
 
     [Fact]
     public void Parsed_Default_State_Reaches_Cell_And_Footnote_Paragraphs() {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi" + Styles +
+        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\ftnbj" + Styles +
             @"\pard Body{\footnote\pard\s1 Note\par}\par\trowd\cellx2400\pard\intbl\s1 Cell\cell\row}").Document;
         RtfParagraph cell = Assert.Single(Assert.Single(source.Blocks.OfType<RtfTable>()).Rows[0].Cells[0].Paragraphs);
         RtfParagraph note = Assert.Single(Assert.Single(source.Notes).Paragraphs);
         Assert.Equal(240, source.ResolveParagraphFormatting(cell).LineSpacingTwips);
         Assert.Equal(240, source.ResolveParagraphFormatting(note).LineSpacingTwips);
+        Assert.Equal(0, source.ResolveParagraphFormatting(cell).SpaceBeforeTwips);
+        Assert.Equal(0, source.ResolveParagraphFormatting(cell).SpaceAfterTwips);
+        Assert.Equal(0, source.ResolveParagraphFormatting(note).SpaceBeforeTwips);
+        Assert.Equal(0, source.ResolveParagraphFormatting(note).SpaceAfterTwips);
         Assert.Empty(source.ResolveParagraphFormatting(cell).TabStops);
         Assert.Empty(source.ResolveParagraphFormatting(note).TabStops);
         using WordDocument word = source.ToWordDocument();
@@ -177,10 +207,37 @@ public class RtfParsedParagraphStateTests {
         AssertWordTab(Assert.Single(persistedNote.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Clear);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Parsed_Automatic_Spacing_Remains_Explicit_While_Other_Default_Gaps_Are_Zero(bool beforeAuto, bool afterAuto) {
+        string controls = (beforeAuto ? @"\sbauto1" : @"\sbauto0") + (afterAuto ? @"\saauto1" : @"\saauto0");
+        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\pard" + controls + @" Plain\par}").Document;
+        RtfParagraph paragraph = Assert.Single(source.Paragraphs);
+        RtfParagraph effective = source.ResolveParagraphFormatting(paragraph);
+        Assert.Null(paragraph.SpaceBeforeTwips);
+        Assert.Null(paragraph.SpaceAfterTwips);
+        Assert.Equal(beforeAuto, effective.SpaceBeforeAuto);
+        Assert.Equal(afterAuto, effective.SpaceAfterAuto);
+        Assert.Equal(beforeAuto ? (int?)null : 0, effective.SpaceBeforeTwips);
+        Assert.Equal(afterAuto ? (int?)null : 0, effective.SpaceAfterTwips);
+        using WordDocument word = source.ToWordDocument();
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
+        SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(Assert.Single(reopened._document.Body!.Elements<Paragraph>()).ParagraphProperties?.SpacingBetweenLines);
+        Assert.Equal(beforeAuto, spacing.BeforeAutoSpacing?.Value);
+        Assert.Equal(afterAuto, spacing.AfterAutoSpacing?.Value);
+        Assert.Equal(beforeAuto ? null : "0", spacing.Before?.Value);
+        Assert.Equal(afterAuto ? null : "0", spacing.After?.Value);
+        Assert.Null(paragraph.SpaceBeforeTwips);
+        Assert.Null(paragraph.SpaceAfterTwips);
+    }
+
     private static void AssertWordSpacing(Paragraph paragraph, string line, LineSpacingRuleValues rule) {
         SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraph.ParagraphProperties?.SpacingBetweenLines);
         Assert.Equal(line, spacing.Line?.Value);
         Assert.Equal(rule, spacing.LineRule?.Value);
+        Assert.Equal("0", spacing.Before?.Value);
+        Assert.Equal("0", spacing.After?.Value);
     }
 
     private static void AssertWordTab(TabStop stop, int position, TabStopValues alignment) {

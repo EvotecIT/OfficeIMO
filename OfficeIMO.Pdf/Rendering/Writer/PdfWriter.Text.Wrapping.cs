@@ -298,15 +298,36 @@ internal static partial class PdfWriter {
             PrepareLineFrame(contentHeight, pendingLeadingAdvance + selectedWidth);
         }
 
+        void CommitPendingTab() {
+            RichSeg? tab = null;
+            if (pendingLeadingIsTab && pendingTabSourceStyle != null) {
+                tab = CreatePreservedTabFragment(pendingTabSourceStyle, pendingLeadingAdvance,
+                    pendingLeadingTabStop, pendingLeadingTabAlignment, pendingLeadingTabLeader);
+            } else if (pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab) {
+                // Keep a buffered tab's ink, while trailing flow spaces stay omitted.
+                PendingSpaceFragment fragment = pendingSpaceFragments[0];
+                tab = fragment.Style.WithLeadingAdvance(fragment.Advance);
+            } else if (pendingTabSourceStyle?.LeadingIsTab == true) {
+                tab = pendingTabSourceStyle;
+            }
+            if (tab == null) return;
+            lines[lines.Count - 1].Add(tab);
+            lineWidth += tab.LeadingAdvance;
+            ResetPendingLeading();
+        }
+
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
+            if (hadTab && pendingLeadingIsTab) CommitPendingTab();
             oversizedWordContinuation = false;
             pendingLeadingSeparator = true;
             pendingLeadingIsOrdinarySpace = !hadTab;
             if (!hadTab) {
-                if (preserveWhitespace && pendingLeadingIsTab && pendingTabSourceStyle != null)
-                    pendingSpaceFragments.Add(new PendingSpaceFragment(CreatePreservedTabFragment(
-                        pendingTabSourceStyle, pendingLeadingAdvance, pendingLeadingTabStop,
-                        pendingLeadingTabAlignment, pendingLeadingTabLeader)));
+                if (pendingLeadingIsTab && pendingTabSourceStyle != null) {
+                    RichSeg tab = CreatePreservedTabFragment(pendingTabSourceStyle, pendingLeadingAdvance,
+                        pendingLeadingTabStop, pendingLeadingTabAlignment, pendingLeadingTabLeader);
+                    if (preserveWhitespace) pendingSpaceFragments.Add(new PendingSpaceFragment(tab));
+                    else pendingTabSourceStyle = tab;
+                }
                 pendingLeadingAdvance = preserveWhitespace ? pendingLeadingAdvance + spaceW : spaceW;
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
                 if (preserveWhitespace && currentSpaceStyle != null) {
@@ -327,15 +348,9 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            // Commit the previous preserved separator before advancing to the next
-            // tab stop. Otherwise consecutive tabs all resolve from the same x.
+            // Commit ordinary preserved separators before selecting the next stop.
             if (preserveWhitespace && pendingLeadingAdvance > 0D && currentSpaceStyle != null) {
-                if (pendingLeadingIsTab) {
-                    lines[lines.Count - 1].Add(CreatePreservedTabFragment(currentSpaceStyle,
-                        pendingLeadingAdvance, pendingLeadingTabStop, pendingLeadingTabAlignment, pendingLeadingTabLeader));
-                } else {
-                    lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
-                }
+                lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
                 lineWidth += pendingLeadingAdvance;
             }
             pendingRelativeTabRun = currentTextRun?.RelativeTabStop.HasValue == true ? currentTextRun : null;
@@ -351,6 +366,7 @@ internal static partial class PdfWriter {
             pendingLeadingIsTab = true;
             pendingTabSourceStyle = currentSpaceStyle;
             pendingTabSourceLine = lines.Count - 1;
+            RegisterLineHeight(currentSpaceStyle!.FontSize);
         }
 
         void ResolveBufferedTab(double followingWidth, double spaceWidth, string followingText,
@@ -437,7 +453,11 @@ internal static partial class PdfWriter {
             double spaceW = text.IndexOfAny(SoftLineSplitChars) >= 0
                 ? MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
                 : 0D;
-            currentSpaceStyle = preserveWhitespace ? new RichSeg(string.Empty, bold, italic, underline, strike,
+            bool preserveSpaceStyle = preserveWhitespace;
+            for (int spaceIndex = 0; !preserveSpaceStyle && spaceIndex < text.Length; spaceIndex++) {
+                preserveSpaceStyle = text[spaceIndex] == '\t';
+            }
+            currentSpaceStyle = preserveSpaceStyle ? new RichSeg(string.Empty, bold, italic, underline, strike,
                 color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, 0,
                 leadingSpace: true, leadingAdvance: spaceW, leadingSpaceIsExpandable: !preformattedWhitespace,
                 namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle,
@@ -581,6 +601,7 @@ internal static partial class PdfWriter {
                 double wordFontSize = Math.Max(runFontSize, continuation.FontSize);
                 if (token.Length > 0) PrepareLineFrame(RunLineHeight(wordFontSize),
                     continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
+                if (hadNewline && token.Length == 0) CommitPendingTab();
                 if (whitespaceMode == PdfTextWhitespaceMode.Preserve && hadNewline && token.Length == 0 && !pendingLeadingIsTab)
                     ResetPendingLeading();
                 RichTabFieldMeasurement? tabField = token.Length > 0 &&
@@ -870,6 +891,7 @@ internal static partial class PdfWriter {
                 }
             }
         }
+        CommitPendingTab();
         if (invisibleFootnoteAnchors != null) {
             // Wrapping can discard a trailing space after it consumed the buffered
             // reference. Only surviving fragments establish actual line ownership.

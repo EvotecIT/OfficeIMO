@@ -44,6 +44,8 @@ public static partial class WordRtfConverterExtensions {
     private static void AddRtfToWordDiagnostics(RtfDocument document, RtfConversionReport report) {
         report.Merge(document.GetStyleConversionDiagnostics());
         AddRtfParagraphFrameDiagnostics(document, report);
+        AddRtfTableCellGapDiagnostics(document, report);
+        AddRtfNotePolicyDiagnostics(document, report);
         if (document.Styles.Count > 0) {
             report.Add(
                 RtfConversionSeverity.Information,
@@ -246,6 +248,7 @@ public static partial class WordRtfConverterExtensions {
             .Concat(EnumerateNoteElements(document, footnoteIds, endnoteIds))
             .Concat(EnumerateCommentElements(document, commentIds))
             .ToList();
+        AddWordTableCellSpacingDiagnostics(elements, report);
         int equationCount = elements
             .Count(element => element is WordEquation);
         if (equationCount > 0) {

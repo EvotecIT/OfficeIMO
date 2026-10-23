@@ -99,7 +99,7 @@ Each producer entry identifies whether its bytes are redistributed, verified ext
 
 ## Paragraph layout boundaries
 
-The core retains the signed `\sl` value and `\slmult` mode. Word conversion and direct PDF export distinguish positive minimum heights, negative exact advances, and multiples in 240ths of a line. Parsed paragraphs use their active stream spacing and tab-stop state, including implicit single spacing; a style reference does not reintroduce inactive spacing or tab stops. API-authored paragraphs inherit omitted spacing and an empty direct tab-stop list from their paragraph style. Resolving formatting leaves the source model unchanged.
+The core retains the signed `\sl` value and `\slmult` mode. Word conversion and direct PDF export distinguish positive minimum heights, negative exact advances, and multiples in 240ths of a line. Parsed paragraphs use their active stream spacing and tab-stop state, including implicit single spacing; a style reference does not reintroduce inactive spacing or tab stops. API-authored paragraphs inherit omitted spacing and an empty direct tab-stop list from their paragraph style. Resolving formatting leaves the source model unchanged. After source-style resolution, parsed non-auto before/after gaps default to zero; Word conversion writes those zeros explicitly rather than inheriting destination paragraph gaps.
 
 The Word bridge applies its common paragraph-formatting path to body paragraphs, table cells, notes, and running stories. Direct PDF export retains supported alignment, indentation, paragraph gaps, line spacing, and tabs separately for body, cell, and appended note paragraphs. Its notes remain appended semantic content with one label per note, rather than native page-footnote placement or endnote continuation. Broader native pagination and typography remain outside this profile.
 
@@ -107,12 +107,22 @@ RTF tab lists replace inherited lists. The Word bridge clears unused tab positio
 
 For non-exact PDF line spacing, selected font programs and resolved run sizes supply usable line metrics where available; otherwise, the shared PDF spacing policy remains in effect. Font substitution can change line heights and page breaks. Exact spacing retains its requested advance.
 
+Direct RTF PDF export defaults to preserving source spaces unless the caller explicitly selects a whitespace mode. Default table imports preserve a borderless, zero-padding source instead of adding Word/PDF convenience styling; explicit source cell borders and padding retain their supported mapping.
+
+The Word bridge maps an explicit half-gap shared by every row to direct table cell margins for values from 0 through 32,767 twips. The stored Word table indent is the sum of the uniform source row indent and the half-gap when that sum fits the Word integer range. Reverse conversion recovers this mapping from symmetric direct margins in twips and a representable indent. Other direct margins remain row padding. Direct PDF export uses nonnegative row half-gaps as fallback horizontal padding unless a caller table style is selected. Explicit cell padding overrides row padding and the gap. These contracts do not establish native layout for arbitrary tables.
+
+Word-to-RTF retains supported mixed-run text, tabs, breaks, images and every note reference in source order. The common Word online-table normalizer preserves explicit nested host-cell margins and direct top-border declarations, including zero margins and border suppression.
+
+The raw `Settings.NoteMode` retains a declared `\fet` value separately from note kind and placement. Parsed absent/legacy mode projects ordinary notes with absent or section-end placement to section-end Word endnotes. Fresh API-authored documents default to mixed-note mode; modern ordinary notes and explicit `\ftnalt` endnotes retain their separate kinds. Direct PDF notes remain appended semantic content.
+
 | Conversion | Unsupported layout and fallback |
 | --- | --- |
 | RTF to Word | Paragraph frames become ordinary flow with `RtfWordParagraphFramesFlattened`. |
 | RTF to PDF | Paragraph frames become ordinary flow with `ParagraphFrameFlattened` for projected paragraphs. |
 | Word to RTF | Paragraph frames become ordinary flow with `WordRtfParagraphFramesFlattened`. |
 | Word to RTF | Tab-stop clears are omitted with `WordRtfTabClearsOmitted`; active tab stops map separately. |
+| RTF to Word | Missing, mixed, negative or unrepresentable row half-gaps use zero table margins with `RtfWordTableCellGapFlattened`; explicit row/cell padding still applies. |
+| Word to RTF | Nonzero spacing between separated cells is omitted with `WordRtfTableCellSpacingOmitted`; it is not an RTF half-gap. |
 
 These diagnostics describe conversion losses. Strict callers can reject them with `RequireNoLoss()`. When composing a Word bridge with PDF conversion, carry the bridge report with `WithSourceConversionReport(...)` so saving the PDF retains those source losses.
 

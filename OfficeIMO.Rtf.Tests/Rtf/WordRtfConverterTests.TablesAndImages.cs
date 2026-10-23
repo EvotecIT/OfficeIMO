@@ -18,8 +18,11 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Before");
         WordTable table = word.AddTable(2, 2);
         table.CheckTableProperties();
-        table._tableProperties!.TableCellSpacing = new TableCellSpacing { Width = "300", Type = TableWidthUnitValues.Dxa };
-        table._tableProperties.TableIndentation = new TableIndentation { Width = 720, Type = TableWidthUnitValues.Dxa };
+        table._tableProperties!.TableCellMarginDefault = new TableCellMarginDefault {
+            TableCellLeftMargin = new TableCellLeftMargin { Width = 300, Type = TableWidthValues.Dxa },
+            TableCellRightMargin = new TableCellRightMargin { Width = 300, Type = TableWidthValues.Dxa }
+        };
+        table._tableProperties.TableIndentation = new TableIndentation { Width = 1020, Type = TableWidthUnitValues.Dxa };
         table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
         table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
@@ -62,8 +65,10 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\cellx4800", rtf, StringComparison.Ordinal);
 
         WordTable roundTripTable = Assert.Single(roundTrip.Tables);
-        Assert.Equal("300", roundTripTable._tableProperties?.TableCellSpacing?.Width?.Value);
-        Assert.Equal(720, roundTripTable._tableProperties?.TableIndentation?.Width?.Value);
+        Assert.Null(roundTripTable._tableProperties?.TableCellSpacing);
+        Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
+        Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
+        Assert.Equal(1020, roundTripTable._tableProperties?.TableIndentation?.Width?.Value);
         Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[0].WidthType);
         Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width);
         Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[1].WidthType);
@@ -72,6 +77,24 @@ public partial class WordRtfConverterTests {
         Assert.Equal("B1", GetCellText(roundTripTable, 0, 1));
         Assert.Equal("A2", GetCellText(roundTripTable, 1, 0));
         Assert.Equal("B2", GetCellText(roundTripTable, 1, 1));
+    }
+
+    [Fact]
+    public void Word_Rtf_Reports_CellSpacing_Without_Reinterpreting_As_Gap() {
+        using WordDocument word = WordDocument.Create();
+        WordTable table = word.AddTable(1, 1);
+        table.CheckTableProperties();
+        table._tableProperties!.TableCellSpacing = new TableCellSpacing { Width = "300", Type = TableWidthUnitValues.Dxa };
+        table.Rows[0].Cells[0].AddParagraph("SPACED", removeExistingParagraphs: true);
+
+        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+
+        RtfTable converted = Assert.Single(result.Value.Blocks.OfType<RtfTable>());
+        Assert.Null(Assert.Single(converted.Rows).CellGapTwips);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "WordRtfTableCellSpacingOmitted");
+        Assert.True(result.Report.HasLoss);
+        Assert.Equal("SPACED", converted.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+        Assert.Equal("300", table._tableProperties.TableCellSpacing.Width?.Value);
     }
 
     [Fact]
@@ -97,8 +120,10 @@ public partial class WordRtfConverterTests {
         RtfDocument roundTrip = word.ToRtfDocument();
 
         WordTable wordTable = Assert.Single(word.Tables);
-        Assert.Equal("300", wordTable._tableProperties?.TableCellSpacing?.Width?.Value);
-        Assert.Equal(720, wordTable._tableProperties?.TableIndentation?.Width?.Value);
+        Assert.Null(wordTable._tableProperties?.TableCellSpacing);
+        Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
+        Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
+        Assert.Equal(1020, wordTable._tableProperties?.TableIndentation?.Width?.Value);
         Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[0].WidthType);
         Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width);
         Assert.False(wordTable.Rows[0].Cells[0].WrapText);

@@ -54,7 +54,9 @@ public sealed partial class RtfDocument {
         if (result.UseParsedParagraphDefaults) {
             // A style reference in an RTF stream does not replace the active
             // paragraph's spacing state. Keep the source's nullable controls
-            // intact and express its implicit single spacing only in this view.
+            // intact and express implicit gaps and single spacing only in this view.
+            if (result.SpaceBeforeAuto != true) result.SpaceBeforeTwips ??= 0;
+            if (result.SpaceAfterAuto != true) result.SpaceAfterTwips ??= 0;
             if (!result.LineSpacingTwips.HasValue) {
                 result.LineSpacingTwips = 240;
                 result.LineSpacingMultiple = true;
@@ -64,6 +66,10 @@ public sealed partial class RtfDocument {
         }
         return result;
     }
+
+    internal bool HasParagraphStyleSpacing(RtfParagraph paragraph, bool before) =>
+        GetFormattingStyleChain(paragraph.StyleId ?? 0, RtfStyleKind.Paragraph)
+            .Any(style => before ? style.SpaceBeforeTwips.HasValue : style.SpaceAfterTwips.HasValue);
 
     private RtfParagraph ApplyParagraphListFormatting(RtfParagraph paragraph) {
         if (paragraph.ListId == 0) {
