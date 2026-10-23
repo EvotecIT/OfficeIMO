@@ -89,7 +89,9 @@ public sealed class RtfWordLegacyNumberingTests {
     public void Header_And_Table_Paragraphs_Use_The_Same_Projection_With_Independent_Story_Starts() {
         RtfDocument source = RtfDocument.Create();
         Legacy(source.AddParagraph("Body"), 3);
-        Legacy(source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell"), 1);
+        RtfTable table = source.AddTable(1, 1);
+        table.Rows[0].CellGapTwips = 0;
+        Legacy(table.Rows[0].Cells[0].AddParagraph("Cell"), 1);
         Legacy(source.AddHeader().AddParagraph("Header"), 1);
         string before = Native(source);
 
