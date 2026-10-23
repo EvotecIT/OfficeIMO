@@ -4,6 +4,7 @@ import { writePdfDocument, writePdfDocumentTo, pdfGroupedTable, createGroupedRep
 import { PdfObjects } from "../dist/pdf/objects.js";
 import { pdfXrefChunks } from "../dist/pdf/xref.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
+import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
 
 function report(compression, { sink, signal, limits, returned } = {}) {
   const columns = [{ header: "ID", key: "id" }, { header: "Site", key: "site" }, { header: "Amount", key: "amount", type: "number" }];
@@ -33,14 +34,16 @@ function semanticGraph(pdf) {
     const identifier = /\/ID \(([^)]+)\)/.exec(object.body)?.[1]; return identifier ? [[identifier, identities.get(id)]] : [];
   }));
   return nodes.map(([, object]) => {
-    const body = object.body, attributes = pdfStructureAttributes(pdf, body), kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(body)[1];
+    const body = object.body, attributes = pdfStructureAttributes(pdf, body), { entries } = pdfStructureChildren(body);
     const headerNames = [...(/\/Headers \[([^\]]*)\]/.exec(attributes)?.[1] ?? "").matchAll(/\(([^)]+)\)/g)].map(match => {
       assert.ok(headers.has(match[1])); return headers.get(match[1]);
     });
     return { role: /\/S \/(\w+)/.exec(body)[1], parent: identities.get(Number(/\/P (\d+) 0 R/.exec(body)[1])) ?? "root",
-      children: [...kids.replace(/<<[\s\S]*?>>/g, "").matchAll(/(\d+) 0 R/g)].map(match => identities.get(Number(match[1]))),
-      marks: [...kids.matchAll(/\/MCR \/Pg (\d+) 0 R \/MCID (\d+)/g)].map(match => [pages.get(Number(match[1])), Number(match[2])]),
-      annotations: [...kids.matchAll(/\/OBJR \/Obj (\d+) 0 R \/Pg (\d+) 0 R/g)].map(match => [annotations.get(Number(match[1])), pages.get(Number(match[2]))]),
+      children: entries.filter(child => child.kind === "element").map(child => { assert.ok(identities.has(child.id)); return identities.get(child.id); }),
+      marks: entries.filter(child => child.kind === "mark").map(child => { assert.ok(pages.has(child.pageId)); return [pages.get(child.pageId), child.mcid]; }),
+      annotations: entries.filter(child => child.kind === "annotation").map(child => {
+        assert.ok(annotations.has(child.id) && pages.has(child.pageId)); return [annotations.get(child.id), pages.get(child.pageId)];
+      }),
       scope: /\/Scope \/(\w+)/.exec(attributes)?.[1], colSpan: /\/ColSpan (\d+)/.exec(attributes)?.[1], rowSpan: /\/RowSpan (\d+)/.exec(attributes)?.[1], headers: headerNames };
   });
 }

@@ -9245,6 +9245,10 @@ const { unicodeHex } = _m59;
 
 const { PdfParentTree } = _m80;
 
+/** Same-page marked content uses integer K; cross-page MCR and annotation OBJR stay explicit. */
+function structureChild(child) {
+    return typeof child === "number" ? (child < 0 ? -child - 1 + " " : child + " 0 R ") : child + " ";
+}
 /** A sorted name tree retains only a small open leaf and branch at each level. */
 class PdfStructureIds {
     objects;
@@ -9416,7 +9420,9 @@ class PdfStructure {
             throw new Error("Marked content requires an open logical owner.");
         const mcid = this.pageParents.length;
         this.pageParents.push(elementId);
-        element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
+        element.markedPage ??= this.pageId;
+        element.children.push(element.markedPage === this.pageId ? -(mcid + 1) :
+            "<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
         return "/" + element.role + " << /MCID " + mcid + (actualText === undefined ? "" : " /ActualText <FEFF" + unicodeHex(actualText) + ">") + " >> BDC\n";
     }
     get pageDictionary() { return " /StructParents " + this.pageKey + " /Tabs /S"; }
@@ -9440,16 +9446,17 @@ class PdfStructure {
         if (!element)
             return;
         for (const child of element.children)
-            if (typeof child === "number" && this.elements.has(child))
+            if (typeof child === "number" && child > 0 && this.elements.has(child))
                 await this.complete(child);
         checkAbort(this.settings.options.signal);
         const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+            (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
             (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
         const remaining = 32768 - prefix.length - element.attributes.length - 4;
         let children = "", small = remaining >= 0;
         if (small)
             for (const child of element.children) {
-                const token = typeof child === "number" ? child + " 0 R " : child + " ";
+                const token = structureChild(child);
                 if (children.length + token.length > remaining) {
                     small = false;
                     break;
@@ -9460,7 +9467,7 @@ class PdfStructure {
         if (small)
             await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
         else
-            await this.objects.object(id, this.body(element));
+            await this.objects.object(id, this.body(element, prefix));
         if (element.linkIdentities)
             for (const identity of element.linkIdentities) {
                 const parents = this.links.get(identity);
@@ -9470,11 +9477,10 @@ class PdfStructure {
             }
         this.elements.delete(id);
     }
-    *body(element) {
-        yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
-            (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
+    *body(element, prefix) {
+        yield prefix;
         for (const child of element.children)
-            yield typeof child === "number" ? child + " 0 R " : child + " ";
+            yield structureChild(child);
         yield "]" + element.attributes + " >>";
     }
     async completeRow(cells) {

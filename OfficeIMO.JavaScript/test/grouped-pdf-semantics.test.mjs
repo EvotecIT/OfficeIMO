@@ -4,6 +4,7 @@ import { createGroupedReport } from "../dist/core/index.js";
 import { writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable } from "../dist/pdf/grouped.js";
 import { writePdfDocument } from "../dist/pdf/index.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
+import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Service", key: "name" }, { header: "Amount", key: "amount", type: "number", groups: ["Metrics"] }];
 const levels = ["region", "site", "environment", "team"];
@@ -13,7 +14,6 @@ const options = { tagged: { language: "en" }, pageSize: { width: 320, height: 26
   margins: 20, pageNumbers: false, compression: false, fontSize: 9 };
 const source = (rows, selectedColumns = columns) => createGroupedReport(rows, { columns: selectedColumns, groupBy: levels.map(key => ({ key, value: row => row[key] })),
   totals: { amount: "sum" } });
-const references = body => [...body.matchAll(/(\d+) 0 R/g)].map(match => Number(match[1]));
 
 test("tagged group context charges only painted labels and the owned bookmark", async () => {
   const report = () => createGroupedReport([{ site: "A", name: "ROW" }], {
@@ -35,13 +35,18 @@ test("tagged group context charges only painted labels and the owned bookmark", 
  * These ASCII fixtures use the standard font; native reader/AT acceptance is a separate gate. */
 async function semanticPdf(blob) {
   const pdf = await inspectPdf(blob), marked = new Map();
+  const pages = new Set(pdf.pages.map(page => page.id));
   for (const page of pdf.pages) for (const match of page.content.matchAll(/\/(\w+) << \/MCID (\d+)(?: \/ActualText <[^>]*>)? >> BDC\n([\s\S]*?)EMC/g))
     marked.set(`${page.id}:${match[2]}`, [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(part => Buffer.from(part[1], "hex").toString("latin1")).join(""));
   const nodes = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => {
-    const kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1];
+    const { entries } = pdfStructureChildren(object.body);
     return [id, { id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
-      children: references(kids.replace(/<<[\s\S]*?>>/g, "")), text: [...kids.matchAll(/\/MCR \/Pg (\d+) 0 R \/MCID (\d+)/g)]
-        .map(part => { const value = marked.get(`${part[1]}:${part[2]}`); assert.notEqual(value, undefined); return value; }).join("") }];
+      children: entries.filter(entry => entry.kind === "element").map(entry => entry.id),
+      text: entries.filter(entry => entry.kind === "mark").map(entry => {
+        assert.ok(pages.has(entry.pageId), "Every structure mark resolves to a physical page");
+        const value = marked.get(`${entry.pageId}:${entry.mcid}`);
+        assert.notEqual(value, undefined, "Every structure mark resolves to marked page content"); return value;
+      }).join("") }];
   }));
   for (const node of nodes.values()) for (const child of node.children) assert.equal(nodes.get(child)?.parent, node.id);
   return { ...pdf, nodes, find: (role, text) => [...nodes.values()].filter(node => node.role === role && node.text === text) };

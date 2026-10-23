@@ -316,3 +316,25 @@ remain 74.63%/76.21% lower. All samples and warmups are retained.
 The narrow target requires both mean and median, so it remains unmet in this
 cohort. The candidate is not repeated to seek a different outcome, and the
 measured differences do not establish an isolated effect for the optional list.
+
+
+## Single-run font selection
+
+The short single-run text path selects its font once and defers the temporary
+face array until general layout needs it. Multi-run selection, fallback
+selection order and text geometry retain their existing behavior. All 505
+ordinary and 187 focused PDF tests pass; twelve layout profiles and six
+semantic fixtures retain identical PDF bytes and independent readback.
+
+Candidate `6d58b2763f43b636db327e4aee3e770563bca133` passed all sixteen
+independent output validations in one fixed normal-host cohort. Narrow mean
+peak RSS is 1.31% above M8, while its median is 0.20% lower. Wide mean/median
+peak RSS is 20.15%/11.22% lower. Narrow engine-time mean/median is
+22.68%/26.99% lower; wide mean/median is 25.80%/24.42% lower. PDF sizes remain
+74.63%/76.21% lower. Sampled external memory is 45.12%/46.05% higher for
+narrow and 34.14%/48.94% higher for wide. Every sample is retained.
+
+Both narrow mean and median must meet the target, so this cohort remains
+unmet. It is not repeated for a more favorable outcome. These measurements
+do not isolate an RSS effect for the face array or establish a universal
+speedup, no-regression or constant-memory claim.

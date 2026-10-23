@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
+import { pdfStructureChildren } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Amount", key: "amount" }];
 const tagged = { language: "en-US" };
@@ -21,7 +22,7 @@ async function inspectStructure(blob) {
   assert.match(root.body, /\/Type \/StructTreeRoot /);
   const elements = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => [id, {
     id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
-    kids: /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1]
+    ...pdfStructureChildren(object.body)
   }]));
   const document = elements.get(refs(/\/K \[([^\]]*)\]/.exec(root.body)[1])[0]);
   assert.equal(document.role, "Document"); assert.equal(document.parent, rootId);
@@ -45,7 +46,7 @@ async function inspectStructure(blob) {
   assert.deepEqual(keys, [...keys].sort((left, right) => left - right));
   assert.equal(Number(/\/ParentTreeNextKey (\d+)/.exec(root.body)[1]), Math.max(...keys) + 1);
   const marked = new Map();
-  const associatedAnnotations = new Set();
+  const associatedAnnotations = new Map();
   for (const page of pdf.pages) {
     assert.match(page.body, /\/Tabs \/S/);
     const key = Number(/\/StructParents (\d+)/.exec(page.body)[1]);
@@ -55,8 +56,9 @@ async function inspectStructure(blob) {
     for (const [index, match] of content.entries()) {
       const mcid = Number(match[2]); assert.equal(mcid, index);
       const owner = elements.get(parents[mcid]); assert.equal(owner.role, match[1]);
-      assert.ok(owner.kids.includes("<< /Type /MCR /Pg " + page.id + " 0 R /MCID " + mcid + " >>"));
-      marked.set(page.id + ":" + mcid, { owner: owner.id, text: [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(m => Buffer.from(m[1], "hex").toString("latin1")).join("") });
+      assert.equal(owner.entries.filter(child => child.kind === "mark" && child.pageId === page.id && child.mcid === mcid).length, 1);
+      marked.set(page.id + ":" + mcid, { owner: owner.id, pageId: page.id, mcid,
+        text: [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(m => Buffer.from(m[1], "hex").toString("latin1")).join("") });
     }
     assert.equal((page.content.match(/\bBDC\b/g) ?? []).length, (page.content.match(/\bEMC\b/g) ?? []).length);
     for (const id of refs(/\/Annots \[([^\]]*)\]/.exec(page.body)?.[1] ?? "")) {
@@ -64,23 +66,30 @@ async function inspectStructure(blob) {
       const owner = elements.get(pageEntries.get(key));
       assert.equal(owner?.role, "Link", "Every tagged annotation must point to its logical Link");
       assert.equal(ref(annotation.body, "P"), page.id);
-      assert.ok(owner.kids.includes("<< /Type /OBJR /Obj " + id + " 0 R /Pg " + page.id + " 0 R >>"));
+      assert.equal(owner.entries.filter(child => child.kind === "annotation" && child.id === id && child.pageId === page.id).length, 1);
       assert.ok(["P", "H1", "H2", "H3", "H4", "H5", "H6", "TD", "TH", "Caption"].includes(elements.get(owner.parent)?.role));
-      assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.add(id);
+      assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.set(id, { owner: owner.id, pageId: page.id });
     }
   }
   let contentCount = 0;
   for (const element of elements.values()) {
-    const children = element.kids.replace(/<<[\s\S]*?>>/g, "");
-    for (const child of refs(children)) assert.equal(elements.get(child).parent, element.id);
-    element.content = [...element.kids.matchAll(/<< \/Type \/MCR \/Pg (\d+) 0 R \/MCID (\d+) >>/g)].map(match => {
-      const entry = marked.get(match[1] + ":" + match[2]); assert.equal(entry.owner, element.id); contentCount++; return entry;
+    for (const child of element.entries.filter(child => child.kind === "element")) assert.equal(elements.get(child.id)?.parent, element.id);
+    element.content = element.entries.filter(child => child.kind === "mark").map(child => {
+      const entry = marked.get(child.pageId + ":" + child.mcid); assert.ok(entry, "Every logical mark must resolve to painted content");
+      assert.equal(entry.owner, element.id); contentCount++; return entry;
     });
   }
   assert.equal(contentCount, marked.size);
-  for (const element of elements.values()) for (const match of element.kids.matchAll(/<< \/Type \/OBJR \/Obj (\d+) 0 R \/Pg (\d+) 0 R >>/g))
-    assert.ok(associatedAnnotations.has(Number(match[1])), "Every OBJR must resolve to one annotated page");
+  for (const element of elements.values()) for (const child of element.entries.filter(child => child.kind === "annotation"))
+    assert.deepEqual(associatedAnnotations.get(child.id), { owner: element.id, pageId: child.pageId }, "Every OBJR must resolve to its annotated page and logical owner");
   return { ...pdf, elements, document, marked };
+}
+
+function assertMixedPageContent(element) {
+  const marks = element.entries.filter(child => child.kind === "mark");
+  assert.ok(marks.some(child => child.form === "integer" && child.pageId === element.defaultPage), "The first page uses its logical owner's default page");
+  assert.ok(marks.some(child => child.form === "mcr" && child.pageId !== element.defaultPage), "Later fragments retain explicit page references");
+  assert.ok(marks.every(child => child.form === (child.pageId === element.defaultPage ? "integer" : "mcr")));
 }
 
 test("tagged composed reports retain logical paragraphs and table cells across page fragments", async () => {
@@ -101,6 +110,7 @@ test("tagged composed reports retain logical paragraphs and table cells across p
   const ordered = refs(pdf.document.kids).map(id => pdf.elements.get(id));
   assert.deepEqual(ordered.map(element => element.role), ["H1", "P", "Table", "Figure", "Figure", "H2"]);
   const paragraph = ordered[1]; assert.equal(paragraph.content.length, 22); assert.equal(paragraph.content.map(part => part.text).join("|"), Array.from({ length: 22 }, (_, i) => "Paragraph" + i).join("|"));
+  assertMixedPageContent(paragraph);
   const table = ordered[2], rows = refs(table.kids).map(id => pdf.elements.get(id));
   assert.equal(rows.length, 4, "One header, two data rows and one ordinary footer; no repeated semantic headers");
   assert.ok(rows.every(row => row.role === "TR"));
@@ -108,6 +118,7 @@ test("tagged composed reports retain logical paragraphs and table cells across p
   assert.ok(header.every(cell => cell.role === "TH" && cell.attributes === "<< /O /Table /Scope /Column >>"));
   const cells = refs(rows[1].kids).map(id => pdf.elements.get(id));
   assert.equal(cells[0].role, "TD"); assert.equal(cells[0].content.length, 45);
+  assertMixedPageContent(cells[0]);
   assert.equal(cells[0].content.map(part => part.text).join("|"), long.replaceAll("\n", "|"));
   assert.equal(cells[1].content.map(part => part.text).join(""), "Right");
   assert.match(ordered[3].body, /\/Alt <feff0042006c007500650020007300710075006100720065>/);
@@ -196,13 +207,34 @@ test("tagged paragraph and table links associate text and each cross-page native
   assert.equal(links.length, 5, "Each authored paragraph/cell run keeps one logical link identity");
   const paragraphLink = links.find(element => pdf.elements.get(element.parent).role === "P");
   assert.equal(paragraphLink.content.map(part => part.text).join(""), long);
-  assert.ok(new Set([...paragraphLink.kids.matchAll(/\/Pg (\d+) 0 R/g)].map(match => match[1])).size > 1);
+  assert.ok(new Set(paragraphLink.content.map(part => part.pageId)).size > 1);
+  assertMixedPageContent(paragraphLink);
   const cellLink = links.find(element => element.content.map(part => part.text).join("") === cellText.replaceAll("\n", ""));
   assert.ok(cellLink && cellLink.content.length > 20);
+  assertMixedPageContent(cellLink);
   assert.ok([...pdf.objects.values()].filter(object => /\/Subtype \/Link/.test(object.body)).length > links.length);
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: " ", link: { target: "https://example.com" } }] }], { tagged }), /nonempty displayed text/);
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: "Link", link: { target: "https://example.com" } }] }],
     { tagged, limits: { maxHyperlinks: 0 }, pageNumbers: false }), /maxHyperlinks/);
+});
+
+test("large linked logical owners stream mixed page references without losing text or annotation owners", async () => {
+  const lines = Array.from({ length: 1200 }, (_, index) => "Stream-" + String(index).padStart(4, "0"));
+  const pdf = await inspectStructure(await writePdfDocument([{ kind: "paragraph", text: [{ text: lines.join("\n"),
+    link: { target: "https://example.org/streamed-report" } }] }], {
+    tagged, pageSize: { width: 220, height: 180 }, margins: 24, pageNumbers: false, compression: true
+  }));
+  const link = [...pdf.elements.values()].find(element => element.role === "Link");
+  assert.ok(link, "The linked paragraph retains a logical Link owner");
+  assert.ok(Buffer.byteLength(link.body, "utf8") > 32768, "The logical owner must exceed the compact-object ceiling");
+  assert.equal(typeof pdf.objects.get(link.id).bodyOffset, "number", "The large owner is emitted through the ordinary streamed object path");
+  assert.equal(pdf.elements.get(link.parent).role, "P");
+  assert.deepEqual(link.content.map(part => part.text), lines);
+  assert.equal(pdf.marked.size, lines.length, "Every painted fragment retains one logical ParentTree owner");
+  assertMixedPageContent(link);
+  const annotations = [...pdf.objects.values()].filter(object => /\/Subtype \/Link\b/.test(object.body));
+  assert.equal(link.entries.filter(child => child.kind === "annotation").length, annotations.length);
+  assert.ok(annotations.length > 1, "The streamed owner retains clickable annotations across pages");
 });
 
 test("tagged structure and marked-content budgets fail visibly and release active sources", async () => {
