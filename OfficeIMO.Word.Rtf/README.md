@@ -45,6 +45,10 @@ Each result contains the normalized RTF document, the workflow-specific result, 
 
 Common paragraphs, rich runs, tables, nested tables, images, notes, headers/footers, sections, styles, numbering, links, bookmarks, revisions, and comments map through the bridge. Unsupported Word elements and unsupported RTF objects/shapes are reported as omissions. Use `RequireNoLoss()` when those omissions must stop the workflow.
 
+Paragraph mapping retains minimum, exact, and multiple line spacing, including the sign and units described in the [RTF paragraph contract](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). The same effective-formatting path applies supported spacing, indentation, alignment, and tab stops to body paragraphs, table cells, notes, and running stories. Parsed RTF retains its active spacing and tab state; API-authored RTF paragraphs can inherit those properties from their styles.
+
+Paragraph frames become ordinary text flow rather than positioned frames. RTF-to-Word reports `RtfWordParagraphFramesFlattened`; Word-to-RTF reports `WordRtfParagraphFramesFlattened`. Word tab-stop clearing instructions (`w:tab` with `w:val="clear"`) are omitted with `WordRtfTabClearsOmitted`; supported active tab stops are mapped separately. These are conversion losses, so `RequireNoLoss()` rejects them.
+
 Legacy RTF paragraph numbering maps to editable Word lists for single-level decimal numbers and text bullets. Authored starts, cached numbering jumps, marker prefixes and suffixes, and basic marker formatting are retained. Body and table paragraphs share their numbering sequence; each header, footer, and note starts an independent sequence. Conversion leaves the source RTF model unchanged.
 
 Legacy multilevel and continuation forms, special table numbering, spacing controls, and other numeric formats use cached or resolved marker text and report `RtfWordLegacyNumberingFlattened`. `RequireNoLoss()` rejects these conversions because editable numbering or marker formatting is not fully retained.

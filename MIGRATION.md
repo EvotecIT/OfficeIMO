@@ -1165,6 +1165,14 @@ When `OfficeWorkflowRequest` omits `ConversionRouteId`, converting a `.txt` sour
 
 Automatic literal-text decoding recognizes Unicode BOMs and otherwise requires valid UTF-8. Set `ConversionOptions.PlainText.EncodingName` when a source uses another known encoding; invalid byte sequences fail conversion instead of becoming replacement characters.
 
+## RTF paragraph spacing and layout diagnostics
+
+RTF conversion preserves the distinction between minimum, exact, and multiple line spacing. Positive non-multiple `LineSpacingTwips` values map to minimum heights; negative values map to exact positive Word advances; multiple values remain in 240ths of a line. Remove compensating sign or line-rule overrides added for the previous conversion behavior and recheck stored PDF baselines, including formatted table-cell and note paragraphs.
+
+Parsed RTF uses the stream's active line-spacing and tab-stop state instead of filling those properties from a referenced style. Omitted line spacing resolves to single spacing. API-authored paragraphs retain style inheritance for omitted spacing and an empty direct tab-stop list. Applications editing imported paragraphs should set the desired spacing or stops explicitly when replacing that active state.
+
+Strict conversions also reject unsupported paragraph frames and Word tab-stop clears through explicit loss diagnostics. Review `RtfWordParagraphFramesFlattened`, `WordRtfParagraphFramesFlattened`, `WordRtfTabClearsOmitted`, and direct PDF `ParagraphFrameFlattened` before accepting ordinary-flow or omitted-control fallbacks. Carry a Word bridge's report into a composed PDF conversion with `WithSourceConversionReport(...)`.
+
 ## RTF HTML round-trip output
 
 Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.

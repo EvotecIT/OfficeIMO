@@ -97,6 +97,23 @@ Each producer entry identifies whether its bytes are redistributed, verified ext
 | Section layout | Broad | Metadata plus CSS subset | Flattened + diagnostic | Page-starting geometry and equal-width columns; named limits | Extractive |
 | Objects/shapes | Omitted + report where unsupported | Metadata/text subset | Omitted + diagnostic | Text/image subset + report | Text/placeholder subset |
 
+## Paragraph layout boundaries
+
+The core retains the signed `\sl` value and `\slmult` mode. Word conversion and direct PDF export distinguish positive minimum heights, negative exact advances, and multiples in 240ths of a line. Parsed paragraphs use their active stream spacing and tab-stop state, including implicit single spacing; a style reference does not reintroduce inactive spacing or tab stops. API-authored paragraphs inherit omitted spacing and an empty direct tab-stop list from their paragraph style. Resolving formatting leaves the source model unchanged.
+
+The Word bridge applies its common paragraph-formatting path to body paragraphs, table cells, notes, and running stories. Direct PDF export retains supported alignment, indentation, paragraph gaps, line spacing, and tabs separately for body, cell, and appended note paragraphs. Its notes remain appended semantic content with one label per note, rather than native page-footnote placement or endnote continuation. Broader native pagination and typography remain outside this profile.
+
+For non-exact PDF line spacing, selected font programs and resolved run sizes supply usable line metrics where available; otherwise, the shared PDF spacing policy remains in effect. Font substitution can change line heights and page breaks. Exact spacing retains its requested advance.
+
+| Conversion | Unsupported layout and fallback |
+| --- | --- |
+| RTF to Word | Paragraph frames become ordinary flow with `RtfWordParagraphFramesFlattened`. |
+| RTF to PDF | Paragraph frames become ordinary flow with `ParagraphFrameFlattened` for projected paragraphs. |
+| Word to RTF | Paragraph frames become ordinary flow with `WordRtfParagraphFramesFlattened`. |
+| Word to RTF | Tab-stop clears are omitted with `WordRtfTabClearsOmitted`; active tab stops map separately. |
+
+These diagnostics describe conversion losses. Strict callers can reject them with `RequireNoLoss()`. When composing a Word bridge with PDF conversion, carry the bridge report with `WithSourceConversionReport(...)` so saving the PDF retains those source losses.
+
 ## Safe and strict recipe
 
 ```csharp

@@ -58,6 +58,21 @@ RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted a
 
 RTF editing restrictions are exposed through `RtfDocumentSettings.HasEditingProtection`. `IsContentEncrypted` remains `false`: form, revision, annotation, and read-only protection flags restrict editing behavior but do not encrypt RTF content.
 
+## Paragraph spacing and inheritance
+
+`RtfParagraph.LineSpacingTwips` stores the raw `\sl` value. Its units depend on `LineSpacingMultiple`, which represents `\slmult`:
+
+| Value | Mode | Meaning |
+| --- | --- | --- |
+| Positive, with `LineSpacingMultiple = false` | Minimum | A minimum line height in twips; taller text can enlarge the line. |
+| Negative, with `LineSpacingMultiple = false` | Exact | A fixed line advance whose magnitude is in twips; taller text does not enlarge it. |
+| Nonzero, with `LineSpacingMultiple = true` | Multiple | A line multiple in 240ths: `240` is single spacing and `360` is 1.5 lines. |
+| Zero | Automatic | Uses the renderer's natural line spacing. |
+
+For example, `SetLineSpacing(480, false)` requests at least 24 points, while `SetLineSpacing(-480, false)` requests exactly 24 points. The Word and PDF adapters preserve this distinction.
+
+Parsed paragraphs retain the RTF stream's active line-spacing and tab-stop state. An omitted line-spacing control resolves to single spacing; a stylesheet reference does not replace that state or restore a tab stop absent from the active stream. The source model retains its nullable controls. For paragraphs created through the API, omitted line spacing and an empty direct tab-stop list inherit from the selected paragraph style instead. `ResolveParagraphFormatting(...)` exposes the effective values without changing the source paragraph.
+
 ## Read untrusted RTF
 
 The default OfficeIMO profile is bounded, does not materialize embedded objects or file-table references, and accepts only web and mail hyperlinks. Uploaded files can state that policy explicitly and provide a cancellation token:

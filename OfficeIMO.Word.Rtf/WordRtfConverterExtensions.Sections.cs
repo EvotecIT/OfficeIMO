@@ -223,7 +223,6 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AppendParagraph(WordSection section, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = section.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }

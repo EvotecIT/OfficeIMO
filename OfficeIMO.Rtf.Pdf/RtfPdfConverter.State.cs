@@ -6,10 +6,14 @@ internal static partial class RtfPdfConverter {
         private readonly RtfListNumbering _numbering;
         private readonly List<PdfNoteReference> _noteReferences = new List<PdfNoteReference>();
 
-        public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, OfficeIMO.Pdf.PdfStandardFont> fontSlots) {
+        public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, OfficeIMO.Pdf.PdfStandardFont> fontSlots,
+            OfficeIMO.Pdf.PdfOptions fontOptions) {
             _numbering = new RtfListNumbering(document);
             _fontSlots = fontSlots;
+            FontOptions = fontOptions;
         }
+
+        public OfficeIMO.Pdf.PdfOptions FontOptions { get; set; }
 
         public IReadOnlyList<PdfNoteReference> NoteReferences => _noteReferences.AsReadOnly();
 

@@ -33,8 +33,9 @@ internal sealed partial class RtfWriteContext {
         source.LeftIndentTwips != resolved.LeftIndentTwips || source.RightIndentTwips != resolved.RightIndentTwips ||
         source.FirstLineIndentTwips != resolved.FirstLineIndentTwips || source.SpaceBeforeTwips != resolved.SpaceBeforeTwips ||
         source.SpaceAfterTwips != resolved.SpaceAfterTwips || source.SpaceBeforeAuto != resolved.SpaceBeforeAuto ||
-        source.SpaceAfterAuto != resolved.SpaceAfterAuto || source.LineSpacingTwips != resolved.LineSpacingTwips ||
-        source.LineSpacingMultiple != resolved.LineSpacingMultiple || source.BackgroundColorIndex != resolved.BackgroundColorIndex ||
+        source.SpaceAfterAuto != resolved.SpaceAfterAuto ||
+        (!source.UseParsedParagraphDefaults && (source.LineSpacingTwips != resolved.LineSpacingTwips ||
+            source.LineSpacingMultiple != resolved.LineSpacingMultiple)) || source.BackgroundColorIndex != resolved.BackgroundColorIndex ||
         source.ShadingForegroundColorIndex != resolved.ShadingForegroundColorIndex || source.ShadingPatternPercent != resolved.ShadingPatternPercent ||
         source.ShadingPattern != resolved.ShadingPattern || source.AutoHyphenation != resolved.AutoHyphenation ||
         source.ContextualSpacing != resolved.ContextualSpacing || source.AdjustRightIndent != resolved.AdjustRightIndent ||

@@ -43,6 +43,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AddRtfToWordDiagnostics(RtfDocument document, RtfConversionReport report) {
         report.Merge(document.GetStyleConversionDiagnostics());
+        AddRtfParagraphFrameDiagnostics(document, report);
         if (document.Styles.Count > 0) {
             report.Add(
                 RtfConversionSeverity.Information,
@@ -224,6 +225,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
         List<WordStoryRootCandidate> storyRoots = EnumerateConvertibleWordStoryRoots(document).ToList();
+        AddWordParagraphLayoutDiagnostics(document, storyRoots, report);
         var footnoteIds = new HashSet<long>(storyRoots
             .Select(candidate => candidate.Root)
             .OfType<Footnote>()

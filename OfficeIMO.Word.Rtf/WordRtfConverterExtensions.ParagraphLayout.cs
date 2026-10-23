@@ -26,8 +26,8 @@ public static partial class WordRtfConverterExtensions {
         SpacingBetweenLines? spacing = source._paragraphProperties?.SpacingBetweenLines;
         destination.SpaceBeforeAuto = spacing?.BeforeAutoSpacing?.Value;
         destination.SpaceAfterAuto = spacing?.AfterAutoSpacing?.Value;
-        destination.LineSpacingTwips = source.LineSpacing;
-        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacingRule.ToOpenXml());
+        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
         destination.Direction = source.BiDi ? RtfTextDirection.RightToLeft : null;
     }
 
@@ -92,11 +92,9 @@ public static partial class WordRtfConverterExtensions {
             }
         }
 
-        if (source.LineSpacingTwips.HasValue) {
-            destination.LineSpacing = source.LineSpacingTwips.Value;
-        }
-
-        LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingMultiple);
+        int? lineSpacing = ToWordLineSpacingValue(source.LineSpacingTwips, source.LineSpacingMultiple);
+        if (lineSpacing.HasValue) destination.LineSpacing = lineSpacing.Value;
+        LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple);
         if (lineSpacingRule.HasValue) {
             destination.LineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
         }
@@ -148,19 +146,4 @@ public static partial class WordRtfConverterExtensions {
         return snapToGrid.Val?.Value ?? true;
     }
 
-    private static bool? ToRtfLineSpacingMultiple(LineSpacingRuleValues? value) {
-        if (!value.HasValue) {
-            return null;
-        }
-
-        return value.Value == LineSpacingRuleValues.Auto;
-    }
-
-    private static LineSpacingRuleValues? ToWordLineSpacingRule(bool? multiple) {
-        if (!multiple.HasValue) {
-            return null;
-        }
-
-        return multiple.Value ? LineSpacingRuleValues.Auto : LineSpacingRuleValues.Exact;
-    }
 }

@@ -49,8 +49,9 @@ internal static class RtfPdfMapping {
         }
     }
 
-    internal static PdfCore.PdfParagraphStyle? ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph) {
-        if (document.Styles.Count > 0) paragraph = document.GetParagraphFormatting(paragraph);
+    internal static PdfCore.PdfParagraphStyle ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph,
+        IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfOptions options) {
+        paragraph = document.GetParagraphFormatting(paragraph);
 
         int? leftIndent = paragraph.LeftIndentTwips;
         int? rightIndent = paragraph.RightIndentTwips;
@@ -66,12 +67,6 @@ internal static class RtfPdfMapping {
         bool widowControl = paragraph.WidowControl ?? false;
         int? defaultTabWidth = document.Settings.DefaultTabWidthTwips;
         IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops;
-        bool hasTabStops = tabStops.Count > 0;
-
-        if (!HasParagraphLayout(leftIndent, rightIndent, firstLineIndent, spaceBefore, spaceAfter, spaceBeforeAuto, spaceAfterAuto, lineSpacing, keepTogether, keepWithNext, widowControl, defaultTabWidth, hasTabStops)) {
-            return null;
-        }
-
         PdfCore.PdfParagraphStyle pdfStyle = new PdfCore.PdfParagraphStyle();
         double leftIndentPoints = ToNonNegativePoints(leftIndent);
         pdfStyle.LeftIndent = leftIndentPoints;
@@ -88,11 +83,25 @@ internal static class RtfPdfMapping {
             pdfStyle.SpacingAfter = TwipsToPoints(spaceAfter.Value);
         } else if (spaceAfterAuto == true) {
             pdfStyle.SpacingAfter = null;
+        } else {
+            // RTF's normal paragraph has no after gap. Do not inherit the PDF
+            // builder's convenience gap when the source omits this control.
+            pdfStyle.SpacingAfter = 0D;
         }
 
-        double? lineHeight = ToPdfLineHeight(lineSpacing, lineSpacingMultiple, GetParagraphBaseFontSize(paragraph));
-        if (lineHeight.HasValue) {
-            pdfStyle.LineHeight = lineHeight.Value;
+        pdfStyle.LineSpacing = ToPdfLineSpacing(lineSpacing, lineSpacingMultiple);
+        bool exact = lineSpacing.HasValue && lineSpacing.Value < 0 && lineSpacingMultiple != true;
+        if (!exact && PdfCore.PdfWriter.TryResolveImportedLineBoxFloor(runs,
+                options.DefaultFont, options,
+                out double layoutFontSize, out double naturalMultiplier)) {
+            pdfStyle.FontSize = layoutFontSize;
+            double multiple = lineSpacing.HasValue && lineSpacing.Value != 0 && lineSpacingMultiple == true
+                ? Math.Max(0.1D, Math.Abs((double)lineSpacing.Value) / 240D) : 1D;
+            pdfStyle.LineSpacing = lineSpacing.HasValue && lineSpacing.Value > 0 && lineSpacingMultiple != true
+                ? PdfCore.PdfLineSpacing.AtLeast(lineSpacing.Value / 20D, naturalMultiplier)
+                    .WithFontLineBoxBaseline(naturalMultiplier)
+                : PdfCore.PdfLineSpacing.Multiple(naturalMultiplier * multiple)
+                    .WithFontLineBoxBaseline(naturalMultiplier);
         }
 
         if (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) {
@@ -110,7 +119,7 @@ internal static class RtfPdfMapping {
     }
 
     internal static bool HasPageBreakBefore(RtfDocument document, RtfParagraph paragraph) {
-        return document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph).PageBreakBefore : paragraph.PageBreakBefore;
+        return document.GetParagraphFormatting(paragraph).PageBreakBefore;
     }
 
     internal static PdfCore.PdfPageBorder? ToPdfPageBorder(RtfDocument document, RtfPageBorders borders) {
@@ -329,34 +338,6 @@ internal static class RtfPdfMapping {
         }
     }
 
-    private static bool HasParagraphLayout(
-        int? leftIndent,
-        int? rightIndent,
-        int? firstLineIndent,
-        int? spaceBefore,
-        int? spaceAfter,
-        bool? spaceBeforeAuto,
-        bool? spaceAfterAuto,
-        int? lineSpacing,
-        bool keepTogether,
-        bool keepWithNext,
-        bool widowControl,
-        int? defaultTabWidth,
-        bool hasTabStops) =>
-        leftIndent.HasValue ||
-        rightIndent.HasValue ||
-        firstLineIndent.HasValue ||
-        spaceBefore.HasValue ||
-        spaceAfter.HasValue ||
-        spaceBeforeAuto.HasValue ||
-        spaceAfterAuto.HasValue ||
-        lineSpacing.HasValue ||
-        keepTogether ||
-        keepWithNext ||
-        widowControl ||
-        (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) ||
-        hasTabStops;
-
     private static PdfCore.PdfTabAlignment ToPdfTabAlignment(RtfTabAlignment alignment) {
         switch (alignment) {
             case RtfTabAlignment.Center:
@@ -400,28 +381,24 @@ internal static class RtfPdfMapping {
         return leftIndentPoints + firstLineIndent < 0D ? -leftIndentPoints : firstLineIndent;
     }
 
-    private static double? ToPdfLineHeight(int? lineSpacingTwips, bool? multiple, double baseFontSize) {
+    // RTF uses 240ths of a line in multiple mode. Otherwise the magnitude is
+    // twips and its sign distinguishes a fixed advance from a minimum height.
+    private static PdfCore.PdfLineSpacing? ToPdfLineSpacing(int? lineSpacingTwips, bool? multiple) {
         if (!lineSpacingTwips.HasValue || lineSpacingTwips.Value == 0) {
             return null;
         }
 
-        double value = Math.Abs(lineSpacingTwips.Value);
+        double value = Math.Abs((double)lineSpacingTwips.Value);
         if (multiple == true) {
-            return Math.Max(0.1D, value / 240D);
+            return PdfCore.PdfLineSpacing.Multiple(Math.Max(0.1D, value / 240D));
         }
 
-        double lineHeightPoints = TwipsToPoints((int)value);
-        return Math.Max(0.1D, lineHeightPoints / baseFontSize);
-    }
-
-    private static double GetParagraphBaseFontSize(RtfParagraph paragraph) {
-        foreach (RtfRun run in paragraph.Runs) {
-            if (run.FontSize.HasValue && run.FontSize.Value > 0) {
-                return run.FontSize.Value;
-            }
-        }
-
-        return 12D;
+        double points = value / 20D;
+        return lineSpacingTwips.Value < 0
+            // Native exact-height RTF lines position the baseline within the
+            // authored box independently of the selected run's font metrics.
+            ? PdfCore.PdfLineSpacing.Exactly(points).WithFixedLineBoxBaseline(points * 4D / 5D)
+            : PdfCore.PdfLineSpacing.AtLeast(points);
     }
 
     internal static double TwipsToPoints(int twips) => twips / 20D;

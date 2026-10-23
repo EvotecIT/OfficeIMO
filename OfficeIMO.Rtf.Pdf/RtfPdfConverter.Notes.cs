@@ -22,23 +22,30 @@ internal static partial class RtfPdfConverter {
 
         pdf.HR(spacingBefore: 8D, spacingAfter: 4D);
         foreach (PdfNoteReference noteReference in state.NoteReferences) {
-            List<PdfCore.PdfTextRun> runs = new List<PdfCore.PdfTextRun> {
-                PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D)
-            };
-
             if (noteReference.Note.Paragraphs.Count == 0) {
-                runs.Add(PdfCore.PdfTextRun.Normal(string.Empty, fontSize: 9D));
+                pdf.Paragraph(paragraph => paragraph.Runs(new[] {
+                    PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D),
+                    PdfCore.PdfTextRun.Normal(string.Empty, fontSize: 9D)
+                }));
             }
 
             for (int i = 0; i < noteReference.Note.Paragraphs.Count; i++) {
-                if (i > 0) {
-                    runs.Add(PdfCore.PdfTextRun.LineBreak());
+                RtfParagraph source = noteReference.Note.Paragraphs[i];
+                if (RtfPdfMapping.HasPageBreakBefore(document, source)) pdf.PageBreak();
+                var runs = new List<PdfCore.PdfTextRun>();
+                if (i == 0) {
+                    runs.Add(PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D));
                 }
 
-                AppendParagraphRuns(document, noteReference.Note.Paragraphs[i], runs, options, state, collectNotes: false);
+                int bodyStartIndex = runs.Count;
+                AppendParagraphRuns(document, source, runs, options, state, collectNotes: false);
+                EnsureParagraphLineBoxStrut(document, source, runs, state, bodyStartIndex);
+                RtfParagraph formatting = document.GetParagraphFormatting(source);
+                pdf.Paragraph(
+                    paragraph => paragraph.Runs(runs),
+                    RtfPdfMapping.ToPdfAlign(formatting.Alignment),
+                    style: RtfPdfMapping.ToPdfParagraphStyle(document, source, runs, state.FontOptions));
             }
-
-            pdf.Paragraph(paragraph => paragraph.Runs(runs));
         }
     }
 

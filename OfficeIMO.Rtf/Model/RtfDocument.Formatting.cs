@@ -28,8 +28,10 @@ public sealed partial class RtfDocument {
             result.SpaceAfterTwips ??= style.SpaceAfterTwips;
             result.SpaceBeforeAuto ??= style.SpaceBeforeAuto;
             result.SpaceAfterAuto ??= style.SpaceAfterAuto;
-            result.LineSpacingTwips ??= style.LineSpacingTwips;
-            result.LineSpacingMultiple ??= style.LineSpacingMultiple;
+            if (!result.UseParsedParagraphDefaults) {
+                result.LineSpacingTwips ??= style.LineSpacingTwips;
+                result.LineSpacingMultiple ??= style.LineSpacingMultiple;
+            }
             result.BackgroundColorIndex ??= style.BackgroundColorIndex;
             result.ShadingForegroundColorIndex ??= style.ShadingForegroundColorIndex;
             result.ShadingPatternPercent ??= style.ShadingPatternPercent;
@@ -39,7 +41,8 @@ public sealed partial class RtfDocument {
             result.SnapToLineGrid ??= style.SnapToLineGrid;
             result.WidowControl ??= style.WidowControl;
             result.OutlineLevel ??= style.OutlineLevel;
-            if (result.TabStops.Count == 0 && style.TabStops.Count > 0) result.ReplaceTabStops(style.TabStops);
+            if (!result.UseParsedParagraphDefaults && result.TabStops.Count == 0 && style.TabStops.Count > 0)
+                result.ReplaceTabStops(style.TabStops);
             if (result.ShadingPattern == RtfShadingPattern.None) result.ShadingPattern = style.ShadingPattern;
             InheritBorder(result.TopBorder, style.TopBorder);
             InheritBorder(result.LeftBorder, style.LeftBorder);
@@ -47,6 +50,17 @@ public sealed partial class RtfDocument {
             InheritBorder(result.RightBorder, style.RightBorder);
             if (!result.Frame.HasAnyValue) result.Frame.CopyFrom(style.Frame);
             if (!result.LegacyNumbering.HasAnyValue) result.LegacyNumbering.CopyFrom(style.LegacyNumbering);
+        }
+        if (result.UseParsedParagraphDefaults) {
+            // A style reference in an RTF stream does not replace the active
+            // paragraph's spacing state. Keep the source's nullable controls
+            // intact and express its implicit single spacing only in this view.
+            if (!result.LineSpacingTwips.HasValue) {
+                result.LineSpacingTwips = 240;
+                result.LineSpacingMultiple = true;
+            } else {
+                result.LineSpacingMultiple ??= false;
+            }
         }
         return result;
     }

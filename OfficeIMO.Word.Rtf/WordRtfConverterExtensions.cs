@@ -86,7 +86,6 @@ public static partial class WordRtfConverterExtensions {
         RtfHeaderFooter destination = addDestination(kind);
         foreach (WordParagraph wordParagraph in source.Paragraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First())) {
             RtfParagraph paragraph = destination.AddParagraph();
-            CopyTabStops(wordParagraph, paragraph);
             CopyParagraphFormatting(wordParagraph, paragraph, rtf);
             AppendFormattedRuns(wordParagraph, paragraph, rtf, revisionAuthorIndexes);
         }
@@ -94,6 +93,9 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopyTabStops(WordParagraph source, RtfParagraph destination) {
         foreach (WordTabStop tabStop in source.TabStops) {
+            // RTF has no corresponding clear-stop declaration in this model;
+            // conversion diagnostics report the unsupported source control.
+            if (tabStop.Alignment == WordTabAlignment.Clear) continue;
             destination.AddTabStop(tabStop.Position, ToRtfTabAlignment(tabStop.Alignment.ToOpenXml()), ToRtfTabLeader(tabStop.Leader.ToOpenXml()));
         }
     }
@@ -862,19 +864,28 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AppendParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = document.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
     private static void AppendParagraph(WordHeaderFooter headerFooter, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = headerFooter.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
-    private static void ApplyTabStops(WordParagraph destination, RtfParagraph source) {
+    private static void ApplyTabStops(WordParagraph destination, RtfParagraph source, RtfDocument document) {
+        if (source.UseParsedParagraphDefaults && source.StyleId.HasValue &&
+            HasRtfStyle(document, source.StyleId.Value, RtfStyleKind.Paragraph)) {
+            // Word applies the retained stylesheet declaration. Clear stops
+            // absent from the parsed stream so that association cannot add ink
+            // or move a tab which used RTF's ordinary default positions.
+            RtfParagraph styleFormatting = document.GetParagraphFormatting(new RtfParagraph { StyleId = source.StyleId });
+            var activePositions = new HashSet<int>(source.TabStops.Select(stop => stop.PositionTwips));
+            foreach (int position in styleFormatting.TabStops.Select(stop => stop.PositionTwips).Distinct()) {
+                if (!activePositions.Contains(position)) destination.AddTabStop(position, WordTabAlignment.Clear);
+            }
+        }
         foreach (RtfTabStop tabStop in source.TabStops) {
             destination.AddTabStop(tabStop.PositionTwips, ToWordTabAlignment(tabStop.Alignment).ToOfficeEnum(), ToWordTabLeader(tabStop.Leader).ToOfficeEnum());
         }

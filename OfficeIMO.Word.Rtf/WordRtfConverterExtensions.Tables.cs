@@ -21,7 +21,6 @@ public static partial class WordRtfConverterExtensions {
                 }
 
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, destination);
                 AppendFormattedRuns(wordParagraph, paragraph, destination, revisionAuthorIndexes);
             } else if (element is WordTable table) {
@@ -43,7 +42,6 @@ public static partial class WordRtfConverterExtensions {
                 }
 
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
             } else if (element is WordTable table) {
@@ -156,7 +154,6 @@ public static partial class WordRtfConverterExtensions {
             if (child is Paragraph wordParagraphElement) {
                 var wordParagraph = new WordParagraph(source.Document, wordParagraphElement);
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
             } else if (child is Table nestedTableElement) {
@@ -415,7 +412,6 @@ public static partial class WordRtfConverterExtensions {
         foreach (IRtfBlock block in source.Blocks) {
             if (block is RtfParagraph sourceParagraph) {
                 WordParagraph paragraph = destination.AddParagraph(removeExistingParagraphs: first);
-                ApplyTabStops(paragraph, sourceParagraph);
                 ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument, numbering);
                 AppendRuns(paragraph, sourceParagraph, rtfDocument, numbering);
                 first = false;
