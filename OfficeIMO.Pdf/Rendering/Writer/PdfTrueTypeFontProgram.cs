@@ -20,10 +20,12 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
+    private readonly ScalarCoverageProofs _scalarCoverageProofs;
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         _shortMeasurements = new();
+        _scalarCoverageProofs = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         DecorationMetrics = OfficeOpenTypeDecorationMetrics.TryRead(_data);
@@ -70,6 +72,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         // Nominal advances and glyph identities depend only on immutable font
         // data. Every hit still replays usage into this document's own subset.
         _shortMeasurements = source._shortMeasurements;
+        _scalarCoverageProofs = source._scalarCoverageProofs;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);

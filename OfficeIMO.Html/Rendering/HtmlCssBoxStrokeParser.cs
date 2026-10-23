@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
-internal static class HtmlCssBoxStrokeParser {
+internal static partial class HtmlCssBoxStrokeParser {
     private static readonly string[] SideNames = { "top", "right", "bottom", "left" };
     private static readonly string[] SideProperties = SideNames.SelectMany(side => new[] {
         "border-" + side,

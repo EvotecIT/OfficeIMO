@@ -179,3 +179,45 @@ of those used the earlier `8cc38e17` baseline; its gains are historical. Shared
 font-width, glyph/flow and HTML-normalization changes prompted this separate
 matched baseline and candidate qualification. None of the older timings,
 packages or native observations are relabeled as this combined source.
+
+
+## Further owner investigations: 23 October 2026
+
+Later experiments use the maintained warm, 229-row Table payload with its exact
+six-page OfficeIMO PDF. These are provisional source-bound investigations,
+separate from the qualified `b18a1c41` results above. Each retained comparison
+keeps all twelve measured samples per launch, six warmups, the same actual
+runtime inputs and normal development-host activity. No new final throughput
+result is claimed from a single exploratory engine pair.
+
+| Attempt | Observation and disposition |
+| --- | --- |
+| Reuse complete used-style results | Rejected: the predeclared baseline/candidate/candidate/baseline contrast had a 2.4% higher pooled mean and disagreed in direction between pairs. |
+| Reuse a completed rule-application prefix, partition paint phases once, and combine font metrics without a temporary list | Rejected as a combined experiment: the four-launch contrast had a 0.3% higher pooled mean despite about 12.6% lower allocation. Pair directions disagreed. The original source was restored; this does not establish each component's isolated cost. |
+| Reuse the existing parsed-length owner for table auto-math | Retained for further qualification. Simple non-math defaults avoid unnecessary setup, while actual math still resolves with a fresh font and numeric context. The explicit table/math controls include repeated 16 px / 24 px / 16 px font contexts. No isolated latency improvement is claimed. |
+| Prove that an added simple rectangular clip leaves the existing admitted ink region unchanged | Rejected: the four-launch contrast had a 6.2% higher pooled mean and neither pair favored the candidate. Exact report bytes and complete warnings passed, but the extra implementation did not earn its maintenance cost. The helper and its experiment-only tests were removed. |
+| Prove successful default scalar font preflight by checking printable ASCII coverage without building an unused glyph run | Rejected: 2,290 focused cases and the exact report/warning checks passed, but the four-launch contrast had a 7.2% higher pooled mean and neither pair favored the candidate. Allocation fell about 4.2%; the latency gate still failed, so the source was restored. |
+| Index the paint phases present in each transient subtree before the original filtering passes | Rejected: 7,800 HTML cases and all exact report/warning checks passed, but the four-launch contrast reduced the pooled mean by only 1.2% with opposing pair directions. The phase index was removed; a small allocation reduction did not satisfy its latency rule. |
+| Fuse semantic paint projection with zero translation to avoid copying retained descendants at each ancestor | Rejected: 7,800 HTML cases and all exact report/warning checks passed. The four-launch contrast had only a 1.0% lower pooled mean with opposing pair directions. Removed after preserving the source, actual execution inputs and all measurements. |
+
+| Reuse parsed font-family, descriptor and feature declarations | Rejected: 7,800 HTML cases and all exact report/warning checks passed, but the four-launch contrast had a 7.3% higher pooled mean and opposing pair directions. Removed after preserving every executed input and measurement. |
+
+| Share complete ordinary table-cell styles across equal declarations and inherited-value contexts, retaining distinct widths | Rejected: all 7,803 HTML cases and exact report/warning checks passed after correcting a direct fixture to use expanded padding longhands. The four-launch contrast had an 8.0% lower pooled mean, but pair directions disagreed and missed the predeclared 10% threshold. The template code and its experiment-only tests were removed. |
+
+A separate public-API investigation compares fresh model construction with full
+conversion using the same Table input. Each model is eventually serialized to
+the exact canonical PDF. Its two construction means were 65.95 and 82.80 ms;
+the full-conversion means were 185.16 and 166.55 ms. These operations do different
+work, so subtracting their means does not establish phase durations or CPU
+percentages. All four observations remain in the diagnostic evidence.
+
+The remaining work is to identify consequential repeated processing before
+adding more caches. Existing layout-font and stroke caches were not saturated
+on this workload. A separate counter-only PDF investigation found no short-text cache hits or
+evictions: all 1,655 shaping calls in one Table conversion were diagnostic-only
+scalar calls and did not qualify for that cache. Raising its capacity would not
+address those calls.
+Instrumented builds are diagnostic inputs and cannot qualify speed or package
+results. Keep removed experiments removed unless new evidence identifies a
+specific reason to revisit them. Exact saved output, complete warnings,
+cancellation and resource-limit behavior remain acceptance requirements.

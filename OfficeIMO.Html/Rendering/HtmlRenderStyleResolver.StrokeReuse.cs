@@ -5,11 +5,14 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private const int MaximumReusedBoxStrokes = 1024;
     private readonly Dictionary<BoxStrokeContext, ResolvedBoxStroke> _boxStrokes = new();
+    private readonly Dictionary<object, HtmlComputedStyle> _strokeStyleSources = new();
+    private readonly Dictionary<HtmlCssBoxStrokeParser.StrokeDeclarations, HtmlComputedStyle> _strokeStyles = new();
 
     /// <summary>Reuses used border/outline values for one immutable computed style and the exact numeric context.</summary>
     /// <remarks>Layout callers receive value copies; parent boxes and other mutable resolved style fields are never cached.</remarks>
     private ResolvedBoxStroke ResolveBoxStroke(HtmlComputedStyle computed, double reference, double fontSize,
         OfficeColor color) {
+        computed = ReuseStrokeDeclarations(computed);
         bool reuse = _boxStrokes.Count < MaximumReusedBoxStrokes;
         BoxStrokeContext context = default;
         if (reuse) {
@@ -30,6 +33,21 @@ internal sealed partial class HtmlRenderStyleResolver {
             outlineColor, outlineInvert, outlineOffset, outlineDetail);
         if (reuse) _boxStrokes.Add(context, result);
         return result;
+    }
+
+    /// <summary>Shares parser input only when every relevant immutable declaration and cascade state matches.</summary>
+    /// <remarks>Source styles and mutable boxes remain distinct; only the existing numeric-context cache uses the representative.</remarks>
+    private HtmlComputedStyle ReuseStrokeDeclarations(HtmlComputedStyle computed) {
+        if (_strokeStyleSources.TryGetValue(computed.DeclarationIdentity, out HtmlComputedStyle? source)) return source;
+        if (_strokeStyleSources.Count >= MaximumReusedBoxStrokes) return computed;
+
+        var declarations = new HtmlCssBoxStrokeParser.StrokeDeclarations(computed);
+        if (!_strokeStyles.TryGetValue(declarations, out source)) {
+            source = computed;
+            _strokeStyles.Add(declarations, source);
+        }
+        _strokeStyleSources.Add(computed.DeclarationIdentity, source);
+        return source;
     }
 
     private readonly record struct BoxStrokeContext(HtmlComputedStyle Computed, double Reference,

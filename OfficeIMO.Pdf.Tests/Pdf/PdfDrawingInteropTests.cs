@@ -199,8 +199,10 @@ public class PdfDrawingInteropTests {
         Assert.Equal(2, centeredPlacements);
     }
 
-    [Fact]
-    public void PdfDocument_SnapshotsSharedDrawingSceneAtAddTime() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PdfDocument_SnapshotsSharedDrawingSceneAtAddTime(bool scaledCanvas) {
         var background = OfficeShape.Rectangle(120, 60);
         background.FillColor = OfficeColor.WhiteSmoke;
 
@@ -214,8 +216,9 @@ public class PdfDrawingInteropTests {
                 MarginRight = 20,
                 MarginTop = 20,
                 MarginBottom = 20
-            })
-            .Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);
+            });
+        if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, 30D, 40D, 180D, 90D));
+        else doc.Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);
 
         drawing.Shapes[0].Shape.Width = 20;
         drawing.Shapes[0].Shape.FillColor = OfficeColor.Red;
@@ -228,7 +231,8 @@ public class PdfDrawingInteropTests {
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.961 0.961 0.961 rg", pdfContent, StringComparison.Ordinal);
-        Assert.Contains("60 100 120 60 re f", pdfContent, StringComparison.Ordinal);
+        Assert.Contains(scaledCanvas ? "30 80 120 60 re f" : "60 100 120 60 re f", pdfContent, StringComparison.Ordinal);
+        if (scaledCanvas) Assert.Contains("1.5 0 0 1.5", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("1 0 0 rg", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("0 0 0 rg", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("60 136 20 60 re f", pdfContent, StringComparison.Ordinal);

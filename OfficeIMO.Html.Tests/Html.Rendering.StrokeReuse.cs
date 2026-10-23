@@ -6,6 +6,37 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlStrokeReuseTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EquivalentStrokeValuesKeepIndependentCascadeWinnersAcrossElements(bool layered) {
+        var document = HtmlConversionDocument.Parse("<div id='first'></div><div id='second'></div>")
+            .CreateDocumentForRendering();
+        IElement firstElement = document.QuerySelector("#first")!;
+        IElement secondElement = document.QuerySelector("#second")!;
+        var properties = new Dictionary<string, string> {
+            ["border"] = "1px solid black", ["border-left-width"] = "2px"
+        };
+        HtmlCssCascadePriority Low() => new(false, false, false,
+            layered ? new CascadeLayerOrder(new[] { 1 }) : null, 0, 0, 0, 1, 1);
+        HtmlCssCascadePriority High() => new(false, false, false,
+            layered ? new CascadeLayerOrder(new[] { 2 }) : null, 0, 0, 0, layered ? 1 : 2, 1);
+        var first = new HtmlComputedStyle(properties, cascadePriorities: new Dictionary<string, HtmlCssCascadePriority> {
+            ["border"] = Low(), ["border-left-width"] = High()
+        });
+        var second = new HtmlComputedStyle(properties, cascadePriorities: new Dictionary<string, HtmlCssCascadePriority> {
+            ["border"] = High(), ["border-left-width"] = Low()
+        });
+        var styles = new HtmlComputedStyleSet(new Dictionary<IElement, HtmlComputedStyle> {
+            [firstElement] = first, [secondElement] = second
+        }, new Dictionary<IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
+
+        Assert.Equal(2D, resolver.Resolve(firstElement, 200D).Borders.Left.Width);
+        Assert.Equal(1D, resolver.Resolve(secondElement, 200D).Borders.Left.Width);
+        Assert.Equal(2D, resolver.Resolve(firstElement, 200D).Borders.Left.Width);
+    }
+
     [Fact]
     public void RepeatedStyleResolutionRetainsCurrentFontViewportColorAndCharacterMetrics() {
         IElement element = HtmlConversionDocument.Parse("<div></div>").CreateDocumentForRendering().QuerySelector("div")!;

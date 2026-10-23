@@ -554,35 +554,16 @@ public static partial class HtmlComputedStyleEngine {
                             customPropertyRegistrations: rules.CustomPropertyRegistrations,
                             source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
                             selector: rule.Selector, layerName: rule.LayerName,
-                            enforceResolutionLimits: budget.HasDeclarationLimit);
+                            enforceResolutionLimits: budget.HasDeclarationLimit,
+                            syntaxReuse: rules.DeclarationSyntaxReuse);
                     }
                 }
             }
         }
 
-        ApplyInlineDeclarations(properties, parentProperties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget);
-        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parentProperties,
-            out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
-            out HashSet<string> originRevertedProperties,
-            out HashSet<string> specifiedProperties,
-            out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
-            out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
-            includeCascadeTraces,
-            rules.CustomPropertyRegistrations,
-            enforceResolutionLimits: budget.HasDeclarationLimit);
-        // Store the HTML default in the computed snapshot so an explicit
-        // display:inherit can copy a parent's tag default or hidden state.
-        if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
-        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces, environment.FontDefaults);
-        ApplyHtmlWhiteSpaceDefaults(element, properties.ContainsKey("white-space"), resolvedProperties,
-            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
-        ApplyHtmlFontDefaults(element, properties, parentProperties, resolvedProperties,
-            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces, environment.FontDefaults);
-        ApplyHtmlTableAlignmentDefault(element, properties.ContainsKey("text-align"), parentProperties, resolvedProperties,
-            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
-        HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
-            resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
-            specifiedProperties, cascadePriorities, cascadeTraces);
+        ApplyInlineDeclarations(properties, parentProperties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget, rules.DeclarationSyntaxReuse);
+        HtmlComputedStyle style = ResolveElementComputedStyle(element, properties, parentProperties, rules,
+            environment, includeCascadeTraces, budget.HasDeclarationLimit);
         computed[element] = style;
 
         double initialFontSize = environment.FontDefaults?.Initial.Pixels ?? 16D;
@@ -596,8 +577,9 @@ public static partial class HtmlComputedStyleEngine {
             containerUnitWidth, containerUnitHeight, element.LocalName, inheritedFontContext);
         style.ResolvedFontSizePoints = elementFontSize * 72D / 96D;
         if (containerContexts.Count == 0) rootFontSize = elementFontSize;
-        double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
-        double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
+        (double elementWidth, double? elementHeight) = rules.ContainerGeometryReuse.Resolve(style,
+            containingWidth, containingHeight, elementFontSize, rootFontSize, environment,
+            containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget,
             childContainerContexts, environment, rules.CustomPropertyRegistrations, includeCascadeTraces);

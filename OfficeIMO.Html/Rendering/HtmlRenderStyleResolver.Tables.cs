@@ -16,7 +16,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             or "table-header-group" or "table-footer-group" or "table-cell")) return value;
         return HtmlRenderCssValues.IsTableInternalAutoMath(value, style.Font.Size, _rootFontSize,
             _viewportWidth, _viewportHeight, style.ContainerUnitWidth, style.ContainerUnitHeight, style.CharacterAdvance,
-            (style.WritingMode is "vertical-rl" or "vertical-lr") && style.TextOrientation == "upright") ? "auto" : value;
+            (style.WritingMode is "vertical-rl" or "vertical-lr") && style.TextOrientation == "upright",
+            _lengthExpressions) ? "auto" : value;
     }
 
     private static void CaptureTablePercentageHeight(string cssHeight, string? attributeHeight, HtmlRenderBoxStyle style) {

@@ -160,6 +160,24 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Fact]
+    public void HtmlTablePercentageHeights_ReusedMathKeepsEachCellsFontContext() {
+        string Table(string name, int fontSize) => "<table style='height:200px;width:240px;margin:0;border-spacing:0;"
+            + "font-size:" + fontSize + "px;line-height:40px'>"
+            + "<tr><td id='" + name + "-summary' style='height:calc(25% + 1em - 16px);padding:0;background:lime'>Summary</td></tr>"
+            + "<tr><td id='" + name + "-detail' style='height:calc(75% + 1em - 16px);padding:0;background:lime'>Detail</td></tr></table>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            TableGeometrySource(Table("first", 16) + Table("larger", 24) + Table("last", 16)), TableGeometryOptions());
+
+        foreach (string name in new[] { "first", "last" }) {
+            Assert.Equal(50D, TableGeometryShape(rendered, "td#" + name + "-summary").Height, 3);
+            Assert.Equal(150D, TableGeometryShape(rendered, "td#" + name + "-detail").Height, 3);
+        }
+        Assert.Equal(100D, TableGeometryShape(rendered, "td#larger-summary").Height, 3);
+        Assert.Equal(100D, TableGeometryShape(rendered, "td#larger-detail").Height, 3);
+        rendered.RequireNoLoss();
+    }
+
     [Theory]
     [InlineData("min(25%, 10px)", "max(75%, 10px)")]
     [InlineData("calc(0% + 80px)", "calc(0% + 120px)")]

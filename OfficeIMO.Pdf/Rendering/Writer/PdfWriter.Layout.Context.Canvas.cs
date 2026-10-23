@@ -623,9 +623,7 @@ internal static partial class PdfWriter {
                 double scaleY = item.Height / block.Drawing.Height;
                 bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
                 if (scaled) {
-                    var scaledDrawing = new OfficeDrawing(item.Width, item.Height)
-                        .AddEffectDrawing(block.Drawing, OfficeTransform.Scale(scaleX, scaleY));
-                    DrawDrawingElements(scaledDrawing, item.X, topY);
+                    DrawScaledCanvasDrawing(block.Drawing, scaleX, scaleY, item.X, topY);
                 } else {
                     DrawDrawingElements(block.Drawing, item.X, topY);
                 }
