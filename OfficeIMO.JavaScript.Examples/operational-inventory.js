@@ -43,7 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const { format, ...plain } = source;
       return { ...plain, ...(format === null ? {} : { format }), header: cell.textContent.trim() };
     });
-    const selected = dataRows().filter(row => !row.hidden && row.querySelector("input[type=checkbox]").checked);
+    const inventory = dataRows(), visible = inventory.filter(row => !row.hidden);
+    const selected = visible.filter(row => row.querySelector("input[type=checkbox]").checked);
+    const filter = document.getElementById("inventory-filter").value;
+    const scope = "Checked services in the visible view. Selection: " + selected.length + " of " + visible.length + " visible services (" + inventory.length + " in the inventory). "
+      + "Row text filter: " + (filter ? JSON.stringify(filter) : "none") + ". Order: service " + (descending ? "descending" : "ascending")
+      + ". Fields: visible columns in their current order.";
     function* rows() {
       for (const row of selected) {
         const identity = row.querySelector("[data-row-id]");
@@ -51,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
           identity.dataset.portfolio, identity.dataset.environment, identity.dataset.owner];
       }
     }
-    return { columns, rows, ids: selected.map(row => row.dataset.rowId) };
+    return { columns, rows, ids: selected.map(row => row.dataset.rowId), scope };
   }
   let lastExport;
   async function exportView(format) {
@@ -78,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
       const completed = await OfficeIMO.executeWorkerExport(endpoint, selected.rows(), { write(bytes) { chunks.push(bytes.slice()); } }, {
-        input: { format, columns: selected.columns, fonts: assets.fonts, scope: "Selected operational inventory · " + selected.ids.length + " services" },
+        input: { format, columns: selected.columns, fonts: assets.fonts, scope: selected.scope, formatLocale: "en-US" },
         batchRows: 3, maxBatchCells: 57, maxChunkBytes: 4096,
         onProgress(progress) { if (progress.phase === "rows") status.textContent = "Exporting " + progress.rows + " services…"; }
       });

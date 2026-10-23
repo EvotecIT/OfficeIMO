@@ -52,10 +52,39 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
     const continuationLabels = new WeakMap<GroupStart, string>();
     let pending: PdfLayoutRow | undefined;
     const closing: PdfLayoutRow[] = [];
-    const summaryValues = (label: string, values: readonly (number | null)[]): readonly ExportValue[] => Object.freeze([
+    const aggregatePositions = report.columns.flatMap((column, index) => Object.hasOwn(report.totals, column.key!) ? [index] : []);
+    const summaryValues = (label: string, values: readonly (number | null)[], positions?: readonly number[]): readonly ExportValue[] => Object.freeze([
       new ExportCell(label, { text: label, presentation: table.options.footerPresentation! }),
-      ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation! }))
+      ...(positions ? positions.map(index => values[index]!) : values).map(value => new ExportCell(value, { presentation: table.options.footerPresentation! }))
     ]);
+    // Independent summaries have no detail values in non-aggregate columns. Project their
+    // declared operations, including zero/null results, rather than emitting label-only bands.
+    // Keep callback positions in the original source model after this physical projection.
+    const summaryLayouts = new Map<boolean, PdfTableLayout>();
+    const summaryLayout = (grand: boolean): PdfTableLayout => {
+      const existing = summaryLayouts.get(grand); if (existing) return existing;
+      const positions = [0, ...aggregatePositions.map(index => index + 1)];
+      const projected = positions.map(position => {
+        const column = columns[position]!;
+        if (!grand) return column;
+        const { groups: _groups, ...leaf } = column as Column<readonly ExportValue[]>; return leaf;
+      });
+      const originalPosition = (position: ColumnValueContext): ColumnValueContext => {
+        const columnIndex = positions[position.columnIndex]!;
+        return { ...position, columnIndex, column: columns[columnIndex]! };
+      };
+      const repeatColumns = positions.flatMap((position, index) => position === 0 || table.repeatedColumns.includes(position) ? [index] : []);
+      const wideTable = table.options.wideTable;
+      const projectedSettings: PdfSettings = { ...sharedTable,
+        repeatedColumns: Object.freeze(repeatColumns), options: { ...table.options, columns: projected,
+          ...(table.options.columnWidths === undefined ? {} : { columnWidths: positions.map(position => table.options.columnWidths![position]!) }),
+          ...(typeof wideTable !== "object" ? {} : { wideTable: { ...wideTable, repeatColumns } }),
+          ...(table.options.formatValue === undefined ? {} : { formatValue: (value, position) => table.options.formatValue!(value, originalPosition(position)) }),
+          ...(table.options.formatRuns === undefined ? {} : { formatRuns: (value, position) => table.options.formatRuns!(value, originalPosition(position)) })
+        } };
+      const projectedLayout = new PdfTableLayout(projectedSettings, fonts); summaryLayouts.set(grand, projectedLayout);
+      return projectedLayout;
+    };
     const prepareGroupContext = async () => {
       const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
         presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
@@ -100,53 +129,56 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
         ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) as 1 | 2 | 3 | 4 | 5 | 6 } } : {})
       }, pages.settings, fonts), pages.settings, fonts));
       const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
-      await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
-      let followingHeight = groupHeight + caption.height + headingHeight + minimum;
+      // Newly opened semantic headings already paint the end of this path. Only the open
+      // ancestor prefix needs an artifact here; later physical bands still paint the full path.
+      const ancestorCaption = semantic && semanticDepth > 0 ? await prepareParagraph(captureCaption({
+        text: path.slice(0, semanticDepth).map(group => group.label).join("\n"), presentation: { bold: true }, spaceAfter: 4
+      }, pages.settings, fonts), pages.settings, fonts) : undefined;
+      const openingHeight = semantic ? (ancestorCaption?.height ?? 0) + groupHeight : caption.height;
+      await context.flushParagraphs(openingHeight + headingHeight + minimum);
+      if (ancestorCaption) await pages.paragraphs([ancestorCaption], groupHeight + headingHeight + minimum, true, { artifact: true });
+      let followingHeight = groupHeight + (semantic ? 0 : caption.height) + headingHeight + minimum;
       for (const heading of groupHeadings) {
         followingHeight -= heading.height;
         await pages.beginGroup(semanticDepth++, heading, followingHeight);
       }
-      await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
+      await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic, semantic);
       started = true; firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
     };
-    const semanticSubtotal = async (row: PdfLayoutRow, level: number): Promise<void> => {
+    const semanticSubtotal = async (row: PdfLayoutRow | undefined, level: number, values: readonly ExportValue[]): Promise<void> => {
       if (level === report.groupBy.length - 1) {
         // A leaf's own subtotal shares its detail table and header identities. Keep the last
         // detail/summary bundle when it fits; the existing flow owns continuation and limits.
-        pages.summary(row); closing.push(row); await finishLeaf();
+        pages.summary(row!); closing.push(row!); await finishLeaf();
         await pages.endGroup(level); semanticDepth = level; path = path.slice(0, level);
         return;
       }
       await finishLeaf();
       const { caption, continuation } = await prepareGroupContext();
-      const minimum = layout.minimumRowHeight(row);
-      await context.flushParagraphs(caption.height + headingHeight + minimum);
+      const projected = summaryLayout(false), summaryHeadings = await projected.headers();
+      const summaryRow = await projected.data(values, 0, true), minimum = projected.minimumRowHeight(summaryRow);
+      await context.flushParagraphs(caption.height + await projected.blockHeight(summaryHeadings) + minimum);
       // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
       // Its own visible column headings keep the separate logical summary table truthful.
-      await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
-      pages.summary(row); await pages.row(row, caption.lines.length > 0 || headings.length > 0); await pages.endTable();
+      await pages.beginTable(projected, summaryHeadings, minimum, caption, continuation, false, true);
+      pages.summary(summaryRow); await pages.row(summaryRow, caption.lines.length > 0 || summaryHeadings.length > 0); await pages.endTable();
       await pages.endGroup(level); semanticDepth = level; path = path.slice(0, level);
     };
     const complete = async (summary: GroupedReportSummary): Promise<void> => {
       await finishLeaf();
       if (!includeGrandTotal && summary.rows !== 0) return;
-      const completeColumns = summary.rows === 0 ? columns : columns.map(column => {
-        const { groups: _groups, ...leaf } = column as Column<readonly ExportValue[]>; return leaf;
-      });
-      const completeTable = settings({ ...table.options, columns: completeColumns,
-        includeHeader: input.includeHeader ?? true });
-      const completeLayout = summary.rows === 0 ? layout : new PdfTableLayout({ ...completeTable, budget: prepared.budget }, fonts);
+      const completeLayout = summary.rows === 0 ? layout : summaryLayout(true);
       const completeHeadings = summary.rows === 0 ? headings : await completeLayout.headers();
       rowIndex = -1;
       let total: PdfLayoutRow | undefined;
       if (includeGrandTotal) {
         context.acceptRow(false);
-        total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
+        total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals, summary.rows === 0 ? undefined : aggregatePositions), 0, true);
       }
       if (!completeHeadings.length && !total) return;
       const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
       await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
-      await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, !semantic && summary.rows !== 0);
+      await pages.beginTable(completeLayout, completeHeadings, minimum);
       if (total) { if (semantic) pages.summary(total); await pages.row(total); }
       await pages.endTable();
     };
@@ -166,8 +198,10 @@ export async function renderGroupedPdfTable(block: PdfGroupedTableBlock, context
         }
         case "groupEnd": {
           rowIndex = -1; context.acceptRow(false);
-          const row = await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true);
-          if (semantic) await semanticSubtotal(row, event.level); else closing.push(row);
+          const separate = semantic && event.level !== report.groupBy.length - 1;
+          const values = summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals, separate ? aggregatePositions : undefined);
+          const row = separate ? undefined : await layout.data(values, 0, true);
+          if (semantic) await semanticSubtotal(row, event.level, values); else closing.push(row!);
           break;
         }
         case "complete": await complete(event); break;

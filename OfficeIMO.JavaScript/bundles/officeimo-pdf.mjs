@@ -3341,7 +3341,7 @@ class PdfTableBandFlow {
             await this.flush();
     }
     async row(row, allowFirstFragment = false) {
-        const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+        const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
         if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
             throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
         // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
@@ -3367,16 +3367,29 @@ class PdfTableBandFlow {
             const lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
             if (lines < 1)
                 throw new RangeError("PDF page cannot fit a table line below horizontal band headings.");
-            const paintedLines = Math.max(lines, minimumLines), height = paintedLines * row.lineHeight + padding * 2;
+            // Reserve one shared logical fragment, but paint only each band's visible cell geometry.
+            const reservedLines = Math.max(lines, minimumLines), height = reservedLines * row.lineHeight + padding * 2;
             const projected = await this.layout.bandRows([row]);
-            const fragments = projected.map((rows, index) => [{ ...rows[0], lines: paintedLines, height,
-                    cells: rows[0].cells.map(cell => {
-                        const source = this.layout.bands[index].columns[cell.first];
-                        const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
-                        const { height: _height, ...plain } = cell;
-                        return { ...plain, lines: visible, ...(first > 0 && this.layout.repeatedColumn(source) ? { semanticArtifact: true } : {}) };
-                    }) }]);
-            await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [] });
+            const exhaustedBands = [];
+            const fragments = projected.map((rows, index) => {
+                let remaining = false;
+                const cells = rows[0].cells.map(cell => {
+                    const source = this.layout.bands[index].columns[cell.first];
+                    const repeated = this.layout.repeatedColumn(source), visible = repeated ? cell.lines : cell.lines.slice(first, first + lines);
+                    if (!repeated && (visible.length > 0 || cell.link !== undefined))
+                        remaining = true;
+                    const { height: _height, ...plain } = cell;
+                    return { ...plain, lines: visible,
+                        lineHeight: visible.reduce((value, line) => Math.max(value, line.lineHeight), cell.font.lineHeight(fontSize)),
+                        ...(first > 0 && repeated ? { semanticArtifact: true } : {}) };
+                });
+                const fragmentLines = Math.max(1, ...cells.map(cell => cell.lines.length));
+                const lineHeight = Math.max(this.layout.lineHeight, ...cells.filter(cell => cell.lines.length > 0).map(cell => cell.lineHeight));
+                // Never omit an initial/new row, a structured block, or a nonrepeated link obligation.
+                exhaustedBands.push(first > 0 && !remaining);
+                return [{ ...rows[0], cells, lines: fragmentLines, lineHeight, height: fragmentLines * lineHeight + padding * 2 }];
+            });
+            await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [], exhaustedBands });
             first += lines;
             if (first < row.lines)
                 await this.flush();
@@ -3388,7 +3401,7 @@ class PdfTableBandFlow {
             throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
         for (const row of rows)
             await this.painter.prepareRow?.(row);
-        await this.accept({ rows: projected, height, count: rows.length, completed: rows });
+        await this.accept({ rows: projected, height, count: rows.length, completed: rows, exhaustedBands: projected.map(() => false) });
     }
     async keptRows(rows, allowFirstFragment = false) {
         const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
@@ -3402,6 +3415,8 @@ class PdfTableBandFlow {
             return;
         for (let band = 0; band < this.layout.bands.length; band++) {
             checkAbort(this.layout.settings.options.signal);
+            if (!this.firstWindow && this.entries.length > 0 && this.entries.every(entry => entry.exhaustedBands[band]))
+                continue;
             await this.painter.paint(band, this.headings[band], this.entries.flatMap(entry => entry.rows[band]), this.firstWindow ? this.caption : this.continuation, this.firstWindow, band === 0);
         }
         for (const entry of this.entries)
@@ -4108,10 +4123,11 @@ class PdfPages {
     /** The generated summary label is a row heading; no localized text/style inference is used. */
     summary(row) { this.summaryRows.add(row); }
     /** Begin an independent table on the current page, retaining its headings on continuation pages.
-     * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false, captionArtifact = false) {
+     * Group context uses captionArtifact: it stays visually complete without duplicating logical headings.
+     * An already-painted opening path only suppresses its artifact caption on that existing page. */
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption, continuationCaption, headingsOnNewPageOnly = false, captionArtifact = false, openingContextAlreadyPainted = false) {
         if (layout.bands)
-            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
+            return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact, openingContextAlreadyPainted);
         await this.ensureStarted();
         this.layout = layout;
         this.paintedHeaderCells = new WeakSet();
@@ -4125,7 +4141,7 @@ class PdfPages {
         // Its own headings remain available when it moves or splits onto a fresh page.
         const initialHeadings = headingsOnNewPageOnly && this.bodyAdded && !this.structure ? [] : headings;
         const height = initialHeadings.reduce((n, row) => n + row.height, 0);
-        if (caption) {
+        if (caption && !(captionArtifact && openingContextAlreadyPainted)) {
             await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
             this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
                 : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
@@ -4147,7 +4163,7 @@ class PdfPages {
         this.dataTop = this.y;
     }
     /** Bind the bounded logical-window owner to the existing physical page painter. */
-    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation, captionArtifact) {
+    async beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuation, captionArtifact, openingContextAlreadyPainted) {
         await this.ensureStarted();
         const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
         const headerHeight = headings[0].reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -4156,10 +4172,12 @@ class PdfPages {
         const continuationCapacity = page.height - margins.top - margins.bottom - headerHeight - (continuation?.height ?? 0);
         if (continuationCapacity + .001 < layout.lineHeight + padding * 2)
             throw new RangeError("PDF band headings and continuation context leave no room for a data line.");
-        if (this.y - margins.bottom - headerHeight - (caption?.height ?? 0) + .001 < minimum)
+        let openingContextPainted = captionArtifact && openingContextAlreadyPainted;
+        if (this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0) + .001 < minimum) {
             await this.pageBreak();
-        let initialOffset = page.height - margins.top - this.y;
-        const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
+            openingContextPainted = false;
+        }
+        const firstCapacity = this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0);
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
         let captionPaints = 0, continuationPaints = 0;
@@ -4176,17 +4194,15 @@ class PdfPages {
         this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
             prepareRow: async (row) => { await this.tableStructure?.prepareHeaders(); await this.rowElements(row); },
             completeRow: async (row) => { await this.tableStructure?.completeRow(row.source ?? row); },
-            moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
+            moveFirstToFreshPage: async () => { await this.pageBreak(); openingContextPainted = false; },
             paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
                 if (!(firstWindow && firstBand))
                     await this.pageBreak();
-                if (firstWindow && !firstBand)
-                    this.y -= initialOffset;
                 const frame = layout.bands[band];
                 this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
                 this.bandCellBudget = true;
                 try {
-                    if (currentCaption?.lines.length) {
+                    if (currentCaption?.lines.length && !(firstWindow && firstBand && openingContextPainted)) {
                         const paints = firstWindow ? captionPaints++ : continuationPaints++;
                         if (paints > 0)
                             this.settings.budget.cell(currentCaption.text.text);
@@ -6054,10 +6070,44 @@ async function renderGroupedPdfTable(block, context) {
         const continuationLabels = new WeakMap();
         let pending;
         const closing = [];
-        const summaryValues = (label, values) => Object.freeze([
+        const aggregatePositions = report.columns.flatMap((column, index) => Object.hasOwn(report.totals, column.key) ? [index] : []);
+        const summaryValues = (label, values, positions) => Object.freeze([
             new ExportCell(label, { text: label, presentation: table.options.footerPresentation }),
-            ...values.map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
+            ...(positions ? positions.map(index => values[index]) : values).map(value => new ExportCell(value, { presentation: table.options.footerPresentation }))
         ]);
+        // Independent summaries have no detail values in non-aggregate columns. Project their
+        // declared operations, including zero/null results, rather than emitting label-only bands.
+        // Keep callback positions in the original source model after this physical projection.
+        const summaryLayouts = new Map();
+        const summaryLayout = (grand) => {
+            const existing = summaryLayouts.get(grand);
+            if (existing)
+                return existing;
+            const positions = [0, ...aggregatePositions.map(index => index + 1)];
+            const projected = positions.map(position => {
+                const column = columns[position];
+                if (!grand)
+                    return column;
+                const { groups: _groups, ...leaf } = column;
+                return leaf;
+            });
+            const originalPosition = (position) => {
+                const columnIndex = positions[position.columnIndex];
+                return { ...position, columnIndex, column: columns[columnIndex] };
+            };
+            const repeatColumns = positions.flatMap((position, index) => position === 0 || table.repeatedColumns.includes(position) ? [index] : []);
+            const wideTable = table.options.wideTable;
+            const projectedSettings = { ...sharedTable,
+                repeatedColumns: Object.freeze(repeatColumns), options: { ...table.options, columns: projected,
+                    ...(table.options.columnWidths === undefined ? {} : { columnWidths: positions.map(position => table.options.columnWidths[position]) }),
+                    ...(typeof wideTable !== "object" ? {} : { wideTable: { ...wideTable, repeatColumns } }),
+                    ...(table.options.formatValue === undefined ? {} : { formatValue: (value, position) => table.options.formatValue(value, originalPosition(position)) }),
+                    ...(table.options.formatRuns === undefined ? {} : { formatRuns: (value, position) => table.options.formatRuns(value, originalPosition(position)) })
+                } };
+            const projectedLayout = new PdfTableLayout(projectedSettings, fonts);
+            summaryLayouts.set(grand, projectedLayout);
+            return projectedLayout;
+        };
         const prepareGroupContext = async () => {
             const caption = await prepareParagraph(captureCaption({ text: path.map(group => group.label).join("\n"),
                 presentation: { bold: true }, spaceAfter: 4 }, pages.settings, fonts), pages.settings, fonts);
@@ -6120,17 +6170,25 @@ async function renderGroupedPdfTable(block, context) {
                         ...(group.label.trim() ? { bookmark: { title: group.label, level: (groupHeadingLevel + group.level) } } : {})
                     }, pages.settings, fonts), pages.settings, fonts));
             const groupHeight = groupHeadings.reduce((height, heading) => height + heading.height, 0);
-            await context.flushParagraphs((caption?.height ?? 0) + groupHeight + headingHeight + minimum);
-            let followingHeight = groupHeight + caption.height + headingHeight + minimum;
+            // Newly opened semantic headings already paint the end of this path. Only the open
+            // ancestor prefix needs an artifact here; later physical bands still paint the full path.
+            const ancestorCaption = semantic && semanticDepth > 0 ? await prepareParagraph(captureCaption({
+                text: path.slice(0, semanticDepth).map(group => group.label).join("\n"), presentation: { bold: true }, spaceAfter: 4
+            }, pages.settings, fonts), pages.settings, fonts) : undefined;
+            const openingHeight = semantic ? (ancestorCaption?.height ?? 0) + groupHeight : caption.height;
+            await context.flushParagraphs(openingHeight + headingHeight + minimum);
+            if (ancestorCaption)
+                await pages.paragraphs([ancestorCaption], groupHeight + headingHeight + minimum, true, { artifact: true });
+            let followingHeight = groupHeight + (semantic ? 0 : caption.height) + headingHeight + minimum;
             for (const heading of groupHeadings) {
                 followingHeight -= heading.height;
                 await pages.beginGroup(semanticDepth++, heading, followingHeight);
             }
-            await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic);
+            await pages.beginTable(layout, headings, minimum, caption, continuation, false, semantic, semantic);
             started = true;
             firstFragment = (caption?.lines.length ?? 0) > 0 || groupHeadings.some(heading => heading.lines.length > 0);
         };
-        const semanticSubtotal = async (row, level) => {
+        const semanticSubtotal = async (row, level, values) => {
             if (level === report.groupBy.length - 1) {
                 // A leaf's own subtotal shares its detail table and header identities. Keep the last
                 // detail/summary bundle when it fits; the existing flow owns continuation and limits.
@@ -6144,13 +6202,14 @@ async function renderGroupedPdfTable(block, context) {
             }
             await finishLeaf();
             const { caption, continuation } = await prepareGroupContext();
-            const minimum = layout.minimumRowHeight(row);
-            await context.flushParagraphs(caption.height + headingHeight + minimum);
+            const projected = summaryLayout(false), summaryHeadings = await projected.headers();
+            const summaryRow = await projected.data(values, 0, true), minimum = projected.minimumRowHeight(summaryRow);
+            await context.flushParagraphs(caption.height + await projected.blockHeight(summaryHeadings) + minimum);
             // An ancestor subtotal belongs to that ancestor's section, never the final child's table.
             // Its own visible column headings keep the separate logical summary table truthful.
-            await pages.beginTable(layout, headings, minimum, caption, continuation, false, true);
-            pages.summary(row);
-            await pages.row(row, caption.lines.length > 0 || headings.length > 0);
+            await pages.beginTable(projected, summaryHeadings, minimum, caption, continuation, false, true);
+            pages.summary(summaryRow);
+            await pages.row(summaryRow, caption.lines.length > 0 || summaryHeadings.length > 0);
             await pages.endTable();
             await pages.endGroup(level);
             semanticDepth = level;
@@ -6160,25 +6219,19 @@ async function renderGroupedPdfTable(block, context) {
             await finishLeaf();
             if (!includeGrandTotal && summary.rows !== 0)
                 return;
-            const completeColumns = summary.rows === 0 ? columns : columns.map(column => {
-                const { groups: _groups, ...leaf } = column;
-                return leaf;
-            });
-            const completeTable = settings({ ...table.options, columns: completeColumns,
-                includeHeader: input.includeHeader ?? true });
-            const completeLayout = summary.rows === 0 ? layout : new PdfTableLayout({ ...completeTable, budget: prepared.budget }, fonts);
+            const completeLayout = summary.rows === 0 ? layout : summaryLayout(true);
             const completeHeadings = summary.rows === 0 ? headings : await completeLayout.headers();
             rowIndex = -1;
             let total;
             if (includeGrandTotal) {
                 context.acceptRow(false);
-                total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals), 0, true);
+                total = await completeLayout.data(summaryValues(synchronousText(grandTotalLabel(summary), "grandTotalLabel"), summary.totals, summary.rows === 0 ? undefined : aggregatePositions), 0, true);
             }
             if (!completeHeadings.length && !total)
                 return;
             const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
             await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
-            await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, !semantic && summary.rows !== 0);
+            await pages.beginTable(completeLayout, completeHeadings, minimum);
             if (total) {
                 if (semantic)
                     pages.summary(total);
@@ -6206,9 +6259,11 @@ async function renderGroupedPdfTable(block, context) {
                 case "groupEnd": {
                     rowIndex = -1;
                     context.acceptRow(false);
-                    const row = await layout.data(summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals), 0, true);
+                    const separate = semantic && event.level !== report.groupBy.length - 1;
+                    const values = summaryValues(synchronousText(subtotalLabel(event), "subtotalLabel"), event.totals, separate ? aggregatePositions : undefined);
+                    const row = separate ? undefined : await layout.data(values, 0, true);
                     if (semantic)
-                        await semanticSubtotal(row, event.level);
+                        await semanticSubtotal(row, event.level, values);
                     else
                         closing.push(row);
                     break;

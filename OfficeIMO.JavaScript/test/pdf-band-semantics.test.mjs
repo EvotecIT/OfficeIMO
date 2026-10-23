@@ -59,6 +59,24 @@ test("tagged bands read each source cell once in row order across repeated ident
   assert.ok(pdf.pages.filter(page => page.lines.includes("ROW-1")).length > 2, "Identifiers repeat visually without duplicate semantic text");
 });
 
+test("short nonrepeated cell links retain their physical annotations and one logical owner through another band's continuation", async () => {
+  const detail = Array.from({ length: 40 }, (_, index) => "DETAIL-" + index).join("\n");
+  const pdf = await logicalPdf(await writePdf([["LINK-ROW", detail, 12,
+    new ExportCell("Open record", { link: { target: "https://example.com/record" } })]], options));
+  const links = [...pdf.elements.values()].filter(element => element.role === "Link");
+  assert.equal(links.length, 1); assert.equal(pdf.text(links[0].id), "Open record");
+  const linkedPages = pdf.pages.filter(page => page.lines.includes("Count"));
+  assert.ok(linkedPages.length > 1, "A nonrepeated native link remains a painting obligation on continuation bands");
+  const annotations = [...pdf.objects].filter(([, object]) => /\/Subtype \/Link /.test(object.body));
+  assert.equal(annotations.length, linkedPages.length);
+  for (const [id, annotation] of annotations) {
+    assert.match(annotation.body, /\/StructParent \d+/);
+    assert.equal(links.filter(link => new RegExp("/Type /OBJR /Obj " + id + " 0 R").test(link.body)).length, 1);
+  }
+  assert.equal(pdf.pages.flatMap(page => page.lines).filter(line => line === "Open record").length, 1);
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "TD").length, 4);
+});
+
 test("tagged table captions precede logical headers and repeated continuation context stays artifact", async () => {
   const pdf = await logicalPdf(await writePdfDocument([
     { ...pdfTable([["R1", "detail", 10, 2], ["R2", "detail", 20, 4]], { columns, wideTable: options.wideTable, columnWidths: options.columnWidths }),

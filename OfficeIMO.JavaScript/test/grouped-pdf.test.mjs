@@ -121,7 +121,9 @@ test("empty grouped PDFs retain selected headings independently of optional gran
   for (const limits of [{ maxCells: 0 }, { maxTextCharacters: 0 }])
     await assert.rejects(writeGroupedPdf(report([]), { ...options, includeGrandTotal: false, limits }), { code: "RESOURCE_LIMIT" });
   const populated = await inspectPdf(await writeGroupedPdf(report([{ team: "A", name: "One", amount: 1 }]), options));
-  for (const heading of headings) assert.equal(populated.text.split(heading).length - 1, 1, "A nonempty grand total does not repeat headings");
+  for (const heading of headings) assert.equal(populated.text.split(heading).length - 1,
+    heading === options.labelColumn.header || heading === "Czas" ? 2 : 1,
+    "A projected grand summary paints its label and aggregate headings without repeating detail-only fields");
 });
 
 test("grand totals retain metric headings when they move or split onto fresh pages", async () => {
@@ -138,19 +140,20 @@ test("grand totals retain metric headings when they move or split onto fresh pag
       : writeGroupedPdf(source(5, depth), { ...compact, ...labels })));
     const grand = pdf.pages.find(page => page.lines.includes("Grand"));
     assert.ok(pdf.pages.indexOf(grand) > 0, "The fixture must place the grand total on a later page");
-    for (const heading of ["Summary", "Item", "Amount"]) assert.ok(grand.lines.includes(heading), heading);
+    for (const heading of ["Summary", "Amount"]) assert.ok(grand.lines.includes(heading), heading);
   }
   const samePage = await inspectPdf(await writeGroupedPdf(source(1), { ...compact, ...labels }));
   assert.equal(samePage.pages.length, 1);
   for (const heading of ["Summary", "Item", "Amount"])
-    assert.equal(samePage.pages[0].lines.filter(line => line === heading).length, 1, "No duplicate same-page headings");
+    assert.equal(samePage.pages[0].lines.filter(line => line === heading).length, heading === "Item" ? 1 : 2,
+      "The projected grand summary has its own matching label and metric headings");
   const unheaded = await inspectPdf(await writeGroupedPdf(source(5), { ...compact, ...labels, includeHeader: false }));
   for (const heading of ["Summary", "Item", "Amount"]) assert.ok(!unheaded.text.includes(heading), "Explicit header omission is preserved");
   const split = await inspectPdf(await writeGroupedPdf(source(5), { ...compact, ...labels,
     grandTotalLabel: () => Array.from({ length: 36 }, (_, index) => `Grand-${index}`).join("\n") }));
   const totalPages = split.pages.filter(page => page.lines.some(line => /^Grand-/.test(line)));
   assert.ok(totalPages.length > 1);
-  for (const page of totalPages) for (const heading of ["Summary", "Item", "Amount"]) assert.ok(page.lines.includes(heading), heading);
+  for (const page of totalPages) for (const heading of ["Summary", "Amount"]) assert.ok(page.lines.includes(heading), heading);
   assert.deepEqual(totalPages.flatMap(page => page.lines).filter(line => /^Grand-/.test(line)), Array.from({ length: 36 }, (_, index) => `Grand-${index}`));
 });
 

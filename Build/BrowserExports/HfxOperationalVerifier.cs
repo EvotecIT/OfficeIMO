@@ -53,13 +53,25 @@ internal static class HfxOperationalVerifier {
         WorkbookVerifier.Verify(path);
         using var package = SpreadsheetDocument.Open(path, false);
         WorkbookPart book = package.WorkbookPart!;
-        var sheet = book.Workbook!.Sheets!.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Single();
+        var sheets = book.Workbook!.Sheets!.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToArray();
+        Require(sheets.Select(sheet => sheet.Name!.Value).SequenceEqual(new[] { "Report context", "Selected inventory" }), "Workbook context/analysis sheet order differs.");
+        var sheet = sheets.Single(sheet => sheet.Name!.Value == "Selected inventory");
         var part = (WorksheetPart)book.GetPartById(sheet.Id!.Value!);
         using var stream = part.GetStream(FileMode.Open, FileAccess.Read); var xml = XDocument.Load(stream);
         string[] shared = book.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray() ?? [];
         string Text(XElement? cell) => cell is null ? "" : (string?)cell.Attribute("t") == "s" ? shared[int.Parse(cell.Element(Sheet + "v")!.Value, CultureInfo.InvariantCulture)]
             : (string?)cell.Attribute("t") == "inlineStr" ? string.Concat(cell.Descendants(Sheet + "t").Select(value => value.Value)) : cell.Element(Sheet + "v")?.Value ?? "";
+        var contextPart = (WorksheetPart)book.GetPartById(sheets[0].Id!.Value!);
+        using var contextStream = contextPart.GetStream(FileMode.Open, FileAccess.Read);
+        var contextXml = XDocument.Load(contextStream);
+        string contextText = string.Join("\n", contextXml.Descendants(Sheet + "c").Select(Text));
+        Require(contextText.Contains("Operational inventory review", StringComparison.Ordinal)
+            && contextText.Contains("Counts in group labels describe the exported selection", StringComparison.Ordinal), "Workbook lacks its report scope/count interpretation.");
         string[] keys = Strings(expected.GetProperty("keys")), headers = Strings(expected.GetProperty("headers"));
+        foreach (string key in new[] { "latency", "availability", "requests" }.Intersect(keys, StringComparer.Ordinal)) {
+            string statistic = key == "requests" ? "sum" : "average";
+            Require(contextText.Contains(headers[Array.IndexOf(keys, key)] + " — " + statistic, StringComparison.Ordinal), "Workbook summary operation legend differs from the selected metric.");
+        }
         JsonElement[] wanted = expected.GetProperty("rows").EnumerateArray().ToArray();
         int serviceColumn = Array.IndexOf(keys, "service") + 2;
         XElement? Cell(XElement row, int column) => row.Elements(Sheet + "c").FirstOrDefault(cell => (string?)cell.Attribute("r") == Column(column) + row.Attribute("r")!.Value);

@@ -382,10 +382,11 @@ export class PdfPages {
   /** The generated summary label is a row heading; no localized text/style inference is used. */
   summary(row: PdfLayoutRow): void { this.summaryRows.add(row); }
   /** Begin an independent table on the current page, retaining its headings on continuation pages.
-   * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
+   * Group context uses captionArtifact: it stays visually complete without duplicating logical headings.
+   * An already-painted opening path only suppresses its artifact caption on that existing page. */
   async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
-    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false, captionArtifact = false): Promise<void> {
-    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
+    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false, captionArtifact = false, openingContextAlreadyPainted = false): Promise<void> {
+    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact, openingContextAlreadyPainted);
     await this.ensureStarted();
     this.layout = layout;
     this.paintedHeaderCells = new WeakSet();
@@ -398,7 +399,7 @@ export class PdfPages {
     // Its own headings remain available when it moves or splits onto a fresh page.
     const initialHeadings = headingsOnNewPageOnly && this.bodyAdded && !this.structure ? [] : headings;
     const height = initialHeadings.reduce((n, row) => n + row.height, 0);
-    if (caption) {
+    if (caption && !(captionArtifact && openingContextAlreadyPainted)) {
       await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
       this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
         : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
@@ -419,7 +420,7 @@ export class PdfPages {
   }
   /** Bind the bounded logical-window owner to the existing physical page painter. */
   private async beginBands(layout: PdfTableLayout, preparedHeadings: readonly PdfLayoutRow[] | undefined, minimumDataHeight: number,
-    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined, captionArtifact: boolean): Promise<void> {
+    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined, captionArtifact: boolean, openingContextAlreadyPainted: boolean): Promise<void> {
     await this.ensureStarted();
     const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
     const headerHeight = headings[0]!.reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -427,9 +428,11 @@ export class PdfPages {
     const minimum = minimumDataHeight <= firstFullCapacity + .001 ? minimumDataHeight : layout.lineHeight + padding * 2;
     const continuationCapacity = page.height - margins.top - margins.bottom - headerHeight - (continuation?.height ?? 0);
     if (continuationCapacity + .001 < layout.lineHeight + padding * 2) throw new RangeError("PDF band headings and continuation context leave no room for a data line.");
-    if (this.y - margins.bottom - headerHeight - (caption?.height ?? 0) + .001 < minimum) await this.pageBreak();
-    let initialOffset = page.height - margins.top - this.y;
-    const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
+    let openingContextPainted = captionArtifact && openingContextAlreadyPainted;
+    if (this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0) + .001 < minimum) {
+      await this.pageBreak(); openingContextPainted = false;
+    }
+    const firstCapacity = this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0);
     if (firstCapacity + .001 < minimum) throw new RangeError("PDF band caption and headings leave no room for a data line.");
     let captionPaints = 0, continuationPaints = 0;
     this.tableElement = this.structure?.element("Table", this.groupParent);
@@ -444,15 +447,14 @@ export class PdfPages {
     this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
       prepareRow: async row => { await this.tableStructure?.prepareHeaders(); await this.rowElements(row); },
       completeRow: async row => { await this.tableStructure?.completeRow(row.source ?? row); },
-      moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
+      moveFirstToFreshPage: async () => { await this.pageBreak(); openingContextPainted = false; },
       paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
         if (!(firstWindow && firstBand)) await this.pageBreak();
-        if (firstWindow && !firstBand) this.y -= initialOffset;
         const frame = layout.bands![band]!;
         this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
         this.bandCellBudget = true;
         try {
-          if (currentCaption?.lines.length) {
+          if (currentCaption?.lines.length && !(firstWindow && firstBand && openingContextPainted)) {
             const paints = firstWindow ? captionPaints++ : continuationPaints++;
             if (paints > 0) this.settings.budget.cell(currentCaption.text.text);
             if (!firstWindow && paints === 0) captionElement = this.captionAnnotations(currentCaption, captionElement);
