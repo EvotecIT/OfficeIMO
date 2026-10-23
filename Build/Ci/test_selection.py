@@ -135,6 +135,24 @@ class SelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(self.choose(path)["suites"]["website"])
 
+    def test_unowned_powershell_assets_keep_their_suite_without_all_managed_tests(self):
+        for path in ["PowerShell/PSWriteOffice/PSWriteOffice.Tests.ps1",
+                     "PowerShell/PSWriteOffice/PSWriteOffice.psm1",
+                     "PowerShell/PSWriteOffice/Docs/command.md"]:
+            with self.subTest(path=path):
+                result = self.choose(path)
+                self.assertTrue(result["suites"]["powershell"])
+                self.assertTrue(result["suites"]["website"])
+                self.assertFalse(result["managed"])
+
+    def test_linked_powershell_asset_still_selects_its_managed_consumer(self):
+        path = self.root / "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"
+        path.write_text('<Project><ItemGroup><Content Include="../PowerShell/PSWriteOffice/*.ps1" /></ItemGroup></Project>')
+        result = self.choose("PowerShell/PSWriteOffice/PSWriteOffice.Tests.ps1")
+        self.assertTrue(result["suites"]["powershell"])
+        self.assertTrue(result["suites"]["csv"])
+        self.assertFalse(result["suites"]["word"])
+
     def test_conditional_references_are_not_lost_on_another_os(self):
         path = self.root / "OfficeIMO.Word/OfficeIMO.Word.csproj"
         path.write_text('<Project><ItemGroup Condition="false"><ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" /></ItemGroup></Project>')

@@ -72,6 +72,10 @@ def select(root, changed, full=False):
         if owners:
             affected.update(owners)
             directly_changed.update(owners)
+        elif path.startswith("PowerShell/"):
+            # Unowned module assets run through the PowerShell suite below.
+            # Linked consumers were collected before this routing decision.
+            continue
         else:
             # Shared source, fixtures, build scripts, workflow and graph changes fail open.
             wide = True

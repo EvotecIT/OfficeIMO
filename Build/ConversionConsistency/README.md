@@ -38,8 +38,9 @@ dotnet $tool run --suite Build/ConversionConsistency/suite.json --output "$evide
 ```
 
 Linux needs Chromium's native operating-system dependencies. The Ubuntu 24.04 CI
-image supplies those dependencies; the workflow caches the HtmlTinkerX browser
-installation and installs Poppler only when it is absent.
+image supplies them. On other Linux hosts, set `HTMLTINKERX_PLAYWRIGHT_WITH_DEPS=1`
+before `install-browser` to request dependency installation. The workflow caches
+the HtmlTinkerX browser installation and installs Poppler only when it is absent.
 
 Output directories must be empty when preparing, exporting, or producing SVG content-safety evidence. Choose a new directory for another run, or remove only the earlier output that you own. `--case native-pptx` selects a single source case. `--repository` selects the repository root; `--pdftoppm` selects the independent rasterizer executable for verification. `--browser-executable` lets the SVG evidence command use an explicitly selected Chromium-family executable; CI uses the pinned Playwright browser. Unknown, duplicate, and inapplicable options are rejected.
 

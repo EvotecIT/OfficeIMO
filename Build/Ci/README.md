@@ -44,9 +44,12 @@ Font data and ordinary NuGet restores use local composite actions. The NuGet
 action resolves the configured global package directory; package-consumer
 qualification keeps its isolated caches. Complete default-branch builds populate
 the immutable NuGet key; small suites restore it without saving partial graphs.
-PowerShell tests cache exact module
-versions and use PSResourceGet on PowerShell 7, with the supported PowerShellGet
-route on Windows PowerShell 5.1. Chromium installation belongs to HtmlTinkerX;
+PowerShell tests cache exact module versions. `Save-PowerShellTools.ps1` retrieves
+the three dependency-free tools listed in `powershell-tools.json` directly from
+the Gallery CDN and verifies their SHA-256 and module manifests. Both PowerShell
+hosts and website preparation use that bootstrap, avoiding Gallery discovery
+requests and NuGet provider setup. Recheck package dependencies when updating pins.
+Chromium installation belongs to HtmlTinkerX;
 the comparison tool delegates installation to that owner and caches its output.
 
 Test declarations and format fixtures are retained. The redundant complete

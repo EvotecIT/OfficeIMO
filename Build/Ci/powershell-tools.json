@@ -1,0 +1,14 @@
+{
+  "Pester": {
+    "version": "6.1.0",
+    "sha256": "0207a75ea09f81b27c1ded44898b2bb3c845bafa02045bd64a39e26a53ca41b4"
+  },
+  "PSWriteColor": {
+    "version": "1.0.3",
+    "sha256": "8fddfd1bad17ecde43804caf2ec5a3cc38226d41293c7479c1ed6fc0f41325ea"
+  },
+  "PSPublishModule": {
+    "version": "3.0.170",
+    "sha256": "38d26e58c920a9883406feafb1e8c0ffd845c1ff46b93d7501cfe0f0d605db45"
+  }
+}

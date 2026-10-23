@@ -1,5 +1,5 @@
 name: Pinned PowerShell test modules
-description: Cache exact test tools and avoid the legacy NuGet.exe installer on PowerShell 7.
+description: Cache verified exact archives without Gallery metadata or a NuGet provider.
 inputs:
   shell:
     description: PowerShell host used by the tests
@@ -13,7 +13,7 @@ runs:
     - uses: actions/cache@v6
       with:
         path: ${{ runner.temp }}/officeimo-ci-modules
-        key: ${{ runner.os }}-${{ inputs.shell }}-modules-pester6.1.0-color1.0.3-publish3.0.170-${{ inputs.packaging }}-v1
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.shell }}-modules-${{ hashFiles('Build/Ci/powershell-tools.json') }}-${{ inputs.packaging }}-v2
     - shell: ${{ inputs.shell }}
       env:
         OFFICEIMO_CI_PACKAGING: ${{ inputs.packaging }}

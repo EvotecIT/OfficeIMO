@@ -16,7 +16,12 @@ runs:
       working-directory: ${{ github.workspace }}
       env:
         PR_BASE: ${{ github.event.pull_request.base.sha }}
-      run: git fetch --no-tags --depth=1 origin "$PR_BASE"
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+          git fetch --no-tags --depth=1 origin "$PR_BASE"
     - id: selection
       shell: bash
       working-directory: ${{ github.workspace }}
