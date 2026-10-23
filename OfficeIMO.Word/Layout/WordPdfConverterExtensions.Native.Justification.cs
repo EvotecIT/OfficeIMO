@@ -9,6 +9,7 @@ public static partial class WordPdfConverterExtensions {
         W.JustificationValues? resolvedAlignment = null) {
         W.JustificationValues? alignment = resolvedAlignment ?? ResolveNativeParagraphJustification(paragraph);
         if (alignment != W.JustificationValues.Both && alignment != W.JustificationValues.Distribute) return;
+        style.UseWordJustificationSpacing = true;
         W.DoNotExpandShiftReturn? suppression = paragraph._document?._wordprocessingDocument?.MainDocumentPart?
             .DocumentSettingsPart?.Settings?.GetFirstChild<W.Compatibility>()?.GetFirstChild<W.DoNotExpandShiftReturn>();
         style.JustifyExplicitLineBreaks = ReadNativeOnOff(suppression) != true;

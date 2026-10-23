@@ -518,7 +518,7 @@
     "knownLimits": [
       "complex-script shaping beyond the bounded managed fallback requires an IOfficeTextShapingProvider; OfficeIMO.Drawing.HarfBuzz supplies the optional full GSUB/GPOS implementation used by the browser premium profile",
       "Office source fonts that are unavailable or cannot be embedded fall back to a mapped PDF font and retain an explicit conversion warning; available embeddable families are not limited to three compatibility slots",
-      "ordinary Word justified-space compression and line-break admission remain unqualified; character distribution uses uniform shaped-cluster expansion rather than native nonuniform character weights",
+      "Word justification supports expansion weighted by source-space metrics, ordinary-space compression capped at one quarter of each measured source advance, and a fixed-frame word-break comparison; these policies do not guarantee native line membership or pagination across wider font, compatibility and layout profiles, and the comparison does not cover character distribution or dynamic line frames",
       "rich Word footnote and endnote paragraphs support ordinary text, decorations, lists, keep constraints and inline pictures; note tables and exact native endnote section and continuation behavior remain outside universal layout claims",
       "OneNote PDF is an explicit semantic-document projection and reports free-form canvas flattening and unresolved binary assets",
       "formal PDF/A, PDF/UA, Factur-X, and ZUGFeRD claims require the external validator workflow for the exact artifact"

@@ -117,6 +117,9 @@ public class PdfParagraphStyle {
     /// <summary>When true, a justified paragraph also expands its final line. The default retains natural spacing on that line.</summary>
     public bool JustifyLastLine { get; set; }
 
+    /// <summary>Uses the imported Word ordinary-space resource when admitting justified lines.</summary>
+    internal bool UseWordJustificationSpacing { get; set; }
+
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>Imported document policy when kept or minimum orphan lines exceed a complete continuation frame.</summary>
@@ -158,6 +161,7 @@ public class PdfParagraphStyle {
             JustificationMode = JustificationMode,
             JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
             JustifyLastLine = JustifyLastLine,
+            UseWordJustificationSpacing = UseWordJustificationSpacing,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
             LineHeight = LineHeight,

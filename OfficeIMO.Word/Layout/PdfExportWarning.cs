@@ -64,6 +64,7 @@ namespace OfficeIMO.Word.Pdf {
             "NativeFootnoteContentOmitted" or
             "NativeFootnoteSeparatorMarkOmitted" or
             "NativeFootnoteSeparatorDecorationOmitted" or
+            "NativeFieldResultUnavailable" or
             "NativeMixedDrawableUnsupported" or
             "NativeShapeGroupUnsupported" or
             "NativeWatermarkImageUnsupported" or

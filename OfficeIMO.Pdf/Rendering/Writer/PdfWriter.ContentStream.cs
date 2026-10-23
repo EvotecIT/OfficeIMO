@@ -423,7 +423,7 @@ internal sealed partial class ContentStreamBuilder {
 
         if (!command.HasPositioning) {
             OpenShow(fontSize);
-            if (command.JustificationBoundaries != null && command.GlyphCount > 0) {
+            if (command.HasJustificationAdvances && command.GlyphCount > 0) {
                 string hex = command.GlyphHex;
                 int codeLength = hex.Length / command.GlyphCount;
                 for (int index = 0; index < command.GlyphCount; index++) {
@@ -458,7 +458,7 @@ internal sealed partial class ContentStreamBuilder {
                 * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
             AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
                 + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing
-                + (command.JustificationBoundaries?.Count(boundary => boundary) ?? 0) * command.JustificationTracking / _textScale);
+                + command.TotalJustificationAdvance / _textScale);
         } else {
             _positionKnown = false;
         }

@@ -59,7 +59,7 @@ public static partial class WordRtfConverterExtensions {
         return note;
     }
 
-    private static void AppendAnnotationComment(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument) {
+    private static void AppendAnnotationComment(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         Comments comments = WordComment.GetCommentsPart(wordRun._document);
         CommentsEx commentsEx = WordComment.GetCommentsExPart(wordRun._document);
         string commentId = WordComment.GetNewId(wordRun._document, comments);
@@ -75,7 +75,7 @@ public static partial class WordRtfConverterExtensions {
             comment.AppendChild(new Paragraph(new Run(new Text(string.Empty))));
         } else {
             foreach (RtfParagraph paragraph in note.Paragraphs) {
-                WordParagraph wordParagraph = CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument);
+                WordParagraph wordParagraph = CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument, numbering);
                 comment.AppendChild((Paragraph)wordParagraph._paragraph.CloneNode(true));
             }
         }

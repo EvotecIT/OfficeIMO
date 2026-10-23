@@ -38,6 +38,10 @@ public static partial class WordRtfConverterExtensions {
     public static WordDocument ToWordDocument(this RtfDocument rtfDocument) {
         if (rtfDocument == null) throw new ArgumentNullException(nameof(rtfDocument));
 
+        return ToWordDocumentCore(rtfDocument, null);
+    }
+
+    private static WordDocument ToWordDocumentCore(RtfDocument rtfDocument, RtfConversionReport? report) {
         RtfTableTraversalGuard.ValidateDocument(rtfDocument);
         WordDocument document = WordDocument.Create();
         ApplyDocumentInfo(rtfDocument, document);
@@ -45,16 +49,17 @@ public static partial class WordRtfConverterExtensions {
         ApplyDefaultLanguage(rtfDocument, document);
         ApplyDocumentSettings(rtfDocument, document);
         ApplyRtfStylesAndNumbering(rtfDocument, document);
+        RtfWordNumberingPlan numbering = RtfWordNumberingPlan.Create(rtfDocument, document, report);
         if (rtfDocument.Sections.Count > 0) {
-            ApplySections(rtfDocument, document);
+            ApplySections(rtfDocument, document, numbering);
         } else {
-            ApplyHeaderFooters(rtfDocument, document);
+            ApplyHeaderFooters(rtfDocument, document, numbering);
             ApplyPageSetup(rtfDocument, document);
             foreach (IRtfBlock block in rtfDocument.Blocks) {
                 if (block is RtfParagraph paragraph) {
-                    AppendParagraph(document, paragraph, rtfDocument);
+                    AppendParagraph(document, paragraph, rtfDocument, numbering);
                 } else if (block is RtfTable table) {
-                    AppendTable(document, table, rtfDocument);
+                    AppendTable(document, table, rtfDocument, numbering);
                 } else if (block is RtfImage image) {
                     AppendImage(document, image);
                 }
@@ -110,11 +115,11 @@ public static partial class WordRtfConverterExtensions {
         return RtfTabLeader.None;
     }
 
-    private static void ApplyHeaderFooters(RtfDocument rtfDocument, WordDocument document) {
+    private static void ApplyHeaderFooters(RtfDocument rtfDocument, WordDocument document, RtfWordNumberingPlan numbering) {
         foreach (RtfHeaderFooter headerFooter in rtfDocument.HeaderFooters) {
             WordHeaderFooter target = GetWordHeaderFooter(document, headerFooter.Kind);
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                AppendParagraph(target, paragraph, rtfDocument);
+                AppendParagraph(target, paragraph, rtfDocument, numbering);
             }
         }
     }
@@ -855,18 +860,18 @@ public static partial class WordRtfConverterExtensions {
         return note;
     }
 
-    private static void AppendParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument rtfDocument) {
+    private static void AppendParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = document.AddParagraph();
         ApplyTabStops(wordParagraph, paragraph);
-        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
-        AppendRuns(wordParagraph, paragraph, rtfDocument);
+        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
+        AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
-    private static void AppendParagraph(WordHeaderFooter headerFooter, RtfParagraph paragraph, RtfDocument rtfDocument) {
+    private static void AppendParagraph(WordHeaderFooter headerFooter, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = headerFooter.AddParagraph();
         ApplyTabStops(wordParagraph, paragraph);
-        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
-        AppendRuns(wordParagraph, paragraph, rtfDocument);
+        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
+        AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
     private static void ApplyTabStops(WordParagraph destination, RtfParagraph source) {
@@ -909,7 +914,8 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void AppendRuns(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument? rtfDocument) {
+    private static void AppendRuns(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
+        numbering.AppendFallback(wordParagraph, paragraph);
         var openBookmarks = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (IRtfInline inline in paragraph.Inlines) {
             if (inline is RtfBookmarkMarker marker) {
@@ -918,12 +924,12 @@ public static partial class WordRtfConverterExtensions {
             }
 
             if (inline is RtfField field) {
-                AppendField(wordParagraph, field, rtfDocument);
+                AppendField(wordParagraph, field, rtfDocument, numbering);
                 continue;
             }
 
             if (inline is RtfGeneratedText generatedText) {
-                AppendGeneratedText(wordParagraph, generatedText, rtfDocument);
+                AppendGeneratedText(wordParagraph, generatedText, rtfDocument, numbering);
                 continue;
             }
 
@@ -961,16 +967,16 @@ public static partial class WordRtfConverterExtensions {
             ApplyRtfRunFormatting(rtfDocument != null && rtfDocument.Styles.Count > 0 ? rtfDocument.GetRunFormatting(paragraph, run) : run, wordRun, rtfDocument);
 
             if (run.Note != null) {
-                AppendNote(wordRun, run.Note, rtfDocument);
+                AppendNote(wordRun, run.Note, rtfDocument, numbering);
             }
         }
     }
 
-    private static void AppendGeneratedText(WordParagraph wordParagraph, RtfGeneratedText generatedText, RtfDocument? rtfDocument) {
+    private static void AppendGeneratedText(WordParagraph wordParagraph, RtfGeneratedText generatedText, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         if (generatedText.Kind == RtfGeneratedTextKind.NoteReference) {
             WordParagraph wordRun = wordParagraph.AddText(generatedText.FallbackText ?? string.Empty);
             if (generatedText.Note != null) {
-                AppendNote(wordRun, generatedText.Note, rtfDocument);
+                AppendNote(wordRun, generatedText.Note, rtfDocument, numbering);
             }
 
             return;
@@ -981,10 +987,10 @@ public static partial class WordRtfConverterExtensions {
             field.AddText(generatedText.FallbackText!);
         }
 
-        AppendField(wordParagraph, field, rtfDocument);
+        AppendField(wordParagraph, field, rtfDocument, numbering);
         if (generatedText.Note != null) {
             WordParagraph wordRun = wordParagraph.AddText(generatedText.FallbackText ?? string.Empty);
-            AppendNote(wordRun, generatedText.Note, rtfDocument);
+            AppendNote(wordRun, generatedText.Note, rtfDocument, numbering);
         }
     }
 
@@ -1024,15 +1030,15 @@ public static partial class WordRtfConverterExtensions {
         wordRun._run.RunProperties.Vanish = new Vanish { Val = hidden };
     }
 
-    private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
+    private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         if (field.HyperlinkField != null) {
-            AppendHyperlinkField(wordParagraph, field, rtfDocument);
+            AppendHyperlinkField(wordParagraph, field, rtfDocument, numbering);
             return;
         }
 
         var simpleField = new SimpleField { Instruction = field.Instruction };
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
-        AppendRuns(resultParagraph, field.Result, rtfDocument);
+        AppendRuns(resultParagraph, field.Result, rtfDocument, numbering);
         foreach (OpenXmlElement child in resultParagraph._paragraph.ChildElements) {
             if (child is ParagraphProperties) {
                 continue;
@@ -1043,9 +1049,9 @@ public static partial class WordRtfConverterExtensions {
         wordParagraph._paragraph.Append(simpleField);
     }
 
-    private static void AppendHyperlinkField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
+    private static void AppendHyperlinkField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
-        AppendRuns(resultParagraph, field.Result, rtfDocument);
+        AppendRuns(resultParagraph, field.Result, rtfDocument, numbering);
         List<OpenXmlElement> inlineContent = CreateHyperlinkInlineContent(resultParagraph._paragraph);
         string tooltip = field.HyperlinkField?.ScreenTip ?? string.Empty;
         WordParagraph? linkedParagraph = null;
@@ -1108,9 +1114,9 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void AppendNote(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument) {
+    private static void AppendNote(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         if (note.Kind == RtfNoteKind.Annotation) {
-            AppendAnnotationComment(wordRun, note, rtfDocument);
+            AppendAnnotationComment(wordRun, note, rtfDocument, numbering);
             return;
         }
 
@@ -1120,25 +1126,25 @@ public static partial class WordRtfConverterExtensions {
 
         RtfParagraph? firstParagraph = note.Paragraphs.FirstOrDefault();
         WordParagraph noteParagraph = firstParagraph != null
-            ? CreateDetachedWordParagraph(wordRun._document, firstParagraph, rtfDocument)
+            ? CreateDetachedWordParagraph(wordRun._document, firstParagraph, rtfDocument, numbering)
             : new WordParagraph(wordRun._document, newParagraph: true, newRun: true);
         WordParagraph referenceRun = note.Kind == RtfNoteKind.Endnote
             ? WordEndNote.AddEndNote(wordRun._document, wordRun, noteParagraph)
             : WordFootNote.AddFootNote(wordRun._document, wordRun, noteParagraph);
-        AppendAdditionalNoteParagraphs(referenceRun, note, rtfDocument);
+        AppendAdditionalNoteParagraphs(referenceRun, note, rtfDocument, numbering);
     }
 
-    private static WordParagraph CreateDetachedWordParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument? rtfDocument) {
+    private static WordParagraph CreateDetachedWordParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         var wordParagraph = new WordParagraph(document, newParagraph: true, newRun: false);
         if (rtfDocument != null) {
-            ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
+            ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         }
 
-        AppendRuns(wordParagraph, paragraph, rtfDocument);
+        AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
         return wordParagraph;
     }
 
-    private static void AppendAdditionalNoteParagraphs(WordParagraph referenceRun, RtfNote note, RtfDocument? rtfDocument) {
+    private static void AppendAdditionalNoteParagraphs(WordParagraph referenceRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
         if (note.Paragraphs.Count <= 1) {
             return;
         }
@@ -1160,7 +1166,7 @@ public static partial class WordRtfConverterExtensions {
         if (noteElement == null) return;
 
         foreach (RtfParagraph paragraph in note.Paragraphs.Skip(1)) {
-            WordParagraph wordParagraph = CreateDetachedWordParagraph(referenceRun._document, paragraph, rtfDocument);
+            WordParagraph wordParagraph = CreateDetachedWordParagraph(referenceRun._document, paragraph, rtfDocument, numbering);
             noteElement.Append(wordParagraph._paragraph);
         }
     }

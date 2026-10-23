@@ -74,7 +74,7 @@ public static partial class WordRtfConverterExtensions {
         CopySectionColumns(source._sectionProperties.GetFirstChild<Columns>(), destination);
     }
 
-    private static void ApplySections(RtfDocument rtfDocument, WordDocument document) {
+    private static void ApplySections(RtfDocument rtfDocument, WordDocument document, RtfWordNumberingPlan numbering) {
         var wordSections = new WordSection[rtfDocument.Sections.Count];
         wordSections[0] = document.Sections[0];
 
@@ -91,9 +91,9 @@ public static partial class WordRtfConverterExtensions {
 
             foreach (IRtfBlock block in rtfSection.Blocks) {
                 if (block is RtfParagraph paragraph) {
-                    AppendParagraph(wordSection, paragraph, rtfDocument);
+                    AppendParagraph(wordSection, paragraph, rtfDocument, numbering);
                 } else if (block is RtfTable table) {
-                    AppendTable(wordSection, table, rtfDocument);
+                    AppendTable(wordSection, table, rtfDocument, numbering);
                 } else if (block is RtfImage image) {
                     AppendImage(wordSection, image);
                 }
@@ -103,7 +103,7 @@ public static partial class WordRtfConverterExtensions {
         for (int index = 0; index < rtfDocument.Sections.Count; index++) {
             ApplyPageSetup(rtfDocument.Sections[index], wordSections[index], rtfDocument);
         }
-        ApplySectionHeaderFooters(rtfDocument, document, wordSections);
+        ApplySectionHeaderFooters(rtfDocument, document, wordSections, numbering);
     }
 
     private static void ApplyPageSetup(RtfSection source, WordSection destination, RtfDocument rtfDocument) {
@@ -221,11 +221,11 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void AppendParagraph(WordSection section, RtfParagraph paragraph, RtfDocument rtfDocument) {
+    private static void AppendParagraph(WordSection section, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = section.AddParagraph();
         ApplyTabStops(wordParagraph, paragraph);
-        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
-        AppendRuns(wordParagraph, paragraph, rtfDocument);
+        ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
+        AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
 }

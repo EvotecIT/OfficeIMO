@@ -76,10 +76,26 @@ public sealed class PdfHeadingStyle {
     /// <summary>When true, the heading moves to the next page when it would otherwise be separated from the following paragraph.</summary>
     public bool KeepWithNext { get; set; } = true;
 
+    /// <summary>Retains the imported paragraph's native justified-line admission policy.</summary>
+    internal bool UseWordJustificationSpacing { get; set; }
+
+    /// <summary>Retains the imported heading's expandable boundary mode.</summary>
+    internal PdfJustificationMode JustificationMode { get; set; }
+
+    /// <summary>Retains whether imported source expands an explicit-break line.</summary>
+    internal bool JustifyExplicitLineBreaks { get; set; }
+
+    /// <summary>Retains whether imported source expands its final logical line.</summary>
+    internal bool JustifyLastLine { get; set; }
+
     /// <summary>Creates a copy of this heading style.</summary>
     public PdfHeadingStyle Clone() {
         return new PdfHeadingStyle {
             AnchoredCanvas = AnchoredCanvas,
+            UseWordJustificationSpacing = UseWordJustificationSpacing,
+            JustificationMode = JustificationMode,
+            JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
+            JustifyLastLine = JustifyLastLine,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
             LineHeight = LineHeight,

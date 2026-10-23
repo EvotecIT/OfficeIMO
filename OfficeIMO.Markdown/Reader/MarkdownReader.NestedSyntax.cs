@@ -43,6 +43,7 @@ public static partial class MarkdownReader {
             : options;
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
+        nestedState.LastInputLineIsContent = true;
         if (state.CaptureSyntaxTree) {
             nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
         }

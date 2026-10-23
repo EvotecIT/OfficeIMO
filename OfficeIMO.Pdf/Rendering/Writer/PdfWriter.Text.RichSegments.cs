@@ -44,7 +44,8 @@ internal static partial class PdfWriter {
             double characterSpacing = 0D, double fontMetricScale = 1D,
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
             bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
-            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null, PdfFootnoteDefinition? footnoteReference = null) {
+            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null, PdfFootnoteDefinition? footnoteReference = null,
+            bool leadingIsOrdinarySpace = false) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -60,6 +61,7 @@ internal static partial class PdfWriter {
             Baseline = baseline;
             MeasuredWidth = measuredWidth;
             LeadingSpace = leadingSpace;
+            LeadingIsOrdinarySpace = leadingIsOrdinarySpace;
             LeadingAdvance = leadingAdvance;
             LeadingTabStop = leadingTabStop;
             LeadingIsTab = leadingIsTab;
@@ -146,10 +148,15 @@ internal static partial class PdfWriter {
             FootnoteReferenceOrigin = source.FootnoteReferenceOrigin;
             JustificationAdvance = source.JustificationAdvance;
             JustificationPolicy = source.JustificationPolicy;
+            LeadingIsOrdinarySpace = source.LeadingIsOrdinarySpace;
+            CompressionPlan = source.CompressionPlan;
             return this;
         }
 
         public bool LeadingSpace { get; }
+
+        /// <summary>True only for a preserved source U+0020 separator, independent of its painted advance.</summary>
+        public bool LeadingIsOrdinarySpace { get; private set; }
 
         public double LeadingAdvance { get; }
         public PdfTabStop? LeadingTabStop { get; }
@@ -205,6 +212,7 @@ internal static partial class PdfWriter {
         public double CharacterSpacing { get; }
         public double JustificationAdvance { get; private set; }
         public RichLineJustificationPolicy? JustificationPolicy { get; private set; }
+        public WordCompressionPlan? CompressionPlan { get; private set; }
         public bool ContributesLineBoxDescent { get; private set; }
         public bool IsLineBoxStrut { get; private set; }
 
@@ -231,6 +239,12 @@ internal static partial class PdfWriter {
         public RichSeg WithJustificationPolicy(RichLineJustificationPolicy policy) {
             RichSeg copy = WithJustification(0D, LeadingAdvance, null);
             copy.JustificationPolicy = policy;
+            return copy;
+        }
+
+        public RichSeg WithCompressionPlan(WordCompressionPlan? plan) {
+            RichSeg copy = WithJustification(0D, LeadingAdvance, null);
+            copy.CompressionPlan = plan;
             return copy;
         }
     }

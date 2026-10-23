@@ -9,6 +9,10 @@ internal sealed class PdfFontUnitLayoutMetrics {
     internal PdfFontUnitLayoutMetrics(byte[] data) =>
         _reader = new Lazy<OfficeOpenTypeReader?>(() => OfficeOpenTypeReader.TryCreate(data));
 
+    /// <summary>Optional source average, sharing the validated lazy reader with design-unit layout.</summary>
+    internal OfficeOpenTypeAverageAdvanceMetrics? AverageAdvanceMetrics =>
+        OfficeOpenTypeAverageAdvanceMetrics.TryRead(_reader.Value);
+
     internal double MeasureAdvanceWidth1000(PdfGlyphRun run, double horizontalScaling = 100D) {
         // Retain the ordinary checked-sum contract even when the layout metric
         // has greater precision than the encoded PDF advances.
