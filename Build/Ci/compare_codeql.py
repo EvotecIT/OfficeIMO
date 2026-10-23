@@ -1,8 +1,12 @@
-"""Compare paired CodeQL extraction inventories and full-suite SARIF results.
+"""Compare CodeQL inventories, SARIF alerts and full-suite execution evidence.
 
 Inputs are CSV from ExtractedFiles.ql and SARIF from the same CLI/query bundle.
 Run against unchanged product source and output paths; do not normalize away
-source, generated-file, location, query or message differences.
+source, generated-file, alert-location, query-identity or alert-message differences.
+
+Equality covers the extracted CSV inventory, rule and executed-query ID sets,
+and projected SARIF alerts. BQRS artifacts attest execution and ZIP integrity;
+their rows and diagnostic notification messages are not compared.
 """
 import argparse
 import collections
@@ -80,7 +84,7 @@ def executed_queries(bundle, metadata, expected):
 
 def compare(before_files, after_files, before_sarif, after_sarif, expected_rules,
             query_metadata, before_query_results, after_query_results):
-    """Compare source, alerts and execution artifacts against the complete suite."""
+    """Compare inventory, query execution IDs and SARIF alerts, excluding BQRS rows."""
     before = inventory(before_files)
     after = inventory(after_files)
     before_rules, before_queries, before_results = analysis(before_sarif)

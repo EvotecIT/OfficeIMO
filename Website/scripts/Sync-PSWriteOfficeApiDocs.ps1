@@ -39,6 +39,20 @@ function Resolve-RepoRoot {
     return $resolved
 }
 
+function Resolve-PSWriteOfficeExamplesSource {
+    <# Empty or placeholder-only folders cannot replace fallback examples. #>
+    param([string[]] $Candidates)
+
+    foreach ($candidate in $Candidates) {
+        if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+        if (Get-ChildItem -LiteralPath $candidate -Recurse -File -Force |
+                Where-Object { $_.Length -gt 0 -and $_.Extension -ieq '.ps1' } | Select-Object -First 1) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
 function Sync-DirectoryContents {
     param(
         [Parameter(Mandatory)]
@@ -138,8 +152,10 @@ if (-not $ExportedArtifactsRoot) {
     }
     if (Test-CurrentPSWriteOfficeSnapshot -RepositoryRoot $resolvedRepoRoot -SiteRoot $resolvedSiteRoot `
             -SourceCommit $sourceHead -SkipDocumentation:$SkipDocumentation) {
-        $examplesSource = Join-Path $resolvedRepoRoot 'Examples'
-        $updateExamples = -not $SkipExamples -and (Test-Path -LiteralPath $examplesSource -PathType Container)
+        $examplesSource = if (-not $SkipExamples) {
+            Resolve-PSWriteOfficeExamplesSource -Candidates @((Join-Path $resolvedRepoRoot 'Examples'))
+        }
+        $updateExamples = -not [string]::IsNullOrWhiteSpace($examplesSource)
         if ($updateExamples) {
             Sync-DirectoryContents -Source $examplesSource `
                 -Destination (Join-Path $resolvedSiteRoot 'data/apidocs/powershell/examples')
@@ -287,16 +303,14 @@ if ($sourceLinksUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot
 $summary.commandMetadataUpdated = $summary.commandMetadataUpdated -or $sourceLinksUpdated
 
 if (-not $SkipExamples) {
-    $sourceExamplesPath = Join-Path $resolvedRepoRoot 'Examples'
-    if (-not (Test-Path -LiteralPath $sourceExamplesPath -PathType Container)) {
-        $sourceExamplesPath = Join-Path $websiteArtifactsRoot 'examples'
-    }
-    if (Test-Path -LiteralPath $sourceExamplesPath -PathType Container) {
+    $sourceExamplesPath = Resolve-PSWriteOfficeExamplesSource -Candidates @(
+        (Join-Path $resolvedRepoRoot 'Examples'), (Join-Path $websiteArtifactsRoot 'examples'))
+    if ($sourceExamplesPath) {
         Sync-DirectoryContents -Source $sourceExamplesPath -Destination $targetExamplesPath
         $summary.examplesSource = $sourceExamplesPath
         $summary.examplesUpdated = $true
     } else {
-        Write-Host 'PSWriteOffice examples folder not found in synced repo. Keeping checked-in fallback examples.' -ForegroundColor Yellow
+        Write-Host 'No PSWriteOffice example scripts found in the source or bundle. Keeping checked-in fallback examples.' -ForegroundColor Yellow
     }
 }
 

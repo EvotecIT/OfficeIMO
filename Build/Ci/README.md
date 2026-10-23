@@ -98,3 +98,8 @@ ZIPs. Each resolved query must have its BQRS result in both bundles; SARIF
 descriptors alone do not prove execution. Empty, unsuccessful or equally
 incomplete analysis evidence cannot pass comparison. SARIF invocations are
 optional, but any recorded failure or error notification rejects the evidence.
+
+The report's `equal` field covers that extracted inventory, rule and executed-query
+ID sets, and projected SARIF alerts. BQRS files attest execution and ZIP integrity;
+the comparison does not decode their rows or compare diagnostic notification
+messages. It does not claim that every metric or diagnostic result is identical.

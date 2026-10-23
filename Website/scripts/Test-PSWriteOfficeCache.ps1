@@ -13,6 +13,9 @@ try {
     Set-Content -LiteralPath (Join-Path $site 'scripts/PSWriteOfficeApiDocs.Catalog.ps1') -Value '# catalog generator'
     $manifest = "@{ ModuleVersion = '1.0.0'; CmdletsToExport = @('Get-OfficeDemo'); FunctionsToExport = @() }"
     Set-Content -LiteralPath (Join-Path $module 'PSWriteOffice.psd1') -Value $manifest
+    $sourceDoc = 'PowerShell/PSWriteOffice/Website/content/project-docs/docs/overview.md'
+    $null = New-Item -ItemType Directory -Path (Split-Path -Parent (Join-Path $temporary $sourceDoc))
+    Set-Content -LiteralPath (Join-Path $temporary $sourceDoc) -Value '# Current source documentation'
     Set-Content -LiteralPath (Join-Path $temporary 'OfficeIMO.Word/Document.cs') -Value 'class Document {}'
     & git -C $temporary init --quiet
     & git -C $temporary config user.name 'OfficeIMO cache fixture'
@@ -30,7 +33,7 @@ try {
     }
     $cases.Add('website-edit-reuses-identical-inputs')
 
-    foreach ($path in @('OfficeIMO.Word/Document.cs', 'PowerShell/PSWriteOffice/PSWriteOffice.psd1', 'Website/scripts/PSWriteOfficeApiDocs.Catalog.ps1')) {
+    foreach ($path in @('OfficeIMO.Word/Document.cs', 'PowerShell/PSWriteOffice/PSWriteOffice.psd1', 'Website/scripts/PSWriteOfficeApiDocs.Catalog.ps1', $sourceDoc)) {
         $input = Join-Path $temporary $path
         $original = [IO.File]::ReadAllBytes($input)
         Add-Content -LiteralPath $input -Value '# changed input'
@@ -75,6 +78,15 @@ try {
         throw 'Snapshot reuse removed fallback examples or claimed a missing source was copied.'
     }
     $cases.Add('missing-examples-preserves-fallback')
+    $emptySourceExamples = Join-Path $module 'Examples'
+    $null = New-Item -ItemType Directory -Path $emptySourceExamples
+    $reusedEmpty = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -SkipDocumentation
+    if ($reusedEmpty.apiSnapshotSource -ne 'verified-unchanged-inputs' -or $reusedEmpty.examplesUpdated -or
+        (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
+        throw 'An empty source example directory removed the cached fallback.'
+    }
+    Remove-Item -LiteralPath $emptySourceExamples
+    $cases.Add('empty-source-examples-preserves-cached-fallback')
     $exportRoot = Join-Path $temporary 'exports'
     $exportApi = Join-Path $exportRoot 'apidocs/powershell'
     $null = New-Item -ItemType Directory -Path $exportApi
@@ -96,6 +108,17 @@ try {
     $cases.Add('bundle-import-preserves-fallback-and-skipped-examples')
     $bundleExamples = Join-Path $exportApi 'examples'
     $null = New-Item -ItemType Directory -Path $bundleExamples
+    foreach ($placeholder in @($null, '.gitkeep', 'README.md', 'empty.ps1')) {
+        if ($placeholder) {
+            $content = if ($placeholder -eq 'empty.ps1') { '' } else { '# placeholder' }
+            [IO.File]::WriteAllText((Join-Path $bundleExamples $placeholder), $content)
+        }
+        $empty = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -ExportedArtifactsRoot $exportRoot -SkipDocumentation
+        if ($empty.examplesUpdated -or (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
+            throw 'An empty or placeholder-only bundle erased fallback examples.'
+        }
+    }
+    $cases.Add('empty-and-placeholder-bundles-preserve-fallback')
     Set-Content -LiteralPath (Join-Path $bundleExamples 'replacement.ps1') -Value '# current bundle example'
     $skipped = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -ExportedArtifactsRoot $exportRoot -SkipDocumentation -SkipExamples
     if ($skipped.examplesUpdated -or (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
@@ -116,6 +139,18 @@ try {
         throw 'Invalid snapshot provenance was accepted.'
     }
     $cases.Add('invalid-provenance-rebuilds')
+
+    Add-Content -LiteralPath (Join-Path $temporary $sourceDoc) -Value 'Changed committed source documentation'
+    & git -C $temporary add $sourceDoc
+    & git -C $temporary commit --quiet -m 'Source documentation change'
+    $documentationHead = (& git -C $temporary rev-parse HEAD).Trim()
+    if (Test-PSWriteOfficeSnapshotInputs -RepositoryRoot $module -SourceCommit $documentationHead -SnapshotCommit $producer) {
+        throw 'Committed source documentation changes were accepted for snapshot reuse.'
+    }
+    $cases.Add('committed-source-documentation-rebuilds')
+    Set-Content -LiteralPath (Join-Path $temporary $sourceDoc) -Value '# Current source documentation'
+    & git -C $temporary add $sourceDoc
+    & git -C $temporary commit --quiet -m 'Restore equivalent source documentation'
 
     # A committed engine change also invalidates a formerly valid producer.
     Add-Content -LiteralPath (Join-Path $temporary 'OfficeIMO.Word/Document.cs') -Value '// changed'
