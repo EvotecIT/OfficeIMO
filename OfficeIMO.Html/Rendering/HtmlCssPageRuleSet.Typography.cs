@@ -15,19 +15,21 @@ internal sealed partial class HtmlCssPageRuleSet {
         var contexts = ResolveMarginContexts(pageNumber, pageName, root.Computed,
             styleResolver.PageComputedStyles, styleResolver.PageCancellationToken);
         if (contexts.Count == 0) return resolved;
-        HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height);
+        HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height, "@page");
         foreach (var context in contexts) {
-            HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height);
+            string source = "@page @" + (context.Position switch {
+                HtmlCssPageMarginPosition.TopLeft => "top-left", HtmlCssPageMarginPosition.TopCenter => "top-center",
+                HtmlCssPageMarginPosition.TopRight => "top-right", HtmlCssPageMarginPosition.BottomLeft => "bottom-left",
+                HtmlCssPageMarginPosition.BottomCenter => "bottom-center", HtmlCssPageMarginPosition.BottomRight => "bottom-right",
+                _ => context.Position.ToString()
+            });
+            HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height, source);
             if (!context.Content.IsEmpty && context.Position is (HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight
                 or HtmlCssPageMarginPosition.BottomLeft or HtmlCssPageMarginPosition.BottomCenter or HtmlCssPageMarginPosition.BottomRight)) {
                 bool top = context.Position is HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight;
                 styleResolver.ResolvePageMarginGeometry(context.Margin, margin, width, height,
                     Math.Max(0D, geometry.Width - geometry.Margins.Left - geometry.Margins.Right),
-                    top ? geometry.Margins.Top : geometry.Margins.Bottom, "@page @" + (context.Position switch {
-                        HtmlCssPageMarginPosition.TopLeft => "top-left", HtmlCssPageMarginPosition.TopCenter => "top-center",
-                        HtmlCssPageMarginPosition.TopRight => "top-right", HtmlCssPageMarginPosition.BottomLeft => "bottom-left",
-                        HtmlCssPageMarginPosition.BottomCenter => "bottom-center", _ => "bottom-right"
-                    }));
+                    top ? geometry.Margins.Top : geometry.Margins.Bottom, source);
             }
             // The paged-media UA stylesheet sets positional alignment on each
             // margin box. Explicit inherit/unset still selects the page value.

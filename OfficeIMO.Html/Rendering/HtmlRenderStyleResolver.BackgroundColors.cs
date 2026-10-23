@@ -3,6 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
+    private readonly HashSet<string> _reportedGeneratedColors = new HashSet<string>(StringComparer.Ordinal);
+
+    private void ReportUnsupportedGeneratedColor(string source, string property, string value) {
+        if (_reportedGeneratedColors.Add(source + " " + property))
+            ReportUnsupportedColor(source, property, value);
+    }
+
     /// <summary>Resolves solid paint identically for element and non-DOM generated contexts.</summary>
     private static bool TryResolveBackgroundColor(HtmlComputedStyle computed, OfficeColor foreground, out OfficeColor? color) {
         string value = computed.GetValue("background-color");
@@ -21,6 +28,10 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     /// <summary>Admits solid generated paint while reporting image paint outside the margin-box profile.</summary>
     private void ResolvePageMarginBackground(HtmlComputedStyle computed, HtmlRenderBoxStyle style, string source) {
+        if (TryResolveBackgroundColor(computed, style.Color, out OfficeColor? color))
+            style.BackgroundColor = color;
+        else
+            ReportUnsupportedGeneratedColor(source, "background-color", computed.GetValue("background-color"));
         string shorthand = computed.GetValue("background");
         string sourceValue = computed.GetValue("background-image");
         style.BackgroundColorClip = ResolveSolidBackgroundClip(computed, shorthand,

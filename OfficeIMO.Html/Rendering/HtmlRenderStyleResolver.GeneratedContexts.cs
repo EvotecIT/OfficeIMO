@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     /// <summary>Uses the ordinary font sizing and leading owners for a computed non-DOM paged context.</summary>
     internal HtmlRenderBoxStyle ResolvePageTypography(
-        HtmlComputedStyle computed, HtmlRenderBoxStyle parent, double viewportWidth, double viewportHeight) {
+        HtmlComputedStyle computed, HtmlRenderBoxStyle parent, double viewportWidth, double viewportHeight, string source) {
         double previousWidth = _activeContainerWidth, previousHeight = _activeContainerHeight;
         double previousViewportWidth = _viewportWidth, previousViewportHeight = _viewportHeight;
         double previousAdvance = _activeCharacterAdvance;
@@ -43,10 +43,13 @@ internal sealed partial class HtmlRenderStyleResolver {
                 ? _measureCharacterAdvance(new HtmlRenderBoxStyle { Font = font, FontDescriptor = descriptor }) : double.NaN;
             double leading = ResolveComputedLineHeight(computed, size, parent, out double alignment, out bool natural);
             OfficeColor fallback = computed.IsResetValue("color") ? OfficeColor.Black : parent.Color;
-            OfficeColor color = HtmlRenderCssValues.TryColor(computed.GetValue("color"), out OfficeColor parsed) ? parsed : fallback;
-            TryResolveBackgroundColor(computed, color, out OfficeColor? background);
+            string colorValue = computed.GetValue("color");
+            bool supportedColor = HtmlRenderCssValues.TryColor(colorValue, out OfficeColor parsed);
+            OfficeColor color = supportedColor ? parsed : fallback;
+            if (colorValue.Length > 0 && !colorValue.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)
+                && !supportedColor)
+                ReportUnsupportedGeneratedColor(source, "color", colorValue);
             return new HtmlRenderBoxStyle {
-                BackgroundColor = background,
                 Font = font, FontDescriptor = descriptor, FontSizeContext = context, Color = color,
                 LineHeight = leading, InlineAlignmentLineHeight = alignment, UsesNaturalLineHeight = natural
             };

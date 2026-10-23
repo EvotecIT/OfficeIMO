@@ -6,6 +6,19 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("background-color:color(from blue srgb r g b)", "background-color")]
+    [InlineData("--paint:color(from blue srgb r g b);background-color:var(--paint)", "background-color")]
+    [InlineData("color:color(from blue srgb r g b);background-color:currentcolor", "color")]
+    public void HtmlPageMarginBackgrounds_UnsupportedColorsRetainTheirTypedLossContract(string declaration, string property) {
+        HtmlRenderDocument rendered = RenderMarginSizing(300D, "@top-center{content:'A';" + declaration + "}");
+        var diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported);
+        Assert.Equal("@page @top-center", diagnostic.Source);
+        Assert.Equal(property + "=color(from blue srgb r g b)", diagnostic.Detail);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+    }
+
+    [Theory]
     [InlineData("background-color:red")]
     [InlineData("background:red")]
     [InlineData("background:blue;background-color:red")]

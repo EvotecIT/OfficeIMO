@@ -785,6 +785,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         if (!properties.Add(key)) return;
         string source = DescribeSource(element) + (pseudoElement ? "::generated" : string.Empty);
+        ReportUnsupportedColor(source, property, value);
+    }
+
+    private void ReportUnsupportedColor(string source, string property, string value) {
         _diagnostics.Add(
             "OfficeIMO.Html.Renderer",
             HtmlRenderDiagnosticCodes.ColorValueUnsupported,
