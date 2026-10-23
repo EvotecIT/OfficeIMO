@@ -3,6 +3,21 @@
 import assert from "node:assert/strict";
 import { inflateSync } from "node:zlib";
 
+// PDF WinAnsi glyphs, not a host/ICU text encoding: ISO 32000-1:2008, D.2,
+// Table D.1 and notes 1-6. Unused codes above space are bullets; A0 and AD
+// select the space and hyphen glyphs. Without ToUnicode their semantics are lost.
+// https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf
+const winAnsiSpecials = "€•‚ƒ„…†‡ˆ‰Š‹Œ•Ž••‘’“”•–—˜™š›œ•žŸ"; // 80-9F
+function decodeWinAnsi(bytes) {
+  return Array.from(bytes, code => {
+    if (code >= 0x80 && code <= 0x9f) return winAnsiSpecials[code - 0x80];
+    if (code === 0x7f) return "•";
+    if (code === 0xa0) return " ";
+    if (code === 0xad) return "-";
+    return String.fromCharCode(code);
+  }).join("");
+}
+
 export async function inspectPdf(blob) {
   const bytes = Buffer.from(await blob.arrayBuffer()), text = bytes.toString("latin1");
   assert.ok(text.startsWith("%PDF-1.7\n"));
@@ -50,7 +65,7 @@ export async function inspectPdf(blob) {
     for (const m of content.matchAll(/BT \/(F\d+) [\s\S]*?<([a-f0-9]*)> Tj ET/g)) {
       const map = fontMaps.get(names.get(m[1]));
       if (map) { let line = ""; for (let i = 0; i < m[2].length; i += 4) { const cp = map.get(parseInt(m[2].slice(i, i + 4), 16)); assert.notEqual(cp, undefined); line += cp; } lines.push(line); }
-      else lines.push(new TextDecoder("windows-1252").decode(Buffer.from(m[2], "hex")));
+      else lines.push(decodeWinAnsi(Buffer.from(m[2], "hex")));
     }
     return { id, content, lines, body: object.body };
   });
