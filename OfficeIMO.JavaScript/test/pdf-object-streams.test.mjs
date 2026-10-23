@@ -112,6 +112,25 @@ test("completed payloads retain their bytes while later batches reuse the bounde
   assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [200, 200, 5]);
 });
 
+test("asynchronous native codecs consume each arena batch before the next batch overwrites it", async () => {
+  const native = globalThis.CompressionStream;
+  try {
+    globalThis.CompressionStream = class {
+      constructor(format) {
+        const stream = new native(format), writer = stream.writable.getWriter();
+        this.readable = stream.readable;
+        this.writable = new WritableStream({
+          async write(chunk) { await new Promise(resolve => setImmediate(resolve)); await writer.write(chunk); },
+          async close() { try { await writer.close(); } finally { writer.releaseLock(); } },
+          async abort(reason) { try { await writer.abort(reason); } finally { writer.releaseLock(); } }
+        });
+      }
+    };
+    await compactFixture(Array.from({ length: 405 }, (_, index) =>
+      "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
+  } finally { globalThis.CompressionStream = native; }
+});
+
 test("TextEncoder implementations without encodeInto preserve complete packed UTF-8 values", async () => {
   const bodies = ["(seed)", "(" + "x".repeat(32747) + "😀é\ud800)", "(tail)"], native = await compactFixture(bodies);
   const prototype = TextEncoder.prototype, descriptor = Object.getOwnPropertyDescriptor(prototype, "encodeInto");

@@ -129,12 +129,12 @@ export class PdfObjects {
     this.compactBatch = undefined;
     let index = "";
     for (let member = 0; member < batch.ids.length; member++) index += batch.ids[member] + " " + batch.bodyOffsets[member] + " ";
-    const header = this.encoder.encode(index + "\n"), payload = new Uint8Array(header.length + batch.bodyBytes), count = batch.ids.length;
-    payload.set(header);
-    // The native codec owns an immutable payload while this document reuses its bounded arena.
-    payload.set(this.compactArena!.subarray(0, batch.bodyBytes), header.length);
+    const header = this.encoder.encode(index + "\n"), count = batch.ids.length;
+    // This writer awaits the codec's complete read before another member can reuse the arena.
+    // Feed the small index separately instead of allocating/copying a full payload per batch.
+    const body = this.compactArena!.subarray(0, batch.bodyBytes);
     batch.ids.length = 0; batch.bodyOffsets.length = 0;
-    await this.compressedStream(batch.id, payload, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor);
+    await this.compressedStream(batch.id, body, "/Type /ObjStm /N " + count + " /First " + header.length, batch.compressor, header);
   }
   async object(id: number, body: string | Iterable<string>): Promise<void> {
     this.start(id);
@@ -178,8 +178,12 @@ export class PdfObjects {
     const sourceBytes = typeof source === "string" || owned ? bytes as Uint8Array<ArrayBuffer> : new Uint8Array(bytes);
     await this.compressedStream(id, sourceBytes, dictionary, compressor);
   }
-  private async compressedStream(id: number, sourceBytes: Uint8Array<ArrayBuffer>, dictionary: string, compressor: CompressionStream): Promise<void> {
-    const input = new ReadableStream<BufferSource>({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
+  private async compressedStream(id: number, sourceBytes: Uint8Array<ArrayBuffer>, dictionary: string, compressor: CompressionStream,
+    prefix?: Uint8Array<ArrayBuffer>): Promise<void> {
+    const input = new ReadableStream<BufferSource>({ start(controller) {
+      if (prefix) controller.enqueue(prefix);
+      controller.enqueue(sourceBytes); controller.close();
+    } });
     const reader = input.pipeThrough(compressor).getReader(), lengthId = this.reserve();
     let length = 0, complete = false;
     try {
