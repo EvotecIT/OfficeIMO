@@ -157,3 +157,27 @@ PDF equivalence, then observe the actual metadata allocation. Only then run
 one fixed baseline/current cohort. Do not repeat unchanged candidates for a
 favorable result, enlarge the decoded arena or substitute file-size savings
 for the narrow-memory target.
+
+## Typed compact-index comparison
+
+Candidate `6cf61fa6b54fb87fad97d75b912aee2ae972304f` stores compact membership
+in lazy 4,096-entry Uint16 chunks. Its actual EOF backing storage is 147,816
+bytes, down from 806,760 bytes; ordinary offset backing remains 630,896 bytes.
+The narrow and wide diagnostic PDFs are byte-identical to the shared-attribute
+candidate. Canonical build, 45 focused tests, 503 ordinary tests, independent
+artifact readback and one bounded metadata-owner review passed.
+
+All sixteen outputs in one fixed M8/current cohort passed independent
+validation. Narrow mean/median peak RSS is still 2.38%/2.31% above M8; wide
+mean/median is 10.01%/10.15% lower. Output sizes remain 3,576,881/10,514,136
+bytes, 74.63%/76.21% below M8. Narrow engine-time mean is 3.24% higher and its
+median is 16.31% lower; wide mean/median is 13.20%/13.27% lower. Sampled
+external memory is 68.29%/68.77% higher for narrow and 70.02%/66.43% higher for
+wide. Every measured sample and warmup remains in the evidence.
+
+The storage reduction is proven, but it does not establish the narrow-memory
+target. This fixed normal-host cohort still misses that target. Stop this
+candidate's comparison here: no unchanged rerun for a more favorable outcome.
+Further work needs a different measured allocation or lifetime cause. Keep the
+32 KiB arena and 256-member ceilings unchanged, and do not infer peak RSS from
+the forced-GC EOF snapshots or add sampled heap/external memory to RSS.
