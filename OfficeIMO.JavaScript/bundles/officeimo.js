@@ -9491,7 +9491,7 @@ _modules.set("b236032efbf4bb6015fe9a546f753fac23127635b62114367e3c67776de83f5b",
 return _exports;
 })();
 
-const _m84 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
+const _m84 = _modules.get("55eee1527c670926d154776e46828f4a0f8ae4df5c041a62ff851925b349f9db") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -9529,25 +9529,7 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
     // It never retains an additional full interleaved RGBA image.
     const pixels = new Uint8Array(width * height * 3), alpha = components === 4 ? new Uint8Array(imagePixels) : undefined;
     let previous = components === 4 ? new Uint8Array(rowBytes) : undefined, current = components === 4 ? new Uint8Array(rowBytes) : undefined;
-    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
-    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
-    const input = new ReadableStream({ pull(controller) {
-            checkAbort(signal);
-            while (position === end && chunk < header.dataEnd) {
-                chunk = end + 4;
-                if (chunk === header.dataEnd) {
-                    controller.close();
-                    return;
-                }
-                position = chunk + 8;
-                end = position + view.getUint32(chunk);
-            }
-            // Limit the input given to the platform inflater between downstream length checks.
-            const next = Math.min(end, position + 4096);
-            controller.enqueue(source.subarray(position, next));
-            position = next;
-        } }, { highWaterMark: 0 });
-    const reader = input.pipeThrough(stream).getReader();
+    const reader = pngCompressedInput(source, header, signal).pipeThrough(stream).getReader();
     let inflated = 0, output = 0, rgbOutput = 0, alphaOutput = 0, column = 0, filter = 0;
     try {
         while (true) {
@@ -9619,6 +9601,7 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
         }
         if (inflated !== expected)
             throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
+        await verifyPngZlibEnd(source, header, expected, signal);
         return { width, height, components: 3, data: pixels, ...(alpha ? { alpha } : {}) };
     }
     catch (error) {
@@ -9629,10 +9612,70 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
         reader.releaseLock();
     }
 }
+/** Feed bounded IDAT slices without retaining another copy of the compressed image. */
+function pngCompressedInput(source, header, signal, changeLastByte = false) {
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
+    return new ReadableStream({ pull(controller) {
+            checkAbort(signal);
+            while (position === end) {
+                chunk = end + 4;
+                if (chunk === header.dataEnd) {
+                    controller.close();
+                    return;
+                }
+                position = chunk + 8;
+                end = position + view.getUint32(chunk);
+            }
+            if (changeLastByte && position === header.lastDataByte) {
+                controller.enqueue(Uint8Array.of(source[position++] ^ 1));
+                return;
+            }
+            const next = Math.min(end, position + 4096, changeLastByte && position < header.lastDataByte ? header.lastDataByte : end);
+            controller.enqueue(source.subarray(position, next));
+            position = next;
+        } }, { highWaterMark: 0 });
+}
+/** A complete zlib stream must consume its final Adler-32 byte. Older native inflaters
+ * silently ignore trailing input. Change only the final IDAT byte and require rejection:
+ * an ignored suffix still succeeds, whereas a consumed checksum byte cannot remain valid.
+ * The second native pass discards bounded output; it never allocates another image plane. */
+async function verifyPngZlibEnd(source, header, expected, signal) {
+    const reader = pngCompressedInput(source, header, signal, true).pipeThrough(new DecompressionStream("deflate")).getReader();
+    let rejected = false, output = 0;
+    try {
+        while (true) {
+            let item;
+            try {
+                item = await withAbort(reader.read(), signal);
+            }
+            catch {
+                checkAbort(signal);
+                rejected = true;
+                break;
+            }
+            checkAbort(signal);
+            if (item.done)
+                break;
+            output += item.value.length;
+            if (output > expected)
+                throw new TypeError("Invalid PNG zlib image data.");
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (!rejected)
+            throw new TypeError("Invalid PNG zlib image data: trailing bytes after the checksum.");
+    }
+    finally {
+        void reader.cancel().catch(() => { });
+        reader.releaseLock();
+    }
+}
 /** Verify the complete source and critical chunk order before any decompressed image allocation. */
 async function pngHeader(source, shape, signal) {
     const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
-    let firstData = 0, dataEnd = 0, dataClosed = false;
+    let firstData = 0, dataEnd = 0, lastDataByte = -1, dataClosed = false;
     for (let offset = 8; offset < source.length;) {
         checkAbort(signal);
         if (offset + 12 > source.length)
@@ -9663,6 +9706,8 @@ async function pngHeader(source, shape, signal) {
                 throw new TypeError("PNG IDAT chunks must be consecutive.");
             firstData ||= offset;
             dataEnd = end;
+            if (length)
+                lastDataByte = end - 5;
         }
         else {
             if (firstData)
@@ -9670,7 +9715,7 @@ async function pngHeader(source, shape, signal) {
             if (type === "IEND") {
                 if (length !== 0 || !firstData || end !== source.length)
                     throw new TypeError("PNG requires a final empty IEND after IDAT.");
-                return { ...shape, firstData, dataEnd };
+                return { ...shape, firstData, dataEnd, lastDataByte };
             }
             if (unsupportedChunks.has(type))
                 throw new NotSupportedError("PNG chunk " + type + "; normalize color, orientation, transparency or animation first");
@@ -9710,11 +9755,11 @@ function paeth(left, up, upperLeft) {
     return a <= b && a <= c ? left : b <= c ? up : upperLeft;
 }
 const _exports = Object.freeze({ pngPixels: pngPixels });
-_modules.set("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e", _exports);
+_modules.set("55eee1527c670926d154776e46828f4a0f8ae4df5c041a62ff851925b349f9db", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
+const _m83 = _modules.get("f7e93a79ae9f66b8bbc83d3534c0f5b8df6e85447494ee0532d86f7c53aa7746") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -9844,7 +9889,7 @@ function jpegSize(bytes) {
     throw new TypeError("JPEG image has no complete frame and scan.");
 }
 const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
-_modules.set("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654", _exports);
+_modules.set("f7e93a79ae9f66b8bbc83d3534c0f5b8df6e85447494ee0532d86f7c53aa7746", _exports);
 return _exports;
 })();
 
@@ -10576,7 +10621,7 @@ _modules.set("1b926dd1b74341a9639f4b5672eff09e7f4454be52608ee78d5782bf3417f0f7",
 return _exports;
 })();
 
-const _m82 = _modules.get("34bea94af0f10e8fa645d9ca81a19d8df7de5dc0d90b7e3917f8f028576d2bc3") ?? (() => {
+const _m82 = _modules.get("0b53b552fbfad950bf3455ae0266ec34d40deadc96dd3e1fe03d26cce63ea40f") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -10866,11 +10911,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("34bea94af0f10e8fa645d9ca81a19d8df7de5dc0d90b7e3917f8f028576d2bc3", _exports);
+_modules.set("0b53b552fbfad950bf3455ae0266ec34d40deadc96dd3e1fe03d26cce63ea40f", _exports);
 return _exports;
 })();
 
-const _m81 = _modules.get("818ed718fc953974b68de0e41ec5c5c53de02fa7a1e3afaef86bb871b4520ae4") ?? (() => {
+const _m81 = _modules.get("3f9d005ed3e31b1080249d471774fa84044f9fa1ec30d71d01d3c2cf77818c4d") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -10916,7 +10961,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m90.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("818ed718fc953974b68de0e41ec5c5c53de02fa7a1e3afaef86bb871b4520ae4", _exports);
+_modules.set("3f9d005ed3e31b1080249d471774fa84044f9fa1ec30d71d01d3c2cf77818c4d", _exports);
 return _exports;
 })();
 
@@ -10960,17 +11005,17 @@ _modules.set("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9",
 return _exports;
 })();
 
-const _m53 = _modules.get("26d7844b3dd5b2a9805982990c0280fc030cb8ddc4e3075b24db2aee1b534153") ?? (() => {
+const _m53 = _modules.get("71169c44be949c319579ad95fc607b6a64115646c56e93cb6b58d6b9e26fb0bf") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m81.writeGroupedPdf, writeGroupedPdfTo: _m81.writeGroupedPdfTo, pdfGroupedTable: _m81.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m82.writePdfDocument, writePdfDocumentTo: _m82.writePdfDocumentTo, pdfTable: _m82.pdfTable, PdfFont: _m61.PdfFont, preflightPdfText: _m91.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("26d7844b3dd5b2a9805982990c0280fc030cb8ddc4e3075b24db2aee1b534153", _exports);
+_modules.set("71169c44be949c319579ad95fc607b6a64115646c56e93cb6b58d6b9e26fb0bf", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("ec996cd75887b4333274674c2fd41caff7b8288c5b732b033783afcd32081e99") ?? (() => {
+const _m0 = _modules.get("7177ce13ba2bfc4c9cb1f8d006bd0b0298549f4b8f6bf6f8fdad2b24e74c03db") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m81.writeGroupedPdf, writeGroupedPdfTo: _m81.writeGroupedPdfTo, pdfGroupedTable: _m81.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("ec996cd75887b4333274674c2fd41caff7b8288c5b732b033783afcd32081e99", _exports);
+_modules.set("7177ce13ba2bfc4c9cb1f8d006bd0b0298549f4b8f6bf6f8fdad2b24e74c03db", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

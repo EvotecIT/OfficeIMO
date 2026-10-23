@@ -87,52 +87,82 @@ assets, and deployed website before treating delivery as complete.
 
 ## JavaScript npm delivery
 
-The `Publish coordinated npm package` workflow delivers `@evotecit/officeimo`
-from the same normal OfficeIMO GitHub release. It creates no separate npm release
-tag or GitHub release. `Build/project.build.json` binds the source package and
-lockfile versions to `OfficeIMO.JavaScript.Assets` when the native publisher updates versions.
+`Publish npm package` delivers `@evotecit/officeimo` after `Test .NET Libraries`
+succeeds for a push to `master` in this repository. The workflow checks out that
+exact qualified commit. It compares the package inputs with the source tag of
+the highest stable version actually published to npm. Changes to TypeScript
+sources, bundles, package metadata, package documentation, build scripts or the
+npm release workflow qualify. Merges containing only .NET or JavaScript tests
+are skipped when no unreleased package-input changes remain.
+A pending version reservation is not treated as a published baseline. Missing
+source tags or diverged history stop the release rather than silently skipping
+changes. The path-gate contracts run in the browser-export CI lane.
 
-The workflow reads the actual version from the unique signed
-`OfficeIMO.JavaScript.Assets.<version>.nupkg` attached to the release. The release tag may
-contain the native publisher's earlier version metadata, so the runner stamps
-the package and lockfile before packing. Native publication builds the
-operator-selected working tree. Committing version metadata before that native
-publication remains an operator choice.
-The workflow waits up to ten minutes for the JavaScript asset because native
-publication creates the GitHub release before uploading its package assets.
+The shared PowerForge `npm-release-version` action selects the next free patch
+and reserves its `npm-v<version>` tag without committing to `master`. Reruns reuse
+the reservation, and newer reserved source prevents an older upload from
+becoming latest. npm versions are independent of NuGet/PSWriteOffice versions;
+the native publisher does not stamp the npm manifests. Major and minor releases
+use the manual workflow's exact `version` input. A manifest minimum that raises
+the major or minor line stops automatic publication until that manual release.
 
-Before publication, the workflow runs the JavaScript contracts and isolated
-strict TypeScript, Node and worker consumers. It compares every bundled JavaScript
-and module asset with the signed JavaScript asset assembly's embedded resources. This
-proves runtime-byte equivalence between the npm and NuGet JavaScript bundles; it
-does not claim that every type source or native build input is identical. A
-runtime mismatch stops npm delivery and leaves the completed native publication
-intact.
+The package job compiles TypeScript, checks the committed bundles, runs the
+JavaScript contracts and qualifies an isolated archive consumer. It also builds
+the small `OfficeIMO.JavaScript.Assets` NuGet package locally and compares every
+embedded runtime bundle with the npm bundle bytes. This unsigned local package
+is an integrity check, not a public .NET release or signing requirement.
+`Get-NpmReleaseVersion.ps1` remains available for operators checking a signed
+native-release package; its signature verification is unchanged.
 
-The shared PowerForge npm publisher uploads the same qualified archive and
-verifies registry identity, integrity and public-source provenance. This separate
-workflow has its own retries; it is outside the native PowerForge release
-checkpoint. Retry it on the original tag after diagnosing a delivery failure:
+The shared PowerForge publisher receives the exact qualified archive, its
+SHA256 and the successful quality run. It publishes with lifecycle scripts
+disabled and verifies registry identity, SHA512 integrity and public-source
+provenance. GitHub's OIDC source identity must match the qualified commit. If a
+newer merge advances that identity, the older upload stops; the newer commit's
+successful quality run can deliver the cumulative package changes.
+
+### Owner setup and first publication
+
+The package owner creates the `npm-release` GitHub environment with a custom
+deployment policy allowing exactly one **branch**, `master`. Do not add tag
+policies or wildcard patterns. The shared publisher verifies this policy.
+Agents do not create the environment or its credentials.
+
+For the first publication, the owner creates a short-lived npm granular token
+with permission to create/publish `@evotecit/officeimo` in the `@evotecit` scope,
+package-write permission and bypass 2FA for unattended publishing. Store its
+value only as the **environment secret** `NPM_BOOTSTRAP_TOKEN` in `npm-release`;
+there is no repository-level copy. Do not put the value in workflow inputs,
+commands, issues or chat. Automatic runs skip an unpublished package and reserve
+no version, so they cannot create a release environment or attempt OIDC bootstrap.
+
+After this workflow PR is merged and `master` quality has succeeded for the
+current source, dispatch on `master`:
 
 ```powershell
-gh workflow run npm-release.yml --ref OfficeIMO-v<version> -f publish=true
+gh workflow run npm-release.yml --repo EvotecIT/OfficeIMO --ref master `
+  -f publish=true -f bootstrap=true -f quality-run-id=<successful-master-run-id>
 ```
 
-The original fourteen-digit `OfficeIMO-v<timestamp>` tags are also accepted.
-A successful master push `Test .NET Libraries` run must qualify the exact tagged commit.
-An existing npm version succeeds only when its bytes and provenance match the
-qualified archive; conflicting bytes stop publication rather than replacing it.
+The optional `version` input selects an explicit three-part version; otherwise
+the shared action uses the manifest minimum for the initial publication and the
+next free patch thereafter. A manual dispatch with `publish=false` performs the
+normal qualified dry run. Bootstrap requires `publish=true` and an authenticated
+registry lookup confirming the package does not exist.
 
-Configure the `npm-release` GitHub environment with one deployment policy: type
-`tag`, name `OfficeIMO-v*`. Register npm Trusted Publishing for organization
-`EvotecIT`, repository `OfficeIMO`, calling workflow `npm-release.yml`, and that
-environment. Ordinary releases use OIDC and no persistent npm token. The first
-publication requires an operator-created environment secret named
-`NPM_BOOTSTRAP_TOKEN` and an explicit tag dispatch with `publish=true` and
-`bootstrap=true`. Remove that secret after verified bootstrap and configure the
-package's trusted publisher. The shared
-[npm publication guide](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PowerForge.NpmPublishing.md)
-owns credential setup and registry recovery details.
+After verifying the public version, archive integrity and a clean installed
+consumer, the owner configures npm Trusted Publishing for organization
+`EvotecIT`, repository `OfficeIMO`, calling workflow **`npm-release.yml`** and
+environment **`npm-release`**. Register the calling workflow, not the shared
+`powerforge-npm-publish.yml`. Remove the bootstrap environment secret after the
+trust configuration is ready. Ordinary qualifying merges then publish through
+OIDC with `bootstrap=false`. A direct .NET/Gallery/GitHub release remains a
+separate operation and does not trigger or gate npm delivery.
+
+The shared [npm publication guide](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PowerForge.NpmPublishing.md)
+owns credential setup and registry recovery. If an upload succeeds but readback
+fails, inspect the public version and provenance before retrying; immutable
+versions are never replaced with another archive.
 
 ## Website documentation
 
