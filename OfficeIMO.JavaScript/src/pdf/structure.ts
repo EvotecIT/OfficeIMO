@@ -9,13 +9,39 @@ interface StructureElement {
   readonly id: number;
   readonly parent: number;
   readonly role: string;
+  /** Positive numbers are child object IDs; -(MCID + 1) marks content on markedPage. */
   readonly children: (number | string)[];
-  readonly linkIdentities: object[];
-  readonly attributes: string;
+  markedPage?: number;
+  linkIdentities?: object[];
+  attributes: string;
   identifier?: string;
 }
 
 interface StructureIdNode { readonly id: number; readonly first: string; readonly last: string; }
+
+/** Same-page marked content uses integer K; cross-page MCR and annotation OBJR stay explicit. */
+function structureChild(child: number | string): string {
+  return typeof child === "number" ? (child < 0 ? -child - 1 + " " : child + " 0 R ") : child + " ";
+}
+
+function structurePrefix(element: StructureElement): string {
+  return "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+    (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
+    (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
+}
+
+/** Keep the same bounded small-object representation for both completion paths. */
+function compactStructureBody(element: StructureElement, prefix: string): string | undefined {
+  const remaining = 32768 - prefix.length - element.attributes.length - 4;
+  if (remaining < 0) return undefined;
+  let children = "";
+  for (const child of element.children) {
+    const token = structureChild(child);
+    if (children.length + token.length > remaining) return undefined;
+    children += token;
+  }
+  return prefix + children + "]" + element.attributes + " >>";
+}
 
 /** A sorted name tree retains only a small open leaf and branch at each level. */
 class PdfStructureIds {
@@ -85,7 +111,7 @@ export class PdfStructure {
     checkAbort(this.settings.options.signal);
     if (++this.allocated > this.settings.limits.maxStructureElements)
       throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
-    const id = this.objects.reserve(), element: StructureElement = { id, parent, role, children: [], attributes, linkIdentities: [] };
+    const id = this.objects.reserve(), element: StructureElement = { id, parent, role, children: [], attributes };
     this.elements.set(id, element);
     const owner = this.elements.get(parent);
     // A continuation-only linked caption is discovered during painting, after rows may exist.
@@ -93,6 +119,19 @@ export class PdfStructure {
     if (role === "Caption" && owner?.role === "Table") owner.children.unshift(id);
     else owner?.children.push(id);
     return id;
+  }
+  /** Attach resolved table associations while a source-ordered logical element is still open. */
+  setAttributes(elementId: number, attributes: string): void {
+    const element = this.elements.get(elementId);
+    if (!element) throw new Error("PDF structure attributes require an open logical owner.");
+    element.attributes = attributes;
+  }
+  /** Write one immutable attribute dictionary. Its caller owns the bounded scope of reference reuse. */
+  async attributeReference(dictionary: string): Promise<string> {
+    checkAbort(this.settings.options.signal);
+    const id = this.objects.reserve();
+    await this.objects.object(id, dictionary);
+    return " /A " + id + " 0 R";
   }
   /** Flat visual sections share the same logical Document and cumulative resource policy. */
   async beginSection(): Promise<void> {
@@ -119,7 +158,8 @@ export class PdfStructure {
     if (!parents) { parents = new Map(); this.links.set(identity, parents); }
     const existing = parents.get(parent); if (existing !== undefined) return existing;
     const id = this.element("Link", parent, alternativeText === undefined ? "" : " /Alt <feff" + unicodeHex(alternativeText) + ">"); parents.set(parent, id);
-    this.elements.get(parent)!.linkIdentities.push(identity); return id;
+    const owner = this.elements.get(parent)!;
+    (owner.linkIdentities ??= []).push(identity); return id;
   }
   /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
   annotation(elementId: number, annotationId: number): number {
@@ -139,7 +179,9 @@ export class PdfStructure {
     if (!element) throw new Error("Marked content requires an open logical owner.");
     const mcid = this.pageParents.length;
     this.pageParents.push(elementId);
-    element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
+    element.markedPage ??= this.pageId;
+    element.children.push(element.markedPage === this.pageId ? -(mcid + 1) :
+      "<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
     return "/" + element.role + " << /MCID " + mcid + (actualText === undefined ? "" : " /ActualText <FEFF" + unicodeHex(actualText) + ">") + " >> BDC\n";
   }
   get pageDictionary(): string { return " /StructParents " + this.pageKey + " /Tabs /S"; }
@@ -157,29 +199,38 @@ export class PdfStructure {
   async complete(id: number | undefined): Promise<void> {
     if (id === undefined) return;
     const element = this.elements.get(id); if (!element) return;
-    for (const child of element.children) if (typeof child === "number" && this.elements.has(child)) await this.complete(child);
+    for (const child of element.children)
+      if (typeof child === "number" && child > 0 && !this.completeBuffered(child)) await this.complete(child);
     checkAbort(this.settings.options.signal);
-    const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
-      (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
-    const remaining = 32768 - prefix.length - element.attributes.length - 4;
-    let children = "", small = remaining >= 0;
-    if (small) for (const child of element.children) {
-      const token = typeof child === "number" ? child + " 0 R " : child + " ";
-      if (children.length + token.length > remaining) { small = false; break; }
-      children += token;
-    }
+    const prefix = structurePrefix(element), body = compactStructureBody(element, prefix);
     // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
-    await this.objects.object(id, small ? prefix + children + "]" + element.attributes + " >>" : this.body(element));
-    for (const identity of element.linkIdentities) {
-      const parents = this.links.get(identity); parents?.delete(id);
+    if (body !== undefined) {
+      if (!this.objects.tryCompactObject(id, body)) await this.objects.compactObject(id, body);
+    }
+    else await this.objects.object(id, this.body(element, prefix));
+    this.releaseElement(element);
+  }
+  /** Close already-bufferable children without creating an async chain per leaf. A false result
+   * leaves the current owner open for the existing awaited flush or ordinary-object path. */
+  private completeBuffered(id: number): boolean {
+    const element = this.elements.get(id); if (!element) return true;
+    for (const child of element.children)
+      if (typeof child === "number" && child > 0 && !this.completeBuffered(child)) return false;
+    checkAbort(this.settings.options.signal);
+    const body = compactStructureBody(element, structurePrefix(element));
+    if (body === undefined || !this.objects.tryCompactObject(id, body)) return false;
+    this.releaseElement(element); return true;
+  }
+  private releaseElement(element: StructureElement): void {
+    if (element.linkIdentities) for (const identity of element.linkIdentities) {
+      const parents = this.links.get(identity); parents?.delete(element.id);
       if (!parents?.size) this.links.delete(identity);
     }
-    this.elements.delete(id);
+    this.elements.delete(element.id);
   }
-  private *body(element: StructureElement): Iterable<string> {
-    yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
-      (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
-    for (const child of element.children) yield typeof child === "number" ? child + " 0 R " : child + " ";
+  private *body(element: StructureElement, prefix: string): Iterable<string> {
+    yield prefix;
+    for (const child of element.children) yield structureChild(child);
     yield "]" + element.attributes + " >>";
   }
   async completeRow(cells: readonly number[] | undefined): Promise<void> {

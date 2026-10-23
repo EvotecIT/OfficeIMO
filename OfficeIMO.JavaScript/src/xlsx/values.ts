@@ -46,10 +46,11 @@ export function sheetName(requested: string, names: Set<string>, policy: Invalid
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
   // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
   // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
-  let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
+  let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").replace(/^[\s']+|[\s']+$/g, "");
+  // Clipping can expose an internal apostrophe or the reserved History name.
+  base = clipName(base, 31).replace(/[\s']+$/g, "");
   if (!base) base = "Sheet";
   if (base.toLowerCase() === "history") base += "_";
-  base = clipName(base, 31);
   let name = base, suffix = 2;
   while (names.has(name.toLowerCase())) { const tail = " (" + suffix++ + ")"; name = clipName(base, 31 - tail.length) + tail; }
   if (register) names.add(name.toLowerCase()); return name;

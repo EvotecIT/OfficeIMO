@@ -1,7 +1,7 @@
 // Shared executable example: the website, workers and artifact qualification call this operation.
 // Hosts supply rows; document policy stays here and transport stays in OfficeIMO/execution.
 export const reportColumns = Object.freeze([
-  { header: "Service", key: "service", width: 20 },
+  { header: "Service", key: "service", width: 20, rowHeader: true },
   { header: "Site", key: "site", width: 14 },
   { header: "Status", key: "status", width: 14 },
   { header: "Latency (ms)", key: "latency", type: "number", width: 16, format: "0.0" },

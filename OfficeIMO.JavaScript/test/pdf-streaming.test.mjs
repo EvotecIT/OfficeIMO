@@ -43,6 +43,29 @@ test("compressed PDF streams reach the sink before completion and retain caller 
   } finally { globalThis.CompressionStream = native; }
 });
 
+test("native PDF WritableStreams retain accepted chunks without byte corruption", async () => {
+  const chunks = [], accepted = [], data = raw(); let closed = false;
+  const destination = new WritableStream({
+    write(chunk) { chunks.push(chunk); accepted.push(chunk.slice()); },
+    close() { closed = true; }
+  });
+  const result = await writePdfDocumentTo([
+    { kind: "image", image: { format: "rgb", width: 512, height: 256, data } },
+    { kind: "paragraph", text: "Retained native stream report" }
+  ], destination, { compression: false, pageNumbers: false });
+  assert.ok(chunks.length > 1, "The artifact must span multiple output writes");
+  assert.deepEqual(Buffer.concat(chunks), Buffer.concat(accepted), "Accepted chunks must remain stable after later PDF writes");
+  const pdf = await inspectPdf(new Blob(chunks));
+  assert.equal(result.bytes, pdf.bytes.length);
+  assert.match(pdf.text, /Retained native stream report/);
+  const image = [...pdf.objects.values()].find(object => /\/Subtype \/Image/.test(object.body));
+  assert.deepEqual(new Uint8Array(image.stream), data);
+  assert.equal(destination.locked, false); assert.equal(closed, false);
+  const writer = destination.getWriter();
+  try { await writer.close(); } finally { writer.releaseLock(); }
+  assert.equal(closed, true);
+});
+
 test("compressed output preserves sink/codec failures, cancellation and output ceilings", async () => {
   const source = raw();
   for (const mode of ["sink", "abort", "limit"]) {

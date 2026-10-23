@@ -2,19 +2,21 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfTo, writePdfDocument, pdfTable, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 // This fixture uses the standard font. General Unicode and consumer reading order are
 // independently inspected by the real-report qualification runner.
 async function logicalPdf(blob) {
   const pdf = await inspectPdf(blob), elements = new Map();
-  for (const [id, object] of pdf.objects) if (/\/Type \/StructElem /.test(object.body)) {
-    const kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1], content = [];
-    for (const token of kids.replace(/<< \/Type \/OBJR[^>]*>>/g, "").matchAll(/<< \/Type \/MCR \/Pg (\d+) 0 R \/MCID (\d+) >>|(\d+) 0 R/g)) {
-      if (token[3]) content.push(Number(token[3]));
-      else {
-        const page = pdf.pages.find(value => value.id === Number(token[1]));
-        const mark = new RegExp("/\\w+ << /MCID " + token[2] + "(?: /ActualText <[^>]*>)? >> BDC\\n([\\s\\S]*?)EMC").exec(page.content);
-        assert.ok(mark);
+  for (const [id, object] of pdfStructureElements(pdf)) {
+    const { entries } = pdfStructureChildren(object.body), content = [];
+    for (const entry of entries) {
+      if (entry.kind === "element") content.push(entry.id);
+      else if (entry.kind === "mark") {
+        const page = pdf.pages.find(value => value.id === entry.pageId);
+        assert.ok(page, "Every structure mark resolves to a physical page");
+        const mark = new RegExp("/\\w+ << /MCID " + entry.mcid + "(?: /ActualText <[^>]*>)? >> BDC\\n([\\s\\S]*?)EMC").exec(page.content);
+        assert.ok(mark, "Every structure mark resolves to marked page content");
         content.push([...mark[1].matchAll(/<([a-f0-9]*)> Tj/g)].map(value => Buffer.from(value[1], "hex").toString("latin1")).join(""));
       }
     }
@@ -57,6 +59,24 @@ test("tagged bands read each source cell once in row order across repeated ident
   assert.equal(pdf.text(links[0].id), "ROW-1");
   assert.ok((links[0].body.match(/\/Type \/OBJR/g) ?? []).length > 2, "Repeated visual links stay clickable with one logical link owner");
   assert.ok(pdf.pages.filter(page => page.lines.includes("ROW-1")).length > 2, "Identifiers repeat visually without duplicate semantic text");
+});
+
+test("short nonrepeated cell links retain their physical annotations and one logical owner through another band's continuation", async () => {
+  const detail = Array.from({ length: 40 }, (_, index) => "DETAIL-" + index).join("\n");
+  const pdf = await logicalPdf(await writePdf([["LINK-ROW", detail, 12,
+    new ExportCell("Open record", { link: { target: "https://example.com/record" } })]], options));
+  const links = [...pdf.elements.values()].filter(element => element.role === "Link");
+  assert.equal(links.length, 1); assert.equal(pdf.text(links[0].id), "Open record");
+  const linkedPages = pdf.pages.filter(page => page.lines.includes("Count"));
+  assert.ok(linkedPages.length > 1, "A nonrepeated native link remains a painting obligation on continuation bands");
+  const annotations = [...pdf.objects].filter(([, object]) => /\/Subtype \/Link /.test(object.body));
+  assert.equal(annotations.length, linkedPages.length);
+  for (const [id, annotation] of annotations) {
+    assert.match(annotation.body, /\/StructParent \d+/);
+    assert.equal(links.filter(link => new RegExp("/Type /OBJR /Obj " + id + " 0 R").test(link.body)).length, 1);
+  }
+  assert.equal(pdf.pages.flatMap(page => page.lines).filter(line => line === "Open record").length, 1);
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "TD").length, 4);
 });
 
 test("tagged table captions precede logical headers and repeated continuation context stays artifact", async () => {

@@ -103,6 +103,25 @@ test("batched export preserves scope, reordered cell indexes, typed presentation
   assert.equal(await csv.text(), "Metrics,\r\nName,Amount\r\nfirst,'=display\r\nsecond,'=display\r\nTotals,20\r\n");
 });
 
+test("DataTables current selected order retains captured stable keys and explicit row-heading intent", async () => {
+  const { host, table, calls } = fixture({ grouped: false });
+  table.columns = () => ({ indexes: () => ({ toArray: () => [1, 0] }) });
+  const exportData = table.buttons.exportData;
+  table.buttons.exportData = options => {
+    const data = exportData(options);
+    return { ...data, header: [...data.header].reverse(), footer: undefined, footerStructure: undefined };
+  };
+  let reads = 0, role = true;
+  const identifier = Object.assign(Object.create({ get rowHeader() { reads++; return role; } }), { key: "service" });
+  const source = createDataTablesExport(host, table, { columnOptions: { 0: identifier, 1: { key: "amount", type: "number" } } });
+  role = false; identifier.key = "Changed";
+  assert.equal(reads, 1);
+  assert.deepEqual(source.columns.map(column => [column.key, column.rowHeader]), [["amount", undefined], ["service", true]]);
+  assert.deepEqual(await collect(source.rows), [[7.5, "first"], [12.5, "second"]]);
+  assert.deepEqual(calls, [[1, 0]]);
+  assert.throws(() => createDataTablesExport(host, table, { columnOptions: { 0: { rowHeader: "yes" } } }), /rowHeader must be boolean/);
+});
+
 test("compatibility delegates whole-matrix customization and rejects ambiguous source-index projection", async () => {
   const { host, table, calls } = fixture();
   const exportOptions = { customizeData: data => { data.body.reverse(); data.body.push(["extra", 3]); } };

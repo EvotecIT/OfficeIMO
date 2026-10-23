@@ -1,10 +1,16 @@
 import { ExportCell, checkAbort, inputRows } from "../../core/index.js";
 import type { CellPresentation, ExportValue } from "../../core/index.js";
 import { datetime } from "./dates.js";
+import { captureFields } from "../../internal/capture.js";
+import { copyColumns } from "../../internal/rows.js";
+import { copyCellPresentation } from "../../core/presentation.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
+
+const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): CanopyExport {
+  options = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "signal", "onDiagnostic"]);
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
   if (!capture || typeof capture.rows !== "function" || !capture.request) throw new TypeError("A portable CanopyX capture with request and rows() is required.");
   const { request } = capture, signal = options.signal, values = request.values;
@@ -31,7 +37,7 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
   else if (request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
   const tones = new Map(Object.entries(options.tones ?? {}).map(([name, style]) => {
     if (!style || typeof style !== "object" || Array.isArray(style)) throw new TypeError("Tone mappings must be portable presentation objects.");
-    return [name, Object.freeze({ ...style })] as const;
+    return [name, copyCellPresentation(style)] as const;
   }));
   const tone = (name: string | undefined, rowId: string, columnId?: string): Readonly<CellPresentation> | undefined => {
     if (name === undefined) return undefined;
@@ -51,13 +57,14 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
       (request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
       throw new TypeError("Invalid or duplicate Canopy export column.");
     ids.add(column.id); diagnostics(column.diagnostics, undefined, column.id);
-    const override = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
-    for (const key of Object.keys(override)) if (!["width", "format", "wrapText", "alignment", "groups"].includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
-    return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze({ ...override, key: column.id, header: column.title,
+    const selected: NonNullable<CanopySourceOptions["columnOptions"]>[string] = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
+    for (const key of Object.keys(selected)) if (!(columnFields as readonly string[]).includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
+    const override = captureFields(selected, columnFields);
+    const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
       ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
       ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
-      ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }),
-      ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
+      ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
+    return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
   return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {

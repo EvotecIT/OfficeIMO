@@ -27,6 +27,8 @@ export interface ColumnSettings {
   readonly format?: string;
   readonly wrapText?: boolean;
   readonly alignment?: Alignment;
+  /** Explicitly identifies each detail record in tagged PDF tables. Other formats retain their existing cells and presentation. */
+  readonly rowHeader?: boolean;
   /** Contiguous shared prefixes form merged heading rows above the leaf headers. */
   readonly groups?: readonly string[];
 }

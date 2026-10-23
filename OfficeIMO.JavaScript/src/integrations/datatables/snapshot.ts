@@ -2,7 +2,7 @@ import { checkAbort, pause, rowsFromBatches, taskYieldDue } from "../../core/ite
 import { ExportBudget } from "../../core/limits.js";
 import type { Column, ExportValue } from "../../core/index.js";
 import { captureFields } from "../../internal/capture.js";
-import { columnOptionFields } from "../../internal/rows.js";
+import { columnOptionFields, copyColumns } from "../../internal/rows.js";
 import { array, call, indexes, member } from "./api.js";
 import { headings, text, value } from "./headings.js";
 import type { DataTablesApi, DataTablesExport, DataTablesExportOptions, DataTablesHost, DataTablesOptions } from "./types.js";
@@ -71,10 +71,10 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
   const heading = headings(omitted?.header ? undefined : member(data, "headerStructure"), leaf, omitted?.header ? "leaf" : headingMode);
   for (const index of columnIndexes) if (member(options.columnOptions?.[index], "value") !== undefined)
     throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
-  const columns: readonly Column<readonly ExportValue[]>[] = Object.freeze(leaf.map((label, index) => Object.freeze({
+  const columns: readonly Column<readonly ExportValue[]>[] = Object.freeze(copyColumns(leaf.map((label, index) => ({
     header: text(label), key: "dt:" + columnIndexes[index]!, ...options.columnOptions?.[columnIndexes[index]!],
     ...(heading.groups[index]!.length ? { groups: Object.freeze(heading.groups[index]!) } : {})
-  })));
+  }))).map(column => Object.freeze(column)));
   // Explicit heading overrides also apply to CSV's leaf heading.
   if (!heading.structure) heading.rows[heading.rows.length - 1] = columns.map(column => column.header);
   const headerStructure = heading.structure?.map((row, level) => Object.freeze(row.map((cell, index) => {

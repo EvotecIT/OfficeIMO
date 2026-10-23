@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- OfficeIMO 3.4 adopts the conversion API changes described in MIGRATION.md.
-       Scope these reviewed breaks to exact API symbols and baseline validation.
-       Omit assembly operands because Unix packages use netstandard2.0 for the
-       3.3 net472 baseline; Windows packages use net472. -->
+  <!-- Forward PDF conversion types moved to the document assemblies as described in MIGRATION.md.
+       Scope the 3.3 baseline exceptions to exact moved types; member exceptions under removed
+       converter classes are obsolete. Omit assembly operands because Unix packages use
+       netstandard2.0 for the 3.3 net472 baseline; Windows packages use net472. -->
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Word.Pdf.PdfWordImportOptions</Target>
@@ -76,58 +76,13 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfExportWarning</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.WordPdfConverterExtensions</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>

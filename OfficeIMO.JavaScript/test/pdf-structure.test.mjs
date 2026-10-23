@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, pdfGroupedTable, createGroupedReport, ExportCell } from "../dist/pdf/index.js";
-import { inspectPdf } from "./pdf-reader.mjs";
+import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Amount", key: "amount" }];
 const tagged = { language: "en-US" };
@@ -19,9 +20,9 @@ async function inspectStructure(blob) {
   assert.match(catalog.body, /\/MarkInfo << \/Marked true >>/);
   assert.match(catalog.body, /\/Lang <feff0065006e002d00550053>/);
   assert.match(root.body, /\/Type \/StructTreeRoot /);
-  const elements = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => [id, {
-    id, body: object.body, role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
-    kids: /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1]
+  const elements = new Map(pdfStructureElements(pdf).map(([id, object]) => [id, {
+    id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: ref(object.body, "P"),
+    ...pdfStructureChildren(object.body)
   }]));
   const document = elements.get(refs(/\/K \[([^\]]*)\]/.exec(root.body)[1])[0]);
   assert.equal(document.role, "Document"); assert.equal(document.parent, rootId);
@@ -45,7 +46,7 @@ async function inspectStructure(blob) {
   assert.deepEqual(keys, [...keys].sort((left, right) => left - right));
   assert.equal(Number(/\/ParentTreeNextKey (\d+)/.exec(root.body)[1]), Math.max(...keys) + 1);
   const marked = new Map();
-  const associatedAnnotations = new Set();
+  const associatedAnnotations = new Map();
   for (const page of pdf.pages) {
     assert.match(page.body, /\/Tabs \/S/);
     const key = Number(/\/StructParents (\d+)/.exec(page.body)[1]);
@@ -55,8 +56,9 @@ async function inspectStructure(blob) {
     for (const [index, match] of content.entries()) {
       const mcid = Number(match[2]); assert.equal(mcid, index);
       const owner = elements.get(parents[mcid]); assert.equal(owner.role, match[1]);
-      assert.ok(owner.kids.includes("<< /Type /MCR /Pg " + page.id + " 0 R /MCID " + mcid + " >>"));
-      marked.set(page.id + ":" + mcid, { owner: owner.id, text: [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(m => Buffer.from(m[1], "hex").toString("latin1")).join("") });
+      assert.equal(owner.entries.filter(child => child.kind === "mark" && child.pageId === page.id && child.mcid === mcid).length, 1);
+      marked.set(page.id + ":" + mcid, { owner: owner.id, pageId: page.id, mcid,
+        text: [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(m => Buffer.from(m[1], "hex").toString("latin1")).join("") });
     }
     assert.equal((page.content.match(/\bBDC\b/g) ?? []).length, (page.content.match(/\bEMC\b/g) ?? []).length);
     for (const id of refs(/\/Annots \[([^\]]*)\]/.exec(page.body)?.[1] ?? "")) {
@@ -64,23 +66,30 @@ async function inspectStructure(blob) {
       const owner = elements.get(pageEntries.get(key));
       assert.equal(owner?.role, "Link", "Every tagged annotation must point to its logical Link");
       assert.equal(ref(annotation.body, "P"), page.id);
-      assert.ok(owner.kids.includes("<< /Type /OBJR /Obj " + id + " 0 R /Pg " + page.id + " 0 R >>"));
+      assert.equal(owner.entries.filter(child => child.kind === "annotation" && child.id === id && child.pageId === page.id).length, 1);
       assert.ok(["P", "H1", "H2", "H3", "H4", "H5", "H6", "TD", "TH", "Caption"].includes(elements.get(owner.parent)?.role));
-      assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.add(id);
+      assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.set(id, { owner: owner.id, pageId: page.id });
     }
   }
   let contentCount = 0;
   for (const element of elements.values()) {
-    const children = element.kids.replace(/<<[\s\S]*?>>/g, "");
-    for (const child of refs(children)) assert.equal(elements.get(child).parent, element.id);
-    element.content = [...element.kids.matchAll(/<< \/Type \/MCR \/Pg (\d+) 0 R \/MCID (\d+) >>/g)].map(match => {
-      const entry = marked.get(match[1] + ":" + match[2]); assert.equal(entry.owner, element.id); contentCount++; return entry;
+    for (const child of element.entries.filter(child => child.kind === "element")) assert.equal(elements.get(child.id)?.parent, element.id);
+    element.content = element.entries.filter(child => child.kind === "mark").map(child => {
+      const entry = marked.get(child.pageId + ":" + child.mcid); assert.ok(entry, "Every logical mark must resolve to painted content");
+      assert.equal(entry.owner, element.id); contentCount++; return entry;
     });
   }
   assert.equal(contentCount, marked.size);
-  for (const element of elements.values()) for (const match of element.kids.matchAll(/<< \/Type \/OBJR \/Obj (\d+) 0 R \/Pg (\d+) 0 R >>/g))
-    assert.ok(associatedAnnotations.has(Number(match[1])), "Every OBJR must resolve to one annotated page");
+  for (const element of elements.values()) for (const child of element.entries.filter(child => child.kind === "annotation"))
+    assert.deepEqual(associatedAnnotations.get(child.id), { owner: element.id, pageId: child.pageId }, "Every OBJR must resolve to its annotated page and logical owner");
   return { ...pdf, elements, document, marked };
+}
+
+function assertMixedPageContent(element) {
+  const marks = element.entries.filter(child => child.kind === "mark");
+  assert.ok(marks.some(child => child.form === "integer" && child.pageId === element.defaultPage), "The first page uses its logical owner's default page");
+  assert.ok(marks.some(child => child.form === "mcr" && child.pageId !== element.defaultPage), "Later fragments retain explicit page references");
+  assert.ok(marks.every(child => child.form === (child.pageId === element.defaultPage ? "integer" : "mcr")));
 }
 
 test("tagged composed reports retain logical paragraphs and table cells across page fragments", async () => {
@@ -101,13 +110,15 @@ test("tagged composed reports retain logical paragraphs and table cells across p
   const ordered = refs(pdf.document.kids).map(id => pdf.elements.get(id));
   assert.deepEqual(ordered.map(element => element.role), ["H1", "P", "Table", "Figure", "Figure", "H2"]);
   const paragraph = ordered[1]; assert.equal(paragraph.content.length, 22); assert.equal(paragraph.content.map(part => part.text).join("|"), Array.from({ length: 22 }, (_, i) => "Paragraph" + i).join("|"));
+  assertMixedPageContent(paragraph);
   const table = ordered[2], rows = refs(table.kids).map(id => pdf.elements.get(id));
   assert.equal(rows.length, 4, "One header, two data rows and one ordinary footer; no repeated semantic headers");
   assert.ok(rows.every(row => row.role === "TR"));
   const header = refs(rows[0].kids).map(id => pdf.elements.get(id));
-  assert.ok(header.every(cell => cell.role === "TH" && cell.body.includes("/A << /O /Table /Scope /Column >>")));
+  assert.ok(header.every(cell => cell.role === "TH" && cell.attributes === "<< /O /Table /Scope /Column >>"));
   const cells = refs(rows[1].kids).map(id => pdf.elements.get(id));
   assert.equal(cells[0].role, "TD"); assert.equal(cells[0].content.length, 45);
+  assertMixedPageContent(cells[0]);
   assert.equal(cells[0].content.map(part => part.text).join("|"), long.replaceAll("\n", "|"));
   assert.equal(cells[1].content.map(part => part.text).join(""), "Right");
   assert.match(ordered[3].body, /\/Alt <feff0042006c007500650020007300710075006100720065>/);
@@ -196,13 +207,34 @@ test("tagged paragraph and table links associate text and each cross-page native
   assert.equal(links.length, 5, "Each authored paragraph/cell run keeps one logical link identity");
   const paragraphLink = links.find(element => pdf.elements.get(element.parent).role === "P");
   assert.equal(paragraphLink.content.map(part => part.text).join(""), long);
-  assert.ok(new Set([...paragraphLink.kids.matchAll(/\/Pg (\d+) 0 R/g)].map(match => match[1])).size > 1);
+  assert.ok(new Set(paragraphLink.content.map(part => part.pageId)).size > 1);
+  assertMixedPageContent(paragraphLink);
   const cellLink = links.find(element => element.content.map(part => part.text).join("") === cellText.replaceAll("\n", ""));
   assert.ok(cellLink && cellLink.content.length > 20);
+  assertMixedPageContent(cellLink);
   assert.ok([...pdf.objects.values()].filter(object => /\/Subtype \/Link/.test(object.body)).length > links.length);
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: " ", link: { target: "https://example.com" } }] }], { tagged }), /nonempty displayed text/);
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: "Link", link: { target: "https://example.com" } }] }],
     { tagged, limits: { maxHyperlinks: 0 }, pageNumbers: false }), /maxHyperlinks/);
+});
+
+test("large linked logical owners stream mixed page references without losing text or annotation owners", async () => {
+  const lines = Array.from({ length: 1200 }, (_, index) => "Stream-" + String(index).padStart(4, "0"));
+  const pdf = await inspectStructure(await writePdfDocument([{ kind: "paragraph", text: [{ text: lines.join("\n"),
+    link: { target: "https://example.org/streamed-report" } }] }], {
+    tagged, pageSize: { width: 220, height: 180 }, margins: 24, pageNumbers: false, compression: true
+  }));
+  const link = [...pdf.elements.values()].find(element => element.role === "Link");
+  assert.ok(link, "The linked paragraph retains a logical Link owner");
+  assert.ok(Buffer.byteLength(link.body, "utf8") > 32768, "The logical owner must exceed the compact-object ceiling");
+  assert.equal(typeof pdf.objects.get(link.id).bodyOffset, "number", "The large owner is emitted through the ordinary streamed object path");
+  assert.equal(pdf.elements.get(link.parent).role, "P");
+  assert.deepEqual(link.content.map(part => part.text), lines);
+  assert.equal(pdf.marked.size, lines.length, "Every painted fragment retains one logical ParentTree owner");
+  assertMixedPageContent(link);
+  const annotations = [...pdf.objects.values()].filter(object => /\/Subtype \/Link\b/.test(object.body));
+  assert.equal(link.entries.filter(child => child.kind === "annotation").length, annotations.length);
+  assert.ok(annotations.length > 1, "The streamed owner retains clickable annotations across pages");
 });
 
 test("tagged structure and marked-content budgets fail visibly and release active sources", async () => {
@@ -249,33 +281,39 @@ test("cached nonband table headings consume physical cell/text budgets without r
   }
 });
 
-test("tagged grouped subtotal tables charge shared prepared headings again while retaining single source projection", async () => {
+test("tagged leaf subtotal shares captured headings and charges only actually painted content", async () => {
   const run = async limits => {
-    let headerReads = 0, projected = 0, subtotalLabels = 0, continuationLabels = 0;
+    let headerReads = 0, projected = 0, subtotalLabels = 0, continuationLabels = 0, completed = false;
     const declared = Array.from({ length: 8 }, (_, index) => ({ key: "m" + index, type: "number",
       get header() { headerReads++; return "Metric" + index + "-" + "X".repeat(32); },
       value(row) { projected++; return row[index]; } }));
     const report = createGroupedReport([Array(8).fill(1)], { columns: declared,
       groupBy: [{ key: "team", value: () => "Group-A" }], totals: { m0: "sum" } });
     try {
-      return await writePdfDocument([pdfGroupedTable(report, { labelColumn: { header: "Group" }, includeGrandTotal: false,
+      const document = await writePdfDocument([pdfGroupedTable(report, { labelColumn: { header: "Group" }, includeGrandTotal: false,
         subtotalLabel(group) { subtotalLabels++; return "Subtotal " + group.label; }, grandTotalLabel: () => "Unused",
         continuationLabel(group) { continuationLabels++; return group.label; } })], {
         tagged, pageSize: { width: 1000, height: 600 }, orientation: "landscape", margins: 20,
         pageNumbers: false, compression: false, limits
       });
+      completed = true; return document;
     } finally {
-      assert.equal(headerReads, 8, "Summary tables reuse captured headings without invoking authored getters");
-      assert.equal(projected, 8, "The one report record is projected once");
-      assert.equal(subtotalLabels, 1); assert.equal(continuationLabels, 1);
+      assert.equal(headerReads, 8, "The leaf subtotal reuses captured headings without invoking authored getters");
+      assert.ok(projected <= 8, "The record is never projected twice, including early budget failures");
+      assert.ok(subtotalLabels <= 1);
+      assert.ok(continuationLabels <= 1, "An early resource rejection must not recapture continuation text");
+      if (completed) {
+        assert.equal(projected, 8, "A completed export projects the one record exactly once");
+        assert.equal(subtotalLabels, 1); assert.equal(continuationLabels, 1);
+      }
     }
   };
-  const pdf = await inspectStructure(await run({ maxCells: 100, maxTextCharacters: 5000 }));
-  assert.equal(pdf.pages.length, 1, "Separate summary-table headings repeat even without a page break");
-  assert.equal([...pdf.elements.values()].filter(element => element.role === "Table").length, 2);
+  const pdf = await inspectStructure(await run({ maxCells: 34, maxTextCharacters: 500 }));
+  assert.equal(pdf.pages.length, 1, "The detail and its leaf subtotal share one physical table");
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "Table").length, 1);
   const heading = "Metric0-" + "X".repeat(32);
-  assert.equal([...pdf.elements.values()].filter(element => element.role === "TH" && element.content.map(part => part.text).join("") === heading).length, 2);
-  for (const limits of [{ maxCells: 34 }, { maxTextCharacters: 500 }])
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "TH" && element.content.map(part => part.text).join("") === heading).length, 1);
+  for (const limits of [{ maxCells: 26 }, { maxTextCharacters: 320 }])
     await assert.rejects(run(limits), error => error.code === "RESOURCE_LIMIT" && error.message.includes(Object.keys(limits)[0]));
 });
 
@@ -286,7 +324,7 @@ test("graphic alternative getters preserve the validated text and decorative int
   const pdf = await inspectPdf(await writePdfDocument([described, decorative], {
     tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxCells: 1, maxTextCharacters: 1 }
   }));
-  const figures = [...pdf.objects.values()].filter(o => /\/S \/Figure /.test(o.body));
+  const figures = pdfStructureElements(pdf).filter(([, object]) => /\/S \/Figure /.test(object.body)).map(([, object]) => object);
   assert.equal(figures.length, 1);
   assert.match(figures[0].body, /\/Alt <feff0041>/);
   assert.doesNotMatch(figures[0].body, /0042004200420042/);
@@ -302,32 +340,34 @@ test("composed paragraph getters retain validated heading and text values", asyn
     tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxTextCharacters: 1 }
   }));
   assert.equal(pdf.text, "A");
-  const heading = [...pdf.objects.values()].find(o => /\/S \/H2 /.test(o.body));
+  const heading = pdfStructureElements(pdf).map(([, object]) => object).find(object => /\/S \/H2 /.test(object.body));
   assert.ok(heading, "The captured heading level owns the emitted text");
-  assert.doesNotMatch([...pdf.objects.values()].map(o => o.body).join("\n"), /\/S \/H9 /);
+  assert.doesNotMatch(pdfStructureElements(pdf).map(([, object]) => object.body).join("\n"), /\/S \/H9 /);
 });
 
-test("paragraph presentation snapshots nested getters before validating its emitted style", async () => {
-  const reads = { bold: 0, italic: 0, color: 0, alignment: 0 };
-  const presentation = {
-    get bold() { return ++reads.bold <= 2 ? false : true; },
-    get italic() { return ++reads.italic <= 2 ? false : true; },
-    get color() { return ++reads.color <= 2 ? "008000" : "0000FF"; },
-    get alignment() { return ++reads.alignment <= 2 ? "left" : "right"; }
-  };
-  const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "A", presentation }], { compression: false, pageNumbers: false }));
-  assert.deepEqual(reads, { bold: 1, italic: 1, color: 1, alignment: 1 });
-  assert.match(pdf.pages[0].content, /q 0 0\.502 0 rg 0 0\.502 0 RG/);
-  assert.match(pdf.pages[0].content, /1 0 0 1 36 [\d.]+ Tm <41> Tj/);
-  const fonts = [...pdf.objects.values()].filter(o => /\/Type \/Font /.test(o.body));
-  assert.ok(fonts.some(font => /\/BaseFont \/Helvetica /.test(font.body)));
-  assert.ok(fonts.every(font => !/Helvetica-(?:Bold|Oblique)/.test(font.body)));
-  for (const [key, invalid, valid, error] of [["bold", "yes", false, /bold must be boolean/], ["italic", "yes", false, /italic must be boolean/],
-    ["color", "invalid", "008000", /six-digit RGB/], ["alignment", "justify", "left", /alignment supports/]]) {
-    let count = 0;
-    const invalidFirst = Object.defineProperty({}, key, { enumerable: true, get() { return ++count === 1 ? invalid : valid; } });
-    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A", presentation: invalidFirst }], { pageNumbers: false }), error);
-    assert.equal(count, 1);
+test("scalar and rich paragraph presentations capture getters before validating their emitted style", async () => {
+  for (const text of ["A", [{ text: "A" }]]) {
+    const reads = { bold: 0, italic: 0, color: 0, alignment: 0 };
+    const presentation = {
+      get bold() { return ++reads.bold <= 2 ? false : true; },
+      get italic() { return ++reads.italic <= 2 ? false : true; },
+      get color() { return ++reads.color <= 2 ? "008000" : "0000FF"; },
+      get alignment() { return ++reads.alignment <= 2 ? "left" : "right"; }
+    };
+    const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text, presentation }], { compression: false, pageNumbers: false }));
+    assert.deepEqual(reads, { bold: 1, italic: 1, color: 1, alignment: 1 });
+    assert.match(pdf.pages[0].content, /q 0 0\.502 0 rg 0 0\.502 0 RG/);
+    assert.match(pdf.pages[0].content, /1 0 0 1 36 [\d.]+ Tm <41> Tj/);
+    const fonts = [...pdf.objects.values()].filter(o => /\/Type \/Font /.test(o.body));
+    assert.ok(fonts.some(font => /\/BaseFont \/Helvetica /.test(font.body)));
+    assert.ok(fonts.every(font => !/Helvetica-(?:Bold|Oblique)/.test(font.body)));
+    for (const [key, invalid, valid, error] of [["bold", "yes", false, /bold must be boolean/], ["italic", "yes", false, /italic must be boolean/],
+      ["color", "invalid", "008000", /six-digit RGB/], ["alignment", "justify", "left", /alignment supports/]]) {
+      let count = 0;
+      const invalidFirst = Object.defineProperty({}, key, { enumerable: true, get() { return ++count === 1 ? invalid : valid; } });
+      await assert.rejects(writePdfDocument([{ kind: "paragraph", text, presentation: invalidFirst }], { pageNumbers: false }), error);
+      assert.equal(count, 1);
+    }
   }
 });
 

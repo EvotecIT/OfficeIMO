@@ -1,6 +1,7 @@
 import { OfficeIMOError } from "../core/errors.js";
 import { ExportBudget } from "../core/limits.js";
 import { copyColumns } from "../internal/rows.js";
+import type { ProjectionColumn } from "../internal/columns.js";
 import { captureTableSpans } from "../internal/table-spans.js";
 import { copyExportValue } from "../internal/export-values.js";
 import { captureFields } from "../internal/capture.js";
@@ -56,9 +57,30 @@ export function captureWideTable(input: PdfOptions["wideTable"]): PdfOptions["wi
   if (minimumColumnWidth !== undefined) positive(minimumColumnWidth, "Minimum PDF column width");
   if (repeatColumns !== undefined && !Array.isArray(repeatColumns)) throw new TypeError("repeatColumns must be an array.");
   const repeats = repeatColumns === undefined ? [] : [...repeatColumns];
-  if (repeats.some((value, index) => !Number.isSafeInteger(value) || value < 0 || index > 0 && value <= repeats[index - 1]!))
-    throw new RangeError("repeatColumns must contain sorted unique nonnegative indices.");
+  if (repeats.some(value => typeof value === "number" ? !Number.isSafeInteger(value) || value < 0 : typeof value !== "string" || !value.length))
+    throw new RangeError("repeatColumns must contain nonnegative indices or nonempty stable keys.");
+  if (repeats.every(value => typeof value === "number") && repeats.some((value, index) => index > 0 && value <= repeats[index - 1]!))
+    throw new RangeError("Numeric repeatColumns must contain sorted unique nonnegative indices.");
   return Object.freeze({ mode, ...(minimumColumnWidth === undefined ? {} : { minimumColumnWidth }), repeatColumns: Object.freeze(repeats) });
+}
+
+/** Resolve identities against this table's captured selection, without consulting a grid or opening its rows. */
+function repeatedColumns(policy: PdfOptions["wideTable"], columns: readonly ProjectionColumn[]): readonly number[] {
+  if (typeof policy !== "object") return Object.freeze([]);
+  const selected = new Set<number>();
+  for (const selector of policy.repeatColumns ?? []) {
+    let position: number;
+    if (typeof selector === "number") position = selector;
+    else {
+      position = columns.findIndex(column => column.key === selector);
+      if (position < 0 || columns.some((column, index) => index !== position && column.key === selector))
+        throw new TypeError("repeatColumns requires an unambiguous selected column key: " + selector);
+    }
+    if (position >= columns.length) throw new RangeError("repeatColumns index exceeds the declared columns.");
+    if (selected.has(position)) throw new TypeError("repeatColumns selects the same column more than once.");
+    selected.add(position);
+  }
+  return Object.freeze([...selected].sort((left, right) => left - right));
 }
 export interface PdfSettings {
   readonly options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">;
@@ -69,6 +91,8 @@ export interface PdfSettings {
   readonly padding: number;
   readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxTableBands" | "maxTableWindowRows" | "maxCellCharacters" | "maxTextRuns" | "maxGroupBlocks" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences" | "maxListItems" | "maxParagraphStyles" | "maxSections" | "maxBookmarks">> & Pick<PdfLimits, "maxImageWorkingBytes">;
   readonly budget: ExportBudget;
+  /** Captured identities resolved once to selected table positions, shared by layout and band planning. */
+  readonly repeatedColumns: readonly number[];
 }
 export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">, document = false): PdfSettings {
   const configuration = { ...capturePdfOptions(input) };
@@ -137,5 +161,6 @@ export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraph
   }
   const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
   return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
+    repeatedColumns: document ? Object.freeze([]) : repeatedColumns(options.wideTable, columns),
     limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
