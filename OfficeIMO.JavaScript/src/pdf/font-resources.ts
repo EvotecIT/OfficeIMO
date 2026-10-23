@@ -8,6 +8,8 @@ import type { PdfFonts } from "./types.js";
 import type { TrueTypeFont } from "./truetype.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 
+const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+
 export class PdfFontResource {
   readonly name: string;
   readonly object: number;
@@ -45,7 +47,7 @@ export class PdfFontResource {
     let hex = "";
     for (const char of text) {
       const cp = char.codePointAt(0)!; this.width(cp);
-      hex += (this.program ? this.mappings.get(cp)!.cid : standardCode(cp)!).toString(16).padStart(this.program ? 4 : 2, "0");
+      hex += this.program ? this.mappings.get(cp)!.cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)!]!;
     }
     return "<" + hex + ">";
   }

@@ -366,3 +366,66 @@ memory is 47.19%/47.61% higher for narrow and 20.93%/18.46% higher for wide.
 All samples remain included. Both narrow RSS criteria remain unmet; this
 candidate is not repeated to seek a different result. No isolated RSS effect
 or universal performance guarantee follows from these observations.
+
+## Buffered structure completion
+
+Completed structure leaves can append synchronously to an existing compact
+batch when no flush is needed. Fresh batches, UTF-8 overflow and the exact
+256-member boundary retain the awaited path. Partial child completion keeps
+the unfinished parent open and skips children already stored. Public APIs,
+native compression and serialized bytes remain unchanged.
+
+All 512 ordinary and 194 focused PDF tests pass. Twelve geometry profiles,
+six semantic fixtures and both full workloads retain their exact independently
+validated bytes. A bounded independent ownership review accepted the change.
+Sampled allocation traffic beneath completion falls from 155.17 MB to
+83.55 MB, including the new buffered helpers; this measures allocation traffic,
+not retained memory, native memory or process RSS.
+
+Candidate `12455d1b1a84689a22f967585e1477368bf26638` passes all sixteen
+output validations in one fixed normal-host cohort. Narrow mean/median peak
+RSS remains 1.75%/3.96% above M8; wide mean/median is 9.04%/10.69% lower.
+Narrow engine-time mean/median is 32.61%/9.92% lower, and wide mean/median is
+3.25%/29.21% lower. Output sizes remain 74.71%/77.02% lower. Sampled external
+memory is 40.72%/48.52% higher for narrow and 86.38%/89.07% higher for wide.
+All warmups and measured samples remain included.
+
+Both narrow RSS criteria remain unmet. This candidate is not repeated to seek
+a different result. The next bounded investigation concerns the extra input
+stream and pipe-through transport around the existing native compressor;
+mandatory codec work remains. No isolated RSS effect or universal performance
+guarantee follows from the observations above.
+
+## Native compressor transport prototype
+
+A local prototype replaced the compressor's artificial input stream and
+pipe-through transport with a concurrent writer and reader. Its first-error,
+cancellation and buffer-ownership checks passed, as did 517 ordinary and 199
+focused PDF tests and exact artifact comparisons. Independent review found no
+actionable correctness issue in that boundary.
+
+The complete sampled owner scope, including detached input continuations,
+increased from 9.87 MB to 12.07 MB once its new lifetime and cancellation work
+was included. Mandatory native codec construction remained separate. The
+current profile also contains 499,648 bytes with unresolved ancestry; they are
+not assigned to any owner. This does not prove an RSS regression, but it gives
+no basis for retaining the extra transport complexity. The prototype was
+removed before an RSS comparison. Its patch, diagnostics and disposition are
+retained; the original compressor transport and its tests remain in use.
+
+## Standard-font byte encoding
+
+The standard-font encoder now reuses a private 256-entry two-digit hexadecimal
+lookup. It still validates each scalar and uses the same WinAnsi mapping;
+embedded-font CID conversion is unchanged. One public PDF fixture checks all
+217 supported byte values and the four standard faces. All 513 ordinary and
+195 focused PDF tests pass; twelve layout profiles, six semantic fixtures and
+both full workloads preserve exact independently validated bytes.
+
+In the prototype capture, the unchanged selected font method's inclusive
+sampled traffic fell from 26.86 MB to 16.56 MB. Its scoped per-byte `toString`
+traffic fell from 10.24 MB to zero observed. Lookup initialization was not
+sampled, which does not mean its cost is zero. The font method remains identical
+after removing the transport prototype. These observations justify the bounded
+font change, not an RSS claim. The selected candidate still needs its one fixed
+M8 comparison; both narrow RSS criteria remain required.

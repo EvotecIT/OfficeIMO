@@ -7165,6 +7165,7 @@ const { pdfNumber, unicodeHex } = _m60;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
+const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
 class PdfFontResource {
     index;
     bold;
@@ -7227,7 +7228,7 @@ class PdfFontResource {
         for (const char of text) {
             const cp = char.codePointAt(0);
             this.width(cp);
-            hex += (this.program ? this.mappings.get(cp).cid : standardCode(cp)).toString(16).padStart(this.program ? 4 : 2, "0");
+            hex += this.program ? this.mappings.get(cp).cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)];
         }
         return "<" + hex + ">";
     }
