@@ -149,6 +149,30 @@ test("PDF documents share row, text, page, image and vector budgets across block
   assert.equal([...pdf.objects.values()].filter(o => /\/Subtype \/Image/.test(o.body)).length, 2);
 });
 
+test("PDF caption budgets count painted occurrences rather than unused continuation definitions", async () => {
+  for (const bands of [false, true]) {
+    const table = () => ({ ...pdfTable([["ROW"]], { columns: [{ header: "H" }], ...(bands ? {
+      columnWidths: [60], wideTable: { mode: "bands", repeatColumns: [] }
+    } : {}) }), continuationCaption: { text: "UNUSED" } });
+    const pdf = await inspectPdf(await writePdfDocument([table()], { pageNumbers: false, compression: false,
+      limits: { maxCells: 2, maxTextCharacters: 4 } }));
+    assert.equal(pdf.pages.length, 1); assert.ok(pdf.text.includes("ROW")); assert.ok(!pdf.text.includes("UNUSED"));
+    await assert.rejects(writePdfDocument([{ ...table(), caption: { text: "USED" } }], { pageNumbers: false,
+      limits: { maxTextCharacters: 7 } }), /maxTextCharacters/);
+  }
+  const blocks = () => [{ ...pdfTable(Array.from({ length: 6 }, () => ["ROW"]), { columns: [{ header: "H" }] }),
+    caption: { text: "START" }, continuationCaption: { text: "NEXT" } }];
+  const options = { pageSize: { width: 140, height: 120 }, margins: 10, pageNumbers: false, compression: false };
+  const reference = await inspectPdf(await writePdfDocument(blocks(), options));
+  assert.ok(reference.pages.length > 1);
+  const occurrences = reference.pages.flatMap(page => page.lines), cells = occurrences.length,
+    characters = occurrences.reduce((sum, value) => sum + value.length, 0);
+  assert.ok(occurrences.includes("START") && occurrences.includes("NEXT"));
+  await writePdfDocument(blocks(), { ...options, limits: { maxCells: cells, maxTextCharacters: characters } });
+  await assert.rejects(writePdfDocument(blocks(), { ...options, limits: { maxCells: cells - 1 } }), /maxCells/);
+  await assert.rejects(writePdfDocument(blocks(), { ...options, limits: { maxTextCharacters: characters - 1 } }), /maxTextCharacters/);
+});
+
 test("PDF documents reject unsupported graphics before embedding their payload", async () => {
   assert.throws(() => pdfTable([], { columns, fontSize: 36 }), /document settings/);
   await assert.rejects(writePdfDocument([{ kind: "table", rows: [], options: { columns, padding: 40 } }]), /document settings/);

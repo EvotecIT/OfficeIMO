@@ -515,7 +515,7 @@ _modules.set("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671",
 return _exports;
 })();
 
-const _m14 = _modules.get("29a8eaf35c27435e065c58212ad2489f1d9cc441b996e66f187d06c09e74e038") ?? (() => {
+const _m14 = _modules.get("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc") ?? (() => {
 const { assertExportValue } = _m8;
 
 const { checkAbort } = _m2;
@@ -528,11 +528,18 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
-            if (row.length > columns.length)
+            const length = row.length;
+            if (length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
-            for (const value of row)
+            // Resolve each positional value once, just like key/value projections. Returning the
+            // source array would let an accessor change a value after the portable-value check.
+            const values = new Array(length);
+            for (let index = 0; index < length; index++) {
+                const value = row[index];
                 validate(value);
-            return row;
+                values[index] = value;
+            }
+            return values;
         }
         if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
@@ -591,7 +598,7 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
-_modules.set("29a8eaf35c27435e065c58212ad2489f1d9cc441b996e66f187d06c09e74e038", _exports);
+_modules.set("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc", _exports);
 return _exports;
 })();
 
@@ -665,7 +672,7 @@ _modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2",
 return _exports;
 })();
 
-const _m11 = _modules.get("98dcbf8da64fd4769734e628a880e280add5203ae337b60334d07178ef60feb7") ?? (() => {
+const _m11 = _modules.get("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0") ?? (() => {
 const { ExportCell, assertScalar } = _m8;
 
 const { isDate } = _m9;
@@ -927,11 +934,11 @@ function createGroupedReport(rows, options) {
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("98dcbf8da64fd4769734e628a880e280add5203ae337b60334d07178ef60feb7", _exports);
+_modules.set("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("2a241e7eb924370b54a7082979892d0303ed669247b9509a723247db8ae7c6d5") ?? (() => {
+const _m7 = _modules.get("1c1cd8fcf07c9139b570cd85bf68d2bc9f95f447b773f0d24df2c6e648d2cf9d") ?? (() => {
 
 
 
@@ -976,11 +983,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m8.ExportCell, createGroupedReport: _m11.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("2a241e7eb924370b54a7082979892d0303ed669247b9509a723247db8ae7c6d5", _exports);
+_modules.set("1c1cd8fcf07c9139b570cd85bf68d2bc9f95f447b773f0d24df2c6e648d2cf9d", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("543a511afce1d7ec03422c14da065280158498cbc64dcb90cc2e746b7351b821") ?? (() => {
+const _m6 = _modules.get("a808fe33d783e1769e2a4782666fcd8100d8bf701259e0f585c87444bf383c72") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
 const { assertExportValue, assertScalar, copyCellPresentation } = _m8;
@@ -1159,11 +1166,11 @@ function result(value) {
     return { rows: value.rows, columns: value.columns, bytes: value.bytes };
 }
 const _exports = Object.freeze({ protocol: protocol, message: message, bounds: bounds, captureInput: captureInput, captureRow: captureRow, restoreRows: restoreRows, captureProgress: captureProgress, wireError: wireError, restoreError: restoreError, result: result });
-_modules.set("543a511afce1d7ec03422c14da065280158498cbc64dcb90cc2e746b7351b821", _exports);
+_modules.set("a808fe33d783e1769e2a4782666fcd8100d8bf701259e0f585c87444bf383c72", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("112a8cfd4d5c78628fa915e5651c7f52fd722271d7aa18dcbd17fc67bfc5e68a") ?? (() => {
+const _m1 = _modules.get("880b0165ba95aad37728527d96e885d418cd14c87b9c845071da60de5f64bb2d") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -1335,11 +1342,11 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("112a8cfd4d5c78628fa915e5651c7f52fd722271d7aa18dcbd17fc67bfc5e68a", _exports);
+_modules.set("880b0165ba95aad37728527d96e885d418cd14c87b9c845071da60de5f64bb2d", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("751f66d84c4bb2cac73bb29a5534c56dd391d19b7f7cea10a20ccdb5de7e8478") ?? (() => {
+const _m17 = _modules.get("d3ee2f1c7a377448ae46b2c98cb3eafdac9bafcc4aa42fff92d30c49d68384c4") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -1491,14 +1498,14 @@ function handleWorkerExports(endpoint, operation) {
         } };
 }
 const _exports = Object.freeze({ handleWorkerExports: handleWorkerExports });
-_modules.set("751f66d84c4bb2cac73bb29a5534c56dd391d19b7f7cea10a20ccdb5de7e8478", _exports);
+_modules.set("d3ee2f1c7a377448ae46b2c98cb3eafdac9bafcc4aa42fff92d30c49d68384c4", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("2969510520c0a47fe45ac0a439ce2f5d5d96fb2eb9a792a9ad2b3c8d3b44b1a1") ?? (() => {
+const _m0 = _modules.get("1f184060df502751e14118c0adbac1edb3e7dc674ec093382c9d0064d0407898") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m17.handleWorkerExports });
-_modules.set("2969510520c0a47fe45ac0a439ce2f5d5d96fb2eb9a792a9ad2b3c8d3b44b1a1", _exports);
+_modules.set("1f184060df502751e14118c0adbac1edb3e7dc674ec093382c9d0064d0407898", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

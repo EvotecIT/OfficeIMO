@@ -15,6 +15,22 @@ const source = (rows, selectedColumns = columns) => createGroupedReport(rows, { 
   totals: { amount: "sum" } });
 const references = body => [...body.matchAll(/(\d+) 0 R/g)].map(match => Number(match[1]));
 
+test("tagged group context charges only painted labels and the owned bookmark", async () => {
+  const report = () => createGroupedReport([{ site: "A", name: "ROW" }], {
+    columns: [{ header: "H", key: "name" }], groupBy: [{ key: "site", value: row => row.site }], totals: {}
+  });
+  const configuration = { tagged: { language: "en" }, labelColumn: { header: "S" },
+    subtotalLabel: () => "SUM", grandTotalLabel: () => "ALL", includeGrandTotal: false,
+    pageNumbers: false, compression: false };
+  // Heading A, two column headings, two detail cells and two subtotal cells; one bookmark A.
+  const blob = await writeGroupedPdf(report(), { ...configuration, limits: { maxCells: 8, maxTextCharacters: 10 } });
+  const pdf = await inspectPdf(blob);
+  assert.equal(pdf.pages.length, 1);
+  assert.deepEqual(pdf.pages[0].lines, ["A", "S", "H", "", "ROW", "SUM", ""]);
+  await assert.rejects(writeGroupedPdf(report(), { ...configuration, limits: { maxCells: 7 } }), /maxCells/);
+  await assert.rejects(writeGroupedPdf(report(), { ...configuration, limits: { maxTextCharacters: 9 } }), /maxTextCharacters/);
+});
+
 /** Inspect the actual structure object graph and the marked text painted on its referenced pages.
  * These ASCII fixtures use the standard font; native reader/AT acceptance is a separate gate. */
 async function semanticPdf(blob) {

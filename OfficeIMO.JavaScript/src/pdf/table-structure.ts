@@ -13,6 +13,8 @@ export class PdfTableStructure {
   private readonly cells = new WeakMap<PdfLayoutCell, number>();
   private readonly rows = new WeakMap<PdfLayoutRow, number>();
   private readonly columnHeaders: ColumnHeader[][] = [];
+  /** Ordinary cells without row headers share immutable associations, bounded by column count. */
+  private readonly ordinaryAttributes: string[] = [];
   private headerCount = 0;
   private headersPrepared = false;
   constructor(private readonly structure: PdfStructure, readonly table: number,
@@ -62,7 +64,14 @@ export class PdfTableStructure {
     const rowHeaders: string[] = [];
     for (let index = 0; index < ids.length; index++) if (headers[index]) rowHeaders.push(await this.structure.identifier(ids[index]!));
     for (let index = 0; index < row.cells.length; index++) {
-      const cell = row.cells[index]!, associations = this.associations(cell);
+      const cell = row.cells[index]!;
+      if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
+        const attributes = this.ordinaryAttributes[cell.first] ??=
+          this.attributes(cell, this.associations(cell));
+        this.structure.setAttributes(ids[index]!, attributes);
+        continue;
+      }
+      const associations = this.associations(cell);
       if (!headers[index]) associations.push(...rowHeaders);
       this.structure.setAttributes(ids[index]!, this.attributes(cell, associations, headers[index] ? "Row" : undefined));
     }

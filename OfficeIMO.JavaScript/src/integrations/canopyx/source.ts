@@ -3,6 +3,7 @@ import type { CellPresentation, ExportValue } from "../../core/index.js";
 import { datetime } from "./dates.js";
 import { captureFields } from "../../internal/capture.js";
 import { copyColumns } from "../../internal/rows.js";
+import { copyCellPresentation } from "../../core/presentation.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
@@ -36,7 +37,7 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
   else if (request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
   const tones = new Map(Object.entries(options.tones ?? {}).map(([name, style]) => {
     if (!style || typeof style !== "object" || Array.isArray(style)) throw new TypeError("Tone mappings must be portable presentation objects.");
-    return [name, Object.freeze({ ...style })] as const;
+    return [name, copyCellPresentation(style)] as const;
   }));
   const tone = (name: string | undefined, rowId: string, columnId?: string): Readonly<CellPresentation> | undefined => {
     if (name === undefined) return undefined;

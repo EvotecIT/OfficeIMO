@@ -221,8 +221,7 @@ export class PdfPages {
     const headers = preparedHeadings ?? (tableHeadings && this.layout ? this.activeHeadings ??= await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0),
       continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
     if (continuation?.lines.length) {
-      if (this.continuationCaptionPaints++ > 0) this.settings.budget.cell(continuation.text.text);
-      else this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
+      if (this.continuationCaptionPaints++ === 0) this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
       await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true,
         { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
     }
@@ -345,6 +344,7 @@ export class PdfPages {
     }
     if (keepTogether && visible.length) await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1)!, "Kept PDF paragraph group");
     for (const [index, paragraph] of visible.entries()) {
+      if (paragraph.budgetOnPaint) this.settings.budget.cell(paragraph.text.text);
       if (paragraph.keepTogether || paragraph.keepWithNext) await this.reserveSpace(paragraph.height + reservations[index]!, "Kept PDF paragraph chain");
       const { margins, page } = this.settings;
       if (paragraph.firstHeight > page.height - margins.top - margins.bottom + .001) throw new RangeError("PDF page cannot fit a paragraph line and its leading spacing.");
@@ -434,7 +434,7 @@ export class PdfPages {
     }
     const firstCapacity = this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0);
     if (firstCapacity + .001 < minimum) throw new RangeError("PDF band caption and headings leave no room for a data line.");
-    let captionPaints = 0, continuationPaints = 0;
+    let continuationPaints = 0;
     this.tableElement = this.structure?.element("Table", this.groupParent);
     this.paintedHeaderCells = new WeakSet();
     let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
@@ -455,9 +455,7 @@ export class PdfPages {
         this.bandCellBudget = true;
         try {
           if (currentCaption?.lines.length && !(firstWindow && firstBand && openingContextPainted)) {
-            const paints = firstWindow ? captionPaints++ : continuationPaints++;
-            if (paints > 0) this.settings.budget.cell(currentCaption.text.text);
-            if (!firstWindow && paints === 0) captionElement = this.captionAnnotations(currentCaption, captionElement);
+            if (!firstWindow && continuationPaints++ === 0) captionElement = this.captionAnnotations(currentCaption, captionElement);
             const annotationParent = captionElement;
             await this.paragraphs([currentCaption], headerHeight + minimum, true,
               firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }

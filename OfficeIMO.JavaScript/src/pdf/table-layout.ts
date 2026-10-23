@@ -91,7 +91,7 @@ export class PdfTableLayout {
     const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
     const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
       ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
-    const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
+    const font = this.fonts.select(combined.bold, combined.italic), width = span === 1 ? this.widths[first]! : this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
     const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
     let text: PdfText;
     if (options.formatRuns && row >= 0 && !(value instanceof ExportCell && value.text !== undefined)) {

@@ -498,11 +498,18 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
-            if (row.length > columns.length)
+            const length = row.length;
+            if (length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
-            for (const value of row)
+            // Resolve each positional value once, just like key/value projections. Returning the
+            // source array would let an accessor change a value after the portable-value check.
+            const values = new Array(length);
+            for (let index = 0; index < length; index++) {
+                const value = row[index];
                 validate(value);
-            return row;
+                values[index] = value;
+            }
+            return values;
         }
         if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
@@ -7600,7 +7607,7 @@ const { wrapShapedPdfText } = _m71;
 const { PdfFont } = _m62;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
-function capturePdfText(value, base, settings, fonts, countEmpty = true) {
+function capturePdfText(value, base, settings, fonts, countEmpty = true, reserveBudget = true) {
     const input = typeof value === "string" ? [{ text: value }] : value;
     if (!Array.isArray(input)) {
         if (input && typeof input.then === "function")
@@ -7631,7 +7638,7 @@ function capturePdfText(value, base, settings, fonts, countEmpty = true) {
         runs.push(Object.freeze({ text, style, ...(font === undefined ? {} : { font }), ...(link === undefined ? {} : { link: copyExportLink(link) }) }));
     }
     // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
-    if (characters || countEmpty)
+    if (reserveBudget && (characters || countEmpty))
         settings.budget.reserve(1, characters);
     return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
 }
@@ -7908,7 +7915,7 @@ class PdfTableLayout {
         const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
         const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
             ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
-        const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
+        const font = this.fonts.select(combined.bold, combined.italic), width = span === 1 ? this.widths[first] : this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
         const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
         let text;
         if (options.formatRuns && row >= 0 && !(value instanceof ExportCell && value.text !== undefined)) {
@@ -8194,6 +8201,8 @@ class PdfTableStructure {
     cells = new WeakMap();
     rows = new WeakMap();
     columnHeaders = [];
+    /** Ordinary cells without row headers share immutable associations, bounded by column count. */
+    ordinaryAttributes = [];
     headerCount = 0;
     headersPrepared = false;
     constructor(structure, table, headers) {
@@ -8247,7 +8256,14 @@ class PdfTableStructure {
             if (headers[index])
                 rowHeaders.push(await this.structure.identifier(ids[index]));
         for (let index = 0; index < row.cells.length; index++) {
-            const cell = row.cells[index], associations = this.associations(cell);
+            const cell = row.cells[index];
+            if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
+                const attributes = this.ordinaryAttributes[cell.first] ??=
+                    this.attributes(cell, this.associations(cell));
+                this.structure.setAttributes(ids[index], attributes);
+                continue;
+            }
+            const associations = this.associations(cell);
             if (!headers[index])
                 associations.push(...rowHeaders);
             this.structure.setAttributes(ids[index], this.attributes(cell, associations, headers[index] ? "Row" : undefined));
@@ -8659,9 +8675,7 @@ class PdfPages {
         }
         const headers = preparedHeadings ?? (tableHeadings && this.layout ? this.activeHeadings ??= await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0), continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
         if (continuation?.lines.length) {
-            if (this.continuationCaptionPaints++ > 0)
-                this.settings.budget.cell(continuation.text.text);
-            else
+            if (this.continuationCaptionPaints++ === 0)
                 this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
             await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true, { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
         }
@@ -8822,6 +8836,8 @@ class PdfPages {
         if (keepTogether && visible.length)
             await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1), "Kept PDF paragraph group");
         for (const [index, paragraph] of visible.entries()) {
+            if (paragraph.budgetOnPaint)
+                this.settings.budget.cell(paragraph.text.text);
             if (paragraph.keepTogether || paragraph.keepWithNext)
                 await this.reserveSpace(paragraph.height + reservations[index], "Kept PDF paragraph chain");
             const { margins, page } = this.settings;
@@ -8931,7 +8947,7 @@ class PdfPages {
         const firstCapacity = this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0);
         if (firstCapacity + .001 < minimum)
             throw new RangeError("PDF band caption and headings leave no room for a data line.");
-        let captionPaints = 0, continuationPaints = 0;
+        let continuationPaints = 0;
         this.tableElement = this.structure?.element("Table", this.groupParent);
         this.paintedHeaderCells = new WeakSet();
         let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
@@ -8954,10 +8970,7 @@ class PdfPages {
                 this.bandCellBudget = true;
                 try {
                     if (currentCaption?.lines.length && !(firstWindow && firstBand && openingContextPainted)) {
-                        const paints = firstWindow ? captionPaints++ : continuationPaints++;
-                        if (paints > 0)
-                            this.settings.budget.cell(currentCaption.text.text);
-                        if (!firstWindow && paints === 0)
+                        if (!firstWindow && continuationPaints++ === 0)
                             captionElement = this.captionAnnotations(currentCaption, captionElement);
                         const annotationParent = captionElement;
                         await this.paragraphs([currentCaption], headerHeight + minimum, true, firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
@@ -10321,7 +10334,7 @@ const { captureBookmark } = _m77;
 const { captureFields } = _m10;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
-function captureParagraph(block, settings, fonts) {
+function captureParagraph(block, settings, fonts, budgetOnPaint = false) {
     if (!block || block.kind !== "paragraph")
         throw new TypeError("PDF paragraph groups accept paragraph blocks only.");
     const { text, headingLevel, presentation: inputStyle, fontSize, keepTogether, keepWithNext, spaceBefore, spaceAfter, style: styleName, bookmark: inputBookmark } = block;
@@ -10334,7 +10347,8 @@ function captureParagraph(block, settings, fonts) {
     }, settings.paragraphStyles);
     const style = resolved.presentation ?? Object.freeze({}), size = positive(resolved.fontSize ?? settings.fontSize, "Paragraph font size", 144);
     const bookmark = captureBookmark(inputBookmark, settings);
-    return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false), style, size,
+    return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false, !budgetOnPaint), style, size,
+        ...(budgetOnPaint ? { budgetOnPaint: true } : {}),
         ...(headingLevel === undefined ? {} : { headingLevel }), ...(bookmark === undefined ? {} : { bookmark }),
         keepTogether: resolved.keepTogether ?? false, keepWithNext: resolved.keepWithNext ?? false,
         spaceBefore: resolved.spaceBefore ?? 0, spaceAfter: resolved.spaceAfter ?? 8 });
@@ -10345,13 +10359,14 @@ function captureCaption(caption, settings, fonts) {
         Object.keys(caption).some(key => !["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"].includes(key)))
         throw new TypeError("PDF captions support text, style, fontSize, presentation, spaceBefore and spaceAfter.");
     return captureParagraph({ ...captureFields(caption, ["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"]),
-        kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
+        kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts, true);
 }
 /** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
 async function prepareParagraph(captured, settings, fonts, width = settings.page.width - settings.margins.left - settings.margins.right) {
     if (!captured.text.text)
         return { ...captured, lines: [], height: 0, firstHeight: 0 };
-    settings.budget.cell(captured.text.text, captured.text.text.length);
+    if (!captured.budgetOnPaint)
+        settings.budget.cell(captured.text.text, captured.text.text.length);
     const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
     return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
         firstHeight: captured.spaceBefore + lines[0].lineHeight };

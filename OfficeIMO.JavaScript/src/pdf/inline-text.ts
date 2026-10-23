@@ -38,7 +38,7 @@ export interface PdfInlineLine {
 }
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
-export function capturePdfText(value: PdfText, base: CellPresentation, settings: PdfSettings, fonts: PdfFontResources, countEmpty = true): PdfCapturedText {
+export function capturePdfText(value: PdfText, base: CellPresentation, settings: PdfSettings, fonts: PdfFontResources, countEmpty = true, reserveBudget = true): PdfCapturedText {
   const input: readonly PdfTextRun[] = typeof value === "string" ? [{ text: value }] : value;
   if (!Array.isArray(input)) {
     if (input && typeof (input as unknown as { then?: unknown }).then === "function") void Promise.resolve(input).catch(() => {});
@@ -60,7 +60,7 @@ export function capturePdfText(value: PdfText, base: CellPresentation, settings:
     runs.push(Object.freeze({ text, style, ...(font === undefined ? {} : { font }), ...(link === undefined ? {} : { link: copyExportLink(link) }) }));
   }
   // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
-  if (characters || countEmpty) settings.budget.reserve(1, characters);
+  if (reserveBudget && (characters || countEmpty)) settings.budget.reserve(1, characters);
   return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
 }
 

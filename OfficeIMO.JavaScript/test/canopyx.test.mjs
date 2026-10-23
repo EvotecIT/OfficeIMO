@@ -92,6 +92,22 @@ test("Canopy row and cell tones compose without replacing values or number forma
   assert.equal(value.link.target, "https://example.com/report");
 });
 
+test("Canopy tones capture structural presentation once before rows are consumed", async () => {
+  let reads = 0, background = "FFF2CC", bold = true;
+  class Warning { get background() { reads++; return background; } get bold() { reads++; return bold; } }
+  const input = capture([{ id: "r", tone: "warning", cells: { Name: cell(12.5, "12.50") } }]);
+  for (const format of ["xlsx", "pdf"]) {
+    reads = 0; background = "FFF2CC"; bold = true;
+    const source = createCanopyExport(input, format, { tones: { warning: new Warning() } });
+    assert.equal(reads, 2);
+    background = "FFFFFF"; bold = false;
+    const [[value]] = await collect(source);
+    assert.deepEqual(value.presentation, { background: "FFF2CC", bold: true });
+    assert.equal(value.value, 12.5); assert.equal(reads, 2);
+  }
+  assert.throws(() => createCanopyExport(input, "xlsx", { tones: { warning: { bold: "yes" } } }), /must be boolean/);
+});
+
 test("Canopy unsupported presentation rejects by default and explicit text mode reports bounded diagnostics", async () => {
   const input = capture([{ id: "r", diagnostics: ["CUSTOM_ROW"], tone: "custom", cells: { Name: cell("Raw", "Visible", { diagnostics: ["CUSTOM_CELL"] }) } }]);
   await assert.rejects(collect(createCanopyExport(input, "pdf")), /CUSTOM_ROW/);
