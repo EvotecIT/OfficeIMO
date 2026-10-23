@@ -253,3 +253,37 @@ separate copied-runtime probe found all 467 compression writables unlocked
 after reader release, and all 466 first-next-constructor observations unlocked.
 That refutes the writer-lock-overlap hypothesis under this diagnostic. It does
 not establish native allocation ownership, resource-close timing or a leak.
+
+
+## Short fitting text
+
+The six-column fixture's 60,000 data cells each fit on a single line. The
+unshaped layout path previously created character, advance and owner arrays,
+then sliced and joined them even for those fitting cells. Short single-run text
+now measures the same font advances with constant scan state and returns the
+same line and segment. Empty text, controls, overflowing text, shaped text,
+multiple runs and long text retain their existing paths and cooperative checks.
+The `.001` fit tolerance and first-error order remain unchanged.
+
+The current profile attributes 80.03 MB of sampled allocation traffic to line
+wrapping, compared with 180.72 MB before this change. Result objects remain;
+the sample does not establish retained memory or RSS savings. All 505 ordinary
+and 187 focused PDF tests pass. Ten public-API PDF profiles, including embedded
+fonts, links, controls and fit boundaries, are byte-identical to the prior
+runtime and independently pass qpdf/pypdf. Both full workload PDFs also retain
+their exact validated bytes. One bounded line-layout review accepted the change.
+
+Candidate `42939bde2230e808edec0755242b9f629f84cc1d` passed all sixteen
+independent output validations in one fixed normal-host cohort. Narrow peak
+RSS remains 0.27% higher by mean and 0.50% higher by median than M8. Wide peak
+RSS is 3.56% higher by mean and 7.22% lower by median. PDF bytes remain
+74.63%/76.21% lower for narrow/wide. Narrow engine time is 7.74% higher by mean
+and 26.85% lower by median; wide mean/median is 21.41%/30.42% lower. Sampled
+external memory is 39.13%/37.11% higher for narrow and 29.73%/18.52% higher for
+wide. Every warmup and measured sample is retained, including the wide sample
+with 328,941,568 bytes peak RSS. No outlier was removed.
+
+The narrow-memory target remains unmet in this cohort. This candidate is not
+rerun for a more favorable result. Allocation traffic, heap, external memory
+and process RSS remain distinct observations; these measurements establish no
+universal speedup, no-regression or constant-memory claim.
