@@ -6,7 +6,7 @@ public sealed partial class PdfDocument {
     /// decorations are static paragraph, panel, image or rule flow and cannot contain recursive references or tables.</remarks>
     internal void ContinuedFlow(Action<PdfContentBuilder> build, Action<PdfContentBuilder>? separator,
         Action<PdfContentBuilder>? continuationSeparator, Action<PdfContentBuilder>? continuationNotice,
-        bool reserveFinalNotice) {
+        bool reserveFinalNotice, bool allowContinuationSeparatorInBottomMargin = false) {
         Guard.NotNull(build, nameof(build));
         IReadOnlyList<IPdfBlock> body = BuildFlowBlocks(build);
         IReadOnlyList<IPdfBlock> Capture(Action<PdfContentBuilder>? action) =>
@@ -18,6 +18,6 @@ public sealed partial class PdfDocument {
         ValidateFootnoteBlocks(first, _options, allowTables: false);
         ValidateFootnoteBlocks(later, _options, allowTables: false);
         ValidateFootnoteBlocks(notice, _options, allowTables: false);
-        AddBlock(new ContinuedFlowBlock(body, first, later, notice, reserveFinalNotice));
+        AddBlock(new ContinuedFlowBlock(body, first, later, notice, reserveFinalNotice, allowContinuationSeparatorInBottomMargin));
     }
 }

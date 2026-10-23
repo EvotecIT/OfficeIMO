@@ -48,7 +48,8 @@ public static partial class WordPdfConverterExtensions {
                 RenderNativeNoteParagraphs(inner, note.Source!, section, notes, options, defaults, fonts, note.Label);
             }
         }, Story(stories.Separator), Story(stories.ContinuationSeparator),
-            stories.ContinuationNotice == null ? null : Story(stories.ContinuationNotice), reserveFinalNotice: false);
+            stories.ContinuationNotice == null ? null : Story(stories.ContinuationNotice), reserveFinalNotice: false,
+            allowContinuationSeparatorInBottomMargin: stories.ContinuationNotice == null);
         return true;
     }
 }

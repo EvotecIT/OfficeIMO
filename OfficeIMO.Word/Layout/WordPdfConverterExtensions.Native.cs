@@ -57,7 +57,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private interface INativePdfFlow {
             void ContinuedFlow(Action<PdfCore.PdfContentBuilder> build, Action<PdfCore.PdfContentBuilder>? separator,
-                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice, bool reserveFinalNotice);
+                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice,
+                bool reserveFinalNotice, bool allowContinuationSeparatorInBottomMargin);
             PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options);
             bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
@@ -87,8 +88,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
             public void ContinuedFlow(Action<PdfCore.PdfContentBuilder> build, Action<PdfCore.PdfContentBuilder>? separator,
-                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice, bool reserveFinalNotice) =>
-                _pdf.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice);
+                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice,
+                bool reserveFinalNotice, bool allowContinuationSeparatorInBottomMargin) =>
+                _pdf.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice,
+                    allowContinuationSeparatorInBottomMargin);
             public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _pdf.DefineFootnote(build, options);
             public bool SupportsPositionedTables => true;
             private readonly PdfCore.PdfDocument _pdf;
@@ -129,8 +132,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
             public void ContinuedFlow(Action<PdfCore.PdfContentBuilder> build, Action<PdfCore.PdfContentBuilder>? separator,
-                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice, bool reserveFinalNotice) =>
-                _column.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice);
+                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice,
+                bool reserveFinalNotice, bool allowContinuationSeparatorInBottomMargin) =>
+                _column.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice,
+                    allowContinuationSeparatorInBottomMargin);
             public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _column.DefineFootnote(build, options);
             public bool SupportsPositionedTables => false;
             private readonly PdfCore.PdfPageBuilder? _page;

@@ -16,16 +16,23 @@ internal static partial class PdfWriter {
             var later = PrepareFootnoteUnits(story.ContinuationSeparator);
             var notice = PrepareFootnoteUnits(story.ContinuationNotice);
             double noticeHeight = MeasureFootnoteUnits(notice);
-            double maximum = GetFullPageContentHeight() - Math.Max(MeasureFootnoteUnits(first), MeasureFootnoteUnits(later)) - noticeHeight;
-            foreach (FootnoteUnit unit in units) unit.MaximumKeepHeight = maximum;
             int start = 0;
             TableFlowCursor? table = null;
             bool continued = false;
+            double? assignedMaximum = null;
             while (start < units.Count) {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<FootnoteUnit> separator = continued ? later : first;
                 double separatorHeight = MeasureFootnoteUnits(separator);
-                double available = y - FootnoteBodyBottom - separatorHeight;
+                double separatorCredit = continued && story.AllowContinuationSeparatorInBottomMargin &&
+                    notice.Count == 0 && !HasPageFootnotes && !HasSelectedContinuedFlowFooter()
+                    ? Math.Min(separatorHeight, Math.Max(0D, FootnoteBodyBottom)) : 0D;
+                double available = y - FootnoteBodyBottom - separatorHeight + separatorCredit;
+                double maximum = GetCurrentFramePageStartY() - FootnoteBodyBottom - separatorHeight + separatorCredit - noticeHeight;
+                if (assignedMaximum != maximum) {
+                    foreach (FootnoteUnit unit in units) unit.MaximumKeepHeight = maximum;
+                    assignedMaximum = maximum;
+                }
                 NoteFlowFragment? fragment = FitNoteFlowUnits(units, start, table,
                     available - (story.ReserveFinalNotice ? noticeHeight : 0D), clipTrailingSpacing: true);
                 bool continues = fragment != null && fragment.NextStart < units.Count;
@@ -50,6 +57,14 @@ internal static partial class PdfWriter {
                 continued = true;
                 NewPage();
             }
+        }
+
+        // The derived frame can clear content after choosing its text fallback.
+        // The original selected footer still owns that page's bottom margin.
+        private bool HasSelectedContinuedFlowFooter() {
+            PdfRunningContentContext context = currentPage?.RunningContentContext ?? GetRunningPageContext();
+            int variant = currentPageBaseOptions.GetHeaderFooterVariantPageNumber(context.SectionPageNumber, context.PageNumber);
+            return currentPageBaseOptions.GetRunningContentForPage(variant, isHeader: false) != null;
         }
     }
 }
