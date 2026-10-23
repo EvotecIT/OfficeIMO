@@ -23,6 +23,7 @@ class SelectionTests(unittest.TestCase):
         self.project("OfficeIMO.CSV")
         self.project("OfficeIMO.CSV.Tests", "OfficeIMO.CSV")
         config = {
+            "website_inputs": ["Website/**", "OfficeIMO.JavaScript/**", "PowerShell/PSWriteOffice/**", "Docs/ROADMAP.md"],
             "suites": {"word": ["OfficeIMO.Word.Tests"], "csv": ["OfficeIMO.CSV.Tests"],
                        "browser-exports": [], "website": [], "powershell": []},
             "partitions": {"word-rtf-html": ["OfficeIMO.Word.Tests"], "other-projects": ["OfficeIMO.CSV.Tests"]},
@@ -123,6 +124,29 @@ class SelectionTests(unittest.TestCase):
         result = self.choose("Website/static/js/app.js")
         self.assertTrue(result["suites"]["website"])
         self.assertFalse(result["managed"])
+
+    def test_ci_or_library_change_does_not_rebuild_the_entire_website(self):
+        for path in [".github/workflows/codeql.yml", "OfficeIMO.Word/Save.cs"]:
+            with self.subTest(path=path):
+                result = self.choose(path)
+                self.assertTrue(result["managed"])
+                self.assertFalse(result["suites"]["website"])
+
+    def test_full_ci_retains_website_even_without_a_website_path_change(self):
+        self.assertTrue(self.choose("OfficeIMO.Word/Save.cs", full=True)["suites"]["website"])
+
+    def test_maintained_website_inputs_select_their_executable_consumer(self):
+        config_path = self.root / "Build/Ci/pr-suites.json"
+        config = json.loads(config_path.read_text())
+        maintained = json.loads(Path(__file__).with_name("pr-suites.json").read_text())
+        config["website_inputs"] = maintained["website_inputs"]
+        config_path.write_text(json.dumps(config))
+        for path in ["NuGet.Config", "nuget.config", "Build/WebsiteBrowserContract/Program.cs", ".github/workflows/deploy-website.yml",
+                     "Build/Test-AotProjectCoverage.ps1", "Build/BenchmarkEvidence.ps1",
+                     "Build/Run-LibraryComparisonBenchmarks.ps1"]:
+            with self.subTest(path=path):
+                self.assertTrue(self.choose(path)["suites"]["website"])
+        self.assertFalse(self.choose(".github/workflows/codeql.yml")["suites"]["website"])
 
     def test_javascript_only_selects_browser_exports_without_library_tests(self):
         result = self.choose("OfficeIMO.JavaScript/src/export.ts")

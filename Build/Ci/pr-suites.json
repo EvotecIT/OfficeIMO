@@ -1,4 +1,31 @@
 {
+  "website_inputs": [
+    "Website/**",
+    "OfficeIMO.JavaScript/**",
+    "PowerShell/PSWriteOffice/**",
+    "Docs/**",
+    "README.md",
+    "MIGRATION.md",
+    "OfficeIMO.*/README.md",
+    "OfficeIMO.*/SUPPORT.md",
+    ".agents/plugins/**",
+    ".github/actions/contract-selection/**",
+    ".github/workflows/website-*.yml",
+    ".github/workflows/deploy-website.yml",
+    "**/*.csproj",
+    "**/*.props",
+    "**/*.targets",
+    "**/NuGet.Config",
+    "**/nuget.config",
+    "NuGet.Config",
+    "nuget.config",
+    "global.json",
+    "Directory.Build.*",
+    "Directory.Packages.*",
+    "Build/**",
+    "Assets/**",
+    "OfficeIMO.TestAssets/**"
+  ],
   "suites": {
     "archives-contracts": [
       "OfficeIMO.Archives.Tests"
