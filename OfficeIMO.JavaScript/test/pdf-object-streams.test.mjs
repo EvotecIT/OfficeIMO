@@ -66,7 +66,7 @@ async function compactFixture(bodies, afterMember) {
   const containers = [...pdf.objects.values()].filter(object => /\/Type \/ObjStm\b/.test(object.body));
   for (const container of containers) {
     assert.ok(container.stream.length <= 32768, "The decoded index, member bytes and newlines share one byte ceiling");
-    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 200);
+    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 256);
   }
   return { pdf, containers, ids: [...expected.keys()] };
 }
@@ -79,7 +79,7 @@ test("compressed structure containers preserve banded grouped reports, headers, 
   const containers = [...compact.objects.values()].filter(object => /\/Type \/ObjStm\b/.test(object.body));
   assert.ok(containers.length > 1, "The report must exercise several completed batches");
   for (const container of containers) {
-    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 200);
+    assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 256);
     assert.ok(container.stream.length <= 32768, "Decoded batches retain a bounded member index and body");
     const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
     assert.match(compact.objects.get(lengthId).body, /^\d+$/, "A container length stays an ordinary scalar object");
@@ -108,13 +108,13 @@ test("the decoded byte ceiling includes the index and newlines, with UTF-8 overf
 });
 
 test("completed payloads retain their bytes while later batches reuse the bounded member storage", async () => {
-  const { containers } = await compactFixture(Array.from({ length: 405 }, (_, index) =>
+  const { containers } = await compactFixture(Array.from({ length: 517 }, (_, index) =>
     "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
-  assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [200, 200, 5]);
+  assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [256, 256, 5]);
 });
 
 test("page-byte delivery preserves pending structure members across bounded containers", async () => {
-  const bodies = Array.from({ length: 405 }, (_, index) => "(" + index + ":" + "Z".repeat(24) + ")");
+  const bodies = Array.from({ length: 517 }, (_, index) => "(" + index + ":" + "Z".repeat(24) + ")");
   const ordinary = await compactFixture(bodies), pageFlushed = await compactFixture(bodies, objects => objects.flushBytes());
   assert.deepEqual(pageFlushed.containers.map(container => container.stream), ordinary.containers.map(container => container.stream));
   assert.deepEqual(pageFlushed.pdf.pages.map(page => page.content), ordinary.pdf.pages.map(page => page.content));
@@ -134,7 +134,7 @@ test("asynchronous native codecs consume each arena batch before the next batch 
         });
       }
     };
-    await compactFixture(Array.from({ length: 405 }, (_, index) =>
+    await compactFixture(Array.from({ length: 517 }, (_, index) =>
       "(" + String(index).padStart(3, "0") + ":" + "Z".repeat(24) + (index % 2 ? "é" : "😀") + ")"));
   } finally { globalThis.CompressionStream = native; }
 });

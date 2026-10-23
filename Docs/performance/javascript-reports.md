@@ -68,21 +68,36 @@ claim.
 | Feed object-stream header and arena body separately | Kept in `07a9c74d`: removes a full payload copy, awaits codec consumption before arena reuse, and passes delayed native-codec proof. The accepted checkpoint above still misses narrow RSS. |
 | Allocation sampling including collected objects | Diagnostic only. Its runtime predates `07a9c74d`; total sampled allocation does not identify current retained or peak RSS. M8 already builds the same small structure-object strings, so that string construction is not a newly demonstrated cause. |
 | Cohort with a Git commit during execution | Rejected by provenance validation, despite identical runtime bytes. Its timings are excluded. One replacement on the immutable commit produced the accepted checkpoint above. |
-| Carry a bounded partial structure batch across page-byte delivery | New experiment: retained narrow output has 386 object streams for 70,008 members. The 192 recurring 164-member containers occupy only 22.7–24.2 KiB, below the byte ceiling. Page completion forces these partial containers to end. Keeping the same limits could reduce codec construction; an RSS improvement is not yet established. |
-| Create subsequent native compressors only when emitting a batch | New companion lifetime experiment. The first capability probe remains eager to preserve classic fallback. Later idle codecs need not overlap page-content compression. Constructor failures after selecting compression must still reject the export. No isolated gain is claimed. |
+| Carry a bounded partial structure batch across page-byte delivery | Kept in `3ccb6153` after structural proof: retained narrow output had 386 object streams for 70,008 members. The 192 recurring 164-member containers occupy only 22.7–24.2 KiB, below the byte ceiling. Page completion forces these partial containers to end. The actual new outputs use 351 narrow and 1,051 wide object streams, reaching the member cap in every full batch. |
+| Create subsequent native compressors only when emitting a batch | Kept companion lifetime change in `3ccb6153`. The first capability probe remains eager to preserve classic fallback. Later idle codecs need not overlap page-content compression. Constructor failures after selecting compression must still reject the export. No isolated gain is claimed. |
+
+## Codec-lifetime comparison and remaining target
+
+The combined page-flush/native-constructor candidate at
+`3ccb61535ece67d497108fa2891059c738a18951` independently validated sixteen
+outputs in one fixed baseline/current cohort. Narrow mean/median peak RSS was
+still 3.87%/4.48% above M8; wide mean/median was 1.88%/3.34% lower. Output sizes
+were 3,637,087 and 10,728,693 bytes. Narrow sampled heap was lower, while sampled
+external memory remained higher. The reduced stream count is proven; it does
+not isolate a separate RSS gain for either lifetime change. Publication remains
+held because narrow memory acceptance is unmet.
 
 ## Next comparison and stop rule
 
-The selected next candidate combines page-byte delivery without premature
-structure-batch completion and deferred subsequent codec creation. It leaves
-the 200-member/32 KiB limits, public API and dependencies unchanged. This is one
-codec-lifetime candidate; its comparison does not attribute a result separately
-to the two changes.
+The next bounded experiment changes the member ceiling from 200 to 256 while
+retaining the exact 32 KiB decoded-byte ceiling, arena size and sink chunks.
+The current packing now reaches 200 members in every full batch; this cause
+was previously obscured by page-induced partial batches. Read-only packing of
+retained member bytes projects 315 narrow and 1,025 wide containers. Actual ID
+widths can change, so those counts are a hypothesis, not acceptance. The
+README/architecture member bound is revised explicitly; no public option,
+provider or dependency is added. The two-byte xref member index must resolve
+index 255 and repeated arena reuse correctly.
 
 First check actual container counts, bounds, page content, logical order,
 headers, ParentTree/IDTree, links, fallback, cancellation, output limits and
 slow sinks. Only then run one fixed baseline/current narrow-and-wide cohort.
-Do not repeat an unchanged candidate to obtain a favorable number. If counts or
-memory do not support the proposed cause, retain that loss and move only to a
-new evidence-backed cause. Keep publication held while the narrow memory
-acceptance remains unmet; do not substitute output size or wide-case savings.
+Do not repeat an unchanged candidate to obtain a favorable number. If this
+capacity experiment still misses narrow memory acceptance, stop tuning the
+member ceiling and retain the loss. Any next experiment needs a different
+measured cause; do not silently enlarge the decoded arena or waive the target.

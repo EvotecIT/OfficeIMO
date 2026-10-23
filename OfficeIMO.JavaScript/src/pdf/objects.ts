@@ -12,7 +12,7 @@ interface PdfCompactBatch {
   indexBytes: number;
 }
 
-const compactObjectCount = 200, compactObjectBytes = 32768;
+const compactObjectCount = 256, compactObjectBytes = 32768;
 
 export function pdfNumber(value: number): string {
   if (!Number.isFinite(value) || Math.abs(value) > 1e9) throw new RangeError("PDF coordinates and metrics must be finite and bounded.");
