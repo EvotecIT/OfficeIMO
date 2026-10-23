@@ -76,7 +76,27 @@ export async function wrapPdfText(captured: PdfCapturedText, fonts: PdfFontResou
   const { signal } = settings.options, { text, runs } = captured;
   checkAbort(signal);
   const faces = runs.map(run => fonts.select(run.style.bold, run.style.italic, run.font));
-  const fallback = fonts.select(), lines: PdfInlineLine[] = [];
+  const fallback = fonts.select();
+  // Short fitting runs need no per-character layout arrays. Longer text keeps the existing
+  // cooperative checkpoints; controls or the first overflowing advance use the general path.
+  if (runs.length === 1 && text.length > 0 && text.length < 4096) {
+    const run = runs[0]!, font = faces[0]!;
+    let widthSoFar = 0, fits = true;
+    for (let offset = 0; offset < text.length;) {
+      const scalar = text.codePointAt(offset)!;
+      if (scalar === 9 || scalar === 10 || scalar === 13) { fits = false; break; }
+      const advance = font.width(scalar) * size / 1000;
+      if (advance > width + .001 || widthSoFar + advance > width + .001) { fits = false; break; }
+      widthSoFar += advance; offset += scalar > 0xffff ? 2 : 1;
+    }
+    if (fits) {
+      if (settings.limits.maxRowLines < 1) throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
+      return [{ text, width: widthSoFar, segments: [{ text, width: widthSoFar, font,
+        ...(run.style.color === undefined ? {} : { color: run.style.color }), ...(run.link ? { link: run.link } : {}) }],
+        lineHeight: font.lineHeight(size), ascent: Math.max(0, (font.program?.ascent ?? 800) * size / 1000) }];
+    }
+  }
+  const lines: PdfInlineLine[] = [];
   let chars: string[] = [], advances: number[] = [], owners: number[] = [], measured = 0, breakAt = -1;
   let runIndex = 0, runEnd = runs[0]?.text.length ?? 0, scanned = 0;
   const emit = (count: number): void => {
