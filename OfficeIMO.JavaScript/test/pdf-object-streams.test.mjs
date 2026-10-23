@@ -49,8 +49,9 @@ function semanticGraph(pdf) {
 }
 
 /** Resolve every synthetic value through the emitted xref, including ordinary overflow values. */
-async function compactFixture(bodies, afterMember) {
+async function compactFixture(bodies, afterMember, buffered = false) {
   const chunks = [], expected = new Map(), objects = new PdfObjects({ write(bytes) { chunks.push(bytes.slice()); } }, undefined, undefined, true);
+  let bufferedMembers = 0;
   await objects.text("%PDF-1.7\n");
   const catalog = objects.reserve(), pages = objects.reserve(), page = objects.reserve(), resources = objects.reserve(), content = objects.reserve(), info = objects.reserve();
   await objects.object(catalog, "<< /Type /Catalog /Pages " + pages + " 0 R >>");
@@ -60,7 +61,8 @@ async function compactFixture(bodies, afterMember) {
   for (const value of bodies) {
     const id = objects.reserve(), body = typeof value === "function" ? value(id) : value;
     expected.set(id, Buffer.from(body, "utf8").toString("latin1"));
-    await objects.compactObject(id, body);
+    if (buffered && objects.tryCompactObject(id, body)) bufferedMembers++;
+    else await objects.compactObject(id, body);
     await afterMember?.(objects);
   }
   await objects.finish(catalog, info);
@@ -71,8 +73,33 @@ async function compactFixture(bodies, afterMember) {
     assert.ok(container.stream.length <= 32768, "The decoded index, member bytes and newlines share one byte ceiling");
     assert.ok(Number(/\/N (\d+)/.exec(container.body)[1]) <= 256);
   }
-  return { pdf, containers, ids: [...expected.keys()] };
+  return { pdf, containers, ids: [...expected.keys()], bufferedMembers };
 }
+
+test("buffered compact appends preserve exact bytes, membership and mandatory capacity flushes", async () => {
+  const cases = [Array.from({ length: 517 }, (_, index) => "(record-" + index + ")"),
+    ["(seed)", "(" + "x".repeat(32747) + "😀é\ud800)", "(tail)", "(after)"]];
+  for (const [index, bodies] of cases.entries()) {
+    const ordinary = await compactFixture(bodies), buffered = await compactFixture(bodies, undefined, true);
+    assert.deepEqual(buffered.pdf.bytes, ordinary.pdf.bytes, "Trying an in-memory append preserves the serialized PDF and xref membership");
+    assert.deepEqual(buffered.ids, ordinary.ids, "Failed attempts do not reserve object IDs");
+    assert.deepEqual(buffered.containers.map(container => container.stream), ordinary.containers.map(container => container.stream));
+    assert.ok(buffered.bufferedMembers > 0, "The comparison must actually commit synchronous members");
+    if (index === 0) {
+      assert.equal(buffered.bufferedMembers, 512, "Fresh batches and the 256th member retain the awaited path");
+      assert.deepEqual(buffered.containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [256, 256, 5]);
+    }
+  }
+});
+
+test("a fresh buffered compact attempt reserves nothing and retains synchronous abort ownership", () => {
+  const controller = new AbortController(), objects = new PdfObjects({ write() {} }, controller.signal, undefined, true);
+  const first = objects.reserve();
+  assert.equal(objects.tryCompactObject(first, "(fresh)"), false);
+  assert.equal(objects.reserve(), first + 1, "A try cannot reserve a container or choose the first codec");
+  const reason = new Error("buffered completion cancelled"); controller.abort(reason);
+  assert.throws(() => objects.tryCompactObject(first, "(fresh)"), error => error === reason);
+});
 
 test("compressed structure containers preserve banded grouped reports, headers, links and reading order", async () => {
   const plain = await inspectPdf(await report(false)), compact = await inspectPdf(await report(true));
@@ -201,6 +228,7 @@ test("pending compact output awaits a slow sink and preserves sink failures and 
       await held;
     } }, controller.signal, undefined, true);
     await objects.compactObject(objects.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
+    assert.equal(objects.tryCompactObject(objects.reserve(), "<< /Type /StructElem /S /P /K [] >>"), true);
     const pending = objects.flush().then(() => { completed = true; });
     const failure = mode === "slow" ? undefined : assert.rejects(pending, error => error === reason);
     await observed;
@@ -240,6 +268,7 @@ test("compaction propagates codec failures and never silently changes representa
     };
     const failing = new PdfObjects({ write() {} }, undefined, undefined, true);
     await failing.compactObject(failing.reserve(), "<< /Type /StructElem /S /Document /K [] >>");
+    assert.equal(failing.tryCompactObject(failing.reserve(), "<< /Type /StructElem /S /P /K [] >>"), true);
     await assert.rejects(failing.flush(), error => error === reason);
     globalThis.CompressionStream = native;
     const changing = new PdfObjects({ write() {} }, undefined, undefined, true);
@@ -259,6 +288,7 @@ test("xref entries preserve offsets above 32 bits and compact reservations still
   assert.throws(() => [...pdfXrefChunks([0, 1], [undefined])], /locations must align/);
   const objects = new PdfObjects({ write() {} }, undefined, undefined, true), id = objects.reserve();
   await objects.compactObject(id, "<< /Type /StructElem /S /Document /K [] >>");
+  assert.throws(() => objects.tryCompactObject(id, "<< >>"), /Invalid PDF object state/);
   await assert.rejects(objects.compactObject(id, "<< >>"), /Invalid PDF object state/);
   await assert.rejects(objects.object(id, "<< >>"), /Invalid PDF object state/);
   objects.reserve(); await assert.rejects(objects.finish(id, id), /unwritten objects/);

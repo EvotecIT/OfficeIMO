@@ -90,6 +90,18 @@ export class PdfObjects {
     if (taskYieldDue()) await pause();
     checkAbort(this.signal);
   }
+  /** @internal Append only when an existing compact batch can accept a member without async work. */
+  tryCompactObject(id: number, body: string): boolean {
+    checkAbort(this.signal); this.validateObject(id);
+    const batch = this.compactBatch;
+    if (!batch || !this.compressObjects || this.compactUnavailable || typeof CompressionStream !== "function" ||
+      body.length > compactObjectBytes || batch.ids.length + 1 >= compactObjectCount) return false;
+    const indexBytes = String(id).length + String(batch.bodyBytes).length + 2;
+    const written = this.encodeCompactBody(body, batch.bodyBytes,
+      compactObjectBytes - batch.indexBytes - indexBytes - batch.bodyBytes - 2);
+    if (written === undefined) return false;
+    this.storeCompactBody(batch, id, written); return true;
+  }
   /** Small logical structure values share one bounded compressed container. Other callers keep
    * ordinary objects; unavailable deflate preserves the classic representation before packing starts. */
   async compactObject(id: number, body: string): Promise<void> {
@@ -125,11 +137,14 @@ export class PdfObjects {
       this.compactIndices ??= new PdfCompactIndices(this.offsets.length);
       this.compactBatch = batch;
     }
+    this.storeCompactBody(batch, id, written!);
+    if (batch.ids.length === compactObjectCount) await this.flushCompact();
+  }
+  private storeCompactBody(batch: PdfCompactBatch, id: number, written: number): void {
     this.offsets[id] = batch.id; this.compactIndices!.set(id, batch.ids.length);
     batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
     batch.ids.push(id); batch.bodyOffsets.push(batch.bodyBytes);
-    this.compactArena![batch.bodyBytes + written!] = 10; batch.bodyBytes += written! + 1;
-    if (batch.ids.length === compactObjectCount) await this.flushCompact();
+    this.compactArena![batch.bodyBytes + written] = 10; batch.bodyBytes += written + 1;
   }
   /** An incomplete encoding leaves only scratch bytes beyond the committed batch prefix. */
   private encodeCompactBody(body: string, offset: number, available: number): number | undefined {

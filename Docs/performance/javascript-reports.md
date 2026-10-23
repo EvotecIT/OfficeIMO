@@ -338,3 +338,31 @@ Both narrow mean and median must meet the target, so this cohort remains
 unmet. It is not repeated for a more favorable outcome. These measurements
 do not isolate an RSS effect for the face array or establish a universal
 speedup, no-regression or constant-memory claim.
+
+
+## Same-page marked content
+
+PDF structure elements now identify same-page marked content with integer
+children and an explicit page on their logical owner. Later-page fragments and
+annotation references retain explicit page references. The six-column workload
+replaces 60,006 per-mark reference strings while preserving its 70,009 logical
+elements; the wide workload preserves 210,023 elements and 200,020 marks.
+These counts do not establish retained-memory or RSS savings.
+
+All 510 ordinary and 192 focused PDF tests pass. Nine independent-reader oracle
+cases accept both encodings and reject incorrect page, header and owner
+bindings. Twenty before/after artifact pairs preserve decoded page operators,
+fonts, physical text and link geometry across 633 pages. Existing independent
+readers verify every narrow and wide value, association and ParentTree owner,
+plus six mixed-page caption/group fixtures. A bounded independent review
+accepted the private encoding and its receiving inspectors.
+
+Candidate `ddd63a278856ae161fcd76cc6044ed73e1dba11c` passes all sixteen
+output validations in one fixed normal-host cohort. Narrow mean/median peak
+RSS is 0.36%/0.50% above M8; wide mean/median is 18.51%/6.42% lower. Narrow
+engine-time mean/median is 13.11%/16.30% lower, and wide mean/median is
+19.85%/18.69% lower. Output sizes are 74.71%/77.02% lower. Sampled external
+memory is 47.19%/47.61% higher for narrow and 20.93%/18.46% higher for wide.
+All samples remain included. Both narrow RSS criteria remain unmet; this
+candidate is not repeated to seek a different result. No isolated RSS effect
+or universal performance guarantee follows from these observations.

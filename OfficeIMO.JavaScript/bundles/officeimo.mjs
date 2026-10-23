@@ -5940,6 +5940,21 @@ class PdfObjects {
             await pause();
         checkAbort(this.signal);
     }
+    /** @internal Append only when an existing compact batch can accept a member without async work. */
+    tryCompactObject(id, body) {
+        checkAbort(this.signal);
+        this.validateObject(id);
+        const batch = this.compactBatch;
+        if (!batch || !this.compressObjects || this.compactUnavailable || typeof CompressionStream !== "function" ||
+            body.length > compactObjectBytes || batch.ids.length + 1 >= compactObjectCount)
+            return false;
+        const indexBytes = String(id).length + String(batch.bodyBytes).length + 2;
+        const written = this.encodeCompactBody(body, batch.bodyBytes, compactObjectBytes - batch.indexBytes - indexBytes - batch.bodyBytes - 2);
+        if (written === undefined)
+            return false;
+        this.storeCompactBody(batch, id, written);
+        return true;
+    }
     /** Small logical structure values share one bounded compressed container. Other callers keep
      * ordinary objects; unavailable deflate preserves the classic representation before packing starts. */
     async compactObject(id, body) {
@@ -5984,6 +5999,11 @@ class PdfObjects {
             this.compactIndices ??= new PdfCompactIndices(this.offsets.length);
             this.compactBatch = batch;
         }
+        this.storeCompactBody(batch, id, written);
+        if (batch.ids.length === compactObjectCount)
+            await this.flushCompact();
+    }
+    storeCompactBody(batch, id, written) {
         this.offsets[id] = batch.id;
         this.compactIndices.set(id, batch.ids.length);
         batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
@@ -5991,8 +6011,6 @@ class PdfObjects {
         batch.bodyOffsets.push(batch.bodyBytes);
         this.compactArena[batch.bodyBytes + written] = 10;
         batch.bodyBytes += written + 1;
-        if (batch.ids.length === compactObjectCount)
-            await this.flushCompact();
     }
     /** An incomplete encoding leaves only scratch bytes beyond the committed batch prefix. */
     encodeCompactBody(body, offset, available) {
@@ -9249,6 +9267,25 @@ const { PdfParentTree } = _m80;
 function structureChild(child) {
     return typeof child === "number" ? (child < 0 ? -child - 1 + " " : child + " 0 R ") : child + " ";
 }
+function structurePrefix(element) {
+    return "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+        (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
+        (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
+}
+/** Keep the same bounded small-object representation for both completion paths. */
+function compactStructureBody(element, prefix) {
+    const remaining = 32768 - prefix.length - element.attributes.length - 4;
+    if (remaining < 0)
+        return undefined;
+    let children = "";
+    for (const child of element.children) {
+        const token = structureChild(child);
+        if (children.length + token.length > remaining)
+            return undefined;
+        children += token;
+    }
+    return prefix + children + "]" + element.attributes + " >>";
+}
 /** A sorted name tree retains only a small open leaf and branch at each level. */
 class PdfStructureIds {
     objects;
@@ -9446,36 +9483,44 @@ class PdfStructure {
         if (!element)
             return;
         for (const child of element.children)
-            if (typeof child === "number" && child > 0 && this.elements.has(child))
+            if (typeof child === "number" && child > 0 && !this.completeBuffered(child))
                 await this.complete(child);
         checkAbort(this.settings.options.signal);
-        const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
-            (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
-            (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
-        const remaining = 32768 - prefix.length - element.attributes.length - 4;
-        let children = "", small = remaining >= 0;
-        if (small)
-            for (const child of element.children) {
-                const token = structureChild(child);
-                if (children.length + token.length > remaining) {
-                    small = false;
-                    break;
-                }
-                children += token;
-            }
+        const prefix = structurePrefix(element), body = compactStructureBody(element, prefix);
         // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
-        if (small)
-            await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
+        if (body !== undefined) {
+            if (!this.objects.tryCompactObject(id, body))
+                await this.objects.compactObject(id, body);
+        }
         else
             await this.objects.object(id, this.body(element, prefix));
+        this.releaseElement(element);
+    }
+    /** Close already-bufferable children without creating an async chain per leaf. A false result
+     * leaves the current owner open for the existing awaited flush or ordinary-object path. */
+    completeBuffered(id) {
+        const element = this.elements.get(id);
+        if (!element)
+            return true;
+        for (const child of element.children)
+            if (typeof child === "number" && child > 0 && !this.completeBuffered(child))
+                return false;
+        checkAbort(this.settings.options.signal);
+        const body = compactStructureBody(element, structurePrefix(element));
+        if (body === undefined || !this.objects.tryCompactObject(id, body))
+            return false;
+        this.releaseElement(element);
+        return true;
+    }
+    releaseElement(element) {
         if (element.linkIdentities)
             for (const identity of element.linkIdentities) {
                 const parents = this.links.get(identity);
-                parents?.delete(id);
+                parents?.delete(element.id);
                 if (!parents?.size)
                     this.links.delete(identity);
             }
-        this.elements.delete(id);
+        this.elements.delete(element.id);
     }
     *body(element, prefix) {
         yield prefix;

@@ -24,6 +24,25 @@ function structureChild(child: number | string): string {
   return typeof child === "number" ? (child < 0 ? -child - 1 + " " : child + " 0 R ") : child + " ";
 }
 
+function structurePrefix(element: StructureElement): string {
+  return "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
+    (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
+    (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
+}
+
+/** Keep the same bounded small-object representation for both completion paths. */
+function compactStructureBody(element: StructureElement, prefix: string): string | undefined {
+  const remaining = 32768 - prefix.length - element.attributes.length - 4;
+  if (remaining < 0) return undefined;
+  let children = "";
+  for (const child of element.children) {
+    const token = structureChild(child);
+    if (children.length + token.length > remaining) return undefined;
+    children += token;
+  }
+  return prefix + children + "]" + element.attributes + " >>";
+}
+
 /** A sorted name tree retains only a small open leaf and branch at each level. */
 class PdfStructureIds {
   private readonly entries: { readonly key: string; readonly value: number }[] = [];
@@ -180,26 +199,34 @@ export class PdfStructure {
   async complete(id: number | undefined): Promise<void> {
     if (id === undefined) return;
     const element = this.elements.get(id); if (!element) return;
-    for (const child of element.children) if (typeof child === "number" && child > 0 && this.elements.has(child)) await this.complete(child);
+    for (const child of element.children)
+      if (typeof child === "number" && child > 0 && !this.completeBuffered(child)) await this.complete(child);
     checkAbort(this.settings.options.signal);
-    const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R" +
-      (element.markedPage === undefined ? "" : " /Pg " + element.markedPage + " 0 R") +
-      (element.identifier === undefined ? "" : " /ID (" + element.identifier + ")") + " /K [";
-    const remaining = 32768 - prefix.length - element.attributes.length - 4;
-    let children = "", small = remaining >= 0;
-    if (small) for (const child of element.children) {
-      const token = structureChild(child);
-      if (children.length + token.length > remaining) { small = false; break; }
-      children += token;
-    }
+    const prefix = structurePrefix(element), body = compactStructureBody(element, prefix);
     // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
-    if (small) await this.objects.compactObject(id, prefix + children + "]" + element.attributes + " >>");
+    if (body !== undefined) {
+      if (!this.objects.tryCompactObject(id, body)) await this.objects.compactObject(id, body);
+    }
     else await this.objects.object(id, this.body(element, prefix));
+    this.releaseElement(element);
+  }
+  /** Close already-bufferable children without creating an async chain per leaf. A false result
+   * leaves the current owner open for the existing awaited flush or ordinary-object path. */
+  private completeBuffered(id: number): boolean {
+    const element = this.elements.get(id); if (!element) return true;
+    for (const child of element.children)
+      if (typeof child === "number" && child > 0 && !this.completeBuffered(child)) return false;
+    checkAbort(this.settings.options.signal);
+    const body = compactStructureBody(element, structurePrefix(element));
+    if (body === undefined || !this.objects.tryCompactObject(id, body)) return false;
+    this.releaseElement(element); return true;
+  }
+  private releaseElement(element: StructureElement): void {
     if (element.linkIdentities) for (const identity of element.linkIdentities) {
-      const parents = this.links.get(identity); parents?.delete(id);
+      const parents = this.links.get(identity); parents?.delete(element.id);
       if (!parents?.size) this.links.delete(identity);
     }
-    this.elements.delete(id);
+    this.elements.delete(element.id);
   }
   private *body(element: StructureElement, prefix: string): Iterable<string> {
     yield prefix;
