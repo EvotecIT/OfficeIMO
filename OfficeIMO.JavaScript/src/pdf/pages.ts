@@ -139,8 +139,9 @@ export class PdfPages {
   private inline(line: PdfInlineLine, size: number, x: number, baseline: number, element?: number, annotationParent = element): void {
     const lineActualText = !this.structure && line.actualText !== undefined && line.actualText.length > 0;
     if (lineActualText) this.add("/Span << /ActualText <FEFF" + unicodeHex(line.actualText!) + "> >> BDC\n");
-    const marks = new Map<PdfInlineLine["segments"][number], { owner: number; mark: string }>();
+    let marks: Map<PdfInlineLine["segments"][number], { owner: number; mark: string }> | undefined;
     if (line.actualText !== undefined && this.structure && element !== undefined) {
+      marks = new Map();
       // Allocate MCIDs/Link children in logical order, then paint the independently positioned visual order.
       for (const segment of [...line.segments].sort((a, b) => (a.logicalStart ?? 0) - (b.logicalStart ?? 0))) {
         const owner = segment.link ? this.structure.link(element, segment.link) : element;
@@ -148,7 +149,7 @@ export class PdfPages {
       }
     }
     for (const segment of line.segments) {
-      const registered = marks.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
+      const registered = marks?.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
       if (segment.glyphs) {
         const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
         let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
