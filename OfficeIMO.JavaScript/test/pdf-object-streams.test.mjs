@@ -188,9 +188,10 @@ test("disabled and unavailable native compression preserve the ordinary-object c
 test("pending compact output awaits a slow sink and preserves sink failures and cancellation", async () => {
   for (const mode of ["slow", "sink", "abort"]) {
     const controller = new AbortController(), reason = new Error(mode + " stopped");
-    let enter, accept, completed = false;
+    let enter, accept, completed = false, borrowed, captured;
     const observed = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { accept = resolve; });
-    const objects = new PdfObjects({ async write() {
+    const objects = new PdfObjects({ async write(bytes) {
+      borrowed = bytes; captured = bytes.slice();
       enter();
       if (mode === "sink") throw reason;
       if (mode === "abort") { controller.abort(reason); return new Promise(() => {}); }
@@ -202,7 +203,21 @@ test("pending compact output awaits a slow sink and preserves sink failures and 
     await observed;
     if (mode === "slow") { assert.equal(completed, false); accept(); await pending; }
     else await failure;
+    assert.deepEqual(borrowed, captured, "Pending or rejected output must keep its original byte view");
   }
+});
+
+test("PDF output stays intact until each asynchronous destination acknowledgement", async () => {
+  const expected = Buffer.from(await (await report(true)).arrayBuffer()), chunks = [];
+  await report(true, { sink: { async write(bytes) {
+    const captured = bytes.slice();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(bytes, captured, "The next PDF bytes must not overwrite a pending destination write");
+    chunks.push(bytes.slice());
+  } } });
+  assert.ok(chunks.length > 1, "The report must exercise consecutive output windows");
+  assert.deepEqual(Buffer.concat(chunks), expected);
+  await inspectPdf(new Blob(chunks));
 });
 
 test("compressed structure output ceilings include containers, length objects and the final xref", async () => {

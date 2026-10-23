@@ -57,7 +57,7 @@ export class PdfObjects {
   private compactArena: Uint8Array<ArrayBuffer> | undefined;
   private compactUnavailable = false;
   private readonly encoder = new TextEncoder();
-  private buffer = new Uint8Array(32768);
+  private readonly buffer = new Uint8Array(32768);
   private buffered = 0;
   bytes = 0;
   constructor(private readonly sink: ByteSink, private readonly signal?: AbortSignal, private readonly maxBytes = Number.MAX_SAFE_INTEGER,
@@ -84,7 +84,8 @@ export class PdfObjects {
     if (this.buffered) {
       const bytes = this.buffer.subarray(0, this.buffered);
       await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
-      this.buffer = new Uint8Array(32768); this.buffered = 0;
+      // The sink borrows this view until acceptance; failed or cancelled writes must not reuse it.
+      this.buffered = 0;
     }
     if (taskYieldDue()) await pause();
     checkAbort(this.signal);

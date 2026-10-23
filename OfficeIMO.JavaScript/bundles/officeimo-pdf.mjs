@@ -1135,7 +1135,7 @@ class PdfObjects {
         if (this.buffered) {
             const bytes = this.buffer.subarray(0, this.buffered);
             await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
-            this.buffer = new Uint8Array(32768);
+            // The sink borrows this view until acceptance; failed or cancelled writes must not reuse it.
             this.buffered = 0;
         }
         if (taskYieldDue())

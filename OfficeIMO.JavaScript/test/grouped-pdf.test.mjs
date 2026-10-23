@@ -77,7 +77,7 @@ test("grouped PDF budgets generated rows but completion reports only body rows, 
   assert.ok(pdf.text.includes("A (1)") && pdf.text.includes("Razem (1)"));
   await assert.rejects(writeGroupedPdf(report(one), { ...options, limits: { maxRows: 2 } }), /maxRows/);
   const chunks = [], progress = [];
-  const empty = await writeGroupedPdfTo(report([]), { write: bytes => { chunks.push(bytes); } }, { ...options, onProgress: p => progress.push(p) });
+  const empty = await writeGroupedPdfTo(report([]), { write: bytes => { chunks.push(bytes.slice()); } }, { ...options, onProgress: p => progress.push(p) });
   assert.equal(empty.rows, 0); assert.equal(progress.at(-1).rows, 0);
   assert.ok((await inspectPdf(new Blob(chunks))).text.includes("Razem (0)"));
   await assert.rejects(writeGroupedPdf(report(one), { ...options, subtotalLabel: async () => "Async" }), /synchronous/);

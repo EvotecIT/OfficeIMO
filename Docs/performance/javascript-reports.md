@@ -181,3 +181,33 @@ candidate's comparison here: no unchanged rerun for a more favorable outcome.
 Further work needs a different measured allocation or lifetime cause. Keep the
 32 KiB arena and 256-member ceilings unchanged, and do not infer peak RSS from
 the forced-GC EOF snapshots or add sampled heap/external memory to RSS.
+
+## Awaited output-buffer allocation
+
+A separate task-only observer ran the unchanged canonical narrow workload in
+both engines, without forced GC or heap sampling. Weak buffer identities at
+actual file writes expose 221 distinct 32 KiB backings in the current export:
+7,241,728 bytes of cumulative output-buffer allocation for 3,576,881 accepted
+PDF bytes. M8 exposes 596 backings, or 19,529,728 bytes. Both PDFs remain
+byte-identical to their prior outputs and pass independent readback. The
+observer adds overhead; these counts describe allocation traffic, not live
+retention or accepted timing/RSS evidence. This cost also exists in M8 and is
+not attributed as the cause of the remaining RSS difference.
+
+The next candidate reuses the PDF writer's one 32 KiB output buffer only after
+the existing awaited sink acceptance succeeds. The public byte-sink contract
+already permits that reuse; Blob and worker destinations copy accepted bytes.
+Failed or cancelled writes must leave their pending view stable. No compression
+policy, arena/member ceiling, format, API or dependency changes are needed.
+Check asynchronous byte integrity and actual backing reuse before one fixed
+M8/current cohort. An unchanged retry or diagnostic RSS result cannot satisfy
+the narrow-memory target.
+
+The changed writer exposes one 32,768-byte backing across the same 221
+acknowledged writes. Its PDF is byte-identical to the independently validated
+typed-index output. Forty-six focused and 504 ordinary tests pass, including
+delayed byte acceptance and stable pending views after failure/cancellation.
+The broad suite also exposed a collector that kept borrowed bytes after
+acknowledgement; that fixture now takes its own copy, matching the existing
+sink contract. The buffer-reuse allocation reduction is qualified; its effect
+on the narrow-memory target still requires the uninstrumented fixed cohort.
