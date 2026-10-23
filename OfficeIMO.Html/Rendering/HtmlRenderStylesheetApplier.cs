@@ -173,6 +173,7 @@ internal static class HtmlRenderStylesheetApplier {
                 && !resources.WasStylesheetRejected(reference.Source, reference.ResolvedSource)
                 && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
+                if (importedResource.FinalUri?.IsAbsoluteUri == true) importedUri = importedResource.FinalUri;
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
                 } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, importedResource.ContentType, out string importedCss)) {

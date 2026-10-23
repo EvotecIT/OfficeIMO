@@ -260,8 +260,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style);
         double tileX = areaX + offsetX;
         double tileY = areaY + offsetY;
-        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, clipBox.X, clipBox.Width, tileX, imageSize.Width);
-        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, clipBox.Y, clipBox.Height, tileY, imageSize.Height);
+        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, areaX, areaWidth, tileX, imageSize.Width);
+        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, areaY, areaHeight, tileY, imageSize.Height);
         if (horizontal.Repeat || vertical.Repeat) {
             var pattern = new OfficeImagePatternLayout(
                 new OfficeImagePlacement(clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height),
@@ -570,8 +570,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double positionedTileStart,
         double tileLength) {
         if (mode == BackgroundRepeatMode.NoRepeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);
-        if (mode == BackgroundRepeatMode.Repeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: true);
-        if (mode == BackgroundRepeatMode.Round) return new BackgroundRepeatAxis(areaStart, tileLength, repeat: true);
+        if (mode == BackgroundRepeatMode.Repeat || mode == BackgroundRepeatMode.Round)
+            return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: true);
 
         long count = Math.Max(0L, (long)Math.Floor((areaLength + 0.0000001D) / tileLength));
         if (count < 2L) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);

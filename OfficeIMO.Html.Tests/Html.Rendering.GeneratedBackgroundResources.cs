@@ -11,6 +11,43 @@ public sealed partial class HtmlRenderingTests {
     private const string GeneratedResourcePixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
 
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public async Task HtmlGeneratedBackgroundResources_RedirectedStylesheetsKeepTheirFinalImageBase(
+        bool asynchronous, bool imported, bool generated) {
+        string css = generated
+            ? "@page{@top-center{content:'';width:20px;height:12px;background-image:url(tile.png);background-repeat:no-repeat}}"
+            : ".hero{width:20px;height:12px;background-image:url(tile.png);background-repeat:no-repeat}";
+        var requests = new ConcurrentQueue<string>();
+        var finalUri = new Uri("https://cdn.example.test/theme/page.css");
+        HtmlRenderOptions options = CreateGeneratedResourceOptions(request => {
+            requests.Enqueue(request.Uri.AbsoluteUri);
+            if (request.Uri.AbsoluteUri == "https://example.test/main.css")
+                return imported
+                    ? new HtmlResolvedResource(Encoding.UTF8.GetBytes("@import 'nested/page.css';"), "text/css")
+                    : new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css", finalUri, 1);
+            if (request.Uri.AbsoluteUri == "https://example.test/nested/page.css")
+                return new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css", finalUri, 1);
+            return request.Uri.AbsoluteUri == "https://cdn.example.test/theme/tile.png"
+                ? new HtmlResolvedResource(Convert.FromBase64String(GeneratedResourcePixel), "image/png") : null;
+        });
+        const string html = "<link rel='stylesheet' href='https://example.test/main.css'><div class='hero'></div>";
+        HtmlRenderDocument rendered = asynchronous
+            ? await HtmlRenderEngine.RenderAsync(html, options) : HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(imported ? 3 : 2, requests.Count);
+        Assert.Contains("https://cdn.example.test/theme/tile.png", requests);
+        Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>());
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HtmlGeneratedBackgroundResources_ImportedCascadePreservesBothOriginsAndOneRewrite(bool asynchronous) {
