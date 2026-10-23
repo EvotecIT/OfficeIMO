@@ -26,10 +26,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Uses the OfficeIMO PowerPoint visual review profile.</para>
 /// </example>
 /// <example>
-///   <summary>Export only the drawn slides.</summary>
+///   <summary>Omit headings and selected review details.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -OutputPath .\Briefing.slides.html</code>
-///   <para>Leaves out the headings, render diagnostics, template inventory, and extraction proof.</para>
+///   <para>Leaves out the headings, render diagnostics, template inventory, and extraction proof. Enabled SmartArt and media review sections remain.</para>
 /// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficePowerPointHtml", DefaultParameterSetName = ParameterSetPath, SupportsShouldProcess = true)]
 [Alias("ConvertTo-PowerPointHtml")]
