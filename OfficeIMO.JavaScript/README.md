@@ -1,6 +1,6 @@
 # OfficeIMO JavaScript
 
-`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 18 or newer. It writes streaming XLSX workbooks, UTF-8 CSV and paginated PDF tables with no runtime dependencies. One package owns seven public layers: `core`, `zip`, `xml`, `opc`, `xlsx`, `csv` and `pdf`. The optional `execution` entry connects host-owned workers to those writers with bounded row and byte messages.
+`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 22, 24, 25 and 26. It writes streaming XLSX workbooks, UTF-8 CSV and paginated PDF tables with no runtime dependencies. One package owns seven public layers: `core`, `zip`, `xml`, `opc`, `xlsx`, `csv` and `pdf`. The optional `execution` entry connects host-owned workers to those writers with bounded row and byte messages.
 
 ## Install
 

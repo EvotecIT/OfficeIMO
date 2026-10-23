@@ -197,9 +197,10 @@ namespace OfficeIMO.Word {
                 } else if (element is AltChunk altChunk) {
                     elements.Add(new WordEmbeddedDocument(_document, altChunk));
                 } else if (element is SdtBlock sdtBlock) {
-                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock));
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock, readOnly: _wordTable.IsReadOnlyView));
                 } else if (element is Table table) {
-                    elements.Add(new WordTable(_document, table));
+                    elements.Add(new WordTable(_document, table, initializeChildren: !_wordTable.IsReadOnlyView,
+                        readOnly: _wordTable.IsReadOnlyView));
                 }
             }
 
@@ -718,7 +719,8 @@ namespace OfficeIMO.Word {
                 var listReturn = new List<WordTable>();
                 var list = _tableCell.Descendants<Table>().ToList();
                 foreach (var table in list) {
-                    listReturn.Add(new WordTable(this._document, table));
+                    listReturn.Add(new WordTable(this._document, table, initializeChildren: !_wordTable.IsReadOnlyView,
+                        readOnly: _wordTable.IsReadOnlyView));
                 }
                 return listReturn;
             }
@@ -732,7 +734,8 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    tables.Add(new WordTable(_document, table));
+                    tables.Add(new WordTable(_document, table, initializeChildren: !_wordTable.IsReadOnlyView,
+                        readOnly: _wordTable.IsReadOnlyView));
                 }
 
                 return tables;

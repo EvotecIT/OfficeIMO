@@ -35,16 +35,18 @@ public static partial class WordPdfConverterExtensions {
             selectedStories.AddRange(new[] { stories.Separator, stories.ContinuationSeparator,
                 stories.ContinuationNotice }.OfType<W.Footnote>());
         }
-        if (referenced.Any(key => key.Kind == NativeNoteKind.Endnote))
-            selectedStories.Add(ResolveNativeEndnoteSeparator(document));
+        if (referenced.Any(key => key.Kind == NativeNoteKind.Endnote)) {
+            var stories = ResolveNativeEndnoteStories(document);
+            selectedStories.AddRange(new[] { stories.Separator, stories.ContinuationSeparator,
+                stories.ContinuationNotice }.OfType<W.Endnote>());
+        }
         foreach (W.FootnoteEndnoteType note in ordinaryNotes.Concat(selectedStories).Distinct()) {
             IReadOnlyList<WordParagraph> paragraphs = note.Descendants<W.Paragraph>()
                 .Select(paragraph => new WordParagraph(document, paragraph)).ToArray();
             using WordDocumentTraversal.ListMarkerRenderScope markerScope = WordDocumentTraversal
                 .BuildNoteListMarkersForRendering(document, paragraphs);
-            foreach (WordParagraph paragraph in paragraphs)
-                RegisterNativeParagraphContentFonts(paragraph, NativeTableRunStyleDefaults.Empty,
-                    options, families, slots, embedSystemFonts, fonts);
+            foreach (WordElement element in GetNativeNoteElements(document, note))
+                RegisterNativeElementFonts(element, options, families, slots, embedSystemFonts, fonts);
         }
     }
 
@@ -108,7 +110,7 @@ public static partial class WordPdfConverterExtensions {
             if (!CanProjectNativePageNoteReference(reference) ||
                 reference.Ancestors<W.SdtRun>().Any(control => !CanProjectNativePageNoteControl(control)) ||
                 reference.Ancestors<W.Paragraph>().FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() == true ||
-                !CanProjectNativePageNote(source, section, defaults, fonts)) {
+                !CanProjectNativePageNote(source, section, defaults, fonts, options)) {
                 qualified = false;
             }
             NativeNoteKey key = GetNativeFootnoteKey(id);
@@ -126,9 +128,9 @@ public static partial class WordPdfConverterExtensions {
         W.Footnote separator = stories.Separator;
         W.Footnote continuation = stories.ContinuationSeparator;
         W.Footnote? notice = stories.ContinuationNotice;
-        if (!CanProjectNativePageNote(separator, section, defaults, fonts) ||
-            !CanProjectNativePageNote(continuation, section, defaults, fonts) ||
-            notice != null && !CanProjectNativePageNote(notice, section, defaults, fonts)) {
+        if (!CanProjectNativePageNote(separator, section, defaults, fonts, options) ||
+            !CanProjectNativePageNote(continuation, section, defaults, fonts, options) ||
+            notice != null && !CanProjectNativePageNote(notice, section, defaults, fonts, options)) {
             notes.ReportPlacementFallback();
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
             ReportNativeFootnoteFallbackContent(separator, options);
@@ -151,7 +153,7 @@ public static partial class WordPdfConverterExtensions {
             if (notes.TryGetPageFootnote(item.Key, out _)) continue;
             if (!notes.TryGetValue(item.Key, out int token)) continue;
             string label = notes.GetLabel(token);
-            IReadOnlyList<WordParagraph> paragraphs = item.Source.Elements<W.Paragraph>()
+            IReadOnlyList<WordParagraph> paragraphs = item.Source.Descendants<W.Paragraph>()
                 .Select(paragraph => new WordParagraph(section._document, paragraph)).ToList();
             PdfCore.PdfFootnoteDefinition definition = flow.DefineFootnote(content => {
                 content.Bookmark(GetNativePageNoteDestination(item.Key));
@@ -207,15 +209,19 @@ public static partial class WordPdfConverterExtensions {
         (control.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(control.SdtProperties));
 
     private static bool CanProjectNativePageNote(W.FootnoteEndnoteType note, WordSection section,
-        NativeDocumentDefaults defaults, NativeFontMap fonts) {
-        // This profile is ordinary paragraph flow with inline images and links.
-        // Native tables, floating objects, recursive notes and active fields retain
-        // the explicitly reported section-flow fallback until their owner qualifies them.
-        if (note.ChildElements.Any(child => child is not W.Paragraph)) return false;
+        NativeDocumentDefaults defaults, NativeFontMap fonts, WordToPdfOptions? options = null) {
+        // Ordinary paragraph and qualified inline-table flow share their existing
+        // owners. Floating objects, recursive notes and active fields retain the
+        // explicitly reported section-flow fallback.
+        defaults = CreateNativeNoteStoryDefaults(defaults, section, label: null);
+        if (note.ChildElements.Any(child => child is not W.Paragraph and not W.Table) ||
+            !WordNoteResolver.IsOrdinary(note) && note.Elements<W.Table>().Any() ||
+            note.Elements<W.Table>().Any(table => !CanProjectNativeNoteTable(table, section, options, defaults, fonts))) return false;
         foreach (OpenXmlElement element in note.Descendants()) {
             if (element is W.FootnoteReference or W.EndnoteReference or W.TextBoxContent or W.Picture or
                 W.EmbeddedObject or W.SimpleField or W.FieldChar or W.AltChunk or
-                W.PageBreakBefore or W.FrameProperties ||
+                W.FrameProperties ||
+                element is W.PageBreakBefore pageBreak && (pageBreak.Val == null || pageBreak.Val.Value) ||
                 element is W.Break lineBreak && lineBreak.Type?.Value is { } type && type != W.BreakValues.TextWrapping ||
                 element is DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor ||
                 element is DocumentFormat.OpenXml.Math.OfficeMath ||
@@ -226,8 +232,7 @@ public static partial class WordPdfConverterExtensions {
                     data.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1) return false;
             }
         }
-        defaults = CreateNativeNoteStoryDefaults(defaults, section, label: null);
-        foreach (W.Paragraph source in note.Elements<W.Paragraph>()) {
+        foreach (W.Paragraph source in note.Descendants<W.Paragraph>()) {
             // Match the style actually sent to the PDF owner, including the
             // paragraph's inherited style and explicit false overrides.
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(new WordParagraph(section._document, source), defaults, fonts);

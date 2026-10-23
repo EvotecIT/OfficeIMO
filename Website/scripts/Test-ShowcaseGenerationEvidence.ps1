@@ -135,8 +135,9 @@ Assert-Contract $blocked 'Stale generation must reject visual-review attestation
 'sample input' | Set-Content -LiteralPath (Join-Path $TestRoot 'input.csv')
 $arguments.ModuleVersion = '3.0.9'
 Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'A changed documented module version must invalidate old producer evidence.'
-# Exercise the real child runner against an available module. A successful recipe
-# that omits an export must never relabel an old destination file as fresh output.
+# Exercise the real child runner with an isolated module fixture. The recipe
+# deliberately calls no engine: this protects stale-output rejection and cleanup,
+# independently of the full module build in the PowerShell CI lanes.
 $runnerRoot = Join-Path $TestRoot 'runner'
 $runnerDocuments = Join-Path $runnerRoot 'documents'
 New-Item -ItemType Directory -Path (Join-Path $runnerRoot 'Website/data'), (Join-Path $runnerDocuments 'PowerShell') -Force | Out-Null
@@ -151,12 +152,23 @@ $oldOutput = Join-Path $runnerDocuments 'PowerShell/report.docx'
 'old-output' | Set-Content -LiteralPath $oldOutput
 $receiptPath = Join-Path $runnerRoot 'receipt.json'
 $logPath = Join-Path $runnerRoot 'runner.log'
-& pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-ShowcasePowerShellExample.ps1') -RepositoryRoot $runnerRoot -DocumentsRoot $runnerDocuments -ExampleId example -ModuleVersion $ModuleVersion -ReceiptPath $receiptPath *> $logPath
-Assert-Contract ($LASTEXITCODE -ne 0 -and (Get-Content -LiteralPath $logPath -Raw).Contains('Current showcase generation did not produce')) 'The runner must reject the omitted export, even with an older destination file.'
+$fixtureModules = Join-Path $runnerRoot 'Modules'
+$fixtureModule = Join-Path $fixtureModules "PSWriteOffice/$ModuleVersion"
+New-Item -ItemType Directory -Path $fixtureModule | Out-Null
+New-ModuleManifest -Path (Join-Path $fixtureModule 'PSWriteOffice.psd1') -ModuleVersion $ModuleVersion -FunctionsToExport @() -CmdletsToExport @()
+$originalModulePath = $env:PSModulePath
+try {
+    $env:PSModulePath = $fixtureModules + [IO.Path]::PathSeparator + $originalModulePath
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-ShowcasePowerShellExample.ps1') -RepositoryRoot $runnerRoot -DocumentsRoot $runnerDocuments -ExampleId example -ModuleVersion $ModuleVersion -ReceiptPath $receiptPath *> $logPath
+    $runnerExitCode = $LASTEXITCODE
+} finally {
+    $env:PSModulePath = $originalModulePath
+}
+Assert-Contract ($runnerExitCode -ne 0 -and (Get-Content -LiteralPath $logPath -Raw).Contains('Current showcase generation did not produce')) 'The runner must reject the omitted export, even with an older destination file.'
 Assert-Contract (-not (Test-Path -LiteralPath $receiptPath)) 'A failed generation must not produce a success receipt.'
 Assert-Contract ((Get-Content -LiteralPath $oldOutput -Raw).Trim() -ceq 'old-output') 'An incomplete generation must preserve the previous destination.'
 Assert-Contract (@(Get-ChildItem -LiteralPath $runnerDocuments -Directory -Filter 'ShowcaseGeneration-*').Count -eq 0) 'The runner must remove its failed temporary generation.'
-Write-Host "Real child-runner omitted-export contracts passed with PSWriteOffice $ModuleVersion."
+Write-Host "Real child-runner omitted-export contracts passed with isolated module fixture $ModuleVersion."
 Write-Host 'Showcase generation provenance contracts passed.'
 } finally {
     if ($ownsTestRoot) { Remove-Item -LiteralPath $TestRoot -Recurse -ErrorAction Stop }

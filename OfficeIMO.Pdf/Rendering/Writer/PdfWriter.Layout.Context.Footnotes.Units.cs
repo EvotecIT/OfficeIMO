@@ -4,6 +4,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private sealed class FootnoteUnit {
             public IPdfBlock? Block { get; init; }
+            public PreparedTableGeometry? Table { get; init; }
             public List<RichSeg>? Line { get; init; }
             public double Advance { get; init; }
             public double Before { get; init; }
@@ -28,7 +29,7 @@ internal static partial class PdfWriter {
             public double PrefixHeight { get; set; }
             public double MaximumKeepHeight { get; set; } = double.PositiveInfinity;
             public double Height => PanelBefore + Before + Advance + After + PanelAfter;
-            public bool IsVisual => Line != null || Block is ImageBlock or HorizontalRuleBlock;
+            public bool IsVisual => Line != null || Table != null || Block is ImageBlock or HorizontalRuleBlock;
         }
 
         private sealed class FootnoteKeepRange {
@@ -58,7 +59,7 @@ internal static partial class PdfWriter {
 
         // A chain retains each kept block and only the terminal block's first
         // legal fragment. Consolidating adjacent links avoids quadratic ranges.
-        private static void AddFootnoteKeepChains(List<FootnoteUnit> units, List<FootnoteBlockSpan> spans) {
+        private void AddFootnoteKeepChains(List<FootnoteUnit> units, List<FootnoteBlockSpan> spans) {
             for (int index = 0; index < spans.Count; index++) {
                 if (!spans[index].KeepWithNext) continue;
                 int next = index + 1;
@@ -91,33 +92,51 @@ internal static partial class PdfWriter {
             MeasureFootnoteFragmentHeight(units, 0, units.Count);
 
         private static double MeasureFootnoteFragmentHeight(IReadOnlyList<FootnoteUnit> units, int start, int count,
-            double maximumHeight = double.PositiveInfinity) {
+            double maximumHeight = double.PositiveInfinity, IReadOnlyDictionary<int, TableFragmentPlan>? tables = null,
+            bool continuedTable = false) {
             if (count == 0) return 0D;
             int end = start + count;
             double height = units[end - 1].PrefixHeight - (start == 0 ? 0D : units[start - 1].PrefixHeight);
+            bool partialTable = tables != null && tables.TryGetValue(end - 1, out var lastTable) && lastTable.Continues;
+            if (tables != null) {
+                foreach (var entry in tables) {
+                    FootnoteUnit unit = units[entry.Key];
+                    height += entry.Value.Height - unit.Advance;
+                    if (entry.Key == start && continuedTable) height -= unit.PanelBefore;
+                    if (entry.Key == end - 1 && partialTable) height -= unit.PanelAfter;
+                }
+            }
             foreach (FootnotePanel panel in units[start].Panels)
-                if (panel.Start < start) height += panel.Style.GetFragmentTopPadding(isContinuation: true);
+                if (panel.Start < start || continuedTable && panel.Start == start) height += panel.GetTopPadding(true, tables);
             foreach (FootnotePanel panel in units[end - 1].Panels) {
-                bool continues = panel.End > end;
+                bool continues = panel.End > end || partialTable && panel.End == end;
                 double bottom = panel.Style.GetFragmentBottomPadding(continues);
                 if (continues) height += bottom;
                 height += Math.Max(0D, panel.Style.FragmentBottomInset - bottom);
             }
-            return height - Math.Min(GetClippableFootnoteSpacing(units, end), Math.Max(0D, height - maximumHeight));
+            return height - Math.Min(partialTable ? 0D : GetClippableFootnoteSpacing(units, end), Math.Max(0D, height - maximumHeight));
         }
 
         private static double GetClippableFootnoteSpacing(IReadOnlyList<FootnoteUnit> units, int end) =>
             units[end - 1].Panels.Where(panel => panel.End == end && panel.Style.ClipSpacingAfterAtFrameEnd)
                 .Sum(panel => panel.Style.SpacingAfter);
 
-        private static bool EnforceFootnoteKeep(IReadOnlyList<FootnoteUnit> units, FootnoteKeepRange range, int start, bool checkCapacity) {
+        private bool EnforceFootnoteKeep(IReadOnlyList<FootnoteUnit> units, FootnoteKeepRange range, int start, bool checkCapacity) {
             if (!range.RelaxIfOversized || !checkCapacity) return true;
             int remainingStart = Math.Max(start, range.Start);
-            return MeasureFootnoteFragmentHeight(units, remainingStart, range.End - remainingStart) <=
-                units[remainingStart].MaximumKeepHeight + .001D;
+            double height = MeasureFootnoteFragmentHeight(units, remainingStart, range.End - remainingStart);
+            FootnoteUnit terminal = units[range.End - 1];
+            if (terminal.Table is { } table) {
+                // A keep chain's terminal table contributes its first legal
+                // fragment. Earlier kept tables still contribute their whole box.
+                double frame = Math.Max(0D, terminal.MaximumKeepHeight - terminal.PanelBefore - terminal.PanelAfter);
+                TableFragmentPlan? first = PlanTableFragment(table, null, frame, frame, minimumOnly: true);
+                if (first != null) height += first.Height - terminal.Advance;
+            }
+            return height <= units[remainingStart].MaximumKeepHeight + .001D;
         }
 
-        private static int GetMinimumFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, bool checkCapacity = true) {
+        private int GetMinimumFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, bool checkCapacity = true) {
             int end = start;
             while (end < units.Count) {
                 FootnoteUnit unit = units[end++];
@@ -136,7 +155,7 @@ internal static partial class PdfWriter {
             return end - start;
         }
 
-        private static bool IsLegalFootnoteCut(IReadOnlyList<FootnoteUnit> units, int start, int count) {
+        private bool IsLegalFootnoteCut(IReadOnlyList<FootnoteUnit> units, int start, int count) {
             int end = start + count;
             FootnoteUnit last = units[end - 1];
             if (last.Line != null && last.ParagraphLine < last.ParagraphLines - 1) {
@@ -149,21 +168,5 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private static int FitFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, double available, bool clipTrailingSpacing = false) {
-            int minimum = GetMinimumFootnoteUnits(units, start);
-            int count = 0;
-            double preceding = start == 0 ? 0D : units[start - 1].PrefixHeight;
-            for (int end = start + 1; end <= units.Count; end++) {
-                // Authored advances are monotone. A boundary inset can disappear
-                // when the next block occupies it, so it cannot end this search.
-                double clippable = clipTrailingSpacing ? GetClippableFootnoteSpacing(units, end) : 0D;
-                if (units[end - 1].PrefixHeight - preceding - clippable > available + .001D) break;
-                int candidate = end - start;
-                if (candidate >= minimum && MeasureFootnoteFragmentHeight(units, start, candidate,
-                        clipTrailingSpacing ? available : double.PositiveInfinity) <= available + .001D &&
-                    IsLegalFootnoteCut(units, start, candidate)) count = candidate;
-            }
-            return count;
-        }
     }
 }

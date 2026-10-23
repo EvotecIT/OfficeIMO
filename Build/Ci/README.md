@@ -58,3 +58,48 @@ distinct Excel legacy-reader tests remain in their partition. An obsolete
 absence audit for the retired aggregate test project is removed. New routing
 contracts cover dependency propagation, conditional references, shared inputs,
 unmapped projects, docs/website/JavaScript changes and the full-matrix override.
+
+Website PR selection uses `website_inputs` rather than the managed dependency
+closure. Website assets, browser sources, PowerShell content, documentation,
+site generators and build/dependency configuration select it. Ordinary library
+implementation and unrelated CI edits retain their own correctness lanes. Full
+site/API generation remains on master publication, scheduled publication,
+manual dispatch and `full-ci` requests.
+
+PSWriteOffice content sync reuses the checked-in snapshot only when its producer
+commit has identical module, engine, shared build and snapshot-processing inputs. It also checks the
+API component hashes and command inventory, documentation/catalog/navigation
+fingerprints, and current working inputs. Shallow checkouts may fetch the
+producer's tree. Missing provenance, changed inputs or damaged outputs use the
+normal unsigned fresh export. Reused source links retain their actual producer
+revision; they are not relabeled as a new build.
+
+CodeQL retains its full manual production build and query suite.
+`Invoke-CodeQLBuild.ps1` selects net10 for multi-targeted projects through
+`OfficeIMOCodeQLBuild`; single-targeted projects keep their own framework
+identity. This avoids duplicate instances writing to the same outputs. The
+standalone generator retains netstandard2.0. Compiler analyzers, source generators
+and binary logs remain enabled. `-OriginalFrameworkSelection` supplies the old
+solution-wide framework selection for paired diagnostics. Compare both finalized databases with `CodeQL/ExtractedFiles.ql`
+(CSV output), then run the same complete query suite to SARIF and compare:
+
+```sh
+python Build/Ci/compare_codeql.py before-files.csv after-files.csv before.sarif after.sarif expected-query-ids.json --query-metadata expected-query-metadata.json --before-query-results before.zip --after-query-results after.zip --output comparison.json
+```
+
+The comparison requires identical extracted source paths/line counts, query IDs
+and alert locations/supporting locations/messages/flows. Keep product source, CLI/query versions,
+output paths, cache policy and query options the same for both runs. Changed
+project scans, cached compilation outputs and no-build extraction are not used.
+Resolve `expected-query-ids.json` and query metadata (`id` and absolute `query`
+path per entry) from the unchanged full C# query suite. Analyze each clean
+database with that suite, then retain `codeql database bundle --include-results`
+ZIPs. Each resolved query must have its BQRS result in both bundles; SARIF
+descriptors alone do not prove execution. Empty, unsuccessful or equally
+incomplete analysis evidence cannot pass comparison. SARIF invocations are
+optional, but any recorded failure or error notification rejects the evidence.
+
+The report's `equal` field covers that extracted inventory, rule and executed-query
+ID sets, and projected SARIF alerts. BQRS files attest execution and ZIP integrity;
+the comparison does not decode their rows or compare diagnostic notification
+messages. It does not claim that every metric or diagnostic result is identical.

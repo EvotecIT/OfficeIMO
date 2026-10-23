@@ -507,3 +507,19 @@ C++ deallocation or an isolated RSS saving. The resulting files are 9,163,300 an
 28,185,805 bytes: larger than compressing every container, but still 35.00% and
 36.23% smaller than M8. This explicit file-size/codec-cost tradeoff requires its
 one fixed normal-host comparison; both narrow peak-RSS statistics remain required.
+
+Candidate `d67c7ee00ef62ac21f7f2141b1f07cdedce70b05` passes all sixteen
+output validations in one fixed normal-host cohort. Narrow mean/median peak RSS
+is 1.92%/1.40% below M8; wide mean/median is 10.37%/8.15% below M8. Narrow
+engine-time mean/median is 42.43%/46.14% lower, and wide mean/median is
+31.25%/25.55% lower. Sampled narrow heap is 8.47%/7.17% lower and sampled
+external memory is 11.74%/12.43% lower. Wide sampled heap is 10.49%/9.35%
+lower, while its external memory is 7.89%/6.14% higher. Both narrow RSS
+criteria are met in this cohort. Every warmup and measured sample is retained;
+one normal-host n=3 comparison does not establish a universal performance claim.
+
+The subsequent integration retains the independently merged PNG validation,
+Node support and WinAnsi test-reader changes. PNG code changes the bundle but
+is not called by either image-free workload. The integrated source receives one
+final fixed comparison, with the same M8 baseline and policy, before its package
+and browser acceptance. The preceding result remains bound to its exact source.

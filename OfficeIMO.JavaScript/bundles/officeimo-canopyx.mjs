@@ -9864,25 +9864,7 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
     // It never retains an additional full interleaved RGBA image.
     const pixels = new Uint8Array(width * height * 3), alpha = components === 4 ? new Uint8Array(imagePixels) : undefined;
     let previous = components === 4 ? new Uint8Array(rowBytes) : undefined, current = components === 4 ? new Uint8Array(rowBytes) : undefined;
-    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
-    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
-    const input = new ReadableStream({ pull(controller) {
-            checkAbort(signal);
-            while (position === end && chunk < header.dataEnd) {
-                chunk = end + 4;
-                if (chunk === header.dataEnd) {
-                    controller.close();
-                    return;
-                }
-                position = chunk + 8;
-                end = position + view.getUint32(chunk);
-            }
-            // Limit the input given to the platform inflater between downstream length checks.
-            const next = Math.min(end, position + 4096);
-            controller.enqueue(source.subarray(position, next));
-            position = next;
-        } }, { highWaterMark: 0 });
-    const reader = input.pipeThrough(stream).getReader();
+    const reader = pngCompressedInput(source, header, signal).pipeThrough(stream).getReader();
     let inflated = 0, output = 0, rgbOutput = 0, alphaOutput = 0, column = 0, filter = 0;
     try {
         while (true) {
@@ -9954,6 +9936,7 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
         }
         if (inflated !== expected)
             throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
+        await verifyPngZlibEnd(source, header, expected, signal);
         return { width, height, components: 3, data: pixels, ...(alpha ? { alpha } : {}) };
     }
     catch (error) {
@@ -9964,10 +9947,70 @@ async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
         reader.releaseLock();
     }
 }
+/** Feed bounded IDAT slices without retaining another copy of the compressed image. */
+function pngCompressedInput(source, header, signal, changeLastByte = false) {
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
+    return new ReadableStream({ pull(controller) {
+            checkAbort(signal);
+            while (position === end) {
+                chunk = end + 4;
+                if (chunk === header.dataEnd) {
+                    controller.close();
+                    return;
+                }
+                position = chunk + 8;
+                end = position + view.getUint32(chunk);
+            }
+            if (changeLastByte && position === header.lastDataByte) {
+                controller.enqueue(Uint8Array.of(source[position++] ^ 1));
+                return;
+            }
+            const next = Math.min(end, position + 4096, changeLastByte && position < header.lastDataByte ? header.lastDataByte : end);
+            controller.enqueue(source.subarray(position, next));
+            position = next;
+        } }, { highWaterMark: 0 });
+}
+/** A complete zlib stream must consume its final Adler-32 byte. Older native inflaters
+ * silently ignore trailing input. Change only the final IDAT byte and require rejection:
+ * an ignored suffix still succeeds, whereas a consumed checksum byte cannot remain valid.
+ * The second native pass discards bounded output; it never allocates another image plane. */
+async function verifyPngZlibEnd(source, header, expected, signal) {
+    const reader = pngCompressedInput(source, header, signal, true).pipeThrough(new DecompressionStream("deflate")).getReader();
+    let rejected = false, output = 0;
+    try {
+        while (true) {
+            let item;
+            try {
+                item = await withAbort(reader.read(), signal);
+            }
+            catch {
+                checkAbort(signal);
+                rejected = true;
+                break;
+            }
+            checkAbort(signal);
+            if (item.done)
+                break;
+            output += item.value.length;
+            if (output > expected)
+                throw new TypeError("Invalid PNG zlib image data.");
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (!rejected)
+            throw new TypeError("Invalid PNG zlib image data: trailing bytes after the checksum.");
+    }
+    finally {
+        void reader.cancel().catch(() => { });
+        reader.releaseLock();
+    }
+}
 /** Verify the complete source and critical chunk order before any decompressed image allocation. */
 async function pngHeader(source, shape, signal) {
     const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
-    let firstData = 0, dataEnd = 0, dataClosed = false;
+    let firstData = 0, dataEnd = 0, lastDataByte = -1, dataClosed = false;
     for (let offset = 8; offset < source.length;) {
         checkAbort(signal);
         if (offset + 12 > source.length)
@@ -9998,6 +10041,8 @@ async function pngHeader(source, shape, signal) {
                 throw new TypeError("PNG IDAT chunks must be consecutive.");
             firstData ||= offset;
             dataEnd = end;
+            if (length)
+                lastDataByte = end - 5;
         }
         else {
             if (firstData)
@@ -10005,7 +10050,7 @@ async function pngHeader(source, shape, signal) {
             if (type === "IEND") {
                 if (length !== 0 || !firstData || end !== source.length)
                     throw new TypeError("PNG requires a final empty IEND after IDAT.");
-                return { ...shape, firstData, dataEnd };
+                return { ...shape, firstData, dataEnd, lastDataByte };
             }
             if (unsupportedChunks.has(type))
                 throw new NotSupportedError("PNG chunk " + type + "; normalize color, orientation, transparency or animation first");

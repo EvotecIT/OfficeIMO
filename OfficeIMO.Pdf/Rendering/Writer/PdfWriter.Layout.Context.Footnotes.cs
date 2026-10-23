@@ -21,20 +21,23 @@ internal static partial class PdfWriter {
         private bool HasPageFootnotes => pageFootnotes.Count > 0;
 
         private sealed class FootnoteCursor {
-            public FootnoteCursor(PreparedFootnote note, int start) { Note = note; Start = start; }
+            public FootnoteCursor(PreparedFootnote note, int start, TableFlowCursor? table = null) { Note = note; Start = start; Table = table; }
             public PreparedFootnote Note { get; }
             public int Start { get; }
+            public TableFlowCursor? Table { get; }
         }
 
         private sealed class FootnoteFragment {
-            public FootnoteFragment(PreparedFootnote note, int start, int count, double maximumHeight = double.PositiveInfinity) {
-                Note = note; Start = start; Count = count;
-                Height = MeasureFootnoteFragmentHeight(note.Units, start, count, maximumHeight);
-            }
+            public FootnoteFragment(PreparedFootnote note, NoteFlowFragment flow) { Note = note; Flow = flow; }
             public PreparedFootnote Note { get; }
-            public int Start { get; }
-            public int Count { get; }
-            public double Height { get; }
+            public NoteFlowFragment Flow { get; }
+            public int Start => Flow.Start;
+            public int Count => Flow.Count;
+            public double Height => Flow.Height;
+            public System.Collections.ObjectModel.ReadOnlyDictionary<int, TableFragmentPlan> Tables => Flow.Tables;
+            public TableFlowCursor? StartTable => Flow.StartTable;
+            public TableFlowCursor? NextTable => Flow.NextTable;
+            public int NextStart => Flow.NextStart;
         }
 
         private sealed class PreparedFootnote {
@@ -130,9 +133,9 @@ internal static partial class PdfWriter {
             if (continuedFootnotes.Count == 0) return;
             foreach (FootnoteCursor cursor in continuedFootnotes) {
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Blocks, currentOpts);
-                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Separator, currentOpts);
-                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationSeparator, currentOpts);
-                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationNotice, currentOpts);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Separator, currentOpts, allowTables: false);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationSeparator, currentOpts, allowTables: false);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationNotice, currentOpts, allowTables: false);
             }
             double usableWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             if (continuedFootnotes.Any(cursor => Math.Abs(cursor.Note.UsableWidth - usableWidth) > .001D))
@@ -168,7 +171,7 @@ internal static partial class PdfWriter {
             try {
                 PaintFootnoteUnits(pageFootnoteSeparator, 0, pageFootnoteSeparator.Count, ref top);
                 foreach (FootnoteFragment fragment in pageFootnotes)
-                    PaintFootnoteUnits(fragment.Note.Units, fragment.Start, fragment.Count, ref top, fragment.Height);
+                    PaintFootnoteUnits(fragment.Note.Units, fragment.Start, fragment.Count, ref top, fragment.Height, fragment.Tables, fragment.StartTable != null);
                 if (pageFootnotesContinue)
                     PaintFootnoteUnits(pageFootnoteContinuationNotice, 0, pageFootnoteContinuationNotice.Count, ref top);
             } finally {
@@ -179,8 +182,8 @@ internal static partial class PdfWriter {
             }
             var remaining = new List<FootnoteCursor>();
             foreach (FootnoteFragment fragment in pageFootnotes) {
-                int next = fragment.Start + fragment.Count;
-                if (next < fragment.Note.Units.Count) remaining.Add(new FootnoteCursor(fragment.Note, next));
+                int next = fragment.NextStart;
+                if (next < fragment.Note.Units.Count) remaining.Add(new FootnoteCursor(fragment.Note, next, fragment.NextTable));
             }
             foreach (FootnoteCursor cursor in continuedFootnotes)
                 if (!pageFootnotes.Any(fragment => ReferenceEquals(fragment.Note, cursor.Note))) remaining.Add(cursor);
