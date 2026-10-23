@@ -186,7 +186,11 @@ public class RtfParsedParagraphStateTests {
         RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\ftnbj" + Styles +
             @"\pard Body{\footnote\pard\s1 Note\par}\par\trowd\cellx2400\pard\intbl\s1 Cell\cell\row}").Document;
         RtfParagraph cell = Assert.Single(Assert.Single(source.Blocks.OfType<RtfTable>()).Rows[0].Cells[0].Paragraphs);
-        RtfParagraph note = Assert.Single(Assert.Single(source.Notes).Paragraphs);
+        RtfNote parsedNote = Assert.Single(source.Notes);
+        Assert.Collection(parsedNote.Paragraphs,
+            paragraph => Assert.Equal("Note", paragraph.ToPlainText()),
+            paragraph => Assert.Empty(paragraph.Inlines));
+        RtfParagraph note = parsedNote.Paragraphs[0];
         Assert.Equal(240, source.ResolveParagraphFormatting(cell).LineSpacingTwips);
         Assert.Equal(240, source.ResolveParagraphFormatting(note).LineSpacingTwips);
         Assert.Equal(0, source.ResolveParagraphFormatting(cell).SpaceBeforeTwips);
@@ -195,14 +199,25 @@ public class RtfParsedParagraphStateTests {
         Assert.Equal(0, source.ResolveParagraphFormatting(note).SpaceAfterTwips);
         Assert.Empty(source.ResolveParagraphFormatting(cell).TabStops);
         Assert.Empty(source.ResolveParagraphFormatting(note).TabStops);
+        RtfParagraph terminal = source.ResolveParagraphFormatting(parsedNote.Paragraphs[1]);
+        Assert.Equal(240, terminal.LineSpacingTwips);
+        Assert.True(terminal.LineSpacingMultiple);
+        Assert.Equal(0, terminal.SpaceBeforeTwips);
+        Assert.Equal(0, terminal.SpaceAfterTwips);
+        Assert.Empty(terminal.TabStops);
         using WordDocument word = source.ToWordDocument();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         var main = reopened._wordprocessingDocument.MainDocumentPart!;
         Document document = Assert.IsType<Document>(main.Document);
         Paragraph persistedCell = Assert.Single(document.Descendants<Paragraph>(), paragraph => paragraph.InnerText == "Cell");
         Paragraph persistedNote = Assert.Single(main.FootnotesPart!.Footnotes!.Descendants<Paragraph>(), paragraph => paragraph.InnerText == "Note");
+        Footnote ordinaryNote = Assert.Single(main.FootnotesPart.Footnotes.Elements<Footnote>(), item => item.Id!.Value > 0);
+        Paragraph[] persistedNoteParagraphs = ordinaryNote.Elements<Paragraph>().ToArray();
+        Assert.Equal(2, persistedNoteParagraphs.Length);
+        Assert.Empty(persistedNoteParagraphs[1].Descendants<Text>());
         AssertWordSpacing(persistedCell, "240", LineSpacingRuleValues.Auto);
         AssertWordSpacing(persistedNote, "240", LineSpacingRuleValues.Auto);
+        AssertWordSpacing(persistedNoteParagraphs[1], "240", LineSpacingRuleValues.Auto);
         AssertWordTab(Assert.Single(persistedCell.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Clear);
         AssertWordTab(Assert.Single(persistedNote.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Clear);
     }
