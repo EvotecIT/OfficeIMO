@@ -90,7 +90,7 @@ public static partial class HtmlResourcePipeline {
         return urls.AsReadOnly();
     }
 
-    internal static string RebaseExternalStylesheetUrls(string css, Uri baseUri, HtmlUrlPolicy policy) {
+    internal static string RebaseExternalStylesheetUrls(string css, Uri baseUri, HtmlUrlPolicy policy, HtmlResourceSession? resources = null) {
         if (string.IsNullOrWhiteSpace(css)) {
             return css ?? string.Empty;
         }
@@ -107,7 +107,11 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
+            // Imported text may already contain a policy-transformed absolute URL. Its original plan
+            // remains authoritative; re-signing it while rebasing an outer sheet changes its identity.
+            string resolved = resources != null && resources.TryGetStylesheetImagePlan(source, baseUri, out HtmlResourceReference planned)
+                ? HtmlResourceSession.GetMaterializedImageSource(planned)
+                : HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
             string replacement = resolved.Length == 0
                 ? "url(\"\")"
                 : "url(\"" + EscapeCssString(resolved) + "\")";

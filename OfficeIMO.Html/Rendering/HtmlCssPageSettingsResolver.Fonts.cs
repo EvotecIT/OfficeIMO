@@ -34,7 +34,8 @@ internal static partial class HtmlCssPageSettingsResolver {
     }
 
     internal static bool IsMarginBackgroundDeclaration(string name) =>
-        name.ToLowerInvariant() is "background" or "background-color" or "background-clip" or "background-image";
+        name.ToLowerInvariant() is "background" or "background-color" or "background-clip" or "background-image"
+            or "background-position" or "background-repeat" or "background-size" or "background-origin" or "background-attachment";
 
     internal static bool IsMarginGeometryDeclaration(string name) =>
         name.ToLowerInvariant() is "box-sizing" or "width" or "min-width" or "max-width" or "height" or "min-height" or "max-height"

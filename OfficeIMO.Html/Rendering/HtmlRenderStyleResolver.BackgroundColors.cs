@@ -26,8 +26,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         return value.Length == 0;
     }
 
-    /// <summary>Admits solid generated paint while reporting image paint outside the margin-box profile.</summary>
+    /// <summary>Resolves generated paint through the same bounded layer parser as ordinary boxes.</summary>
     private void ResolvePageMarginBackground(HtmlComputedStyle computed, HtmlRenderBoxStyle style, string source) {
+        if (computed.Properties.Any(pair => HtmlCssPageSettingsResolver.IsMarginBackgroundDeclaration(pair.Key)
+            && ContainsCharacterUnit(pair.Value))) style.CharacterAdvance = _measureCharacterAdvance(style);
         if (TryResolveBackgroundColor(computed, style.Color, out OfficeColor? color))
             style.BackgroundColor = color;
         else
@@ -41,16 +43,10 @@ internal sealed partial class HtmlRenderStyleResolver {
                 "A page-margin background clip used the border-box fallback.", HtmlDiagnosticSeverity.Warning,
                 source, "background-clip=" + computed.GetValue("background-clip"), OfficeConversionLossKind.Approximation);
         }
-        string image = computed.GetValue("background-image");
-        if (image.Length > 0 && HtmlRenderCssValues.SplitTopLevelCommas(image).Any(value => !value.Trim().Equals("none", StringComparison.OrdinalIgnoreCase))
-            && _reportedPageMarginDimensions.Add(source + " background-image=" + image)) {
-            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                "A page-margin background image was omitted; its solid color is retained.", HtmlDiagnosticSeverity.Warning,
-                source, "background-image=" + image, OfficeConversionLossKind.Omission);
-        }
+        ApplyBackgroundLayers(computed, style, shorthand);
     }
 
-    /// <summary>Uses the final image layer's recycled clip for solid color, including generated boxes with omitted image paint.</summary>
+    /// <summary>Uses the final image layer's recycled clip for solid color, including generated boxes.</summary>
     private static string ResolveSolidBackgroundClip(HtmlComputedStyle computed, string shorthand, int imageLayers, out bool supported) {
         IReadOnlyList<string> clips = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-clip"));
         (_, string fallback) = ExtractBackgroundBoxes(shorthand);

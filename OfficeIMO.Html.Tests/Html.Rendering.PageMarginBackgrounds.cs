@@ -115,14 +115,12 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPageMarginBackgrounds_ZeroFontRetainsPaintAndUnsupportedImagesAreDiagnosed() {
+    public void HtmlPageMarginBackgrounds_ZeroFontRetainsSolidAndGradientPaint() {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
             "@top-center{content:'TEXT';font-size:0;height:20px;background:linear-gradient(blue,green) red}");
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
-        Assert.Single(box.Visuals.OfType<HtmlRenderShape>());
+        Assert.Equal(2, EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderShape>().Count());
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported
-            && diagnostic.Source == "@page @top-center" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        rendered.RequireNoLoss();
     }
 }

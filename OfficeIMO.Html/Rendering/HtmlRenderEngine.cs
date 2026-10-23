@@ -176,7 +176,8 @@ public static class HtmlRenderEngine {
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone(),
-            IncludeDocumentIcons = false
+            IncludeDocumentIcons = false,
+            DeferPageMarginBackgrounds = true
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
@@ -188,7 +189,7 @@ public static class HtmlRenderEngine {
             diagnostics,
             limits,
             cancellationToken,
-            cssBudget);
+            cssBudget, deferPageMarginBackgrounds: true);
         if (sharedResources == null) resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
@@ -204,6 +205,8 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
+        if (sharedResources == null)
+            HtmlRenderResourceLoader.LoadGeneratedBackgrounds(document, pageRules, styles, resourceOptions, resolved, resources, limits, cancellationToken);
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
@@ -364,12 +367,14 @@ public static class HtmlRenderEngine {
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone(),
-            IncludeDocumentIcons = false
+            IncludeDocumentIcons = false,
+            DeferPageMarginBackgrounds = true
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
-        HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget).ConfigureAwait(false);
+        HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget,
+            deferPageMarginBackgrounds: true).ConfigureAwait(false);
         resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
@@ -386,6 +391,7 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
+        await HtmlRenderResourceLoader.LoadGeneratedBackgroundsAsync(document, pageRules, styles, resourceOptions, resolved, resources, limits, cancellationToken).ConfigureAwait(false);
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);

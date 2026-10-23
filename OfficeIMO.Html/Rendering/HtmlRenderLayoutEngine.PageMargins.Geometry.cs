@@ -94,8 +94,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double contentWidth = width, contentHeight = height;
             if (!TryGetPageMarginBorderBounds(page, box, bounds, naturalContentHeight, out x, out y, out width, out height)) return;
             var decorated = new List<HtmlRenderVisual>();
-            AddSolidBoxBackground(decorated, box.Typography, x, y, width, height,
-                box.Typography.BorderInsets, default, source);
+            AddBoxBackgroundCore(decorated, box.Typography, x, y, width, height,
+                box.Typography.BorderInsets, default, source, source, source);
             if (box.Typography.UnsupportedBorderPaint.Length > 0) {
                 if (_reportedBorderPaintFallbacks.Add(source)) {
                     _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported,

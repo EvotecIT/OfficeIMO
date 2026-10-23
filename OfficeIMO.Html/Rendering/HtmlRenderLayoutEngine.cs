@@ -999,14 +999,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string message,
         IElement element,
         string? detail = null,
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) =>
+        AddUnsupported(code, message, HtmlRenderStyleResolver.DescribeSource(element), detail, lossKind);
+
+    /// <summary>Reports paint loss for DOM and generated contexts without synthesizing an element.</summary>
+    private void AddUnsupported(string code, string message, string source, string? detail = null,
         OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
-        _diagnostics.Add(
-            ComponentName,
-            code,
-            message,
-            HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
-            detail,
-            lossKind);
+        _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, source, detail, lossKind);
     }
 }

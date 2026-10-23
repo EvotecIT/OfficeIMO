@@ -199,7 +199,7 @@ internal static class HtmlRenderStylesheetApplier {
         return HtmlResourcePipeline.RebaseExternalStylesheetUrls(
             builder.ToString(),
             stylesheetUri,
-            options.GetResourceUrlPolicy());
+            options.GetResourceUrlPolicy(), resources);
     }
 
     internal static bool TryReserveCss(

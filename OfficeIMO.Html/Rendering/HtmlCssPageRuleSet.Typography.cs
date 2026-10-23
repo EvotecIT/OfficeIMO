@@ -62,6 +62,20 @@ internal sealed partial class HtmlCssPageRuleSet {
         }
     }
 
+    /// <summary>Discovers paint resources through the effective generated cascade, including inherited custom properties.</summary>
+    internal IEnumerable<HtmlComputedStyle> EnumerateMarginBackgroundStyles(HtmlComputedStyle root,
+        HtmlComputedStyleSet styles, CancellationToken cancellationToken) {
+        foreach (string? name in _rules.Select(rule => rule.PageName).Concat(new string?[] { null }).Distinct(StringComparer.Ordinal)) {
+            for (int pageNumber = 1; pageNumber <= 3; pageNumber++) {
+                foreach (var context in ResolveMarginContexts(pageNumber, name, root, styles, cancellationToken)) {
+                    if (!context.Content.IsEmpty && context.Position is (HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter
+                        or HtmlCssPageMarginPosition.TopRight or HtmlCssPageMarginPosition.BottomLeft
+                        or HtmlCssPageMarginPosition.BottomCenter or HtmlCssPageMarginPosition.BottomRight)) yield return context.Margin;
+                }
+            }
+        }
+    }
+
     private IReadOnlyList<MarginStyleContext> ResolveMarginContexts(
         int pageNumber, string? pageName, HtmlComputedStyle root, HtmlComputedStyleSet styles, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

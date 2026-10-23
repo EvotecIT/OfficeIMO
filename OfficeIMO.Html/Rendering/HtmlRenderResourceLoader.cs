@@ -153,8 +153,8 @@ public sealed partial class HtmlResourceSession {
         indices.Add(index);
     }
 
-    internal void DeferMissingCssImageLoss() {
-        foreach (int index in _missingCssImageDiagnostics.Values.SelectMany(static indices => indices).Distinct()) {
+    internal void DeferMissingCssImageLoss(int firstDiagnostic = 0) {
+        foreach (int index in _missingCssImageDiagnostics.Values.SelectMany(static indices => indices).Distinct().Where(index => index >= firstDiagnostic)) {
             HtmlDiagnostic diagnostic = Diagnostics[index];
             Diagnostics.Replace(index, diagnostic.WithImpact(HtmlDiagnosticSeverity.Info, OfficeConversionLossKind.None));
         }
@@ -510,8 +510,10 @@ internal static partial class HtmlRenderResourceLoader {
         HtmlDiagnosticReport diagnostics,
         HtmlConversionLimits limits,
         CancellationToken cancellationToken,
-        HtmlCssByteBudget? cssBudget = null) {
-        var session = new HtmlResourceSession(options, diagnostics);
+        HtmlCssByteBudget? cssBudget = null,
+        HtmlResourceSession? existingSession = null,
+        bool deferPageMarginBackgrounds = false) {
+        var session = existingSession ?? new HtmlResourceSession(options, diagnostics);
         HtmlRenderSynchronousResourceResolver? resolver = session.SynchronousResolver;
         if (resolver == null) return session;
         return LoadCoreAsync(
@@ -522,6 +524,7 @@ internal static partial class HtmlRenderResourceLoader {
                 cancellationToken,
                 cssBudget,
                 markAttemptedBeforeResolve: false,
+                deferPageMarginBackgrounds: deferPageMarginBackgrounds,
                 resolver: (request, token) => {
                     bool isHandled = resolver(
                         request,
@@ -540,8 +543,10 @@ internal static partial class HtmlRenderResourceLoader {
         HtmlDiagnosticReport diagnostics,
         HtmlConversionLimits limits,
         CancellationToken cancellationToken,
-        HtmlCssByteBudget? cssBudget = null) {
-        var session = new HtmlResourceSession(options, diagnostics);
+        HtmlCssByteBudget? cssBudget = null,
+        HtmlResourceSession? existingSession = null,
+        bool deferPageMarginBackgrounds = false) {
+        var session = existingSession ?? new HtmlResourceSession(options, diagnostics);
         HtmlRenderResourceResolver? resolver = session.Resolver;
         if (resolver == null) {
             return Task.FromResult(session);
@@ -554,6 +559,7 @@ internal static partial class HtmlRenderResourceLoader {
             cancellationToken,
             cssBudget,
             markAttemptedBeforeResolve: true,
+            deferPageMarginBackgrounds: deferPageMarginBackgrounds,
             resolver: async (request, token) => new ResourceResolution(
                 true,
                 await resolver(request, token).ConfigureAwait(false)));
@@ -587,13 +593,14 @@ internal static partial class HtmlRenderResourceLoader {
         HtmlCssByteBudget? cssBudget,
         bool markAttemptedBeforeResolve,
         ResourceResolver resolver,
-        bool archiveResources = false) {
+        bool archiveResources = false,
+        bool deferPageMarginBackgrounds = false) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(result.ResourcePolicy);
-        var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
         var requestAliases = new Dictionary<string, List<HtmlResourceReference>>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
+            result.RegisterImagePlan(reference);
             pending.Enqueue(new PendingResource(reference, 0));
         }
 
@@ -607,7 +614,8 @@ internal static partial class HtmlRenderResourceLoader {
             MediaHeight = options.CssMediaHeight,
             DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = options.DefaultFontSize,
-            MediaFeatures = options.MediaFeatures.Clone()
+            MediaFeatures = options.MediaFeatures.Clone(),
+            DeferPageMarginBackgrounds = deferPageMarginBackgrounds
         };
         bool stop = false;
         int concurrency = markAttemptedBeforeResolve ? result.MaxConcurrentLoads : 1;
@@ -628,7 +636,7 @@ internal static partial class HtmlRenderResourceLoader {
                 if (!TryAuthorizeResourceRequest(reference, resourcePolicy, diagnostics, out Uri uri)) continue;
                 if (!archiveResources && uri.Scheme.Equals("data", StringComparison.OrdinalIgnoreCase)) continue;
                 string requestKey = GetSeenKey(reference.Kind, uri.AbsoluteUri);
-                if (!seen.Add(requestKey)) {
+                if (!result.TryAddRequestIdentity(requestKey)) {
                     if (requestAliases.TryGetValue(requestKey, out List<HtmlResourceReference>? aliases)) aliases.Add(reference);
                     result.AliasAcceptedRequest(reference, uri);
                     if (markAttemptedBeforeResolve) result.MarkAttempted(reference);
@@ -712,7 +720,7 @@ internal static partial class HtmlRenderResourceLoader {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
-                seen.Add(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
+                result.TryAddRequestIdentity(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
                 if (alreadyAccepted) {
                     AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
                     continue;
@@ -745,6 +753,7 @@ internal static partial class HtmlRenderResourceLoader {
                         resourceOptions,
                         result.MaxStylesheetImportDepth,
                         diagnostics,
+                        result,
                         archiveResources);
                 }
                 AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
@@ -783,8 +792,10 @@ internal static partial class HtmlRenderResourceLoader {
         HtmlResourcePipelineOptions resourceOptions,
         int maxStylesheetImportDepth,
         HtmlDiagnosticReport diagnostics,
+        HtmlResourceSession resources,
         bool archiveResources = false) {
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions, includeInactiveResources: archiveResources);
+        foreach (HtmlResourceReference reference in analysis.ImageResources.Concat(analysis.DeferredImageResources)) resources.RegisterImagePlan(reference);
         foreach (HtmlResourceReference imageResource in analysis.ImageResources) {
             if (imageResource.IsAllowed) {
                 pending.Enqueue(new PendingResource(imageResource, importDepth));
