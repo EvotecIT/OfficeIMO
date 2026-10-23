@@ -67,7 +67,7 @@ async function runSemanticReportContracts({ moduleBase, profile, stack, regular,
       sourceSignal = signal; const offset = stack === 'cursor' ? Number(query.cursor ?? 0) : query.offset; queries.push(offset);
       if (holdPage && offset > 0) { pendingPage?.(); await new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true })); }
       const items = records.slice(offset, offset + query.limit).map((row, ordinal) => ({ id: 'record-' + (offset + ordinal), cells: Object.fromEntries([
-        ...row.map((value, index) => [keys[index], { value, text: display(value) }]),
+        ...row.map((value, index) => [keys[index], { value, text: index === 7 ? String(value).replace('T', ' ').replace('.000Z', ' UTC') : display(value) }]),
         ...groupPath(offset + ordinal).map((value, level) => [groupKeys[level], value])]) }));
       return { protocol: 'canopyx/2', type: stack === 'cursor' ? 'gridCursorPage' : 'gridPage', view: query.view, revision: 'semantic-v1', offset,
         total: stack === 'cursor' ? null : count, matched: stack === 'cursor' ? null : count, items,
@@ -121,7 +121,7 @@ async function runSemanticReportContracts({ moduleBase, profile, stack, regular,
       continuationLabel: group => group.label + ' ' + input.text.continuation, formatValue };
     const report = () => api.createGroupedReport(rows, { columns, groupBy: input.groupKeys.map((key, level) => ({ key, value: row => row[columns.length + level] })),
       totals: { c6: 'sum', c8: 'max' }, signal });
-    if (input.standalone) return api.writeGroupedPdfTo(report(), sink, { ...configuration, ...groupOptions, title: input.title });
+    if (input.standalone) return api.writeGroupedPdfTo(report(), sink, { ...configuration, ...groupOptions, title: input.title, messageTop: input.scope });
     async function* blocks() {
       yield { kind: 'section', title: input.title };
       yield { kind: 'paragraph', text: input.scope };
@@ -185,7 +185,7 @@ async function runSemanticReportContracts({ moduleBase, profile, stack, regular,
       rows: expected.map(row => row.map((value, index) => selectedOrder[index] === 7
         ? String(value).replace('T', ' ').replace('.000Z', ' UTC') : display(value))),
       rawRows: expected, groupPaths: grouped ? expected.map((_, index) => groupPath(index)) : [],
-      ...(input.standalone ? {} : { scope, documentation: text.documentation }),
+      scope, ...(input.standalone ? {} : { documentation: text.documentation }),
       headers: headerRows, footers: footerRows, repeatColumns: grouped ? [0, 'c0'] : ['c0', 'c1'],
       links: ['https://example.org/service/', ...(input.standalone ? [] : ['https://officeimo.com/report-engine/'])],
       forbidden: ['UNSELECTED-', 'PRIVATE-ONLY', ' display'], expectedFragmentToken: 'D0004L045' };

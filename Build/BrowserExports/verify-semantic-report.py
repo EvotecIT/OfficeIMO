@@ -338,6 +338,14 @@ def verify(path, qpdf):
         require(compact(forbidden) not in compact(logical_text) and compact(forbidden) not in compact(physical), "Excluded host data leaked")
     require(all(compact(logical_text).count(identifier) == 1 for identifier in expected_ids), "A repeated visual ID appears more than once in logical reading")
     require(all(physical.count(identifier) >= 2 for identifier in expected_ids), "Fixture did not paint repeated identifier bands")
+    for field in ("scope", "documentation"):
+        if field in contract:
+            authored = contract[field]
+            require(isinstance(authored, str) and authored.strip(), "Authored report context must be nonempty text")
+            require(compact(authored) in compact(logical_text) and compact(authored) in compact(physical),
+                    "Authored " + field + " is missing from logical or physical reading")
+            require(len([entry for entry in elements.values() if entry["role"] == "/P" and compact(entry["text"]) == compact(authored)]) == 1,
+                    "Authored " + field + " must retain its own complete logical paragraph")
     if "caption" in contract:
         captions = [entry for entry in elements.values() if entry["role"] == "/Caption"]
         require(len(captions) == 1 and compact(captions[0]["text"]) == compact(contract["caption"]), "Authored table caption is missing, duplicated or changed")
@@ -429,8 +437,19 @@ def verify(path, qpdf):
             require(owner_path in expected_summaries and owner_path not in seen_summaries, "Summary was duplicated or attached to the wrong ancestor section")
             seen_summaries.add(owner_path)
             cells = row_cells(row)
-            require([compact(cell["text"]) for cell in cells] == expected_summaries[owner_path], "Summary label/count/independently computed numeric totals differ")
+            leaf = bool(owner_path) and len(owner_path) == len(contract["groupPaths"][0])
+            # Detail/leaf tables retain every selected field. Independent ancestor/grand
+            # tables retain their label and every declared aggregate, including zero/null.
+            summary_positions = list(range(len(columns) + 1)) if not source_rows or leaf else [0, *[
+                position + 1 for position, column in enumerate(columns) if column["key"] in aggregates]]
+            require([compact(cell["text"]) for cell in cells] == [expected_summaries[owner_path][position] for position in summary_positions],
+                    "Summary label/count/independently computed numeric totals differ")
             require(cells[0] is summary and all(cell["role"] == "/TD" for cell in cells[1:]), "A summary did not retain label-only row-heading semantics")
+            if source_rows and not leaf:
+                headings = [entry for entry in elements.values() if owning_table(entry) == owning_table(row)
+                            and entry["role"] == "/TH" and str(attributes(entry["object"]).get("/Scope")) == "/Column"]
+                require([compact(entry["text"]) for entry in headings] == [expected_columns(position)[0] for position in summary_positions],
+                        "Independent summary column headings differ from the declared aggregate projection")
             if owner_path and contract.get("compactLeafSubtotals"):
                 descendants = [body for body, source_path in zip(bodies, contract["groupPaths"])
                                if tuple(compact(value) for value in source_path[:len(owner_path)]) == owner_path]
@@ -453,7 +472,7 @@ def verify(path, qpdf):
             for column, child in enumerate(row["children"]):
                 entry = elements.get(reference(child))
                 if entry is not None:
-                    require(column_associations(entry) == expected_columns(column), "Summary column-header association differs")
+                    require(column_associations(entry) == expected_columns(summary_positions[column]), "Summary column-header association differs")
                     row_associations = [str(value) for value in sequence(attributes(entry["object"]).get("/Headers"))
                                         if str(attributes(elements[reference(identifiers[str(value)])]["object"]).get("/Scope")) == "/Row"]
                     if entry is not summary:
