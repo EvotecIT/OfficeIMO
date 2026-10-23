@@ -12,7 +12,8 @@ internal sealed partial class OfficeOpenTypeKerning {
     /// </summary>
     /// <remarks>Unsupported active positioning declines the run instead of dropping its adjustments.</remarks>
     internal bool TryPositionRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
-        string? language, CancellationToken cancellationToken, out OfficeOpenTypeGlyphPositioning[] positions) {
+        string? language, CancellationToken cancellationToken, out OfficeOpenTypeGlyphPositioning[] positions,
+        bool rejectMarkAdjustments = false) {
         if (logicalTokens == null) throw new ArgumentNullException(nameof(logicalTokens));
         cancellationToken.ThrowIfCancellationRequested();
         positions = new OfficeOpenTypeGlyphPositioning[logicalTokens.Count];
@@ -21,7 +22,7 @@ internal sealed partial class OfficeOpenTypeKerning {
             OfficeOpenTypeGlyphFilter? filter = OfficeOpenTypeGlyphFilter.TryCreate(_data);
             if (reader == null || filter == null) return false;
             var run = new LogicalPositioningRun(this, reader, filter, logicalTokens, language,
-                cancellationToken, positions);
+                cancellationToken, positions, rejectMarkAdjustments);
             run.Apply();
             return true;
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException
@@ -67,11 +68,14 @@ internal sealed partial class OfficeOpenTypeKerning {
         private readonly string? _language;
         private readonly int _start, _end, _scriptList, _featureList, _lookupList;
         private readonly PositioningWorkBudget _budget;
+        private readonly bool _rejectMarkAdjustments;
 
         internal LogicalPositioningRun(OfficeOpenTypeKerning owner, OfficeOpenTypeReader reader,
             OfficeOpenTypeGlyphFilter filter, IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens,
-            string? language, CancellationToken cancellationToken, OfficeOpenTypeGlyphPositioning[] positions) {
+            string? language, CancellationToken cancellationToken, OfficeOpenTypeGlyphPositioning[] positions,
+            bool rejectMarkAdjustments) {
             _owner = owner; _filter = filter; _tokens = tokens; _language = language; _positions = positions;
+            _rejectMarkAdjustments = rejectMarkAdjustments;
             _scripts = ResolveScripts(tokens);
             if (!reader.TryGetTable("GPOS", out _start, out int length)) {
                 _start = _end = -1;
@@ -127,8 +131,24 @@ internal sealed partial class OfficeOpenTypeKerning {
                 if (byScript[_scripts[index]].Count != 0 || _scripts[index] != _scripts[index + 1]) continue;
                 int value = _owner.KernPairAdjustment((ushort)_tokens[index].GlyphId,
                     (ushort)_tokens[index + 1].GlyphId, _budget);
-                _positions[index] = _positions[index].Add(0, value);
+                AddPosition(index, 0, value, 0, 0);
             }
+        }
+
+        // Attachments and pair positioning currently have separate owners. An
+        // adjustment to a mark cannot be reordered across attachment lookups or
+        // zeroed without changing glyph geometry. Reject each record before
+        // aggregation, so later opposing values cannot conceal that composition.
+        private void AddPosition(int index, int x, int advanceX, int y, int advanceY) {
+            if (_rejectMarkAdjustments && (x != 0 || y != 0 || advanceX != 0 || advanceY != 0)) {
+                OfficeOpenTypeSubstitution.GlyphToken token = _tokens[index];
+                if (OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar)
+                    || OfficeOpenTypeGlyphFilter.IsUnicodeMark(token.Scalar)
+                    || _filter.GetGlyphClass(token.GlyphId, token.Scalar,
+                        token.LigatureComponentTextIndexes?.Count > 1, _budget.Charge) == 3)
+                    throw new InvalidDataException("GPOS mark adjustment and attachment composition is unsupported.");
+            }
+            _positions[index] = _positions[index].Add(x, advanceX, y, advanceY);
         }
 
         private static string[] ResolveScripts(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens) {

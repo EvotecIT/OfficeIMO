@@ -51,10 +51,13 @@ public sealed partial class OfficeManagedTextShapingProvider {
     private static bool ApplyTypographySubstitutions(OfficeOpenTypeSubstitution? substitution,
         List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request) {
         if (substitution == null) return !OfficeTextElements.ContainsJoiningScript(request.Text);
+        OfficeOpenTypeSubstitution.ScriptShapingContext context = substitution.CreateScriptShapingContext(
+            request.Text, request.FeatureSettings, request.Language, request.CancellationToken);
         var output = new List<OfficeOpenTypeSubstitution.GlyphToken>(tokens.Count);
         var scripts = new string[tokens.Count];
         string inherited = string.Empty;
         for (int index = 0; index < tokens.Count; index++) {
+            context.Charge();
             int scalar = tokens[index].Scalar;
             string script = OfficeOpenTypeGlyphFilter.IsUnicodeMark(scalar) ? string.Empty
                 : OfficeTextElements.IsJoiningScriptScalar(scalar) ? "arab"
@@ -65,19 +68,21 @@ public sealed partial class OfficeManagedTextShapingProvider {
         }
         string following = "latn";
         for (int index = tokens.Count - 1; index >= 0; index--) {
+            context.Charge();
             if (scripts[index].Length == 0) scripts[index] = following;
             else following = scripts[index];
         }
         for (int start = 0; start < tokens.Count;) {
+            context.Charge();
             string script = scripts[start];
             int end = start + 1;
-            while (end < tokens.Count && scripts[end] == script) end++;
+            while (end < tokens.Count && scripts[end] == script) { context.Charge(); end++; }
             var segment = tokens.GetRange(start, end - start);
             if (script == "arab") {
                 if (!substitution.TryApplyArabicDefaults(segment, request.FeatureSettings, request.Language,
-                    request.CancellationToken, request.Text)) return false;
+                    request.CancellationToken, request.Text, context)) return false;
             } else if (!substitution.TryApplyMarkScriptDefaults(segment, request.FeatureSettings, script,
-                request.Language, request.CancellationToken, request.Text)) return false;
+                request.Language, request.CancellationToken, request.Text, context)) return false;
             output.AddRange(segment);
             start = end;
         }
@@ -89,9 +94,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
         IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request,
         out OfficeOpenTypeGlyphPositioning[] positions) {
         if (font is OfficeTrueTypeFont trueType)
-            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions);
+            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
         if (font is OfficeOpenTypeCffFont cff)
-            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions);
+            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
         positions = Array.Empty<OfficeOpenTypeGlyphPositioning>();
         return false;
     }
@@ -127,6 +132,10 @@ public sealed partial class OfficeManagedTextShapingProvider {
         foreach (int group in order) for (int offset = 0; offset < groups[group].Count; offset++) {
             int index = groups[group][(groupLevels[group] & 1) == 1 ? groups[group].Count - offset - 1 : offset];
             request.CancellationToken.ThrowIfCancellationRequested();
+            if ((attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar))
+                && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0
+                    || positions[index].XAdvance != 0 || positions[index].YAdvance != 0))
+                throw new InvalidDataException("A zero-advance mark cannot discard font positioning.");
             visual.Add(index); pen[index] = cursor; penY[index] = cursorY;
             advances[index] = attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar) ? 0
                 : checked(reader.AdvanceWidth(tokens[index].GlyphId) + positions[index].XAdvance);

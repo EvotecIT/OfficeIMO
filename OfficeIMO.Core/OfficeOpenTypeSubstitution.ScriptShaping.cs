@@ -16,65 +16,49 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     /// publishing a partly shaped run. Visual bidi ordering belongs to the caller afterwards.
     /// </remarks>
     internal bool TryApplyArabicDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
-        string? language, CancellationToken cancellationToken, string sourceText) {
-        if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
-        if (settings == null) throw new ArgumentNullException(nameof(settings));
-        if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
-        cancellationToken.ThrowIfCancellationRequested();
-        try {
-            string?[]? joining = OfficeArabicTextShaper.GetOpenTypeJoiningForms(sourceText);
-            OfficeOpenTypeGlyphFilter? filter = OfficeOpenTypeGlyphFilter.TryCreate(_reader.Data);
-            if (joining == null || filter == null) return false;
-            List<ArabicFeatureLookup>? lookups = ReadScriptLookups("arab", ArabicFeatureStages, settings, language, filter, cancellationToken);
-            if (lookups == null) return false;
-            var result = new List<GlyphToken>(glyphs);
-            int operations = 0;
-            foreach (ArabicFeatureLookup lookup in lookups) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ApplyArabicLookup(result, lookup, filter, joining, sourceText, cancellationToken, ref operations);
-            }
-            glyphs.Clear();
-            glyphs.AddRange(result);
-            return true;
-        } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException
-            || exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) {
-            return false;
-        }
-    }
+        string? language, CancellationToken cancellationToken, string sourceText, ScriptShapingContext? context = null) =>
+        TryApplyScriptDefaults(glyphs, settings, "arab", language, cancellationToken, sourceText, context);
 
     /// <summary>Composes nominal Latin or Hebrew mark runs through the selected font script before GPOS attachment.</summary>
     internal bool TryApplyMarkScriptDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
-        string scriptTag, string? language, CancellationToken cancellationToken, string sourceText) {
+        string scriptTag, string? language, CancellationToken cancellationToken, string sourceText, ScriptShapingContext? context = null) {
+        if (scriptTag != "latn" && scriptTag != "hebr") return false;
+        return TryApplyScriptDefaults(glyphs, settings, scriptTag, language, cancellationToken, sourceText, context);
+    }
+
+    private bool TryApplyScriptDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
+        string script, string? language, CancellationToken cancellationToken, string sourceText, ScriptShapingContext? context) {
         if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
-        if (scriptTag != "latn" && scriptTag != "hebr") return false;
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            OfficeOpenTypeGlyphFilter? filter = OfficeOpenTypeGlyphFilter.TryCreate(_reader.Data);
-            if (filter == null) return false;
-            List<ArabicFeatureLookup>? lookups = ReadScriptLookups(scriptTag, MarkScriptFeatureStages, settings, language, filter, cancellationToken);
+            context ??= CreateScriptShapingContext(sourceText, settings, language, cancellationToken);
+            string?[]? joining = script == "arab" ? context.Joining : Array.Empty<string?>();
+            if (joining == null) return false;
+            List<ArabicFeatureLookup>? lookups = context.Lookups(script);
             if (lookups == null) return false;
             var result = new List<GlyphToken>(glyphs);
-            int operations = 0;
+            context.Charge();
             foreach (ArabicFeatureLookup lookup in lookups) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ApplyArabicLookup(result, lookup, filter, Array.Empty<string?>(), sourceText, cancellationToken, ref operations);
+                context.Charge();
+                ApplyArabicLookup(result, lookup, context.Filter, joining, context,
+                    cancellationToken, ref context.Operations);
             }
-            glyphs.Clear();
-            glyphs.AddRange(result);
+            glyphs.Clear(); glyphs.AddRange(result);
             return true;
         } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException
             || exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
     }
 
-    private List<ArabicFeatureLookup>? ReadScriptLookups(string scriptTag, string[] stages, OfficeTextFeatureSettings settings, string? language,
-        OfficeOpenTypeGlyphFilter filter, CancellationToken cancellationToken) {
-        int[]? features = ReadScriptFeatureIndexes(scriptTag, language, out int requiredFeature);
+    private List<ArabicFeatureLookup>? ReadScriptLookups(string scriptTag, string[] stages, ScriptShapingContext context) {
+        OfficeTextFeatureSettings settings = context.Settings;
+        CancellationToken cancellationToken = context.CancellationToken;
+        int[]? features = ReadScriptFeatureIndexes(scriptTag, context.Language, context, out int requiredFeature);
         if (features == null) return null;
         var result = new List<ArabicFeatureLookup>();
-        int inspections = 0;
         foreach (int featureIndex in features) {
+            context.Charge();
             string tag = ReadTag(_featureList + 2 + featureIndex * 6);
             if (scriptTag == "arab" && tag == "stch" && (!settings.TryGetValue(tag, out int stretch) || stretch != 0)) return null;
             if (featureIndex == requiredFeature && Array.IndexOf(stages, tag) < 0) return null;
@@ -83,10 +67,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         // Feature order is the Arabic shaping sequence; each feature's lookup order follows
         // LookupList order, with repeated references applied only once in that stage.
         foreach (string stage in stages) {
-            cancellationToken.ThrowIfCancellationRequested();
+            context.Charge();
             var stageLookups = new SortedSet<int>();
             int stageValue = settings.TryGetValue(stage, out int authored) ? authored : 1;
             foreach (int featureIndex in features) {
+                context.Charge();
                 int record = _featureList + 2 + featureIndex * 6;
                 if (ReadTag(record) != stage) continue;
                 int value = featureIndex == requiredFeature ? 1 : stageValue;
@@ -96,21 +81,23 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 if (count > MaximumLookupRecords) return null;
                 Ensure(feature + 4, checked(count * 2));
                 for (int index = 0; index < count; index++) {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    context.Charge();
                     stageLookups.Add(_reader.ReadUInt16(feature + 4 + index * 2));
                 }
             }
             bool joining = stage is "isol" or "fina" or "medi" or "init";
             foreach (int lookup in stageLookups) {
-                if (!CanApplyLookup(lookup, 0, ref inspections, cancellationToken,
-                    allowGlyphCountChanges: !joining, glyphFilter: filter)) return null;
+                int beforeInspections = context.Inspections;
+                if (!CanApplyLookup(lookup, 0, ref context.Inspections, cancellationToken,
+                    allowGlyphCountChanges: !joining, glyphFilter: context.Filter)) return null;
+                ChargeOperations(ref context.Operations, context.Inspections - beforeInspections);
                 result.Add(new ArabicFeatureLookup(lookup, stageValue <= 0 ? 1 : stageValue, joining ? stage : null));
             }
         }
         return result;
     }
 
-    private int[]? ReadScriptFeatureIndexes(string scriptTag, string? language, out int requiredFeature) {
+    private int[]? ReadScriptFeatureIndexes(string scriptTag, string? language, ScriptShapingContext context, out int requiredFeature) {
         requiredFeature = -1;
         int scriptList = Relative(_table, _reader.ReadUInt16(_table + 4), 2);
         int scriptCount = _reader.ReadUInt16(scriptList);
@@ -118,6 +105,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         Ensure(scriptList + 2, checked(scriptCount * 6));
         int script = 0;
         for (int index = 0; index < scriptCount; index++) {
+            context.Charge();
             int record = scriptList + 2 + index * 6;
             string candidate = ReadTag(record);
             if (candidate == scriptTag) { script = Relative(scriptList, _reader.ReadUInt16(record + 4), 4); break; }
@@ -130,6 +118,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (languageCount > MaximumFeatureRecords) return null;
         Ensure(script + 4, checked(languageCount * 6));
         for (int index = 0; index < languageCount && languageTag != null; index++) {
+            context.Charge();
             int record = script + 4 + index * 6;
             if (ReadTag(record) == languageTag) { selected = _reader.ReadUInt16(record + 4); break; }
         }
@@ -147,10 +136,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         var indexes = new SortedSet<int>();
         int required = _reader.ReadUInt16(langSys + 2);
         if (required != ushort.MaxValue) { requiredFeature = required; indexes.Add(required); }
-        for (int index = 0; index < count; index++) indexes.Add(_reader.ReadUInt16(langSys + 6 + index * 2));
+        for (int index = 0; index < count; index++) { context.Charge(); indexes.Add(_reader.ReadUInt16(langSys + 6 + index * 2)); }
         var result = new int[indexes.Count];
         int output = 0;
-        foreach (int index in indexes) { if (index >= total) return null; result[output++] = index; }
+        foreach (int index in indexes) { context.Charge(); if (index >= total) return null; result[output++] = index; }
         return result;
     }
 
@@ -166,7 +155,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private void ApplyArabicLookup(List<GlyphToken> glyphs, ArabicFeatureLookup feature,
-        OfficeOpenTypeGlyphFilter filter, string?[] joining, string sourceText,
+        OfficeOpenTypeGlyphFilter filter, string?[] joining, ScriptShapingContext context,
         CancellationToken cancellationToken, ref int operations) {
         // Normalized glyphs can share an original grapheme's TextIndex. Split on
         // the retained scalar before filtering so ignored marks cannot migrate
@@ -174,10 +163,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         bool controls = false;
         foreach (GlyphToken token in glyphs) {
             cancellationToken.ThrowIfCancellationRequested();
+            ChargeOperations(ref operations, 1);
             if (IsJoiningControl(token.Scalar)) { controls = true; break; }
         }
         if (!controls) {
-            ApplyArabicLookupWithoutControls(glyphs, feature, filter, joining, sourceText,
+            ApplyArabicLookupWithoutControls(glyphs, feature, filter, joining, context,
                 cancellationToken, ref operations);
             return;
         }
@@ -189,7 +179,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (index < glyphs.Count && !IsJoiningControl(glyphs[index].Scalar)) continue;
             if (index > start) {
                 List<GlyphToken> segment = glyphs.GetRange(start, index - start);
-                ApplyArabicLookupWithoutControls(segment, feature, filter, joining, sourceText,
+                ApplyArabicLookupWithoutControls(segment, feature, filter, joining, context,
                     cancellationToken, ref operations);
                 result.AddRange(segment);
             }
@@ -205,7 +195,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private static bool IsJoiningControl(int scalar) => scalar is 0x200C or 0x200D;
 
     private void ApplyArabicLookupWithoutControls(List<GlyphToken> glyphs, ArabicFeatureLookup feature,
-        OfficeOpenTypeGlyphFilter filter, string?[] joining, string sourceText,
+        OfficeOpenTypeGlyphFilter filter, string?[] joining, ScriptShapingContext context,
         CancellationToken cancellationToken, ref int operations) {
         int lookup = Relative(_lookupList, _reader.ReadUInt16(_lookupList + 2 + feature.LookupIndex * 2), 6);
         ushort flags = _reader.ReadUInt16(lookup + 2);
@@ -225,23 +215,22 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             else included.Add(token);
         }
         operations = filterOperations;
-        if (sourceText.IndexOf('\u200C') < 0 && sourceText.IndexOf('\u200D') < 0) {
+        if (!context.HasJoiningControls) {
             ApplyArabicLookupSegment(included, feature, filter, joining, cancellationToken, ref operations);
-            RestoreArabicIgnoredGlyphs(glyphs, included, ignored, sourceText, cancellationToken, ref operations);
+            RestoreArabicIgnoredGlyphs(glyphs, included, ignored, context.Source, cancellationToken, ref operations);
             return;
         }
         var substituted = new List<GlyphToken>(included.Count);
         int segmentStart = 0;
         for (int boundary = 1; boundary <= included.Count; boundary++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (boundary < included.Count && !HasSourceJoiningControl(included[boundary - 1], included[boundary],
-                sourceText, ref operations)) continue;
+            if (boundary < included.Count && !context.HasJoiningControl(included[boundary - 1], included[boundary])) continue;
             var segment = included.GetRange(segmentStart, boundary - segmentStart);
             ApplyArabicLookupSegment(segment, feature, filter, joining, cancellationToken, ref operations);
             substituted.AddRange(segment);
             segmentStart = boundary;
         }
-        RestoreArabicIgnoredGlyphs(glyphs, substituted, ignored, sourceText, cancellationToken, ref operations);
+        RestoreArabicIgnoredGlyphs(glyphs, substituted, ignored, context.Source, cancellationToken, ref operations);
     }
 
     private void ApplyArabicLookupSegment(List<GlyphToken> segment, ArabicFeatureLookup feature,
@@ -268,18 +257,6 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if ((uint)sourceIndex < (uint)joining.Length && joining[sourceIndex] == feature.JoiningForm)
                 ApplyLookupAt(segment, index, feature.LookupIndex, feature.Value, cancellationToken, ref operations, 0);
         }
-    }
-
-    /// <summary>Retains source control boundaries after default-ignorable painting glyphs have been removed.</summary>
-    /// <remarks>Joining masks use the complete source; a ZWJ joins forms without authorizing a ligature across it.</remarks>
-    private static bool HasSourceJoiningControl(GlyphToken before, GlyphToken after, string sourceText, ref int operations) {
-        if (before.TextIndex < 0 || after.TextIndex > sourceText.Length || after.TextIndex < before.TextIndex)
-            throw new InvalidDataException("GSUB source positions are not in logical order.");
-        for (int index = before.TextIndex; index < after.TextIndex; index++) {
-            ChargeOperations(ref operations, 1);
-            if (sourceText[index] is '\u200C' or '\u200D') return true;
-        }
-        return false;
     }
 
     private static void RestoreArabicIgnoredGlyphs(List<GlyphToken> destination, List<GlyphToken> included,
@@ -331,7 +308,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         while (ignoredIndex < ignored.Count) destination.Add(ignored[ignoredIndex++]);
     }
 
-    private readonly struct ArabicFeatureLookup {
+    internal readonly struct ArabicFeatureLookup {
         internal ArabicFeatureLookup(int lookupIndex, int value, string? joiningForm) {
             LookupIndex = lookupIndex;
             Value = value;

@@ -5,8 +5,8 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Dependency-light shaping provider for bounded Arabic joining, bidirectional text, and common
-/// OpenType substitutions that can be represented by a TrueType-outline font.
+/// Dependency-light shaping provider for bounded Arabic joining and ligatures, bidirectional text,
+/// and font-directed Latin, Hebrew and Arabic mark positioning in static TrueType and OpenType/CFF fonts.
 /// </summary>
 /// <remarks>
 /// The provider deliberately declines scripts and lookup types that require shaping beyond the

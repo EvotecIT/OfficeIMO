@@ -235,7 +235,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         ChargeIntrinsicTextMeasurement(text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
-        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, out measured)) return true;
+        // Match the exact language forwarded by ShapeConfiguredText, including the
+        // global override. Custom providers may distinguish any supplied values.
+        string? shapingLanguage = _options.TextShapingLanguage ?? style.Language;
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, shapingLanguage, out measured)) return true;
 
         IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
@@ -258,7 +261,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         measured = font.MeasureShapedText(logicalText, result, effectiveFont.Size);
-        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, measured);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, shapingLanguage, measured);
         return true;
     }
 

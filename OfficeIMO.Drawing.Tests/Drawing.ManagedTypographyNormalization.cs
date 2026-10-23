@@ -42,7 +42,7 @@ public sealed class DrawingManagedTypographyNormalizationTests {
         // font's attachment geometry, independently confirmed against reference
         // shaping, rather than the write order of marks inside a visual cluster.
         OfficeShapedGlyph Mark(OfficeTextShapingResult shaped, int glyph) =>
-            Assert.Single(shaped.Glyphs.Where(item => item.GlyphId == glyph));
+            Assert.Single(shaped.Glyphs, item => item.GlyphId == glyph);
         Assert.Equal(40, Mark(ordinary, fathaGlyph).OffsetY);
         Assert.Equal(-160, Mark(ordinary, shaddaGlyph).OffsetY);
         Assert.Equal(-160, Mark(overridden, fathaGlyph).OffsetY);
@@ -64,7 +64,7 @@ public sealed class DrawingManagedTypographyNormalizationTests {
 
         OfficeTextShapingResult shaped = ShapeArabic(source, data, font, OfficeTextFeatureSettings.Default);
 
-        OfficeShapedGlyph ghost = Assert.Single(shaped.Glyphs.Where(glyph => glyph.GlyphId == blankGlyph));
+        OfficeShapedGlyph ghost = Assert.Single(shaped.Glyphs, glyph => glyph.GlyphId == blankGlyph);
         Assert.Equal(0, ghost.AdvanceWidth);
         Assert.Equal(0, ghost.AdvanceHeight);
         AssertExactLogicalCoverage(source, shaped);

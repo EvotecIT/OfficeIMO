@@ -100,24 +100,26 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
         var interpretedMarks = new bool[tokens.Count];
         var scriptSet = new HashSet<string>(scripts, StringComparer.Ordinal);
         // Cursive attachment changes the origins of base letters and must not be silently omitted.
-        if (Enabled(settings, "curs")) {
-            foreach (string script in scriptSet)
-                if (Lookups(script, language, "curs").Count != 0) return false;
+        foreach (string script in scriptSet) {
+            List<int> cursive = Lookups(script, language, "curs", settings);
+            if (Enabled(settings, "curs") && cursive.Count != 0) return false;
         }
+        var active = new SortedDictionary<int, HashSet<string>>();
         foreach (string feature in new[] { "mark", "mkmk" }) {
             if (!Enabled(settings, feature)) continue;
-            var active = new SortedDictionary<int, HashSet<string>>();
             foreach (string script in scriptSet) {
-                foreach (int lookupIndex in Lookups(script, language, feature)) {
+                foreach (int lookupIndex in Lookups(script, language, feature, settings)) {
                     if (!active.TryGetValue(lookupIndex, out HashSet<string>? selected)) {
                         selected = new HashSet<string>(StringComparer.Ordinal); active.Add(lookupIndex, selected);
                     }
                     selected.Add(script);
                 }
             }
-            foreach (KeyValuePair<int, HashSet<string>> lookup in active)
-                ApplyLookup(tokens, scripts, result, interpretedMarks, lookup.Key, lookup.Value);
         }
+        // Both features participate in one GPOS stage. Their shared LookupList
+        // indexes determine execution order, including repeated references.
+        foreach (KeyValuePair<int, HashSet<string>> lookup in active)
+            ApplyLookup(tokens, scripts, result, interpretedMarks, lookup.Key, lookup.Value);
         if (marksEnabled) {
             for (int index = 0; index < result.Length; index++) {
                 Charge();
@@ -133,7 +135,8 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
         return true;
     }
 
-    private List<int> Lookups(string scriptTag, string? language, string featureTag) {
+    private List<int> Lookups(string scriptTag, string? language, string featureTag,
+        OfficeTextFeatureSettings settings) {
         int scriptCount = Count(_scriptList, 6), script = 0, fallback = 0;
         for (int index = 0; index < scriptCount; index++) {
             Charge(); int record = _scriptList + 2 + index * 6;
@@ -164,6 +167,19 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
             Charge();
             if (index >= featureCount) throw new InvalidDataException("GPOS feature index is invalid.");
             int record = _featureList + 2 + index * 6;
+            if (index == required) {
+                string requiredTag = new(new[] { (char)_data[record], (char)_data[record + 1],
+                    (char)_data[record + 2], (char)_data[record + 3] });
+                if (settings.TryGetValue(requiredTag, out int requiredSetting) && requiredSetting == 0)
+                    throw new InvalidDataException("Disabling a required GPOS feature cannot preserve its layout contract.");
+            }
+            bool supported = Tag(record, "kern") || Tag(record, "mark") || Tag(record, "mkmk");
+            if (!supported) {
+                string tag = new(new[] { (char)_data[record], (char)_data[record + 1],
+                    (char)_data[record + 2], (char)_data[record + 3] });
+                if (index == required || settings.TryGetValue(tag, out int authored) && authored > 0)
+                    throw new InvalidDataException("The selected GPOS feature requires an unsupported positioning composition.");
+            }
             if (!Tag(record, featureTag)) continue;
             int feature = Relative(_featureList, U16(record + 4), 4), count = U16(feature + 2);
             if (count > MaximumRecords) throw new InvalidDataException("GPOS feature lookups exceed the managed limit.");

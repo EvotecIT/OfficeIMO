@@ -62,7 +62,7 @@ internal sealed partial class OfficeOpenTypeKerning {
                 offset = checked(subtable + 8 + coverageIndex * ValueRecordSize(valueFormat));
             }
             OfficeOpenTypePairValue value = _owner.ReadValueRecord(subtable, offset, valueFormat, _budget);
-            _positions[index] = _positions[index].Add(value.XPlacement, value.XAdvance, value.YPlacement, value.YAdvance);
+            AddPosition(index, value.XPlacement, value.XAdvance, value.YPlacement, value.YAdvance);
             return true;
         }
 
@@ -79,9 +79,9 @@ internal sealed partial class OfficeOpenTypeKerning {
             // The canonical pair reader owns both formats and all value/variation fields.
             if (!_owner.TryGposPairAdjustmentFromSubtable(subtable, (ushort)_tokens[index].GlyphId,
                 (ushort)_tokens[second].GlyphId, _budget, out OfficeOpenTypePairPositioning adjustment)) return false;
-            _positions[index] = _positions[index].Add(adjustment.FirstGlyphXPlacement,
+            AddPosition(index, adjustment.FirstGlyphXPlacement,
                 adjustment.FirstGlyphXAdvance, adjustment.FirstGlyphYPlacement, adjustment.FirstGlyphYAdvance);
-            _positions[second] = _positions[second].Add(adjustment.SecondGlyphXPlacement,
+            AddPosition(second, adjustment.SecondGlyphXPlacement,
                 adjustment.SecondGlyphXAdvance, adjustment.SecondGlyphYPlacement, adjustment.SecondGlyphYAdvance);
             next = adjustment.SecondValueRecordPresent ? second + 1 : second;
             return true;
