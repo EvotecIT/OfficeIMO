@@ -29,7 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var trailingGroups = hasFloats ? new List<HtmlRenderTrailingGroup>() : null;
         _currentInlineEdgeGeometry.Clear();
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
-            .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
+            .Select(line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
             .ToArray();
         IReadOnlyList<IReadOnlyList<InlineSegment>>? resolvedBidiLines = ResolveInlineParagraphSegments(
             mergedLines,

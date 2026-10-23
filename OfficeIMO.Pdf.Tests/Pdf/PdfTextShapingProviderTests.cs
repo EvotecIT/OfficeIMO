@@ -430,6 +430,17 @@ public class PdfTextShapingProviderTests {
     [InlineData(true, "\u0430\uA670")]
     public void ManagedMarksRetainApproximationDiagnosticsInDefaultAndExplicitModes(bool explicitManaged, string text) {
         byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x0627, 0xFE8D, 0x064E, 0x05D0, 0x05B7, 0x0430, 0x0483, 0x1D15F, 0x1D165, 0xA670);
+        if (explicitManaged) {
+            var font = PdfTrueTypeFontProgram.Parse(fontData, "Managed Marks");
+            int successes = 0;
+            PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Managed Marks",
+                PdfTextShapingMode.OpenTypeLigatures, OfficeManagedTextShapingProvider.Instance, (_, _, _, _) => successes++));
+            Assert.Equal(text, string.Concat(run.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
+            Assert.Equal(text, run.ActualText);
+            Assert.Null(run.SourceShapingResult);
+            Assert.False(run.IsAutomaticallyShaped);
+            Assert.Equal(0, successes);
+        }
         var report = new PdfConversionReport();
         var options = new PdfOptions().ReportDiagnosticsTo(report)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Managed Marks");
@@ -442,6 +453,34 @@ public class PdfTextShapingProviderTests {
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping"
             && warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SupportedRealFontMarksRetainCompleteProviderSuccessAndLogicalPdfText(bool explicitManaged) {
+        byte[] fontData = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "NotoSansArabic-Regular.ttf"));
+        const string text = "\u0628\u064E";
+        var font = PdfTrueTypeFontProgram.Parse(fontData, "Noto Arabic Marks");
+        int successes = 0;
+        IOfficeTextShapingProvider? provider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null;
+        PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Noto Arabic Marks",
+            PdfTextShapingMode.OpenTypeLigatures, provider, (_, _, _, _) => successes++));
+
+        Assert.NotNull(run.SourceShapingResult);
+        Assert.Equal(text, string.Concat(run.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(1, successes);
+        Assert.Contains(run.Glyphs, glyph => glyph.AdvanceWidth1000 == 0 && glyph.OffsetY1000 != 0);
+
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report)
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Noto Arabic Marks", fontData));
+        if (explicitManaged) options.UseManagedTextShaping();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.FontFamily("Noto Arabic Marks").Text(text)).ToBytes();
+
+        Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code is "unsupported-mark-positioning-or-joiner-shaping" or "unsupported-complex-script-shaping");
+        report.RequireNoLoss();
     }
 
     [Fact]

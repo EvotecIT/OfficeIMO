@@ -181,7 +181,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Paragraph bidi owns the direction of neutral slices too. Retain its accepted
     // result rather than asking a later backend to infer direction from punctuation.
     private bool TryPrepareDirectionalProviderText(string text, HtmlRenderBoxStyle style,
-        OfficeTextDirection direction, double expectedAdvance, out OfficePreparedTextShaping? prepared) {
+        OfficeTextDirection direction, double expectedAdvance, out OfficePreparedTextShaping? prepared) =>
+        TryPrepareProviderText(text, style, direction, expectedAdvance, resolvedDirectionalRun: true, out prepared);
+
+    private bool TryPrepareProviderText(string text, HtmlRenderBoxStyle style,
+        OfficeTextDirection direction, double expectedAdvance, bool resolvedDirectionalRun,
+        out OfficePreparedTextShaping? prepared) {
         prepared = null;
         if (_options.TextShapingProvider == null && style.TextFeatureSettings.IsDefault && !OfficeManagedTextShaper.RequiresComplexLayout(text)
             || style.LetterSpacing != 0D || style.WordSpacing != 0D
@@ -194,7 +199,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ChargeLayoutOperations(1L + (logical.Length + 31L) / 32L, "directional glyph retention");
         OfficeTextShapingResult? shaped = ShapeConfiguredText(logical, face.Program, fontInfo, style,
             direction, _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance,
-            resolvedDirectionalRun: true);
+            resolvedDirectionalRun: resolvedDirectionalRun);
         if (shaped == null || face.Program is IOfficeColorFontProgram color
             && shaped.Glyphs.Any(glyph => color.HasColorGlyph(glyph.GlyphId))) return false;
         ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "directional glyph retention");

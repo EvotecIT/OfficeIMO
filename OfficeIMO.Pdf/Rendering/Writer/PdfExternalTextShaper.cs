@@ -49,7 +49,8 @@ internal static partial class PdfExternalTextShaper {
 
         if (result == null && (automaticDirectional ||
             ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
-            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)))) {
+            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)
+                || OfficeTextElements.ContainsCombiningMark(text)))) {
             OfficeTextShapingResult? fallback = ShapeDiagnosedFallback(text, font.FontName,
                 font.FontDataForInspection, isOpenTypeCff: false, font.UnitsPerEm, options, automaticDirectional);
             if (fallback != null) {
@@ -126,7 +127,8 @@ internal static partial class PdfExternalTextShaper {
 
         if (result == null && (automaticDirectional ||
             ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
-            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)))) {
+            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)
+                || OfficeTextElements.ContainsCombiningMark(text)))) {
             OfficeTextShapingResult? fallback = ShapeDiagnosedFallback(text, font.FontName,
                 font.FontDataForInspection, isOpenTypeCff: true, font.UnitsPerEm, options, automaticDirectional);
             if (fallback != null) {
@@ -184,8 +186,9 @@ internal static partial class PdfExternalTextShaper {
          (options.Direction == OfficeTextDirection.Auto || options.Direction == OfficeTextDirection.LeftToRight) &&
          !OfficeManagedTextShaper.RequiresComplexLayout(text));
 
-    // Preserve Core's bounded joining and mark-cluster ordering after it declines complete
-    // coverage. Pure Latin text keeps its existing automatic-Latin GSUB retry.
+    // Preserve Core's bounded joining, mark-cluster ordering and original Unicode
+    // after it declines complete coverage, including non-joining marks whose cmap
+    // entries alias the same glyph. Pure Latin keeps its automatic-Latin GSUB retry.
     private static OfficeTextShapingResult? ShapeDiagnosedFallback(string text, string fontName,
         byte[] fontData, bool isOpenTypeCff, int unitsPerEm, PdfTextShapingOptions options, bool automaticDirectional) {
         var features = automaticDirectional && options.FeatureSettings.IsDefault

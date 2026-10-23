@@ -614,7 +614,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool bidiResolved = false,
             int logicalEndProgress = 0,
             OfficeTextDirection? resolvedDirection = null,
-            string? contextualFallbackPaint = null) {
+            string? contextualFallbackPaint = null,
+            OfficePreparedTextShaping? preparedShaping = null) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
@@ -623,7 +624,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             LogicalEndProgress = logicalEndProgress;
             ResolvedDirection = resolvedDirection;
             ContextualFallbackPaint = contextualFallbackPaint;
-            PreparedShaping = run.GetPreparedShaping(LogicalText, run.Style);
+            PreparedShaping = preparedShaping ?? run.GetPreparedShaping(LogicalText, run.Style);
         }
 
         internal string Text { get; }
@@ -638,9 +639,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Length-preserving contextual forms in logical source order. A declined
         // provider must not discard the existing scalar joining owner's paint.
         internal string? ContextualFallbackPaint { get; }
-        internal OfficePreparedTextShaping? PreparedShaping { get; }
+        internal OfficePreparedTextShaping? PreparedShaping { get; private set; }
+        internal int[]? PreparedElementOffsets { get; private set; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
+        internal void RetainPreparedShaping(OfficePreparedTextShaping prepared, int[] elementOffsets) {
+            PreparedShaping = prepared;
+            PreparedElementOffsets = elementOffsets;
+        }
     }
 
 }

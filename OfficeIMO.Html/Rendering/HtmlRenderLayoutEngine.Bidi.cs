@@ -213,27 +213,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
             IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
+            bool hasPreparedWidths = TryPartitionPreparedBidiWidths(segment, paintElements, logicalElements,
+                out IReadOnlyList<double> preparedWidths);
             OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
-            bool hasContextualWidths = _fonts.TryMeasureTextElements(
+            IReadOnlyList<double> contextualWidths = Array.Empty<double>();
+            bool hasContextualWidths = !hasPreparedWidths && _fonts.TryMeasureTextElements(
                 segment.Text,
                 paintElements,
                 effectiveFont.Size,
                 effectiveFont.FamilyName,
                 effectiveFont.Style,
-                out IReadOnlyList<double> contextualWidths);
+                out contextualWidths);
             var widths = new double[paintElements.Count];
             double visibleWidth = 0D;
             for (int elementIndex = 0; elementIndex < paintElements.Count; elementIndex++) {
                 string paintText = paintElements[elementIndex];
                 if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
-                double elementWidth = hasContextualWidths
+                double elementWidth = hasPreparedWidths ? preparedWidths[elementIndex] : hasContextualWidths
                     ? contextualWidths[elementIndex]
                     : MeasureText(paintText, effectiveFont, segment.Run.Style.FontDescriptor);
                 widths[elementIndex] = elementWidth;
                 visibleWidth += elementWidth;
             }
 
-            double widthScale = visibleWidth > 0D ? segment.Width / visibleWidth : 1D;
+            double widthScale = !hasPreparedWidths && visibleWidth > 0D ? segment.Width / visibleWidth : 1D;
             for (int elementIndex = 0; elementIndex < paintElements.Count; elementIndex++) {
                 string paintText = paintElements[elementIndex];
                 if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
@@ -245,7 +248,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     logicalText,
                     segmentIndex,
                     elementIndex,
-                    Math.Max(0.01D, widths[elementIndex] * widthScale)));
+                    hasPreparedWidths ? widths[elementIndex] : Math.Max(0.01D, widths[elementIndex] * widthScale)));
             }
         }
         return visibleElements;
@@ -274,6 +277,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .ToArray();
             string logicalText = string.Concat(logicalOrder.Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
+            OfficePreparedTextShaping? retainedSlice = SlicePreparedBidiGroup(sources[sourceIndex], logicalOrder, logicalText);
             // Preserve prepared contextual paint when no provider owns this script.
             // Marks and required ligatures add fidelity loss without discarding those forms.
             // Unsupported script input and configured shapers still need logical source.
@@ -286,19 +290,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || OfficeTextElements.ContainsZeroWidthJoinerSequence(logicalText)
                 || OfficeTextElements.ContainsRightToLeft(logicalText)
                     && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);
-            string? contextualFallback = needsShapingInput && sources[sourceIndex].PreparedShaping == null
+            string? contextualFallback = needsShapingInput && retainedSlice == null
                 && OfficeTextElements.ContainsJoiningScript(logicalText)
                 ? string.Concat(logicalOrder.Select(static element => element.Text)) : null;
             var group = new InlineSegment(
-                sources[sourceIndex].PreparedShaping != null || needsShapingInput ? logicalText : text,
+                retainedSlice != null || needsShapingInput ? logicalText : text,
                 segmentWidth,
                 sources[sourceIndex].Run,
                 logicalText,
-                bidiResolved: sources[sourceIndex].PreparedShaping != null || !needsShapingInput,
+                bidiResolved: retainedSlice != null || !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress,
                 resolvedDirection: !providerContext ? null
                     : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight,
-                contextualFallbackPaint: contextualFallback);
+                contextualFallbackPaint: contextualFallback,
+                preparedShaping: retainedSlice);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;
             lastGroups[sourceIndex] = group;
