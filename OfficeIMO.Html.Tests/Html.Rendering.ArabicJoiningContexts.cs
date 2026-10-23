@@ -54,6 +54,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData(false, "60px", 1)]
+    [InlineData(true, "60px", 1)]
+    [InlineData(false, "50px", 2)]
+    [InlineData(true, "50px", 2)]
+    public void HtmlArabicJoining_FirstLinePreviewUsesCompleteWordAtTheWrapBoundary(
+        bool explicitProvider, string width, int expectedLines) {
+        HtmlRenderDocument rendered = RenderArabicContext("مرحبا <span style='color:red'>م</span>"
+            + "<span style='color:blue'>رحبا</span>", width, "#probe::first-line{color:green}",
+            explicitProvider ? OfficeManagedTextShapingProvider.Instance : null);
+        HtmlRenderText[] text = ArabicContextText(rendered).ToArray();
+        double firstY = text.Min(item => item.Y);
+
+        Assert.Equal(expectedLines, text.Select(item => item.Y).Distinct().Count());
+        Assert.All(text.Where(item => item.Y == firstY), item => Assert.Equal(OfficeColor.Green, item.Color));
+        if (expectedLines == 1) Assert.Equal(54D, text.Sum(item => item.TextAdvanceWidth ?? 0D), 6);
+        else Assert.Contains(text, item => item.Y > firstY && item.Color == OfficeColor.Blue);
+        Assert.Equal(ArabicContextWord + (expectedLines == 1 ? " " : "\n") + ArabicContextWord, rendered.Text.Trim());
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData(" ")]
     [InlineData("\u200C")]
     [InlineData("<br>")]

@@ -188,6 +188,22 @@ public sealed partial class OfficeManagedTextShapingProvider {
         return sequence.Count <= MaximumNormalizedClusterScalars;
     }
 
+    // Initial cmap admission cannot vouch for glyphs subsequently selected by
+    // GSUB. Multiple substitutions retain their original scalar, including on
+    // empty Unicode continuations, so prove every final control glyph again.
+    private static bool FinalTypographyControlsAreBlank(OfficeTextShapingRequest request, IOfficeFontProgram font,
+        OfficeOpenTypeReader reader, IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens) {
+        Dictionary<int, bool>? blankGlyphs = null;
+        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            if (!OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar)) continue;
+            if (token.GlyphId <= 0 || token.GlyphId >= reader.GlyphCount) return false;
+            blankGlyphs ??= new Dictionary<int, bool>();
+            if (!IsBlankGlyph(font, token.GlyphId, request, blankGlyphs)) return false;
+        }
+        return true;
+    }
+
     private static bool TryMapBlankControl(IOfficeFontProgram font, int scalar, OfficeTextShapingRequest request,
         Dictionary<int, bool> blankGlyphs, out int glyphId) {
         // HarfBuzz also replaces default ignorables with the selected font's blank space.

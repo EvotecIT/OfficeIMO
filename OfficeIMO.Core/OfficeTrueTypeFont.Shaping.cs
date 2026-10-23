@@ -237,7 +237,7 @@ public sealed partial class OfficeTrueTypeFont {
             ReferenceEquals(font, _font) ? this : new ShapedTextRun(font, this);
 
         internal bool HasNegativeAdvance => _advanceWidth < 0L;
-        internal bool HasZeroTrackedAdvance => _advanceWidth == 0L && _font._tracking != null;
+        internal bool HasZeroTrackedAdvance => _advanceWidth == 0L && _font._tracking != null && _trackingGlyphCount != 0;
         internal OfficeTextDirection Direction { get; }
 
         internal double Measure(double fontSize) => Direction == OfficeTextDirection.TopToBottom

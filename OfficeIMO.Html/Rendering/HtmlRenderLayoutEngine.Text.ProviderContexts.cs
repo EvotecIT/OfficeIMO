@@ -165,7 +165,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !HasArabicJoiningInsets(left) && !HasArabicJoiningInsets(right);
 
     private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text) {
-        if (!run.PreserveContextualFallback && RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings)
+        if (!run.PreserveContextualFallback
+            && (!run.Style.TextFeatureSettings.IsDefault || RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings))
             && TryMeasureWithConfiguredProvider(text, run.Style, out _))
             ReportProviderContextLoss(run, "directional-glyph-context-not-retained");
     }
@@ -180,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Paragraph bidi owns the direction of neutral slices too. Retain its accepted
     // result rather than asking a later backend to infer direction from punctuation.
     private bool TryPrepareDirectionalProviderText(string text, HtmlRenderBoxStyle style,
-        OfficeTextDirection direction, out OfficePreparedTextShaping? prepared) {
+        OfficeTextDirection direction, double expectedAdvance, out OfficePreparedTextShaping? prepared) {
         prepared = null;
         if (_options.TextShapingProvider == null && style.TextFeatureSettings.IsDefault && !OfficeManagedTextShaper.RequiresComplexLayout(text)
             || style.LetterSpacing != 0D || style.WordSpacing != 0D
@@ -192,23 +193,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || face.Style != (fontInfo.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic))) return false;
         ChargeLayoutOperations(1L + (logical.Length + 31L) / 32L, "directional glyph retention");
         OfficeTextShapingResult? shaped = ShapeConfiguredText(logical, face.Program, fontInfo, style,
-            direction, _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance);
+            direction, _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance,
+            resolvedDirectionalRun: true);
         if (shaped == null || face.Program is IOfficeColorFontProgram color
             && shaped.Glyphs.Any(glyph => color.HasColorGlyph(glyph.GlyphId))) return false;
         ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "directional glyph retention");
-        prepared = new OfficePreparedTextShaping(face.Program, logical, shaped, _cancellationToken);
+        var candidate = new OfficePreparedTextShaping(face.Program, logical, shaped, _cancellationToken);
+        double measuredAdvance = candidate.Measure(fontInfo.Size);
+        // The layout width and retained font pens must describe the same run.
+        // A new directional result must not be stretched to conceal a different
+        // paragraph-context measurement. The caller retains diagnosed fallback.
+        if (Math.Abs(measuredAdvance - expectedAdvance) > Math.Max(1D, Math.Abs(expectedAdvance)) * 1e-9D) return false;
+        prepared = candidate;
         return true;
     }
 
     private OfficeTextShapingResult? ShapeConfiguredText(string logicalText, IOfficeFontProgram font,
         OfficeFontInfo fontInfo, HtmlRenderBoxStyle style, OfficeTextDirection direction,
-        IOfficeTextShapingProvider provider) {
+        IOfficeTextShapingProvider provider, bool resolvedDirectionalRun = false) {
         CheckCancellation();
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText, font.DisplayName ?? fontInfo.FamilyName, font.GetFontDataForShaping(), font.IsOpenTypeCff,
             font.UnitsPerEm, direction, _options.TextShapingLanguage ?? style.Language, _cancellationToken, font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping, cloneFontData: false,
-            fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings));
+            fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings,
+            resolvedDirectionalRun: resolvedDirectionalRun));
         CheckCancellation();
         return result;
     }

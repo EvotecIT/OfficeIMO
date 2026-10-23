@@ -5,6 +5,36 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeManagedTextShapingProvider {
+    // Ordinary public requests still use paragraph base direction. Only an
+    // already-resolved slice with contrary strong text needs the full static
+    // route; natural Latin requests keep their existing nominal fast paths.
+    private static bool RequiresResolvedTypography(OfficeTextShapingRequest request) {
+        if (!request.ResolvedDirectionalRun) return false;
+        for (int at = 0; at < request.Text.Length;) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            OfficeBidiClass bidi = OfficeUnicodeBidi.GetClass(ReadScalar(request.Text, ref at));
+            if (request.Direction == OfficeTextDirection.RightToLeft && (bidi is OfficeBidiClass.L or OfficeBidiClass.EN or OfficeBidiClass.AN)
+                || request.Direction == OfficeTextDirection.LeftToRight && (bidi is OfficeBidiClass.R or OfficeBidiClass.AL)) return true;
+        }
+        return false;
+    }
+
+    private static byte[] ResolveTypographyLevels(OfficeTextShapingRequest request, int[] scalars, out int paragraphLevel) {
+        if (request.ResolvedDirectionalRun) {
+            paragraphLevel = request.Direction == OfficeTextDirection.RightToLeft ? 1 : 0;
+            var levels = new byte[scalars.Length];
+            for (int index = 0; index < levels.Length; index++) {
+                request.CancellationToken.ThrowIfCancellationRequested(); levels[index] = (byte)paragraphLevel;
+            }
+            return levels;
+        }
+        int? requested = request.Direction == OfficeTextDirection.RightToLeft ? 1
+            : request.Direction == OfficeTextDirection.LeftToRight ? 0 : (int?)null;
+        OfficeUnicodeBidi.Paragraph paragraph = OfficeUnicodeBidi.Resolve(scalars, requested, request.CancellationToken);
+        paragraphLevel = paragraph.ParagraphLevel;
+        return paragraph.GetLineLevels(0, scalars.Length);
+    }
+
     // Direction is the UAX #9 paragraph base. Only resolved scalar levels tell
     // whether an override actually reverses the font's natural Latin order.
     private static byte TypographyLevel(int sourceIndex, int[] starts, byte[] levels) {

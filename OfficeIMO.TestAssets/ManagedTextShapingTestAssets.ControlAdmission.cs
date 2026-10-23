@@ -5,6 +5,15 @@ using System.Linq;
 namespace OfficeIMO.TestAssets;
 
 internal static partial class ManagedTextShapingTestAssets {
+    /// <summary>A proven blank control can expand into independently blank or inked GSUB output glyphs.</summary>
+    internal static byte[] CreateControlSubstitutionFont(bool blankFirstReplacement, bool blankSecondReplacement) {
+        var blanks = new List<int> { 1 };
+        if (blankFirstReplacement) blanks.Add(3);
+        if (blankSecondReplacement) blanks.Add(4);
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x20, (int)'A' }), glyphCount: 5,
+            gsub: CreateMultipleGsub(scriptTag: "latn", featureTag: "ccmp"), blankGlyphIds: blanks);
+    }
+
     /// <summary>A font whose actual space/control contours independently determine safe nonpainting admission.</summary>
     internal static byte[] CreateControlAdmissionFont(int control = 0x200C, bool blankSpace = false,
         bool blankControl = false, bool withSubstitution = false, bool withKerning = false) {

@@ -66,7 +66,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
         tokens = null!;
         resolvedDirection = request.Direction;
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (request.Direction == OfficeTextDirection.TopToBottom ||
+        if (RequiresResolvedTypography(request) || request.Direction == OfficeTextDirection.TopToBottom ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
             // Default Latin GSUB and its diagnostics own supported composition. The other

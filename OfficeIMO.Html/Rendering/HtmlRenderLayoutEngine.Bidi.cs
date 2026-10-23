@@ -30,9 +30,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && !OfficeTextElements.ContainsBidiControl(segment.Text)
             && segment.ResolvedDirection != OfficeTextDirection.RightToLeft;
         if (!segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
-            && RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings)
+            && (!segment.Run.Style.TextFeatureSettings.IsDefault
+                || RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings))
             && TryPrepareDirectionalProviderText(segment.LogicalText, segment.Run.Style,
-                segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? retained)) {
+                segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, segment.Width, out OfficePreparedTextShaping? retained)) {
             return new[] { new InlinePaintSegment(retained!.Text, x, Math.Max(0.01D, segment.Width),
                 segment.Width, 0, bidiResolved: true, preparedShaping: retained) };
         }
@@ -61,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double groupX = cursor;
             if (group.RightToLeft) {
                 if (!segment.Run.PreserveContextualFallback && TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
-                    OfficeTextDirection.RightToLeft, out OfficePreparedTextShaping? prepared)) {
+                    OfficeTextDirection.RightToLeft, group.Width, out OfficePreparedTextShaping? prepared)) {
                     result.Add(new InlinePaintSegment(
                         prepared!.Text,
                         groupX,
@@ -69,17 +70,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         group.Width,
                         group.LogicalOrder, bidiResolved: true, preparedShaping: prepared));
                 } else if (!segment.Run.PreserveContextualFallback && TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
-                    if (!OfficeTextElements.ContainsRightToLeft(group.Text)
+                    if (!segment.Run.Style.TextFeatureSettings.IsDefault || !OfficeTextElements.ContainsRightToLeft(group.Text)
                         || RequiresConfiguredTextShaping(group.Text, segment.Run.Style.TextFeatureSettings))
                         ReportProviderContextLoss(segment.Run, OfficeTextElements.ContainsRightToLeft(group.Text)
                             ? "directional-glyph-context-not-retained" : "neutral-directional-glyph-context-not-retained");
-                    result.Add(new InlinePaintSegment(OfficeArabicTextShaper.ToLogicalText(group.Text),
-                        groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
+                    // A result for a fresh paragraph is not a result for this
+                    // already resolved directional slice. Preserve its physical
+                    // scalar order when the complete glyph context was declined.
+                    AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
                 } else {
                     AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
                 }
             } else if (!segment.Run.PreserveContextualFallback && TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
-                OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? leftToRight)) {
+                OfficeTextDirection.LeftToRight, group.Width, out OfficePreparedTextShaping? leftToRight)) {
                 result.Add(new InlinePaintSegment(leftToRight!.Text, groupX, Math.Max(0.01D, group.Width),
                     group.Width, group.LogicalOrder, bidiResolved: true, preparedShaping: leftToRight));
             } else if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D) {

@@ -223,7 +223,8 @@ public sealed class OfficeTextShapingRequest {
         bool cloneFontData,
         object? fontProgramCacheKey = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        bool applyDefaultLatinLigatures = false) {
+        bool applyDefaultLatinLigatures = false,
+        bool resolvedDirectionalRun = false) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
             throw new ArgumentNullException(nameof(fontData));
@@ -237,6 +238,8 @@ public sealed class OfficeTextShapingRequest {
             direction != OfficeTextDirection.TopToBottom) {
             throw new ArgumentOutOfRangeException(nameof(direction), "Text shaping direction must be Auto, LeftToRight, RightToLeft, or TopToBottom.");
         }
+        if (resolvedDirectionalRun && direction is not OfficeTextDirection.LeftToRight and not OfficeTextDirection.RightToLeft)
+            throw new ArgumentException("A resolved directional run requires a concrete horizontal direction.", nameof(direction));
         if (fontCollectionIndex < 0) {
             throw new ArgumentOutOfRangeException(nameof(fontCollectionIndex), "Font collection indexes cannot be negative.");
         }
@@ -253,6 +256,7 @@ public sealed class OfficeTextShapingRequest {
         _variationCoordinates = SnapshotVariationCoordinates(variationCoordinates);
         _featureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         ApplyDefaultLatinLigatures = applyDefaultLatinLigatures;
+        ResolvedDirectionalRun = resolvedDirectionalRun;
     }
 
     /// <summary>Original UTF-16 text to shape.</summary>
@@ -266,6 +270,9 @@ public sealed class OfficeTextShapingRequest {
 
     internal byte[] FontDataForShaping => _fontData;
     internal bool ApplyDefaultLatinLigatures { get; }
+
+    /// <summary>The internal caller already resolved this slice's uniform UAX #9 write direction.</summary>
+    internal bool ResolvedDirectionalRun { get; }
 
     internal object? FontProgramCacheKeyForShaping => _fontProgramCacheKey;
 

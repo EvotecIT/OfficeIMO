@@ -28,10 +28,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
                     request.Language, request.CancellationToken)) return null;
             }
             if (LoadShapingFont(request) is not OfficeTrueTypeFont font) return null;
-            int? baseLevel = request.Direction == OfficeTextDirection.RightToLeft ? 1
-                : request.Direction == OfficeTextDirection.LeftToRight ? 0 : (int?)null;
-            OfficeUnicodeBidi.Paragraph paragraph = OfficeUnicodeBidi.Resolve(scalars, baseLevel, request.CancellationToken);
-            byte[] levels = paragraph.GetLineLevels(0, scalars.Length);
+            byte[] levels = ResolveTypographyLevels(request, scalars, out int paragraphLevel);
             if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels, out var tokens)) return null;
             var attachments = new OfficeOpenTypeMarkAttachment[tokens.Count];
             for (int index = 0; index < attachments.Length; index++)
@@ -66,7 +63,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
                 clusters[index] = logicalClusters[visual[index]];
             }
             return new OfficeTextShapingResult(glyphs, adjustments,
-                (paragraph.ParagraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight, clusters);
+                (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight, clusters);
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException
             or ArgumentOutOfRangeException or IndexOutOfRangeException) { return null; }
     }

@@ -41,17 +41,22 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         bool controls = OfficeManagedTextShaper.ContainsNonPaintingControl(request.Text, request.CancellationToken);
-        if (!allowDiagnosedFallback && controls) {
+        // A resolved slice contains original visible source, not a second set
+        // of embedding directives for the provider to interpret again.
+        if (request.ResolvedDirectionalRun && OfficeTextElements.ContainsBidiControl(request.Text)) return null;
+        bool forcedDirection = RequiresResolvedTypography(request);
+        if (forcedDirection && allowDiagnosedFallback) return null;
+        if (!allowDiagnosedFallback && controls && !forcedDirection) {
             OfficeTextShapingResult? variable = ShapeNominalVariableControls(request);
             if (variable != null) return variable;
         }
         if (!allowDiagnosedFallback &&
-            (controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            (forcedDirection || controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
             OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
             if (typography != null) return typography;
             // A partial font-directed run cannot turn into an undiagnosed approximation.
             // The old length-preserving joining route remains useful for simple fonts.
-            if (controls || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
+            if (forcedDirection || controls || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
                 OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
         }
         // Legacy visual tokens omit default ignorables. Their useful diagnosed

@@ -14,7 +14,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
     private OfficeTextShapingResult? ShapeTypography(OfficeTextShapingRequest request, out bool fontDirected) {
         fontDirected = false;
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (request.Direction == OfficeTextDirection.TopToBottom || request.Text.Length == 0 ||
+        if (request.Direction == OfficeTextDirection.TopToBottom || request.Text.Length == 0 || request.Text.Length > MaximumNormalizationInput ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text) ||
@@ -29,14 +29,12 @@ public sealed partial class OfficeManagedTextShapingProvider {
             // provider contract; static success must not silently discard those inputs.
             if (font == null || reader == null || reader.TryGetTable("fvar", out _, out _)) return null;
             int[] scalars = OfficeUnicodeBidi.ToScalars(request.Text, out int[] starts);
-            int? baseLevel = request.Direction == OfficeTextDirection.RightToLeft ? 1
-                : request.Direction == OfficeTextDirection.LeftToRight ? 0 : (int?)null;
-            OfficeUnicodeBidi.Paragraph paragraph = OfficeUnicodeBidi.Resolve(scalars, baseLevel, request.CancellationToken);
-            byte[] levels = paragraph.GetLineLevels(0, scalars.Length);
+            byte[] levels = ResolveTypographyLevels(request, scalars, out int paragraphLevel);
             if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels,
                 out List<OfficeOpenTypeSubstitution.GlyphToken> tokens)) return null;
             if (tokens.Count == 0 || cached.Substitution != null && HasReversedLatinTypography(tokens, starts, levels, request)) return null;
             if (!ApplyTypographySubstitutions(cached.Substitution, font, tokens, request, starts, levels)) return null;
+            if (!FinalTypographyControlsAreBlank(request, font, reader, tokens)) return null;
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
             List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
@@ -49,7 +47,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
                 if (!TryPositionVisualTypography(font, tokens, visual, request, out positions)) return null;
             } else if (!TryPositionTypography(font, tokens, request, out positions)) return null;
             return CompleteTypography(request, reader, tokens, attachments, positions, logicalClusters, visual,
-                (paragraph.ParagraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
+                (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException or
             ArgumentOutOfRangeException or IndexOutOfRangeException) { return null; }
     }
