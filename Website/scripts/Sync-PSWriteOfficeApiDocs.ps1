@@ -44,7 +44,8 @@ function Sync-DirectoryContents {
         [Parameter(Mandatory)]
         [string] $Source,
         [Parameter(Mandatory)]
-        [string] $Destination
+        [string] $Destination,
+        [switch] $PreserveExamples
     )
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -52,6 +53,8 @@ function Sync-DirectoryContents {
     $existing = Get-ChildItem -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue |
         Sort-Object FullName -Descending
     foreach ($item in $existing) {
+        $relativePath = [System.IO.Path]::GetRelativePath($Destination, $item.FullName)
+        if ($PreserveExamples -and ($relativePath -split '[\\/]')[0] -eq 'examples') { continue }
         if ($item.Name -eq '.gitkeep') {
             continue
         }
@@ -62,6 +65,7 @@ function Sync-DirectoryContents {
     $sourceItems = Get-ChildItem -LiteralPath $Source -Recurse -Force -ErrorAction SilentlyContinue
     foreach ($item in $sourceItems) {
         $relativePath = [System.IO.Path]::GetRelativePath($Source, $item.FullName)
+        if ($PreserveExamples -and ($relativePath -split '[\\/]')[0] -eq 'examples') { continue }
         if ([string]::IsNullOrWhiteSpace($relativePath) -or $relativePath -eq '.') {
             continue
         }
@@ -259,7 +263,9 @@ if (-not $sourceBundle.Valid) {
 $documentationEvidenceBytes = if ($SkipDocumentation -and (Test-Path -LiteralPath $catalogEvidencePath -PathType Leaf)) {
     [IO.File]::ReadAllBytes($catalogEvidencePath)
 } else { $null }
-Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot
+# Examples have their own source/fallback policy below. API refresh must not
+# erase that subtree, including when -SkipExamples is requested.
+Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot -PreserveExamples
 if ($null -ne $documentationEvidenceBytes) {
     [IO.File]::WriteAllBytes($catalogEvidencePath, $documentationEvidenceBytes)
 }
@@ -282,6 +288,9 @@ $summary.commandMetadataUpdated = $summary.commandMetadataUpdated -or $sourceLin
 
 if (-not $SkipExamples) {
     $sourceExamplesPath = Join-Path $resolvedRepoRoot 'Examples'
+    if (-not (Test-Path -LiteralPath $sourceExamplesPath -PathType Container)) {
+        $sourceExamplesPath = Join-Path $websiteArtifactsRoot 'examples'
+    }
     if (Test-Path -LiteralPath $sourceExamplesPath -PathType Container) {
         Sync-DirectoryContents -Source $sourceExamplesPath -Destination $targetExamplesPath
         $summary.examplesSource = $sourceExamplesPath

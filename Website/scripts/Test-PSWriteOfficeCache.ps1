@@ -75,6 +75,38 @@ try {
         throw 'Snapshot reuse removed fallback examples or claimed a missing source was copied.'
     }
     $cases.Add('missing-examples-preserves-fallback')
+    $exportRoot = Join-Path $temporary 'exports'
+    $exportApi = Join-Path $exportRoot 'apidocs/powershell'
+    $null = New-Item -ItemType Directory -Path $exportApi
+    foreach ($name in @('PSWriteOffice.psd1', 'command-metadata.json', 'bundle-manifest.json')) {
+        Copy-Item -LiteralPath (Join-Path $api $name) -Destination $exportApi
+    }
+    Copy-Item -LiteralPath (Join-Path $api 'PSWriteOffice-Help.xml') -Destination (Join-Path $exportApi 'PSWriteOffice-help.xml')
+    $bundlePath = Join-Path $exportApi 'bundle-manifest.json'
+    $bundle = Get-Content -LiteralPath $bundlePath -Raw | ConvertFrom-Json
+    $bundle.sourceCommit = $head
+    $bundle | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $bundlePath
+    foreach ($skip in @($false, $true)) {
+        $imported = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -ExportedArtifactsRoot $exportRoot -SkipDocumentation -SkipExamples:$skip
+        if ($imported.apiSnapshotSource -ne 'current-source' -or $imported.examplesUpdated -or
+            (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
+            throw 'API bundle import removed fallback examples.'
+        }
+    }
+    $cases.Add('bundle-import-preserves-fallback-and-skipped-examples')
+    $bundleExamples = Join-Path $exportApi 'examples'
+    $null = New-Item -ItemType Directory -Path $bundleExamples
+    Set-Content -LiteralPath (Join-Path $bundleExamples 'replacement.ps1') -Value '# current bundle example'
+    $skipped = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -ExportedArtifactsRoot $exportRoot -SkipDocumentation -SkipExamples
+    if ($skipped.examplesUpdated -or (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
+        throw 'SkipExamples did not preserve examples during API import.'
+    }
+    $replaced = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -ExportedArtifactsRoot $exportRoot -SkipDocumentation
+    if (-not $replaced.examplesUpdated -or (Test-Path -LiteralPath $fallback) -or
+        -not (Test-Path -LiteralPath (Join-Path $examples 'replacement.ps1'))) {
+        throw 'A current bundle example did not replace the fallback.'
+    }
+    $cases.Add('bundle-examples-replace-fallback-only-when-requested')
     Add-Content -LiteralPath (Join-Path $api 'PSWriteOffice-Help.xml') -Value '<stale/>'
     if (Test-CurrentPSWriteOfficeSnapshot -RepositoryRoot $module -SiteRoot $site -SourceCommit $head -SkipDocumentation) {
         throw 'A damaged cached help component was accepted.'
