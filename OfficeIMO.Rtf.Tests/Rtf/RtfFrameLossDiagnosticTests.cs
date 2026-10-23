@@ -11,6 +11,42 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfFrameLossDiagnosticTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WordDocumentDefaultParagraphLossIsReportedWithoutChangingSource(bool frame) {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph("DEFAULTSMARKER");
+        W.Styles styles = word.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        W.DocDefaults defaults = styles.DocDefaults ??= new W.DocDefaults();
+        W.ParagraphPropertiesDefault paragraphDefaults = defaults.ParagraphPropertiesDefault ??=
+            new W.ParagraphPropertiesDefault();
+        W.ParagraphPropertiesBaseStyle properties = paragraphDefaults.ParagraphPropertiesBaseStyle ??=
+            new W.ParagraphPropertiesBaseStyle();
+        if (frame) {
+            properties.AddChild(new W.FrameProperties { Width = "3600" }, true);
+        } else {
+            properties.AddChild(new W.Tabs(new W.TabStop { Val = W.TabStopValues.Clear, Position = 4320 }), true);
+        }
+        string documentXml = word._document.OuterXml;
+        string stylesXml = styles.OuterXml;
+
+        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+
+        string code = frame ? "WordRtfParagraphFramesFlattened" : "WordRtfTabClearsOmitted";
+        RtfConversionDiagnostic warning = Assert.Single(result.Report.Diagnostics, item => item.Code == code);
+        Assert.Equal(frame ? RtfConversionAction.Flattened : RtfConversionAction.Omitted, warning.Action);
+        Assert.Equal(1, warning.Count);
+        Assert.True(result.HasLoss);
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        RtfParagraph converted = Assert.Single(result.Value.Paragraphs);
+        Assert.Equal("DEFAULTSMARKER", converted.ToPlainText());
+        Assert.False(converted.Frame.HasAnyValue);
+        Assert.Empty(converted.TabStops);
+        Assert.Equal(documentXml, word._document.OuterXml);
+        Assert.Equal(stylesXml, styles.OuterXml);
+    }
+
+    [Theory]
     [InlineData("body")]
     [InlineData("table")]
     [InlineData("footnote")]

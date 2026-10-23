@@ -875,15 +875,26 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyTabStops(WordParagraph destination, RtfParagraph source, RtfDocument document) {
-        if (source.UseParsedParagraphDefaults && source.StyleId.HasValue &&
-            HasRtfStyle(document, source.StyleId.Value, RtfStyleKind.Paragraph)) {
-            // Word applies the retained stylesheet declaration. Clear stops
-            // absent from the parsed stream so that association cannot add ink
-            // or move a tab which used RTF's ordinary default positions.
-            RtfParagraph styleFormatting = document.GetParagraphFormatting(new RtfParagraph { StyleId = source.StyleId });
+        if (source.StyleId.HasValue && HasRtfStyle(document, source.StyleId.Value, RtfStyleKind.Paragraph)) {
+            // Word merges tabs along the retained style chain, while an RTF
+            // tab list replaces that chain's list. Inventory declarations, not
+            // only the effective nearest style, so an ancestor cannot add ink
+            // or move a tab absent from the effective RTF paragraph.
             var activePositions = new HashSet<int>(source.TabStops.Select(stop => stop.PositionTwips));
-            foreach (int position in styleFormatting.TabStops.Select(stop => stop.PositionTwips).Distinct()) {
-                if (!activePositions.Contains(position)) destination.AddTabStop(position, WordTabAlignment.Clear);
+            var visitedStyles = new HashSet<int>();
+            var clearedPositions = new HashSet<int>();
+            int? styleId = source.StyleId;
+            while (styleId.HasValue && visitedStyles.Add(styleId.Value)) {
+                RtfStyle? style = document.Styles.LastOrDefault(item =>
+                    item.Id == styleId.Value && item.Kind == RtfStyleKind.Paragraph);
+                if (style == null) break;
+                foreach (RtfTabStop tabStop in style.TabStops) {
+                    int position = tabStop.PositionTwips;
+                    if (!activePositions.Contains(position) && clearedPositions.Add(position)) {
+                        destination.AddTabStop(position, WordTabAlignment.Clear);
+                    }
+                }
+                styleId = style.BasedOnStyleId;
             }
         }
         foreach (RtfTabStop tabStop in source.TabStops) {

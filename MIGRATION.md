@@ -1171,6 +1171,10 @@ RTF conversion preserves the distinction between minimum, exact, and multiple li
 
 Parsed RTF uses the stream's active line-spacing and tab-stop state instead of filling those properties from a referenced style. Omitted line spacing resolves to single spacing. API-authored paragraphs retain style inheritance for omitted spacing and an empty direct tab-stop list. Applications editing imported paragraphs should set the desired spacing or stops explicitly when replacing that active state.
 
+RTF-to-Word conversion adds tab clears where required to preserve a replacement RTF tab list. Word-to-PDF conversion combines custom stops from document defaults, paragraph styles and direct formatting, including inherited-stop clears. Recheck output baselines that previously relied on a direct list hiding all inherited Word stops.
+
+An explicitly selected RTF document font also becomes the Word document default. Remove font overrides added only to compensate for the destination theme font replacing that source selection; explicit source style and run fonts remain in effect.
+
 Strict conversions also reject unsupported paragraph frames and Word tab-stop clears through explicit loss diagnostics. Review `RtfWordParagraphFramesFlattened`, `WordRtfParagraphFramesFlattened`, `WordRtfTabClearsOmitted`, and direct PDF `ParagraphFrameFlattened` before accepting ordinary-flow or omitted-control fallbacks. Carry a Word bridge's report into a composed PDF conversion with `WithSourceConversionReport(...)`.
 
 ## RTF HTML round-trip output

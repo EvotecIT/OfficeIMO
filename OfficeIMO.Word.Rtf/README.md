@@ -47,7 +47,11 @@ Common paragraphs, rich runs, tables, nested tables, images, notes, headers/foot
 
 Paragraph mapping retains minimum, exact, and multiple line spacing, including the sign and units described in the [RTF paragraph contract](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). The same effective-formatting path applies supported spacing, indentation, alignment, and tab stops to body paragraphs, table cells, notes, and running stories. Parsed RTF retains its active spacing and tab state; API-authored RTF paragraphs can inherit those properties from their styles.
 
-Paragraph frames become ordinary text flow rather than positioned frames. RTF-to-Word reports `RtfWordParagraphFramesFlattened`; Word-to-RTF reports `WordRtfParagraphFramesFlattened`. Word tab-stop clearing instructions (`w:tab` with `w:val="clear"`) are omitted with `WordRtfTabClearsOmitted`; supported active tab stops are mapped separately. These are conversion losses, so `RequireNoLoss()` rejects them.
+An RTF paragraph's active tab list replaces inherited tab lists. The bridge adds Word tab clears for unused positions declared anywhere in the associated paragraph-style chain, while retaining active positions and their alignment and leaders.
+
+An explicitly selected default font from the RTF font table becomes the Word document's default font. Paragraph styles and individual runs can override it. An unset or unresolved font identifier retains the destination's existing default policy.
+
+Paragraph frames become ordinary text flow rather than positioned frames. RTF-to-Word reports `RtfWordParagraphFramesFlattened`; Word-to-RTF reports `WordRtfParagraphFramesFlattened`. Word tab-stop clearing instructions (`w:tab` with `w:val="clear"`) are omitted with `WordRtfTabClearsOmitted`; supported active tab stops are mapped separately. Word-side diagnostics include paragraph properties in document defaults, styles and individual stories. These are conversion losses, so `RequireNoLoss()` rejects them.
 
 Legacy RTF paragraph numbering maps to editable Word lists for single-level decimal numbers and text bullets. Authored starts, cached numbering jumps, marker prefixes and suffixes, and basic marker formatting are retained. Body and table paragraphs share their numbering sequence; each header, footer, and note starts an independent sequence. Conversion leaves the source RTF model unchanged.
 

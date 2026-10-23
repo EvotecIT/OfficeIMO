@@ -28,6 +28,9 @@ public static partial class WordRtfConverterExtensions {
         }
         Styles? styles = document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
         if (styles != null) {
+            if (styles.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle is { } defaults) {
+                elements.Add(defaults);
+            }
             foreach (Style style in styles.Elements<Style>()) {
                 if (style.StyleParagraphProperties != null) elements.Add(style.StyleParagraphProperties);
             }

@@ -670,7 +670,8 @@ namespace OfficeIMO.Word.Pdf {
 
             int bodyRunStart = builder.CurrentRuns.Count;
             var emittedNoteTokens = new HashSet<int>();
-            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
+                .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
             int tabIndex = 0;
             bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             var inlineControls = new NativeInlineContentControlProjection(tableCell: false);

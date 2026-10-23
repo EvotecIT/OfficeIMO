@@ -103,6 +103,8 @@ The core retains the signed `\sl` value and `\slmult` mode. Word conversion and 
 
 The Word bridge applies its common paragraph-formatting path to body paragraphs, table cells, notes, and running stories. Direct PDF export retains supported alignment, indentation, paragraph gaps, line spacing, and tabs separately for body, cell, and appended note paragraphs. Its notes remain appended semantic content with one label per note, rather than native page-footnote placement or endnote continuation. Broader native pagination and typography remain outside this profile.
 
+RTF tab lists replace inherited lists. The Word bridge clears unused tab positions from the associated style chain so retaining a Word style cannot reintroduce those stops. Word-to-RTF frame and tab-clear diagnostics also inspect document paragraph defaults.
+
 For non-exact PDF line spacing, selected font programs and resolved run sizes supply usable line metrics where available; otherwise, the shared PDF spacing policy remains in effect. Font substitution can change line heights and page breaks. Exact spacing retains its requested advance.
 
 | Conversion | Unsupported layout and fallback |
