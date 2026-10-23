@@ -329,7 +329,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             bool retainedMeasurementScopes = mergedLines[lineIndex].Count > 1
                 && mergedLines[lineIndex].Any(HasProviderMeasurementContext);
-            if ((lineBidiResolved || retainedMeasurementScopes) && visuals.Count > lineVisualStart) {
+            if ((lineBidiResolved || retainedMeasurementScopes) && visuals.Count > lineVisualStart
+                && CanOwnRootInlineLineLogicalText(mergedLines[lineIndex], formattingContainer)) {
                 List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.Add(new HtmlRenderLogicalTextGroup(

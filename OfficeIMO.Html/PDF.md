@@ -425,6 +425,8 @@ Paragraph bidi also supplies the direction for neutral punctuation. With zero le
 
 HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. A positive-advance run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
 
+Retained PDF outlines require a positive total pen advance. Zero or negative totals keep diagnosed fallback; a positive paint frame does not make their font advance positive. Layout can retain a valid zero advance independently of that PDF boundary.
+
 `HtmlRenderPage.CreateDrawing()` also carries admitted glyphs into Drawing output. Generic PDF export through `PdfPageCanvas.Drawing(...)` accepts retained text as unwrapped positioned monochrome slices; attached text decorations, padding, indentation, outline strokes and specialized metric geometry are outside that route and fail explicitly. Separate decoration shapes already present in the Drawing use normal shape output.
 
 Hosts that ship the OfficeIMO portable browser font set can activate its layout

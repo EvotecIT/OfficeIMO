@@ -34,9 +34,10 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText visual = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
             item => item.Text.Contains("OfficeIMO", StringComparison.Ordinal));
-        OfficeTextShapingRequest request = Assert.Single(
-            provider.Requests,
-            item => item.Text.Contains("OfficeIMO", StringComparison.Ordinal));
+        OfficeTextShapingRequest[] layoutRequests = provider.Requests
+            .Where(item => item.Text.Contains("OfficeIMO", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(layoutRequests);
+        int layoutRequestCount = provider.Requests.Count;
         string svg = Encoding.UTF8.GetString(document.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal("dark", visual.FontPalette);
@@ -51,8 +52,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, visual.FeatureSettings.Features["pwid"]);
         Assert.Equal(1, visual.FeatureSettings.Features["ruby"]);
         Assert.Equal(2, visual.FeatureSettings.Features["ss01"]);
-        Assert.True(request.FeatureSettings.Equals(visual.FeatureSettings));
-        Assert.Contains(provider.Requests.Skip(1), exported =>
+        Assert.All(layoutRequests, request => Assert.True(request.FeatureSettings.Equals(visual.FeatureSettings)));
+        Assert.Contains(provider.Requests.Skip(layoutRequestCount), exported =>
             exported.Text.Contains("OfficeIMO", StringComparison.Ordinal)
             && exported.FeatureSettings.Equals(visual.FeatureSettings));
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
@@ -114,10 +115,23 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.NotEqual(enabledPng, disabledPng);
         Assert.NotEqual(enabledSvg.GetPixels(), disabledSvg.GetPixels());
-        Assert.Equal(1, enabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
-            .Sum(span => span.GlyphBytes?.Count ?? 0));
-        Assert.Equal(2, disabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
-            .Sum(span => span.GlyphBytes?.Count ?? 0));
+        HtmlRenderDocument enabledScene = HtmlRenderTestDriver.Render(enabledHtml, renderOptions);
+        HtmlRenderDocument disabledScene = HtmlRenderTestDriver.Render(disabledHtml, renderOptions);
+        HtmlRenderText[] enabledText = enabledScene.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] disabledText = disabledScene.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+        // This fixture maps f/i to glyphs 1/2 and their authored liga to glyph 3.
+        // Retained outlines and embedded text operators must paint the same glyphs.
+        Assert.Equal(new[] { 3 }, ObservePaintedTrueTypeGlyphs(enabledScene, enabledText).Select(glyph => glyph.GlyphId));
+        Assert.Equal(new[] { 1, 2 }, ObservePaintedTrueTypeGlyphs(disabledScene, disabledText).Select(glyph => glyph.GlyphId));
+        enabledScene.RequireNoLoss();
+        disabledScene.RequireNoLoss();
+        OfficeImageExportResult enabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+            enabledRead, OfficeImageExportFormat.Png));
+        OfficeImageExportResult disabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+            disabledRead, OfficeImageExportFormat.Png));
+        Assert.NotEqual(enabledSavedImage.Bytes, disabledSavedImage.Bytes);
         Assert.Equal("fi", enabledRead.ExtractText().Trim());
         Assert.Equal("fi", disabledRead.ExtractText().Trim());
     }

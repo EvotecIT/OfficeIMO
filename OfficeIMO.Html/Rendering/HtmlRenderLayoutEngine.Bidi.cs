@@ -23,16 +23,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
         if (segment.PreparedShaping != null) {
-            return new[] { new InlinePaintSegment(segment.LogicalText, x, Math.Max(0.01D, segment.Width),
+            return new[] { new InlinePaintSegment(segment.PreparedShaping.Text, x, Math.Max(0.01D, segment.Width),
                 segment.Width, 0, bidiResolved: true, preparedShaping: segment.PreparedShaping) };
         }
         bool ordinaryDirection = !OfficeTextElements.ContainsRightToLeft(segment.Text)
             && !OfficeTextElements.ContainsBidiControl(segment.Text)
             && segment.ResolvedDirection != OfficeTextDirection.RightToLeft;
+        // Discretionary hyphenation measures the painted suffix while retaining
+        // the authored word separately for extraction. Shape that same paint;
+        // resolved bidi slices already carry their logical directional source.
+        string providerPaintText = !segment.BidiResolved && ordinaryDirection ? segment.Text : segment.LogicalText;
         if (!segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
             && (!segment.Run.Style.TextFeatureSettings.IsDefault
-                || RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings))
-            && TryPrepareDirectionalProviderText(segment.LogicalText, segment.Run.Style,
+                || RequiresConfiguredTextShaping(providerPaintText, segment.Run.Style.TextFeatureSettings))
+            && TryPrepareDirectionalProviderText(providerPaintText, segment.Run.Style,
                 segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, segment.Width, out OfficePreparedTextShaping? retained)) {
             return new[] { new InlinePaintSegment(retained!.Text, x, Math.Max(0.01D, segment.Width),
                 segment.Width, 0, bidiResolved: true, preparedShaping: retained) };
@@ -51,7 +55,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
                 && segment.ResolvedDirection != OfficeTextDirection.RightToLeft) {
-            ReportUnretainedProviderPaint(segment.Run, segment.LogicalText);
+            ReportUnretainedProviderPaint(segment.Run, providerPaintText);
             return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
@@ -318,6 +322,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
             last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
         }
         return result.AsReadOnly();
+    }
+
+    private bool CanOwnRootInlineLineLogicalText(
+        IReadOnlyList<InlineSegment> segments,
+        AngleSharp.Dom.IElement? formattingContainer) {
+        ChargeLayoutOperations(1L + (segments.Count + 31L) / 32L, "inline logical line ownership");
+        foreach (InlineSegment segment in segments) {
+            CheckCancellation();
+            HtmlInlineRun run = segment.Run;
+            // A text replacement must not absorb another source/semantic owner
+            // or prevent an out-of-flow descendant interleaving in DOM order.
+            if (run.AtomicBlock != null || run.FloatingBlock != null || run.PositionedMarkerElement != null
+                || run.RunningStringElement != null || run.RunningElementAssignment != null
+                || run.LeaderPattern != null || run.IsEmptyInlineBox || run.InlineSemanticGroupRole.HasValue
+                || FindNearestInlineStackingElement(run.OwnerElement, formattingContainer) != null) return false;
+        }
+        return true;
     }
 
     private string ResolveRootInlineLineLogicalText(

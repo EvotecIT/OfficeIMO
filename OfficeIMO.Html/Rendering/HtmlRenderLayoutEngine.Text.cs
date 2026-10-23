@@ -400,7 +400,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? shapedWidth
             : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
-            return Math.Max(0.01D, measured);
+            // A positive paint carrier does not imply a positive font pen.
+            // Zero-advance glyphs still paint and retain their exact shaping.
+            return Math.Max(0D, measured);
         }
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;

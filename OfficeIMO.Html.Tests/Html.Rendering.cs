@@ -3019,7 +3019,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText left = Assert.Single(runs, run => run.Text.Contains("Left", StringComparison.Ordinal));
         HtmlRenderText number = Assert.Single(runs, run => run.Text.Contains("42", StringComparison.Ordinal));
 
-        Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
+        Assert.Equal("Left שלום 42", rendered.Text.Trim());
+        rendered.RequireNoLoss();
         Assert.Equal(4, hebrew.Count);
         // UAX #9: a number after right-to-left text joins that run (W2/N1), so it is painted before the Hebrew.
         Assert.True(left.X < number.X);
@@ -3052,16 +3053,14 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0;width:240px'>A\u2067שלום abc\u2069B</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        HtmlRenderLogicalTextGroup group = Assert.Single(
-            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
-            item => item.Text == "Aשלום abcB");
-        HtmlRenderText latin = Assert.Single(group.Visuals.OfType<HtmlRenderText>(), run => run.Text.Contains("abc", StringComparison.Ordinal));
-        IReadOnlyList<HtmlRenderText> hebrew = group.Visuals
-            .OfType<HtmlRenderText>()
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText latin = Assert.Single(text, run => run.Text.Contains("abc", StringComparison.Ordinal));
+        IReadOnlyList<HtmlRenderText> hebrew = text
             .Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal))
             .ToList();
 
-        Assert.Equal("Aשלום abcB", group.Text);
+        Assert.Equal("Aשלום abcB", rendered.Text.Trim());
+        rendered.RequireNoLoss();
         Assert.Equal(4, hebrew.Count);
         Assert.True(latin.X < hebrew.Min(static run => run.X));
     }
