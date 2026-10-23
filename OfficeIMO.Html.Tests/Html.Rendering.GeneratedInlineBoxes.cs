@@ -147,14 +147,24 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("after", "block")]
     public void HtmlGeneratedContent_InlineBoxPreparesArabicJoiningAndLogicalText(string pseudo, string display) {
         string html = "<style>body,p{margin:0}.badge::" + pseudo
-            + "{content:'سلام';display:" + display + ";direction:rtl}</style><p><span class='badge'>Host</span></p>";
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
-            ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D)
-        });
+            + "{content:'سلام';font-family:'Generated Arabic Fixture';display:" + display
+            + ";direction:rtl}</style><p><span class='badge'>Host</span></p>";
+        byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "Website", "Apps",
+            "OfficeIMO.Web.Converter", "Assets", "Fonts", "NotoSansArabic-Regular.ttf"));
+        var options = new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D),
+            AllowSystemFontFallback = false };
+        options.Fonts.Add("Generated Arabic Fixture", font);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
-        Assert.Contains(visuals.OfType<HtmlRenderText>().SelectMany(t => t.Text), c => c >= '\uFE70' && c <= '\uFEFF');
-        Assert.Contains(visuals.OfType<HtmlRenderLogicalTextGroup>(), g => g.Text == "سلام");
+        HtmlRenderLogicalTextGroup group = Assert.Single(visuals.OfType<HtmlRenderLogicalTextGroup>(), g => g.Text == "سلام");
+        PaintedTestGlyph[] glyphs = ObservePaintedTrueTypeGlyphs(rendered,
+            EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderText>());
+        // The pinned Noto program's isolated meem, required lam-alef and initial
+        // seen are independently observed in the real-font HarfBuzz control.
+        Assert.Equal(new[] { 770, 705, 1083 }, glyphs.Select(glyph => glyph.GlyphId));
+        Assert.All(glyphs, glyph => Assert.Equal(OfficeTrueTypeFont.TryLoad(font)!.Fingerprint, glyph.Program.Fingerprint));
         Assert.Single(visuals.OfType<HtmlRenderText>(), t => t.Text == "Host");
+        rendered.RequireNoLoss();
     }
 
     [Theory]

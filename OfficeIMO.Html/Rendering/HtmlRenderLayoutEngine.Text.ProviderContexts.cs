@@ -16,11 +16,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (PreparedInlineSlice slice in slices) {
                 CheckCancellation();
                 if (slice.Offset > offset) result.Add(CloneProviderSourceSlice(run, offset, slice.Offset - offset));
-                HtmlInlineRun clone = CloneProviderSourceSlice(run, slice.Offset, slice.Shaping.Text.Length, slice.Shaping.Text);
+                HtmlInlineRun clone = CloneProviderSourceSlice(run, slice.Offset, slice.Length, slice.Shaping?.Text);
                 clone.PreparedShaping = slice.Shaping;
                 clone.PreparedShapingStyle = slice.Style;
+                clone.PreserveContextualFallback = slice.Shaping == null;
                 result.Add(clone);
-                offset = slice.Offset + slice.Shaping.Text.Length;
+                offset = slice.Offset + slice.Length;
             }
             if (offset < run.Text.Length) result.Add(CloneProviderSourceSlice(run, offset, run.Text.Length - offset));
         }
@@ -41,6 +42,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         Func<HtmlInlineRun, HtmlRenderBoxStyle>? styleSelector = null, bool reportLoss = true) {
         var prepared = new Dictionary<HtmlInlineRun, List<PreparedInlineSlice>>();
         void Report(HtmlInlineRun run, string detail) { if (reportLoss) ReportProviderContextLoss(run, detail); }
+        void RetainSlices(InlineWordSlice[] pieces, IReadOnlyList<PreparedInlineSlice> slices) {
+            for (int index = 0; index < pieces.Length; index++) {
+                CheckCancellation();
+                HtmlInlineRun run = pieces[index].Run;
+                if (!prepared.TryGetValue(run, out List<PreparedInlineSlice>? retained)) {
+                    retained = new List<PreparedInlineSlice>(); prepared.Add(run, retained);
+                }
+                retained.Add(slices[index]);
+            }
+        }
         if (!HasArabicJoiningSource(runs, static run => run.LogicalText)) return prepared;
         IOfficeTextShapingProvider provider = _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance;
         InlineWordMap map = BuildInlineWordFitting(runs, paragraphStyle, styleSelector);
@@ -81,13 +92,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || !ReferenceEquals(selected?.Program, font)) { sameProgram = false; break; }
             }
             if (!sameProgram) { Report(pieces[0].Run, "cross-inline-font-context-not-retained"); continue; }
+            // Once this complete word owns the provider attempt, a declined or
+            // unsplittable result must not turn into partial fragment success at
+            // measurement or paint. Preserve the scalar owner's existing forms
+            // on these exact source ranges; other words in a run stay eligible.
+            void RetainFallback() {
+                var fallback = new List<PreparedInlineSlice>(pieces.Length);
+                foreach (InlineWordSlice piece in pieces) {
+                    CheckCancellation();
+                    fallback.Add(new PreparedInlineSlice(piece.Offset, piece.Length, null, Style(piece.Run)));
+                }
+                RetainSlices(pieces, fallback);
+            }
             OfficeTextShapingResult? shaped = ShapeConfiguredText(text, font, fontInfo, style,
                 OfficeTextDirection.RightToLeft, provider);
             CheckCancellation();
             if (shaped != null) ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "provider joining glyph retention");
-            if (shaped == null) { Report(pieces[0].Run, "cross-inline-provider-declined"); continue; }
+            if (shaped == null) { Report(pieces[0].Run, "cross-inline-provider-declined"); RetainFallback(); continue; }
             if (font is IOfficeColorFontProgram color && shaped.Glyphs.Any(glyph => color.HasColorGlyph(glyph.GlyphId))) {
                 Report(pieces[0].Run, "cross-inline-color-glyph-context-not-retained");
+                RetainFallback();
                 continue;
             }
             var context = new OfficePreparedTextShaping(font, text, shaped, _cancellationToken);
@@ -96,23 +120,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (InlineWordSlice piece in pieces) {
                 CheckCancellation();
                 if (!context.TrySlice(start, piece.Length, out OfficePreparedTextShaping? slice)) break;
-                slices.Add(new PreparedInlineSlice(piece.Offset, slice!, Style(piece.Run)));
+                slices.Add(new PreparedInlineSlice(piece.Offset, piece.Length, slice!, Style(piece.Run)));
                 start += piece.Length;
             }
-            if (slices.Count != pieces.Length) { Report(pieces[0].Run, "cross-inline-glyph-slice-not-retained"); continue; }
+            if (slices.Count != pieces.Length) { Report(pieces[0].Run, "cross-inline-glyph-slice-not-retained"); RetainFallback(); continue; }
             double completeAdvance = context.Measure(fontInfo.Size);
-            double partitionAdvance = slices.Sum(slice => slice.Shaping.Measure(fontInfo.Size));
+            double partitionAdvance = slices.Sum(slice => slice.Shaping!.Measure(fontInfo.Size));
             if (Math.Abs(completeAdvance - partitionAdvance) > Math.Max(1D, completeAdvance) * 1e-9D) {
                 Report(pieces[0].Run, "cross-inline-nonadditive-advance");
+                RetainFallback();
                 continue;
             }
-            for (int index = 0; index < pieces.Length; index++) {
-                HtmlInlineRun run = pieces[index].Run;
-                if (!prepared.TryGetValue(run, out List<PreparedInlineSlice>? retained)) {
-                    retained = new List<PreparedInlineSlice>(); prepared.Add(run, retained);
-                }
-                retained.Add(slices[index]);
-            }
+            RetainSlices(pieces, slices);
         }
         return prepared;
     }
@@ -122,6 +141,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || run.PositionedMarkerElement != null || run.RunningStringElement != null || run.RunningElementAssignment != null
         || run.IsEmptyInlineBox || run.LeaderPattern != null || run.IsSuppressedWhitespaceBreak
         || OfficeTextElements.ContainsBidiControl(run.LogicalText) || run.LogicalText.IndexOf('\u00AD') >= 0
+        // ZWNJ authors an independent joining context. Do not shape its preceding
+        // grapheme across paint scopes, then diagnose the intentional boundary as
+        // an unsplittable provider cluster. ZWJ remains transparent here.
+        || run.LogicalText.IndexOf('\u200C') >= 0
         || run.InlineEdgeBoundary != null && HasArabicJoiningInsets(run.Style);
 
     private static bool CanShareProviderContext(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
@@ -142,7 +165,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && !HasArabicJoiningInsets(left) && !HasArabicJoiningInsets(right);
 
     private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text) {
-        if (RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings)
+        if (!run.PreserveContextualFallback && RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings)
             && TryMeasureWithConfiguredProvider(text, run.Style, out _))
             ReportProviderContextLoss(run, "directional-glyph-context-not-retained");
     }
@@ -191,11 +214,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct PreparedInlineSlice {
-        internal PreparedInlineSlice(int offset, OfficePreparedTextShaping shaping, HtmlRenderBoxStyle style) {
-            Offset = offset; Shaping = shaping; Style = style;
+        internal PreparedInlineSlice(int offset, int length, OfficePreparedTextShaping? shaping, HtmlRenderBoxStyle style) {
+            Offset = offset; Length = length; Shaping = shaping; Style = style;
         }
         internal int Offset { get; }
-        internal OfficePreparedTextShaping Shaping { get; }
+        internal int Length { get; }
+        internal OfficePreparedTextShaping? Shaping { get; }
         internal HtmlRenderBoxStyle Style { get; }
     }
 }

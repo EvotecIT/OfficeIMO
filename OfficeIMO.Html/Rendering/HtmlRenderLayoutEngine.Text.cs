@@ -393,10 +393,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return measurer.MeasureWidth(value, style);
     }
 
-    private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
+    private double MeasureInlineText(string value, HtmlRenderBoxStyle style, bool preserveContextualFallback = false) {
         if (style.Font.Size <= 0D) return 0D;
         _fontUsage?.Observe(value, style.Font.FamilyName, style.FontDescriptor);
-        double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
+        double measured = !preserveContextualFallback && TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
             : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
@@ -413,12 +413,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style, HtmlInlineRun run) =>
         run.GetPreparedShaping(value, style) is OfficePreparedTextShaping prepared
             ? MeasurePreparedInlineText(value, style, prepared)
-            : MeasureInlineText(value, style);
+            : MeasureInlineText(value, style, run.PreserveContextualFallback);
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style, IntrinsicTextRun run) =>
         run.PreparedShaping != null && string.Equals(value, run.PreparedShaping.Text, StringComparison.Ordinal)
             ? MeasurePreparedInlineText(value, style, run.PreparedShaping)
-            : MeasureInlineText(value, style);
+            : MeasureInlineText(value, style, run.PreserveContextualFallback);
 
     private double MeasurePreparedInlineText(string value, HtmlRenderBoxStyle style, OfficePreparedTextShaping prepared) {
         ChargeIntrinsicTextMeasurement(value);
@@ -613,7 +613,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string? logicalText = null,
             bool bidiResolved = false,
             int logicalEndProgress = 0,
-            OfficeTextDirection? resolvedDirection = null) {
+            OfficeTextDirection? resolvedDirection = null,
+            string? contextualFallbackPaint = null) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
@@ -621,6 +622,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             BidiResolved = bidiResolved;
             LogicalEndProgress = logicalEndProgress;
             ResolvedDirection = resolvedDirection;
+            ContextualFallbackPaint = contextualFallbackPaint;
             PreparedShaping = run.GetPreparedShaping(LogicalText, run.Style);
         }
 
@@ -633,6 +635,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal OfficeTextDirection? ResolvedDirection { get; }
+        // Length-preserving contextual forms in logical source order. A declined
+        // provider must not discard the existing scalar joining owner's paint.
+        internal string? ContextualFallbackPaint { get; }
         internal OfficePreparedTextShaping? PreparedShaping { get; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);

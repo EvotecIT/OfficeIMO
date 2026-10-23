@@ -502,6 +502,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal string Text { get; }
         internal OfficePreparedTextShaping? PreparedShaping { get; set; }
+        internal bool PreserveContextualFallback { get; set; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsParagraphStart { get; }

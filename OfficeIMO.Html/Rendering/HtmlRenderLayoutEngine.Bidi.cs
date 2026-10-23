@@ -29,7 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool ordinaryDirection = !OfficeTextElements.ContainsRightToLeft(segment.Text)
             && !OfficeTextElements.ContainsBidiControl(segment.Text)
             && segment.ResolvedDirection != OfficeTextDirection.RightToLeft;
-        if ((segment.BidiResolved || ordinaryDirection)
+        if (!segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
             && RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings)
             && TryPrepareDirectionalProviderText(segment.LogicalText, segment.Run.Style,
                 segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? retained)) {
@@ -60,7 +60,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlineDirectionalGroup group in groups) {
             double groupX = cursor;
             if (group.RightToLeft) {
-                if (TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
+                if (!segment.Run.PreserveContextualFallback && TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
                     OfficeTextDirection.RightToLeft, out OfficePreparedTextShaping? prepared)) {
                     result.Add(new InlinePaintSegment(
                         prepared!.Text,
@@ -68,7 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         Math.Max(0.01D, group.Width),
                         group.Width,
                         group.LogicalOrder, bidiResolved: true, preparedShaping: prepared));
-                } else if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
+                } else if (!segment.Run.PreserveContextualFallback && TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
                     if (!OfficeTextElements.ContainsRightToLeft(group.Text)
                         || RequiresConfiguredTextShaping(group.Text, segment.Run.Style.TextFeatureSettings))
                         ReportProviderContextLoss(segment.Run, OfficeTextElements.ContainsRightToLeft(group.Text)
@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else {
                     AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
                 }
-            } else if (TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
+            } else if (!segment.Run.PreserveContextualFallback && TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
                 OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? leftToRight)) {
                 result.Add(new InlinePaintSegment(leftToRight!.Text, groupX, Math.Max(0.01D, group.Width),
                     group.Width, group.LogicalOrder, bidiResolved: true, preparedShaping: leftToRight));
@@ -139,7 +139,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<InlineDirectionalGroup> ResolveDirectionalGroups(InlineSegment segment) {
         if (segment.ResolvedDirection.HasValue) {
             return new[] { new InlineDirectionalGroup(segment.Text,
-                segment.ResolvedDirection == OfficeTextDirection.RightToLeft, segment.Width, 0) };
+                segment.ResolvedDirection == OfficeTextDirection.RightToLeft, segment.Width, 0,
+                segment.ContextualFallbackPaint) };
         }
         var groups = new List<InlineDirectionalGroup>();
         OfficeTextDirection baseDirection = string.Equals(segment.Run.Style.Direction, "rtl", StringComparison.Ordinal)
@@ -149,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             groups.Add(new InlineDirectionalGroup(
                 run.Text,
                 run.Direction == OfficeTextDirection.RightToLeft,
-                MeasureInlineText(run.Text, segment.Run.Style),
+                MeasureInlineText(run.Text, segment.Run.Style, segment.Run.PreserveContextualFallback),
                 run.LogicalOrder));
         }
         return groups;
@@ -263,11 +264,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             while (end < ordered.Count && ordered[end].SourceSegmentIndex == sourceIndex
                 && (!providerContext || ordered[end].RightToLeft == ordered[start].RightToLeft)) end++;
             string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
-            string logicalText = string.Concat(ordered
+            InlineBidiElement[] logicalOrder = ordered
                 .Skip(start)
                 .Take(end - start)
                 .OrderBy(static element => element.SourceElementIndex)
-                .Select(static element => element.LogicalText));
+                .ToArray();
+            string logicalText = string.Concat(logicalOrder.Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
             // Preserve prepared contextual paint when no provider owns this script.
             // Marks and required ligatures add fidelity loss without discarding those forms.
@@ -281,6 +283,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || OfficeTextElements.ContainsZeroWidthJoinerSequence(logicalText)
                 || OfficeTextElements.ContainsRightToLeft(logicalText)
                     && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);
+            string? contextualFallback = needsShapingInput && sources[sourceIndex].PreparedShaping == null
+                && OfficeTextElements.ContainsJoiningScript(logicalText)
+                ? string.Concat(logicalOrder.Select(static element => element.Text)) : null;
             var group = new InlineSegment(
                 sources[sourceIndex].PreparedShaping != null || needsShapingInput ? logicalText : text,
                 segmentWidth,
@@ -289,7 +294,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bidiResolved: sources[sourceIndex].PreparedShaping != null || !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress,
                 resolvedDirection: !providerContext ? null
-                    : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
+                    : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight,
+                contextualFallbackPaint: contextualFallback);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;
             lastGroups[sourceIndex] = group;
@@ -319,10 +325,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> elements = OfficeTextElements.Enumerate(group.Text).ToList();
+        string paint = group.ContextualFallbackPaint ?? group.Text;
+        IReadOnlyList<string> elements = OfficeTextElements.Enumerate(paint).ToList();
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
         bool hasContextualWidths = _fonts.TryMeasureTextElements(
-            group.Text,
+            paint,
             elements,
             effectiveFont.Size,
             effectiveFont.FamilyName,
@@ -369,17 +376,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct InlineDirectionalGroup {
-        internal InlineDirectionalGroup(string text, bool rightToLeft, double width, int logicalOrder) {
+        internal InlineDirectionalGroup(string text, bool rightToLeft, double width, int logicalOrder,
+            string? contextualFallbackPaint = null) {
             Text = text;
             RightToLeft = rightToLeft;
             Width = width;
             LogicalOrder = logicalOrder;
+            ContextualFallbackPaint = contextualFallbackPaint;
         }
 
         internal string Text { get; }
         internal bool RightToLeft { get; }
         internal double Width { get; }
         internal int LogicalOrder { get; }
+        internal string? ContextualFallbackPaint { get; }
     }
 
     private readonly struct InlineBidiElement {

@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<IntrinsicTextRun> PrepareConfiguredJoiningIntrinsicRuns(IReadOnlyList<IntrinsicTextRun> runs) {
-        if (_options.TextShapingProvider == null || runs.Count == 0) return runs;
+        if (runs.Count == 0) return runs;
         var sources = new List<HtmlInlineRun>(runs.Count);
         foreach (IntrinsicTextRun run in runs) {
             bool boundary = run.IsParagraphStart || run.IsForcedBreak || run.IsReplaced;
@@ -20,10 +20,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int offset = 0;
             foreach (PreparedInlineSlice slice in slices) {
                 if (slice.Offset > offset) result.Add(new IntrinsicTextRun(run.Text.Substring(offset, slice.Offset - offset), run.Style, textTransformPending: false));
-                result.Add(new IntrinsicTextRun(slice.Shaping.Text, run.Style, textTransformPending: false) {
-                    PreparedShaping = slice.Shaping
+                result.Add(new IntrinsicTextRun(slice.Shaping?.Text ?? run.Text.Substring(slice.Offset, slice.Length), run.Style, textTransformPending: false) {
+                    PreparedShaping = slice.Shaping,
+                    PreserveContextualFallback = slice.Shaping == null
                 });
-                offset = slice.Offset + slice.Shaping.Text.Length;
+                offset = slice.Offset + slice.Length;
             }
             if (offset < run.Text.Length) result.Add(new IntrinsicTextRun(run.Text.Substring(offset), run.Style, textTransformPending: false));
         }

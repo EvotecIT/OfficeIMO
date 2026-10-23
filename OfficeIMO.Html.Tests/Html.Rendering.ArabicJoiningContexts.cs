@@ -18,8 +18,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText meem = Assert.Single(text, item => item.Color == OfficeColor.Red);
         HtmlRenderText[] remainder = text.Where(item => item.Color == OfficeColor.Blue).ToArray();
 
-        Assert.Equal("\uFEE3", meem.Text);
-        Assert.Equal("\uFE8E\uFE92\uFEA3\uFEAE", string.Concat(remainder.OrderBy(item => item.X).Select(item => item.Text)));
+        Assert.Equal(ArabicContextGlyphIds("\uFEE3"), ArabicContextPaintedGlyphIds(new[] { meem }));
+        Assert.Equal(ArabicContextGlyphIds("\uFE8E\uFE92\uFEA3\uFEAE"), ArabicContextPaintedGlyphIds(remainder));
         Assert.Equal(ArabicContextWord, rendered.Text.Trim());
         Assert.All(text, item => Assert.Equal("https://example.com/arabic", item.LinkUri));
         Assert.All(text, item => Assert.Equal(ManagedTextShapingTestAssets.FamilyName, item.Font.FamilyName));
@@ -47,8 +47,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, ArabicContextBox(plain).Width, 6);
         Assert.Equal(expected, ArabicContextText(rendered).Sum(item => item.TextAdvanceWidth ?? 0D), 6);
         Assert.Equal(ArabicContextWord, rendered.Text.Trim());
-        Assert.Equal(new string(ArabicContextForms.Reverse().ToArray()),
-            string.Concat(ArabicContextText(rendered).OrderBy(item => item.X).Select(item => item.Text)));
+        Assert.Equal(ArabicContextGlyphIds(new string(ArabicContextForms.Reverse().ToArray())),
+            ArabicContextPaintedGlyphIds(ArabicContextText(rendered)));
         if (firstLine) Assert.All(ArabicContextText(rendered), item => Assert.Equal(OfficeColor.Green, item.Color));
         rendered.RequireNoLoss();
     }
@@ -62,23 +62,38 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderArabicContext("<span style='color:red'>م</span>" + separator
             + "<span style='color:blue'>رحبا</span>");
         HtmlRenderText[] text = ArabicContextText(rendered).ToArray();
-        Assert.Contains(text, item => item.Text.Contains('\uFEE1'));
-        Assert.Contains(text, item => item.Text.Contains('\uFEAD'));
-        Assert.DoesNotContain(text, item => item.Text.Contains('\uFEE3') || item.Text.Contains('\uFEAE'));
+        Assert.Equal(ArabicContextGlyphIds("\uFEE1"),
+            ArabicContextPaintedGlyphIds(text.Where(item => item.Color == OfficeColor.Red)));
+        Assert.Equal(ArabicContextGlyphIds("\uFE8E\uFE92\uFEA3\uFEAD"),
+            ArabicContextPaintedGlyphIds(text.Where(item => item.Color == OfficeColor.Blue)));
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ArabicContextFont())!;
+        Assert.Equal(font.Measure("\uFEE1", 20D),
+            text.Where(item => item.Color == OfficeColor.Red).Sum(item => item.TextAdvanceWidth ?? 0D), 6);
+        Assert.Equal(font.Measure("\uFEAD\uFEA3\uFE92\uFE8E", 20D),
+            text.Where(item => item.Color == OfficeColor.Blue).Sum(item => item.TextAdvanceWidth ?? 0D), 6);
         Assert.Equal(ArabicContextWord, OfficeArabicTextShaper.ToLogicalText(rendered.Text)
             .Replace(" ", string.Empty).Replace("\u200C", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Trim());
+        Assert.True(!rendered.HasLoss, string.Join(" | ", rendered.Diagnostics.Select(item => item.Source + ":" + item.Detail)));
         rendered.RequireNoLoss();
     }
 
-    [Fact]
-    public void HtmlArabicJoining_TransparentJoinerAndMarkRemainInLogicalSource() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlArabicJoining_TransparentJoinerAndMarkRemainInLogicalSource(bool followingWord) {
         const string logical = "م\u064E\u200Dرحبا";
+        string suffix = followingWord ? " " + ArabicContextWord : string.Empty;
         HtmlRenderDocument rendered = RenderArabicContext("<span style='color:red'>م\u064E\u200D</span>"
-            + "<span style='color:blue'>رحبا</span>");
-        string painted = string.Concat(ArabicContextText(rendered).Select(item => item.Text));
-        Assert.Contains('\uFEE3', painted);
-        Assert.Contains('\uFEAE', painted);
-        Assert.Equal(logical, rendered.Text.Trim());
+            + "<span style='color:blue'>رحبا" + suffix + "</span>");
+        HtmlRenderText[] text = ArabicContextText(rendered).ToArray();
+        int[] painted = ArabicContextPaintedGlyphIds(text.Where(item => item.PreparedShaping == null));
+        Assert.Contains(Assert.Single(ArabicContextGlyphIds("\uFEE3")), painted);
+        Assert.Contains(Assert.Single(ArabicContextGlyphIds("\uFEAE")), painted);
+        // The declined complete context retains both styled pieces. A later
+        // word in the same source run can still keep its accepted glyphs.
+        if (followingWord) Assert.True(text.Any(item => item.PreparedShaping?.Text.Trim() == ArabicContextWord),
+            string.Join(" | ", text.Select(item => "Paint=" + item.Text + "; Prepared=" + (item.PreparedShaping?.Text ?? "<none>"))));
+        Assert.Equal(logical + suffix, rendered.Text.Trim());
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -105,7 +120,24 @@ public sealed partial class HtmlRenderingTests {
         foreach (char scalar in ArabicContextWord + " \u064E\u200C\u200D") advances[scalar] = 700;
         foreach (char scalar in "\uFEE1\uFEAD\uFEA3\uFE92\uFE8E") advances[scalar] = 500;
         foreach (char scalar in ArabicContextForms) advances[scalar] = 200;
-        return ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(advances);
+        // These are ordinary positive joining fixtures. Whitespace and joiner
+        // controls must be nonpainting while their source and advances remain.
+        return ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(advances, new[] { 32, 0x200C, 0x200D });
+    }
+
+    // Inspect the glyphs actually carried into painting. Retained provider results
+    // keep logical scene text; the scalar fallback keeps presentation-form text.
+    private static int[] ArabicContextPaintedGlyphIds(IEnumerable<HtmlRenderText> text) =>
+        text.OrderBy(item => item.X).SelectMany(item => item.PreparedShaping != null
+            ? item.PreparedShaping.Result.Glyphs.Select(glyph => glyph.GlyphId)
+            : ArabicContextGlyphIds(item.Text)).ToArray();
+
+    private static int[] ArabicContextGlyphIds(string forms) {
+        IOfficeFontProgram font = OfficeTrueTypeFont.TryLoad(ArabicContextFont())!;
+        return forms.Select(scalar => {
+            Assert.True(font.TryGetGlyphMetrics(scalar, out int glyph, out _));
+            return glyph;
+        }).ToArray();
     }
 
     private static IEnumerable<HtmlRenderText> ArabicContextText(HtmlRenderDocument document) =>

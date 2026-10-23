@@ -2995,9 +2995,13 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported);
         HtmlDiagnostic[] shapingDiagnostics = rendered.Diagnostics.Where(diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported).ToArray();
-        Assert.Equal(2, shapingDiagnostics.Length);
-        Assert.All(new[] { "h2#arabic", "p#syriac" }, source => {
+        // This fixture has no admitted font-directed provider. Authored Arabic
+        // presentation forms are normalized for joining too; their unchanged
+        // scalar paint cannot claim complete OpenType shaping.
+        Assert.Equal(3, shapingDiagnostics.Length);
+        Assert.All(new[] { "h2#arabic", "p#authored", "p#syriac" }, source => {
             HtmlDiagnostic diagnostic = Assert.Single(shapingDiagnostics, item => item.Source == source);
+            Assert.Equal("provider-declined", diagnostic.Detail);
             Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         });
         Assert.DoesNotContain(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
@@ -3112,12 +3116,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderLogicalTextGroup group = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
             item => item.Text == "אבג" && item.Visuals.OfType<HtmlRenderText>().Any());
-        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
-        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+        HtmlRenderText[] text = group.Visuals.OfType<HtmlRenderText>().ToArray();
+        OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel);
 
-        Assert.Equal("גבא", text.Text);
-        Assert.Contains("גבא", svg, StringComparison.Ordinal);
-        Assert.Contains("unicode-bidi=\"bidi-override\"", svg, StringComparison.Ordinal);
+        Assert.Equal("גבא", PhysicalPaintedUnicode(text));
+        Assert.Equal("אבג", group.Text);
+        AssertSvgRetainsPaintedGlyphs(drawing, svg, "אבג");
         Assert.DoesNotContain("\u202D", svg, StringComparison.Ordinal);
     }
 
@@ -3153,17 +3158,22 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRenderer_CarriesBidiOverridesAcrossWrappedLines() {
         const string html = "<p style='margin:0;width:32px;font-size:12px'>\u202Eone two four\u202C</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
-            .OfType<HtmlRenderLogicalTextGroup>()
-            .ToList();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        var lines = text.GroupBy(item => item.Y).OrderBy(line => line.Key).ToArray();
 
-        Assert.Contains(groups, group =>
-            group.Text == "one" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "eno");
-        Assert.Contains(groups, group =>
-            group.Text == "two" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "owt");
-        Assert.Contains(groups, group =>
-            group.Text == "four" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "ruof");
+        // Logical groups may nest to retain both paragraph and directional source
+        // ownership. Inspect each actual painted leaf once, rather than counting
+        // equivalent ancestor containers as duplicate content.
+        Assert.Equal(new[] { "eno", "owt", "ruof" }, lines.Select(line => PhysicalPaintedUnicode(line).Trim()));
+        Assert.Equal(new[] { "one", "two", "four" }, rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions {
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Equal(new[] { "one", "two", "four" }, extracted.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     [Fact]

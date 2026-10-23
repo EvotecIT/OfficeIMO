@@ -141,9 +141,29 @@ public sealed partial class HtmlRenderingTests {
             item => item.Text == "\u05D0\u05D0\u05D0");
         IReadOnlyList<HtmlRenderText> glyphs = group.Visuals.OfType<HtmlRenderText>().ToList();
 
-        Assert.Equal(3, glyphs.Count);
+        Assert.NotEmpty(glyphs);
+        Assert.Equal(26D, group.Width, 6); // 3 * 500 units minus the two 100-unit kern pairs.
+        Assert.Equal(26D, glyphs.Sum(glyph => glyph.TextAdvanceWidth ?? 0D), 6);
         Assert.Equal(group.X, glyphs.Min(glyph => glyph.X), 6);
         Assert.Equal(group.X + group.Width, glyphs.Max(glyph => glyph.X + glyph.Width), 6);
+        var origins = new List<double>();
+        foreach (HtmlRenderText visual in glyphs.OrderBy(item => item.X)) {
+            if (visual.PreparedShaping is OfficePreparedTextShaping prepared) {
+                OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(prepared.Program);
+                OfficeTrueTypeFont.ShapedTextRun run = font.CreateShapedTextRun(prepared.Text, prepared.Result);
+                double cursor = visual.X;
+                foreach (OfficeTrueTypeFont.PositionedGlyph glyph in run._glyphs) {
+                    Assert.Equal(1, glyph.GlyphId);
+                    origins.Add(cursor + 20D * glyph.OffsetX / font.UnitsPerEm);
+                    cursor += 20D * glyph.AdvanceWidth / font.UnitsPerEm;
+                }
+            } else origins.Add(visual.X);
+        }
+        Assert.Collection(origins,
+            origin => Assert.Equal(0D, origin - group.X, 6),
+            origin => Assert.Equal(8D, origin - group.X, 6),
+            origin => Assert.Equal(16D, origin - group.X, 6));
+        rendered.RequireNoLoss();
     }
 
     [Fact]
@@ -183,17 +203,27 @@ public sealed partial class HtmlRenderingTests {
             });
         string svg = document.ToSvg(options);
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
-        Assert.True(OfficePngReader.TryDecode(document.ToPng(options), out OfficeRasterImage? pngRaster));
+        byte[] pngBytes = document.ToPng(options);
+        Assert.True(OfficePngReader.TryDecode(pngBytes, out OfficeRasterImage? pngRaster));
         foreach (HtmlRenderText run in textRuns) {
             Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName);
             Assert.True(FontFallbackRunHasInk(pngRaster!, run), run.Font.FamilyName);
         }
         byte[] pdf = document.ToPdfBytes(options);
-        Assert.Contains(emoji + "\u05D0" + emoji, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
+        Assert.Contains(emoji + "\u05D0" + emoji, read.ExtractText(), StringComparison.Ordinal);
+        Assert.Equal(pngBytes, Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,
+            new PdfCore.PdfImageExportOptions { Scale = 96D / 72D })).Bytes);
         PdfCore.PdfFontInventory inventory = PdfCore.PdfDocument.Load(pdf).Resources.Fonts();
-        Assert.Equal(2, inventory.EmbeddedFontCount);
         Assert.Contains(inventory.Fonts, font => font.FamilyName == "EmojiDemo-Regular" && font.IsEmbedded);
-        Assert.Contains(inventory.Fonts, font => font.FamilyName == "HebrewDemo-Regular" && font.IsEmbedded);
+        HtmlRenderText hebrew = Assert.Single(textRuns, run => run.Font.FamilyName == "Hebrew Demo");
+        if (hebrew.PreparedShaping is OfficePreparedTextShaping prepared) {
+            // Positioned glyph outlines carry this exact font directly; they do not
+            // need a second PDF text-font resource to repeat the same paint.
+            Assert.Equal(OfficeTrueTypeFont.TryLoad(hebrewFont)!.Fingerprint, prepared.Program.Fingerprint);
+            Assert.Single(prepared.Result.Glyphs);
+        } else Assert.Contains(inventory.Fonts, font => font.FamilyName == "HebrewDemo-Regular" && font.IsEmbedded);
+        rendered.RequireNoLoss();
     }
 
     private static bool FontFallbackRunHasInk(OfficeRasterImage image, HtmlRenderText run) {
