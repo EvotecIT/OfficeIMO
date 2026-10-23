@@ -7,6 +7,10 @@ analytical PDFs. It preserves the complete logical table, header associations,
 identifiers, page content and navigation. Smaller files alone do not satisfy the
 narrow-report memory target.
 
+The [latest source comparison](#lazy-inline-ownership-comparison) meets both
+narrow peak-RSS criteria in its fixed cohort. Earlier failed comparisons and
+their measured tradeoffs remain below with their exact source bindings.
+
 Run the maintained PowerForge suite from the repository root:
 
 ```powershell
@@ -544,3 +548,59 @@ as do all four warmups and twelve measured samples. The earlier source's faster
 cohort is not substituted for this result. Identical output and an unused PNG
 path do not prove the timing difference is noise or establish its cause. No
 universal speedup, performance-no-regression or constant-memory claim is made.
+
+## Export-contract repair comparison
+
+Source `a64cf0aa09ec54bb3ddb5998594c3ff47bc22f73`, runtime
+`5538e04884097a6a4033aa3337f5e8adf8a0e1deadbd7a9922f5bf3a561a2959`,
+passes all sixteen output validations in its one fixed normal-host cohort.
+Narrow mean/median peak RSS is 2.93%/5.38% above M8, so both criteria remain
+unmet for this source. Wide mean/median peak RSS is 8.30%/11.32% below M8.
+Narrow engine-time mean/median is 43.03%/34.98% lower; wide is 34.80%/31.94%
+lower. Output hashes and sizes remain unchanged from the integrated comparison.
+All four warmups and twelve measured samples are retained.
+
+These cases use an explicit borrowing byte sink; the repaired native
+`WritableStream` snapshot branch is not reached. The rendered-text budget helper
+returns the original text because these cases do not set `maxTextCharacters`.
+The comparison does not attribute its RSS result to either repair. Sampled heap
+and external maxima do not decompose the RSS difference, and background load
+alone does not establish a cause. This failed cohort is not repeated unchanged.
+
+## Lazy inline ownership comparison
+
+Scalar text lines no longer allocate an empty ownership map. The map is created
+only in the existing tagged `actualText` path, which retains logical-order marked
+content and links before visual-order painting. This is a removable common cost,
+not an M9-introduced regression: the earlier emitted method is byte-identical
+across M8, the retained table-presentation profile and the repaired source.
+
+Those actual profiles sampled 11.56 MB and 11.98 MB of direct map allocation
+traffic beneath `inline`, including collected objects. A separate diagnostic
+using the canonical narrow input counts 61,158 unpopulated maps before the change
+and zero afterward. Both diagnostic PDFs remain byte-for-byte identical to the
+independently validated 9,163,300-byte workload. Instrumentation exists only in
+private copies, and its timings or memory are not acceptance measurements.
+All 524 ordinary and 65 focused shaping, structure, table, band, grouped,
+streaming and document tests pass.
+
+Source `a547cbb0cbb3e6b85baad21d530b4dae144e8564`, runtime
+`5cb3e153d6de0821e6f4a517701c7e4a0107aa05e8ecb20d725daf8a3397fbab`,
+passes all sixteen output validations in one new fixed normal-host cohort.
+
+| Workload | Peak RSS mean / median vs M8 | Engine time mean / median vs M8 | File size vs M8 |
+| --- | --- | --- | --- |
+| Six-column tagged, 10,000 rows | 1.28% / 2.11% lower | 34.02% / 31.47% lower | 35.00% smaller |
+| Twenty-column tagged, 10,000 rows | 14.85% / 14.43% lower | 5.10% / 1.98% higher | 36.23% smaller |
+
+Both narrow peak-RSS criteria are met in this cohort. Narrow sampled heap
+mean/median is 7.51%/10.44% lower; sampled external memory is 10.14%/0.14%
+higher. Wide sampled heap is 13.38%/12.37% lower, while sampled external memory
+is 25.20%/24.09% higher. These memory layers remain separate and nonadditive.
+The files retain the exact earlier hashes, at 9,163,300 and 28,185,805 bytes.
+
+Every sample remains included, including the wide engine-time loss. The preceding
+failed source and earlier faster cohorts are not substituted or pooled. The
+allocation-count change does not isolate its contribution to RSS; one normal-host
+n=3 comparison does not establish a universal speedup, performance-no-regression
+or constant-memory guarantee.
