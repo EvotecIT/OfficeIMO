@@ -63,11 +63,13 @@ public sealed class WordNativeCompressionAdmissionTests {
             PageSize = new PageSize(owner == "table" ? 300D : width + 60D, 300D), Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         Assert.Empty(document.ValidateDocument());
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
-        Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, "word-" + owner + "-" + alignment + "-" + width.ToString("F3", CultureInfo.InvariantCulture) + ".pdf");
-        File.WriteAllBytes(path, bytes);
-        using var pdf = PdfPigDocument.Open(path);
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            Directory.CreateDirectory(output!);
+            File.WriteAllBytes(Path.Combine(output!, "word-" + owner + "-" + alignment + "-"
+                + width.ToString("F3", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
+        }
+        using var pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPages().SelectMany(page => page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).Select(line => line.OrderBy(letter => letter.StartBaseLine.X).ToList())).ToList();
     }

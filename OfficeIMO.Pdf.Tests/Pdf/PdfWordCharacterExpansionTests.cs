@@ -136,11 +136,12 @@ namespace OfficeIMO.Tests.Pdf {
             for (int index = 0; index < natural.Length; index++) Assert.Equal(natural[index].Width, actual[index].Width, 3);
         }
         private static Letter[] Read(byte[] bytes, string label) {
-            string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
-            Directory.CreateDirectory(directory);
-            string path = Path.Combine(directory, "character-expansion-" + label + ".pdf");
-            File.WriteAllBytes(path, bytes);
-            using var pdf = PdfPigDocument.Open(path);
+            string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+            if (!string.IsNullOrWhiteSpace(output)) {
+                Directory.CreateDirectory(output!);
+                File.WriteAllBytes(Path.Combine(output!, "character-expansion-" + label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
+            }
+            using var pdf = PdfPigDocument.Open(bytes);
             Assert.Equal(1, pdf.NumberOfPages);
             return pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .OrderBy(letter => letter.StartBaseLine.X).ToArray();

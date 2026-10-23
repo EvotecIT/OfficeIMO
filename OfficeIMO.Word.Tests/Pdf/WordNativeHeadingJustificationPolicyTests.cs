@@ -53,9 +53,7 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
             }).ToBytes();
             Assert.Equal(authoredDocument, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
             Assert.Equal(authoredStyles, document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
-            string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
-            Directory.CreateDirectory(directory);
-            File.WriteAllBytes(Path.Combine(directory, "heading-fallback-" + alignment + "-" + inherited + "-" + leftControl + ".pdf"), bytes);
+            RetainEvidence(bytes, "heading-fallback-" + alignment + "-" + inherited + "-" + leftControl);
             using var pdf = PdfPigDocument.Open(bytes);
             List<Letter> letters = Assert.Single(pdf.GetPages()).Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToList();
@@ -113,14 +111,19 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
             PageSize = new PageSize(300D, 300D), Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
-        Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, "heading-policy-" + scenario + "-" + (heading ? "heading" : "body") + "-" + (left ? "left" : "source") + ".pdf");
-        File.WriteAllBytes(path, bytes);
-        using var pdf = PdfPigDocument.Open(path);
+        RetainEvidence(bytes, "heading-policy-" + scenario + "-" + (heading ? "heading" : "body") + "-" + (left ? "left" : "source"));
+        using var pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPages().SelectMany(page => page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).OrderByDescending(line => line.Key)
             .Select(line => line.OrderBy(letter => letter.StartBaseLine.X).ToList())).ToList();
+    }
+
+    private static void RetainEvidence(byte[] bytes, string label) {
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        string directory = output!;
+        Directory.CreateDirectory(directory);
+        File.WriteAllBytes(Path.Combine(directory, label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
     }
 
     private static W.Run Run(string text) => new(new W.RunProperties(

@@ -86,7 +86,13 @@ namespace OfficeIMO.Word {
                 isInTextBox: IsInTextBox(simpleField),
                 unsupportedParseDetails: parsed.Diagnostics);
 
-            findings.Add(new FieldInfoCandidate(sequence++, info, simpleField, simpleField.ChildElements.Count > 0));
+            // Range markers, proofing metadata and field data can occur without a
+            // cached result. A run (even an empty one), equation or content
+            // reference supplies result content, including inside inline wrappers.
+            bool hasStoredResult = simpleField.Descendants().Any(element =>
+                element is Run or ContentPart or SubDocumentReference ||
+                string.Equals(element.NamespaceUri, WordMath.MathNamespace, StringComparison.Ordinal));
+            findings.Add(new FieldInfoCandidate(sequence++, info, simpleField, hasStoredResult));
         }
 
         private static void ProcessRun(

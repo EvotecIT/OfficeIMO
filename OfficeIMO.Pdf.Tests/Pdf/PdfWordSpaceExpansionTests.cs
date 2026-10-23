@@ -127,11 +127,12 @@ public sealed class PdfWordSpaceExpansionTests {
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
     private static double Gap(IReadOnlyList<Letter> letters, int left, int right) => letters[right].StartBaseLine.X - letters[left].EndBaseLine.X;
     private static List<Letter> Letters(byte[] bytes, string label) {
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
-        Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, "expansion-" + label + ".pdf");
-        File.WriteAllBytes(path, bytes);
-        using var pdf = PdfPigDocument.Open(path);
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            Directory.CreateDirectory(output!);
+            File.WriteAllBytes(Path.Combine(output!, "expansion-" + label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
+        }
+        using var pdf = PdfPigDocument.Open(bytes);
         return Assert.Single(pdf.GetPages().SelectMany(page => page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).Select(line => line.OrderBy(letter => letter.StartBaseLine.X).ToList())));
     }

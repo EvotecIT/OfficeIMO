@@ -46,6 +46,8 @@ public partial class Word {
     [Theory]
     [InlineData("complex-empty", true, "empty")]
     [InlineData("simple-empty", false, "empty")]
+    [InlineData("simple-empty-run", false, "empty-run")]
+    [InlineData("simple-wrapped-empty-run", false, "wrapped-empty-run")]
     [InlineData("complex-stored", true, "stored")]
     [InlineData("simple-stored", false, "stored")]
     public void SaveAsPdf_FieldCache_ExplicitEmptyAndStoredResultsDoNotReportMissingCache(
@@ -62,6 +64,45 @@ public partial class Word {
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains(cache == "stored" ? "BEFORESTOREDRESULTAFTER" : "BEFOREAFTER", visible, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("bookmark")]
+    [InlineData("proofing")]
+    [InlineData("wrapped-bookmark")]
+    public void SaveAsPdf_FieldCache_NonRenderingSimpleFieldChildrenStillReportMissingResult(string metadata) {
+        using WordDocument document = CreateFieldCacheDiagnosticDocument();
+        WordParagraph paragraph = document.AddParagraph("BEFORE");
+        var field = new W.SimpleField { Instruction = " LISTNUM CustomHeadings \\l 5 " };
+        switch (metadata) {
+            case "bookmark":
+                field.Append(new W.BookmarkStart { Id = "1", Name = "MissingFieldBookmark" }, new W.BookmarkEnd { Id = "1" });
+                break;
+            case "proofing":
+                field.Append(new W.ProofError { Type = W.ProofingErrorValues.SpellStart },
+                    new W.ProofError { Type = W.ProofingErrorValues.SpellEnd });
+                break;
+            case "wrapped-bookmark":
+                field.Append(new W.Hyperlink(new W.BookmarkStart { Id = "1", Name = "MissingFieldBookmark" },
+                    new W.BookmarkEnd { Id = "1" }));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(metadata));
+        }
+        paragraph._paragraph.Append(field, new W.Run(new W.Text("AFTER")));
+        Assert.Empty(document.ValidateDocument());
+        string sourceXml = paragraph._paragraph.OuterXml;
+
+        var result = document.ToPdfDocumentResult(FieldCacheDiagnosticOptions());
+        var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFieldResultUnavailable");
+        Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Contains("BEFOREAFTER", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)), StringComparison.Ordinal);
+        Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
     }
 
     [Theory]
@@ -315,7 +356,9 @@ public partial class Word {
             paragraph._paragraph.Append(Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
         } else {
             var field = new W.SimpleField { Instruction = instruction };
-            if (cache != "missing") field.Append(Run(new W.Text(cache == "stored" ? "STOREDRESULT" : string.Empty)));
+            if (cache == "empty-run") field.Append(Run());
+            else if (cache == "wrapped-empty-run") field.Append(new W.Hyperlink(Run()));
+            else if (cache != "missing") field.Append(Run(new W.Text(cache == "stored" ? "STOREDRESULT" : string.Empty)));
             paragraph._paragraph.Append(field);
         }
     }

@@ -145,8 +145,8 @@ public sealed class PdfWordCompressionAdmissionTests {
             new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
                 new PdfFlowColumn(PdfColumnWidth.Fixed(narrow), 20D), new PdfFlowColumn(PdfColumnWidth.Fixed(wide)) } });
         byte[] bytes = document.ToBytes();
-        string path = Save(bytes, "different-width-columns");
-        using var pdf = PdfPigDocument.Open(path);
+        RetainEvidence(bytes, "different-width-columns");
+        using var pdf = PdfPigDocument.Open(bytes);
         var lines = pdf.GetPages().SelectMany(page => page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => (Column: letter.StartBaseLine.X > 20D + narrow ? 1 : 0, Y: Math.Round(letter.StartBaseLine.Y, 2)))
             .Select(group => (group.Key.Column, Letters: group.OrderBy(letter => letter.StartBaseLine.X).ToList()))).ToList();
@@ -185,15 +185,16 @@ public sealed class PdfWordCompressionAdmissionTests {
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
     private static double Gap(IReadOnlyList<Letter> letters, int left, int right) => letters[right].StartBaseLine.X - letters[left].EndBaseLine.X;
     private static List<List<Letter>> Lines(byte[] bytes, string label) {
-        using var pdf = PdfPigDocument.Open(Save(bytes, label));
+        RetainEvidence(bytes, label);
+        using var pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPages().SelectMany(page => page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).Select(line => line.OrderBy(letter => letter.StartBaseLine.X).ToList())).ToList();
     }
-    private static string Save(byte[] bytes, string label) {
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-compression-evidence");
+    private static void RetainEvidence(byte[] bytes, string label) {
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        string directory = output!;
         Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, label + ".pdf");
-        File.WriteAllBytes(path, bytes);
-        return path;
+        File.WriteAllBytes(Path.Combine(directory, "compression-" + label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
     }
 }
