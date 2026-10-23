@@ -62,7 +62,11 @@ if (-not $previousDevelopmentFlag -and (Test-Path -LiteralPath $developmentOutpu
 
 try {
     Import-Module $PrimaryModule.FullName -Force -Global -ErrorAction Stop
-    Import-Module Pester -Force -ErrorAction Stop
+    if ($env:PESTER_VERSION) {
+        Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force -ErrorAction Stop
+    } else {
+        Import-Module Pester -Force -ErrorAction Stop
+    }
 } catch {
     throw "Failed to import module $ModuleName"
 } finally {

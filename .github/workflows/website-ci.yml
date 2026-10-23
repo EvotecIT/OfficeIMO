@@ -2,20 +2,8 @@ name: Website Build (PR)
 
 on:
   pull_request:
-    paths:
-      - "Website/**"
-      - "PowerShell/PSWriteOffice/**"
-      - "Build/Build-Module.ps1"
-      - "Build/Build-Release.ps1"
-      - "OfficeIMO.*/**"
-      - "Directory.Build.*"
-      - "global.json"
-      - "Docs/Compatibility/generated/**"
-      - "Build/CompatibilityCatalog/**"
-      - "Build/WebsiteBrowserContract/**"
-      - ".agents/plugins/**"
-      - "Docs/ROADMAP.md"
-      - ".github/workflows/website-ci.yml"
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
   workflow_dispatch:
 
 concurrency:
@@ -28,7 +16,22 @@ permissions:
   packages: read
 
 jobs:
+  changes:
+    name: Select affected website contracts
+    runs-on: ubuntu-latest
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: select
+        uses: ./.github/actions/contract-selection
+        with:
+          suite: website
   website-build:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
     with:
       website_root: Website

@@ -1,0 +1,32 @@
+name: Cache ordinary NuGet restores
+description: Resolve the configured package directory without changing isolated consumer caches.
+runs:
+  using: composite
+  steps:
+    - id: packages
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $location = dotnet nuget locals global-packages --list
+        if ($LASTEXITCODE -ne 0) { throw 'Could not resolve the NuGet package cache.' }
+        $path = ($location -replace '^global-packages:\s*', '').Trim()
+        if (-not $path) { throw 'NuGet returned an empty package cache path.' }
+        "path=$path" >> $env:GITHUB_OUTPUT
+    # Only complete default-branch builds populate the common immutable key.
+    # A fast small suite must not win the first save with a partial cache.
+    - if: github.event_name != 'pull_request' && (github.job == 'build-matrix' || github.job == 'test-macos-matrix')
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.packages.outputs.path }}
+        key: ${{ runner.os }}-${{ runner.arch }}-nuget-v2-${{ hashFiles('global.json', '**/*.csproj', '**/*.props', '**/*.targets', '**/NuGet.Config', '**/nuget.config') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-nuget-v2-
+          ${{ runner.os }}-nuget-
+    - if: github.event_name == 'pull_request' || (github.job != 'build-matrix' && github.job != 'test-macos-matrix')
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.packages.outputs.path }}
+        key: ${{ runner.os }}-${{ runner.arch }}-nuget-v2-${{ hashFiles('global.json', '**/*.csproj', '**/*.props', '**/*.targets', '**/NuGet.Config', '**/nuget.config') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-nuget-v2-
+          ${{ runner.os }}-nuget-

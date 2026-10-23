@@ -1,0 +1,27 @@
+name: Multilingual fixture fonts
+description: Cache extracted Ubuntu font data; install no system packages on a cache hit.
+runs:
+  using: composite
+  steps:
+    - id: fonts
+      uses: actions/cache@v6
+      with:
+        path: ~/.local/share/fonts/officeimo-ci
+        key: fixture-fonts-v1-ubuntu-24.04-${{ hashFiles('.github/actions/fixture-fonts/packages.txt') }}
+    - if: steps.fonts.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        work="$(mktemp -d "$RUNNER_TEMP/officeimo-fonts.XXXXXX")"
+        trap 'rm -rf -- "$work"' EXIT
+        cd "$work"
+        sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+        xargs -r apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 download < "$GITHUB_ACTION_PATH/packages.txt"
+        mkdir -p "$HOME/.local/share/fonts/officeimo-ci"
+        for package in ./*.deb; do dpkg-deb --extract "$package" extracted; done
+        cp -R extracted/usr/share/fonts/. "$HOME/.local/share/fonts/officeimo-ci/"
+    - shell: bash
+      run: |
+        set -euo pipefail
+        test -n "$(find "$HOME/.local/share/fonts/officeimo-ci" -type f -print -quit)"
+        fc-cache -f "$HOME/.local/share/fonts/officeimo-ci"

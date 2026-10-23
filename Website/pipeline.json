@@ -24,7 +24,7 @@
         "-NoLogo",
         "-NoProfile",
         "-Command",
-        "if (-not (Get-Module -ListAvailable PSPublishModule | Where-Object Version -ge ([version]'3.0.170'))) { Install-Module PSPublishModule -MinimumVersion 3.0.170 -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
+        "& ../Build/Ci/Save-PowerShellTools.ps1 -ModuleRoot (($env:PSModulePath -split [IO.Path]::PathSeparator)[0]) -Tool PSPublishModule"
       ],
       "workingDirectory": "."
     },
