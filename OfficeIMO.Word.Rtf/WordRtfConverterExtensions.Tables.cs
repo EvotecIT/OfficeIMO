@@ -55,7 +55,7 @@ public static partial class WordRtfConverterExtensions {
         int? cellGap = GetWordTableCellGap(source);
         int? tableLeftIndent = GetWordTableLeftIndent(source);
         if (cellGap.HasValue) {
-            tableLeftIndent = (tableLeftIndent ?? 0) - cellGap.Value;
+            tableLeftIndent = (tableLeftIndent ?? 0) - GetWordTableGapIndentAdjustment(source, cellGap.Value);
         }
         int? tableLeftPadding = cellGap.HasValue ? null : GetWordTableLeftPadding(source);
         int? tableRightPadding = cellGap.HasValue ? null : GetWordTableRightPadding(source);
@@ -239,9 +239,15 @@ public static partial class WordRtfConverterExtensions {
             (indentation.Type?.Value != TableWidthUnitValues.Dxa || indentation.Width == null)) {
             return null;
         }
-        long sourceIndent = (long)(indentation?.Width?.Value ?? 0) - left.Value;
+        long sourceIndent = (long)(indentation?.Width?.Value ?? 0) - GetWordTableGapIndentAdjustment(table, left.Value);
         return sourceIndent >= int.MinValue && sourceIndent <= int.MaxValue ? left : null;
     }
+
+    /// <summary>Legacy Word placement offsets the inline grid by its leading cell margin; modern placement does not.</summary>
+    private static int GetWordTableGapIndentAdjustment(WordTable table, int gap) =>
+        table.Document.SourceFormat == WordFileFormat.Doc ||
+        (int)table.Document.CompatibilitySettings.CompatibilityMode < (int)WordCompatibilityMode.Word2013
+            ? gap : 0;
 
     private static int? GetWordTableLeftPadding(WordTable table) {
         TableCellLeftMargin? margin = table._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin;
@@ -284,7 +290,7 @@ public static partial class WordRtfConverterExtensions {
             (!sourceIndent.HasValue && !gap.HasValue)) {
             return;
         }
-        long indent = (long)(sourceIndent ?? 0) + (gap ?? 0);
+        long indent = (long)(sourceIndent ?? 0) + GetWordTableGapIndentAdjustment(destination, gap ?? 0);
         if (indent < int.MinValue || indent > int.MaxValue) {
             return;
         }

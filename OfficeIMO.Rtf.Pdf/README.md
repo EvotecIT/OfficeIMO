@@ -14,6 +14,8 @@ Equal-width section columns flow through the shared PDF layout engine, including
 
 ## Paragraph layout
 
+Pair kerning is disabled unless a run supplies a positive `KerningHalfPoints` threshold. The threshold is expressed in half-points; kerning applies when the effective font size meets or exceeds it. The size includes inherited RTF formatting or the PDF default when no run size resolves. Source `\kerning0` disables kerning.
+
 PDF export distinguishes minimum, exact, and multiple line spacing using the [RTF sign and unit rules](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). Body paragraphs, individual table-cell paragraphs, and appended note paragraphs retain supported alignment, indents, before/after spacing, line spacing, and tab stops. An ordinary RTF paragraph without after-spacing does not acquire the PDF builder's convenience gap.
 
 RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.

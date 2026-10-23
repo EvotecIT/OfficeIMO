@@ -74,6 +74,49 @@ public partial class RichParagraphWrappingTests {
         Assert.True(after.Letters[0].StartBaseLine.Y > next.Letters[0].StartBaseLine.Y);
     }
 
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Collapse, false)]
+    [InlineData(PdfTextWhitespaceMode.Collapse, true)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, true)]
+    public void ParagraphTabs_SpaceBeforeNextTabRetainsBothLeaders(
+        PdfTextWhitespaceMode whitespace, bool followingText) {
+        const double margin = 36D, firstStop = 72D, secondStop = 216D;
+        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0D };
+        style.AddTabStop(firstStop, leader: PdfTabLeaderStyle.Dots);
+        style.AddTabStop(secondStop, leader: PdfTabLeaderStyle.Underscores);
+        PdfOptions options = TrailingTabOptions();
+        options.DefaultFont = PdfStandardFont.Courier;
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => {
+            p.Text("A").Tab().Text(" ").Tab();
+            if (followingText) p.Text("B");
+        }, style: style).ToBytes();
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var page = Assert.Single(pdf.GetPages());
+        var a = Assert.Single(page.Letters, letter => letter.Value == "A");
+        var dots = page.Letters.Where(letter => letter.Value == ".").ToArray();
+        var underscores = page.Letters.Where(letter => letter.Value == "_")
+            .OrderBy(letter => letter.StartBaseLine.X).ToArray();
+        Assert.NotEmpty(dots);
+        Assert.NotEmpty(underscores);
+        Assert.Equal(margin, a.StartBaseLine.X, 2);
+        double monospaceAdvance = a.EndBaseLine.X - a.StartBaseLine.X;
+        Assert.True(monospaceAdvance > 0D);
+        double expectedStart = margin + firstStop +
+            (whitespace == PdfTextWhitespaceMode.Collapse ? 0D : monospaceAdvance);
+        Assert.Equal(expectedStart, underscores[0].StartBaseLine.X, 2);
+        Assert.All(dots.Concat(underscores), letter => Assert.Equal(a.StartBaseLine.Y, letter.StartBaseLine.Y, 2));
+        Assert.Equal(followingText ? "AB" : "A", string.Concat(page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value) && letter.Value != "." && letter.Value != "_")
+            .Select(letter => letter.Value)));
+        if (followingText) {
+            var b = Assert.Single(page.Letters, letter => letter.Value == "B");
+            Assert.Equal(margin + secondStop, b.StartBaseLine.X, 2);
+            Assert.Equal(a.StartBaseLine.Y, b.StartBaseLine.Y, 2);
+        }
+    }
+
     private static PdfOptions TrailingTabOptions() => new PdfOptions {
         PageWidth = 360D, PageHeight = 220D,
         MarginLeft = 36D, MarginRight = 36D, MarginTop = 36D, MarginBottom = 36D,

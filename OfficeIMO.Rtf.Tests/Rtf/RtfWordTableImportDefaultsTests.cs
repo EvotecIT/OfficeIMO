@@ -13,7 +13,7 @@ public class RtfWordTableImportDefaultsTests {
     [Theory]
     [InlineData(0)]
     [InlineData(300)]
-    public void Rtf_To_Word_Import_Persists_Native_Gap_Profile(int gapTwips) {
+    public void Rtf_To_Word_Import_Persists_Modern_Gap_Profile(int gapTwips) {
         RtfDocument source = RtfDocument.Load(GapFixturePath(gapTwips, ".rtf"));
         RtfTable sourceTable = Assert.Single(source.Blocks.OfType<RtfTable>());
         Assert.Equal(gapTwips, Assert.Single(sourceTable.Rows).CellGapTwips);
@@ -25,7 +25,8 @@ public class RtfWordTableImportDefaultsTests {
         XElement table = Assert.Single(document.Descendants(W + "tbl"));
 
         AssertNeutralTable(table);
-        AssertGapProperties(table, gapTwips);
+        Assert.Equal(WordCompatibilityMode.Word2013, mapped.CompatibilitySettings.CompatibilityMode);
+        AssertGapProperties(table, gapTwips, expectedIndentTwips: 0);
         XElement cell = Assert.Single(table.Descendants(W + "tc"));
         Assert.Null(cell.Element(W + "tcPr")?.Element(W + "tcMar")?.Element(W + "left"));
         Assert.Null(cell.Element(W + "tcPr")?.Element(W + "tcMar")?.Element(W + "right"));
@@ -43,6 +44,7 @@ public class RtfWordTableImportDefaultsTests {
         AssertGapProperties(nativeTable, gapTwips);
         using var fixtureStream = new MemoryStream(fixture, writable: false);
         using WordDocument native = WordDocument.Load(fixtureStream);
+        Assert.Equal(WordCompatibilityMode.Word2003, native.CompatibilitySettings.CompatibilityMode);
 
         RtfDocument converted = native.ToRtfDocument();
         IEnumerable<IRtfBlock> blocks = converted.Sections.Count > 0
@@ -59,7 +61,7 @@ public class RtfWordTableImportDefaultsTests {
 
         using WordDocument returned = converted.ToWordDocument();
         XElement returnedTable = Assert.Single(ReadPart(returned.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
-        AssertGapProperties(returnedTable, gapTwips);
+        AssertGapProperties(returnedTable, gapTwips, expectedIndentTwips: 0);
         Assert.Equal(ExpectedCellText, WithoutWhiteSpace(string.Concat(returnedTable.Descendants(W + "t").Select(item => item.Value))));
     }
 
@@ -135,7 +137,7 @@ public class RtfWordTableImportDefaultsTests {
         using WordDocument mapped = source.ToWordDocument();
         XElement table = Assert.Single(ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         XElement[] cells = table.Elements(W + "tr").SelectMany(item => item.Elements(W + "tc")).ToArray();
-        AssertGapProperties(table, 300);
+        AssertGapProperties(table, 300, expectedIndentTwips: 0);
         AssertEffectiveMargins(table, cells[0], 60, 180, 80, 240);
         AssertEffectiveMargins(table, cells[1], 60, 90, 80, 110);
         AssertEffectiveMargins(table, cells[2], 0, 0, 0, 0);
@@ -192,7 +194,7 @@ public class RtfWordTableImportDefaultsTests {
 
     private static string WithoutWhiteSpace(string value) => new string(value.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
-    private static void AssertGapProperties(XElement table, int gapTwips) {
+    private static void AssertGapProperties(XElement table, int gapTwips, int? expectedIndentTwips = null) {
         XElement properties = table.Element(W + "tblPr")!;
         Assert.NotNull(properties);
         Assert.Null(properties.Element(W + "tblCellSpacing"));
@@ -201,11 +203,12 @@ public class RtfWordTableImportDefaultsTests {
         AssertMargin(margins, "left", gapTwips);
         AssertMargin(margins, "right", gapTwips);
         XElement? indentation = properties.Element(W + "tblInd");
-        if (gapTwips == 0) {
+        int expectedIndent = expectedIndentTwips ?? gapTwips;
+        if (expectedIndent == 0) {
             Assert.Null(indentation);
         } else {
             Assert.NotNull(indentation);
-            Assert.Equal(gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture), (string?)indentation!.Attribute(W + "w"));
+            Assert.Equal(expectedIndent.ToString(System.Globalization.CultureInfo.InvariantCulture), (string?)indentation!.Attribute(W + "w"));
             Assert.Equal("dxa", (string?)indentation.Attribute(W + "type"));
         }
     }

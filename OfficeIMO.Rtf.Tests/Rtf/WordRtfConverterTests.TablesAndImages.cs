@@ -46,8 +46,8 @@ public partial class WordRtfConverterTests {
                 Assert.Equal("B2", rtfTable.Rows[1].Cells[1].Paragraphs[0].ToPlainText());
                 Assert.Equal(300, rtfTable.Rows[0].CellGapTwips);
                 Assert.Equal(300, rtfTable.Rows[1].CellGapTwips);
-                Assert.Equal(720, rtfTable.Rows[0].LeftIndentTwips);
-                Assert.Equal(720, rtfTable.Rows[1].LeftIndentTwips);
+                Assert.Equal(1020, rtfTable.Rows[0].LeftIndentTwips);
+                Assert.Equal(1020, rtfTable.Rows[1].LeftIndentTwips);
                 Assert.Equal(1800, rtfTable.Rows[0].Cells[0].RightBoundaryTwips);
                 Assert.Equal(4800, rtfTable.Rows[0].Cells[1].RightBoundaryTwips);
                 Assert.Equal(RtfTableWidthUnit.Twips, rtfTable.Rows[0].Cells[0].PreferredWidthUnit);
@@ -58,7 +58,7 @@ public partial class WordRtfConverterTests {
             block => Assert.Equal("After", Assert.IsType<RtfParagraph>(block).ToPlainText()));
         Assert.Contains(@"\trowd", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trgaph300", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\trleft720", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trleft1020", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clftsWidth3\clwWidth1800\cellx1800", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clftsWidth3\clwWidth3000\cellx4800", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cellx1800", rtf, StringComparison.Ordinal);
@@ -123,7 +123,7 @@ public partial class WordRtfConverterTests {
         Assert.Null(wordTable._tableProperties?.TableCellSpacing);
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
-        Assert.Equal(1020, wordTable._tableProperties?.TableIndentation?.Width?.Value);
+        Assert.Equal(720, wordTable._tableProperties?.TableIndentation?.Width?.Value);
         Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[0].WidthType);
         Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width);
         Assert.False(wordTable.Rows[0].Cells[0].WrapText);

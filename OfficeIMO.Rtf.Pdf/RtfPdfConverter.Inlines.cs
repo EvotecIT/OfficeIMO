@@ -206,7 +206,7 @@ internal static partial class RtfPdfConverter {
         string? linkDestinationName = run.Hyperlink == null && linkUri == null ? inheritedLinkDestinationName : null;
         string? linkContents = (linkUri != null || linkDestinationName != null) && run.Hyperlink == null ? inheritedLinkContents : null;
 
-        runs.Add(new PdfCore.PdfTextRun(
+        var pdfRun = new PdfCore.PdfTextRun(
             text,
             bold: run.Bold,
             underline: run.Underline,
@@ -219,7 +219,13 @@ internal static partial class RtfPdfConverter {
             linkContents: linkContents,
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             linkDestinationName: linkDestinationName,
-            backgroundColor: background));
+            backgroundColor: background);
+        if (run.KerningHalfPoints is > 0) {
+            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize;
+            pdfRun = pdfRun.WithFeatureSettings(state.FontOptions.DefaultTextFeatureSettings.With("kern",
+                fontSize >= run.KerningHalfPoints.Value / 2D ? 1 : 0));
+        }
+        runs.Add(pdfRun);
     }
 
     private static void ReportUnsupportedRunFormatting(RtfRun run, RtfToPdfOptions options) {
@@ -237,7 +243,7 @@ internal static partial class RtfPdfConverter {
         if (run.CharacterShadingForegroundColorIndex.HasValue || run.CharacterShadingPatternPercent.HasValue
             || run.CharacterShadingPattern != RtfShadingPattern.None) features.Add("character-shading");
         if (run.CharacterBorder.HasAnyValue) features.Add("character-border");
-        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue || run.KerningHalfPoints.HasValue
+        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue
             || run.CharacterOffsetHalfPoints.HasValue) features.Add("character-metrics");
         if (run.StyleId.HasValue || run.Direction.HasValue || run.LanguageId.HasValue) {
             features.Add("style-direction-or-language");

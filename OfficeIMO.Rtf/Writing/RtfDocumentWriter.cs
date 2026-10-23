@@ -20,7 +20,9 @@ internal static partial class RtfDocumentWriter {
         builder.Append(@"\deff");
         builder.Append((document.Settings.DefaultFontId ?? 0).ToString(CultureInfo.InvariantCulture));
         HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
-        if (document.Settings.NoteMode.HasValue || referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) {
+        if (!document.Settings.HasParsedNoteDefaults ||
+            document.Settings.NoteMode.HasValue ||
+            referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) {
             builder.Append(@"\fet");
             builder.Append(((int)document.Settings.EffectiveNoteMode).ToString(CultureInfo.InvariantCulture));
         }

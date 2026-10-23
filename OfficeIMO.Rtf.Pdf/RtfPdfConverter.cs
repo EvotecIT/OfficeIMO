@@ -14,6 +14,8 @@ internal static partial class RtfPdfConverter {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        // RTF leaves pair kerning disabled unless a run supplies a positive threshold.
+        pdfOptions.TextKerning = false;
         if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
             pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
         }
