@@ -24,6 +24,8 @@ function Assert-NoSourceLinks {
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Catalog.ps1')
 . (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Documentation.ps1')
+. (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Bundle.ps1')
+. (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Cache.ps1')
 
 function Resolve-RepoRoot {
     param([string] $SiteRootPath, [string] $RequestedRoot)
@@ -37,12 +39,27 @@ function Resolve-RepoRoot {
     return $resolved
 }
 
+function Resolve-PSWriteOfficeExamplesSource {
+    <# Empty or placeholder-only folders cannot replace fallback examples. #>
+    param([string[]] $Candidates)
+
+    foreach ($candidate in $Candidates) {
+        if (-not (Test-Path -LiteralPath $candidate -PathType Container)) { continue }
+        if (Get-ChildItem -LiteralPath $candidate -Recurse -File -Force |
+                Where-Object { $_.Length -gt 0 -and $_.Extension -ieq '.ps1' } | Select-Object -First 1) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
 function Sync-DirectoryContents {
     param(
         [Parameter(Mandatory)]
         [string] $Source,
         [Parameter(Mandatory)]
-        [string] $Destination
+        [string] $Destination,
+        [switch] $PreserveExamples
     )
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -50,6 +67,8 @@ function Sync-DirectoryContents {
     $existing = Get-ChildItem -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue |
         Sort-Object FullName -Descending
     foreach ($item in $existing) {
+        $relativePath = [System.IO.Path]::GetRelativePath($Destination, $item.FullName)
+        if ($PreserveExamples -and ($relativePath -split '[\\/]')[0] -eq 'examples') { continue }
         if ($item.Name -eq '.gitkeep') {
             continue
         }
@@ -60,6 +79,7 @@ function Sync-DirectoryContents {
     $sourceItems = Get-ChildItem -LiteralPath $Source -Recurse -Force -ErrorAction SilentlyContinue
     foreach ($item in $sourceItems) {
         $relativePath = [System.IO.Path]::GetRelativePath($Source, $item.FullName)
+        if ($PreserveExamples -and ($relativePath -split '[\\/]')[0] -eq 'examples') { continue }
         if ([string]::IsNullOrWhiteSpace($relativePath) -or $relativePath -eq '.') {
             continue
         }
@@ -73,96 +93,6 @@ function Sync-DirectoryContents {
         New-Item -ItemType Directory -Path (Split-Path -Parent $targetPath) -Force | Out-Null
         Copy-Item -LiteralPath $item.FullName -Destination $targetPath -Force
     }
-}
-
-function Get-ManifestCommandNames {
-    param([Parameter(Mandatory)][string] $Path)
-
-    $manifest = Import-PowerShellDataFile -LiteralPath $Path
-    @($manifest.FunctionsToExport) + @($manifest.CmdletsToExport) |
-        Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -ne '*' } |
-        Sort-Object -Unique
-}
-
-function Get-HelpCommandNames {
-    param([Parameter(Mandatory)][string] $Path)
-
-    [xml] $help = Get-Content -LiteralPath $Path -Raw
-    @($help.helpItems.command) |
-        ForEach-Object { [string] $_.details.name } |
-        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-        Sort-Object -Unique
-}
-
-function Get-MetadataCommandNames {
-    param([Parameter(Mandatory)][string] $Path)
-
-    $metadata = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
-    @($metadata.commands) |
-        ForEach-Object { [string] $_.name } |
-        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-        Sort-Object -Unique
-}
-
-function Test-ApiBundle {
-    param(
-        [Parameter(Mandatory)][string] $ManifestPath,
-        [Parameter(Mandatory)][string] $HelpPath,
-        [Parameter(Mandatory)][string] $MetadataPath,
-        [Parameter(Mandatory)][string[]] $ExpectedCommands,
-        [Parameter(Mandatory)][version] $ExpectedVersion,
-        [Parameter(Mandatory)][string] $ExpectedSourceCommit
-    )
-
-    $bundleManifestPath = Join-Path (Split-Path -Parent $ManifestPath) 'bundle-manifest.json'
-    $paths = @($ManifestPath, $HelpPath, $MetadataPath, $bundleManifestPath)
-    $missing = @($paths | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
-    if ($missing.Count -gt 0) {
-        return [PSCustomObject]@{ Valid = $false; Reason = "missing: $($missing -join ', ')"; CommandCount = 0 }
-    }
-
-    try {
-        $provenance = Get-Content -LiteralPath $bundleManifestPath -Raw | ConvertFrom-Json
-        if ($provenance.schemaVersion -ne 1 -or $provenance.moduleName -cne 'PSWriteOffice' -or
-            [version]$provenance.moduleVersion -ne $ExpectedVersion -or $provenance.sourceCommit -cne $ExpectedSourceCommit) {
-            return [PSCustomObject]@{ Valid = $false; Reason = 'bundle provenance does not match the pinned release'; CommandCount = 0 }
-        }
-        foreach ($component in @(
-            @{ Key = 'manifest'; Path = $ManifestPath },
-            @{ Key = 'help'; Path = $HelpPath },
-            @{ Key = 'metadata'; Path = $MetadataPath }
-        )) {
-            $evidence = $provenance.components.($component.Key)
-            if ($null -eq $evidence -or (Get-Item -LiteralPath $component.Path).Length -ne $evidence.bytes -or
-                (Get-FileHash -LiteralPath $component.Path -Algorithm SHA256).Hash -ine $evidence.sha256) {
-                return [PSCustomObject]@{ Valid = $false; Reason = "bundle $($component.Key) does not match its release fingerprint"; CommandCount = 0 }
-            }
-        }
-        $bundleManifest = Import-PowerShellDataFile -LiteralPath $ManifestPath
-        if ([version]$bundleManifest.ModuleVersion -ne $ExpectedVersion) {
-            return [PSCustomObject]@{ Valid = $false; Reason = "bundle version $($bundleManifest.ModuleVersion) does not match source version $ExpectedVersion"; CommandCount = 0 }
-        }
-        $sets = [ordered]@{
-            manifest = @(Get-ManifestCommandNames -Path $ManifestPath)
-            help = @(Get-HelpCommandNames -Path $HelpPath)
-            metadata = @(Get-MetadataCommandNames -Path $MetadataPath)
-        }
-    } catch {
-        return [PSCustomObject]@{ Valid = $false; Reason = "could not parse bundle: $($_.Exception.Message)"; CommandCount = 0 }
-    }
-
-    foreach ($entry in $sets.GetEnumerator()) {
-        $difference = @(Compare-Object -ReferenceObject $ExpectedCommands -DifferenceObject $entry.Value)
-        if ($difference.Count -gt 0) {
-            return [PSCustomObject]@{
-                Valid = $false
-                Reason = "$($entry.Key) covers $($entry.Value.Count) of $($ExpectedCommands.Count) authoritative commands"
-                CommandCount = $entry.Value.Count
-            }
-        }
-    }
-
-    [PSCustomObject]@{ Valid = $true; Reason = 'complete'; CommandCount = $ExpectedCommands.Count }
 }
 
 function Update-ApiBundleMetadataEvidence {
@@ -214,6 +144,37 @@ $resolvedRepoRoot = Resolve-RepoRoot -SiteRootPath $resolvedSiteRoot -RequestedR
 $sourceHead = (& git -C $resolvedRepoRoot rev-parse --verify HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the OfficeIMO source revision.' }
 $powerShellSource = @([pscustomobject]@{ Repo = 'EvotecIT/OfficeIMO'; Ref = $sourceHead })
+if (-not $ExportedArtifactsRoot) {
+    Assert-NoSourceLinks -Root $resolvedRepoRoot
+    foreach ($snapshotRoot in @('data/apidocs/powershell', 'content/docs/pswriteoffice')) {
+        $snapshotPath = Join-Path $resolvedSiteRoot $snapshotRoot
+        if (Test-Path -LiteralPath $snapshotPath) { Assert-NoSourceLinks -Root $snapshotPath }
+    }
+    if (Test-CurrentPSWriteOfficeSnapshot -RepositoryRoot $resolvedRepoRoot -SiteRoot $resolvedSiteRoot `
+            -SourceCommit $sourceHead -SkipDocumentation:$SkipDocumentation) {
+        $examplesSource = if (-not $SkipExamples) {
+            Resolve-PSWriteOfficeExamplesSource -Candidates @((Join-Path $resolvedRepoRoot 'Examples'))
+        }
+        $updateExamples = -not [string]::IsNullOrWhiteSpace($examplesSource)
+        if ($updateExamples) {
+            Sync-DirectoryContents -Source $examplesSource `
+                -Destination (Join-Path $resolvedSiteRoot 'data/apidocs/powershell/examples')
+        }
+        $producer = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'data/apidocs/powershell/bundle-manifest.json') -Raw | ConvertFrom-Json
+        return [pscustomobject]@{
+            siteRoot = $resolvedSiteRoot
+            repoRoot = $resolvedRepoRoot
+            sourceCommit = $producer.sourceCommit
+            validatedSourceCommit = $sourceHead
+            apiSnapshotSource = 'verified-unchanged-inputs'
+            fallbackUsed = $false
+            helpUpdated = $false
+            commandMetadataUpdated = $false
+            documentationUpdated = $false
+            examplesUpdated = $updateExamples
+        }
+    }
+}
 if (-not $ExportedArtifactsRoot) {
     $outputRoot = Join-Path ([IO.Path]::GetTempPath()) ('officeimo-powershell-api-' + [guid]::NewGuid().ToString('N'))
     $ExportedArtifactsRoot = Join-Path $outputRoot 'artifacts'
@@ -318,7 +279,9 @@ if (-not $sourceBundle.Valid) {
 $documentationEvidenceBytes = if ($SkipDocumentation -and (Test-Path -LiteralPath $catalogEvidencePath -PathType Leaf)) {
     [IO.File]::ReadAllBytes($catalogEvidencePath)
 } else { $null }
-Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot
+# Examples have their own source/fallback policy below. API refresh must not
+# erase that subtree, including when -SkipExamples is requested.
+Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot -PreserveExamples
 if ($null -ne $documentationEvidenceBytes) {
     [IO.File]::WriteAllBytes($catalogEvidencePath, $documentationEvidenceBytes)
 }
@@ -340,13 +303,14 @@ if ($sourceLinksUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot
 $summary.commandMetadataUpdated = $summary.commandMetadataUpdated -or $sourceLinksUpdated
 
 if (-not $SkipExamples) {
-    $sourceExamplesPath = Join-Path $resolvedRepoRoot 'Examples'
-    if (Test-Path -LiteralPath $sourceExamplesPath -PathType Container) {
+    $sourceExamplesPath = Resolve-PSWriteOfficeExamplesSource -Candidates @(
+        (Join-Path $resolvedRepoRoot 'Examples'), (Join-Path $websiteArtifactsRoot 'examples'))
+    if ($sourceExamplesPath) {
         Sync-DirectoryContents -Source $sourceExamplesPath -Destination $targetExamplesPath
         $summary.examplesSource = $sourceExamplesPath
         $summary.examplesUpdated = $true
     } else {
-        Write-Host 'PSWriteOffice examples folder not found in synced repo. Keeping checked-in fallback examples.' -ForegroundColor Yellow
+        Write-Host 'No PSWriteOffice example scripts found in the source or bundle. Keeping checked-in fallback examples.' -ForegroundColor Yellow
     }
 }
 

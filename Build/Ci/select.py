@@ -98,8 +98,11 @@ def select(root, changed, full=False):
     suites["build-matrix"] = bool(affected)
     # JavaScript asset generation has its own executable browser and consumer proof.
     suites["browser-exports"] |= any(p.startswith(("OfficeIMO.JavaScript/", "Build/BrowserExports/")) for p in changed)
-    suites["website"] |= any(p.startswith(("Website/", "OfficeIMO.JavaScript/", "PowerShell/PSWriteOffice/",
-                                          "Docs/Compatibility/", ".agents/plugins/")) or p == "Docs/ROADMAP.md" for p in changed)
+    # Full website generation has its own inputs. Library correctness, browser
+    # exports and package contracts run in their owning lanes; full site/API
+    # regeneration still runs on publication and explicit full-ci requests.
+    suites["website"] = full or any(fnmatch.fnmatchcase(path, pattern)
+                                    for path in changed for pattern in config["website_inputs"])
     suites["powershell"] |= any(p.startswith("PowerShell/") for p in changed)
     partitions = [p for p, roots in config["partitions"].items() if selected(roots)]
     frameworks = ["net8.0", "net10.0"] if full else ["net10.0"]

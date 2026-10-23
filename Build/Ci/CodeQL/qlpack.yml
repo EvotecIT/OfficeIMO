@@ -1,0 +1,4 @@
+name: officeimo/extraction-evidence
+version: 0.0.0
+dependencies:
+  codeql/csharp-all: '*'
