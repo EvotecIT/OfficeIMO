@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
 
         rendered.RequireNoLoss();
         Assert.Equal(source, rendered.Text.Trim());
-        Assert.Equal(expected.Measure(16D), text.Sum(item => item.TextAdvanceWidth), 8);
+        Assert.Equal(expected.Measure(16D), text.Sum(item => Assert.IsType<double>(item.TextAdvanceWidth)), 8);
         Assert.Equal(expected._glyphs.Select(glyph => (int)glyph.GlyphId), painted.Select(glyph => glyph.GlyphId));
         var expectedOrigins = new List<double>();
         double pen = 0D;
@@ -48,14 +48,14 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument markedOnly = RenderTypographyPartition(marked, data);
         HtmlRenderDocument tailOnly = RenderTypographyPartition("<span style='white-space:pre'>" + tail + "</span>", data);
         HtmlRenderText[] combinedText = TypographyPartitionText(combined);
-        double expectedAdvance = TypographyPartitionText(markedOnly).Sum(item => item.TextAdvanceWidth)
-            + TypographyPartitionText(tailOnly).Sum(item => item.TextAdvanceWidth);
+        double expectedAdvance = TypographyPartitionText(markedOnly).Sum(item => Assert.IsType<double>(item.TextAdvanceWidth))
+            + TypographyPartitionText(tailOnly).Sum(item => Assert.IsType<double>(item.TextAdvanceWidth));
 
         combined.RequireNoLoss();
         markedOnly.RequireNoLoss();
         tailOnly.RequireNoLoss();
         Assert.Equal(marked + tail, combined.Text.Trim());
-        Assert.Equal(expectedAdvance, combinedText.Sum(item => item.TextAdvanceWidth), 8);
+        Assert.Equal(expectedAdvance, combinedText.Sum(item => Assert.IsType<double>(item.TextAdvanceWidth)), 8);
         Assert.Contains(combinedText, item => item.Text.Contains("\u0301") && item.PreparedShaping != null);
         Assert.All(combinedText, item => Assert.Equal("Typography", item.Font.FamilyName));
     }

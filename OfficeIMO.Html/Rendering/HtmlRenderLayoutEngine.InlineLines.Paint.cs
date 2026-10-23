@@ -327,7 +327,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             RecordInlineFontDecorationGeometry(current, paragraphStyle, formattingContainer,
                 lineStart, lineY, lineHeight, baseline, emptyAtomicBaseline, lineBidiResolved, inlineBounds);
 
-            if (lineBidiResolved && visuals.Count > lineVisualStart) {
+            bool retainedMeasurementScopes = mergedLines[lineIndex].Count > 1
+                && mergedLines[lineIndex].Any(HasProviderMeasurementContext);
+            if ((lineBidiResolved || retainedMeasurementScopes) && visuals.Count > lineVisualStart) {
                 List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.Add(new HtmlRenderLogicalTextGroup(

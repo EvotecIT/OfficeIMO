@@ -53,14 +53,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
             total += advance;
         }
         if (!SamePreparedAdvance(total, segment.Width)) return false;
-        segment.RetainPreparedShaping(context, elementStarts);
+        ChargeLayoutOperations(1L + (context.Text.Length + 31L) / 32L, "bidi provider context direction");
+        int[] scalars = OfficeUnicodeBidi.ToScalars(context.Text, out int[] scalarStarts);
+        OfficeUnicodeBidi.Paragraph paragraph = OfficeUnicodeBidi.Resolve(scalars,
+            context.Result.Direction == OfficeTextDirection.RightToLeft ? 1 : 0, _cancellationToken);
+        byte[] levels = paragraph.GetLineLevels(0, scalars.Length);
+        var directions = new bool[logicalElements.Count];
+        int scalarIndex = 0;
+        for (int index = 0; index < directions.Length; index++) {
+            CheckCancellation();
+            while (scalarIndex + 1 < scalarStarts.Length && scalarStarts[scalarIndex + 1] <= elementStarts[index]) scalarIndex++;
+            directions[index] = (levels[scalarIndex] & 1) != 0;
+        }
+        segment.RetainPreparedShaping(context, elementStarts, directions);
         widths = measured;
         return true;
     }
 
     private OfficePreparedTextShaping? SlicePreparedBidiGroup(InlineSegment source,
         IReadOnlyList<InlineBidiElement> logicalElements, string logicalText) {
-        if (source.PreparedShaping == null || source.PreparedElementOffsets == null || logicalElements.Count == 0) return null;
+        if (source.PreparedShaping == null || source.PreparedElementOffsets == null
+            || source.PreparedElementDirections == null || logicalElements.Count == 0) return null;
+        // Equal advances do not prove equal glyph context. Surrounding text or
+        // an outer override can change a neutral's mirroring or a slice's order.
+        foreach (InlineBidiElement element in logicalElements) {
+            CheckCancellation();
+            if (source.PreparedElementDirections[element.SourceElementIndex] != element.RightToLeft) return null;
+        }
         // Reuse the operation-local prefix map built once during partitioning.
         // Alternating directions must not rescan the whole source per group.
         int offset = source.PreparedElementOffsets[logicalElements[0].SourceElementIndex];

@@ -8,12 +8,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
-    [Fact]
-    public void HtmlManagedTypography_ResolvedGlyphAdvanceMismatchCannotClaimNoLoss() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlManagedTypography_ResolvedGlyphAdvanceMismatchCannotClaimNoLoss(bool nestedOverride) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -120, includeSpace: true);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>html,body,p{margin:0;padding:0}p{font:20px '" + ManagedTextShapingTestAssets.FamilyName
-            + "';font-feature-settings:'kern' 1}</style><p><bdo dir='rtl'>AV</bdo></p>");
+            + "';font-feature-settings:'kern' 1}</style><p><bdo dir='rtl'>"
+            + (nestedOverride ? "<span>AV</span>" : "AV") + "</bdo></p>");
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, ResolvedTypographyOptions(data));
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();

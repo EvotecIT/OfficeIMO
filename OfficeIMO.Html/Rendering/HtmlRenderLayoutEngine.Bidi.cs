@@ -303,7 +303,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 resolvedDirection: !providerContext ? null
                     : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight,
                 contextualFallbackPaint: contextualFallback,
-                preparedShaping: retainedSlice);
+                preparedShaping: retainedSlice,
+                prepareFromRun: false);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;
             lastGroups[sourceIndex] = group;

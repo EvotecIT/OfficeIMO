@@ -615,7 +615,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int logicalEndProgress = 0,
             OfficeTextDirection? resolvedDirection = null,
             string? contextualFallbackPaint = null,
-            OfficePreparedTextShaping? preparedShaping = null) {
+            OfficePreparedTextShaping? preparedShaping = null,
+            bool prepareFromRun = true) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
@@ -624,7 +625,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             LogicalEndProgress = logicalEndProgress;
             ResolvedDirection = resolvedDirection;
             ContextualFallbackPaint = contextualFallbackPaint;
-            PreparedShaping = preparedShaping ?? run.GetPreparedShaping(LogicalText, run.Style);
+            PreparedShaping = preparedShaping ?? (prepareFromRun ? run.GetPreparedShaping(LogicalText, run.Style) : null);
         }
 
         internal string Text { get; }
@@ -641,11 +642,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string? ContextualFallbackPaint { get; }
         internal OfficePreparedTextShaping? PreparedShaping { get; private set; }
         internal int[]? PreparedElementOffsets { get; private set; }
+        internal bool[]? PreparedElementDirections { get; private set; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
-        internal void RetainPreparedShaping(OfficePreparedTextShaping prepared, int[] elementOffsets) {
+        internal void RetainPreparedShaping(OfficePreparedTextShaping prepared, int[] elementOffsets, bool[] elementDirections) {
             PreparedShaping = prepared;
             PreparedElementOffsets = elementOffsets;
+            PreparedElementDirections = elementDirections;
         }
     }
 
