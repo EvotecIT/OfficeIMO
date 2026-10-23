@@ -41,6 +41,10 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         bool controls = OfficeManagedTextShaper.ContainsNonPaintingControl(request.Text, request.CancellationToken);
+        if (!allowDiagnosedFallback && controls) {
+            OfficeTextShapingResult? variable = ShapeNominalVariableControls(request);
+            if (variable != null) return variable;
+        }
         if (!allowDiagnosedFallback &&
             (controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
             OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);

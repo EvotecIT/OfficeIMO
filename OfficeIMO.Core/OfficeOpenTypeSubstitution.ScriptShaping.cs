@@ -97,6 +97,12 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return result;
     }
 
+    /// <summary>Admits nominal Latin only when its selected language system requires no substitution feature.</summary>
+    internal bool CanRetainNominalLatin(string source, string? language, CancellationToken cancellationToken) {
+        var context = CreateScriptShapingContext(source, OfficeTextFeatureSettings.Default, language, cancellationToken);
+        return ReadScriptFeatureIndexes("latn", language, context, out int required) != null && required < 0;
+    }
+
     private int[]? ReadScriptFeatureIndexes(string scriptTag, string? language, ScriptShapingContext context, out int requiredFeature) {
         requiredFeature = -1;
         int scriptList = Relative(_table, _reader.ReadUInt16(_table + 4), 2);

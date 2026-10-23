@@ -215,29 +215,76 @@ public sealed partial class DrawingTrueTypeVariableFontTests {
     [Fact]
     public void ManagedShapingUsesTheSelectedVariableFontAdvances() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
-        var axes = new Dictionary<string, float> { ["wdth"] = 125F };
-        OfficeFontFace selected = Load(data, axes);
         OfficeFontFace defaultFace = Load(data, new Dictionary<string, float>());
         const string logical = "\u202Eiii\u202C";
-        var request = new OfficeTextShapingRequest(
-            logical,
-            "Roboto Flex",
-            data,
-            isOpenTypeCff: false,
-            unitsPerEm: selected.Program.UnitsPerEm,
-            direction: OfficeTextDirection.RightToLeft,
-            language: null,
-            cancellationToken: CancellationToken.None,
-            fontCollectionIndex: null,
-            variationCoordinates: axes);
+        var measured = new List<double>();
+        foreach (float width in new[] { 125F, 75F, 125F }) {
+            var axes = new Dictionary<string, float> { ["wdth"] = width };
+            OfficeFontFace selected = Load(data, axes);
+            var request = new OfficeTextShapingRequest(logical, "Roboto Flex", data, false,
+                selected.Program.UnitsPerEm, OfficeTextDirection.RightToLeft, null,
+                CancellationToken.None, null, axes);
 
-        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
-            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+            OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+                OfficeManagedTextShapingProvider.Instance.ShapeText(request));
 
-        Assert.All(result.Glyphs, static glyph => Assert.Null(glyph.AdvanceWidth));
-        double expected = selected.Program.Measure("iii", 24D);
-        Assert.NotEqual(defaultFace.Program.Measure("iii", 24D), expected);
-        Assert.Equal(expected, selected.Program.MeasureShapedText(logical, result, 24D), 6);
+            Assert.Equal(logical, string.Concat(result.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
+            Assert.All(result.Glyphs.Where(glyph => glyph.UnicodeText == "i"), glyph => Assert.Null(glyph.AdvanceWidth));
+            OfficeShapedGlyph[] controls = result.Glyphs.Where(glyph => glyph.UnicodeText != "i").ToArray();
+            Assert.Equal(2, controls.Length);
+            Assert.All(controls, glyph => {
+                Assert.Equal(0, glyph.AdvanceWidth);
+                Assert.Equal(0, glyph.AdvanceHeight);
+                Assert.Equal(0, glyph.OffsetX);
+                Assert.Equal(0, glyph.OffsetY);
+            });
+            double expected = selected.Program.Measure("iii", 24D);
+            Assert.Equal(expected, selected.Program.MeasureShapedText(logical, result, 24D), 6);
+            Assert.Equal(Serialize(selected.Program.GetTextContours("iii", 0D, 0D, 24D)),
+                Serialize(selected.Program.GetShapedTextContours(logical, result, 0D, 0D, 24D)));
+            measured.Add(expected);
+        }
+        Assert.NotEqual(defaultFace.Program.Measure("iii", 24D), measured[0]);
+        Assert.NotEqual(measured[0], measured[1]);
+        Assert.Equal(measured[0], measured[2]);
+    }
+
+    [Theory]
+    [InlineData("\u202Ea\u0301\u202C", false)]
+    [InlineData("\u202E\u0628\u202C", false)]
+    [InlineData("\u202Eiii\u202C", true)]
+    public void SelectedVariableControlsDoNotEnableMarkJoiningOrExplicitFeatureShaping(string logical, bool explicitKerning) {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        var axes = new Dictionary<string, float> { ["wdth"] = 125F };
+        OfficeFontFace selected = Load(data, axes);
+        var request = new OfficeTextShapingRequest(logical, "Roboto Flex", data, false,
+            selected.Program.UnitsPerEm, OfficeTextDirection.RightToLeft, null,
+            CancellationToken.None, null, axes,
+            explicitKerning ? OfficeTextFeatureSettings.Default.With("kern", 1) : OfficeTextFeatureSettings.Default);
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    [Fact]
+    public void SelectedVariableNominalControlsDeclineARequiredLatinSubstitution() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int gsub = FindTableOffset(data, "GSUB");
+        int scriptList = gsub + ReadUInt16(data, gsub + 4);
+        for (int index = 0; index < ReadUInt16(data, scriptList); index++) {
+            int record = scriptList + 2 + index * 6;
+            string tag = Encoding.ASCII.GetString(data, record, 4);
+            if (tag != "DFLT" && tag != "latn") continue;
+            int script = scriptList + ReadUInt16(data, record + 4);
+            int language = script + ReadUInt16(data, script);
+            WriteUInt16(data, language + 2, 0); // Existing liga feature is now required.
+        }
+        var axes = new Dictionary<string, float> { ["wdth"] = 125F };
+        OfficeFontFace selected = Load(data, axes);
+        var request = new OfficeTextShapingRequest("\u202Eiii\u202C", "Roboto Flex", data, false,
+            selected.Program.UnitsPerEm, OfficeTextDirection.RightToLeft, null,
+            CancellationToken.None, null, axes);
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
     }
 
     [Fact]
