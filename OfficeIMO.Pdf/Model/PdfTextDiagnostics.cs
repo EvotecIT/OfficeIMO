@@ -180,38 +180,20 @@ internal static partial class PdfTextDiagnostics {
 
         if (options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            if (fallbackSet != null) {
-                return AnalyzeGeneratedTextWithFallback(
-                    text,
-                    fallbackSet,
-                    source,
-                    location,
-                    runIndex,
-                    shapingMode,
-                    (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, fontProgram, shapingMode, out length));
-            }
-
-            return AnalyzeEmbeddedFontText(text, fontProgram, source, location, runIndex, shapingMode,
+            return AnalyzeGeneratedSelectedFont(text, fontProgram, source, location, runIndex,
+                shapingMode, fallbackSet,
                 ForEncodingDiagnostics(options, fontProgram.FontName, source, shapingRun?.FeatureSettings,
-                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false));
+                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false),
+                preferSelected: options.HasCallerOwnedEmbeddedFontFamily(font));
         }
 
         if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            if (fallbackSet != null) {
-                return AnalyzeGeneratedTextWithFallback(
-                    text,
-                    fallbackSet,
-                    source,
-                    location,
-                    runIndex,
-                    shapingMode,
-                    (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, cffFontProgram, shapingMode, out length));
-            }
-
-            return AnalyzeEmbeddedFontText(text, cffFontProgram, source, location, runIndex, shapingMode,
+            return AnalyzeGeneratedSelectedFont(text, cffFontProgram, source, location, runIndex,
+                shapingMode, fallbackSet,
                 ForEncodingDiagnostics(options, cffFontProgram.FontName, source, shapingRun?.FeatureSettings,
-                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false));
+                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false),
+                preferSelected: options.HasCallerOwnedEmbeddedFontFamily(font));
         }
 
         if (fallbackSet != null) {
@@ -285,48 +267,22 @@ internal static partial class PdfTextDiagnostics {
             if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
                 if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                     namedFontProgram != null) {
-                    diagnostics.AddRange(fallbackSet != null
-                        ? AnalyzeGeneratedTextWithFallback(
-                            run.Text,
-                            fallbackSet,
-                            source,
-                            runLocation,
-                            runIndex,
-                            shapingMode,
-                            (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, namedFontProgram, shapingMode, out length))
-                        : AnalyzeEmbeddedFontText(
-                            run.Text,
-                            namedFontProgram,
-                            source,
-                            runLocation,
-                            runIndex,
-                            shapingMode,
-                            ForEncodingDiagnostics(options, namedFontProgram.FontName, source,
-                                run.FeatureSettings, run.TextDirection, run.PreservesPaintedGlyphs)));
+                    diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedFontProgram, source,
+                        runLocation, runIndex, shapingMode, fallbackSet,
+                        ForEncodingDiagnostics(options, namedFontProgram.FontName, source, run.FeatureSettings,
+                            run.TextDirection, run.PreservesPaintedGlyphs),
+                        preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
                     runIndex++;
                     continue;
                 }
 
                 if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                     namedCffFontProgram != null) {
-                    diagnostics.AddRange(fallbackSet != null
-                        ? AnalyzeGeneratedTextWithFallback(
-                            run.Text,
-                            fallbackSet,
-                            source,
-                            runLocation,
-                            runIndex,
-                            shapingMode,
-                            (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, namedCffFontProgram, shapingMode, out length))
-                        : AnalyzeEmbeddedFontText(
-                            run.Text,
-                            namedCffFontProgram,
-                            source,
-                            runLocation,
-                            runIndex,
-                            shapingMode,
-                            ForEncodingDiagnostics(options, namedCffFontProgram.FontName, source,
-                                run.FeatureSettings, run.TextDirection, run.PreservesPaintedGlyphs)));
+                    diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedCffFontProgram, source,
+                        runLocation, runIndex, shapingMode, fallbackSet,
+                        ForEncodingDiagnostics(options, namedCffFontProgram.FontName, source, run.FeatureSettings,
+                            run.TextDirection, run.PreservesPaintedGlyphs),
+                        preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
                     runIndex++;
                     continue;
                 }
@@ -361,25 +317,31 @@ internal static partial class PdfTextDiagnostics {
                     namedFace,
                     out PdfTrueTypeFontProgram? namedFontProgram)
                 && namedFontProgram != null) {
+                PdfTextShapingOptions descriptor = ForEncodingDiagnostics(options, namedFontProgram.FontName,
+                    featureSettings: run.FeatureSettings, direction: run.TextDirection,
+                    preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
                 return (string value, int index, out int length) =>
                     TryGetCoveredTextElementLength(
                         value,
                         index,
                         namedFontProgram,
                         shapingMode,
-                        out length);
+                        out length, descriptor);
             }
             if (options.TryGetNamedOpenTypeCffFontProgram(
                     namedFace,
                     out PdfOpenTypeCffFontProgram? namedCffFontProgram)
                 && namedCffFontProgram != null) {
+                PdfTextShapingOptions descriptor = ForEncodingDiagnostics(options, namedCffFontProgram.FontName,
+                    featureSettings: run.FeatureSettings, direction: run.TextDirection,
+                    preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
                 return (string value, int index, out int length) =>
                     TryGetCoveredTextElementLength(
                         value,
                         index,
                         namedCffFontProgram,
                         shapingMode,
-                        out length);
+                        out length, descriptor);
             }
         }
 
@@ -394,9 +356,12 @@ internal static partial class PdfTextDiagnostics {
         int index,
         PdfTrueTypeFontProgram fontProgram,
         PdfTextShapingMode shapingMode,
-        out int length) {
+        out int length, PdfTextShapingOptions? managedCoverage = null) {
         string textElement = StringInfo.GetNextTextElement(text, index);
         length = textElement.Length;
+        if (managedCoverage.HasValue && TryAnalyzeCompleteManagedRun(textElement, fontProgram,
+                managedCoverage.Value, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete))
+            return complete.Count == 0;
         for (int offset = 0; offset < textElement.Length;) {
             if (!TryGetCoveredTextLength(
                     textElement,
@@ -417,9 +382,12 @@ internal static partial class PdfTextDiagnostics {
         int index,
         PdfOpenTypeCffFontProgram fontProgram,
         PdfTextShapingMode shapingMode,
-        out int length) {
+        out int length, PdfTextShapingOptions? managedCoverage = null) {
         string textElement = StringInfo.GetNextTextElement(text, index);
         length = textElement.Length;
+        if (managedCoverage.HasValue && TryAnalyzeCompleteManagedRun(textElement, fontProgram,
+                managedCoverage.Value, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete))
+            return complete.Count == 0;
         for (int offset = 0; offset < textElement.Length;) {
             if (!TryGetCoveredTextLength(
                     textElement,
@@ -917,7 +885,7 @@ internal static partial class PdfTextDiagnostics {
         string sourceText = text;
         text = PdfWriter.WithoutOptionalBreaks(text);
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);
-        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete))
+        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete, generatedLayout: true))
             return sourceText.Length == text.Length ? complete
                 : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, complete).ToList();
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
@@ -957,7 +925,7 @@ internal static partial class PdfTextDiagnostics {
         string sourceText = text;
         text = PdfWriter.WithoutOptionalBreaks(text);
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);
-        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete))
+        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete, generatedLayout: true))
             return sourceText.Length == text.Length ? complete
                 : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, complete).ToList();
         var diagnostics = new List<PdfTextEncodingDiagnostic>();

@@ -317,7 +317,7 @@ internal static partial class PdfWriter {
         return reserved;
     }
 
-    private static bool IsFallbackLayoutSeparator(char ch) =>
+    internal static bool IsFallbackLayoutSeparator(char ch) =>
         ch == '\n' || ch == '\r' || ch == '\t';
 
     private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfTextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
@@ -334,7 +334,9 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedFontProgram,
-                    options.TextShapingModeSnapshot);
+                    options.TextShapingModeSnapshot,
+                    CreateSelectedManagedCoverageOptions(options, namedFontProgram.FontName, run,
+                        options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
 
             if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
@@ -342,7 +344,9 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedCffFontProgram,
-                    options.TextShapingModeSnapshot);
+                    options.TextShapingModeSnapshot,
+                    CreateSelectedManagedCoverageOptions(options, namedCffFontProgram.FontName, run,
+                        options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
         }
 
@@ -352,7 +356,9 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 fontProgram,
-                options.TextShapingModeSnapshot);
+                options.TextShapingModeSnapshot,
+                CreateSelectedManagedCoverageOptions(options, fontProgram.FontName, run,
+                    options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
 
         if (options != null &&
@@ -361,10 +367,12 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 cffFontProgram,
-                options.TextShapingModeSnapshot);
+                options.TextShapingModeSnapshot,
+                CreateSelectedManagedCoverageOptions(options, cffFontProgram.FontName, run,
+                    options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
 
-        return CanWriteTextWithSelectedFont(textElement, fontForRun, options);
+        return CanWriteTextWithSelectedFont(textElement, fontForRun, options, run);
     }
 
     private static bool FontFamilySlotIsEmptyOrCandidate(

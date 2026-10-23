@@ -207,6 +207,63 @@ public class PdfDefaultControlAdmissionTests {
         Assert.Equal(0, provider.Calls);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CffCompleteControlsRetainSourceAcrossLayoutAndNeededFallback(bool named) {
+        const string family = "CFF layout controls";
+        const string source = "A\u200EA\nA\u200EAB";
+        byte[] primary = CreateControlFont(cff: true, blankProfile: 0, 0x200E);
+        byte[] secondary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'B');
+        var report = new PdfConversionReport();
+        PdfOptions options = (named
+            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
+            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
+            .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("CFF needed B fallback", secondary)
+            }))
+            .ReportDiagnosticsTo(report);
+        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
+            if (named) paragraph.FontFamily(family);
+            paragraph.Text(source);
+        });
+
+        Assert.Empty(document.AnalyzeTextEncoding());
+        byte[] bytes = document.ToBytes();
+        Assert.NotEmpty(bytes);
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
+        // Only LF is a layout separator. Both original LRM controls and every
+        // primary/fallback source character must survive exactly once.
+        Assert.Equal("A\u200EAA\u200EAB", new string(extracted.Where(character => !char.IsWhiteSpace(character)).ToArray()));
+        report.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LayoutFallbackCoverageCannotBorrowManagedNormalizationForScalarOrCustomProviders(bool customProvider) {
+        const string source = "A\u0301\nB";
+        byte[] primary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
+        byte[] secondary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'B');
+        var provider = new UncalledControlProvider();
+        PdfOptions options = new PdfOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "Unsupported normalization descriptor")
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Descriptor B fallback", secondary)
+            }))
+            .SetTextShapingMode(customProvider ? PdfTextShapingMode.OpenTypeLigatures : PdfTextShapingMode.UnicodeScalar);
+        if (customProvider) options.SetTextShapingProvider(provider);
+        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source));
+
+        var diagnostics = document.AnalyzeTextEncoding();
+        Assert.NotEmpty(diagnostics);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Index < 2);
+        Assert.Equal(0, provider.Calls);
+        Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+        Assert.Equal(0, provider.Calls);
+    }
+
     private sealed class UncalledControlProvider : IOfficeTextShapingProvider {
         internal int Calls { get; private set; }
         public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {

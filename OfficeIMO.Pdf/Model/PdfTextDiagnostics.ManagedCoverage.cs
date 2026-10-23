@@ -27,9 +27,14 @@ internal static partial class PdfTextDiagnostics {
         return AnalyzeGeneratedTextRuns(new[] { run }, options, font, source);
     }
 
-    private static bool TryAnalyzeCompleteManagedRun(string text, PdfTrueTypeFontProgram font,
-        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics) {
+    internal static bool TryAnalyzeCompleteManagedRun(string text, PdfTrueTypeFontProgram font,
+        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics,
+        bool generatedLayout = false) {
         diagnostics = null!;
+        if (generatedLayout && HasManagedLayoutSeparator(text)
+            && TryAnalyzeManagedLayoutSegments(text, options,
+                segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
+                    options.ShapingMode, options), out diagnostics)) return true;
         if (!CanAnalyzeCompleteManagedRun(text, options)
             || !PdfExternalTextShaper.TryShapeText(text, font, options, out PdfGlyphRun run)
             || run.SourceShapingResult == null && run.Diagnostics.Count == 0) return false;
@@ -43,9 +48,14 @@ internal static partial class PdfTextDiagnostics {
         return true;
     }
 
-    private static bool TryAnalyzeCompleteManagedRun(string text, PdfOpenTypeCffFontProgram font,
-        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics) {
+    internal static bool TryAnalyzeCompleteManagedRun(string text, PdfOpenTypeCffFontProgram font,
+        PdfTextShapingOptions options, string location, int? runIndex, out List<PdfTextEncodingDiagnostic> diagnostics,
+        bool generatedLayout = false) {
         diagnostics = null!;
+        if (generatedLayout && HasManagedLayoutSeparator(text)
+            && TryAnalyzeManagedLayoutSegments(text, options,
+                segment => AnalyzeEmbeddedFontText(segment, font, options.Source, location, runIndex,
+                    options.ShapingMode, options), out diagnostics)) return true;
         if (!CanAnalyzeCompleteManagedRun(text, options)
             || !PdfExternalTextShaper.TryShapeText(text, font, options, out PdfGlyphRun run)
             || run.SourceShapingResult == null && run.Diagnostics.Count == 0) return false;
@@ -58,11 +68,46 @@ internal static partial class PdfTextDiagnostics {
         diagnostics = CollectManagedCoverageDiagnostics(run, raw, location, runIndex);
         return true;
     }
+
+    // These layout separators are consumed before the writer paints a run.
+    // Keep their original UTF-16 offsets while reusing the generated diagnostic
+    // owner for each painted segment. Raw/public scalar analysis stays separate.
+    private static bool TryAnalyzeManagedLayoutSegments(string text, PdfTextShapingOptions options,
+        Func<string, List<PdfTextEncodingDiagnostic>> analyzeSegment,
+        out List<PdfTextEncodingDiagnostic> diagnostics) {
+        diagnostics = null!;
+        if (!CanUseManagedCoverageDescriptor(options)
+            || !PdfExternalTextShaper.RequiresCompleteDefaultLatinShaping(text)) return false;
+        var result = new List<PdfTextEncodingDiagnostic>();
+        int start = 0, separators = 0;
+        for (int index = 0; index <= text.Length; index++) {
+            if (index < text.Length && !PdfWriter.IsFallbackLayoutSeparator(text[index])) continue;
+            if (index > start) {
+                string segment = text.Substring(start, index - start);
+                foreach (PdfTextEncodingDiagnostic diagnostic in analyzeSegment(segment))
+                    result.Add(diagnostic.WithIndex(checked(start + diagnostic.Index)));
+            }
+            if (index == text.Length) break;
+            if (++separators > PdfWriter.MaximumTextLayoutLines)
+                throw new System.IO.InvalidDataException("PDF text exceeds the 100,000-layout-control limit.");
+            if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
+            start = index + 1;
+        }
+        diagnostics = result;
+        return true;
+    }
+
+    private static bool HasManagedLayoutSeparator(string text) =>
+        text.Contains('\n') || text.Contains('\r') || text.Contains('\t');
+
+    private static bool CanUseManagedCoverageDescriptor(PdfTextShapingOptions options) =>
+        !options.RecordGlyphUsage && !options.ThrowOnMissingGlyph && !options.PreservesPaintedGlyphs
+        && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures
+        && (options.ShapingProvider == null
+            || ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance));
 
     private static bool CanAnalyzeCompleteManagedRun(string text, PdfTextShapingOptions options) {
-        if (options.RecordGlyphUsage || options.ThrowOnMissingGlyph || options.PreservesPaintedGlyphs
-            || options.ShapingMode != PdfTextShapingMode.OpenTypeLigatures
-            || options.ShapingProvider != null && !ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance)
+        if (!CanUseManagedCoverageDescriptor(options)
             || !PdfExternalTextShaper.RequiresCompleteDefaultLatinShaping(text)) return false;
         // C0/DEL and layout controls retain the existing scalar diagnostic owner.
         // This proof admits one complete managed font run; it never erases those warnings.
