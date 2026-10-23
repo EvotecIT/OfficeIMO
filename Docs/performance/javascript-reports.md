@@ -523,3 +523,19 @@ Node support and WinAnsi test-reader changes. PNG code changes the bundle but
 is not called by either image-free workload. The integrated source receives one
 final fixed comparison, with the same M8 baseline and policy, before its package
 and browser acceptance. The preceding result remains bound to its exact source.
+
+The final integrated candidate `66533554d1fa0a7b7623c1521b6b3b3f9a626666`
+passes all sixteen validations in its one fixed normal-host cohort, including the
+same exact narrow/wide PDF hashes. Narrow mean/median peak RSS is 0.88%/0.50%
+below M8; wide is 10.61%/11.67% below. Both narrow RSS criteria are met.
+Narrow sampled heap is 9.10%/8.74% lower and sampled external memory is
+2.05%/2.18% lower. Wide sampled heap is 12.71%/10.34% lower, while its sampled
+external memory is 3.20%/7.37% higher. These layers remain separate and nonadditive.
+
+Timing does not show a consistent speedup across launches: this integrated
+cohort's narrow engine-time mean/median is 60.69%/26.04% higher than M8; wide
+mean is 31.55% lower and median is 0.79% higher. These losses remain included,
+as do all four warmups and twelve measured samples. The earlier source's faster
+cohort is not substituted for this result. Identical output and an unused PNG
+path do not prove the timing difference is noise or establish its cause. No
+universal speedup, performance-no-regression or constant-memory claim is made.
