@@ -7,9 +7,9 @@ internal static partial class PdfWriter {
             // Page defaults can differ from those at definition capture. Reject any
             // effective constraint that this fragment planner does not implement.
             PdfDocument.ValidateFootnoteBlocks(definition.Blocks, noteOptions);
-            PdfDocument.ValidateFootnoteBlocks(definition.Separator, noteOptions);
-            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationSeparator, noteOptions);
-            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationNotice, noteOptions);
+            PdfDocument.ValidateFootnoteBlocks(definition.Separator, noteOptions, allowTables: false);
+            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationSeparator, noteOptions, allowTables: false);
+            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationNotice, noteOptions, allowTables: false);
             var key = (definition, currentPageBaseOptions, noteOptions.PageWidth - noteOptions.MarginLeft - noteOptions.MarginRight);
             if (preparedFootnotes.TryGetValue(key, out PreparedFootnote? prepared)) return prepared;
             PdfOptions saved = currentOpts;
@@ -58,6 +58,17 @@ internal static partial class PdfWriter {
                         break;
                     case PdfListBlock list:
                         keepWithNext = AppendFootnoteList(list, frameX, frameWidth, panels, units);
+                        break;
+                    case TableBlock table:
+                        if (GetTableColumnCount(table) == 0) break;
+                        PdfTableStyle tableStyle = PreparePairedTableBorders(table,
+                            table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light());
+                        PreparedTableGeometry geometry = PrepareTableGeometry(table, tableStyle, frameWidth);
+                        double tableHeight = tableStyle.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights,
+                            0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter;
+                        units.Add(new FootnoteUnit { Block = table, Table = geometry, Advance = tableHeight,
+                            FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
+                        keepWithNext = tableStyle.KeepWithNext;
                         break;
                     case SpacerBlock spacer:
                         units.Add(new FootnoteUnit { Advance = spacer.Height, Panels = panels });

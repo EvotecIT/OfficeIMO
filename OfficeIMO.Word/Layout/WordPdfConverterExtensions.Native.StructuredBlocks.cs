@@ -83,9 +83,9 @@ namespace OfficeIMO.Word.Pdf {
 
                     elements.AddRange(WordSection.ConvertParagraphToWordParagraphs(document, paragraph));
                 } else if (child is W.Table table) {
-                    elements.Add(new WordTable(document, table));
+                    elements.Add(new WordTable(document, table, initializeChildren: false, readOnly: true));
                 } else if (child is W.SdtBlock nestedSdtBlock) {
-                    elements.Add(WordSection.ConvertStdBlockToWordElements(document, nestedSdtBlock));
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(document, nestedSdtBlock, readOnly: true));
                 }
             }
 

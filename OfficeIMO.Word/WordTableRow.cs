@@ -20,6 +20,7 @@ namespace OfficeIMO.Word {
         /// wrappers are created without ensuring tcPr, avoiding DOM mutations on read.
         /// </summary>
         public List<WordTableCell> GetCells(bool readOnly = false) {
+            readOnly |= _wordTable.IsReadOnlyView;
             var list = new List<WordTableCell>(_tableRow.ChildElements.Count);
             foreach (TableCell cell in WordTableContent.Cells(_tableRow)) {
                 WordTableCell wordCell = GetOrCreateCell(cell, ensureCellProperties: !readOnly);

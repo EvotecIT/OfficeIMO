@@ -1867,16 +1867,39 @@ public partial class Word {
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
         PdfCore.PdfLinkAnnotation horizontal = Assert.Single(info.LinkAnnotations, link => link.Uri == horizontalUri);
         PdfCore.PdfLinkAnnotation vertical = Assert.Single(info.LinkAnnotations, link => link.Uri == verticalUri);
+        Assert.Equal(2, info.LinkAnnotations.Count);
         Assert.Equal("Column span metadata", horizontal.Contents);
         Assert.Equal("Row span metadata", vertical.Contents);
-        Assert.True(horizontal.Width > 110D);
         using PdfPigDocument mergedPdf = PdfPigDocument.Open(bytes);
         var mergedWords = mergedPdf.GetPage(1).GetWords().ToList();
+        var across = Assert.Single(mergedWords, word => word.Text == "Across");
+        var tall = Assert.Single(mergedWords, word => word.Text == "Tall");
+        var topTail = Assert.Single(mergedWords, word => word.Text == "TopTail");
         var upper = Assert.Single(mergedWords, word => word.Text == "Upper");
         var lower = Assert.Single(mergedWords, word => word.Text == "Lower");
-        double rowPitch = upper.BoundingBox.Bottom - lower.BoundingBox.Bottom;
-        Assert.True(vertical.Height >= rowPitch * 1.9D);
-        Assert.True(vertical.Y1 <= lower.BoundingBox.Bottom);
-        Assert.True(vertical.Y2 >= upper.BoundingBox.Top);
+
+        // Merged-cell layout and text hyperlinks are separate contracts. Word
+        // links only these runs, so blank merged-cell space stays unlinked.
+        Assert.True(across.BoundingBox.Right > upper.BoundingBox.Left);
+        Assert.True(across.BoundingBox.Centroid.X < topTail.BoundingBox.Left);
+        Assert.Equal(upper.BoundingBox.Left, lower.BoundingBox.Left, precision: 2);
+        Assert.Equal((upper.Letters[0].StartBaseLine.Y + lower.Letters[0].StartBaseLine.Y) / 2,
+            tall.Letters[0].StartBaseLine.Y, precision: 2);
+        Assert.All(across.Letters, letter => Assert.True(Contains(horizontal,
+            letter.BoundingBox.Centroid.X, letter.BoundingBox.Centroid.Y)));
+        Assert.All(tall.Letters, letter => Assert.True(Contains(vertical,
+            letter.BoundingBox.Centroid.X, letter.BoundingBox.Centroid.Y)));
+        Assert.All(mergedWords.Where(word => word.Text != "Across" && word.Text != "Tall"),
+            word => Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
+                word.BoundingBox.Centroid.X, word.BoundingBox.Centroid.Y)));
+        Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
+            tall.BoundingBox.Right, across.BoundingBox.Centroid.Y));
+        Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
+            tall.BoundingBox.Centroid.X, upper.BoundingBox.Centroid.Y));
+        Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
+            tall.BoundingBox.Centroid.X, lower.BoundingBox.Centroid.Y));
+
+        static bool Contains(PdfCore.PdfLinkAnnotation link, double x, double y) =>
+            x >= link.X1 && x <= link.X2 && y >= link.Y1 && y <= link.Y2;
     }
 }

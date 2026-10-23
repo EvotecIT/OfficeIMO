@@ -149,7 +149,8 @@ internal static partial class PdfWriter {
         return fixedHeight ?? System.Math.Max(requiredHeight, GetTableRowMinHeight(style, rowIndex));
     }
 
-    private static bool GetTableRowAllowBreakAcrossPages(PdfTableStyle style, int rowIndex) {
+    /// <summary>Resolves a row's split override before the table default for layout and supported-profile admission.</summary>
+    internal static bool GetTableRowAllowBreakAcrossPages(PdfTableStyle style, int rowIndex) {
         if (style.RowAllowBreakAcrossPages != null &&
             rowIndex < style.RowAllowBreakAcrossPages.Count &&
             style.RowAllowBreakAcrossPages[rowIndex].HasValue) {

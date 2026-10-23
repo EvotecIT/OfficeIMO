@@ -81,18 +81,15 @@ namespace OfficeIMO.Word.Pdf {
                         ignoreFallbackTableStyle: hasExplicitDefaultTableStyle,
                         options: options,
                         inlineImages: embeddedContent.InlineImages);
-                    (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
                     nativeCells.Add(new PdfCore.PdfTableCell(
                         cellText.Runs,
                         cellText.Paragraphs,
                         columnSpan,
-                        link.LinkUri,
-                        link.LinkContents,
-                        rowSpan,
-                        embeddedContent.CheckBoxes.Count == 0 ? null : embeddedContent.CheckBoxes,
-                        embeddedContent.FormFields.Count == 0 ? null : embeddedContent.FormFields,
-                        embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
+                        rowSpan: rowSpan,
+                        checkBoxes: embeddedContent.CheckBoxes.Count == 0 ? null : embeddedContent.CheckBoxes,
+                        formFields: embeddedContent.FormFields.Count == 0 ? null : embeddedContent.FormFields,
+                        images: embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
                         noWrap: usesAutoFitLayout && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText,
@@ -216,6 +213,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeFixedPercentageColumnPreferences(layout, style);
             ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
+            style = CreateNativeNoteTableStyle(table, style, nativeDefaults);
 
             if (horizontalAlignments != null) {
                 style.Alignments = horizontalAlignments;
