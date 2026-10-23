@@ -94,6 +94,44 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("linear-gradient(red,red)")]
+    [InlineData("radial-gradient(red,red)")]
+    [InlineData("conic-gradient(red,red)")]
+    public void HtmlGradientImageGeometry_ExplicitTilePaintsWhenOnlyThePositioningWidthIsZero(string image) {
+        HtmlRenderDocument rendered = RenderBackgroundImageGeometryCase(BackgroundImageGeometryBox(
+            "width:0;height:20px;padding:10px;background-image:" + image
+            + ";background-size:8px 8px;background-origin:content-box;"
+            + "background-clip:border-box;background-repeat:no-repeat"));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(17, 17));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(9, 10));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(18, 10));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlGradientImageGeometry_RoundOnAZeroPositioningAxisHasNoPaintOrTileCharge(bool gradient) {
+        string image = gradient ? "linear-gradient(red,red)"
+            : "url(data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0)) + ")";
+        string empty = BackgroundImageGeometryBox(
+            "width:0;height:20px;padding:10px;background-image:" + image
+            + ";background-size:8px 8px;background-origin:content-box;"
+            + "background-clip:border-box;background-repeat:round no-repeat");
+        string visible = BackgroundImageGeometryBox(
+            "background-image:linear-gradient(blue,blue);background-size:20px 12px");
+        HtmlRenderDocument rendered = RenderBackgroundImageGeometryCase(empty + visible, maximumTiles: 16);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+
+        Assert.Equal(OfficeColor.White, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 84));
+        rendered.RequireNoLoss();
+    }
+
     [Fact]
     public void HtmlGradientImageGeometry_GradientAndUrlTilesShareTheOperationBudgetAndStrictLoss() {
         string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));

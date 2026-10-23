@@ -1,6 +1,12 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    // A background drawing is paint on a fragmentable CSS box, not a replaced
+    // content object. Atomic stacking wrappers retain its original paint phase.
+    private static bool IsFragmentableBackgroundPaint(HtmlRenderVisual visual) =>
+        visual.PaintPhase == HtmlRenderPaintPhase.BlockBackground
+        || visual.AtomicSourcePaintPhase == HtmlRenderPaintPhase.BlockBackground;
+
     private static bool IsSafeParallelItemBreak(
         HtmlRenderFlowBlock item,
         double offset,
@@ -57,6 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double verticalTranslation = 0D, bool includePaintAndMetadata = false) {
         double bottom = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
+            if (!includePaintAndMetadata && IsFragmentableBackgroundPaint(visual)) continue;
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup group => group.Visuals,
                 HtmlRenderEffectGroup group => group.Visuals,
@@ -100,6 +107,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static void AppendAtomicParallelVisualRanges(IEnumerable<HtmlRenderVisual> visuals, ICollection<(double Top, double Bottom)> ranges,
         double verticalTranslation = 0D) {
         foreach (HtmlRenderVisual visual in visuals) {
+            if (IsFragmentableBackgroundPaint(visual)) continue;
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup group => group.Visuals,
                 HtmlRenderEffectGroup group => group.Visuals,

@@ -185,7 +185,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
         }
         if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
-            if (areaWidth <= 0D || areaHeight <= 0D) return;
             AddGradientBackground(
                 visuals,
                 style,
@@ -225,6 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolveBackgroundRepeatModes(layer.Repeat, source, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY);
         if (imageSize.Width <= 0D || imageSize.Height <= 0D) return;
         imageSize = ApplyRoundBackgroundSize(imageSize, layer.Size, areaWidth, areaHeight, repeatX, repeatY);
+        if (imageSize.Width <= 0D || imageSize.Height <= 0D) return;
 
         // A viewBox fits to the concrete tile, including repeat:round sizing.
         // Without one, retain the intrinsic scene and existing tile projection.

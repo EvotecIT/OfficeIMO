@@ -20,6 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (size.Width <= 0D || size.Height <= 0D) return;
         ResolveBackgroundRepeatModes(layer.Repeat, source, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY);
         size = ApplyRoundBackgroundSize(size, layer.Size, areaWidth, areaHeight, repeatX, repeatY, hasIntrinsicRatio: false);
+        if (size.Width <= 0D || size.Height <= 0D) return;
         var origin = new BackgroundPaintBox(areaX, areaY, areaWidth, areaHeight, radii);
         OfficeImagePatternLayout pattern = ResolveBackgroundPattern(layer, style, origin, clipBox, size, repeatX, repeatY);
         bool repeated = pattern.RepeatX || pattern.RepeatY;

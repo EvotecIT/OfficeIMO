@@ -38,10 +38,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("right 10% bottom 20%", 72, 40)]
-    [InlineData("right calc(10% + 2px) bottom calc(20% + 1px)", 70, 39)]
+    [InlineData(false, false, false, "right 10% bottom 20%", 72, 40)]
+    [InlineData(false, false, false, "right calc(10% + 2px) bottom calc(20% + 1px)", 70, 39)]
+    [InlineData(false, true, false, "right 10% bottom 20%", 72, 40)]
+    [InlineData(false, true, true, "right 10% bottom 20%", 72, 40)]
+    [InlineData(true, false, false, "right 10% bottom 20%", 72, 40)]
+    [InlineData(true, false, false, "right calc(10% + 2px) bottom calc(20% + 1px)", 70, 39)]
+    [InlineData(true, true, true, "right 10% bottom 20%", 72, 40)]
+    [InlineData(true, true, true, "right calc(10% + 2px) bottom calc(20% + 1px)", 70, 39)]
     public void HtmlBackgroundPositionEdges_ObjectPositionUsesTheSameFreeSpaceForEdgePercentages(
-        string position, int expectedX, int expectedY) {
+        bool svg, bool stylesheet, bool inlineBlock, string position, int expectedX, int expectedY) {
         // Keep real intrinsic image dimensions: object-fit:none paints this
         // 20x10 image in a 100x60 content box without scaling it.
         var scanlines = new byte[(20 * 3 + 1) * 10];
@@ -50,10 +56,18 @@ public sealed partial class HtmlRenderingTests {
                 scanlines[row * (20 * 3 + 1) + 1 + column * 3] = 255;
             }
         }
-        string data = Convert.ToBase64String(PdfPngTestImages.CreatePngWithScanlines(20, 10, 8, 2, scanlines));
+        string source = svg
+            ? "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'>"
+                + "<rect width='20' height='10' fill='red'/></svg>"))
+            : "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreatePngWithScanlines(20, 10, 8, 2, scanlines));
+        string declarations = "display:" + (inlineBlock ? "inline-block" : "block")
+            + ";vertical-align:top;margin:0;width:100px;height:60px;object-fit:none;object-position:" + position;
+        string image = "<img id='position-edge-object' class='object-reference' src='" + source + "'"
+            + (stylesheet ? ">" : " style='" + declarations + "'>");
         HtmlRenderDocument rendered = RenderBackgroundImageGeometryCase(
-            "<img src='data:image/png;base64," + data + "' style='display:block;width:100px;height:60px;"
-            + "object-fit:none;object-position:" + position + "'>");
+            (stylesheet ? "<style>#position-edge-object{" + declarations + "}</style>" : "")
+            + "<div style='font-size:0;line-height:0'>" + image + "</div>");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(expectedX + 1, expectedY + 1));
