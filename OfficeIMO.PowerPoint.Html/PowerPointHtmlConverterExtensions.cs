@@ -91,7 +91,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append('"');
         AppendHiddenSlideAttribute(body, slide);
         body.Append('>');
-        body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
+        if (options.IncludeSlideHeadings) body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
         AppendSemanticShapes(body, slide, options);
 
@@ -109,7 +109,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append('"');
         AppendHiddenSlideAttribute(body, slide);
         body.Append('>');
-        body.Append("<h2>Slide ").Append(slideNumber.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
+        if (options.IncludeSlideHeadings) body.Append("<h2>Slide ").Append(slideNumber.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
         body.Append("<div class=\"officeimo-visual-page\" data-officeimo-visual-owner=\"OfficeIMO.PowerPoint\" data-officeimo-visual-boundary=\"positioned-review\">");
         body.Append("<div class=\"officeimo-slide-canvas\" style=\"width:")
             .Append(FormatNumber(width))

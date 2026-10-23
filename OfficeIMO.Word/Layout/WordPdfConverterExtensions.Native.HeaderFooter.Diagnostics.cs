@@ -372,6 +372,8 @@ namespace OfficeIMO.Word.Pdf {
             // shared XML content only once, including paragraphs in tables.
             if (paragraph._paragraph != null && !diagnosedParagraphs.Add(paragraph._paragraph)) return;
 
+            RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: true);
+
             if (HasNativeUnsupportedHeaderFooterTextBox(paragraph)) {
                 AddNativeExportWarning(
                     options,
@@ -457,6 +459,8 @@ namespace OfficeIMO.Word.Pdf {
             if (options == null) {
                 return;
             }
+
+            RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: false);
 
             if (!mapsSmartArt && GetNativeRuns(paragraph).Any(run => run.IsSmartArt)) {
                 AddNativeExportWarning(

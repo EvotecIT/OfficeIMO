@@ -368,7 +368,7 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
-                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine));
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing));
                 pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }

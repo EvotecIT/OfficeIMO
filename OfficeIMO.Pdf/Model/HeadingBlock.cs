@@ -13,7 +13,8 @@ internal sealed class HeadingBlock : IPdfBlock {
     public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null, System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null) {
         if (level < 1 || level > 9) throw new System.ArgumentOutOfRangeException(nameof(level), level, "Heading level must be between 1 and 9.");
         Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.LeftCenterRightAlign(align, nameof(align), "Heading");
+        if (align != PdfAlign.Justify || style?.UseWordJustificationSpacing != true)
+            Guard.LeftCenterRightAlign(align, nameof(align), "Heading");
         if (linkUri != null && linkDestinationName != null) {
             throw new System.ArgumentException("A heading link can target either a URI or a bookmark, not both.", nameof(linkDestinationName));
         }

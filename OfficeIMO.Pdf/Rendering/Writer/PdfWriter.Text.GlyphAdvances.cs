@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
     private static void VisitRichWordDecorationAdvances(RichSeg segment, PdfTextShowCommand command,
         PdfOptions options, Action<double, double> visit) {
         string paintedText = WithoutOptionalBreaks(segment.Text);
-        if (command.VisualGlyphs is not { Count: > 0 } && command.JustificationTracking == 0D) {
+        if (command.VisualGlyphs is not { Count: > 0 } && !command.HasJustificationAdvances) {
             VisitWordDecorationAdvances(paintedText,
                 span => MeasurePositionedTextWidth(span, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
                     options, segment.FeatureSettings, segment.TextDirection, segment.HorizontalTextScaling,

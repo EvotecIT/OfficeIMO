@@ -50,6 +50,8 @@ This mode writes the effective formatting supported by the semantic model across
 
 `AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Native writing declares support for both note kinds and writes endnotes as `\footnote\ftnalt`. Note paragraph breaks separate authored paragraphs without adding an empty trailing list item. Modern list bindings use the list tables, and Unicode list markers retain their native character counts.
 
+Word 6/95 legacy paragraph numbering is exposed through `RtfParagraph.LegacyNumbering` and `RtfStyle.LegacyNumbering`. Semantic writing retains the modeled `\pn` controls, marker formatting and text before or after the number. The Word bridge maps supported single-level bullets and decimal lists to editable numbering, retaining start numbers, shared counters and supported marker formatting without changing the RTF model. Higher levels, continuation controls, special cell or section-restart behavior, legacy marker spacing and mismatched cached markers use cached or resolved marker text and report `RtfWordLegacyNumberingFlattened`. The lossless path preserves the original syntax.
+
 Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`, `ToBytesLossless()`, and `TryGetLosslessBytes(...)` make that contract observable. Character-only input can be written as lossless bytes only when every source character has an exact single-byte representation; the API reports or throws instead of silently transcoding it.
 
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.

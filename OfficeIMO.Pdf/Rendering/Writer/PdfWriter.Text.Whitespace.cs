@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
                 fontMetricScale: source.FontMetricScale, leadingSpaceCount: count,
                 leadingSpaceRemainder: remainder, leadingSpaceUnitAdvance: unit,
                 contributesLineBoxDescent: source.ContributesLineBoxDescent, formField: source.FormField,
-                footnoteReference: source.TakeFootnoteReference()).WithFootnoteReferenceOrigin(source));
+                footnoteReference: source.TakeFootnoteReference(), leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace).WithFootnoteReferenceOrigin(source));
             remaining -= consumed;
             fragment.Advance -= consumed;
             if (fragment.Advance <= 0.001D) pending.RemoveAt(0);

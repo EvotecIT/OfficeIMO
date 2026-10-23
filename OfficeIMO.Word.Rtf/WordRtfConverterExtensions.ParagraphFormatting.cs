@@ -43,9 +43,10 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void ApplyParagraphFormatting(WordParagraph destination, RtfParagraph source, RtfDocument document) {
+    private static void ApplyParagraphFormatting(WordParagraph destination, RtfParagraph source, RtfDocument document, RtfWordNumberingPlan numbering) {
+        int? projectedNumberId = numbering.GetNumberId(source);
         if (document.Styles.Count > 0) source = document.GetParagraphFormatting(source);
-        ApplyParagraphStyleAndNumbering(destination, source, document);
+        ApplyParagraphStyleAndNumbering(destination, source, document, projectedNumberId);
         ApplyParagraphLayout(destination, source);
 
         if (source.BackgroundColorIndex.HasValue) {

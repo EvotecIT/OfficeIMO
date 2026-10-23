@@ -23,8 +23,8 @@ public static partial class WordRtfConverterExtensions {
     /// <summary>Converts RTF to Word and reports any structure that was flattened or omitted.</summary>
     public static RtfConversionResult<WordDocument> ToWordDocumentResult(this RtfDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        WordDocument converted = document.ToWordDocument();
         var report = new RtfConversionReport();
+        WordDocument converted = ToWordDocumentCore(document, report);
         AddRtfToWordDiagnostics(document, report);
         return new RtfConversionResult<WordDocument>(converted, report);
     }

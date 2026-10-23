@@ -62,6 +62,18 @@ namespace OfficeIMO.Word {
             return visibility;
         }
 
+        /// <summary>Tests an instruction's visibility in its containing field and source story.</summary>
+        internal static bool IsVisibleBefore(OpenXmlElement element) {
+            Paragraph? paragraph = element.Ancestors<Paragraph>().FirstOrDefault();
+            if (paragraph == null || IsInIgnoredRevisionContainer(element)) return false;
+            WordComplexFieldRunVisibility visibility = ForParagraph(paragraph);
+            foreach (OpenXmlElement preceding in paragraph.Descendants()) {
+                if (ReferenceEquals(preceding, element)) return visibility.IsVisible;
+                if (preceding is FieldChar marker && IsObservedFieldMarker(marker, paragraph)) visibility.Observe(marker);
+            }
+            return false;
+        }
+
         /// <summary>Retains the source story's field state on detached pagination fragments.</summary>
         internal static void PreserveFragmentContext(Paragraph source, Paragraph before, Paragraph after, OpenXmlElement boundary) {
             WordComplexFieldRunVisibility visibility = ForParagraph(source);

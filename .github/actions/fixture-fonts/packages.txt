@@ -1,0 +1,3 @@
+fonts-noto-cjk
+fonts-noto-core
+fonts-ipafont-gothic

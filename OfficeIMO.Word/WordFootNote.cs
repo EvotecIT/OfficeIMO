@@ -124,10 +124,8 @@ namespace OfficeIMO.Word {
         internal static Footnote GenerateFootNote(long footerReferenceId, WordParagraph wordParagraph) {
             Footnote footnote1 = new Footnote() { Id = footerReferenceId };
 
-            ParagraphProperties paragraphProperties1 = new ParagraphProperties();
-            ParagraphStyleId paragraphStyleId1 = new ParagraphStyleId() { Val = "FootnoteText" };
-
-            paragraphProperties1.Append(paragraphStyleId1);
+            ParagraphProperties paragraphProperties1 = wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            paragraphProperties1.ParagraphStyleId ??= new ParagraphStyleId { Val = "FootnoteText" };
 
             Run run1 = new Run();
 
@@ -140,10 +138,7 @@ namespace OfficeIMO.Word {
             run1.Append(runProperties1);
             run1.Append(footnoteReferenceMark1);
 
-            wordParagraph._paragraph.ParagraphProperties = paragraphProperties1;
-
-            var run = wordParagraph._paragraph.GetFirstChild<Run>();
-            run?.InsertBeforeSelf(run1);
+            wordParagraph._paragraph.InsertAfter(run1, paragraphProperties1);
 
             footnote1.Append(wordParagraph._paragraph);
             wordParagraph.RefreshParent();
