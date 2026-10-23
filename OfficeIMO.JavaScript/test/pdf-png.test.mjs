@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { deflateSync } from "node:zlib";
+import { constants, deflateSync } from "node:zlib";
 import { writePdfDocument, writePdfDocumentTo } from "../dist/pdf/index.js";
 import { Crc32 } from "../dist/zip/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
@@ -13,9 +13,9 @@ function chunk(type, data = Buffer.alloc(0)) {
   const size = Buffer.alloc(4), checksum = Buffer.alloc(4); size.writeUInt32BE(data.length); checksum.writeUInt32BE(crc.value);
   return Buffer.concat([size, name, data, checksum]);
 }
-function png({ width = 1, height = 1, depth = 8, color = 2, interlace = 0, scanlines = Buffer.from([0,10,20,30]), before = [], after = [], split = false } = {}) {
+function png({ width = 1, height = 1, depth = 8, color = 2, interlace = 0, scanlines = Buffer.from([0,10,20,30]), before = [], after = [], split = false, compression = {}, trailing = Buffer.alloc(0) } = {}) {
   const header = Buffer.alloc(13); header.writeUInt32BE(width); header.writeUInt32BE(height, 4); header[8] = depth; header[9] = color; header[12] = interlace;
-  const data = deflateSync(scanlines), idat = split ? [chunk("IDAT"), ...[...data].map(byte => chunk("IDAT", Buffer.from([byte]))), chunk("IDAT")] : [chunk("IDAT", data)];
+  const data = Buffer.concat([deflateSync(scanlines, compression), trailing]), idat = split ? [chunk("IDAT"), ...[...data].map(byte => chunk("IDAT", Buffer.from([byte]))), chunk("IDAT")] : [chunk("IDAT", data)];
   return Buffer.concat([signature, chunk("IHDR", header), ...before, ...idat, ...after, chunk("IEND")]);
 }
 const imageBlock = data => ({ kind: "image", image: { format: "png", data } });
@@ -80,6 +80,34 @@ test("PDF PNG intake bounds source, IHDR dimensions and exact inflated bytes", a
   await assert.rejects(writePdfDocument([imageBlock(bad)]), /PNG zlib image data/);
   const extra = Buffer.concat([data.subarray(41, 41 + data.readUInt32BE(33)), Buffer.from([0])]);
   await assert.rejects(writePdfDocument([imageBlock(Buffer.concat([data.subarray(0, 33), chunk("IDAT", extra), chunk("IEND")]))]), /PNG zlib image data/);
+});
+
+test("PDF PNG intake rejects trailing zlib bytes for stored, fixed and dynamic blocks", async () => {
+  const scanlines = Buffer.alloc(6145);
+  for (let i = 1; i < scanlines.length; i++) scanlines[i] = i % 13 === 0 ? i % 251 : 42;
+  for (const [compression, blockType] of [[{ level: 0 }, 0], [{ strategy: constants.Z_FIXED }, 1], [{}, 2]]) {
+    const options = { width: 2048, scanlines, compression };
+    const compressed = deflateSync(scanlines, compression);
+    assert.equal((compressed[2] >> 1) & 3, blockType, "the fixture exercises the specified DEFLATE block type");
+    for (const split of [false, true]) {
+      const pdf = await inspectPdf(await writePdfDocument([imageBlock(png({ ...options, split }))], { compression: false }));
+      assert.deepEqual([...images(pdf)[0].stream], [...scanlines.subarray(1)]);
+      for (const trailing of [Buffer.from([0]), compressed.subarray(-4), deflateSync(Buffer.alloc(0))])
+        await assert.rejects(writePdfDocument([imageBlock(png({ ...options, split, trailing }))]), /PNG zlib image data/);
+    }
+  }
+});
+
+test("PDF PNG boundary verification preserves the abort reason", async () => {
+  const native = globalThis.DecompressionStream, abort = new AbortController(), reason = Error("PNG boundary verification abort");
+  let inflaters = 0;
+  try {
+    globalThis.DecompressionStream = class extends native {
+      constructor(format) { super(format); if (++inflaters === 2) abort.abort(reason); }
+    };
+    await assert.rejects(writePdfDocument([imageBlock(png())], { signal: abort.signal }), error => error === reason);
+    assert.equal(inflaters, 2);
+  } finally { globalThis.DecompressionStream = native; }
 });
 
 test("PDF PNG intake reports unavailable native inflation and cancels during pixel reconstruction", async () => {

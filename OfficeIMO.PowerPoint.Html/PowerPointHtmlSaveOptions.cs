@@ -86,6 +86,9 @@ public sealed class PowerPointHtmlSaveOptions {
     /// </summary>
     public bool IncludeHeading { get; set; } = true;
 
+    /// <summary>When true, each slide starts with an <c>h2</c> heading such as "Slide 1". Set to false to omit them.</summary>
+    public bool IncludeSlideHeadings { get; set; } = true;
+
     /// <summary>
     /// When true, visual-review output lists each slide's render diagnostics as visible text below the slide.
     /// Set to false to leave them out of the HTML; they are still reported through
@@ -125,6 +128,7 @@ public sealed class PowerPointHtmlSaveOptions {
         ExportProfile = ExportProfile,
         DocumentOutput = DocumentOutput.Clone(),
         IncludeHeading = IncludeHeading,
+        IncludeSlideHeadings = IncludeSlideHeadings,
         IncludeRenderDiagnostics = IncludeRenderDiagnostics,
         IncludeHiddenSlides = IncludeHiddenSlides,
         IncludeNotes = IncludeNotes,

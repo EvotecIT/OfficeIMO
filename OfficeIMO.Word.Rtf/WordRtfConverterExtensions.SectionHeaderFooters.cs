@@ -22,7 +22,7 @@ public static partial class WordRtfConverterExtensions {
         CopyHeaderFooter(source.Footer.Even, document, destination.AddFooter, RtfHeaderFooterKind.LeftFooter, revisionAuthors);
     }
 
-    private static void ApplySectionHeaderFooters(RtfDocument source, WordDocument destination, WordSection[] sections) {
+    private static void ApplySectionHeaderFooters(RtfDocument source, WordDocument destination, WordSection[] sections, RtfWordNumberingPlan numbering) {
         var owned = new HashSet<RtfHeaderFooter>(source.Sections.SelectMany(section => section.HeaderFooters));
         for (int index = 0; index < sections.Length; index++) {
             IEnumerable<RtfHeaderFooter> declarations = source.Sections[index].HeaderFooters;
@@ -30,7 +30,7 @@ public static partial class WordRtfConverterExtensions {
             foreach (RtfHeaderFooter declaration in declarations) {
                 WordHeaderFooter headerFooter = GetSectionHeaderFooter(destination, sections[index], declaration.Kind);
                 foreach (WordParagraph existing in headerFooter.Paragraphs.ToArray()) existing.Remove();
-                foreach (RtfParagraph paragraph in declaration.Paragraphs) AppendParagraph(headerFooter, paragraph, source);
+                foreach (RtfParagraph paragraph in declaration.Paragraphs) AppendParagraph(headerFooter, paragraph, source, numbering);
             }
         }
     }

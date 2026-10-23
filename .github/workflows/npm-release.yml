@@ -1,19 +1,24 @@
-name: Publish coordinated npm package
+name: Publish npm package
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [Test .NET Libraries]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
     inputs:
+      version:
+        description: Optional exact version; major and minor changes require manual dispatch.
+        type: string
       quality-run-id:
-        description: Optional successful master push Test .NET Libraries run for this release commit.
+        description: Successful master push Test .NET Libraries run for this exact commit.
         type: string
       publish:
-        description: Publish the qualified archive; false validates with npm's dry run.
+        description: Publish the qualified archive; false performs npm's dry run.
         type: boolean
         default: false
       bootstrap:
-        description: First npm publication only, using the npm-release environment secret.
+        description: First publication only, using the owner-created environment secret.
         type: boolean
         default: false
 
@@ -27,39 +32,68 @@ concurrency:
   queue: max
 
 jobs:
-  package:
-    if: github.event_name != 'release' || (startsWith(github.event.release.tag_name, 'OfficeIMO-v') && !github.event.release.prerelease && !github.event.release.draft)
+  version:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'master' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
     outputs:
-      version: ${{ steps.archive.outputs.version }}
-      sha256: ${{ steps.archive.outputs.sha256 }}
+      version: ${{ steps.version.outputs.version }}
+      should-release: ${{ steps.version.outputs.should-release }}
+      source-sha: ${{ steps.source.outputs.source-sha }}
       quality-run-id: ${{ steps.source.outputs.quality-run-id }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      REQUESTED_QUALITY_RUN: ${{ inputs.quality-run-id }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      REQUESTED_QUALITY_RUN: ${{ github.event.workflow_run.id || inputs.quality-run-id }}
+      REQUESTED_PUBLISH: ${{ inputs.publish }}
+      REQUESTED_BOOTSTRAP: ${{ inputs.bootstrap }}
     steps:
-      - name: Identify the normal release and qualified source
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Qualify the source and compare with the last published npm version
         id: source
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          if ($env:GITHUB_REF -cnotmatch '^refs/tags/(OfficeIMO-v(?:\d{14}|(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)))$') {
-            throw 'Run this workflow on a normal OfficeIMO release tag.'
-          }
-          "RELEASE_TAG=$($Matches[1])" >> $env:GITHUB_ENV
-          $quality = $env:REQUESTED_QUALITY_RUN
-          if (-not $quality) {
-            $runsJson = & gh run list --workflow dotnet-tests.yml --commit $env:GITHUB_SHA --branch master --event push --status success --limit 100 --json databaseId
-            if ($LASTEXITCODE -ne 0) { throw 'Cannot read the release source quality checks.' }
-            $runs = @($runsJson | ConvertFrom-Json)
-            if (-not $runs.Count) { throw 'The release source has no successful master push Test .NET Libraries run.' }
-            $quality = [string]$runs[0].databaseId
-          }
-          "quality-run-id=$quality" >> $env:GITHUB_OUTPUT
+          & ./Build/BrowserExports/Get-NpmReleaseEligibility.ps1
+      - id: version
+        if: steps.source.outputs.eligible == 'true'
+        uses: EvotecIT/PSPublishModule/.github/actions/npm-release-version@3273d732c204108997734572ad8f1742dc322f33
+        with:
+          package-json: OfficeIMO.JavaScript/package.json
+          version: ${{ inputs.version }}
+          quality-run-id: ${{ steps.source.outputs.quality-run-id }}
+          quality-workflow: dotnet-tests.yml
+          tag-prefix: npm-v
+          reserve: ${{ github.event_name == 'workflow_run' || inputs.publish }}
+
+  package:
+    needs: version
+    if: needs.version.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      sha256: ${{ steps.archive.outputs.sha256 }}
+    env:
+      RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      MSBUILDDISABLENODEREUSE: '1'
+      DOTNET_CLI_USE_MSBUILD_SERVER: '0'
+    steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ needs.version.outputs.source-sha }}
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
@@ -68,52 +102,33 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-      - name: Read the signed JavaScript asset release and qualify the npm archive
+      - name: Qualify JavaScript, package consumers and embedded Assets bytes
         id: archive
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $assetPackage = Join-Path $env:RUNNER_TEMP 'officeimo-javascript-assets-release'
+          $assets = Join-Path $env:RUNNER_TEMP 'officeimo-local-assets'
           $output = Join-Path $env:RUNNER_TEMP 'officeimo-npm-release'
-          New-Item -ItemType Directory -Path $assetPackage, $output | Out-Null
-          # Native publication creates the release before uploading its package assets.
-          $deadline = [DateTime]::UtcNow.AddMinutes(10)
-          do {
-            $releaseJson = & gh api "repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG"
-            $assets = @()
-            if ($LASTEXITCODE -eq 0) {
-              $assets = @(($releaseJson | ConvertFrom-Json).assets | Where-Object {
-                $_.name -cmatch '^OfficeIMO\.JavaScript\.Assets\.\d+\.\d+\.\d+\.nupkg$' -and $_.state -ceq 'uploaded'
-              })
-            }
-            if ($assets.Count -gt 1) { throw 'The normal release contains multiple JavaScript asset packages.' }
-            if ($assets.Count -eq 1) { break }
-            if ([DateTime]::UtcNow -ge $deadline) { throw 'The JavaScript asset was not ready within ten minutes. Retry npm delivery on the same tag after native uploads finish.' }
-            Start-Sleep -Seconds 15
-          } while ($true)
-          for ($attempt = 1; $attempt -le 3; $attempt++) {
-            & gh release download $env:RELEASE_TAG --pattern $assets[0].name --dir $assetPackage --clobber
-            if ($LASTEXITCODE -eq 0) { break }
-            if ($attempt -eq 3) { throw 'Cannot download the ready JavaScript asset release asset. Retry npm delivery on the same tag.' }
-            Start-Sleep -Seconds 5
-          }
-          $packages = @(Get-ChildItem -LiteralPath $assetPackage -File -Filter '*.nupkg')
-          if ($packages.Count -ne 1) { throw 'Expected one JavaScript asset package in the normal release.' }
+          New-Item -ItemType Directory -Path $assets, $output | Out-Null
+          & npm --prefix OfficeIMO.JavaScript ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'npm dependency installation failed.' }
+          & npm --prefix OfficeIMO.JavaScript test
+          if ($LASTEXITCODE -ne 0) { throw 'JavaScript source, bundles or tests failed.' }
+          # This small local pack checks the .NET carrier without publishing or signing it.
+          & dotnet pack OfficeIMO.JavaScript.Assets/OfficeIMO.JavaScript.Assets.csproj -c Release '-p:TargetFrameworks=net8.0' --artifacts-path "$assets/build" --output $assets -m:1
+          if ($LASTEXITCODE -ne 0) { throw 'Local JavaScript Assets package build failed.' }
+          $packages = @(Get-ChildItem -LiteralPath $assets -File -Filter 'OfficeIMO.JavaScript.Assets.*.nupkg')
+          if ($packages.Count -ne 1) { throw 'Expected one local JavaScript Assets package.' }
+          $null = & ./Build/BrowserExports/Test-NpmAssetParity.ps1 -PackagePath $packages[0].FullName
           Push-Location OfficeIMO.JavaScript
           try {
-            & npm ci --ignore-scripts --no-audit --no-fund
-            if ($LASTEXITCODE -ne 0) { throw 'npm dependency installation failed.' }
-            & npm test
-            if ($LASTEXITCODE -ne 0) { throw 'JavaScript source, bundles or tests failed.' }
-            $version = & ../Build/BrowserExports/Get-NpmReleaseVersion.ps1 -PackagePath $packages[0].FullName
-            & npm version $version --no-git-tag-version --ignore-scripts --allow-same-version
-            if ($LASTEXITCODE -ne 0) { throw 'Cannot stamp the native release version in runner metadata.' }
+            & npm version $env:RELEASE_VERSION --no-git-tag-version --ignore-scripts --allow-same-version
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot stamp the reserved npm version.' }
             & npm run test:pack -- $output
             if ($LASTEXITCODE -ne 0) { throw 'The packed npm consumer did not qualify.' }
           } finally { Pop-Location }
           $archives = @(Get-ChildItem -LiteralPath $output -File -Filter '*.tgz')
           if ($archives.Count -ne 1) { throw 'Expected one qualified npm archive.' }
-          "version=$version" >> $env:GITHUB_OUTPUT
           "sha256=$((Get-FileHash -LiteralPath $archives[0].FullName -Algorithm SHA256).Hash)" >> $env:GITHUB_OUTPUT
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -125,7 +140,7 @@ jobs:
           retention-days: 7
 
   publish:
-    needs: package
+    needs: [version, package]
     permissions:
       contents: read
       actions: read
@@ -134,13 +149,13 @@ jobs:
     with:
       artifact-name: officeimo-npm
       package-name: '@evotecit/officeimo'
-      version: ${{ needs.package.outputs.version }}
+      version: ${{ needs.version.outputs.version }}
       sha256: ${{ needs.package.outputs.sha256 }}
-      quality-run-id: ${{ needs.package.outputs.quality-run-id }}
+      quality-run-id: ${{ needs.version.outputs.quality-run-id }}
       quality-workflow: dotnet-tests.yml
       environment-name: npm-release
-      normal-release-tag-prefix: OfficeIMO-v
-      publish: ${{ github.event_name == 'release' || inputs.publish }}
+      release-tag-prefix: npm-v
+      publish: ${{ github.event_name == 'workflow_run' || inputs.publish }}
       bootstrap: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap }}
     secrets:
       NPM_BOOTSTRAP_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}

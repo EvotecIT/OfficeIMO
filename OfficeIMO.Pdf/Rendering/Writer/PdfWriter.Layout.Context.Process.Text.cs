@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
-            var (lines, lineHeights) = WrapRichRunsWithSpacing(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
+            var (lines, lineHeights) = WrapRichHeadingRuns(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, hb.Align);
             double wrappedWidth = width;
             int lineIndex = 0;
             bool firstLogicalLine = true;
@@ -29,8 +29,8 @@ internal static partial class PdfWriter {
                 frameStart = GetCurrentFramePageStartY();
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
                     var remainingRuns = firstLogicalLine ? headingRuns : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
-                    (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null,
-                        DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
+                    (lines, lineHeights) = WrapRichHeadingRuns(remainingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null,
+                        DefaultParagraphTabStopWidth, currentOpts, headingStyle, hb.Align);
                     lineIndex = 0;
                     wrappedWidth = width;
                     textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
@@ -147,7 +147,7 @@ internal static partial class PdfWriter {
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             double wrappedWidth = textFrame.Width;
-            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading) !=
                 PdfKeepTogetherOverflowBehavior.Reject;
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
@@ -170,7 +170,7 @@ internal static partial class PdfWriter {
                 if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
                     (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                         textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
                     wrappedWidth = textFrame.Width;
                 }
             }
@@ -219,7 +219,7 @@ internal static partial class PdfWriter {
             if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
                 (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                     textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
                 wrappedWidth = textFrame.Width;
                 frameStart = GetCurrentFramePageStartY();
             }
@@ -272,7 +272,7 @@ internal static partial class PdfWriter {
                         floatingLineWidths[index] = frame.Width;
                         floatingLineGaps[index] = frame.Gap;
                         return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                    }, lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+                    }, lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
@@ -315,7 +315,7 @@ internal static partial class PdfWriter {
                     var wrapped = WrapRichRunsCoreWithFirstLineOrigin(remainingRuns, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                         firstLogicalLine ? textFrame.FirstLineWidth : textFrame.Width,
                         firstLogicalLine ? textFrame.FirstLineX - textFrame.X : 0D, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
                     lines = originalLines = wrapped.Lines; lineHeights = originalLineHeights = wrapped.LineHeights;
                     lineIndex = 0; wrappedWidth = textFrame.Width;
                     floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
@@ -347,6 +347,8 @@ internal static partial class PdfWriter {
                             }
                             lineWidth += GetRichSegmentWidth(adjusted) + adjusted.LeadingAdvance;
                         }
+                        if (paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify)
+                            BindWordCompressionPlan(lines[index], textFrame.Width);
                     }
                 }
                 floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;

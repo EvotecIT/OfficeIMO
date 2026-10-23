@@ -51,128 +51,19 @@ internal static partial class PdfWriter {
             double colGapPx = cellSpacing;
             double rowGapPx = cellSpacing;
             double size = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
-            if (!IsValidPdfAlign(tb.Align)) {
-                throw new ArgumentException("Table alignment must be Left, Center, or Right.");
-            }
-            if (style.Alignments != null) {
-                foreach (var alignment in style.Alignments) {
-                    if (!IsValidPdfColumnAlign(alignment)) {
-                        throw new ArgumentException("Table column alignments must be Left, Center, or Right.");
-                    }
-                }
-            }
-            if (style.VerticalAlignments != null) {
-                foreach (var verticalAlignment in style.VerticalAlignments) {
-                    if (!IsValidPdfCellVerticalAlign(verticalAlignment)) {
-                        throw new ArgumentException("Table vertical alignments must be defined PDF cell vertical alignment values.");
-                    }
-                }
-            }
-            if (!IsValidPdfAlign(style.CaptionAlign)) {
-                throw new ArgumentException("Table caption alignment must be Left, Center, or Right.");
-            }
-            if (style.BorderWidth < 0 || double.IsNaN(style.BorderWidth) || double.IsInfinity(style.BorderWidth)) {
-                throw new ArgumentException("Table border width must be a non-negative finite value.");
-            }
-            if (style.RowSeparatorWidth < 0 || double.IsNaN(style.RowSeparatorWidth) || double.IsInfinity(style.RowSeparatorWidth)) {
-                throw new ArgumentException("Table row separator width must be a non-negative finite value.");
-            }
-            if (style.HeaderSeparatorWidth < 0 || double.IsNaN(style.HeaderSeparatorWidth) || double.IsInfinity(style.HeaderSeparatorWidth)) {
-                throw new ArgumentException("Table header separator width must be a non-negative finite value.");
-            }
-            if (style.FooterSeparatorWidth < 0 || double.IsNaN(style.FooterSeparatorWidth) || double.IsInfinity(style.FooterSeparatorWidth)) {
-                throw new ArgumentException("Table footer separator width must be a non-negative finite value.");
-            }
-            if (style.CellPaddingX < 0 || double.IsNaN(style.CellPaddingX) || double.IsInfinity(style.CellPaddingX)) {
-                throw new ArgumentException("Table horizontal cell padding must be a non-negative finite value.");
-            }
-            if (style.CellPaddingY < 0 || double.IsNaN(style.CellPaddingY) || double.IsInfinity(style.CellPaddingY)) {
-                throw new ArgumentException("Table vertical cell padding must be a non-negative finite value.");
-            }
-            if (style.MinRowHeight < 0 || double.IsNaN(style.MinRowHeight) || double.IsInfinity(style.MinRowHeight)) {
-                throw new ArgumentException("Table minimum row height must be a non-negative finite value.");
-            }
-            if (style.RowMinHeights != null) {
-                foreach (double? rowMinHeight in style.RowMinHeights) {
-                    if (rowMinHeight.HasValue && (rowMinHeight.Value < 0 || double.IsNaN(rowMinHeight.Value) || double.IsInfinity(rowMinHeight.Value))) {
-                        throw new ArgumentException("Table row minimum heights must be non-negative finite values.");
-                    }
-                }
-            }
-            if (style.SpacingBefore < 0 || double.IsNaN(style.SpacingBefore) || double.IsInfinity(style.SpacingBefore)) {
-                throw new ArgumentException("Table spacing before must be a non-negative finite value.");
-            }
-            if (style.Caption != null && string.IsNullOrWhiteSpace(style.Caption)) {
-                throw new ArgumentException("Table caption cannot be empty or whitespace.");
-            }
-            if (style.CaptionFontSize.HasValue && (style.CaptionFontSize.Value <= 0 || double.IsNaN(style.CaptionFontSize.Value) || double.IsInfinity(style.CaptionFontSize.Value))) {
-                throw new ArgumentException("Table caption font size must be a positive finite value.");
-            }
-            if (style.MinimumShrinkFontSize.HasValue && (style.MinimumShrinkFontSize.Value <= 0 || double.IsNaN(style.MinimumShrinkFontSize.Value) || double.IsInfinity(style.MinimumShrinkFontSize.Value))) {
-                throw new ArgumentException("Table minimum shrink font size must be a positive finite value.");
-            }
-            if (style.CaptionSpacingAfter < 0 || double.IsNaN(style.CaptionSpacingAfter) || double.IsInfinity(style.CaptionSpacingAfter)) {
-                throw new ArgumentException("Table caption spacing after must be a non-negative finite value.");
-            }
-            if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
-                throw new ArgumentException("Table spacing after must be a non-negative finite value.");
-            }
-            if (style.PageContinuationSpacingBefore < 0 || double.IsNaN(style.PageContinuationSpacingBefore) || double.IsInfinity(style.PageContinuationSpacingBefore)) {
-                throw new ArgumentException("Table page continuation spacing before must be a non-negative finite value.");
-            }
-            if (double.IsNaN(style.RowBaselineOffset) || double.IsInfinity(style.RowBaselineOffset)) {
-                throw new ArgumentException("Table row baseline offset must be a finite value.");
-            }
-            if (style.CellFills != null) {
-                foreach (var cellFill in style.CellFills) {
-                    if (cellFill.Key.Row < 0 || cellFill.Key.Column < 0) {
-                        throw new ArgumentException("Table cell fill coordinates cannot be negative.");
-                    }
-                }
-            }
-            if (style.CellBorders != null) {
-                foreach (var cellBorder in style.CellBorders) {
-                    if (cellBorder.Key.Row < 0 || cellBorder.Key.Column < 0) {
-                        throw new ArgumentException("Table cell border coordinates cannot be negative.");
-                    }
-                    if (cellBorder.Value == null || cellBorder.Value.Width < 0 || double.IsNaN(cellBorder.Value.Width) || double.IsInfinity(cellBorder.Value.Width)) {
-                        throw new ArgumentException("Table cell border widths must be non-negative finite values.");
-                    }
-                }
-            }
-            if (style.HeaderRowCount < 0) {
-                throw new ArgumentException("Table header row count cannot be negative.");
-            }
-            if (style.FooterRowCount < 0) {
-                throw new ArgumentException("Table footer row count cannot be negative.");
-            }
-
-            ValidateTableRoleRowCounts(style, tb.Rows.Count);
+            ValidateFlowTable(tb, style, cols);
             int headerRowCount = style.HeaderRowCount;
             int repeatHeaderRowCount = GetTableRepeatHeaderRowCount(style);
             int footerRowCount = style.FooterRowCount;
             int footerStartRowIndex = tb.Rows.Count - footerRowCount;
-            ValidateTableCellStyleCoordinates(style, tb, cols);
-            ValidateTableColumnStyleBounds(style, cols);
-            ValidateTableRowStyleBounds(style, tb.Rows.Count);
-            ValidateTableRowSpansWithinRoleBoundaries(tb, cols, headerRowCount, footerStartRowIndex);
 
             style = preparedPairedStyle ?? PreparePairedTableBorders(tb, style);
             StringBuilder? pairedBorders = deferredPairedBorders;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            TableColumnLayout preparedColumns = ResolveTableColumnLayout(
-                tb,
-                currentOpts,
-                style,
-                GetTableColumnCount(tb),
-                contentWidth,
-                size,
-                headerRowCount,
-                footerStartRowIndex);
-            double tableWidth = preparedColumns.Width;
-            double[] colPixel = preparedColumns.Widths;
-
-            PreparedFlowTableRows preparedRows = PrepareFlowTableRows(tb, style, cols, colPixel, colGapPx, rowGapPx, headerRowCount, footerStartRowIndex);
+            PreparedTableGeometry initialGeometry = PrepareTableGeometry(tb, style, contentWidth, logicalTopBoundary, logicalBottomBoundary);
+            double tableWidth = initialGeometry.Width;
+            double[] colPixel = initialGeometry.Widths;
+            PreparedFlowTableRows preparedRows = initialGeometry.Rows;
             var rowLines = preparedRows.Lines;
             var rowLineCounts = preparedRows.LineCounts;
             var rowHeights = preparedRows.Heights;
@@ -185,13 +76,7 @@ internal static partial class PdfWriter {
             for (int row = rowHeights.Length - 1; row >= 0; row--)
                 remainingRowHeights[row] = rowHeights[row] +
                     GetTableRowGapAfter(row, rowHeights.Length, rowGapPx) + remainingRowHeights[row + 1];
-            double tableCornerRadius = ResolveTableCornerRadius(
-                style.CornerRadius,
-                tableWidth,
-                logicalTopBoundary ? rowHeights[0] : double.PositiveInfinity,
-                logicalBottomBoundary ? rowHeights[rowHeights.Length - 1] : double.PositiveInfinity,
-                colPixel[0],
-                colPixel[colPixel.Length - 1]);
+            double tableCornerRadius = initialGeometry.CornerRadius;
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
             if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset;
 
@@ -229,7 +114,7 @@ internal static partial class PdfWriter {
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
                 if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
-                preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
+                TableColumnLayout preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
                 tableWidth = preparedColumns.Width;
                 colPixel = preparedColumns.Widths;
                 preparedRows = PrepareFlowTableRows(tb, style, cols, colPixel, colGapPx, rowGapPx, headerRowCount, footerStartRowIndex,
@@ -633,19 +518,6 @@ internal static partial class PdfWriter {
             }
 
             void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false, PageStructElement? existingRowStructureElement = null, double? continuedSpanHeight = null) {
-                bool renderAsFooter = rowIndex >= footerStartRowIndex;
-                bool rowUsesBold = rowBold[rowIndex];
-                double rowSize = rowSizes[rowIndex];
-                double rowLeading = rowLeadings[rowIndex];
-                if (rowUsesBold) {
-                    currentPage!.UsedBold = true;
-                    usedBold = true;
-                }
-
-                var cells = GetTableCellLayouts(tb, rowIndex, cols);
-                bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
-                double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
-                double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
                 double rowHeight = continuedSpanHeight ?? MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
                 double closing = rowIndex == tb.Rows.Count - 1 && startLine + lineCount == rowLineCounts[rowIndex]
                     ? GetClosingTextPadding(style.SpacingAfter) : 0D;
@@ -653,235 +525,22 @@ internal static partial class PdfWriter {
                     !TryReserveTableFragment(rowIndex, startLine, lineCount, rowHeight, commit: true, closing))
                     throw new ArgumentException("The admitted table row fragment and its footnotes cannot fit within the page content frame.");
                 if (!suppressCellObjects) tableFrameHasBodyContent = true;
-                if (style?.Position == null) RecordFlowPlacement(y);
+                if (style.Position == null) RecordFlowPlacement(y);
                 else ResolveFloatingBookmarks(y);
-                double rowBottom = y - rowHeight;
-                if (!suppressCellObjects) spanFlow.AdmitRow(rowIndex, y, rowBottom, rowGapPx);
-                if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
-                int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;
-                bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
-                bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tb, rowIndex, cols);
-                double cornerRadius = tableCornerRadius;
-                bool roundTop = cornerRadius > 0D && logicalTopBoundary && rowIndex == 0 && startLine == 0;
-                bool roundBottom = cornerRadius > 0D && logicalBottomBoundary && rowIndex == tb.Rows.Count - 1 && startLine + lineCount >= rowLineCounts[rowIndex];
-                bool roundedRow = roundTop || roundBottom;
-                if (roundedRow) { BeginRoundedClip(sb, xOrigin, rowBottom, tableWidth, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom); }
-                if (style?.HeaderFill is not null && renderAsHeader) { pageDirty = true; DrawTableRowFill(sb, style.HeaderFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (style?.FooterFill is not null && renderAsFooter) { pageDirty = true; DrawTableRowFill(sb, style.FooterFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (!renderAsHeader && !renderAsFooter && style?.RowStripeFill is not null && stripeBodyRow) { pageDirty = true; DrawTableRowFill(sb, style.RowStripeFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
-                if (!renderAsHeader && !renderAsFooter && style?.BodyColumnFills != null) {
-                    bool[] bodyColumnFillSkips = GetMergedCellContinuationSkipColumns(tb, rowIndex, cols);
-                    double fillX = xOrigin;
-                    for (int fillColumn = 0; fillColumn < cols; fillColumn++) {
-                        PdfColor? fill = fillColumn < style.BodyColumnFills.Count ? style.BodyColumnFills[fillColumn] : null;
-                        if (fill.HasValue && (fillColumn >= bodyColumnFillSkips.Length || !bodyColumnFillSkips[fillColumn])) {
-                            pageDirty = true;
-                            DrawRowFill(sb, fill.Value, fillX, rowBottom, colPixel[fillColumn], rowHeight, emitGeneratedStructure);
-                        }
-                        fillX += colPixel[fillColumn] + colGapPx;
-                    }
-                }
-                if (roundedRow) { EndRoundedClip(sb); }
-                if (style?.CellFills != null && style.CellFills.Count > 0) {
-                    double fillX = xOrigin;
-                    for (int fillColumn = 0; fillColumn < cols; fillColumn++) {
-                        if (!spanFlow.Contains(rowIndex, fillColumn) && style.CellFills.TryGetValue((rowIndex, fillColumn), out PdfColor fill) &&
-                            TryGetTableCellLayoutAtColumn(cells, fillColumn, out TableCellLayout fillCell) &&
-                            (fillColumn >= rowFillSkips.Length || !rowFillSkips[fillColumn])) {
-                            pageDirty = true;
-                            int span = wholeRowSegment ? fillCell.ColumnSpan : 1;
-                            double fillHeight = rowHeight;
-                            double fillBottom = rowBottom;
-                            if (wholeRowSegment) {
-                                if (fillCell.RowSpan > 1) {
-                                    fillHeight = GetTableCellHeight(rowHeights, rowIndex, fillCell.RowSpan, rowGapPx);
-                                    fillBottom = y - fillHeight;
-                                }
-                            }
-
-                            bool fillTouchesTop = cornerRadius > 0D && logicalTopBoundary && rowIndex == 0 && startLine == 0;
-                            bool fillTouchesBottom = cornerRadius > 0D && logicalBottomBoundary &&
-                                (wholeRowSegment
-                                    ? rowIndex + fillCell.RowSpan >= tb.Rows.Count
-                                    : rowIndex == tb.Rows.Count - 1 && startLine + lineCount >= rowLineCounts[rowIndex]);
-                            bool fillTouchesLeft = fillColumn == 0;
-                            bool fillTouchesRight = fillColumn + span >= cols;
-                            bool clipCellFill = (fillTouchesTop || fillTouchesBottom) && (fillTouchesLeft || fillTouchesRight);
-                            if (clipCellFill) {
-                                BeginRoundedClip(sb, fillX, fillBottom, GetTableCellWidth(colPixel, fillColumn, span, colGapPx), fillHeight, cornerRadius,
-                                    fillTouchesTop && fillTouchesLeft,
-                                    fillTouchesTop && fillTouchesRight,
-                                    fillTouchesBottom && fillTouchesRight,
-                                    fillTouchesBottom && fillTouchesLeft);
-                            }
-                            DrawRowFill(sb, fill, fillX, fillBottom, GetTableCellWidth(colPixel, fillColumn, span, colGapPx), fillHeight, emitGeneratedStructure);
-                            if (clipCellFill) { EndRoundedClip(sb); }
-                        }
-                        fillX += colPixel[fillColumn] + colGapPx;
-                    }
-                }
-                if (style != null && DrawTableCellDataBars(sb, style, cells, rowIndex, cols, xOrigin, y, rowBottom, rowHeight, colPixel, colGapPx, rowHeights, rowGapPx, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
-                    pageDirty = true;
-                }
-                if (style != null && DrawTableCellIcons(sb, style, cells, rowIndex, cols, xOrigin, y, rowBottom, rowHeight, colPixel, colGapPx, rowHeights, rowGapPx, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
-                    pageDirty = true;
-                }
-                if (currentOpts.Debug?.ShowTableBaselines == true) {
-                    double x1 = xOrigin;
-                    double x2 = xOrigin + tableWidth;
-                    double baselineYDbg = y - padTop - GetAscenderForOptions(GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts);
-                    pageDirty = true;
-                    DrawHLine(sb, new PdfColor(0, 0.6, 0), 0.4, x1, x2, baselineYDbg);
-                }
-                double xi = xOrigin;
-                double yRect = rowBottom;
-                double rowWidth = tableWidth;
-                double hRect = rowHeight;
-                if (style?.BorderColor is not null && style.BorderWidth > 0) {
-                    pageDirty = true;
-                    bool[] topBorderSkips = GetRowSpanBoundarySkipColumns(tb, rowIndex - 1, cols);
-                    bool[] bottomBorderSkips = GetRowSpanBoundarySkipColumns(tb, rowIndex, cols);
-                    bool segmentBorderRows = HasSkippedColumns(topBorderSkips, cols) || HasSkippedColumns(bottomBorderSkips, cols);
-                    if (roundedRow) {
-                        if (roundTop) {
-                            DrawRoundedSideStroke(sb, style.BorderColor.Value, style.BorderWidth, style.BorderWidth, RoundedRectSide.Top, xOrigin, yRect, rowWidth, hRect, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                        } else {
-                            DrawTableHorizontalLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, colPixel, colGapPx, yRect + hRect, topBorderSkips, emitGeneratedStructure);
-                        }
-                        if (roundBottom) {
-                            DrawRoundedSideStroke(sb, style.BorderColor.Value, style.BorderWidth, style.BorderWidth, RoundedRectSide.Bottom, xOrigin, yRect, rowWidth, hRect, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                        } else {
-                            DrawTableHorizontalLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, colPixel, colGapPx, yRect, bottomBorderSkips, emitGeneratedStructure);
-                        }
-                        DrawRoundedSideStroke(sb, style.BorderColor.Value, style.BorderWidth, style.BorderWidth, RoundedRectSide.Left, xOrigin, yRect, rowWidth, hRect, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                        DrawRoundedSideStroke(sb, style.BorderColor.Value, style.BorderWidth, style.BorderWidth, RoundedRectSide.Right, xOrigin, yRect, rowWidth, hRect, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                    } else if (segmentBorderRows) {
-                        DrawTableHorizontalLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, colPixel, colGapPx, yRect + hRect, topBorderSkips, emitGeneratedStructure);
-                        DrawTableHorizontalLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, colPixel, colGapPx, yRect, bottomBorderSkips, emitGeneratedStructure);
-                        DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, yRect + hRect, yRect, emitGeneratedStructure);
-                        DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xOrigin + tableWidth, yRect + hRect, yRect, emitGeneratedStructure);
-                    } else {
-                        DrawRoundedRowRect(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, yRect, rowWidth, hRect, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                    }
-
-                    double xi2 = xOrigin;
-                    double yTop = yRect + hRect;
-                    double yBottom = yRect;
-                    for (int c = 0; c < cols - 1; c++) {
-                        xi2 += colPixel[c];
-                        if (IsTableBoundaryInsideSpannedCell(tb, rowIndex, c, cols)) {
-                            xi2 += colGapPx;
-                            continue;
-                        }
-
-                        if (currentOpts.Debug?.ShowTableColumnGuides == true)
-                            DrawVLine(sb, new PdfColor(0, 0, 1), Math.Max(0.3, style.BorderWidth), xi2, yTop, yBottom);
-                        else
-                            DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xi2, yTop, yBottom, emitGeneratedStructure);
-                        xi2 += colGapPx;
-                    }
-                }
-                if (style != null && renderAsFooter && rowIndex == footerStartRowIndex) {
-                    PdfColor? footerSeparatorColor = style.FooterSeparatorColor ?? style.RowSeparatorColor;
-                    double footerSeparatorWidth = style.FooterSeparatorWidth > 0 ? style.FooterSeparatorWidth : style.RowSeparatorWidth;
-                    if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
-                        pageDirty = true;
-                        DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xOrigin, colPixel, colGapPx, y, GetRowSpanBoundarySkipColumns(tb, rowIndex - 1, cols), emitGeneratedStructure);
-                    }
-                }
-                PdfColor? separatorColor = renderAsHeader && style?.HeaderSeparatorColor is not null ? style.HeaderSeparatorColor : style?.RowSeparatorColor;
-                double separatorWidth = renderAsHeader && style?.HeaderSeparatorWidth > 0 ? style.HeaderSeparatorWidth : style?.RowSeparatorWidth ?? 0;
-                if (separatorColor is not null && separatorWidth > 0) {
-                    pageDirty = true;
-                    DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xOrigin, colPixel, colGapPx, rowBottom, GetRowSpanBoundarySkipColumns(tb, rowIndex, cols), emitGeneratedStructure);
-                }
-                var textColor = renderAsHeader ? style!.HeaderTextColor : renderAsFooter ? style!.FooterTextColor : style!.TextColor;
-                int? rowStructureElementIndex = null;
-                PageStructElement? rowStructureElement = existingRowStructureElement;
-                if (rowStructureElement == null) {
-                    rowStructureElementIndex = RegisterStructureContainer("TR", EnsureTableStructureElement());
-                    if (rowStructureElementIndex.HasValue) {
-                        rowStructureElement = currentPage!.StructElements[rowStructureElementIndex.Value];
-                    }
-                }
-                if (!suppressCellObjects) spanFlow.BindStructureRow(currentPage, rowStructureElement);
-                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                    TableCellLayout cell = cells[cellIndex];
-                    if (spanFlow.Contains(rowIndex, cell.Column)) continue;
-                    int c = cell.Column;
-                    xi = xOrigin;
-                    for (int xColumn = 0; xColumn < c; xColumn++) {
-                        xi += colPixel[xColumn] + colGapPx;
-                    }
-
-                    double cellWidth = GetTableCellWidth(colPixel, c, cell.ColumnSpan, colGapPx);
-                    double cellHeight = wholeRowSegment && cell.RowSpan > 1 ? GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGapPx) : rowHeight;
-                    TableCellTextLayout lines = rowLines[rowIndex][c];
-                    int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
-                    int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
-                    RenderFlowTableCellContent(tb, style, cell, lines, rowIndex, sourceStartLine, requestedLineCount,
-                        xi, y, cellWidth, cellHeight, rowSize, rowLeading, preparedRows.RunFontSizeScales[rowIndex],
-                        rowUsesBold, renderAsHeader, wholeRowSegment, suppressCellObjects, textColor,
-                        rowStructureElementIndex, rowStructureElement);
-                }
-                if (style?.CellBorders != null && style.CellBorders.Count > 0) {
-                    // On a rounded row a per-cell border (e.g. a left accent stripe or a top accent bar)
-                    // is drawn as a rounded-rectangle stroke clipped to its side + corners
-                    // (DrawRoundedCellBorderStrokes), so it shares the box's rounded corners and meets the
-                    // neighbouring border at the tangents. Elsewhere it stays the usual straight per-side
-                    // stroke (DrawCellBorder).
-                    double roundedOuterBorder = (style.BorderColor is not null && style.BorderWidth > 0) ? style.BorderWidth : 0D;
-                    double borderX = xOrigin;
-                    for (int borderColumn = 0; borderColumn < cols; borderColumn++) {
-                        if (!spanFlow.Contains(rowIndex, borderColumn) && style.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
-                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
-                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                            HasRenderableCellBorder(cellBorder)) {
-                            int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
-                            double borderHeight = hRect;
-                            double borderBottom = yRect;
-                            if (wholeRowSegment) {
-                                if (borderCell.RowSpan > 1) {
-                                    borderHeight = GetTableCellHeight(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx);
-                                    borderBottom = y - borderHeight;
-                                }
-                            }
-
-                            pageDirty = true;
-                            bool cellTouchesTop = cornerRadius > 0D && logicalTopBoundary && rowIndex == 0 && startLine == 0;
-                            bool cellTouchesBottom = cornerRadius > 0D && logicalBottomBoundary &&
-                                (wholeRowSegment
-                                    ? rowIndex + borderCell.RowSpan >= tb.Rows.Count
-                                    : rowIndex == tb.Rows.Count - 1 && startLine + lineCount >= rowLineCounts[rowIndex]);
-                            bool cellTouchesLeft = borderColumn == 0;
-                            bool cellTouchesRight = borderColumn + span >= cols;
-                            bool topLeft = cellTouchesTop && cellTouchesLeft;
-                            bool topRight = cellTouchesTop && cellTouchesRight;
-                            bool bottomRight = cellTouchesBottom && cellTouchesRight;
-                            bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                            StringBuilder borderOutput = HasPairedCellBorder(cellBorder) || spanFlow.HasDeferredFills(style)
-                                ? pairedBorders ??= new StringBuilder() : sb;
-                            if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
-                                DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
-                                    GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
-                            } else {
-                                DrawCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
-                                    GetCellBorderSegmentLengths(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx),
-                                    GetCellBorderSegmentLengths(colPixel, borderColumn, span, colGapPx),
-                                    GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
-                            }
-                        }
-                        borderX += colPixel[borderColumn] + colGapPx;
-                    }
-                }
-                if (style?.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
+                var geometry = new PreparedTableGeometry(tb, style, preparedRows, colPixel, tableWidth, tableCornerRadius);
+                var slice = new TableRowSlice(rowIndex, startLine, lineCount, rowHeight, renderAsHeader, suppressCellObjects);
+                PaintPreparedTableRow(geometry, spanFlow, slice, xOrigin, y, EnsureTableStructureElement(),
+                    ref pairedBorders, existingRowStructureElement, bodyRowOffset, logicalTopBoundary, logicalBottomBoundary);
+                bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
+                if (style.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
                 if (wholeRowSegment || startLine + lineCount == rowLineCounts[rowIndex])
-                    FlushTableSpanFragments(tb, style!, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders, rowIndex,
+                    FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders, rowIndex,
                         tableCornerRadius, Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary, logicalBottomBoundary,
-                        GetClosingTextPadding(style!.SpacingAfter));
-                RecordTableFrameContentBottom(tb, rowBottom);
+                        GetClosingTextPadding(style.SpacingAfter));
+                RecordTableFrameContentBottom(tb, y - rowHeight);
                 y -= rowHeight;
-                if (wholeRowSegment && GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex) == 0) {
+                if (wholeRowSegment && GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex) == 0)
                     y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
-                }
             }
 
             void DrawTableRow(int rowIndex, bool renderAsHeader, bool suppressCellObjects = false) =>

@@ -13,7 +13,10 @@ namespace OfficeIMO.Word {
             @"^(?<instruction>.*?)\s+\\#\s*(?<format>""[^""]*""|[^\s\\]+)(?<suffix>.*)$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
-        internal static IReadOnlyList<WordFieldInfo> Inspect(WordDocument document) {
+        internal static IReadOnlyList<WordFieldInfo> Inspect(WordDocument document) =>
+            InspectWithSource(document).Select(finding => finding.Info).ToArray();
+
+        internal static IReadOnlyList<FieldInfoCandidate> InspectWithSource(WordDocument document) {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
@@ -24,10 +27,8 @@ namespace OfficeIMO.Word {
                 InspectRoot(root, findings, ref sequence);
             }
 
-            var ordered = findings
-                .OrderBy(finding => finding.Sequence)
-                .Select((finding, index) => finding.InfoWithIndex(index))
-                .ToArray();
+            FieldInfoCandidate[] ordered = findings.OrderBy(finding => finding.Sequence).ToArray();
+            for (int index = 0; index < ordered.Length; index++) ordered[index].InfoWithIndex(index);
 
             return ordered;
         }
@@ -85,7 +86,13 @@ namespace OfficeIMO.Word {
                 isInTextBox: IsInTextBox(simpleField),
                 unsupportedParseDetails: parsed.Diagnostics);
 
-            findings.Add(new FieldInfoCandidate(sequence++, info));
+            // Range markers, proofing metadata and field data can occur without a
+            // cached result. A run (even an empty one), equation or content
+            // reference supplies result content, including inside inline wrappers.
+            bool hasStoredResult = simpleField.Descendants().Any(element =>
+                element is Run or ContentPart or SubDocumentReference ||
+                string.Equals(element.NamespaceUri, WordMath.MathNamespace, StringComparison.Ordinal));
+            findings.Add(new FieldInfoCandidate(sequence++, info, simpleField, hasStoredResult));
         }
 
         private static void ProcessRun(
@@ -98,7 +105,7 @@ namespace OfficeIMO.Word {
                 if (child is FieldChar fieldChar) {
                     FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                     if (fieldCharType == FieldCharValues.Begin) {
-                        var builder = new ComplexFieldBuilder(sequence++, stack.Count, run) {
+                        var builder = new ComplexFieldBuilder(sequence++, stack.Count, fieldChar) {
                             IsDirty = fieldChar.Dirty?.Value ?? false,
                             IsLocked = fieldChar.FieldLock?.Value ?? false,
                             IsInTable = IsInTable(run),
@@ -302,15 +309,21 @@ namespace OfficeIMO.Word {
             internal string PartUri { get; }
         }
 
-        private sealed class FieldInfoCandidate {
-            internal FieldInfoCandidate(int sequence, WordFieldInfo info) {
+        internal sealed class FieldInfoCandidate {
+            internal FieldInfoCandidate(int sequence, WordFieldInfo info, OpenXmlElement sourceElement, bool hasStoredResult) {
                 Sequence = sequence;
                 Info = info;
+                SourceElement = sourceElement;
+                HasStoredResult = hasStoredResult;
             }
 
             internal int Sequence { get; }
 
-            private WordFieldInfo Info { get; }
+            internal WordFieldInfo Info { get; }
+
+            internal OpenXmlElement SourceElement { get; }
+
+            internal bool HasStoredResult { get; }
 
             internal WordFieldInfo InfoWithIndex(int index) {
                 Info.Index = index;
@@ -375,7 +388,7 @@ namespace OfficeIMO.Word {
                     isInTextBox: IsInTextBox,
                     unsupportedParseDetails: diagnostics);
 
-                return new FieldInfoCandidate(Sequence, info);
+                return new FieldInfoCandidate(Sequence, info, StartElement, HasSeparator);
             }
         }
 

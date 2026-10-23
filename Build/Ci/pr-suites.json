@@ -1,0 +1,386 @@
+{
+  "website_inputs": [
+    "Website/**",
+    "OfficeIMO.JavaScript/**",
+    "PowerShell/PSWriteOffice/**",
+    "Docs/**",
+    "README.md",
+    "MIGRATION.md",
+    "OfficeIMO.*/README.md",
+    "OfficeIMO.*/SUPPORT.md",
+    ".agents/plugins/**",
+    ".github/actions/contract-selection/**",
+    ".github/workflows/website-*.yml",
+    ".github/workflows/deploy-website.yml",
+    "**/*.csproj",
+    "**/*.props",
+    "**/*.targets",
+    "**/NuGet.Config",
+    "**/nuget.config",
+    "NuGet.Config",
+    "nuget.config",
+    "global.json",
+    "Directory.Build.*",
+    "Directory.Packages.*",
+    "Build/Ci/Save-PowerShellTools.ps1",
+    "Build/Ci/powershell-tools.json",
+    "Build/Test-AotProjectCoverage.ps1",
+    "Build/WebsiteBrowserContract/**",
+    "Build/BenchmarkEvidence.ps1",
+    "Build/Run-LibraryComparisonBenchmarks.ps1",
+    "Build/Generate-ExcelBenchmarkWebsiteData.ps1",
+    "Build/Generate-BenchmarkWebsiteOverview.ps1",
+    "Build/Benchmarks/**",
+    "Build/CompatibilityCatalog/**",
+    "Assets/**",
+    "OfficeIMO.TestAssets/**"
+  ],
+  "suites": {
+    "archives-contracts": [
+      "OfficeIMO.Archives.Tests"
+    ],
+    "chm-contracts": [
+      "OfficeIMO.Chm.Tests"
+    ],
+    "legacy-imports": [
+      "OfficeIMO.LegacyImport.Tests"
+    ],
+    "browser-exports": [
+      "OfficeIMO.JavaScript.Assets.Tests"
+    ],
+    "workflow-contracts": [
+      "OfficeIMO.Workflows.IWork.Tests",
+      "OfficeIMO.Workflows.Tests"
+    ],
+    "document-ai-contracts": [
+      "OfficeIMO.AI.Tests"
+    ],
+    "studio-contracts": [
+      "OfficeIMO.Studio.Core.Tests",
+      "OfficeIMO.Studio.Tests"
+    ],
+    "studio-locked-restore": [
+      "OfficeIMO.Studio",
+      "OfficeIMO.Studio.Core",
+      "OfficeIMO.Studio.Native"
+    ],
+    "invoice-standards": [
+      "OfficeIMO.Invoicing.Tests"
+    ],
+    "build-matrix": [
+      "OfficeIMO.Examples",
+      "OfficeIMO.Invoicing.Pdf.Tests",
+      "OfficeIMO.Invoicing.Tests",
+      "OfficeIMO.Provenance.C2pa.Tests"
+    ],
+    "html-package-consumers": [
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Html.Rtf"
+    ],
+    "typography-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Drawing.HarfBuzz.Tests",
+      "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.Html",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Word.Pdf"
+    ],
+    "email-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Email",
+      "OfficeIMO.Email.Html",
+      "OfficeIMO.Email.PackageSmoke",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.Rtf",
+      "OfficeIMO.Markdown",
+      "OfficeIMO.Markdown.Html",
+      "OfficeIMO.Mhtml",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Reader.Core",
+      "OfficeIMO.Reader.Email",
+      "OfficeIMO.Reader.Html",
+      "OfficeIMO.Reader.Image",
+      "OfficeIMO.Rtf"
+    ],
+    "google-workspace-package-consumers": [
+      "OfficeIMO.Excel.GoogleSheets",
+      "OfficeIMO.GoogleWorkspace",
+      "OfficeIMO.PowerPoint.GoogleSlides",
+      "OfficeIMO.Word.GoogleDocs"
+    ],
+    "onenote-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Markdown",
+      "OfficeIMO.Markdown.Pdf",
+      "OfficeIMO.OneNote",
+      "OfficeIMO.OneNote.Html",
+      "OfficeIMO.OneNote.Markdown",
+      "OfficeIMO.OneNote.PackageSmoke",
+      "OfficeIMO.OneNote.Pdf",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Reader.Core",
+      "OfficeIMO.Reader.OneNote"
+    ],
+    "opendocument-schema": [
+      "OfficeIMO.OpenDocument.Converters.Tests",
+      "OfficeIMO.OpenDocument.Tests"
+    ],
+    "binary-powerpoint-libreoffice": [
+      "OfficeIMO.PowerPoint.Tests"
+    ],
+    "office-corpus-libreoffice": [
+      "OfficeIMO.OpenDocument.Tests",
+      "OfficeIMO.PowerPoint.Tests",
+      "OfficeIMO.Rtf.Tests",
+      "OfficeIMO.Word.Tests"
+    ],
+    "word-vba-office-sip": [
+      "OfficeIMO.Security.Tests",
+      "OfficeIMO.Word.Tests"
+    ],
+    "officeimo-tool-package-gate": [
+      "OfficeIMO.Tool",
+      "OfficeIMO.Tool.Tests"
+    ],
+    "excel-image-visual-gate": [
+      "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.Excel.Tests"
+    ],
+    "office-interoperability-gate": [
+      "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.Excel.Tests",
+      "OfficeIMO.Html.Tests",
+      "OfficeIMO.OpenDocument.Tests",
+      "OfficeIMO.Pdf.Tests",
+      "OfficeIMO.PowerPoint.Tests",
+      "OfficeIMO.Rtf.Tests",
+      "OfficeIMO.Word.Benchmarks",
+      "OfficeIMO.Word.Tests"
+    ],
+    "dbf-contracts": [
+      "OfficeIMO.Reader.Dbf.Tests"
+    ],
+    "conversion-consistency": [
+      "OfficeIMO.ConversionConsistency.Tool"
+    ],
+    "website": [
+      "OfficeIMO.Web.Converter",
+      "OfficeIMO.CompatibilityCatalog.Tool"
+    ],
+    "powershell": [
+      "PSWriteOffice",
+      "PSWriteOffice.Tests"
+    ]
+  },
+  "partitions": {
+    "markdown-large": [
+      "OfficeIMO.Markdown.Tests",
+      "OfficeIMO.Word.Tests"
+    ],
+    "markdown-suite": [
+      "OfficeIMO.Markdown.Tests"
+    ],
+    "pdf-visual-inspector": [
+      "OfficeIMO.Pdf.Tests"
+    ],
+    "pdf-core": [
+      "OfficeIMO.Pdf.Tests"
+    ],
+    "excel-image-charts": [
+      "OfficeIMO.Excel.Tests"
+    ],
+    "excel-legacy-reader": [
+      "OfficeIMO.Excel.Tests"
+    ],
+    "excel-core-named": [
+      "OfficeIMO.Excel.Tests"
+    ],
+    "word-rtf-html": [
+      "OfficeIMO.Word.Tests",
+      "OfficeIMO.Rtf.Tests",
+      "OfficeIMO.Html.Tests"
+    ],
+    "email": [
+      "OfficeIMO.Email.Tests"
+    ],
+    "other-projects": [
+      "OfficeIMO.Access.Tests",
+      "OfficeIMO.Adf.Tests",
+      "OfficeIMO.AsciiDoc.Markdown.Tests",
+      "OfficeIMO.AsciiDoc.Tests",
+      "OfficeIMO.Bibliography.Tests",
+      "OfficeIMO.CSV.Tests",
+      "OfficeIMO.ChartForgeX.Markdown.Tests",
+      "OfficeIMO.ChartForgeX.Tests",
+      "OfficeIMO.Confluence.Tests",
+      "OfficeIMO.DjVu.Tests",
+      "OfficeIMO.DocBook.Tests",
+      "OfficeIMO.Drawing.CodeGlyphX.Tests",
+      "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.GoogleWorkspace.Tests",
+      "OfficeIMO.IWork.Tests",
+      "OfficeIMO.Latex.Markdown.Tests",
+      "OfficeIMO.Latex.Tests",
+      "OfficeIMO.MarkdownRenderer.Wpf.Tests",
+      "OfficeIMO.Markup.Tests",
+      "OfficeIMO.OneNote.Tests",
+      "OfficeIMO.OpenDocument.Converters.Tests",
+      "OfficeIMO.OpenDocument.Tests",
+      "OfficeIMO.PowerPoint.Tests",
+      "OfficeIMO.Publisher.Tests",
+      "OfficeIMO.Reader.Tests",
+      "OfficeIMO.Shared.Tests",
+      "OfficeIMO.Tests",
+      "OfficeIMO.Tool.Tests",
+      "OfficeIMO.VerifyTests",
+      "OfficeIMO.Visio.Tests",
+      "OfficeIMO.Xps.Tests"
+    ]
+  },
+  "windows": [
+    {
+      "name": "Adf",
+      "project": "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"
+    },
+    {
+      "name": "DocBook",
+      "project": "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"
+    },
+    {
+      "name": "Access",
+      "project": "OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj"
+    },
+    {
+      "name": "Publisher",
+      "project": "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"
+    },
+    {
+      "name": "AsciiDoc",
+      "project": "OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj"
+    },
+    {
+      "name": "AsciiDoc-Markdown",
+      "project": "OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj"
+    },
+    {
+      "name": "Bibliography",
+      "project": "OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj"
+    },
+    {
+      "name": "CSV",
+      "project": "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"
+    },
+    {
+      "name": "ChartForgeX",
+      "project": "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"
+    },
+    {
+      "name": "ChartForgeX-Markdown",
+      "project": "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"
+    },
+    {
+      "name": "Chm",
+      "project": "OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj"
+    },
+    {
+      "name": "Confluence",
+      "project": "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"
+    },
+    {
+      "name": "Drawing",
+      "project": "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"
+    },
+    {
+      "name": "Drawing-CodeGlyphX",
+      "project": "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"
+    },
+    {
+      "name": "Email",
+      "project": "OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj"
+    },
+    {
+      "name": "Excel",
+      "project": "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj"
+    },
+    {
+      "name": "GoogleWorkspace",
+      "project": "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"
+    },
+    {
+      "name": "Html",
+      "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj"
+    },
+    {
+      "name": "Latex",
+      "project": "OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj"
+    },
+    {
+      "name": "Latex-Markdown",
+      "project": "OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj"
+    },
+    {
+      "name": "Markdown",
+      "project": "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj"
+    },
+    {
+      "name": "Markup",
+      "project": "OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj"
+    },
+    {
+      "name": "Xps",
+      "project": "OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj"
+    },
+    {
+      "name": "DjVu",
+      "project": "OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj"
+    },
+    {
+      "name": "OpenDocument",
+      "project": "OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj"
+    },
+    {
+      "name": "OpenDocument-Converters",
+      "project": "OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj"
+    },
+    {
+      "name": "OneNote",
+      "project": "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"
+    },
+    {
+      "name": "Pdf",
+      "project": "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj"
+    },
+    {
+      "name": "PowerPoint",
+      "project": "OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj"
+    },
+    {
+      "name": "Reader",
+      "project": "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"
+    },
+    {
+      "name": "Rtf",
+      "project": "OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj"
+    },
+    {
+      "name": "Shared",
+      "project": "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"
+    },
+    {
+      "name": "Visio",
+      "project": "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj"
+    },
+    {
+      "name": "Word",
+      "project": "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"
+    }
+  ]
+}

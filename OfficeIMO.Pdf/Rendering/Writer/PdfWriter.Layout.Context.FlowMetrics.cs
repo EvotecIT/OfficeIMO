@@ -128,7 +128,7 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -315,7 +315,7 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
-            var wrap = WrapRichRunsWithSpacing(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
+            var wrap = WrapRichHeadingRuns(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }
 
@@ -326,7 +326,7 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
@@ -449,8 +449,8 @@ internal static partial class PdfWriter {
                     : 0D;
                 if (headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
                     var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle.Color);
-                    var wrap = WrapRichRunsWithSpacing(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
-                        headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle.LineSpacing);
+                    var wrap = WrapRichHeadingRuns(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
+                        headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
                     return spacingBefore + (wrap.Lines.Count == 0 ? 0D : GetRichLineFrameFitHeight(wrap.Lines[0], wrap.LineHeights[0]));
                 }
                 return spacingBefore + headingLeading;

@@ -106,21 +106,37 @@ internal sealed class PdfTextShowCommand {
     /// <summary>Imported layout advance, including the requested horizontal scale, before PDF rounding.</summary>
     internal double? FontUnitLayoutAdvanceWidth1000 { get; private set; }
 
-    /// <summary>Additional page-point advances at selected shaped cluster boundaries.</summary>
-    internal double JustificationTracking { get; private set; }
-    internal bool[]? JustificationBoundaries { get; private set; }
+    private double[]? _justificationAdvances;
 
-    internal PdfTextShowCommand WithJustificationTracking(double advance, bool[] boundaries) {
-        if (boundaries.Length != GlyphCount || advance < 0D || double.IsNaN(advance) || double.IsInfinity(advance))
-            throw new ArgumentException("Justification tracking must match the encoded glyphs and have a finite non-negative advance.");
+    /// <summary>Sum of the additional signed page-point advances after the encoded glyphs.</summary>
+    internal double TotalJustificationAdvance { get; private set; }
+    /// <summary>Whether any encoded glyph has an additional advance, even when their sum is zero.</summary>
+    internal bool HasJustificationAdvances { get; private set; }
+
+    /// <summary>Returns a command with an immutable snapshot of finite page-point deltas, one after each encoded glyph.</summary>
+    internal PdfTextShowCommand WithJustificationAdvances(double[] advances) {
+        Guard.NotNull(advances, nameof(advances));
+        if (advances.Length != GlyphCount)
+            throw new ArgumentException("Justification advances must match the encoded glyph count.", nameof(advances));
+        var snapshot = (double[])advances.Clone();
+        double total = 0D;
+        bool hasAdvances = false;
+        foreach (double advance in snapshot) {
+            if (double.IsNaN(advance) || double.IsInfinity(advance))
+                throw new ArgumentException("Justification advances must be finite.", nameof(advances));
+            total += advance;
+            if (double.IsNaN(total) || double.IsInfinity(total))
+                throw new ArgumentException("The total justification advance must be finite.", nameof(advances));
+            hasAdvances |= advance != 0D;
+        }
         var copy = (PdfTextShowCommand)MemberwiseClone();
-        copy.JustificationTracking = advance;
-        copy.JustificationBoundaries = (bool[])boundaries.Clone();
+        copy._justificationAdvances = snapshot;
+        copy.TotalJustificationAdvance = total;
+        copy.HasJustificationAdvances = hasAdvances;
         return copy;
     }
 
-    internal double GetJustificationAdvance(int glyphIndex) =>
-        JustificationBoundaries?[glyphIndex] == true ? JustificationTracking : 0D;
+    internal double GetJustificationAdvance(int glyphIndex) => _justificationAdvances?[glyphIndex] ?? 0D;
 
     /// <summary>
     /// Right-to-left glyphs in visual order, mapped through ToUnicode only. They get their own show operator so

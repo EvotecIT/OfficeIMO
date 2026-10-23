@@ -21,14 +21,15 @@ The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, em
 
 ## Run locally
 
-Use .NET 8 or later, PowerShell 7, Poppler's `pdftoppm` on `PATH`, and the Chromium build installed by the tool's Playwright script. Run from the repository root:
+Use .NET 8 or later, PowerShell 7, Poppler's `pdftoppm` on `PATH`, and the Chromium build installed through HtmlTinkerX. Run from the repository root:
 
 ```powershell
 dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0
-./Build/ConversionConsistency/bin/Release/net8.0/playwright.ps1 install chromium
 
 $tool = 'Build/ConversionConsistency/bin/Release/net8.0/OfficeIMO.ConversionConsistency.Tool.dll'
 $evidence = '.artifacts/conversion-consistency'
+
+dotnet $tool install-browser
 dotnet $tool prepare --output "$evidence/fixtures"
 dotnet $tool svg-content-safety --output "$evidence/svg-content-safety" --pdftoppm pdftoppm
 dotnet $tool run --suite "$evidence/fixtures/suite.json" --output "$evidence/native"
@@ -36,7 +37,10 @@ dotnet $tool run --suite Build/ConversionConsistency/suite.json --output "$evide
 ./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$evidence/native" -OutputPath "$evidence/negative"
 ```
 
-On Linux, Playwright may also need `install --with-deps chromium`. The CI workflow installs that dependency and Poppler explicitly.
+Linux needs Chromium's native operating-system dependencies. The Ubuntu 24.04 CI
+image supplies them. On other Linux hosts, set `HTMLTINKERX_PLAYWRIGHT_WITH_DEPS=1`
+before `install-browser` to request dependency installation. The workflow caches
+the HtmlTinkerX browser installation and installs Poppler only when it is absent.
 
 Output directories must be empty when preparing, exporting, or producing SVG content-safety evidence. Choose a new directory for another run, or remove only the earlier output that you own. `--case native-pptx` selects a single source case. `--repository` selects the repository root; `--pdftoppm` selects the independent rasterizer executable for verification. `--browser-executable` lets the SVG evidence command use an explicitly selected Chromium-family executable; CI uses the pinned Playwright browser. Unknown, duplicate, and inapplicable options are rejected.
 

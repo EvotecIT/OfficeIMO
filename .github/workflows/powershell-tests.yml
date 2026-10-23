@@ -11,9 +11,8 @@ on:
       - 'Examples/**'
       - '.gitignore'
   pull_request:
-    branches:
-      - master
-      - main
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
   workflow_dispatch:
 
 env:
@@ -27,7 +26,22 @@ defaults:
     working-directory: PowerShell/PSWriteOffice
 
 jobs:
+  changes:
+    name: Select affected powershell contracts
+    runs-on: ubuntu-latest
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: select
+        uses: ./.github/actions/contract-selection
+        with:
+          suite: powershell
   test-windows-ps5:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: 'Windows PowerShell 5.1'
     runs-on: windows-latest
     steps:
@@ -38,16 +52,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
-        shell: powershell
-        run: |
-          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-            Register-PSRepository -Default
-          }
-          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: powershell
+          packaging: 'false'
 
       - name: Build .NET solution
         run: |
@@ -56,9 +67,11 @@ jobs:
 
       - name: Run PowerShell tests
         shell: powershell
-        run: .\PSWriteOffice.Tests.ps1
+        run: .\PSWriteOffice.Tests.ps1 -SkipDependencyInstall
 
   test-windows-ps7:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: 'Windows PowerShell 7'
     runs-on: windows-latest
     steps:
@@ -69,17 +82,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
-        shell: pwsh
-        run: |
-          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-            Register-PSRepository -Default
-          }
-          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSPublishModule -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: pwsh
+          packaging: 'true'
 
       - name: Build .NET solution
         run: |
@@ -88,7 +97,7 @@ jobs:
 
       - name: Run PowerShell tests
         shell: pwsh
-        run: .\PSWriteOffice.Tests.ps1
+        run: .\PSWriteOffice.Tests.ps1 -SkipDependencyInstall
 
       - name: Upload packaged artefacts
         if: always()
@@ -101,6 +110,8 @@ jobs:
             PowerShell/PSWriteOffice/Artefacts/Unpacked/**
 
   packaged-alc-conflict:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: 'Windows Packaged ALC conflict'
     runs-on: windows-latest
     steps:
@@ -111,16 +122,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
-        shell: pwsh
-        run: |
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-            Register-PSRepository -Default
-          }
-          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSPublishModule -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: pwsh
+          packaging: 'true'
 
       - name: Prepare default-context Open XML conflict
         shell: pwsh
@@ -147,7 +155,7 @@ jobs:
           PSWRITEOFFICE_REQUIRE_ALC_SMOKE: 'true'
         shell: pwsh
         run: |
-          Import-Module Pester -Force
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force
           $config = [PesterConfiguration]::Default
           $config.Run.Path = 'Tests/AssemblyLoadContext.Conflict.Tests.ps1'
           $config.Run.Exit = $true
@@ -155,6 +163,8 @@ jobs:
           Invoke-Pester -Configuration $config
 
   test-ubuntu:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: 'Ubuntu PowerShell 7'
     runs-on: ubuntu-latest
     steps:
@@ -165,16 +175,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
-        shell: pwsh
-        run: |
-          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-            Register-PSRepository -Default
-          }
-          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: pwsh
+          packaging: 'false'
 
       - name: Build .NET solution
         run: |
@@ -183,9 +190,11 @@ jobs:
 
       - name: Run PowerShell tests
         shell: pwsh
-        run: ./PSWriteOffice.Tests.ps1
+        run: ./PSWriteOffice.Tests.ps1 -SkipDependencyInstall
 
   test-macos:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: 'macOS PowerShell 7'
     runs-on: macos-latest
     steps:
@@ -196,16 +205,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
-        shell: pwsh
-        run: |
-          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-            Register-PSRepository -Default
-          }
-          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
-          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: pwsh
+          packaging: 'false'
 
       - name: Build .NET solution
         run: |
@@ -214,4 +220,4 @@ jobs:
 
       - name: Run PowerShell tests
         shell: pwsh
-        run: ./PSWriteOffice.Tests.ps1
+        run: ./PSWriteOffice.Tests.ps1 -SkipDependencyInstall

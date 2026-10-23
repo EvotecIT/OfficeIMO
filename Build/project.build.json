@@ -148,21 +148,6 @@
   },
   "VersionBindings": [
     {
-      "Path": "OfficeIMO.JavaScript/package.json",
-      "Project": "OfficeIMO.JavaScript.Assets",
-      "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
-    },
-    {
-      "Path": "OfficeIMO.JavaScript/package-lock.json",
-      "Project": "OfficeIMO.JavaScript.Assets",
-      "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
-    },
-    {
-      "Path": "OfficeIMO.JavaScript/package-lock.json",
-      "Project": "OfficeIMO.JavaScript.Assets",
-      "Pattern": "(?m)(?<=^      \"name\": \"@evotecit/officeimo\",\\r?\\n      \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
-    },
-    {
       "Path": ".agents/plugins/officeimo-document-tools/plugin.json",
       "Project": "OfficeIMO.Tool",
       "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?",

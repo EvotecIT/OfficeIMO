@@ -63,7 +63,7 @@ internal sealed class MarkdownInlineSourceMap {
         _tokenLiterals = tokenLiterals ?? Array.Empty<string?>();
     }
 
-    internal int Length => _singleLineText != null ? _singleLineTextLength : _points.Length;
+    internal int Length => _singleLineText != null ? _singleLineTextLength : Math.Max(_points.Length, _tokenLiterals.Length);
 
     internal MarkdownSourceSpan? GetSpan(int startIndex, int length) {
         if (_singleLineText != null) {
@@ -223,13 +223,16 @@ internal sealed class MarkdownInlineSourceMap {
                 _singleLineStartOffset + startIndex);
         }
 
-        if (length <= 0 || startIndex < 0 || startIndex >= _points.Length) {
+        if (length <= 0 || startIndex < 0 || startIndex >= Length) {
             return new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>());
         }
 
-        var actualLength = Math.Min(length, _points.Length - startIndex);
-        var slice = new MarkdownSourcePoint?[actualLength];
-        Array.Copy(_points, startIndex, slice, 0, actualLength);
+        var actualLength = Math.Min(length, Length - startIndex);
+        var slice = Array.Empty<MarkdownSourcePoint?>();
+        if (_points.Length > startIndex) {
+            slice = new MarkdownSourcePoint?[actualLength];
+            Array.Copy(_points, startIndex, slice, 0, Math.Min(actualLength, _points.Length - startIndex));
+        }
 
         var tokenSpanSlice = Array.Empty<MarkdownSourceSpan?>();
         if (_tokenSpans.Length > startIndex) {

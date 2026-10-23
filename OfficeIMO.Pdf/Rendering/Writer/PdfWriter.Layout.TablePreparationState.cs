@@ -9,6 +9,20 @@ internal static partial class PdfWriter {
             Sizes = new double[rows]; Bold = new bool[rows];
             RunFontSizeScales = new double[rows];
         }
+        /// <summary>Shares immutable wrapped content while isolating the physical row heights used by a fragment preview.</summary>
+        public PreparedFlowTableRows WithIndependentHeights() {
+            var copy = new PreparedFlowTableRows(Lines.Length);
+            Array.Copy(Lines, copy.Lines, Lines.Length);
+            Array.Copy(LineCounts, copy.LineCounts, LineCounts.Length);
+            Array.Copy(Heights, copy.Heights, Heights.Length);
+            Array.Copy(IntrinsicHeights, copy.IntrinsicHeights, IntrinsicHeights.Length);
+            Array.Copy(Leadings, copy.Leadings, Leadings.Length);
+            Array.Copy(Sizes, copy.Sizes, Sizes.Length);
+            Array.Copy(RunFontSizeScales, copy.RunFontSizeScales, RunFontSizeScales.Length);
+            Array.Copy(Bold, copy.Bold, Bold.Length);
+            return copy;
+        }
+
         public TableCellTextLayout[][] Lines { get; }
         public int[] LineCounts { get; }
         public double[] Heights { get; }

@@ -146,47 +146,6 @@ namespace OfficeIMO.Word.Pdf {
         private static int GetNativeCellRowSpan(WordTableCell cell) =>
             Math.Max(1, cell.RowSpan);
 
-        private static (string? LinkUri, string? LinkContents) GetNativeCellLink(WordTableCell cell) {
-            string? linkUri = null;
-            string? linkContents = null;
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                if (!TryAddNativeCellLink(paragraph, ref linkUri, ref linkContents)) {
-                    return (null, null);
-                }
-
-                foreach (WordParagraph run in paragraph.GetRuns()) {
-                    if (!TryAddNativeCellLink(run, ref linkUri, ref linkContents)) {
-                        return (null, null);
-                    }
-                }
-            }
-
-            return (linkUri, linkContents);
-        }
-
-        private static bool TryAddNativeCellLink(WordParagraph paragraph, ref string? linkUri, ref string? linkContents) {
-            if (!paragraph.IsHyperLink || paragraph.Hyperlink == null) {
-                return true;
-            }
-
-            Uri? uri = paragraph.Hyperlink.Uri;
-            if (uri == null || !uri.IsAbsoluteUri) {
-                return true;
-            }
-
-            string candidateUri = uri.AbsoluteUri;
-            if (!string.IsNullOrEmpty(linkUri) && !string.Equals(linkUri, candidateUri, StringComparison.Ordinal)) {
-                return false;
-            }
-
-            linkUri = candidateUri;
-            string? contents = string.IsNullOrWhiteSpace(paragraph.Hyperlink.Tooltip)
-                ? GetNativeCellParagraphText(paragraph)
-                : paragraph.Hyperlink.Tooltip;
-            linkContents ??= string.IsNullOrWhiteSpace(contents) ? null : contents;
-            return true;
-        }
-
         private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderValues? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) {
             if (!HasNativeBorder(borderStyle)) {
                 return null;
@@ -368,7 +327,7 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
-                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine));
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing));
                 pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }

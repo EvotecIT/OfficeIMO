@@ -23,6 +23,21 @@ public sealed class PowerPointHtmlOutputOptionsTests {
         Assert.Equal(withHeading.Replace("<h1>" + fallback + "</h1>", string.Empty), withoutHeading);
     }
 
+    [Theory]
+    [InlineData(PowerPointHtmlExportProfile.SemanticSlides)]
+    [InlineData(PowerPointHtmlExportProfile.VisualReview)]
+    public void SlideHeadingsAreWrittenByDefaultAndCanBeOmitted(PowerPointHtmlExportProfile profile) {
+        using var presentation = CreateWithOffSlideShape();
+        var options = new PowerPointHtmlSaveOptions { ExportProfile = profile };
+
+        string withHeadings = presentation.ToHtml(options);
+        options.IncludeSlideHeadings = false;
+        string withoutHeadings = presentation.ToHtml(options);
+
+        Assert.Contains("<h2>Slide 1</h2>", withHeadings, StringComparison.Ordinal);
+        Assert.Equal(withHeadings.Replace("<h2>Slide 1</h2>", string.Empty), withoutHeadings);
+    }
+
     [Fact]
     public void OmittedHeadingIgnoresTitle() {
         using var presentation = CreateWithOffSlideShape();
@@ -53,11 +68,12 @@ public sealed class PowerPointHtmlOutputOptionsTests {
 
     [Fact]
     public void CloneCopiesHeadingAndRenderDiagnosticChoices() {
-        var options = new PowerPointHtmlSaveOptions { IncludeHeading = false, IncludeRenderDiagnostics = false };
+        var options = new PowerPointHtmlSaveOptions { IncludeHeading = false, IncludeSlideHeadings = false, IncludeRenderDiagnostics = false };
 
         PowerPointHtmlSaveOptions clone = options.Clone();
 
         Assert.False(clone.IncludeHeading);
+        Assert.False(clone.IncludeSlideHeadings);
         Assert.False(clone.IncludeRenderDiagnostics);
     }
 

@@ -2,23 +2,39 @@ name: Conversion consistency
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+  push:
     branches: [master]
-    paths:
-      - 'OfficeIMO.*/**'
-      - 'Build/ConversionConsistency/**'
-      - '.github/workflows/conversion-consistency.yml'
+  schedule:
+    - cron: '43 2 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: conversion-consistency-${{ github.event.pull_request.number || github.ref }}
+  group: conversion-consistency-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  compare:
+  changes:
+    name: Select affected conversion-consistency contracts
     runs-on: ubuntu-latest
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: select
+        uses: ./.github/actions/contract-selection
+        with:
+          suite: conversion-consistency
+  compare:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -33,15 +49,24 @@ jobs:
           dotnet-version: |
             8.0.426
             10.0.113
+      - uses: ./.github/actions/nuget-cache
       - name: Build the comparison tool
         run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0
+      - name: Cache the HtmlTinkerX Chromium installation
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj') }}
       - name: Install independent renderers
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils
-          ./Build/ConversionConsistency/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
+          if (-not (Get-Command pdftoppm -ErrorAction SilentlyContinue)) {
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 install --yes --no-install-recommends poppler-utils
+          }
+          pdftoppm -v
+          dotnet $env:TOOL install-browser
       - name: Prepare native source fixtures
         run: dotnet $env:TOOL prepare --output "$env:EVIDENCE/fixtures"
       - name: Validate SVG content safety in Chromium

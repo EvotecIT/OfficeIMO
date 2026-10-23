@@ -2,8 +2,13 @@ using OfficeIMO.ConversionConsistency;
 
 try {
     string command = args.FirstOrDefault() ?? "help";
+    if (command == "install-browser") {
+        if (args.Length != 1) throw new ArgumentException("install-browser takes no options.");
+        await HtmlTinkerX.HtmlBrowser.EnsureInstalledAsync(HtmlTinkerX.HtmlBrowserEngine.Chromium);
+        return 0;
+    }
     if (command == "help" || command is "--help" or "-h") {
-        Console.WriteLine("Conversion consistency: prepare|export|verify|run|svg-content-safety --suite <json> --output <directory> [--repository <directory>] [--case <id>] [--pdftoppm <executable>] [--browser-executable <path>]");
+        Console.WriteLine("Conversion consistency: install-browser | prepare|export|verify|run|svg-content-safety --suite <json> --output <directory> [--repository <directory>] [--case <id>] [--pdftoppm <executable>] [--browser-executable <path>]");
         return 0;
     }
     if (command is not ("prepare" or "export" or "verify" or "run" or "svg-content-safety"))

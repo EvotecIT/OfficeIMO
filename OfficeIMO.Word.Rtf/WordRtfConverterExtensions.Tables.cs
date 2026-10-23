@@ -176,17 +176,17 @@ public static partial class WordRtfConverterExtensions {
         return Math.Max(1, columnCount);
     }
 
-    private static void AppendTable(WordDocument document, RtfTable source, RtfDocument rtfDocument) {
+    private static void AppendTable(WordDocument document, RtfTable source, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordTable table = document.AddTable(GetRowCount(source), GetColumnCount(source));
-        ApplyTable(source, table, rtfDocument);
+        ApplyTable(source, table, rtfDocument, numbering);
     }
 
-    private static void AppendTable(WordSection section, RtfTable source, RtfDocument rtfDocument) {
+    private static void AppendTable(WordSection section, RtfTable source, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordTable table = section.AddTable(GetRowCount(source), GetColumnCount(source));
-        ApplyTable(source, table, rtfDocument);
+        ApplyTable(source, table, rtfDocument, numbering);
     }
 
-    private static void ApplyTable(RtfTable source, WordTable destination, RtfDocument rtfDocument) {
+    private static void ApplyTable(RtfTable source, WordTable destination, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         ApplyUniformTableCellSpacing(source, destination);
         ApplyUniformTableLeftIndent(source, destination);
         ApplyUniformTableAlignment(source, destination);
@@ -203,7 +203,7 @@ public static partial class WordRtfConverterExtensions {
                 WordTableCell destinationCell = destinationRow.Cells[cellIndex];
                 ApplyCellWidth(sourceCell, destinationCell, ref previousBoundary);
                 ApplyCellProperties(sourceCell, destinationCell, rtfDocument);
-                ApplyCellParagraphs(sourceCell, destinationCell, rtfDocument);
+                ApplyCellParagraphs(sourceCell, destinationCell, rtfDocument, numbering);
             }
         }
     }
@@ -405,7 +405,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void ApplyCellParagraphs(RtfTableCell source, WordTableCell destination, RtfDocument rtfDocument) {
+    private static void ApplyCellParagraphs(RtfTableCell source, WordTableCell destination, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         if (source.Blocks.Count == 0) {
             destination.AddParagraph(removeExistingParagraphs: true);
             return;
@@ -416,12 +416,12 @@ public static partial class WordRtfConverterExtensions {
             if (block is RtfParagraph sourceParagraph) {
                 WordParagraph paragraph = destination.AddParagraph(removeExistingParagraphs: first);
                 ApplyTabStops(paragraph, sourceParagraph);
-                ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument);
-                AppendRuns(paragraph, sourceParagraph, rtfDocument);
+                ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument, numbering);
+                AppendRuns(paragraph, sourceParagraph, rtfDocument, numbering);
                 first = false;
             } else if (block is RtfTable nestedTable) {
                 WordTable wordNestedTable = destination.AddTable(GetRowCount(nestedTable), GetColumnCount(nestedTable), WordTableStyle.TableGrid, removePrecedingParagraph: first);
-                ApplyTable(nestedTable, wordNestedTable, rtfDocument);
+                ApplyTable(nestedTable, wordNestedTable, rtfDocument, numbering);
                 first = false;
             }
         }

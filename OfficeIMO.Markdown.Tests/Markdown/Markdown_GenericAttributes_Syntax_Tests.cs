@@ -2151,7 +2151,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             EscapeNonAsciiText = false
         });
 
-        Assert.Equal("<div>raw</div>", html);
+        Assert.Equal("<div>raw</div>\n", html);
     }
 
     [Fact]

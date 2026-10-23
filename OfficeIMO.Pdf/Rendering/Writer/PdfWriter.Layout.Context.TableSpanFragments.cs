@@ -7,7 +7,8 @@ internal static partial class PdfWriter {
             PreparedFlowTableRows rows, double[] columnWidths, double columnGap, double rowGap,
             double tableX, int? tableStructureElementIndex, ref StringBuilder? pairedBorders,
             int completedRow = -1, double cornerRadius = 0D, double fullFrameHeight = double.PositiveInfinity,
-            bool logicalTopBoundary = true, bool logicalBottomBoundary = true, double closingPadding = 0D) {
+            bool logicalTopBoundary = true, bool logicalBottomBoundary = true, double closingPadding = 0D,
+            Dictionary<(int Row, int Column), int>? acceptedLineCounts = null) {
             // Alignment belongs to the complete logical cell, not each page fragment.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || span.AlignmentLeadingHeight.HasValue) continue;
@@ -22,8 +23,9 @@ internal static partial class PdfWriter {
                 double x = tableX;
                 for (int column = 0; column < cell.Column; column++) x += columnWidths[column] + columnGap;
                 double width = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                int admitted = GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
-                    span.EndRow == table.Rows.Count ? closingPadding : 0D);
+                int admitted = acceptedLineCounts != null ? acceptedLineCounts[(span.Row, span.Cell.Column)]
+                    : GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
+                        span.EndRow == table.Rows.Count ? closingPadding : 0D);
                 bool continues = completedRow < 0 || span.ConsumedLines + admitted < rows.Lines[span.Row][cell.Column].LineCount;
                 var corners = GetTableSpanFragmentCorners(table, span, columnWidths.Length, cornerRadius,
                     logicalTopBoundary, logicalBottomBoundary, continues);
@@ -45,8 +47,9 @@ internal static partial class PdfWriter {
                 double bottom = span.Top - span.Height;
                 int? rowStructure = span.RowStructure == null ? RegisterStructureContainer("TR", tableStructureElementIndex) : null;
                 TableCellTextLayout lines = rows.Lines[row][cell.Column];
-                int admittedLines = GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
-                    span.EndRow == table.Rows.Count ? closingPadding : 0D);
+                int admittedLines = acceptedLineCounts != null ? acceptedLineCounts[(span.Row, span.Cell.Column)]
+                    : GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
+                        span.EndRow == table.Rows.Count ? closingPadding : 0D);
                 bool continues = completedRow < 0 || span.ConsumedLines + admittedLines < lines.LineCount;
                 var corners = GetTableSpanFragmentCorners(table, span, columnWidths.Length, cornerRadius,
                     logicalTopBoundary, logicalBottomBoundary, continues);

@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
                 paragraph.TabStops,
                 ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
                 paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
-                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine));
+                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
         }
 
         return scaledParagraphs.AsReadOnly();
@@ -138,7 +138,8 @@ internal static partial class PdfWriter {
                 GetParagraphTabStopWidth(paragraphStyle),
                 options,
                 paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing, purpose: purpose,
-                inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth);
+                inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth,
+                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }
@@ -214,7 +215,8 @@ internal static partial class PdfWriter {
             DefaultTabStopWidth = paragraph.DefaultTabStopWidth,
             JustificationMode = paragraph.JustificationMode,
             JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
-            JustifyLastLine = paragraph.JustifyLastLine
+            JustifyLastLine = paragraph.JustifyLastLine,
+            UseWordJustificationSpacing = paragraph.UseWordJustificationSpacing
         };
 
         foreach (PdfTabStop tabStop in paragraph.TabStops) {
