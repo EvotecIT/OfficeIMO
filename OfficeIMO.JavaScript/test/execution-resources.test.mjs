@@ -68,8 +68,8 @@ test("worker rows and destination acknowledgements bound production and preserve
 
 test("worker cancellation releases pending source and sink operations and allows endpoint reuse", { timeout: 5000 }, async () => {
   await local(({ rows, sink, signal }) => writeCsvTo(rows, sink, { columns: [{ header: "Value" }], signal }), async endpoint => {
-    for (const phase of ["source", "sink"]) {
-      const controller = new AbortController(), original = new Error(phase + " cancelled");
+    for (const phase of ["source", "sink"]) for (const original of [new Error(phase + " cancelled"), null]) {
+      const controller = new AbortController();
       let ready, returned = 0;
       const started = new Promise(resolve => { ready = resolve; });
       const source = phase === "source" ? { [Symbol.asyncIterator]: () => ({ next() { ready(); return new Promise(() => {}); }, return() { returned++; return { done: true }; } }) } : [["x".repeat(40000)]];

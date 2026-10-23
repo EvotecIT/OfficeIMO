@@ -2,6 +2,10 @@ using System.Text;
 using HtmlForgeX;
 using OfficeIMO.JavaScript.Assets;
 
+if (args.Length == 2 && args[0] == "--operational-inventory") {
+    OperationalInventoryExample.Write(Path.GetFullPath(args[1]));
+    return;
+}
 if (args.Length != 1) throw new ArgumentException("Pass the output directory for the two offline example pages.");
 string output = Path.GetFullPath(args[0]);
 Directory.CreateDirectory(output);

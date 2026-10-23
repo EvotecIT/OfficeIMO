@@ -2,11 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdfDocument, writePdfDocumentTo, pdfTable } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const options = { pageSize: { width: 240, height: 180 }, margins: 20, pageNumbers: false, compression: false, tagged: { language: "en" } };
 const columns = [{ header: "Asset", key: "name" }];
 function elements(pdf, role) {
-  return [...pdf.objects.entries()].filter(([, object]) => new RegExp("/Type /StructElem /S /" + role + " ").test(object.body));
+  return pdfStructureElements(pdf).filter(([, object]) => new RegExp("/S /" + role + " ").test(object.body));
 }
 
 test("streamed numbered findings keep hanging bodies, one marker and one semantic item across page breaks", async () => {

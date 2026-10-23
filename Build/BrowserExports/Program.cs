@@ -87,6 +87,7 @@ if (exampleOnly is not null) {
     return;
 }
 if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, evidence, args); return; }
+if (args.Any(value => value.StartsWith("--hfx-operational=", StringComparison.Ordinal))) { await HfxOperationalInterop.RunAsync(evidence, args); return; }
 if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { createGroupedReport } from "../dist/core/index.js";
 import { writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable } from "../dist/pdf/grouped.js";
 import { writePdfDocument } from "../dist/pdf/index.js";
-import { inspectPdf } from "./pdf-reader.mjs";
+import { inspectPdf, pdfStructureAttributes } from "./pdf-reader.mjs";
+import { pdfStructureChildren, pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const columns = [{ header: "Service", key: "name" }, { header: "Amount", key: "amount", type: "number", groups: ["Metrics"] }];
 const levels = ["region", "site", "environment", "team"];
@@ -13,19 +14,39 @@ const options = { tagged: { language: "en" }, pageSize: { width: 320, height: 26
   margins: 20, pageNumbers: false, compression: false, fontSize: 9 };
 const source = (rows, selectedColumns = columns) => createGroupedReport(rows, { columns: selectedColumns, groupBy: levels.map(key => ({ key, value: row => row[key] })),
   totals: { amount: "sum" } });
-const references = body => [...body.matchAll(/(\d+) 0 R/g)].map(match => Number(match[1]));
+
+test("tagged group context charges only painted labels and the owned bookmark", async () => {
+  const report = () => createGroupedReport([{ site: "A", name: "ROW" }], {
+    columns: [{ header: "H", key: "name" }], groupBy: [{ key: "site", value: row => row.site }], totals: {}
+  });
+  const configuration = { tagged: { language: "en" }, labelColumn: { header: "S" },
+    subtotalLabel: () => "SUM", grandTotalLabel: () => "ALL", includeGrandTotal: false,
+    pageNumbers: false, compression: false };
+  // Heading A, two column headings, two detail cells and two subtotal cells; one bookmark A.
+  const blob = await writeGroupedPdf(report(), { ...configuration, limits: { maxCells: 8, maxTextCharacters: 10 } });
+  const pdf = await inspectPdf(blob);
+  assert.equal(pdf.pages.length, 1);
+  assert.deepEqual(pdf.pages[0].lines, ["A", "S", "H", "", "ROW", "SUM", ""]);
+  await assert.rejects(writeGroupedPdf(report(), { ...configuration, limits: { maxCells: 7 } }), /maxCells/);
+  await assert.rejects(writeGroupedPdf(report(), { ...configuration, limits: { maxTextCharacters: 9 } }), /maxTextCharacters/);
+});
 
 /** Inspect the actual structure object graph and the marked text painted on its referenced pages.
  * These ASCII fixtures use the standard font; native reader/AT acceptance is a separate gate. */
 async function semanticPdf(blob) {
   const pdf = await inspectPdf(blob), marked = new Map();
+  const pages = new Set(pdf.pages.map(page => page.id));
   for (const page of pdf.pages) for (const match of page.content.matchAll(/\/(\w+) << \/MCID (\d+)(?: \/ActualText <[^>]*>)? >> BDC\n([\s\S]*?)EMC/g))
     marked.set(`${page.id}:${match[2]}`, [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(part => Buffer.from(part[1], "hex").toString("latin1")).join(""));
-  const nodes = new Map([...pdf.objects].filter(([, object]) => /\/Type \/StructElem /.test(object.body)).map(([id, object]) => {
-    const kids = /\/K \[([\s\S]*?)\](?: |$)/.exec(object.body)[1];
-    return [id, { id, body: object.body, role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
-      children: references(kids.replace(/<<[\s\S]*?>>/g, "")), text: [...kids.matchAll(/\/MCR \/Pg (\d+) 0 R \/MCID (\d+)/g)]
-        .map(part => { const value = marked.get(`${part[1]}:${part[2]}`); assert.notEqual(value, undefined); return value; }).join("") }];
+  const nodes = new Map(pdfStructureElements(pdf).map(([id, object]) => {
+    const { entries } = pdfStructureChildren(object.body);
+    return [id, { id, body: object.body, attributes: pdfStructureAttributes(pdf, object.body), role: /\/S \/(\w+)/.exec(object.body)[1], parent: Number(/\/P (\d+) 0 R/.exec(object.body)[1]),
+      children: entries.filter(entry => entry.kind === "element").map(entry => entry.id),
+      text: entries.filter(entry => entry.kind === "mark").map(entry => {
+        assert.ok(pages.has(entry.pageId), "Every structure mark resolves to a physical page");
+        const value = marked.get(`${entry.pageId}:${entry.mcid}`);
+        assert.notEqual(value, undefined, "Every structure mark resolves to marked page content"); return value;
+      }).join("") }];
   }));
   for (const node of nodes.values()) for (const child of node.children) assert.equal(nodes.get(child)?.parent, node.id);
   return { ...pdf, nodes, find: (role, text) => [...nodes.values()].filter(node => node.role === role && node.text === text) };
@@ -56,12 +77,12 @@ test("tagged four-level reports keep group headings, details and ancestor summar
       const headings = pdf.find(`H${level + groupHeadingLevel}`, label); assert.equal(headings.length, 1, `One semantic heading: ${label}`);
       const section = pdf.nodes.get(headings[0].parent); assert.equal(section.role, "Sect"); sections.set(label, section);
       const summaries = pdf.find("TH", `SUM:${label}`); assert.equal(summaries.length, 1, `One row-heading subtotal: ${label}`);
-      assert.match(summaries[0].body, /\/Scope \/Row/);
+      assert.match(summaries[0].attributes, /\/Scope \/Row/);
       const row = pdf.nodes.get(summaries[0].parent), table = pdf.nodes.get(row.parent);
       assert.equal(row.role, "TR"); assert.equal(table.role, "Table"); assert.equal(table.parent, section.id);
       assert.ok(table.children.some(id => pdf.nodes.get(id).children.some(cell => pdf.nodes.get(cell).text === "Amount")), "A summary's own visible column heading has its own semantic owner");
       const metrics = row.children.map(id => pdf.nodes.get(id)).filter(cell => cell.role === "TD");
-      assert.ok(metrics.every(cell => /\/Headers \[/.test(cell.body)), "Summary values retain explicit header associations");
+      assert.ok(metrics.every(cell => /\/Headers \[/.test(cell.attributes)), "Summary values retain explicit header associations");
     }
     for (const [label, , parent] of expected) if (parent) assert.equal(sections.get(label).parent, sections.get(parent).id, label);
     for (const [text, group] of [[long.replaceAll("\n", ""), "Team-A"], ["Service-B", "Team-B"], ["Service-C", "Team-C"]]) {
@@ -93,6 +114,37 @@ test("empty tagged analytical reports preserve optional headings and grand summa
     assert.equal(pdf.find("TH", "ALL:0").length, includeGrandTotal ? 1 : 0);
     assert.equal(pdf.text.includes("Amount"), includeHeader);
     assert.equal(pdf.text.includes("Metrics"), includeHeader);
+  }
+});
+
+test("tagged leaf subtotals share their own detail table while ancestor totals keep independent ownership", async () => {
+  const rows = [
+    { region: "Root", site: "Site", environment: "Env", team: "LeafA", name: "REC-A", amount: 2 },
+    { region: "Root", site: "Site", environment: "Env", team: "LeafB", name: "REC-B", amount: 3 }
+  ];
+  for (const bands of [false, true]) {
+    const pdf = await semanticPdf(await writeGroupedPdf(source(rows), { ...options, ...labels,
+      pageSize: { width: 300, height: 380 }, columnWidths: [90, 90, 120],
+      ...(bands ? { wideTable: { mode: "bands", repeatColumns: [0], minimumColumnWidth: 80 } } : {}) }));
+    const tableFor = cell => pdf.nodes.get(pdf.nodes.get(cell.parent).parent);
+    for (const [name, leaf] of [["REC-A", "LeafA"], ["REC-B", "LeafB"]]) {
+      const [detail] = pdf.find("TD", name), [summary] = pdf.find("TH", "SUM:" + leaf);
+      assert.ok(detail); assert.ok(summary);
+      assert.equal(tableFor(detail).id, tableFor(summary).id, "The leaf total reuses its own logical detail table");
+      const [heading] = pdf.find("H5", leaf);
+      assert.equal(tableFor(summary).parent, heading.parent);
+      assert.equal(pdf.find("TD", name).length, 1, "Repeated physical bands do not repeat logical source cells");
+    }
+    const tables = [...pdf.nodes.values()].filter(node => node.role === "Table");
+    assert.equal(tables.length, 6, "Two leaf tables, three ancestor summary tables and one grand-total table");
+    for (const ancestor of ["Root", "Site", "Env"]) {
+      const [summary] = pdf.find("TH", "SUM:" + ancestor), table = tableFor(summary);
+      const heading = [...pdf.nodes.values()].find(node => /^H[2-4]$/.test(node.role) && node.text === ancestor);
+      assert.equal(table.parent, heading.parent);
+      assert.equal(table.children.map(id => pdf.nodes.get(id)).filter(node => node.role === "TR").length, 3,
+        "The ancestor has its own two-row header and one summary, without the final child's data");
+    }
+    assert.equal(pdf.find("TH", "ALL:2").length, 1);
   }
 });
 
@@ -242,9 +294,9 @@ test("tagged grouped detail and subtotal tables repeat complete physical context
   }
 });
 
-test("tagged subtotal context and headings retain their reserved first fragment near the page boundary", async () => {
+test("tagged leaf subtotal shares its detail headers and retains context through a long-label continuation", async () => {
   const selected = [{ header: "Item", key: "name" }, { header: "Amount", key: "amount", type: "number" }];
-  const summaryLines = Array.from({ length: 9 }, (_, index) => `Subtotal-${index}`);
+  const summaryLines = Array.from({ length: 22 }, (_, index) => `Subtotal-${index}`);
   const preface = Array.from({ length: 6 }, (_, index) => `Preface-${index}`).join("\n");
   const table = { labelColumn: { header: "Summary", width: 100 }, columnWidths: [100, 90, 90],
     subtotalLabel: () => summaryLines.join("\n"), grandTotalLabel: () => "Grand" };
@@ -256,11 +308,12 @@ test("tagged subtotal context and headings retain their reserved first fragment 
     const pdf = await semanticPdf(composed
       ? await writePdfDocument([{ kind: "paragraph", text: preface }, pdfGroupedTable(grouped, table)], configuration)
       : await writeGroupedPdf(grouped, { ...configuration, ...table, messageTop: preface }));
-    const first = pdf.pages[0];
-    assert.ok(first.lines.filter(line => line === "Summary").length >= 2,
-      "The fixture must paint both the detail headings and the reserved subtotal headings on the first page");
+    const first = pdf.pages.find(page => page.lines.includes("Only"));
+    assert.ok(first);
+    assert.equal(first.lines.filter(line => line === "Summary").length, 1,
+      "The leaf subtotal shares its detail headings rather than creating another table");
     assert.ok(first.lines.includes("Subtotal-0"),
-      "An ordinary fitting-on-fresh-page subtotal must use its reserved first fragment after its new context/headings");
+      "An overheight leaf subtotal starts below its detail while retaining its existing context/headings");
     const summaryPages = pdf.pages.filter(page => page.lines.some(line => summaryLines.includes(line)));
     assert.ok(summaryPages.length > 1, "The wrapped subtotal must exercise continuation");
     for (const page of summaryPages) {
@@ -275,4 +328,72 @@ test("tagged subtotal context and headings retain their reserved first fragment 
     assert.equal(pdf.nodes.get(pdf.nodes.get(pdf.nodes.get(grand.parent).parent).parent).role, "Document",
       "Grand totals remain outside the analytical section");
   }
+});
+
+test("new group headings paint the opening path once while subsequent bands retain complete context", async () => {
+  const selected = [{ header: "ID", key: "id", rowHeader: true }, { header: "Detail", key: "detail" }, { header: "Amount", key: "amount", type: "number" }];
+  const grouped = createGroupedReport([
+    { outer: "Region", inner: "First", id: "REC-A", detail: "Alpha", amount: 1 },
+    { outer: "Region", inner: "Second", id: "REC-B", detail: "Beta", amount: 2 }
+  ], { columns: selected, groupBy: ["outer", "inner"].map(key => ({ key, value: row => row[key] })), totals: { amount: "sum" } });
+  const pdf = await semanticPdf(await writeGroupedPdf(grouped, { ...options, ...labels,
+    pageSize: { width: 360, height: 500 }, columnWidths: [80, 80, 100, 100],
+    wideTable: { mode: "bands", repeatColumns: [0, "id"] } }));
+  for (const [record, leaf] of [["REC-A", "First"], ["REC-B", "Second"]]) {
+    const physical = pdf.pages.filter(page => page.lines.includes(record));
+    assert.equal(physical.length, 2, "Both selected data bands retain the complete identifier");
+    for (const page of physical) {
+      const header = page.lines.lastIndexOf("Summary", page.lines.indexOf(record));
+      assert.deepEqual(page.lines.slice(0, header).slice(-2), ["Region", leaf], "Each band's opening path is complete and ordered");
+    }
+    const first = physical[0], header = first.lines.lastIndexOf("Summary", first.lines.indexOf(record));
+    const opening = first.lines.slice(0, header);
+    assert.notDeepEqual(opening.slice(-4), ["Region", leaf, "Region", leaf],
+      "The current opening path is not painted again by a full caption; earlier finished groups may share this page");
+    assert.equal(pdf.find("H3", leaf).length, 1, "The logical heading remains unique");
+  }
+});
+
+test("separate analytical summaries retain only declared aggregate fields with original formatter positions", async () => {
+  const selected = [
+    { key: "id", header: "Identifier", rowHeader: true }, { key: "detail", header: "Description" },
+    { key: "zero", header: "Zero sum", type: "number" }, { key: "unused", header: "Other detail" },
+    { key: "empty", header: "Empty average", type: "number" }
+  ];
+  let enumerations = 0, reads = 0;
+  function* rows() { enumerations++; yield { outer: "Region", inner: "Team", get id() { reads++; return "REC-A"; }, detail: "Detail-A", zero: 0, unused: "Other-A", empty: null }; }
+  const calls = [];
+  const grouped = createGroupedReport(rows(), { columns: selected, groupBy: ["outer", "inner"].map(key => ({ key, value: row => row[key] })), totals: { zero: "sum", empty: "average" } });
+  const pdf = await semanticPdf(await writeGroupedPdf(grouped, { ...options, ...labels,
+    pageSize: { width: 360, height: 500 }, columnWidths: [80, 80, 100, 100, 100, 100],
+    wideTable: { mode: "bands", repeatColumns: [0, "id"] },
+    formatValue(value, position) { calls.push([position.rowIndex, position.columnIndex, position.column.key, value]); return value === null ? "empty" : String(value); }
+  }));
+  assert.equal(enumerations, 1); assert.equal(reads, 1);
+  for (const label of ["SUM:Region", "ALL:1"]) {
+    const [summary] = pdf.find("TH", label), table = pdf.nodes.get(pdf.nodes.get(summary.parent).parent);
+    const cells = table.children.flatMap(id => pdf.nodes.get(id).children.map(child => pdf.nodes.get(child)));
+    assert.deepEqual(cells.filter(cell => cell.role === "TH" && /\/Scope \/Column/.test(cell.attributes)).map(cell => cell.text),
+      ["Summary", "Zero sum", "Empty average"], "Standalone headings describe only the actual aggregate values");
+    assert.deepEqual(cells.filter(cell => cell.role === "TD").map(cell => cell.text), ["0", "empty"], "Declared zero and null results are retained");
+    const pages = pdf.pages.filter(page => page.lines.includes(label));
+    assert.equal(pages.length, 1, "Non-aggregate fields do not manufacture empty summary bands");
+    assert.ok(pages[0].lines.includes("Zero sum") && pages[0].lines.includes("Empty average"));
+  }
+  for (const key of ["zero", "empty"]) {
+    const position = selected.findIndex(column => column.key === key);
+    assert.ok(calls.filter(call => call[0] === -1 && call[2] === key).every(call => call[1] === position), "Projected callbacks keep original source-column positions");
+  }
+});
+
+test("untagged projected grand summaries paint their own aggregate headings on a shared page", async () => {
+  const grouped = createGroupedReport([{ group: "Region", id: "REC-A", amount: 2 }], {
+    columns: [{ key: "id", header: "Identifier" }, { key: "amount", header: "Amount", type: "number" }],
+    groupBy: [{ key: "group", value: row => row.group }], totals: { amount: "sum" }
+  });
+  const { tagged: _tagged, ...untagged } = options;
+  const pdf = await inspectPdf(await writeGroupedPdf(grouped, { ...untagged, ...labels, pageSize: { width: 500, height: 700 } }));
+  const page = pdf.pages.find(page => page.lines.includes("ALL:1")), total = page.lines.indexOf("ALL:1");
+  assert.ok(page.lines.includes("REC-A"), "The separate summary can share the detail page");
+  assert.deepEqual(page.lines.slice(total - 2, total), ["Summary", "Amount"], "Projected values cannot reuse the preceding three-column detail heading positions");
 });

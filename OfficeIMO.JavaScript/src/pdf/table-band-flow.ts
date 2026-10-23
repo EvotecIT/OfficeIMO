@@ -5,7 +5,7 @@ import type { PdfPreparedParagraph } from "./paragraph-layout.js";
 
 /** @internal A window entry is one aligned logical row fragment or an indivisible span block. */
 interface BandWindowEntry { readonly rows: readonly (readonly PdfLayoutRow[])[]; readonly height: number; readonly count: number;
-  readonly completed: readonly PdfLayoutRow[]; }
+  readonly completed: readonly PdfLayoutRow[]; readonly exhaustedBands: readonly boolean[]; }
 interface BandWindowPainter {
   prepareRow?(row: PdfLayoutRow): Promise<void>;
   completeRow?(row: PdfLayoutRow): Promise<void>;
@@ -39,7 +39,7 @@ export class PdfTableBandFlow {
     if (this.count >= this.layout.settings.limits.maxTableWindowRows) await this.flush();
   }
   async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
-    const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+    const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
     if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
       throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
     // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
@@ -60,16 +60,28 @@ export class PdfTableBandFlow {
         throw new RangeError("PDF band window cannot fit its complete repeated identifiers.");
       const lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
       if (lines < 1) throw new RangeError("PDF page cannot fit a table line below horizontal band headings.");
-      const paintedLines = Math.max(lines, minimumLines), height = paintedLines * row.lineHeight + padding * 2;
+      // Reserve one shared logical fragment, but paint only each band's visible cell geometry.
+      const reservedLines = Math.max(lines, minimumLines), height = reservedLines * row.lineHeight + padding * 2;
       const projected = await this.layout.bandRows([row]);
-      const fragments = projected.map((rows, index) => [{ ...rows[0]!, lines: paintedLines, height,
-        cells: rows[0]!.cells.map(cell => {
+      const exhaustedBands: boolean[] = [];
+      const fragments = projected.map((rows, index) => {
+        let remaining = false;
+        const cells = rows[0]!.cells.map(cell => {
           const source = this.layout.bands![index]!.columns[cell.first]!;
-          const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
+          const repeated = this.layout.repeatedColumn(source), visible = repeated ? cell.lines : cell.lines.slice(first, first + lines);
+          if (!repeated && (visible.length > 0 || cell.link !== undefined)) remaining = true;
           const { height: _height, ...plain } = cell;
-          return { ...plain, lines: visible, ...(first > 0 && this.layout.repeatedColumn(source) ? { semanticArtifact: true } : {}) };
-        }) }]);
-      await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [] }); first += lines;
+          return { ...plain, lines: visible,
+            lineHeight: visible.reduce((value, line) => Math.max(value, line.lineHeight), cell.font.lineHeight(fontSize)),
+            ...(first > 0 && repeated ? { semanticArtifact: true } : {}) };
+        });
+        const fragmentLines = Math.max(1, ...cells.map(cell => cell.lines.length));
+        const lineHeight = Math.max(this.layout.lineHeight, ...cells.filter(cell => cell.lines.length > 0).map(cell => cell.lineHeight));
+        // Never omit an initial/new row, a structured block, or a nonrepeated link obligation.
+        exhaustedBands.push(first > 0 && !remaining);
+        return [{ ...rows[0]!, cells, lines: fragmentLines, lineHeight, height: fragmentLines * lineHeight + padding * 2 }];
+      });
+      await this.accept({ rows: fragments, height, count: 1, completed: first + lines >= row.lines ? [row] : [], exhaustedBands }); first += lines;
       if (first < row.lines) await this.flush();
     }
   }
@@ -77,7 +89,7 @@ export class PdfTableBandFlow {
     const projected = await this.layout.bandRows(rows, true), height = projected[0]!.reduce((sum, row) => sum + row.height, 0);
     if (rows.length > this.layout.settings.limits.maxTableWindowRows) throw new OfficeIMOError("RESOURCE_LIMIT", "A structured PDF block exceeds maxTableWindowRows.");
     for (const row of rows) await this.painter.prepareRow?.(row);
-    await this.accept({ rows: projected, height, count: rows.length, completed: rows });
+    await this.accept({ rows: projected, height, count: rows.length, completed: rows, exhaustedBands: projected.map(() => false) });
   }
   async keptRows(rows: readonly PdfLayoutRow[], allowFirstFragment = false): Promise<void> {
     const height = rows.reduce((sum, row) => sum + row.height, 0), fits = height <= this.painter.continuationCapacity + .001;
@@ -88,6 +100,7 @@ export class PdfTableBandFlow {
     if (!this.entries.length && (!forceHeadings || this.painted || !this.headings.some(rows => rows.length))) return;
     for (let band = 0; band < this.layout.bands!.length; band++) {
       checkAbort(this.layout.settings.options.signal);
+      if (!this.firstWindow && this.entries.length > 0 && this.entries.every(entry => entry.exhaustedBands[band])) continue;
       await this.painter.paint(band, this.headings[band]!, this.entries.flatMap(entry => entry.rows[band]!),
         this.firstWindow ? this.caption : this.continuation, this.firstWindow, band === 0);
     }

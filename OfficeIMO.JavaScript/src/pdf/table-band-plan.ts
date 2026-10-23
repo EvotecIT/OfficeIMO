@@ -11,8 +11,7 @@ export interface PdfTableBand { readonly columns: readonly number[]; readonly le
 export function planTableBands(widths: readonly number[], settings: PdfSettings): readonly PdfTableBand[] | undefined {
   const policy = settings.options.wideTable;
   if (typeof policy !== "object") return undefined;
-  const available = settings.page.width - settings.margins.left - settings.margins.right, repeats = policy.repeatColumns ?? [];
-  if (repeats.some(index => index >= widths.length)) throw new RangeError("repeatColumns index exceeds the declared columns.");
+  const available = settings.page.width - settings.margins.left - settings.margins.right, repeats = settings.repeatedColumns;
   const repeated = new Set(repeats), rest = widths.map((_, index) => index).filter(index => !repeated.has(index));
   const prefix = repeats.reduce((sum, index) => sum + widths[index]!, 0);
   if (prefix > available + .001) throw new RangeError("Repeated PDF columns exceed the printable width.");
