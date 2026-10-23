@@ -221,3 +221,35 @@ for narrow and 23.93%/9.50% higher for wide. All samples remain in the results.
 The cumulative buffer-allocation reduction is proven, but the narrow-memory
 target is still unmet. No isolated RSS or timing improvement is attributed to
 this change, and no unchanged cohort retry is planned.
+
+## Scalar text capture comparison
+
+A current-runtime allocation profile attributes about 78.05 MB of sampled
+allocation traffic to the scalar capture call tree, including 23.06 MB beneath
+its repeated presentation validation. All three callers already supply owned,
+validated, frozen base presentations. A scalar fast path reuses that snapshot
+and retains one frozen run, including for an empty string. Rich-run validation,
+text budgets and public APIs remain unchanged. Fifty focused and 504 ordinary
+tests pass; one bounded capture-owner review accepted the change.
+
+The refreshed profile attributes about 7.48 MB to capture, with no sampled
+presentation/color/key/map/join descendants. Its PDF is byte-identical to the
+previous independently read current output. These are statistical allocation
+observations including collected objects, not retained bytes, peak RSS or
+timing acceptance. This removable cost also existed in M8.
+
+Candidate `06b59025e26c29ea766350e18ff4b95fa4c6d39c` passed all sixteen
+independent output validations in one fixed normal-host cohort. Narrow
+mean/median peak RSS remains 1.28%/0.90% above M8; wide mean/median is
+22.66%/8.57% lower. PDF bytes remain 74.63%/76.21% lower. Narrow engine-time
+mean is 40.88% lower but its median is 54.65% higher; wide mean/median is
+73.89%/66.09% higher. Sampled external memory is 29.92%/37.89% higher for
+narrow and 35.83%/30.48% higher for wide. All warmups and measured samples
+remain retained; none is removed as an outlier.
+
+The narrow-memory target remains unmet. Do not repeat this unchanged candidate
+for a better result or infer its RSS effect from the allocation profiles. A
+separate copied-runtime probe found all 467 compression writables unlocked
+after reader release, and all 466 first-next-constructor observations unlocked.
+That refutes the writer-lock-overlap hypothesis under this diagnostic. It does
+not establish native allocation ownership, resource-close timing or a leak.
