@@ -1,4 +1,11 @@
 <Project>
+  <!-- CodeQL builds net10 for multi-targeted projects while single-targeted
+       projects keep their own framework identity. A global TargetFramework on
+       the solution forks duplicate single-target instances into the same output. -->
+  <PropertyGroup Condition="'$(OfficeIMOCodeQLBuild)' == 'true' And '$(TargetFrameworks)' != ''">
+    <TargetFrameworks>net10.0</TargetFrameworks>
+  </PropertyGroup>
+
   <!-- Keep shipped release binaries reproducible without embedding a maintainer's
        checkout path in portable PDB documents or CodeView content IDs. Limit the
        source mapping to packable production projects: non-packable test projects
