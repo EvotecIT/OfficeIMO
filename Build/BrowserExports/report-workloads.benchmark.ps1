@@ -7,10 +7,14 @@ $python = Get-BenchmarkInput Python -Required
 $evidence = Get-BenchmarkInput Evidence -Required
 $compare = Get-BenchmarkInput Compare $true -Bool
 $cases = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).cases
+$equivalentBaselineCases = @($cases | Where-Object { $_.PSObject.Properties['equivalentBaselineContract'] } | ForEach-Object name)
 
 New-BenchmarkSuite 'officeimo-complete-report-workloads' -OutputRoot $evidence {
     Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
-    Add-BenchmarkMetadata Contract 'Deterministic inventory, assessment and grouped service-analysis reports. Lazy row construction is included; import/setup/validation excluded. Every cell is independently read back; tagged PDF also checks all data-cell structure elements. Explicit current-only editable/grouped analysis cases have no baseline ranking. Grouped metrics include nulls, an all-null first group and finite group/grand totals; grouped PDF is untagged.'
+    Add-BenchmarkMetadata Contract 'Deterministic inventory, assessment and grouped service-analysis reports. Lazy row construction is included; import/setup/validation excluded. Every cell is independently read back; tagged PDF also checks the pypdf-resolved logical tree and marked-content ownership. Editable/grouped analysis cases and wide cases without an explicit matching-baseline declaration have no baseline ranking. Declared matching wide baseline/current cohorts require the same complete bands, repeated identifiers and logical values. Grouped PDF is untagged.'
+    if ($equivalentBaselineCases.Count -gt 0) {
+        Add-BenchmarkMetadata EquivalentBaselineCases ($equivalentBaselineCases -join ',')
+    }
     Add-BenchmarkMetadata DeliveryBoundary 'Sink cases include awaited regular-file writes (OS page cache applies). Blob cases time complete Blob generation and exclude subsequent Blob read/file copying. Do not compare sink and Blob lanes as equivalent memory contracts.'
     Add-BenchmarkMetadata FirstDeliveryMs 'First accepted sink write for sink cases. For Blob cases, completed Blob availability; raw firstByteMs is null because no earlier bytes are exposed.'
     Add-BenchmarkMetadata MemoryBoundary 'Fresh Node lifetime peakRSS through operation end includes imports/native memory. Sampled JS heap and external memory can miss synchronous peaks and are not additive. PowerForge host allocation metrics describe PowerShell, not the Node engine.'

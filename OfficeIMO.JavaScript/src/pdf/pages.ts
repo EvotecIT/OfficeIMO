@@ -9,7 +9,7 @@ import type { PdfSettings } from "./settings.js";
 import { PdfTableBandFlow } from "./table-band-flow.js";
 import type { PdfTableLayout, PdfLayoutRow, PdfLayoutCell } from "./table-layout.js";
 import { PdfTableStructure } from "./table-structure.js";
-import { wrapText, wrapTextCooperatively, synchronousText } from "./text.js";
+import { wrapText, wrapTextCooperatively, synchronousText, pdfBudgetText } from "./text.js";
 import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
 import { linkAnnotation } from "./annotations.js";
 import type { PdfStructure } from "./structure.js";
@@ -139,8 +139,9 @@ export class PdfPages {
   private inline(line: PdfInlineLine, size: number, x: number, baseline: number, element?: number, annotationParent = element): void {
     const lineActualText = !this.structure && line.actualText !== undefined && line.actualText.length > 0;
     if (lineActualText) this.add("/Span << /ActualText <FEFF" + unicodeHex(line.actualText!) + "> >> BDC\n");
-    const marks = new Map<PdfInlineLine["segments"][number], { owner: number; mark: string }>();
+    let marks: Map<PdfInlineLine["segments"][number], { owner: number; mark: string }> | undefined;
     if (line.actualText !== undefined && this.structure && element !== undefined) {
+      marks = new Map();
       // Allocate MCIDs/Link children in logical order, then paint the independently positioned visual order.
       for (const segment of [...line.segments].sort((a, b) => (a.logicalStart ?? 0) - (b.logicalStart ?? 0))) {
         const owner = segment.link ? this.structure.link(element, segment.link) : element;
@@ -148,7 +149,7 @@ export class PdfPages {
       }
     }
     for (const segment of line.segments) {
-      const registered = marks.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
+      const registered = marks?.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
       if (segment.glyphs) {
         const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
         let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
@@ -177,7 +178,7 @@ export class PdfPages {
   }
   private decoration(text: string, x: number, y: number, width: number): void {
     if (!text) return;
-    this.settings.budget.cell(text);
+    this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
     const font = this.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
     this.text(lines[0]!.text, font, this.settings.fontSize, x, y);
   }
@@ -221,8 +222,7 @@ export class PdfPages {
     const headers = preparedHeadings ?? (tableHeadings && this.layout ? this.activeHeadings ??= await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0),
       continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
     if (continuation?.lines.length) {
-      if (this.continuationCaptionPaints++ > 0) this.settings.budget.cell(continuation.text.text);
-      else this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
+      if (this.continuationCaptionPaints++ === 0) this.tableCaptionOwner = this.captionAnnotations(continuation, this.tableCaptionOwner);
       await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true,
         { artifact: true, ...(this.tableCaptionOwner === undefined ? {} : { annotationParent: this.tableCaptionOwner }) });
     }
@@ -310,7 +310,7 @@ export class PdfPages {
   async paragraph(text: string, style: CellPresentation = {}, size = this.settings.fontSize, paginate = true, headingLevel?: number): Promise<void> {
     await this.ensureStarted();
     const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
-    this.settings.budget.cell(text);
+    this.settings.budget.cell(pdfBudgetText(text, this.settings.budget));
     const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right,
       limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
     if (lineHeight > page.height - margins.top - margins.bottom) throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
@@ -345,6 +345,7 @@ export class PdfPages {
     }
     if (keepTogether && visible.length) await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1)!, "Kept PDF paragraph group");
     for (const [index, paragraph] of visible.entries()) {
+      if (paragraph.budgetOnPaint) this.settings.budget.cell(pdfBudgetText(paragraph.text.text, this.settings.budget));
       if (paragraph.keepTogether || paragraph.keepWithNext) await this.reserveSpace(paragraph.height + reservations[index]!, "Kept PDF paragraph chain");
       const { margins, page } = this.settings;
       if (paragraph.firstHeight > page.height - margins.top - margins.bottom + .001) throw new RangeError("PDF page cannot fit a paragraph line and its leading spacing.");
@@ -382,10 +383,11 @@ export class PdfPages {
   /** The generated summary label is a row heading; no localized text/style inference is used. */
   summary(row: PdfLayoutRow): void { this.summaryRows.add(row); }
   /** Begin an independent table on the current page, retaining its headings on continuation pages.
-   * Group context uses captionArtifact: it stays visually complete without duplicating logical headings. */
+   * Group context uses captionArtifact: it stays visually complete without duplicating logical headings.
+   * An already-painted opening path only suppresses its artifact caption on that existing page. */
   async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
-    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false, captionArtifact = false): Promise<void> {
-    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact);
+    continuationCaption?: PdfPreparedParagraph, headingsOnNewPageOnly = false, captionArtifact = false, openingContextAlreadyPainted = false): Promise<void> {
+    if (layout.bands) return this.beginBands(layout, preparedHeadings, minimumDataHeight, caption, continuationCaption, captionArtifact, openingContextAlreadyPainted);
     await this.ensureStarted();
     this.layout = layout;
     this.paintedHeaderCells = new WeakSet();
@@ -398,7 +400,7 @@ export class PdfPages {
     // Its own headings remain available when it moves or splits onto a fresh page.
     const initialHeadings = headingsOnNewPageOnly && this.bodyAdded && !this.structure ? [] : headings;
     const height = initialHeadings.reduce((n, row) => n + row.height, 0);
-    if (caption) {
+    if (caption && !(captionArtifact && openingContextAlreadyPainted)) {
       await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
       this.tableCaptionOwner = captionArtifact ? this.captionAnnotations(caption)
         : caption.lines.length ? this.structure?.element("Caption", this.tableElement) : undefined;
@@ -419,7 +421,7 @@ export class PdfPages {
   }
   /** Bind the bounded logical-window owner to the existing physical page painter. */
   private async beginBands(layout: PdfTableLayout, preparedHeadings: readonly PdfLayoutRow[] | undefined, minimumDataHeight: number,
-    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined, captionArtifact: boolean): Promise<void> {
+    caption: PdfPreparedParagraph | undefined, continuation: PdfPreparedParagraph | undefined, captionArtifact: boolean, openingContextAlreadyPainted: boolean): Promise<void> {
     await this.ensureStarted();
     const logicalHeadings = preparedHeadings ?? await layout.headers(), headings = await layout.bandRows(logicalHeadings, true);
     const headerHeight = headings[0]!.reduce((sum, row) => sum + row.height, 0), { page, margins, padding } = this.settings;
@@ -427,11 +429,13 @@ export class PdfPages {
     const minimum = minimumDataHeight <= firstFullCapacity + .001 ? minimumDataHeight : layout.lineHeight + padding * 2;
     const continuationCapacity = page.height - margins.top - margins.bottom - headerHeight - (continuation?.height ?? 0);
     if (continuationCapacity + .001 < layout.lineHeight + padding * 2) throw new RangeError("PDF band headings and continuation context leave no room for a data line.");
-    if (this.y - margins.bottom - headerHeight - (caption?.height ?? 0) + .001 < minimum) await this.pageBreak();
-    let initialOffset = page.height - margins.top - this.y;
-    const firstCapacity = this.y - margins.bottom - headerHeight - (caption?.height ?? 0);
+    let openingContextPainted = captionArtifact && openingContextAlreadyPainted;
+    if (this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0) + .001 < minimum) {
+      await this.pageBreak(); openingContextPainted = false;
+    }
+    const firstCapacity = this.y - margins.bottom - headerHeight - (openingContextPainted ? 0 : caption?.height ?? 0);
     if (firstCapacity + .001 < minimum) throw new RangeError("PDF band caption and headings leave no room for a data line.");
-    let captionPaints = 0, continuationPaints = 0;
+    let continuationPaints = 0;
     this.tableElement = this.structure?.element("Table", this.groupParent);
     this.paintedHeaderCells = new WeakSet();
     let captionElement = this.structure && caption?.lines.length ? captionArtifact ? this.captionAnnotations(caption)
@@ -444,18 +448,15 @@ export class PdfPages {
     this.bandFlow = new PdfTableBandFlow(layout, headings, { firstCapacity, firstFullCapacity, continuationCapacity,
       prepareRow: async row => { await this.tableStructure?.prepareHeaders(); await this.rowElements(row); },
       completeRow: async row => { await this.tableStructure?.completeRow(row.source ?? row); },
-      moveFirstToFreshPage: async () => { await this.pageBreak(); initialOffset = 0; },
+      moveFirstToFreshPage: async () => { await this.pageBreak(); openingContextPainted = false; },
       paint: async (band, headers, rows, currentCaption, firstWindow, firstBand) => {
         if (!(firstWindow && firstBand)) await this.pageBreak();
-        if (firstWindow && !firstBand) this.y -= initialOffset;
         const frame = layout.bands![band]!;
         this.layout = { lefts: frame.lefts, lineHeight: layout.lineHeight, headers: async () => headers };
         this.bandCellBudget = true;
         try {
-          if (currentCaption?.lines.length) {
-            const paints = firstWindow ? captionPaints++ : continuationPaints++;
-            if (paints > 0) this.settings.budget.cell(currentCaption.text.text);
-            if (!firstWindow && paints === 0) captionElement = this.captionAnnotations(currentCaption, captionElement);
+          if (currentCaption?.lines.length && !(firstWindow && firstBand && openingContextPainted)) {
+            if (!firstWindow && continuationPaints++ === 0) captionElement = this.captionAnnotations(currentCaption, captionElement);
             const annotationParent = captionElement;
             await this.paragraphs([currentCaption], headerHeight + minimum, true,
               firstWindow && firstBand && !captionArtifact ? { role: "Caption", keepOpen: true, ...(captionElement === undefined ? {} : { owner: captionElement }) }
@@ -535,7 +536,7 @@ export class PdfPages {
       (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
     if (this.structure) await this.structure.finishPage();
     this.commands = []; this.annotations = []; this.commandBytes = 0; this.current = 0;
-    await this.objects.flush();
+    await this.objects.flushBytes();
   }
   async finish(): Promise<void> {
     if (this.bandFlow) { const flow = this.bandFlow; await flow.flush(true); this.bandFlow = undefined; }

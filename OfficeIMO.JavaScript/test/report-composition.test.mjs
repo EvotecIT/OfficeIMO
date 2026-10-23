@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdf, writePdfDocument, writePdfDocumentTo, pdfTable, ExportCell } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 const small = { pageSize: { width: 200, height: 130 }, orientation: "landscape", margins: 10, pageNumbers: false, compression: false };
 const paragraph = (text, options = {}) => ({ kind: "paragraph", text, ...options });
@@ -99,7 +100,7 @@ test("kept headings reserve complete graphics and bounded groups move intact", a
 });
 
 test("non-rendering paragraphs and groups preserve keeps until the next visible block", async () => {
-  const gaps = [paragraph(""), paragraph([]), paragraph([{ text: "" }]),
+  const gaps = [paragraph(""), paragraph("", { keepWithNext: true }), paragraph([]), paragraph([{ text: "" }]),
     { kind: "group", blocks: [] }, { kind: "group", blocks: [paragraph(""), paragraph([])] },
     pdfTable([], { columns: [{ header: "Value", key: "value" }], includeHeader: false })];
   const following = [
@@ -144,15 +145,29 @@ test("paragraph keep controls, groups and inline metadata have explicit bounded 
   assert.equal(advanced, 0, "A kept paragraph must reserve its text budget before looking ahead");
 });
 
+test("single-run PDF lines preserve fit tolerance and the first validation failure", async () => {
+  const options = { ...small, fontSize: 10, padding: 0, includeHeader: false, columns: [{ header: "" }],
+    columnWidths: [13.339], limits: { maxRowLines: 1 } };
+  for (const formatRuns of [undefined, value => [{ text: value }]]) {
+    const report = await inspectPdf(await writePdf([["AB"]], { ...options, ...(formatRuns ? { formatRuns } : {}) }));
+    assert.deepEqual(report.pages[0].lines, ["AB"], "Helvetica AB at ten points fits the existing .001-point tolerance");
+    await assert.rejects(writePdf([["AB"]], { ...options, columnWidths: [13.338], ...(formatRuns ? { formatRuns } : {}) }), /maxRowLines/);
+  }
+  await assert.rejects(writePdf([[""]], { ...options, limits: { maxRowLines: 0 } }), /maxRowLines/);
+  const narrow = { ...options, columnWidths: [6.67] };
+  await assert.rejects(writePdf([["AB\ud800"]], { ...narrow, columns: [{ header: "", wrapText: false }] }), /Unwrapped PDF cell/);
+  await assert.rejects(writePdf([["AB\ud800"]], { ...narrow, limits: { maxRowLines: 0 } }), /maxRowLines/);
+});
+
 test("tagged rich reports retain one logical paragraph and native inline link ownership", async () => {
   const pdf = await inspectPdf(await writePdfDocument([paragraph([{ text: "Normal " }, { text: "strong", bold: true }], { headingLevel: 2 })],
     { ...small, tagged: { language: "en-US" } }));
-  assert.equal([...pdf.objects.values()].filter(object => /\/Type \/StructElem \/S \/H2 /.test(object.body)).length, 1);
+  assert.equal(pdfStructureElements(pdf).filter(([, object]) => /\/S \/H2 /.test(object.body)).length, 1);
   assert.equal(joined(pdf), "Normal strong");
   const linked = await inspectPdf(await writePdfDocument([paragraph([{ text: "Link", link: { target: "https://example.com" } }])],
     { ...small, tagged: { language: "en-US" } }));
   assert.equal(annotations(linked).length, 1);
-  assert.ok([...linked.objects.values()].some(object => /\/S \/Link /.test(object.body) && /\/Type \/OBJR/.test(object.body)));
+  assert.ok(pdfStructureElements(linked).some(([, object]) => /\/S \/Link /.test(object.body) && /\/Type \/OBJR/.test(object.body)));
 });
 
 test("rich paragraph snapshots survive cooperative layout and stream output matches Blob output", async () => {

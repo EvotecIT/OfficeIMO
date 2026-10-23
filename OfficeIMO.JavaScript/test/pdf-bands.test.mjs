@@ -8,6 +8,13 @@ const columns = Array.from({ length: 7 }, (_, index) => ({ header: `Header-${ind
 const base = { columns, columnWidths: columns.map(() => 80), wideTable: { mode: "bands", repeatColumns: [0] },
   pageSize: { width: 300, height: 360 }, margins: 20, fontSize: 9, padding: 4, pageNumbers: false, compression: false };
 const data = count => Array.from({ length: count }, (_, row) => Object.fromEntries(columns.map((_, index) => [`c${index}`, index === 0 ? `ID-${row}` : `R${row}C${index}`])));
+const textBaseline = (page, text) => {
+  const hex = Buffer.from(text, "latin1").toString("hex");
+  const match = new RegExp("1 0 [\\d.-]+ 1 [\\d.-]+ ([\\d.-]+) Tm <" + hex + "> Tj").exec(page.content);
+  assert.ok(match, `Visible text has a positioned baseline: ${text}`);
+  return Number(match[1]);
+};
+const firstColumnFrames = page => [...page.content.matchAll(/0\.4 w 20 [\d.-]+ 80 ([\d.]+) re S Q/g)].map(match => Number(match[1]));
 
 test("horizontal bands preserve readable widths and synchronized bounded windows with one source/value/format pass", async () => {
   let reads = 0, formats = 0, opened = 0, closed = 0;
@@ -63,7 +70,11 @@ test("hierarchical composed bands repeat the full captured path while counts and
   for (const page of detail.filter(page => !page.lines.includes("Grand-3"))) { assert.ok(page.lines.includes("Region")); assert.ok(page.lines.includes("Site")); }
   assert.ok(pdf.text.includes("Grand-3")); assert.ok(pdf.text.includes("6"));
   const grandPages = pdf.pages.filter(page => page.lines.includes("Grand-3"));
-  assert.equal(grandPages.length, 5, "Every final metric band retains the logical grand-total label");
+  assert.equal(grandPages.length, 1, "The independent grand summary projects its label and declared aggregate onto one readable band");
+  assert.ok(grandPages[0].lines.includes("Value-4"));
+  assert.ok(grandPages[0].lines.includes("6"));
+  assert.ok(!grandPages[0].lines.includes("Value-0"), "A separate summary does not manufacture nonaggregate metric bands");
+  for (let index = 0; index < 5; index++) assert.ok(detail.some(page => page.lines.includes(`Value-${index}`)), "Detail tables retain every selected field");
 });
 
 test("band limits count physical repeated cells, annotations and pages, and reject unsupported geometry before source consumption", async () => {
@@ -104,12 +115,46 @@ test("standalone band windows finish before bottom messages, preserving title an
   assert.ok(pdf.text.lastIndexOf("R0C6") < pdf.text.indexOf("After-table"));
 });
 
-test("long logical rows split into identical band windows and repeat short identifiers without losing detail lines", async () => {
+test("long logical rows omit exhausted continuation bands while repeating complete identifiers and preserving every detail line", async () => {
   const row = data(1)[0], lines = Array.from({ length: 50 }, (_, index) => `Line-${index}`); row.c1 = lines.join("\n");
   const pdf = await inspectPdf(await writePdf([row], base));
-  assert.ok(pdf.pages.length >= 6); assert.equal(pdf.pages.length % 3, 0, "Every vertical window emits all three horizontal bands");
+  assert.ok(pdf.pages.length >= 4, "All initial bands and a real vertical continuation remain visible");
+  for (const page of pdf.pages.slice(3)) {
+    assert.ok(page.lines.some(line => /^Line-/.test(line)), "A continuation page must carry new nonrepeated content");
+    assert.ok(!page.lines.includes("Header-3"), "An exhausted short band does not repeat an identifier-only frame");
+  }
   for (const page of pdf.pages) assert.ok(page.lines.includes("ID-0"), "The same identifier remains visible on every horizontal/vertical fragment");
   assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^Line-/.test(line)), lines);
+});
+
+test("later horizontal bands start at their own page top and paint only their own row height", async () => {
+  const row = data(1)[0], detail = Array.from({ length: 12 }, (_, index) => `Detail-${index}`); row.c1 = detail.join("\n");
+  const geometry = { pageSize: base.pageSize, margins: base.margins, fontSize: base.fontSize, padding: base.padding, pageNumbers: false, compression: false };
+  const tableOptions = { columns, columnWidths: base.columnWidths, wideTable: base.wideTable };
+  const fresh = await inspectPdf(await writePdf(data(1), base));
+  const pdf = await inspectPdf(await writePdfDocument([
+    { kind: "paragraph", text: "Preface-1\nPreface-2\nPreface-3\nPreface-4", spaceAfter: 0 }, pdfTable([row], tableOptions)
+  ], geometry));
+  assert.equal(pdf.pages.length, 3);
+  assert.ok(textBaseline(pdf.pages[0], "Header-0") < textBaseline(fresh.pages[0], "Header-0"), "Only the existing first page retains its preceding content offset");
+  for (let band = 1; band < 3; band++) {
+    assert.equal(textBaseline(pdf.pages[band], "Header-0"), textBaseline(fresh.pages[band], "Header-0"), "A new physical band uses its own fresh-page top");
+    assert.equal(firstColumnFrames(pdf.pages[band]).at(-1), firstColumnFrames(fresh.pages[band]).at(-1), "A short band does not inherit another band's multiline row height");
+  }
+  assert.ok(firstColumnFrames(pdf.pages[0]).at(-1) > firstColumnFrames(pdf.pages[1]).at(-1));
+  assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^Detail-/.test(line)), detail);
+});
+
+test("new rows with empty metrics and header-only tables retain all declared bands after long-row continuations", async () => {
+  const row = data(1)[0]; row.c1 = Array.from({ length: 50 }, (_, index) => `Long-${index}`).join("\n");
+  const next = Object.fromEntries(columns.map((_, index) => [`c${index}`, index === 0 ? "NEXT-ID" : ""]));
+  const pdf = await inspectPdf(await writePdf([row, next], { ...base, limits: { maxTableWindowRows: 1 } }));
+  const nextPages = pdf.pages.filter(page => page.lines.includes("NEXT-ID"));
+  assert.equal(nextPages.length, 3, "A new row remains an authored row in every band even when its metric values are empty");
+  for (let band = 0; band < 3; band++) assert.ok(nextPages[band].lines.includes(`Header-${band * 2 + 1}`));
+  const empty = await inspectPdf(await writePdf([], base));
+  assert.equal(empty.pages.length, 3, "An empty table retains its initial band headings");
+  for (let band = 0; band < 3; band++) assert.ok(empty.pages[band].lines.includes(`Header-${band * 2 + 1}`));
 });
 
 test("kept headings reserve projected span geometry for ordinary, grouped and footer-only band tables", async () => {
@@ -146,7 +191,12 @@ test("multiline repeated identifiers remain intact on short final fragments and 
   const tableOptions = { columns: selected, columnWidths: [80, 100, 100], wideTable: { mode: "bands", repeatColumns: [0] } };
   const geometry = { pageSize: base.pageSize, margins: base.margins, fontSize: base.fontSize, padding: base.padding, pageNumbers: false, compression: false };
   const pdf = await inspectPdf(await writePdf([row], { ...geometry, ...tableOptions }));
-  assert.ok(pdf.pages.length >= 4); assert.equal(pdf.pages.length % 2, 0);
+  assert.ok(pdf.pages.length >= 3);
+  const shortBand = pdf.pages.find(page => page.lines.includes("Metric-only"));
+  const frames = firstColumnFrames(shortBand);
+  assert.ok(frames.at(-1) > frames[0], "The short metric band still reserves the full multiline identifier");
+  assert.ok(frames.at(-1) < firstColumnFrames(pdf.pages[0]).at(-1), "The short band does not inherit the long detail fragment's height");
+  for (const page of pdf.pages.slice(2)) assert.ok(page.lines.some(line => /^Detail-/.test(line)), "An exhausted metric band is absent from later vertical windows");
   for (const page of pdf.pages) assert.deepEqual(page.lines.filter(line => /^KEY-/.test(line)), identifier, "Every band/window retains the full repeated identity");
   assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^Detail-/.test(line)), detail, "Padding a short last fragment never duplicates or skips logical detail lines");
   for (const precedingLines of [19, 22, 24]) {

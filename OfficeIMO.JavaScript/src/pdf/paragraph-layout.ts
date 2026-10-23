@@ -10,6 +10,7 @@ import { resolveParagraphStyle } from "./paragraph-styles.js";
 import { captureBookmark } from "./section-types.js";
 import type { PdfBookmark } from "./section-types.js";
 import { captureFields } from "../internal/capture.js";
+import { pdfBudgetText } from "./text.js";
 
 export interface PdfCapturedParagraph {
   readonly text: PdfCapturedText;
@@ -21,6 +22,8 @@ export interface PdfCapturedParagraph {
   readonly keepWithNext: boolean;
   readonly spaceBefore: number;
   readonly spaceAfter: number;
+  /** Captions are bounded definitions; charge only their actual physical occurrences. */
+  readonly budgetOnPaint?: boolean;
 }
 export interface PdfPreparedParagraph extends PdfCapturedParagraph {
   readonly lines: readonly PdfInlineLine[];
@@ -28,7 +31,7 @@ export interface PdfPreparedParagraph extends PdfCapturedParagraph {
   readonly firstHeight: number;
 }
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
-export function captureParagraph(block: PdfParagraphBlock, settings: PdfSettings, fonts: PdfFontResources): PdfCapturedParagraph {
+export function captureParagraph(block: PdfParagraphBlock, settings: PdfSettings, fonts: PdfFontResources, budgetOnPaint = false): PdfCapturedParagraph {
   if (!block || block.kind !== "paragraph") throw new TypeError("PDF paragraph groups accept paragraph blocks only.");
   const { text, headingLevel, presentation: inputStyle, fontSize, keepTogether, keepWithNext, spaceBefore, spaceAfter, style: styleName, bookmark: inputBookmark } = block;
   if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
@@ -40,7 +43,8 @@ export function captureParagraph(block: PdfParagraphBlock, settings: PdfSettings
   }, settings.paragraphStyles);
   const style = resolved.presentation ?? Object.freeze({}), size = positive(resolved.fontSize ?? settings.fontSize, "Paragraph font size", 144);
   const bookmark = captureBookmark(inputBookmark, settings);
-  return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false), style, size,
+  return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false, !budgetOnPaint), style, size,
+    ...(budgetOnPaint ? { budgetOnPaint: true } : {}),
     ...(headingLevel === undefined ? {} : { headingLevel }), ...(bookmark === undefined ? {} : { bookmark }),
     keepTogether: resolved.keepTogether ?? false, keepWithNext: resolved.keepWithNext ?? false,
     spaceBefore: resolved.spaceBefore ?? 0, spaceAfter: resolved.spaceAfter ?? 8 });
@@ -51,13 +55,16 @@ export function captureCaption(caption: PdfCaption, settings: PdfSettings, fonts
     Object.keys(caption).some(key => !["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"].includes(key)))
     throw new TypeError("PDF captions support text, style, fontSize, presentation, spaceBefore and spaceAfter.");
   return captureParagraph({ ...captureFields(caption, ["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"]),
-    kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
+    kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts, true);
 }
 /** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
 export async function prepareParagraph(captured: PdfCapturedParagraph, settings: PdfSettings, fonts: PdfFontResources,
   width = settings.page.width - settings.margins.left - settings.margins.right): Promise<PdfPreparedParagraph> {
   if (!captured.text.text) return { ...captured, lines: [], height: 0, firstHeight: 0 };
-  settings.budget.cell(captured.text.text, captured.text.text.length);
+  if (!captured.budgetOnPaint) {
+    const budgetText = pdfBudgetText(captured.text.text, settings.budget);
+    settings.budget.cell(budgetText, budgetText.length);
+  }
   const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
   return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
     firstHeight: captured.spaceBefore + lines[0]!.lineHeight };

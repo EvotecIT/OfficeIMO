@@ -6,6 +6,13 @@ import { defaultBooleanText } from "../core/value-text.js";
 import type { ExportValue, ColumnValueContext } from "../core/index.js";
 import type { PdfOptions } from "./types.js";
 import type { PdfFontResource } from "./font-resources.js";
+import type { ExportBudget } from "../core/limits.js";
+
+/** @internal Charge displayed characters: tabs paint four spaces, while CR/LF only separate lines.
+ * Raw text remains authoritative for input limits and layout. Skip normalization when no text ceiling observes it. */
+export function pdfBudgetText(text: string, budget: ExportBudget): string {
+  return budget.limits.maxTextCharacters === undefined ? text : text.replace(/[\t\r\n]/g, character => character === "\t" ? "    " : "");
+}
 
 export function synchronousText(value: unknown, name: string): string {
   if (typeof value === "string") return value;

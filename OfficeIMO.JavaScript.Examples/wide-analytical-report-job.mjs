@@ -5,12 +5,12 @@ import { reportColumns } from "./report-engine-job.mjs";
 export const wideAnalyticalText = Object.freeze({
   en: Object.freeze({ headers: { protocol: "Protocol", requests: "Requests / min", errorRate: "Error rate", cpu: "CPU usage", memory: "Memory (MiB)",
     storage: "Storage (GiB)", certificateExpiry: "Certificate expiry (UTC)", version: "Version", lastIncident: "Last incident (UTC)", support: "Support tier" },
-    scope: "Illustrative selected inventory with 16 typed operational fields, grouped by portfolio, environment and owner.",
-    overview: "The PDF repeats service identifiers and group context across readable column bands. Excel retains all 16 editable columns in one sheet." }),
+    scope: "Selected operational inventory with 16 fields, grouped by portfolio, environment and owner.",
+    overview: "Compare service latency, availability and resource use within each group. Group summaries use the stated statistic for each metric." }),
   pl: Object.freeze({ headers: { protocol: "Protokół", requests: "Żądania / min", errorRate: "Odsetek błędów", cpu: "Użycie CPU", memory: "Pamięć (MiB)",
     storage: "Dysk (GiB)", certificateExpiry: "Ważność certyfikatu (UTC)", version: "Wersja", lastIncident: "Ostatni incydent (UTC)", support: "Poziom wsparcia" },
-    scope: "Przykładowy wybrany zbiór z 16 polami operacyjnymi, pogrupowany według portfela, środowiska i właściciela.",
-    overview: "PDF powtarza identyfikatory usług i kontekst grup w czytelnych pasmach kolumn. Excel zachowuje wszystkie 16 edytowalnych kolumn w jednym arkuszu." })
+    scope: "Wybrany zbiór usług z 16 polami operacyjnymi, pogrupowany według portfela, środowiska i właściciela.",
+    overview: "Porównaj opóźnienie, dostępność i wykorzystanie zasobów usług w każdej grupie. Podsumowania stosują statystykę wskazaną dla każdej miary." })
 });
 
 /** The same visible-column capture serves a wide typed workbook and the banded PDF. */
@@ -25,7 +25,7 @@ export const wideAnalyticalColumns = Object.freeze([...reportColumns,
   { header: "Version", key: "version", width: 16 },
   { header: "Last incident (UTC)", key: "lastIncident", type: "date", width: 24, format: "yyyy-mm-dd hh:mm" },
   { header: "Support tier", key: "support", width: 18 }
-].map(column => Object.freeze(column)));
+].map(column => Object.freeze({ ...column, ...(column.type === "number" ? { alignment: "right" } : {}) })));
 
 /** Lazily extend the ordinary three-level source; grouping metadata stays after visible cells. */
 export function* wideAnalyticalRows(count) {
@@ -48,15 +48,10 @@ export async function writeWideAnalyticalReport(api, context) {
   if (!Object.hasOwn(wideAnalyticalText, language)) throw new TypeError("The wide example supports explicit en and pl resources.");
   const text = wideAnalyticalText[language];
   const columns = wideAnalyticalColumns.map(column => ({ ...column, header: text.headers[column.key] ?? column.header }));
-  const decimal = new Intl.NumberFormat(language, { maximumFractionDigits: 3 });
-  const percent = new Intl.NumberFormat(language, { style: "percent", maximumFractionDigits: 2 });
-  const percentages = new Set(["availability", "errorRate", "cpu"]);
   return writeAnalyticalReport(api, { ...context, columns,
     input: { ...input, scope: input.scope ?? text.scope, overview: input.overview ?? text.overview,
       totals: { latency: "average", availability: "average", requests: "sum", errorRate: "average", cpu: "average", memory: "average", storage: "average" } },
-    pdfTableOptions: { wideTable: { mode: "bands", repeatColumns: [0, 1], minimumColumnWidth: 72 },
-      formatValue(value, cell) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
-        : typeof value === "number" ? (percentages.has(cell.column.key) ? percent : decimal).format(value) : String(value ?? ""); } },
+    pdfTableOptions: { wideTable: { mode: "bands", repeatColumns: [0, "service"], minimumColumnWidth: 72 } },
     // These finite physical-work budgets include repeated identifiers and headings, not only logical source cells.
     pdfLimits: { maxTableBands: 8, maxTableWindowRows: 64, maxCells: 16000000, maxTextCharacters: 64000000 } });
 }

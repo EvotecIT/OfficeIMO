@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writePdfDocument, writePdfDocumentTo } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
+import { pdfStructureElements } from "./pdf-structure-reader.mjs";
 
 test("named paragraph styles snapshot before enumeration and explicit appearance merges by member", async () => {
   const paragraphStyles = { body: { fontSize: 12, presentation: { bold: true, italic: true, color: "123456", alignment: "right" },
@@ -30,7 +31,7 @@ test("named appearance leaves semantic heading roles explicit", async () => {
     { kind: "paragraph", text: "Small heading", style: "body", headingLevel: 2 }
   ], { paragraphStyles: { display: { fontSize: 20, presentation: { bold: true } }, body: { fontSize: 9 } },
     tagged: { language: "en" }, pageNumbers: false, compression: false }));
-  const roles = [...pdf.objects.values()].filter(object => /\/Type \/StructElem /.test(object.body)).map(object => /\/S \/(\w+)/.exec(object.body)[1]);
+  const roles = pdfStructureElements(pdf).map(([, object]) => /\/S \/(\w+)/.exec(object.body)[1]);
   assert.equal(roles.filter(role => role === "P").length, 1); assert.equal(roles.filter(role => role === "H2").length, 1);
   assert.ok(!roles.includes("H1"));
 });

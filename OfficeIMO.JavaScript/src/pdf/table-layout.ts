@@ -8,7 +8,7 @@ import type { NumericAggregate } from "../internal/totals.js";
 import type { PdfFontResources, PdfFontResource } from "./font-resources.js";
 import type { PdfSettings } from "./settings.js";
 import { presentation, positive } from "./settings.js";
-import { displayText } from "./text.js";
+import { displayText, pdfBudgetText } from "./text.js";
 import { capturePdfText, wrapPdfText } from "./inline-text.js";
 import { planTableBands, projectBandRows, alignBandBlocks } from "./table-band-plan.js";
 import type { PdfTableBand } from "./table-band-plan.js";
@@ -21,6 +21,8 @@ export interface PdfLayoutCell {
   readonly source?: PdfLayoutCell;
   /** Repeated visual content has no second logical reading occurrence. */
   readonly semanticArtifact?: boolean;
+  /** Captured detail-column intent; headings and generated footer/summary values never inherit it. */
+  readonly rowHeader?: boolean;
   readonly first: number;
   readonly span: number;
   readonly width: number;
@@ -47,9 +49,11 @@ export class PdfTableLayout {
   readonly totals: readonly NumericAggregate[];
   private readonly repeatedColumns: ReadonlySet<number>;
   private readonly structuredBandRows = new WeakMap<readonly PdfLayoutRow[], Promise<readonly (readonly PdfLayoutRow[])[]>>();
+  /** Plain/alternate ordinary-data defaults, validated only when a column first needs them. */
+  private readonly dataPresentations: (Readonly<CellPresentation> | undefined)[] = [];
   constructor(readonly settings: PdfSettings, readonly fonts: PdfFontResources) {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
-    this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
+    this.repeatedColumns = new Set(settings.repeatedColumns);
     let digit: number | undefined;
     if (options.columnWidths && options.columnWidths.length !== columns.length) throw new RangeError("columnWidths must declare one point width per column.");
     const minimum = typeof options.wideTable === "object" ? options.wideTable.minimumColumnWidth ?? 72 : 0;
@@ -83,13 +87,21 @@ export class PdfTableLayout {
     this.headings = headings;
     this.totals = createTotals(columns, options.footer?.totals);
   }
-  private async cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): Promise<PdfLayoutCell> {
+  private async cell(value: ExportValue, first: number, span: number, row: number, style?: CellPresentation, ordinaryData = false): Promise<PdfLayoutCell> {
     const { options, padding, fontSize, budget } = this.settings, column = options.columns[first]!;
     const own = value instanceof ExportCell ? value.presentation : undefined;
     const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
-    const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
-      ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
-    const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
+    const alternate = ordinaryData && row % 2 && options.alternateRowColor ? options.alternateRowColor : undefined;
+    const slot = first * 2 + (alternate ? 1 : 0), reusable = ordinaryData && own === undefined;
+    let combined = reusable ? this.dataPresentations[slot] : undefined;
+    if (!combined) {
+      const rowStyle = ordinaryData ? alternate ? { background: alternate } : {} : style;
+      combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
+        ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...rowStyle, ...own });
+      // Validate only the first reached default; an authored cell may override invalid column defaults.
+      if (reusable) this.dataPresentations[slot] = combined;
+    }
+    const font = this.fonts.select(combined.bold, combined.italic), width = span === 1 ? this.widths[first]! : this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
     const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
     let text: PdfText;
     if (options.formatRuns && row >= 0 && !(value instanceof ExportCell && value.text !== undefined)) {
@@ -104,8 +116,9 @@ export class PdfTableLayout {
     if (options.tagged && link && !captured.text.trim()) throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
     if (link && captured.runs.some(run => run.link))
       throw new TypeError("A PDF cell link cannot be combined with inline run links.");
-    if (this.bands) budget.release(1, captured.text.length);
-    else budget.cell(captured.text, captured.text.length);
+    const budgetText = pdfBudgetText(captured.text, budget);
+    if (this.bands) budget.release(1, budgetText.length);
+    else budget.cell(budgetText, budgetText.length);
     const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
     return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
       ...(link ? { link } : {}), ...(this.bands ? { captured } : {}),
@@ -190,8 +203,8 @@ export class PdfTableLayout {
     for (let column = 0; column < options.columns.length; column++) {
       const value = values[column], raw = value instanceof ExportCell ? value.value : value;
       if (!footer) this.totals[column]!.accept(raw);
-      const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-      cells.push(await this.cell(value, column, 1, index, style));
+      const cell = await this.cell(value, column, 1, index, footer ? options.footerPresentation ?? {} : undefined, !footer);
+      cells.push(!footer && options.columns[column]!.rowHeader ? { ...cell, rowHeader: true } : cell);
     }
     return this.row(cells);
   }
