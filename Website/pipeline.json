@@ -241,7 +241,7 @@
         "-NoLogo",
         "-NoProfile",
         "-Command",
-        "$ErrorActionPreference = 'Stop'; $env:PSModulePath = (Resolve-Path ../PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules).Path + [IO.Path]::PathSeparator + $env:PSModulePath; & ./scripts/Test-ShowcaseGenerationEvidence.ps1"
+        "./scripts/Test-ShowcaseGenerationEvidence.ps1"
       ],
       "workingDirectory": "."
     },

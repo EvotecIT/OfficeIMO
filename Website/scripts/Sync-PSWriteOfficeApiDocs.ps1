@@ -134,8 +134,10 @@ if (-not $ExportedArtifactsRoot) {
     }
     if (Test-CurrentPSWriteOfficeSnapshot -RepositoryRoot $resolvedRepoRoot -SiteRoot $resolvedSiteRoot `
             -SourceCommit $sourceHead -SkipDocumentation:$SkipDocumentation) {
-        if (-not $SkipExamples) {
-            Sync-DirectoryContents -Source (Join-Path $resolvedRepoRoot 'Examples') `
+        $examplesSource = Join-Path $resolvedRepoRoot 'Examples'
+        $updateExamples = -not $SkipExamples -and (Test-Path -LiteralPath $examplesSource -PathType Container)
+        if ($updateExamples) {
+            Sync-DirectoryContents -Source $examplesSource `
                 -Destination (Join-Path $resolvedSiteRoot 'data/apidocs/powershell/examples')
         }
         $producer = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'data/apidocs/powershell/bundle-manifest.json') -Raw | ConvertFrom-Json
@@ -149,7 +151,7 @@ if (-not $ExportedArtifactsRoot) {
             helpUpdated = $false
             commandMetadataUpdated = $false
             documentationUpdated = $false
-            examplesUpdated = -not $SkipExamples
+            examplesUpdated = $updateExamples
         }
     }
 }

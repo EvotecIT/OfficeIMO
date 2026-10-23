@@ -62,6 +62,19 @@ try {
         throw 'A complete, unchanged API snapshot was rejected.'
     }
     $cases.Add('verified-bundle-reused')
+    # The cached route must preserve checked-in examples when a source checkout
+    # has no Examples directory, just like the fresh-export route.
+    $examples = Join-Path $api 'examples'
+    $null = New-Item -ItemType Directory -Path $examples
+    $fallback = Join-Path $examples 'fallback.ps1'
+    Set-Content -LiteralPath $fallback -Value '# retained example'
+    $exampleHash = (Get-FileHash -LiteralPath $fallback).Hash
+    $reused = & (Join-Path $PSScriptRoot 'Sync-PSWriteOfficeApiDocs.ps1') -SiteRoot $site -PSWriteOfficeRoot $module -SkipDocumentation
+    if ($reused.apiSnapshotSource -ne 'verified-unchanged-inputs' -or $reused.examplesUpdated -or
+        (Get-FileHash -LiteralPath $fallback).Hash -cne $exampleHash) {
+        throw 'Snapshot reuse removed fallback examples or claimed a missing source was copied.'
+    }
+    $cases.Add('missing-examples-preserves-fallback')
     Add-Content -LiteralPath (Join-Path $api 'PSWriteOffice-Help.xml') -Value '<stale/>'
     if (Test-CurrentPSWriteOfficeSnapshot -RepositoryRoot $module -SiteRoot $site -SourceCommit $head -SkipDocumentation) {
         throw 'A damaged cached help component was accepted.'

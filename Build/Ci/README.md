@@ -84,12 +84,17 @@ solution-wide framework selection for paired diagnostics. Compare both finalized
 (CSV output), then run the same complete query suite to SARIF and compare:
 
 ```sh
-python Build/Ci/compare_codeql.py before-files.csv after-files.csv before.sarif after.sarif expected-query-ids.json --output comparison.json
+python Build/Ci/compare_codeql.py before-files.csv after-files.csv before.sarif after.sarif expected-query-ids.json --query-metadata expected-query-metadata.json --before-query-results before.zip --after-query-results after.zip --output comparison.json
 ```
 
 The comparison requires identical extracted source paths/line counts, query IDs
-and alert locations/messages/flows. Keep product source, CLI/query versions,
+and alert locations/supporting locations/messages/flows. Keep product source, CLI/query versions,
 output paths, cache policy and query options the same for both runs. Changed
 project scans, cached compilation outputs and no-build extraction are not used.
-Resolve `expected-query-ids.json` from the unchanged full query suite. Empty,
-unsuccessful or equally incomplete analysis evidence cannot pass comparison.
+Resolve `expected-query-ids.json` and query metadata (`id` and absolute `query`
+path per entry) from the unchanged full C# query suite. Analyze each clean
+database with that suite, then retain `codeql database bundle --include-results`
+ZIPs. Each resolved query must have its BQRS result in both bundles; SARIF
+descriptors alone do not prove execution. Empty, unsuccessful or equally
+incomplete analysis evidence cannot pass comparison. SARIF invocations are
+optional, but any recorded failure or error notification rejects the evidence.

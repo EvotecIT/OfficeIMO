@@ -27,9 +27,10 @@ $projects = Get-ChildItem -Directory -Filter 'OfficeIMO.*' | Where-Object {
 } | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -Filter *.csproj } | Sort-Object FullName
 if (!$projects) { throw 'No production projects found for CodeQL.' }
 
-$codeqlSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.CodeQL.sln'
-$artifacts = Join-Path $env:RUNNER_TEMP 'OfficeIMO.CodeQL.Artifacts'
-dotnet new sln --name OfficeIMO.CodeQL --output $env:RUNNER_TEMP --format sln
+$workRoot = Join-Path $env:RUNNER_TEMP ('OfficeIMO.CodeQL-' + [guid]::NewGuid().ToString('N'))
+$codeqlSolution = Join-Path $workRoot 'OfficeIMO.CodeQL.sln'
+$artifacts = Join-Path $workRoot 'artifacts'
+dotnet new sln --name OfficeIMO.CodeQL --output $workRoot --format sln
 dotnet sln $codeqlSolution add @($projects.FullName)
 
 # CodeQL needs a representative production build, not every target framework.
@@ -38,11 +39,11 @@ dotnet sln $codeqlSolution add @($projects.FullName)
 # Keep the normal test/build workflow responsible for the full TFM matrix.
 # Keep the original full restore: legacy targets still need their packages.
 # Framework selection applies to compilation, after assets are available.
-dotnet restore $codeqlSolution --artifacts-path $artifacts "-bl:$env:RUNNER_TEMP/codeql-1.binlog"
-dotnet build $codeqlSolution --configuration Release @mainFramework --no-restore --artifacts-path $artifacts @graphArguments "-bl:$env:RUNNER_TEMP/codeql-2.binlog"
+dotnet restore $codeqlSolution --artifacts-path $artifacts "-bl:$workRoot/codeql-1.binlog"
+dotnet build $codeqlSolution --configuration Release @mainFramework --no-restore --artifacts-path $artifacts @graphArguments "-bl:$workRoot/codeql-2.binlog"
 
-dotnet restore OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj --artifacts-path $artifacts "-bl:$env:RUNNER_TEMP/codeql-3.binlog"
-dotnet build OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj --configuration Release --framework netstandard2.0 --no-restore --artifacts-path $artifacts @graphArguments "-bl:$env:RUNNER_TEMP/codeql-4.binlog"
+dotnet restore OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj --artifacts-path $artifacts "-bl:$workRoot/codeql-3.binlog"
+dotnet build OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj --configuration Release --framework netstandard2.0 --no-restore --artifacts-path $artifacts @graphArguments "-bl:$workRoot/codeql-4.binlog"
 
-dotnet restore Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj --artifacts-path $artifacts "-bl:$env:RUNNER_TEMP/codeql-5.binlog"
-dotnet build Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj --configuration Release --framework net10.0 --no-restore --artifacts-path $artifacts @graphArguments "-bl:$env:RUNNER_TEMP/codeql-6.binlog"
+dotnet restore Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj --artifacts-path $artifacts "-bl:$workRoot/codeql-5.binlog"
+dotnet build Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj --configuration Release --framework net10.0 --no-restore --artifacts-path $artifacts @graphArguments "-bl:$workRoot/codeql-6.binlog"

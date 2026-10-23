@@ -146,7 +146,9 @@ class SelectionTests(unittest.TestCase):
                      "Build/Run-LibraryComparisonBenchmarks.ps1"]:
             with self.subTest(path=path):
                 self.assertTrue(self.choose(path)["suites"]["website"])
-        self.assertFalse(self.choose(".github/workflows/codeql.yml")["suites"]["website"])
+        for path in [".github/workflows/codeql.yml", "Build/Ci/compare_codeql.py", "Build/Ci/Invoke-CodeQLBuild.ps1", "Build/Ci/CodeQL/ExtractedFiles.ql"]:
+            with self.subTest(path=path):
+                self.assertFalse(self.choose(path)["suites"]["website"])
 
     def test_javascript_only_selects_browser_exports_without_library_tests(self):
         result = self.choose("OfficeIMO.JavaScript/src/export.ts")
