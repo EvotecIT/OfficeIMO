@@ -27,6 +27,7 @@ internal static partial class TextContentParser {
 
         /// <summary>Remembers the logical span without changing its painted selection geometry.</summary>
         internal void RememberLogicalLayoutSpan(List<PdfTextSpan> owner, int index) {
+            RememberLogicalBaselineSpan(owner, index);
             if (PreserveAnchorGeometry || _logicalPaintRejected || _logicalLayoutOwner != null) return;
             _logicalLayoutOwner = owner;
             _logicalLayoutIndex = index;
