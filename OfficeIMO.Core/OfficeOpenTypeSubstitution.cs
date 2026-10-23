@@ -202,13 +202,26 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         GlyphToken first = glyphs[index];
         GlyphToken source = first;
         int clusterStart = first.ClusterStart;
+        List<int>? componentStarts = null;
+        for (int component = 0; component < bestComponentCount; component++) {
+            GlyphToken token = glyphs[index + component];
+            if (token.LigatureComponentTextIndexes != null || OfficeTextElements.IsJoiningScriptScalar(token.Scalar)
+                || OfficeTextElements.ContainsCombiningMark(token.UnicodeText)) { componentStarts = new List<int>(); break; }
+        }
         for (int component = 0; component < bestComponentCount; component++) {
             GlyphToken token = glyphs[index + component];
             clusterStart = Math.Min(clusterStart, token.ClusterStart);
             if (source.UnicodeText.Length == 0 && token.UnicodeText.Length > 0) source = token;
         }
+        // Ordinary Latin ligatures keep their allocation profile. Explicit association
+        // is needed only for script/mark-aware multi-base constructions.
+        object? association = componentStarts == null ? first.LigatureIdentity
+            : ClassifyLigatureInputs(glyphs, index, bestComponentCount, componentStarts, ref operations);
         glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), source.TextIndex, source.Scalar,
-            isUnicodeContinuation: unicodeLength == 0, clusterStart: clusterStart);
+            isUnicodeContinuation: unicodeLength == 0, clusterStart: clusterStart,
+            ligatureComponentTextIndexes: componentStarts?.ToArray(), ligatureIdentity: association,
+            ligatureComponent: association != null && !ReferenceEquals(association, first.LigatureIdentity) ? 0 : first.LigatureComponent,
+            lookupOrder: first.LookupOrder, lookupIdentity: first.LookupIdentity);
         glyphs.RemoveRange(index + 1, bestComponentCount - 1);
         return true;
     }
@@ -275,13 +288,29 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     internal readonly struct GlyphToken {
-        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation = false, int? clusterStart = null) {
+        // Ordinary tokens keep the original single reference to component starts.
+        // Script-aware runs use that same slot for optional immutable metadata,
+        // preserving the token's size and the default Latin allocation path.
+        private readonly object? _componentData;
+
+        internal GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation = false, int? clusterStart = null,
+            IReadOnlyList<int>? ligatureComponentTextIndexes = null, object? ligatureIdentity = null,
+            int ligatureComponent = 0, int lookupOrder = -1, object? lookupIdentity = null)
+            : this(glyphId, unicodeText, textIndex, scalar, isUnicodeContinuation, clusterStart ?? textIndex,
+                ligatureIdentity != null || ligatureComponent != 0 || lookupOrder >= 0 || lookupIdentity != null
+                    ? new GlyphAssociationData(ligatureComponentTextIndexes, ligatureIdentity, ligatureComponent,
+                        lookupOrder, lookupIdentity) : ligatureComponentTextIndexes) {
+        }
+
+        private GlyphToken(int glyphId, string unicodeText, int textIndex, int scalar, bool isUnicodeContinuation,
+            int clusterStart, object? componentData) {
             GlyphId = glyphId;
             UnicodeText = unicodeText;
             TextIndex = textIndex;
             Scalar = scalar;
             IsUnicodeContinuation = isUnicodeContinuation;
-            ClusterStart = clusterStart ?? textIndex;
+            ClusterStart = clusterStart;
+            _componentData = componentData;
         }
 
         internal int GlyphId { get; }
@@ -290,6 +319,32 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         internal int Scalar { get; }
         internal bool IsUnicodeContinuation { get; }
         internal int ClusterStart { get; }
-        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation, ClusterStart);
+        /// <summary>Logical starts of a ligature's non-mark components, used by GPOS mark attachment.</summary>
+        internal IReadOnlyList<int>? LigatureComponentTextIndexes => _componentData is GlyphAssociationData metadata
+            ? metadata.ComponentStarts : (IReadOnlyList<int>?)_componentData;
+        /// <summary>Operation-local GSUB association; unrelated ligatures never compare equal.</summary>
+        internal object? LigatureIdentity => (_componentData as GlyphAssociationData)?.Identity;
+        /// <summary>One-based component for a retained mark; zero means no component association.</summary>
+        internal int LigatureComponent => (_componentData as GlyphAssociationData)?.Component ?? 0;
+        internal int LookupOrder => (_componentData as GlyphAssociationData)?.LookupOrder ?? -1;
+        internal object? LookupIdentity => (_componentData as GlyphAssociationData)?.LookupIdentity;
+        internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation, ClusterStart,
+            _componentData);
+        internal GlyphToken WithLookupOrder(int order, object identity) => new GlyphToken(GlyphId, UnicodeText, TextIndex,
+            Scalar, IsUnicodeContinuation, ClusterStart, LigatureComponentTextIndexes, LigatureIdentity, LigatureComponent,
+            order, identity);
+
+        private sealed class GlyphAssociationData {
+            internal GlyphAssociationData(IReadOnlyList<int>? starts, object? identity, int component,
+                int lookupOrder, object? lookupIdentity) {
+                ComponentStarts = starts; Identity = identity; Component = component;
+                LookupOrder = lookupOrder; LookupIdentity = lookupIdentity;
+            }
+            internal IReadOnlyList<int>? ComponentStarts { get; }
+            internal object? Identity { get; }
+            internal int Component { get; }
+            internal int LookupOrder { get; }
+            internal object? LookupIdentity { get; }
+        }
     }
 }

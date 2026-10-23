@@ -39,6 +39,16 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     }
 
     private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (!allowDiagnosedFallback &&
+            (OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
+            if (typography != null) return typography;
+            // A partial font-directed run cannot turn into an undiagnosed approximation.
+            // The old length-preserving joining route remains useful for simple fonts.
+            if (fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
+                OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
+        }
         if (!TryShapeTokens(request, out IOfficeFontProgram font, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
             out OfficeTextDirection resolvedDirection, allowDiagnosedFallback)) return null;
         // Pair kerning is a default OpenType feature; only an explicit kern=0 disables it.

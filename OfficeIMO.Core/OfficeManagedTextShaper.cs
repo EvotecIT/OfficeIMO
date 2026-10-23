@@ -6,6 +6,12 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeManagedTextShaper {
+    /// <summary>Identifies non-painting shaping controls while retaining their logical source and lookup boundaries.</summary>
+    internal static bool IsNonPaintingControl(int scalar) => scalar is 0x034F or 0x061C or 0x200E or 0x200F
+        || OfficeUnicodeBidi.GetClass(scalar) is OfficeBidiClass.BN or OfficeBidiClass.LRE or OfficeBidiClass.RLE
+            or OfficeBidiClass.LRO or OfficeBidiClass.RLO or OfficeBidiClass.PDF or OfficeBidiClass.LRI
+            or OfficeBidiClass.RLI or OfficeBidiClass.FSI or OfficeBidiClass.PDI;
+
     internal static OfficeManagedTextFallback Resolve(
         string text,
         IOfficeFontProgram font,

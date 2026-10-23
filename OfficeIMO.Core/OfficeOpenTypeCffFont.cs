@@ -238,6 +238,12 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         IReadOnlyList<int> scalars,
         System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
+    /// <summary>Positions logical substituted tokens before bidi reordering, declining unsupported active GPOS.</summary>
+    internal bool TryPositionGlyphRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
+        string? language, System.Threading.CancellationToken cancellationToken,
+        out OfficeOpenTypeGlyphPositioning[] positions) =>
+        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions);
+
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
         long advance = GetShapedTextAdvance(text, result);
         ValidateSize(fontSize);

@@ -41,7 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         Func<HtmlInlineRun, HtmlRenderBoxStyle>? styleSelector = null, bool reportLoss = true) {
         var prepared = new Dictionary<HtmlInlineRun, List<PreparedInlineSlice>>();
         void Report(HtmlInlineRun run, string detail) { if (reportLoss) ReportProviderContextLoss(run, detail); }
-        if (_options.TextShapingProvider == null || !HasArabicJoiningSource(runs, static run => run.LogicalText)) return prepared;
+        if (!HasArabicJoiningSource(runs, static run => run.LogicalText)) return prepared;
+        IOfficeTextShapingProvider provider = _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance;
         InlineWordMap map = BuildInlineWordFitting(runs, paragraphStyle, styleSelector);
         var styles = new Dictionary<HtmlInlineRun, HtmlRenderBoxStyle>();
         HtmlRenderBoxStyle Style(HtmlInlineRun run) {
@@ -81,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (!sameProgram) { Report(pieces[0].Run, "cross-inline-font-context-not-retained"); continue; }
             OfficeTextShapingResult? shaped = ShapeConfiguredText(text, font, fontInfo, style,
-                OfficeTextDirection.RightToLeft, _options.TextShapingProvider);
+                OfficeTextDirection.RightToLeft, provider);
             CheckCancellation();
             if (shaped != null) ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "provider joining glyph retention");
             if (shaped == null) { Report(pieces[0].Run, "cross-inline-provider-declined"); continue; }
@@ -140,6 +141,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && left.OverflowWrap == "normal" && right.OverflowWrap == "normal"
         && !HasArabicJoiningInsets(left) && !HasArabicJoiningInsets(right);
 
+    private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text) {
+        if (RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings)
+            && TryMeasureWithConfiguredProvider(text, run.Style, out _))
+            ReportProviderContextLoss(run, "directional-glyph-context-not-retained");
+    }
+
     private void ReportProviderContextLoss(HtmlInlineRun run, string detail) {
         if (run.OwnerElement != null && !_reportedComplexTextShapingElements.Add(run.OwnerElement)) return;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
@@ -152,7 +159,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryPrepareDirectionalProviderText(string text, HtmlRenderBoxStyle style,
         OfficeTextDirection direction, out OfficePreparedTextShaping? prepared) {
         prepared = null;
-        if (_options.TextShapingProvider == null || style.LetterSpacing != 0D || style.WordSpacing != 0D
+        if (_options.TextShapingProvider == null && style.TextFeatureSettings.IsDefault && !OfficeManagedTextShaper.RequiresComplexLayout(text)
+            || style.LetterSpacing != 0D || style.WordSpacing != 0D
             || style.WritingMode != "horizontal-tb") return false;
         string logical = OfficeArabicTextShaper.ToLogicalText(text);
         OfficeFontInfo fontInfo = GetEffectiveTextFont(style);
@@ -161,7 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || face.Style != (fontInfo.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic))) return false;
         ChargeLayoutOperations(1L + (logical.Length + 31L) / 32L, "directional glyph retention");
         OfficeTextShapingResult? shaped = ShapeConfiguredText(logical, face.Program, fontInfo, style,
-            direction, _options.TextShapingProvider);
+            direction, _options.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance);
         if (shaped == null || face.Program is IOfficeColorFontProgram color
             && shaped.Glyphs.Any(glyph => color.HasColorGlyph(glyph.GlyphId))) return false;
         ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "directional glyph retention");
@@ -175,7 +183,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         CheckCancellation();
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText, font.DisplayName ?? fontInfo.FamilyName, font.GetFontDataForShaping(), font.IsOpenTypeCff,
-            font.UnitsPerEm, direction, _options.TextShapingLanguage, _cancellationToken, font.CollectionIndex,
+            font.UnitsPerEm, direction, _options.TextShapingLanguage ?? style.Language, _cancellationToken, font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping, cloneFontData: false,
             fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings));
         CheckCancellation();

@@ -44,6 +44,12 @@ public sealed partial class OfficeTrueTypeFont {
         IReadOnlyList<int> scalars,
         System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
+    /// <summary>Positions logical substituted tokens before bidi reordering, declining unsupported active GPOS.</summary>
+    internal bool TryPositionGlyphRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
+        string? language, System.Threading.CancellationToken cancellationToken,
+        out OfficeOpenTypeGlyphPositioning[] positions) =>
+        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions);
+
     /// <summary>Positions an already validated BMP scalar run using the same pair adjustment and tracking owner as native paint.</summary>
     internal IReadOnlyList<double> PositionPortableScalars(string text, double fontSize) {
         var glyphs = new List<int>(text.Length);

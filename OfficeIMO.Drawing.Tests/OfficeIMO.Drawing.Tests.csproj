@@ -46,6 +46,9 @@
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.MarkPositioning.cs" Link="ManagedTextShapingTestAssets.MarkPositioning.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Arabic.cs" Link="ManagedTextShapingTestAssets.Arabic.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ContextualPositioning.cs" Link="ManagedTextShapingTestAssets.ContextualPositioning.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Measurement.cs" Link="ManagedTextShapingTestAssets.Measurement.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Math.cs" Link="ManagedTextShapingTestAssets.Math.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.MathGlyphs.cs" Link="ManagedTextShapingTestAssets.MathGlyphs.cs" />

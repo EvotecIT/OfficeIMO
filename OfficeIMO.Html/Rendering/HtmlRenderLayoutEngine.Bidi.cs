@@ -26,6 +26,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return new[] { new InlinePaintSegment(segment.LogicalText, x, Math.Max(0.01D, segment.Width),
                 segment.Width, 0, bidiResolved: true, preparedShaping: segment.PreparedShaping) };
         }
+        bool ordinaryDirection = !OfficeTextElements.ContainsRightToLeft(segment.Text)
+            && !OfficeTextElements.ContainsBidiControl(segment.Text)
+            && segment.ResolvedDirection != OfficeTextDirection.RightToLeft;
+        if ((segment.BidiResolved || ordinaryDirection)
+            && RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings)
+            && TryPrepareDirectionalProviderText(segment.LogicalText, segment.Run.Style,
+                segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? retained)) {
+            return new[] { new InlinePaintSegment(retained!.Text, x, Math.Max(0.01D, segment.Width),
+                segment.Width, 0, bidiResolved: true, preparedShaping: retained) };
+        }
         if (!segment.BidiResolved
             && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
             if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
@@ -40,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
                 && segment.ResolvedDirection != OfficeTextDirection.RightToLeft) {
+            ReportUnretainedProviderPaint(segment.Run, segment.LogicalText);
             return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
@@ -58,13 +69,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         group.Width,
                         group.LogicalOrder, bidiResolved: true, preparedShaping: prepared));
                 } else if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
-                    if (!OfficeTextElements.ContainsRightToLeft(group.Text))
-                        ReportProviderContextLoss(segment.Run, "neutral-directional-glyph-context-not-retained");
+                    if (!OfficeTextElements.ContainsRightToLeft(group.Text)
+                        || RequiresConfiguredTextShaping(group.Text, segment.Run.Style.TextFeatureSettings))
+                        ReportProviderContextLoss(segment.Run, OfficeTextElements.ContainsRightToLeft(group.Text)
+                            ? "directional-glyph-context-not-retained" : "neutral-directional-glyph-context-not-retained");
                     result.Add(new InlinePaintSegment(OfficeArabicTextShaper.ToLogicalText(group.Text),
                         groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
                 } else {
                     AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
                 }
+            } else if (TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
+                OfficeTextDirection.LeftToRight, out OfficePreparedTextShaping? leftToRight)) {
+                result.Add(new InlinePaintSegment(leftToRight!.Text, groupX, Math.Max(0.01D, group.Width),
+                    group.Width, group.LogicalOrder, bidiResolved: true, preparedShaping: leftToRight));
             } else if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D) {
                 result.AddRange(ResolveSpacedPaintSegments(
                     new InlineSegment(group.Text, group.Width, segment.Run, group.Text),
@@ -72,6 +89,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     group.LogicalOrder,
                     bidiResolved: true));
             } else {
+                ReportUnretainedProviderPaint(segment.Run, group.Text);
                 result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width,
                     group.LogicalOrder, bidiResolved: true));
             }
@@ -83,6 +101,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x,
         int? logicalOrder = null, bool bidiResolved = false) {
         var result = new List<InlinePaintSegment>();
+        if (RequiresConfiguredTextShaping(segment.LogicalText, segment.Run.Style.TextFeatureSettings))
+            ReportProviderContextLoss(segment.Run, "spaced-provider-glyph-context-not-retained");
         double cursor = x;
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
@@ -235,9 +255,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lastGroups = new InlineSegment?[sources.Count];
         int start = 0;
         while (start < ordered.Count) {
+            int sourceIndex = ordered[start].SourceSegmentIndex;
+            HtmlRenderBoxStyle style = sources[sourceIndex].Run.Style;
+            bool providerContext = _options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault
+                || OfficeManagedTextShaper.RequiresComplexLayout(sources[sourceIndex].LogicalText);
             int end = start + 1;
-            while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex
-                && (_options.TextShapingProvider == null || ordered[end].RightToLeft == ordered[start].RightToLeft)) end++;
+            while (end < ordered.Count && ordered[end].SourceSegmentIndex == sourceIndex
+                && (!providerContext || ordered[end].RightToLeft == ordered[start].RightToLeft)) end++;
             string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
             string logicalText = string.Concat(ordered
                 .Skip(start)
@@ -245,12 +269,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(static element => element.SourceElementIndex)
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
-            int sourceIndex = ordered[start].SourceSegmentIndex;
-            HtmlRenderBoxStyle style = sources[sourceIndex].Run.Style;
             // Preserve prepared contextual paint when no provider owns this script.
             // Marks and required ligatures add fidelity loss without discarding those forms.
             // Unsupported script input and configured shapers still need logical source.
-            bool needsShapingInput = _options.TextShapingProvider != null && ordered[start].RightToLeft
+            bool needsShapingInput = providerContext && ordered[start].RightToLeft
+                || RequiresConfiguredTextShaping(logicalText, style.TextFeatureSettings)
                 || OfficeTextElements.ContainsShapingRequiredScript(logicalText)
                 || OfficeTextElements.ContainsVariationSelector(logicalText)
                 || OfficeTextElements.ContainsJoiningScript(logicalText)
@@ -265,7 +288,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 logicalText,
                 bidiResolved: sources[sourceIndex].PreparedShaping != null || !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress,
-                resolvedDirection: _options.TextShapingProvider == null ? null
+                resolvedDirection: !providerContext ? null
                     : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;

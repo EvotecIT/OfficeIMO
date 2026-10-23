@@ -207,7 +207,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported;
         string message = featureShaping
             ? "A requested OpenType feature required a lookup outside the bounded managed shaping subset; scalar glyphs were used."
-            : "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.";
+            : "The selected shaping provider did not accept this complex-script run; diagnosed scalar fallback was used.";
         _diagnostics.Add(
             ComponentName,
             diagnosticCode,
@@ -223,13 +223,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(text, featureSettings)
         || OfficeTextElements.ContainsShapingRequiredScript(text)
         || OfficeTextElements.ContainsVariationSelector(text)
-        || OfficeTextElements.ContainsJoiningScript(text)
-            && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);
+        || OfficeTextElements.ContainsJoiningScript(text);
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
-        if (provider == null && !style.TextFeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
-        if (provider == null) {
+        if (provider == null && (!style.TextFeatureSettings.IsDefault || OfficeManagedTextShaper.RequiresComplexLayout(text)))
+            provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null || provider == OfficeManagedTextShapingProvider.Instance && style.WritingMode != "horizontal-tb") {
             measured = 0D;
             return false;
         }
