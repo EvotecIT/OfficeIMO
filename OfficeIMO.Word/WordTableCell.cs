@@ -197,7 +197,7 @@ namespace OfficeIMO.Word {
                 } else if (element is AltChunk altChunk) {
                     elements.Add(new WordEmbeddedDocument(_document, altChunk));
                 } else if (element is SdtBlock sdtBlock) {
-                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock));
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock, readOnly: _wordTable.IsReadOnlyView));
                 } else if (element is Table table) {
                     elements.Add(new WordTable(_document, table, initializeChildren: !_wordTable.IsReadOnlyView,
                         readOnly: _wordTable.IsReadOnlyView));
