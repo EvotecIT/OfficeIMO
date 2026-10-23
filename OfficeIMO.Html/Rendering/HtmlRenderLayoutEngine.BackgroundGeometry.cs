@@ -72,14 +72,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new BackgroundRepeatAxis(areaStart, Math.Max(tileLength, step), repeat: true);
     }
 
+    /// <summary>Rounds concrete tile sizes and restores their resolved ratio on an opposing auto axis.</summary>
     private static BackgroundImageSize ApplyRoundBackgroundSize(
         BackgroundImageSize size,
         string sizeValue,
         double areaWidth,
         double areaHeight,
         BackgroundRepeatMode repeatX,
-        BackgroundRepeatMode repeatY,
-        bool hasIntrinsicRatio = true) {
+        BackgroundRepeatMode repeatY) {
         double width = size.Width;
         double height = size.Height;
         double originalWidth = width;
@@ -87,12 +87,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolveBackgroundSizeAutoAxes(sizeValue, out bool widthAuto, out bool heightAuto);
         if (repeatX == BackgroundRepeatMode.Round) {
             width = ResolveRoundedTileLength(areaWidth, width);
-            if (hasIntrinsicRatio && repeatY != BackgroundRepeatMode.Round && heightAuto) height *= width / Math.Max(0.01D, originalWidth);
+            if (repeatY != BackgroundRepeatMode.Round && heightAuto) height *= width / originalWidth;
         }
 
         if (repeatY == BackgroundRepeatMode.Round) {
             height = ResolveRoundedTileLength(areaHeight, height);
-            if (hasIntrinsicRatio && repeatX != BackgroundRepeatMode.Round && widthAuto) width *= height / Math.Max(0.01D, originalHeight);
+            if (repeatX != BackgroundRepeatMode.Round && widthAuto) width *= height / originalHeight;
         }
 
         return new BackgroundImageSize(Math.Max(0D, width), Math.Max(0D, height));

@@ -47,17 +47,28 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
-    [Fact]
-    public void HtmlGradientImageGeometry_RoundDoesNotRescaleTheOtherAutoAxis() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlGradientImageGeometry_RoundRestoresTheResolvedRatioForTheOtherAutoAxis(bool vertical) {
         HtmlRenderDocument rendered = RenderBackgroundImageGeometryCase(BackgroundImageGeometryBox(
-            "background-image:linear-gradient(to bottom,red 0% 50%,blue 50% 100%);"
-            + "background-size:30px auto;background-repeat:round no-repeat"));
+            "background-image:linear-gradient(" + (vertical ? "to right" : "to bottom") + ",red 0% 50%,blue 50% 100%);"
+            + (vertical ? "background-size:auto 17px;background-repeat:no-repeat round"
+                : "background-size:30px auto;background-repeat:round no-repeat")));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
 
-        // Rounding three tiles to 80/3 pixels must keep the gradient's 48px height.
-        Assert.Equal(OfficeColor.Red, raster.GetPixel(4, 22));
-        Assert.Equal(OfficeColor.Blue, raster.GetPixel(4, 26));
-        Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 45));
+        // The initial auto axis fills the area; round then rescales it with the concrete tile.
+        if (vertical) {
+            Assert.Equal(OfficeColor.Red, raster.GetPixel(35, 4));
+            Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 4));
+            Assert.Equal(OfficeColor.Blue, raster.GetPixel(73, 45));
+            Assert.Equal(OfficeColor.White, raster.GetPixel(77, 4));
+        } else {
+            Assert.Equal(OfficeColor.Red, raster.GetPixel(4, 19));
+            Assert.Equal(OfficeColor.Blue, raster.GetPixel(4, 23));
+            Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 40));
+            Assert.Equal(OfficeColor.White, raster.GetPixel(4, 45));
+        }
         rendered.RequireNoLoss();
     }
 
