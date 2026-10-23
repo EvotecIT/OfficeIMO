@@ -113,6 +113,27 @@ test("completed payloads retain their bytes while later batches reuse the bounde
   assert.deepEqual(containers.map(container => Number(/\/N (\d+)/.exec(container.body)[1])), [256, 256, 5]);
 });
 
+test("serialized compact xrefs preserve index 255 and ordinary entries across membership storage chunks", async () => {
+  const { pdf, containers, ids } = await compactFixture(Array.from({ length: 4352 }, (_, index) => "(record-" + index + ")"));
+  const xref = [...pdf.objects.values()].find(object => /\/Type \/XRef\b/.test(object.body));
+  const after = ids.findIndex(id => id >= 4096), before = after - 1;
+  assert.ok(before >= 0 && after < ids.length, "Real object IDs must cross the membership chunk boundary");
+  for (const member of [255, before, after, ids.length - 1]) {
+    const position = ids[member] * 11;
+    assert.equal(xref.stream[position], 2);
+    assert.equal(xref.stream.readUInt16BE(position + 9), member % 256);
+    assert.equal(pdf.objects.get(ids[member]).body, "(record-" + member + ")");
+  }
+  for (const container of containers) {
+    assert.equal(Number(/\/N (\d+)/.exec(container.body)[1]), 256);
+    const lengthId = Number(/\/Length (\d+) 0 R/.exec(container.body)[1]);
+    for (const id of [container.id, lengthId]) {
+      assert.equal(xref.stream[id * 11], 1, "Untouched membership slots retain ordinary xref entries");
+      assert.equal(xref.stream.readUInt16BE(id * 11 + 9), 0);
+    }
+  }
+});
+
 test("page-byte delivery preserves pending structure members across bounded containers", async () => {
   const bodies = Array.from({ length: 517 }, (_, index) => "(" + index + ":" + "Z".repeat(24) + ")");
   const ordinary = await compactFixture(bodies), pageFlushed = await compactFixture(bodies, objects => objects.flushBytes());
@@ -213,9 +234,11 @@ test("compaction propagates codec failures and never silently changes representa
 });
 
 test("xref entries preserve offsets above 32 bits and compact reservations still reject invalid object state", async () => {
-  const bytes = Buffer.concat([...pdfXrefChunks([0, 4294967297, 7], [undefined, undefined, 99])]);
+  const bytes = Buffer.concat([...pdfXrefChunks([0, 4294967297, 9999999999, 7], [undefined, undefined, undefined, 255])]);
   assert.equal(bytes[11], 1); assert.equal(bytes.readBigUInt64BE(12), 4294967297n);
-  assert.equal(bytes[22], 2); assert.equal(bytes.readBigUInt64BE(23), 7n); assert.equal(bytes.readUInt16BE(31), 99);
+  assert.equal(bytes[22], 1); assert.equal(bytes.readBigUInt64BE(23), 9999999999n);
+  assert.equal(bytes[33], 2); assert.equal(bytes.readBigUInt64BE(34), 7n); assert.equal(bytes.readUInt16BE(42), 255);
+  assert.throws(() => [...pdfXrefChunks([0, 1], [undefined])], /locations must align/);
   const objects = new PdfObjects({ write() {} }, undefined, undefined, true), id = objects.reserve();
   await objects.compactObject(id, "<< /Type /StructElem /S /Document /K [] >>");
   await assert.rejects(objects.compactObject(id, "<< >>"), /Invalid PDF object state/);

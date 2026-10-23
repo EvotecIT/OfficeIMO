@@ -13,6 +13,24 @@ interface PdfCompactBatch {
 }
 
 const compactObjectCount = 256, compactObjectBytes = 32768;
+const compactIndexChunkEntries = 4096;
+
+/** Lazy Uint16 chunks store compact membership; untouched zero slots denote ordinary objects. */
+class PdfCompactIndices {
+  private readonly chunks: (Uint16Array | undefined)[] = [];
+  constructor(private count: number) {}
+  get length(): number { return this.count; }
+  reserve(): void { this.count++; }
+  set(id: number, member: number): void {
+    const chunk = this.chunks[Math.floor(id / compactIndexChunkEntries)] ??= new Uint16Array(compactIndexChunkEntries);
+    // The current batch cap permits indices 0..255; adding one preserves index 255 as 256.
+    chunk[id % compactIndexChunkEntries] = member + 1;
+  }
+  at(id: number): number | undefined {
+    const encoded = this.chunks[Math.floor(id / compactIndexChunkEntries)]?.[id % compactIndexChunkEntries] ?? 0;
+    return encoded ? encoded - 1 : undefined;
+  }
+}
 
 export function pdfNumber(value: number): string {
   if (!Number.isFinite(value) || Math.abs(value) > 1e9) throw new RangeError("PDF coordinates and metrics must be finite and bounded.");
@@ -32,9 +50,9 @@ export function unicodeHex(text: string): string {
 /** @internal Forward-only PDF objects. Completed objects retain only their xref location. */
 export class PdfObjects {
   private readonly offsets: (number | undefined)[] = [0];
-  // A defined index changes the corresponding offset into an object-stream number. Parallel numeric
-  // arrays avoid retaining an allocated location object for every completed structure element.
-  private compactIndices: (number | undefined)[] | undefined;
+  // A defined index changes the corresponding full-width offset into an object-stream number.
+  // Membership chunks are allocated only when a compact member needs their ID range.
+  private compactIndices: PdfCompactIndices | undefined;
   private compactBatch: PdfCompactBatch | undefined;
   private compactArena: Uint8Array<ArrayBuffer> | undefined;
   private compactUnavailable = false;
@@ -44,7 +62,7 @@ export class PdfObjects {
   bytes = 0;
   constructor(private readonly sink: ByteSink, private readonly signal?: AbortSignal, private readonly maxBytes = Number.MAX_SAFE_INTEGER,
     private readonly compressObjects = false) {}
-  reserve(): number { this.offsets.push(undefined); this.compactIndices?.push(undefined); return this.offsets.length - 1; }
+  reserve(): number { this.offsets.push(undefined); this.compactIndices?.reserve(); return this.offsets.length - 1; }
   async raw(bytes: Uint8Array): Promise<void> {
     checkAbort(this.signal);
     if (!Number.isSafeInteger(this.bytes + bytes.length) || this.bytes + bytes.length > this.maxBytes)
@@ -103,10 +121,10 @@ export class PdfObjects {
         catch { this.compactUnavailable = true; return this.object(id, body); }
       }
       batch = { id: this.reserve(), compressor, ids: [], bodyOffsets: [], bodyBytes: 0, indexBytes: 1 };
-      this.compactIndices ??= this.offsets.map(() => undefined);
+      this.compactIndices ??= new PdfCompactIndices(this.offsets.length);
       this.compactBatch = batch;
     }
-    this.offsets[id] = batch.id; this.compactIndices![id] = batch.ids.length;
+    this.offsets[id] = batch.id; this.compactIndices!.set(id, batch.ids.length);
     batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
     batch.ids.push(id); batch.bodyOffsets.push(batch.bodyBytes);
     this.compactArena![batch.bodyBytes + written!] = 10; batch.bodyBytes += written! + 1;

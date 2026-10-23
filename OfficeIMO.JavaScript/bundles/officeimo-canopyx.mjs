@@ -5871,7 +5871,7 @@ function* pdfXrefChunks(locations, indices) {
     for (let first = 0; first < locations.length; first += perChunk) {
         const count = Math.min(perChunk, locations.length - first), bytes = new Uint8Array(count * pdfXrefEntryBytes);
         for (let index = 0; index < count; index++) {
-            const id = first + index, position = index * pdfXrefEntryBytes, location = locations[id], member = indices[id];
+            const id = first + index, position = index * pdfXrefEntryBytes, location = locations[id], member = indices.at(id);
             if (location === undefined)
                 throw new Error("PDF contains unwritten objects.");
             bytes[position] = id === 0 ? 0 : member === undefined ? 1 : 2;
@@ -5893,6 +5893,26 @@ const { OfficeIMOError } = _m2;
 const { pdfXrefChunks, pdfXrefEntryBytes } = _m61;
 
 const compactObjectCount = 256, compactObjectBytes = 32768;
+const compactIndexChunkEntries = 4096;
+/** Lazy Uint16 chunks store compact membership; untouched zero slots denote ordinary objects. */
+class PdfCompactIndices {
+    count;
+    chunks = [];
+    constructor(count) {
+        this.count = count;
+    }
+    get length() { return this.count; }
+    reserve() { this.count++; }
+    set(id, member) {
+        const chunk = this.chunks[Math.floor(id / compactIndexChunkEntries)] ??= new Uint16Array(compactIndexChunkEntries);
+        // The current batch cap permits indices 0..255; adding one preserves index 255 as 256.
+        chunk[id % compactIndexChunkEntries] = member + 1;
+    }
+    at(id) {
+        const encoded = this.chunks[Math.floor(id / compactIndexChunkEntries)]?.[id % compactIndexChunkEntries] ?? 0;
+        return encoded ? encoded - 1 : undefined;
+    }
+}
 function pdfNumber(value) {
     if (!Number.isFinite(value) || Math.abs(value) > 1e9)
         throw new RangeError("PDF coordinates and metrics must be finite and bounded.");
@@ -5916,8 +5936,8 @@ class PdfObjects {
     maxBytes;
     compressObjects;
     offsets = [0];
-    // A defined index changes the corresponding offset into an object-stream number. Parallel numeric
-    // arrays avoid retaining an allocated location object for every completed structure element.
+    // A defined index changes the corresponding full-width offset into an object-stream number.
+    // Membership chunks are allocated only when a compact member needs their ID range.
     compactIndices;
     compactBatch;
     compactArena;
@@ -5932,7 +5952,7 @@ class PdfObjects {
         this.maxBytes = maxBytes;
         this.compressObjects = compressObjects;
     }
-    reserve() { this.offsets.push(undefined); this.compactIndices?.push(undefined); return this.offsets.length - 1; }
+    reserve() { this.offsets.push(undefined); this.compactIndices?.reserve(); return this.offsets.length - 1; }
     async raw(bytes) {
         checkAbort(this.signal);
         if (!Number.isSafeInteger(this.bytes + bytes.length) || this.bytes + bytes.length > this.maxBytes)
@@ -6005,11 +6025,11 @@ class PdfObjects {
                 }
             }
             batch = { id: this.reserve(), compressor, ids: [], bodyOffsets: [], bodyBytes: 0, indexBytes: 1 };
-            this.compactIndices ??= this.offsets.map(() => undefined);
+            this.compactIndices ??= new PdfCompactIndices(this.offsets.length);
             this.compactBatch = batch;
         }
         this.offsets[id] = batch.id;
-        this.compactIndices[id] = batch.ids.length;
+        this.compactIndices.set(id, batch.ids.length);
         batch.indexBytes += String(id).length + String(batch.bodyBytes).length + 2;
         batch.ids.push(id);
         batch.bodyOffsets.push(batch.bodyBytes);

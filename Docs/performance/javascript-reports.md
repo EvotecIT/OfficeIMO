@@ -116,9 +116,44 @@ their current meaning. No document-wide interning registry, public option,
 provider or dependency is needed. The same semantic representation applies
 when compression is disabled or unavailable.
 
-First qualify actual header associations, repeated/reordered/banded tables,
-compressed and classic fallback, cancellation and limits, then independently
-read narrow/wide outputs. Only then run one fixed baseline/current cohort.
-Repeated decoded payload is proven; a memory benefit is still a hypothesis.
-Do not repeat an unchanged candidate to obtain a favorable number, enlarge the
-decoded arena or substitute file-size savings for the narrow-memory target.
+The shared-attribute candidate at
+`5c7d39131791269e905ab028714e220b8d5a418c` independently resolves 60,000/200,000
+ordinary-cell references to six/twenty dictionaries. The same logical reports
+now use 274/821 object streams with decoded maxima of 29,033/31,728 bytes.
+Build, 44 focused tests, 502 ordinary tests and one bounded independent
+attribute-owner review passed.
+
+All sixteen outputs in its fixed M8/current cohort passed independent
+validation. Narrow mean/median peak RSS remains 1.05%/0.93% above M8; wide
+mean/median is 5.91%/7.45% lower. Output sizes are 3,576,881/10,514,136 bytes,
+74.63%/76.21% below M8. Narrow engine-time mean/median is 177.94%/5.81% higher;
+wide is 60.63%/14.86% higher. Every sample remains in the results. Substantial
+launch variation under normal background load prevents a general speed claim,
+and the narrow-memory target remains unmet.
+
+## Object-location metadata diagnosis
+
+Two actual canonical six-column exports were captured at final awaited byte
+delivery with the built-in Node V8 heap snapshot API. These diagnostic children
+use synthetic input and an environment whitelist. Snapshots force GC and alter
+timing, so their process RSS/timing is excluded from performance acceptance.
+Both PDFs passed independent content and structure readback.
+
+On Node 24.18.0 arm64 without pointer compression, M8 and the shared-attribute
+candidate each retain a 630,896-byte backing store for ordinary object offsets.
+M9 additionally retains an 806,760-byte backing store for compact member
+indices. These are measured live-array backing sizes, not a complete
+explanation of the peak-RSS difference.
+
+The next bounded candidate stores only compact member indices in lazy typed
+chunks. Ordinary offsets and their unwritten sentinel remain unchanged. A
+zero slot means an ordinary object; storing index plus one requires Uint16 so
+valid index 255 remains distinct. Xref emission must read the chunks directly
+without materializing a second whole vector. Preserve large byte offsets,
+classic fallback, duplicate/unwritten-object errors and output ownership.
+
+First independently check index 255, chunk crossings, ordinary gaps and full
+PDF equivalence, then observe the actual metadata allocation. Only then run
+one fixed baseline/current cohort. Do not repeat unchanged candidates for a
+favorable result, enlarge the decoded arena or substitute file-size savings
+for the narrow-memory target.
