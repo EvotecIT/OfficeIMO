@@ -44,7 +44,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             double leading = ResolveComputedLineHeight(computed, size, parent, out double alignment, out bool natural);
             OfficeColor fallback = computed.IsResetValue("color") ? OfficeColor.Black : parent.Color;
             OfficeColor color = HtmlRenderCssValues.TryColor(computed.GetValue("color"), out OfficeColor parsed) ? parsed : fallback;
+            TryResolveBackgroundColor(computed, color, out OfficeColor? background);
             return new HtmlRenderBoxStyle {
+                BackgroundColor = background,
                 Font = font, FontDescriptor = descriptor, FontSizeContext = context, Color = color,
                 LineHeight = leading, InlineAlignmentLineHeight = alignment, UsesNaturalLineHeight = natural
             };

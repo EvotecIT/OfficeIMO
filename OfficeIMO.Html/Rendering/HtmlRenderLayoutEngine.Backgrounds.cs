@@ -83,21 +83,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Outer shadows and outlines can expand a zero-layout box. Its own
         // background still has no paint area, for ordinary and generated boxes.
         if (width <= 0.0001D || height <= 0.0001D) return;
-        if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
-            BackgroundPaintBox colorBox = ResolveBackgroundBox(
-                style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
-            if (colorBox.Width > 0D && colorBox.Height > 0D) {
-                OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
-                fill.FillColor = style.BackgroundColor;
-                fill.StrokeWidth = 0D;
-                bool canExtend = CanExtendBoxBackgroundThroughFragmentSlack(style, fill);
-                visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
-                    canExtendFragmentBackground: canExtend,
-                    fragmentSideBorders: canExtend && (style.Display == "table" && style.BorderCollapse == "separate"
-                        || CanExtendOrdinarySliceSides(style))
-                        ? style.Borders : null));
-            }
-        }
+        AddSolidBoxBackground(visuals, style, x, y, width, height, borderInsets, radii, visualSourceDescription);
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
     }

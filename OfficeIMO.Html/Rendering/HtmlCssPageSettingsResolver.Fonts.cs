@@ -22,7 +22,7 @@ internal static partial class HtmlCssPageSettingsResolver {
                 || name.Equals("font-stretch", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("line-height", StringComparison.OrdinalIgnoreCase) || name.Equals("color", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)
-                || IsMarginGeometryDeclaration(name)) {
+                || IsMarginGeometryDeclaration(name) || IsMarginBackgroundDeclaration(name)) {
                 string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
                     HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
                 if (value.Length > 0) result.Add(new HtmlGeneratedStyleDeclaration(name, value,
@@ -32,6 +32,9 @@ internal static partial class HtmlCssPageSettingsResolver {
         }
         return result;
     }
+
+    internal static bool IsMarginBackgroundDeclaration(string name) =>
+        name.ToLowerInvariant() is "background" or "background-color" or "background-clip" or "background-image";
 
     internal static bool IsMarginGeometryDeclaration(string name) =>
         name.ToLowerInvariant() is "box-sizing" or "width" or "min-width" or "max-width" or "height" or "min-height" or "max-height"

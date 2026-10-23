@@ -504,7 +504,7 @@ internal sealed class HtmlCssPageMarginTemplate {
     internal OfficeFontInfo Font => Typography.Font;
     internal OfficeColor Color => Typography.Color;
     internal OfficeTextAlignment Alignment { get; }
-    internal bool HasBoxGeometry => Typography.HasIntrinsicWidths || Typography.HasPageMarginIntrinsicHeights
+    internal bool HasBoxGeometry => Typography.BackgroundColor is { A: > 0 } || Typography.HasIntrinsicWidths || Typography.HasPageMarginIntrinsicHeights
         || Typography.ExplicitWidth.HasValue || Typography.MinWidth.HasValue
         || Typography.MaxWidth.HasValue || Typography.ExplicitHeight.HasValue || Typography.MinHeight.HasValue || Typography.MaxHeight.HasValue
         || Typography.MarginTop != 0D || Typography.MarginRight != 0D || Typography.MarginBottom != 0D || Typography.MarginLeft != 0D

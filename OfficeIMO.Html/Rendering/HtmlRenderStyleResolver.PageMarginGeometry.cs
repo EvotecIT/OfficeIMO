@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     /// <summary>Resolves generated-box geometry without changing the configured-paper unit or font contexts.</summary>
     internal void ResolvePageMarginGeometry(HtmlComputedStyle computed, HtmlRenderBoxStyle style,
         double paperWidth, double paperHeight, double stripWidth, double stripHeight, string source) {
+        ResolvePageMarginBackground(computed, style, source);
         if (!computed.HasCascadeStateMatching(HtmlCssPageSettingsResolver.IsMarginGeometryDeclaration)) return;
         double previousWidth = _activeContainerWidth, previousHeight = _activeContainerHeight;
         double previousViewportWidth = _viewportWidth, previousViewportHeight = _viewportHeight;
