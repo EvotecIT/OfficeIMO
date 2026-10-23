@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
         text = WithoutOptionalBreaks(text);
         options?.BeginTextShapingAttempt();
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
-        PdfTextEncodingDiagnostic? diagnostic = RestoreOptionalBreakDiagnosticIndex(sourceText, GetFirstTextEncodingDiagnostic(text, font, options));
+        PdfTextEncodingDiagnostic? diagnostic = RestoreOptionalBreakDiagnosticIndex(sourceText, GetFirstTextEncodingDiagnostic(text, font, options, featureSettings, textDirection, preservesPaintedGlyphs));
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
         }
@@ -37,7 +37,9 @@ internal static partial class PdfWriter {
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
-                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram,
+                    shapingOptions: PdfTextDiagnostics.ForEncodingDiagnostics(options, fontProgram.FontName,
+                        featureSettings: featureSettings, direction: textDirection, preservesPaintedGlyphs: preservesPaintedGlyphs)));
             }
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
@@ -69,7 +71,9 @@ internal static partial class PdfWriter {
                 ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram, featureSettings: featureSettings)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             if (options.HasDiagnosticsReport) {
-                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+                options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram,
+                    shapingOptions: PdfTextDiagnostics.ForEncodingDiagnostics(options, cffFontProgram.FontName,
+                        featureSettings: featureSettings, direction: textDirection, preservesPaintedGlyphs: preservesPaintedGlyphs)));
             }
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
@@ -146,7 +150,9 @@ internal static partial class PdfWriter {
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram,
+                    shapingOptions: PdfTextDiagnostics.ForEncodingDiagnostics(options, fontProgram.FontName,
+                        featureSettings: featureSettings, direction: textDirection, preservesPaintedGlyphs: preservesPaintedGlyphs)));
             options.AddTextDiagnostics(diagnostics);
             if (diagnostics.Count > 0) {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
@@ -182,7 +188,9 @@ internal static partial class PdfWriter {
             options != null &&
             options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = RestoreOptionalBreakDiagnosticIndices(sourceText, PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram,
+                    shapingOptions: PdfTextDiagnostics.ForEncodingDiagnostics(options, cffFontProgram.FontName,
+                        featureSettings: featureSettings, direction: textDirection, preservesPaintedGlyphs: preservesPaintedGlyphs)));
             options.AddTextDiagnostics(diagnostics);
             if (diagnostics.Count > 0) {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
@@ -209,7 +217,7 @@ internal static partial class PdfWriter {
             preservesPaintedGlyphs, requireGlyphClusters);
     }
 
-    private static IReadOnlyList<PdfTextEncodingDiagnostic> RestoreOptionalBreakDiagnosticIndices(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
+    internal static IReadOnlyList<PdfTextEncodingDiagnostic> RestoreOptionalBreakDiagnosticIndices(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
         diagnostics.Count == 0 || source.IndexOf('\u200B') < 0 ? diagnostics
             : diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
 
@@ -228,10 +236,10 @@ internal static partial class PdfWriter {
         return diagnostic.WithIndex(sourceIndex);
     }
 
-    private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
+    private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options, OfficeTextFeatureSettings? featureSettings, OfficeTextDirection direction, bool preservesPaintedGlyphs) {
         System.Collections.Generic.IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = options == null
             ? PdfTextDiagnostics.AnalyzeWinAnsiText(text, "generated text")
-            : PdfTextDiagnostics.AnalyzeGeneratedText(text, options, font, "generated text");
+            : PdfTextDiagnostics.AnalyzeGeneratedEncoding(text, options, font, "generated text", featureSettings, direction, preservesPaintedGlyphs);
 
         return diagnostics.Count == 0 ? null : diagnostics[0];
     }

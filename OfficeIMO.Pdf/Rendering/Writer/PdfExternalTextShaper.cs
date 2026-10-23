@@ -6,13 +6,17 @@ internal static partial class PdfExternalTextShaper {
     internal static bool TryShapeText(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
+        if (options.ReportControlCharacters && HasLiteralDiagnosticControl(text, options.SkipLayoutControls)) {
+            glyphRun = null!;
+            return false;
+        }
         if (options.PreservesPaintedGlyphs) {
             glyphRun = null!;
             return false;
         }
 
         bool automaticLatin = UsesDefaultLatinShaping(text, options);
-        if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
+        if (automaticLatin && options.FeatureSettings.IsDefault && !RequiresCompleteDefaultLatinShaping(text)) return TryShapeDefaultLatinText(
             text, font.FontName, font.FontDataForInspection, false, font.UnitsPerEm, font.GlyphCount,
             font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
@@ -47,7 +51,7 @@ internal static partial class PdfExternalTextShaper {
             options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language, default, fontCollectionIndex: null, variationCoordinates: null, cloneFontData: false));
 
-        if (result == null && (automaticDirectional ||
+        if (result == null && (automaticDirectional || automaticLatin && OfficeTextElements.ContainsCombiningMark(text) ||
             ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
             (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)
                 || OfficeTextElements.ContainsCombiningMark(text)))) {
@@ -71,26 +75,33 @@ internal static partial class PdfExternalTextShaper {
         }
 
         if (result == null) {
+            if (TryRejectUnretainedDefaultControls(text, automaticLatin ||
+                options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+                ReferenceEquals(provider, OfficeManagedTextShapingProvider.Instance), options, out glyphRun)) return true;
             glyphRun = null!;
             return false;
         }
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
-            includeActualText: !automaticLatin || result.Direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text));
-        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false, automaticLatin);
+            includeActualText: !automaticLatin || result.Direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text) || RequiresCompleteDefaultLatinShaping(text));
+        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false, automaticLatin && !RequiresCompleteDefaultLatinShaping(text));
         return true;
     }
 
     internal static bool TryShapeText(string text, PdfOpenTypeCffFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
+        if (options.ReportControlCharacters && HasLiteralDiagnosticControl(text, options.SkipLayoutControls)) {
+            glyphRun = null!;
+            return false;
+        }
         if (options.PreservesPaintedGlyphs) {
             glyphRun = null!;
             return false;
         }
 
         bool automaticLatin = UsesDefaultLatinShaping(text, options);
-        if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
+        if (automaticLatin && options.FeatureSettings.IsDefault && !RequiresCompleteDefaultLatinShaping(text)) return TryShapeDefaultLatinText(
             text, font.FontName, font.FontDataForInspection, true, font.UnitsPerEm, font.GlyphCount,
             font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
@@ -125,7 +136,7 @@ internal static partial class PdfExternalTextShaper {
             options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language, default, fontCollectionIndex: null, variationCoordinates: null, cloneFontData: false));
 
-        if (result == null && (automaticDirectional ||
+        if (result == null && (automaticDirectional || automaticLatin && OfficeTextElements.ContainsCombiningMark(text) ||
             ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
             (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)
                 || OfficeTextElements.ContainsCombiningMark(text)))) {
@@ -149,14 +160,55 @@ internal static partial class PdfExternalTextShaper {
         }
 
         if (result == null) {
+            if (TryRejectUnretainedDefaultControls(text, automaticLatin ||
+                options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+                ReferenceEquals(provider, OfficeManagedTextShapingProvider.Instance), options, out glyphRun)) return true;
             glyphRun = null!;
             return false;
         }
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
-            includeActualText: !automaticLatin || result.Direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text));
-        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true, automaticLatin);
+            includeActualText: !automaticLatin || result.Direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text) || RequiresCompleteDefaultLatinShaping(text));
+        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true, automaticLatin && !RequiresCompleteDefaultLatinShaping(text));
         return true;
+    }
+
+    // The token shortcut predates complete normalization, attachment and blank-control
+    // admission. Keep ordinary Latin on it; these runs use the canonical public result.
+    internal static bool RequiresCompleteDefaultLatinShaping(string text) =>
+        OfficeTextElements.ContainsCombiningMark(text)
+        || OfficeManagedTextShaper.ContainsNonPaintingControl(text, default);
+
+    private static bool TryRejectUnretainedDefaultControls(string text, bool managedDefaultAttempt,
+        PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
+        glyphRun = null!;
+        if (!managedDefaultAttempt || !OfficeManagedTextShaper.ContainsNonPaintingControl(text, default)) return false;
+        if (options.ThrowOnMissingGlyph)
+            throw new ArgumentException("Default OpenType shaping could not retain non-painting controls with verified blank glyphs and complete source.", nameof(text));
+        var diagnostics = new List<PdfTextEncodingDiagnostic>();
+        for (int index = 0; index < text.Length;) {
+            int start = index;
+            int scalar = char.IsSurrogatePair(text, index) ? char.ConvertToUtf32(text[index], text[index + 1]) : text[index];
+            index += scalar > 0xFFFF ? 2 : 1;
+            if (!OfficeManagedTextShaper.IsNonPaintingControl(scalar)) continue;
+            diagnostics.Add(new PdfTextEncodingDiagnostic(options.Source, start,
+                "U+" + scalar.ToString(scalar > 0xFFFF ? "X6" : "X4", System.Globalization.CultureInfo.InvariantCulture),
+                char.ConvertFromUtf32(scalar), isControlCharacter: false,
+                "bounded OpenType shaping for font '" + options.FontName + "'",
+                "Non-painting controls require verified blank glyphs and complete source retention."));
+        }
+        // This unpaintable diagnostic result never records glyph usage or provider
+        // success. Rendering uses the exception above instead of scalar fallthrough.
+        glyphRun = new PdfGlyphRun(Array.Empty<PdfGlyphInfo>(), diagnostics);
+        return true;
+    }
+
+    private static bool HasLiteralDiagnosticControl(string text, bool skipLayoutControls) {
+        foreach (char character in text) {
+            if (skipLayoutControls && character is '\n' or '\r' or '\t') continue;
+            if (character < ' ' || character == '\u007F') return true;
+        }
+        return false;
     }
 
     // Default ligatures stay on for the Latin segments of automatically shaped right-to-left text.

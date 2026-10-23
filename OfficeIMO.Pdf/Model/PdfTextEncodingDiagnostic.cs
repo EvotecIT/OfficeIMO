@@ -198,6 +198,10 @@ public sealed class PdfTextEncodingDiagnostic {
     internal PdfTextEncodingDiagnostic WithIndex(int index) =>
         new(this, index, PageNumber, TableRowIndex, TableColumnIndex, FieldName, Location, RunIndex);
 
+    /// <summary>Annotates a text run without losing custom diagnostic identity or existing page metadata.</summary>
+    internal PdfTextEncodingDiagnostic WithRunLocation(string location, int? runIndex) =>
+        new(this, Index, PageNumber, TableRowIndex, TableColumnIndex, FieldName, location, runIndex);
+
     /// <summary>Annotates page-level running text, whose location has no rich-text run index.</summary>
     internal PdfTextEncodingDiagnostic WithPageLocation(string location, int pageNumber) =>
         new(this, Index, pageNumber, TableRowIndex, TableColumnIndex, FieldName, location, runIndex: null);

@@ -15,10 +15,14 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateFormat12Cmap(scalars));
     }
 
-    internal static byte[] CreateFontWithDistinctGlyphs(params int[] scalars) {
+    internal static byte[] CreateFontWithDistinctGlyphs(params int[] scalars) =>
+        CreateFontWithDistinctGlyphs(false, scalars);
+
+    internal static byte[] CreateFontWithDistinctGlyphs(bool blankSpace, params int[] scalars) {
         if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
-        int[] ordered = new SortedSet<int>(scalars).ToArray();
-        return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
+        int[] ordered = new SortedSet<int>(blankSpace ? scalars.Concat(new[] { 32 }) : scalars).ToArray();
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1,
+            blankGlyphIds: blankSpace ? new[] { Array.IndexOf(ordered, 32) + 1 } : null);
     }
 
     internal static byte[] CreateFontWithDistinctGlyphOutlines(int firstScalar, int secondScalar) {
@@ -62,12 +66,13 @@ internal static partial class ManagedTextShapingTestAssets {
             kern: CreateKernTable(1, 2, adjustment));
     }
 
-    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga", string? scriptTag = null, ushort lookupFlags = 0) {
+    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga", string? scriptTag = null, ushort lookupFlags = 0, bool blankSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
             CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, 32, 4),
             glyphCount: 5,
-            gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags));
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags),
+            blankGlyphIds: blankSpace ? new[] { 4 } : null);
     }
 
     internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar, bool includeSpace = false) {

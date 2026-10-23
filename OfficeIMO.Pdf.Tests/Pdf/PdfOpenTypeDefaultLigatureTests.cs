@@ -190,22 +190,28 @@ public class PdfOpenTypeDefaultLigatureTests {
     [InlineData("\u200E")]
     [InlineData("\u200F")]
     [InlineData("\u202A\u202C")]
-    public void RemovedDirectionalControlsRemainLigatureBoundaries(string controls) {
-        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"), "Test");
-        var shaped = font.ShapeText("f" + controls + "i", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
-        Assert.Equal(new[] { 1, 2 }, shaped.Glyphs.Select(g => g.GlyphId));
-        Assert.Equal(new[] { 0, controls.Length + 1 }, shaped.Glyphs.Select(g => g.TextIndex));
+    public void RetainedDirectionalControlsRemainLigatureBoundaries(string controls) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", blankSpace: true), "Test");
+        string text = "f" + controls + "i";
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        PdfGlyphInfo[] visible = shaped.Glyphs.Where(glyph => glyph.AdvanceWidth1000 != 0).ToArray();
+        Assert.Equal(new[] { 1, 2 }, visible.Select(g => g.GlyphId));
+        Assert.Equal(new[] { 0, controls.Length + 1 }, visible.Select(g => g.TextIndex));
+        PdfDefaultControlAdmissionTests.AssertCompleteControlSource(text, shaped);
     }
 
     [Theory]
     [InlineData("\u200E,A")]
     [InlineData("A,\u200E")]
     [InlineData("A\u200E,B")]
-    public void RemovedControlsPreserveCommonScriptContextAtRunEdges(string text) {
-        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(false), "Test");
+    public void RetainedControlsPreserveCommonScriptContextAtRunEdges(string text) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(false, blankSpace: true), "Test");
         var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
-        Assert.Equal(2 + (text.Contains("B") ? 1 : 0), shaped.Glyphs.Count);
-        Assert.Contains(shaped.Glyphs, g => g.GlyphId == 2 && g.UnicodeText == ",");
+        Assert.Equal(3 + (text.Contains("B") ? 1 : 0), shaped.Glyphs.Count(glyph => glyph.AdvanceWidth1000 != 0));
+        int comma = text.IndexOf(',');
+        Assert.Contains(shaped.Glyphs, glyph => glyph.GlyphId == 3 && glyph.UnicodeText == "," && glyph.TextIndex == comma);
+        Assert.Contains(shaped.Glyphs, glyph => glyph.GlyphId == 4 && glyph.UnicodeText.Length == 0 && glyph.TextIndex == comma);
+        PdfDefaultControlAdmissionTests.AssertCompleteControlSource(text, shaped);
     }
     [Theory]
     [InlineData("\u03B1,\u03B2", false)]
@@ -241,20 +247,34 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal(warningExpected, report.Warnings.Any(w => w.Code == "unsupported-font-ligature-substitution"));
     }
     [Theory]
-    [InlineData("\u03B1\u0301", false)]
-    [InlineData("\u0410\u0301", false)]
-    [InlineData("\u0301", false)]
-    [InlineData("\u03B1,\u0301", false)]
-    [InlineData("1\u0301", false)]
-    [InlineData("\u00AD\u0301", false)]
-    [InlineData("A\u0301", true)]
-    public void CombiningMarkInheritsItsBaseScript(string text, bool substituted) {
-        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithInheritedMarkSubstitution(), "Test");
+    [InlineData("A\u0301")]
+    [InlineData("\u03B1\u0301")]
+    [InlineData("\u0301")]
+    public void UnpositionedMarkedFontRetainsDiagnosedNominalFallback(string text) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithInheritedMarkSubstitution();
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
         var scalar = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar));
-        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        int successes = 0;
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            providerShapedTextRecorder: (_, _, _, _) => successes++));
         Assert.Equal(text, string.Concat(shaped.Glyphs.Select(g => g.UnicodeText)));
-        if (substituted) Assert.Equal(scalar.Glyphs.Count + 1, shaped.Glyphs.Count);
-        else Assert.Equal(scalar.Glyphs.Select(g => g.GlyphId), shaped.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal(scalar.Glyphs.Select(g => g.GlyphId), shaped.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal(text, shaped.ActualText);
+        Assert.Equal(0, successes);
+        var report = new PdfConversionReport();
+        byte[] pdf = PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report)
+                .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
+        Assert.True(report.HasLoss);
+    }
+
+    [Fact]
+    public void InkedSoftHyphenCannotBecomeAnAcceptedBlankControl() {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithInheritedMarkSubstitution(), "Test");
+        Assert.Throws<ArgumentException>(() => font.ShapeText("\u00AD\u0301",
+            PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures)));
     }
 
     [Theory]
@@ -507,24 +527,26 @@ public class PdfOpenTypeDefaultLigatureTests {
     }
 
     [Fact]
-    public void AutomaticLigaturesRetainUnimplementedMarkPositioningWarnings() {
+    public void AutomaticMarkedLatinRetainsCompleteSourceWithoutUnsupportedPositioningWarnings() {
         byte[] data = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
         var report = new PdfConversionReport();
         var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
         byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("office e\u0301")).ToBytes();
-        Assert.Contains("office", PdfReadDocument.Open(pdf).ExtractText());
-        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning");
-        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
+        Assert.Equal("office e\u0301", PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning"
+            || warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
+        report.RequireNoLoss();
     }
 
     [Fact]
     public void ImplicitComplexShapingRetainsLogicalActualTextInDefaultMode() {
         const string text = "\u202Efi\u202C";
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('f', 'i');
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'f', 'i');
         var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text,
             PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
                 direction: OfficeTextDirection.RightToLeft));
         Assert.Equal(text, run.ActualText);
+        PdfDefaultControlAdmissionTests.AssertCompleteControlSource(text, run);
     }
 
     [Theory]

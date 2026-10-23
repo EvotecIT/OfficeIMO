@@ -209,6 +209,25 @@ public sealed class DrawingManagedTypographyNormalizationTests {
             source, "Missing source", data, false, font.UnitsPerEm, OfficeTextDirection.LeftToRight, "en")));
     }
 
+    [Theory]
+    [InlineData(0xFDD0)]
+    [InlineData(0xFDEF)]
+    [InlineData(0xFFFE)]
+    [InlineData(0xFFFF)]
+    [InlineData(0x1FFFE)]
+    [InlineData(0x10FFFF)]
+    public void NoncharactersRequireFontCoverageEvenWhenABlankGlyphIsAvailable(int scalar) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1, 0x0301);
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Noncharacter coverage", data).Faces).Program;
+        Assert.False(font.TryGetGlyphMetrics(scalar, out _, out _));
+        OfficeTextShapingResult? Shape(string text) => OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(text, "Noncharacter coverage", data, false, font.UnitsPerEm,
+                OfficeTextDirection.LeftToRight, "en"));
+
+        Assert.NotNull(Shape("A\u0301\u200E"));
+        Assert.Null(Shape("A\u0301" + char.ConvertFromUtf32(scalar)));
+    }
+
     private static OfficeTextShapingResult ShapeArabic(string source, byte[] data, IOfficeFontProgram font,
         OfficeTextFeatureSettings features) => Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(
             new OfficeTextShapingRequest(source, "Arabic AMTRA", data, false, font.UnitsPerEm,

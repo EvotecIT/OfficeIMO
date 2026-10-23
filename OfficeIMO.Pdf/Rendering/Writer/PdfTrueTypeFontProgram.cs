@@ -115,7 +115,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         // Skip the external shaper only where it would not engage (no provider, default features); the
         // width then comes from the scalar path with no glyph-run allocation.
         int advanceWidth1000;
-        if (shapingProvider == null && options.FeatureSettings.IsDefault && !PdfExternalTextShaper.RequiresManagedDirectionalShaping(text!, options)) {
+        if (shapingProvider == null && options.FeatureSettings.IsDefault && !PdfExternalTextShaper.RequiresManagedDirectionalShaping(text!, options)
+            && (shapingMode != PdfTextShapingMode.OpenTypeLigatures || !PdfExternalTextShaper.RequiresCompleteDefaultLatinShaping(text!))) {
             advanceWidth1000 = shapingMode == PdfTextShapingMode.OpenTypeLigatures
                 ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
                 : PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options);

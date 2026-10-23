@@ -139,7 +139,7 @@ internal static partial class PdfTextDiagnostics {
         string source,
         string location,
         int? runIndex,
-        PdfEmbeddedFontFallbackSet? fallbackSet = null) {
+        PdfEmbeddedFontFallbackSet? fallbackSet = null, PdfTextRun? shapingRun = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(options, nameof(options));
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
@@ -153,7 +153,7 @@ internal static partial class PdfTextDiagnostics {
             return new List<PdfTextEncodingDiagnostic>();
         }
 
-        return AnalyzeGeneratedTextCoreSlow(text, options, font, source, location, runIndex, fallbackSet);
+        return AnalyzeGeneratedTextCoreSlow(text, options, font, source, location, runIndex, fallbackSet, shapingRun);
     }
 
     private static bool IsWinAnsiText(string text) {
@@ -173,7 +173,7 @@ internal static partial class PdfTextDiagnostics {
         string source,
         string location,
         int? runIndex,
-        PdfEmbeddedFontFallbackSet? fallbackSet) {
+        PdfEmbeddedFontFallbackSet? fallbackSet, PdfTextRun? shapingRun) {
         PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
 
         fallbackSet ??= options.EmbeddedFontFallbacksSnapshot;
@@ -191,7 +191,9 @@ internal static partial class PdfTextDiagnostics {
                     (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, fontProgram, shapingMode, out length));
             }
 
-            return AnalyzeEmbeddedFontText(text, fontProgram, source, location, runIndex, shapingMode);
+            return AnalyzeEmbeddedFontText(text, fontProgram, source, location, runIndex, shapingMode,
+                ForEncodingDiagnostics(options, fontProgram.FontName, source, shapingRun?.FeatureSettings,
+                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false));
         }
 
         if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
@@ -207,7 +209,9 @@ internal static partial class PdfTextDiagnostics {
                     (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, cffFontProgram, shapingMode, out length));
             }
 
-            return AnalyzeEmbeddedFontText(text, cffFontProgram, source, location, runIndex, shapingMode);
+            return AnalyzeEmbeddedFontText(text, cffFontProgram, source, location, runIndex, shapingMode,
+                ForEncodingDiagnostics(options, cffFontProgram.FontName, source, shapingRun?.FeatureSettings,
+                    shapingRun?.TextDirection ?? OfficeTextDirection.Auto, shapingRun?.PreservesPaintedGlyphs ?? false));
         }
 
         if (fallbackSet != null) {
@@ -296,7 +300,9 @@ internal static partial class PdfTextDiagnostics {
                             source,
                             runLocation,
                             runIndex,
-                            shapingMode));
+                            shapingMode,
+                            ForEncodingDiagnostics(options, namedFontProgram.FontName, source,
+                                run.FeatureSettings, run.TextDirection, run.PreservesPaintedGlyphs)));
                     runIndex++;
                     continue;
                 }
@@ -318,7 +324,9 @@ internal static partial class PdfTextDiagnostics {
                             source,
                             runLocation,
                             runIndex,
-                            shapingMode));
+                            shapingMode,
+                            ForEncodingDiagnostics(options, namedCffFontProgram.FontName, source,
+                                run.FeatureSettings, run.TextDirection, run.PreservesPaintedGlyphs)));
                     runIndex++;
                     continue;
                 }
@@ -332,7 +340,7 @@ internal static partial class PdfTextDiagnostics {
                 source,
                 runLocation,
                 runIndex,
-                fallbackSet));
+                fallbackSet, run));
             runIndex++;
         }
 
@@ -447,16 +455,16 @@ internal static partial class PdfTextDiagnostics {
         return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!);
     }
 
-    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram font, string source = "", string? fontName = null) {
+    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram font, string source = "", string? fontName = null, PdfTextShapingOptions? shapingOptions = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!);
+        return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!, shapingOptions: shapingOptions);
     }
 
-    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfOpenTypeCffFontProgram font, string source = "", string? fontName = null) {
+    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfOpenTypeCffFontProgram font, string source = "", string? fontName = null, PdfTextShapingOptions? shapingOptions = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!);
+        return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!, shapingOptions: shapingOptions);
     }
 
     /// <summary>
@@ -856,14 +864,21 @@ internal static partial class PdfTextDiagnostics {
         string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
+        PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
+        if (TryAnalyzeCompleteManagedRun(text, font, descriptor, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete)) return complete;
+        // The exact descriptor belongs only to the admitted complete-managed
+        // proof above. Raw coverage keeps the original scalar diagnostic owner
+        // and must not execute an arbitrary provider or apply its features.
         PdfGlyphRun glyphRun = font.ShapeText(text, PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode));
         return glyphRun.Diagnostics.Count == 0
             ? new List<PdfTextEncodingDiagnostic>()
             : glyphRun.Diagnostics.ToList();
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfOpenTypeCffFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfOpenTypeCffFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
+        PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
+        if (TryAnalyzeCompleteManagedRun(text, font, descriptor, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete)) return complete;
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -898,7 +913,13 @@ internal static partial class PdfTextDiagnostics {
         return location + ".Run[" + runIndex.ToString(CultureInfo.InvariantCulture) + "]";
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) {
+        string sourceText = text;
+        text = PdfWriter.WithoutOptionalBreaks(text);
+        PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);
+        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete))
+            return sourceText.Length == text.Length ? complete
+                : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, complete).ToList();
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int index = 0;
@@ -928,10 +949,17 @@ internal static partial class PdfTextDiagnostics {
             }
         }
 
-        return diagnostics;
+        return sourceText.Length == text.Length ? diagnostics
+            : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, diagnostics).ToList();
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfOpenTypeCffFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfOpenTypeCffFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) {
+        string sourceText = text;
+        text = PdfWriter.WithoutOptionalBreaks(text);
+        PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);
+        if (TryAnalyzeCompleteManagedRun(text, fontProgram, descriptor, location, runIndex, out List<PdfTextEncodingDiagnostic> complete))
+            return sourceText.Length == text.Length ? complete
+                : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, complete).ToList();
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
 
         int index = 0;
@@ -961,7 +989,8 @@ internal static partial class PdfTextDiagnostics {
             }
         }
 
-        return diagnostics;
+        return sourceText.Length == text.Length ? diagnostics
+            : PdfWriter.RestoreOptionalBreakDiagnosticIndices(sourceText, diagnostics).ToList();
     }
 
     private static bool TrySkipCoveredLatinLigature(string text, int index, PdfTextShapingMode shapingMode, PdfTrueTypeFontProgram fontProgram, out int ligatureLength) {
