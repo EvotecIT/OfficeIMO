@@ -287,3 +287,32 @@ The narrow-memory target remains unmet in this cohort. This candidate is not
 rerun for a more favorable result. Allocation traffic, heap, external memory
 and process RSS remain distinct observations; these measurements establish no
 universal speedup, no-regression or constant-memory claim.
+
+
+## Lazy link tracking
+
+The preceding runtime's `element()` frame accounts for 5.61 MB of sampled
+self allocation. The independently validated six-column document contains
+70,009 logical elements and no links. Each element nevertheless created an
+empty link-identity array. The array is now allocated only when a first link
+identity is registered for that logical owner. Deduplication, completion and
+parent cleanup retain their existing lifecycle. No byte cost or RSS saving is
+assigned to this property from the profile alone.
+
+All 505 ordinary and 187 focused PDF tests pass. Ten layout profiles and six
+caption/group semantic fixtures retain identical before/after PDF bytes and
+pass independent readback. Narrow and wide 10,000-row workload bytes also
+remain identical. The mechanical optional-allocation change was checked
+proportionately; the prior semantic-owner reviews remain applicable.
+
+Candidate `9905165f0eb061ac329f5fc4e3531e5c5895923a` passed all sixteen
+independent output validations in one fixed normal-host cohort. Narrow mean
+peak RSS remains 0.11% above M8; its median is 1.54% lower. Wide mean/median
+peak RSS is 4.40%/3.69% lower. Narrow engine-time mean/median is 5.00%/33.49%
+higher, while wide mean/median is 13.44%/10.93% lower. Sampled external memory
+is 33.22%/34.68% higher for narrow and 15.96%/10.93% higher for wide. PDF sizes
+remain 74.63%/76.21% lower. All samples and warmups are retained.
+
+The narrow target requires both mean and median, so it remains unmet in this
+cohort. The candidate is not repeated to seek a different outcome, and the
+measured differences do not establish an isolated effect for the optional list.
