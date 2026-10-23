@@ -43,7 +43,7 @@ Uses the OfficeIMO PowerPoint visual review profile.
 PS> ConvertTo-OfficePowerPointHtml -Path .\Briefing.pptx -Profile VisualReview -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -OutputPath .\Briefing.slides.html
 ```
 
-Leaves out the headings, render diagnostics, template inventory, and extraction proof.
+Leaves out the headings, render diagnostics, template inventory, and extraction proof. Enabled SmartArt and media review sections remain.
 
 ## PARAMETERS
 
