@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // resolved bidi slices already carry their logical directional source.
         string providerPaintText = !segment.BidiResolved && ordinaryDirection ? segment.Text : segment.LogicalText;
         if (!segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
-            && (!segment.Run.Style.TextFeatureSettings.IsDefault
+            && (_options.TextShapingProvider != null || !segment.Run.Style.TextFeatureSettings.IsDefault
                 || RequiresConfiguredTextShaping(providerPaintText, segment.Run.Style.TextFeatureSettings))
             && TryPrepareDirectionalProviderText(providerPaintText, segment.Run.Style,
                 segment.ResolvedDirection ?? OfficeTextDirection.LeftToRight, segment.Width, out OfficePreparedTextShaping? retained)) {

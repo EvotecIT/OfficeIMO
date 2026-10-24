@@ -182,7 +182,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ReportUnsupportedComplexTextShaping(string text, IElement? element, HtmlRenderBoxStyle style, string? source = null) {
-        if (element == null || string.IsNullOrWhiteSpace(text) || _reportedComplexTextShapingElements.Contains(element)) return;
+        if (string.IsNullOrWhiteSpace(text) || element == null && source == null
+            || element != null && _reportedComplexTextShapingElements.Contains(element)
+            || element == null && _reportedComplexTextShapingSources.Contains(source!)) return;
         bool featureShaping = !style.TextFeatureSettings.IsDefault;
         if (!featureShaping && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
         if (featureShaping && _options.TextShapingProvider != null && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
@@ -201,7 +203,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (allUnsupportedRunsShaped) return;
-        _reportedComplexTextShapingElements.Add(element);
+        if (!TryReportComplexTextShapingSource(element, source)) return;
         string diagnosticCode = featureShaping
             ? HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported
             : HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported;
@@ -213,10 +215,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             diagnosticCode,
             message,
             HtmlDiagnosticSeverity.Warning,
-            source ?? HtmlRenderStyleResolver.DescribeSource(element),
+            source ?? HtmlRenderStyleResolver.DescribeSource(element!),
             "provider-declined",
             OfficeConversionLossKind.Approximation);
     }
+
+    // Generated text has no DOM element. Its stable source still owns the same
+    // bounded shaping-loss report as ordinary inline text, without a fake node.
+    private bool TryReportComplexTextShapingSource(IElement? element, string? source) =>
+        element != null ? _reportedComplexTextShapingElements.Add(element)
+            : source == null || _reportedComplexTextShapingSources.Add(source);
 
     private static bool RequiresConfiguredTextShaping(string text, OfficeTextFeatureSettings featureSettings) =>
         OfficeTextElements.ContainsCombiningMark(text)

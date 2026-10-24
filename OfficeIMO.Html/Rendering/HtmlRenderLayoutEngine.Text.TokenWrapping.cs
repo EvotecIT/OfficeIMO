@@ -410,6 +410,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         int logicalStartProgress,
         bool completesToken = true) {
+        if (lines is InlineLineCollection { RetainPreparedTokenClusters: true }
+            && TryAddPreparedBrokenToken(lines, ref line, run, token, logicalToken, width,
+                logicalStartProgress, completesToken)) return;
         var part = new StringBuilder();
         var logicalPart = new StringBuilder();
         double partWidth = 0D;

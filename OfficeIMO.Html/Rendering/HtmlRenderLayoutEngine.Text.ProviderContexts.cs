@@ -166,13 +166,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text) {
         if (!run.PreserveContextualFallback
-            && (!run.Style.TextFeatureSettings.IsDefault || RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings))
+            && (_options.TextShapingProvider != null || !run.Style.TextFeatureSettings.IsDefault
+                || RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings))
             && TryMeasureWithConfiguredProvider(text, run.Style, out _))
             ReportProviderContextLoss(run, "directional-glyph-context-not-retained");
     }
 
     private void ReportProviderContextLoss(HtmlInlineRun run, string detail) {
-        if (run.OwnerElement != null && !_reportedComplexTextShapingElements.Add(run.OwnerElement)) return;
+        if (!TryReportComplexTextShapingSource(run.OwnerElement, run.Source)) return;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
             "A shaping context could not retain complete provider glyphs with their authored paint and direction; separate source runs were used.",
             HtmlDiagnosticSeverity.Warning, run.Source, detail, OfficeConversionLossKind.Approximation);

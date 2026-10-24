@@ -59,9 +59,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!TryGetPageMarginContentBounds(page, box, axisBounds, lineHeight, out _, out _, out double availableWidth, out _)) continue;
                 // Retain the generated text and alignment in the public scene,
                 // reserving enough height for its measured wrapped lines.
-                OfficeTextBlockLayout measured = MeasurePageMarginWrappedText(text, box, availableWidth);
-                IReadOnlyList<OfficeTextLine> lines = measured.Lines;
-                double textHeight = lines.Count * lineHeight;
+                HtmlInlineLayout? shaped = UsesPageMarginInlineShaping(text, box)
+                    ? LayoutPageMarginShapedText(text, box, availableWidth) : null;
+                IReadOnlyList<OfficeTextLine>? lines = shaped == null
+                    ? MeasurePageMarginWrappedText(text, box, availableWidth).Lines : null;
+                double textHeight = shaped?.Height ?? lines!.Count * lineHeight;
                 if (box.Font.Size <= 0D) {
                     AppendEmptyPageMarginBox(visuals, page, box, axisBounds, textHeight);
                     continue;
@@ -69,9 +71,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!TryGetPageMarginContentBounds(page, box, axisBounds, textHeight, out double x, out double y, out double width, out double height)) continue;
                 if (box.HasBoxGeometry) y += ResolvePageMarginVerticalOffset(box, height, textHeight);
                 _fontUsage?.Observe(text, box.Font.FamilyName, box.Typography.FontDescriptor);
-                IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
+                IReadOnlyList<HtmlRenderVisual> marginVisuals = shaped != null
+                    ? shaped.Visuals.Select(visual => visual.Translate(x, y, _paintOrder++)).ToArray()
+                    : new HtmlRenderVisual[] {
                     new HtmlRenderText(text, x, y + baseline - box.Font.Size, Math.Max(0.01D, width),
-                        Math.Max(0.01D, (lines.Count - 1) * lineHeight + linePaintHeight),
+                        Math.Max(0.01D, (lines!.Count - 1) * lineHeight + linePaintHeight),
                         box.Font, box.Color, box.Alignment, lineHeight, _paintOrder++,
                         linkUri: null, source: marginBoxSource, semanticRole: "page-margin", layoutY: y,
                         semanticNodeId: null, textAdvanceWidth: null,

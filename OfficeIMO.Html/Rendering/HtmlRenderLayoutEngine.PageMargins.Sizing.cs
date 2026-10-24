@@ -112,6 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Measures side contributions after the fixed-axis width has been resolved.</summary>
     private double MeasurePageMarginWrappedHeight(string value, HtmlCssPageMarginTemplate box, double availableWidth) {
         if (value.Length == 0) return 0D;
+        if (UsesPageMarginInlineShaping(value, box)) return LayoutPageMarginShapedText(value, box, availableWidth).Height;
         ResolvePageMarginTextMetrics(box, value, out double lineHeight, out _, out _, out _);
         return MeasurePageMarginWrappedText(value, box, availableWidth).Lines.Count * lineHeight;
     }
@@ -122,12 +123,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, availableWidth), double.MaxValue, 1D, box.Font.Size,
             (text, _) => MeasurePageMarginText(text ?? string.Empty, box),
             wrap: true, forceSingleLine: false, shrinkToFit: false, overflowBehavior: OfficeTextOverflowBehavior.Clip);
-        string source = "@page @" + GetMarginBoxName(box.Position);
-        if (measured.Clipped && _reportedMarginTextOverflow.Add(source + " text-layout-limit")) {
-            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
-                "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
-                HtmlDiagnosticSeverity.Warning, source, "text-layout-limit", OfficeConversionLossKind.Omission);
-        }
+        if (measured.Clipped) ReportPageMarginTextLayoutLimit(box);
         return measured;
     }
 
@@ -148,6 +144,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private PageMarginIntrinsicSize MeasurePageMarginTextIntrinsics(string text, HtmlCssPageMarginTemplate box) {
+        if (UsesPageMarginInlineShaping(text, box)) return MeasurePageMarginShapedTextIntrinsics(text, box);
         // Core owns admission, tab expansion and authored hard lines for the
         // same text block that will paint. Do not normalize those lines to spaces.
         IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.MeasureUnwrappedLines(text, box.Font.Size,
