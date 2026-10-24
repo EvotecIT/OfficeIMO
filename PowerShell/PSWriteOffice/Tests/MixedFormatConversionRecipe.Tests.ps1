@@ -16,6 +16,8 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $hashes = @(Get-ChildItem $first.PdfDirectory -File | Sort-Object Name | Get-FileHash | Select-Object -ExpandProperty Hash)
         $firstReview = Join-Path $first.ReviewDirectory 'review.json'
         $reviewHash = (Get-FileHash $firstReview).Hash
+        $firstReviewDocument = Get-Content $firstReview -Raw | ConvertFrom-Json
+        $firstReviewDocument.ModuleVersion | Should -Be ([string] $loadedModule.Version)
         $second = & $recipe -OutputDirectory $destination -ModulePath $moduleManifest -ModuleVersion $loadedModule.Version
         $second.Completed | Should -Be 3
         $second.Reused | Should -Be 3
