@@ -146,7 +146,7 @@ public sealed class WordPdfTabInheritanceTests {
     [InlineData("style", "bar")]
     [InlineData("direct", "clear")]
     [InlineData("direct", "bar")]
-    public void SaveAsPdf_ListLevelTabCanBeSuppressedByParagraphStyleOrDirectTab(string declaration, string alignment) {
+    public void SaveAsPdf_DirectNumberingTabPrecedesStyleSuppressionAndHonorsDirectSuppression(string declaration, string alignment) {
         using WordDocument document = WordDocument.Create();
         AddDocumentDefaultTabs(document, Tab(720));
         W.TabStop suppression = Tab(720, alignment == "clear" ? W.TabStopValues.Clear : W.TabStopValues.Bar);
@@ -156,19 +156,32 @@ public sealed class WordPdfTabInheritanceTests {
 
         using var pdf = PdfPigDocument.Open(ConvertDocument(document));
         PdfPage page = Assert.Single(pdf.GetPages());
-        AssertStart(page, "LISTBODY", 144D);
+        AssertStart(page, "LISTBODY", declaration == "style" ? 108D : 144D);
         AssertStart(page, "LISTNEXT", 144D);
     }
 
-    [Fact]
-    public void SaveAsPdf_DirectListTabRestoresAStyleClearedPosition() {
+    [Theory]
+    [InlineData(false, "right", 108D)]
+    [InlineData(false, "center", 108D)]
+    [InlineData(true, "clear", 144D)]
+    [InlineData(true, "right", 108D)]
+    public void SaveAsPdf_ListStyleTabsRespectNumberingOrigin(bool styleInheritedNumbering, string alignment,
+        double expectedBodyStart) {
         using WordDocument document = WordDocument.Create();
-        AddStyle(document, "ListTabs", null, Tab(720, W.TabStopValues.Clear));
-        NumberedParagraph(document, "ListTabs", new W.Tabs(Tab(720, W.TabStopValues.Number)));
+        AddDocumentDefaultTabs(document, Tab(720));
+        W.TabStopValues styleAlignment = alignment switch {
+            "clear" => W.TabStopValues.Clear,
+            "right" => W.TabStopValues.Right,
+            "center" => W.TabStopValues.Center,
+            _ => throw new ArgumentOutOfRangeException(nameof(alignment))
+        };
+        AddStyle(document, "ListTabs", null, Tab(720, styleAlignment));
+        NumberedParagraph(document, "ListTabs");
+        if (styleInheritedNumbering) MoveParagraphNumberingToStyle(document, "ListTabs");
 
         using var pdf = PdfPigDocument.Open(ConvertDocument(document));
         PdfPage page = Assert.Single(pdf.GetPages());
-        AssertStart(page, "LISTBODY", 108D);
+        AssertStart(page, "LISTBODY", expectedBodyStart);
         AssertStart(page, "LISTNEXT", 144D);
     }
 
@@ -201,6 +214,18 @@ public sealed class WordPdfTabInheritanceTests {
         if (styleId != null) properties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
         if (tabs != null) properties.Tabs = tabs;
         return paragraph;
+    }
+
+    private static void MoveParagraphNumberingToStyle(WordDocument document, string styleId) {
+        var main = document.OpenXmlDocument.MainDocumentPart!;
+        W.Paragraph source = main.Document.Body!.Elements<W.Paragraph>()
+            .Single(paragraph => paragraph.InnerText == "LISTBODYLISTNEXT");
+        W.NumberingProperties numbering = source.ParagraphProperties!.NumberingProperties!;
+        W.Style style = main.StyleDefinitionsPart!.Styles!.Elements<W.Style>()
+            .Single(candidate => candidate.StyleId?.Value == styleId);
+        W.StyleParagraphProperties properties = style.GetFirstChild<W.StyleParagraphProperties>()!;
+        numbering.Remove();
+        properties.AddChild(numbering, true);
     }
 
     private static void AddDocumentDefaultTabs(WordDocument document, params W.TabStop[] tabs) {

@@ -351,6 +351,12 @@ namespace OfficeIMO.Word.Pdf {
             // Word tab lists compose across the hierarchy. Visit the most
             // specific declaration first, including clears that mask ancestors.
             AddTabs(paragraph._paragraphProperties?.Tabs);
+            bool hasDirectNumbering = paragraph._paragraphProperties?.NumberingProperties is W.NumberingProperties directNumbering
+                && (directNumbering.NumberingId?.Val?.Value is > 0
+                    || directNumbering.NumberingLevelReference?.Val?.Value is >= 0);
+            // A directly applied numbering definition precedes paragraph styles;
+            // style-inherited numbering remains below the style declarations.
+            if (hasDirectNumbering) AddTabs(numberingTabs);
             foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Reverse()) {
                 if (inspectedTabStops >= MaxNativeParagraphTabStops) {
                     break;
@@ -359,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
                 AddTabs(style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>());
             }
 
-            AddTabs(numberingTabs);
+            if (!hasDirectNumbering) AddTabs(numberingTabs);
             AddTabs(paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
                 .Styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
             return tabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
