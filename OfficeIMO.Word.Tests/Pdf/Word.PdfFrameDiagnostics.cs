@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -73,7 +74,7 @@ public partial class Word {
         using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, inherited, out WordParagraph paragraph);
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
@@ -90,7 +91,7 @@ public partial class Word {
     public void SaveAsPdf_BreakOnlyFrameRequireNoLossRejectsApproximation() {
         using WordDocument document = CreateFrameFlowBreakDocument(false, false, out _);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
 
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
@@ -130,7 +131,7 @@ public partial class Word {
         using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, false, out WordParagraph paragraph);
         paragraph._paragraph.ParagraphProperties!.RemoveAllChildren<W.FrameProperties>();
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
 
         Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
         result.RequireNoLoss();
@@ -141,6 +142,7 @@ public partial class Word {
 
     private static WordDocument CreateFrameFlowBreakDocument(bool columnBreak, bool inherited, out WordParagraph paragraph) {
         WordDocument document = WordDocument.Create();
+        document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         if (columnBreak) document.Sections[0].ColumnCount = 2;
         document.AddParagraph("BEFORE");
@@ -149,6 +151,18 @@ public partial class Word {
         document.AddParagraph("AFTER");
         SetFrameDiagnosticProperties(document, paragraph, inherited);
         return document;
+    }
+
+    private static WordToPdfOptions CreateFrameFlowBreakPdfOptions() {
+        var pdfOptions = new PdfOptions();
+        pdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'E', 'F', 'O', 'R', 'T')));
+        return new WordToPdfOptions {
+            IncludePageNumbers = false,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
+            PdfOptions = pdfOptions
+        };
     }
 
     private static void SetFrameDiagnosticProperties(WordDocument document, WordParagraph paragraph, bool inherited) {
