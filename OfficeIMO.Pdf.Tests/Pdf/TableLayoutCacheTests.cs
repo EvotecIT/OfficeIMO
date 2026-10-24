@@ -2,7 +2,8 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using System.IO;
-using System.Reflection;
+using OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
@@ -157,31 +158,48 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void StyleTabStopInspectionIsBoundedEvenWhenEntriesAreInvalid() {
-            using WordDocument document = WordDocument.Create();
-            WordParagraph paragraph = document.AddParagraph("Bounded tabs");
-            const string styleId = "HostileTabStops";
-            var tabs = new W.Tabs();
-            for (int index = 0; index < 1_024; index++) {
-                tabs.Append(new W.TabStop { Val = W.TabStopValues.Left });
+            // Missing positions consume inspection budget without becoming
+            // layout stops. The preceding boundary control proves that the
+            // valid tail is usable rather than all style tabs being ignored.
+            foreach (var sample in new[] {
+                (InvalidStopCount: 1_023, ExpectedAdvance: 72D),
+                (InvalidStopCount: 1_024, ExpectedAdvance: 36D)
+            }) {
+                using WordDocument document = WordDocument.Create();
+                document.Settings.DefaultTabStop = 720;
+                document.Settings.FontFamily = "Helvetica";
+                WordParagraph paragraph = document.AddParagraph("A");
+                paragraph.FontFamily = "Helvetica";
+                paragraph.FontSize = 12;
+                paragraph.AddTab().AddText("B");
+                const string styleId = "HostileTabStops";
+                var tabs = new W.Tabs();
+                for (int index = 0; index < sample.InvalidStopCount; index++) {
+                    tabs.Append(new W.TabStop { Val = W.TabStopValues.Left });
+                }
+
+                tabs.Append(new W.TabStop { Position = 1_440, Val = W.TabStopValues.Left });
+                W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new W.Style(
+                    new W.StyleName { Val = styleId },
+                    new W.StyleParagraphProperties(tabs)) {
+                    Type = W.StyleValues.Paragraph,
+                    StyleId = styleId
+                });
+                paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
+                paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
+
+                using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica",
+                    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+                }));
+                var page = Assert.Single(pdf.GetPages());
+                Assert.Equal("AB", string.Concat(page.Letters.Select(letter => letter.Value)));
+                var first = Assert.Single(page.Letters, letter => letter.Value == "A");
+                var second = Assert.Single(page.Letters, letter => letter.Value == "B");
+                Assert.Equal(sample.ExpectedAdvance, second.StartBaseLine.X - first.StartBaseLine.X, 3);
             }
-
-            tabs.Append(new W.TabStop { Position = 1_440, Val = W.TabStopValues.Left });
-            W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-            styles.Append(new W.Style(
-                new W.StyleName { Val = styleId },
-                new W.StyleParagraphProperties(tabs)) {
-                Type = W.StyleValues.Paragraph,
-                StyleId = styleId
-            });
-            paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
-            paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
-
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
-                "GetNativeParagraphEffectiveTabStops",
-                BindingFlags.NonPublic | BindingFlags.Static)!;
-            var effectiveTabStops = Assert.IsAssignableFrom<IReadOnlyList<WordTabStop>>(method.Invoke(null, new object[] { paragraph }));
-
-            Assert.Empty(effectiveTabStops);
         }
     }
 }

@@ -378,8 +378,8 @@ public sealed class PdfBarTabTests {
         using var actual = PdfPigDocument.Open(bytes);
         PdfPigPage page = Assert.Single(actual.GetPages());
         Assert.Empty(page.Letters);
-        var bar = Assert.Single(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
-            .Where(bounds => bounds.HasValue && Math.Abs(bounds.Value.Height) < .001D && bounds.Value.Width > 1D));
+        var bar = Assert.Single(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
+            bounds => bounds.HasValue && Math.Abs(bounds.Value.Height) < .001D && bounds.Value.Width > 1D);
         Assert.Equal(left, bar!.Value.Left, 3);
         Assert.Equal(y, bar.Value.Bottom, 3);
         Assert.Equal(18D, bar.Value.Width, 3);
