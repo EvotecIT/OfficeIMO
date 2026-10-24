@@ -7244,7 +7244,7 @@ _modules.set("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070",
 return _exports;
 })();
 
-const _m62 = _modules.get("e5f4978b5f1e378f5a6a559f300bf36100f6e18154e57c803ef1311393be8dd7") ?? (() => {
+const _m62 = _modules.get("60344d75c290a35f454f18f9668b1bf5d2e218cc1e7c2f60d1555874211b8fa9") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { fontProgram } = _m63;
@@ -7287,12 +7287,16 @@ class PdfFontResource {
     width(scalar) {
         if (this.shared)
             return this.shared.width(scalar);
-        const existing = this.mappings.get(scalar);
-        if (existing)
-            return existing.width;
-        const standard = this.standardWidths.get(scalar);
-        if (standard !== undefined)
-            return standard;
+        if (this.program) {
+            const existing = this.mappings.get(scalar);
+            if (existing)
+                return existing.width;
+        }
+        else {
+            const standard = this.standardWidths.get(scalar);
+            if (standard !== undefined)
+                return standard;
+        }
         const resolved = resolveScalar(scalar, this.program, this.bold);
         if (!resolved.supported) {
             if (resolved.code === "unpaired-surrogate")
@@ -7316,9 +7320,8 @@ class PdfFontResource {
         if (this.shared)
             return this.shared.encode(text);
         let hex = "";
-        for (let offset = 0; offset < text.length;) {
-            const cp = text.codePointAt(offset);
-            offset += cp > 0xffff ? 2 : 1;
+        for (const char of text) {
+            const cp = char.codePointAt(0);
             if (this.program) {
                 let mapping = this.mappings.get(cp);
                 // Layout normally registered the scalar already; validate only a newly painted scalar.
@@ -7329,7 +7332,8 @@ class PdfFontResource {
                 hex += cidHex(mapping.cid);
             }
             else {
-                this.width(cp);
+                if (!this.standardWidths.has(cp))
+                    this.width(cp);
                 hex += hexBytes[standardCode(cp)];
             }
         }
@@ -7466,7 +7470,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("e5f4978b5f1e378f5a6a559f300bf36100f6e18154e57c803ef1311393be8dd7", _exports);
+_modules.set("60344d75c290a35f454f18f9668b1bf5d2e218cc1e7c2f60d1555874211b8fa9", _exports);
 return _exports;
 })();
 
@@ -7991,7 +7995,7 @@ _modules.set("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47",
 return _exports;
 })();
 
-const _m73 = _modules.get("6e2e7f126e8480a8e480040b87ee087d6102f67dc764dc81fa7d3c3cf1eb56a7") ?? (() => {
+const _m73 = _modules.get("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { wrapPdfText } = _m71;
@@ -8036,15 +8040,14 @@ function planTableBands(widths, settings) {
  * Runs/formatters are never recaptured, and vertical spans retain their original row ownership. */
 async function projectBandRows(rows, band, widths, settings, fonts) {
     const result = [];
-    const positions = new Map(band.columns.map((column, index) => [column, index]));
     for (const row of rows) {
         const cells = [];
         for (const cell of row.cells) {
             // Ordinary data and leaf headings keep their captured width and lines in every band.
-            // Resolve them once instead of scanning the band's columns for each source cell.
+            // Look up their physical position without allocating another per-row column index.
             if (cell.span === 1) {
-                const first = positions.get(cell.first);
-                if (first !== undefined)
+                const first = band.columns.indexOf(cell.first);
+                if (first >= 0)
                     cells.push({ ...cell, source: cell.source ?? cell, first });
                 continue;
             }
@@ -8087,11 +8090,11 @@ function alignBandBlocks(bands, settings) {
         cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
 }
 const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
-_modules.set("6e2e7f126e8480a8e480040b87ee087d6102f67dc764dc81fa7d3c3cf1eb56a7", _exports);
+_modules.set("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea", _exports);
 return _exports;
 })();
 
-const _m69 = _modules.get("4e50ccb212969a0b986e5f728fd4eade2a4e3758c70184c4dea3fa93a9c0ffe7") ?? (() => {
+const _m69 = _modules.get("5cafd36e9a01f133664d0dec77b2cfb2acf151ef4ce7239bf91aef086a35d154") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8318,7 +8321,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("4e50ccb212969a0b986e5f728fd4eade2a4e3758c70184c4dea3fa93a9c0ffe7", _exports);
+_modules.set("5cafd36e9a01f133664d0dec77b2cfb2acf151ef4ce7239bf91aef086a35d154", _exports);
 return _exports;
 })();
 
@@ -9822,7 +9825,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m59 = _modules.get("508bb550e652c1236291adeeae19149a9f4de4129e026da858a8a99de5a53212") ?? (() => {
+const _m59 = _modules.get("36ee840aacede418916057e220b46f3ecdd1838f48da3967b0c9cc51f079f0c6") ?? (() => {
 const { PdfObjects, unicodeHex } = _m60;
 
 const { PdfFontResources } = _m62;
@@ -9885,11 +9888,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("508bb550e652c1236291adeeae19149a9f4de4129e026da858a8a99de5a53212", _exports);
+_modules.set("36ee840aacede418916057e220b46f3ecdd1838f48da3967b0c9cc51f079f0c6", _exports);
 return _exports;
 })();
 
-const _m58 = _modules.get("0299615585cd984129f5cff15ba1270211562677ecda027e21931853963d7238") ?? (() => {
+const _m58 = _modules.get("da1c5c007ab44015d6bae45f06a4c9684c10f797dbc6f702d44fd399ae039709") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9954,7 +9957,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("0299615585cd984129f5cff15ba1270211562677ecda027e21931853963d7238", _exports);
+_modules.set("da1c5c007ab44015d6bae45f06a4c9684c10f797dbc6f702d44fd399ae039709", _exports);
 return _exports;
 })();
 
@@ -10886,7 +10889,7 @@ _modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343",
 return _exports;
 })();
 
-const _m91 = _modules.get("0ea8a45da9ac44aca26f0f86fd2054bc74bd6d5645e3cbb0414b6f30fdc23ad9") ?? (() => {
+const _m91 = _modules.get("f889a9ddf94dd13d085da49f792259f2eeefa7e9fe946616d6849817cd3ec9c7") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -11140,11 +11143,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("0ea8a45da9ac44aca26f0f86fd2054bc74bd6d5645e3cbb0414b6f30fdc23ad9", _exports);
+_modules.set("f889a9ddf94dd13d085da49f792259f2eeefa7e9fe946616d6849817cd3ec9c7", _exports);
 return _exports;
 })();
 
-const _m84 = _modules.get("3b6677ea56f51127161108e7990da0eb65df41e490688c25da8811506685078f") ?? (() => {
+const _m84 = _modules.get("0798809ac1cc178aa427a1253f85baf72590204f42dede9af986064a63797c62") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11434,11 +11437,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("3b6677ea56f51127161108e7990da0eb65df41e490688c25da8811506685078f", _exports);
+_modules.set("0798809ac1cc178aa427a1253f85baf72590204f42dede9af986064a63797c62", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("3643f49a713bd9d4b18b436353d56b540b37834879ba78b1034dc21397cb58b2") ?? (() => {
+const _m83 = _modules.get("06a986d216e7b0b0ebb160339d7a3a4f950d7c0d12e09db502aea78cae967fc9") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11484,7 +11487,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m92.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("3643f49a713bd9d4b18b436353d56b540b37834879ba78b1034dc21397cb58b2", _exports);
+_modules.set("06a986d216e7b0b0ebb160339d7a3a4f950d7c0d12e09db502aea78cae967fc9", _exports);
 return _exports;
 })();
 
@@ -11528,10 +11531,10 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m57 = _modules.get("e27c8d587dd48ffbea24847278892f34539016f3fa013a5afc88273f0d28f641") ?? (() => {
+const _m57 = _modules.get("775bf8e59d1b548c0a325758777d9594ba6993b73f79642e105bec179b57dee6") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m58.writePdf, writePdfTo: _m58.writePdfTo, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m84.writePdfDocument, writePdfDocumentTo: _m84.writePdfDocumentTo, pdfTable: _m84.pdfTable, PdfFont: _m63.PdfFont, preflightPdfText: _m93.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("e27c8d587dd48ffbea24847278892f34539016f3fa013a5afc88273f0d28f641", _exports);
+_modules.set("775bf8e59d1b548c0a325758777d9594ba6993b73f79642e105bec179b57dee6", _exports);
 return _exports;
 })();
 
@@ -11708,7 +11711,7 @@ _modules.set("91dbdf35d8f192b3c0ea92dfab6b9812872fbe3c8d85a5d2afe389bd61262ba2",
 return _exports;
 })();
 
-const _m0 = _modules.get("e42803bf179476341f00b6186d0c8bf5f3f3b25289faa5bb7e4295af9a68be99") ?? (() => {
+const _m0 = _modules.get("f76e989ac84d2210cca8deb185613fa6cf3c2cafa6fd28fffb881459faf40a31") ?? (() => {
 const { BlobByteSink } = _m1;
 
 const { notifyProgress } = _m14;
@@ -11766,7 +11769,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m94.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("e42803bf179476341f00b6186d0c8bf5f3f3b25289faa5bb7e4295af9a68be99", _exports);
+_modules.set("f76e989ac84d2210cca8deb185613fa6cf3c2cafa6fd28fffb881459faf40a31", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

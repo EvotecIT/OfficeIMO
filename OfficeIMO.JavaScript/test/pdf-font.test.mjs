@@ -3,10 +3,32 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PdfFont, preflightPdfText, writePdf, writePdfDocument } from "../dist/pdf/index.js";
 import { TrueTypeFont } from "../dist/pdf/truetype.js";
+import { PdfFontResources } from "../dist/pdf/font-resources.js";
+import { PdfObjects } from "../dist/pdf/objects.js";
+import { BlobByteSink } from "../dist/core/sinks.js";
 import { NotSupportedError } from "../dist/core/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
 const source = new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", import.meta.url)));
+
+test("standard PDF resources validate newly painted scalars and preserve cached text bytes", async () => {
+  const sink = new BlobByteSink(), objects = new PdfObjects(sink), fonts = new PdfFontResources(objects);
+  const faces = [[false, false], [true, false], [false, true], [true, true]];
+  for (const [bold, italic] of faces) {
+    const font = fonts.select(bold, italic);
+    const operands = [font.encode("A€"), font.encode("é—A€"), font.encode("é—A€")];
+    for (const [text, error] of [["Ł", NotSupportedError], ["\u0001", NotSupportedError], ["\ud800", TypeError], ["\udc00", TypeError]])
+      assert.throws(() => font.encode("A€" + text), error);
+    await objects.stream(objects.reserve(), "BT /" + font.name + " 8 Tf\n" + operands.join(" Tj\n") + " Tj\nET\n", "", false);
+    await font.write(objects, false);
+  }
+  await objects.flush();
+  const output = await sink.toBlob().text();
+  assert.deepEqual([...output.matchAll(/<([a-f0-9]+)> Tj/g)].map(match => match[1]),
+    faces.flatMap(() => ["4180", "e9974180", "e9974180"]));
+  assert.deepEqual([...output.matchAll(/\/BaseFont \/([^ ]+)/g)].map(match => match[1]),
+    ["Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"]);
+});
 
 test("standard PDF faces preserve every supported WinAnsi byte in emitted text", async () => {
   // Controls, undefined Windows-1252 slots and the rejected format character soft hyphen are excluded.

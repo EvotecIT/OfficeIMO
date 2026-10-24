@@ -27,10 +27,13 @@ export class PdfFontResource {
   }
   width(scalar: number): number {
     if (this.shared) return this.shared.width(scalar);
-    const existing = this.mappings.get(scalar);
-    if (existing) return existing.width;
-    const standard = this.standardWidths.get(scalar);
-    if (standard !== undefined) return standard;
+    if (this.program) {
+      const existing = this.mappings.get(scalar);
+      if (existing) return existing.width;
+    } else {
+      const standard = this.standardWidths.get(scalar);
+      if (standard !== undefined) return standard;
+    }
     const resolved = resolveScalar(scalar, this.program, this.bold);
     if (!resolved.supported) {
       if (resolved.code === "unpaired-surrogate") throw new TypeError(resolved.message);
@@ -47,14 +50,17 @@ export class PdfFontResource {
   encode(text: string): string {
     if (this.shared) return this.shared.encode(text);
     let hex = "";
-    for (let offset = 0; offset < text.length;) {
-      const cp = text.codePointAt(offset)!; offset += cp > 0xffff ? 2 : 1;
+    for (const char of text) {
+      const cp = char.codePointAt(0)!;
       if (this.program) {
         let mapping = this.mappings.get(cp);
         // Layout normally registered the scalar already; validate only a newly painted scalar.
         if (!mapping) { this.width(cp); mapping = this.mappings.get(cp)!; }
         hex += cidHex(mapping.cid);
-      } else { this.width(cp); hex += hexBytes[standardCode(cp)!]!; }
+      } else {
+        if (!this.standardWidths.has(cp)) this.width(cp);
+        hex += hexBytes[standardCode(cp)!]!;
+      }
     }
     return "<" + hex + ">";
   }

@@ -7173,12 +7173,16 @@ class PdfFontResource {
     width(scalar) {
         if (this.shared)
             return this.shared.width(scalar);
-        const existing = this.mappings.get(scalar);
-        if (existing)
-            return existing.width;
-        const standard = this.standardWidths.get(scalar);
-        if (standard !== undefined)
-            return standard;
+        if (this.program) {
+            const existing = this.mappings.get(scalar);
+            if (existing)
+                return existing.width;
+        }
+        else {
+            const standard = this.standardWidths.get(scalar);
+            if (standard !== undefined)
+                return standard;
+        }
         const resolved = resolveScalar(scalar, this.program, this.bold);
         if (!resolved.supported) {
             if (resolved.code === "unpaired-surrogate")
@@ -7202,9 +7206,8 @@ class PdfFontResource {
         if (this.shared)
             return this.shared.encode(text);
         let hex = "";
-        for (let offset = 0; offset < text.length;) {
-            const cp = text.codePointAt(offset);
-            offset += cp > 0xffff ? 2 : 1;
+        for (const char of text) {
+            const cp = char.codePointAt(0);
             if (this.program) {
                 let mapping = this.mappings.get(cp);
                 // Layout normally registered the scalar already; validate only a newly painted scalar.
@@ -7215,7 +7218,8 @@ class PdfFontResource {
                 hex += cidHex(mapping.cid);
             }
             else {
-                this.width(cp);
+                if (!this.standardWidths.has(cp))
+                    this.width(cp);
                 hex += hexBytes[standardCode(cp)];
             }
         }
@@ -7918,15 +7922,14 @@ function planTableBands(widths, settings) {
  * Runs/formatters are never recaptured, and vertical spans retain their original row ownership. */
 async function projectBandRows(rows, band, widths, settings, fonts) {
     const result = [];
-    const positions = new Map(band.columns.map((column, index) => [column, index]));
     for (const row of rows) {
         const cells = [];
         for (const cell of row.cells) {
             // Ordinary data and leaf headings keep their captured width and lines in every band.
-            // Resolve them once instead of scanning the band's columns for each source cell.
+            // Look up their physical position without allocating another per-row column index.
             if (cell.span === 1) {
-                const first = positions.get(cell.first);
-                if (first !== undefined)
+                const first = band.columns.indexOf(cell.first);
+                if (first >= 0)
                     cells.push({ ...cell, source: cell.source ?? cell, first });
                 continue;
             }
