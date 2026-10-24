@@ -11,12 +11,20 @@ internal readonly struct OfficeOpenTypePairPositioning {
         int firstGlyphXAdvance,
         int secondGlyphXPlacement,
         int secondGlyphXAdvance,
-        bool secondValueRecordPresent = false) {
+        bool secondValueRecordPresent = false,
+        int firstGlyphYPlacement = 0,
+        int firstGlyphYAdvance = 0,
+        int secondGlyphYPlacement = 0,
+        int secondGlyphYAdvance = 0) {
         FirstGlyphXPlacement = firstGlyphXPlacement;
         FirstGlyphXAdvance = firstGlyphXAdvance;
         SecondGlyphXPlacement = secondGlyphXPlacement;
         SecondGlyphXAdvance = secondGlyphXAdvance;
         SecondValueRecordPresent = secondValueRecordPresent;
+        FirstGlyphYPlacement = firstGlyphYPlacement;
+        FirstGlyphYAdvance = firstGlyphYAdvance;
+        SecondGlyphYPlacement = secondGlyphYPlacement;
+        SecondGlyphYAdvance = secondGlyphYAdvance;
     }
 
     internal int FirstGlyphXPlacement { get; }
@@ -24,6 +32,10 @@ internal readonly struct OfficeOpenTypePairPositioning {
     internal int SecondGlyphXPlacement { get; }
     internal int SecondGlyphXAdvance { get; }
     internal bool SecondValueRecordPresent { get; }
+    internal int FirstGlyphYPlacement { get; }
+    internal int FirstGlyphYAdvance { get; }
+    internal int SecondGlyphYPlacement { get; }
+    internal int SecondGlyphYAdvance { get; }
     internal int TotalXAdvance => checked(FirstGlyphXAdvance + SecondGlyphXAdvance);
 
     internal OfficeOpenTypePairPositioning Add(OfficeOpenTypePairPositioning other) => new(
@@ -31,25 +43,35 @@ internal readonly struct OfficeOpenTypePairPositioning {
         checked(FirstGlyphXAdvance + other.FirstGlyphXAdvance),
         checked(SecondGlyphXPlacement + other.SecondGlyphXPlacement),
         checked(SecondGlyphXAdvance + other.SecondGlyphXAdvance),
-        SecondValueRecordPresent || other.SecondValueRecordPresent);
+        SecondValueRecordPresent || other.SecondValueRecordPresent,
+        checked(FirstGlyphYPlacement + other.FirstGlyphYPlacement),
+        checked(FirstGlyphYAdvance + other.FirstGlyphYAdvance),
+        checked(SecondGlyphYPlacement + other.SecondGlyphYPlacement),
+        checked(SecondGlyphYAdvance + other.SecondGlyphYAdvance));
 }
 
 internal readonly struct OfficeOpenTypeGlyphPositioning {
-    internal OfficeOpenTypeGlyphPositioning(int xPlacement, int xAdvance) {
+    internal OfficeOpenTypeGlyphPositioning(int xPlacement, int xAdvance, int yPlacement = 0, int yAdvance = 0) {
         XPlacement = xPlacement;
         XAdvance = xAdvance;
+        YPlacement = yPlacement;
+        YAdvance = yAdvance;
     }
 
     internal int XPlacement { get; }
     internal int XAdvance { get; }
+    internal int YPlacement { get; }
+    internal int YAdvance { get; }
 
-    internal OfficeOpenTypeGlyphPositioning Add(int xPlacement, int xAdvance) => new(
+    internal OfficeOpenTypeGlyphPositioning Add(int xPlacement, int xAdvance, int yPlacement = 0, int yAdvance = 0) => new(
         checked(XPlacement + xPlacement),
-        checked(XAdvance + xAdvance));
+        checked(XAdvance + xAdvance),
+        checked(YPlacement + yPlacement),
+        checked(YAdvance + yAdvance));
 }
 
 /// <summary>Shared bounded legacy kern and GPOS pair-adjustment reader.</summary>
-internal sealed class OfficeOpenTypeKerning {
+internal sealed partial class OfficeOpenTypeKerning {
     private readonly byte[] _data;
     private readonly int _kern;
     private readonly int _gpos;
@@ -299,17 +321,16 @@ internal sealed class OfficeOpenTypeKerning {
         int featureList,
         string featureTag,
         string scriptTag,
-        PositioningWorkBudget budget) {
+        PositioningWorkBudget budget,
+        string? language = null) {
         int script = FindScript(scriptList, scriptTag, budget);
         if (script < 0 && !string.Equals(scriptTag, "DFLT", StringComparison.Ordinal)) {
             script = FindScript(scriptList, "DFLT", budget);
         }
-        if (script < 0 || !InBounds(script, 4)) yield break;
+        if (script < 0 || !InPositioningBounds(script, 4, budget)) yield break;
 
-        int defaultLangSysOffset = ReadUInt16(script);
-        if (defaultLangSysOffset == 0) yield break;
-        int langSys = checked(script + defaultLangSysOffset);
-        if (!InBounds(langSys, 6)) yield break;
+        int langSys = FindPositioningLanguageSystem(script, language, budget);
+        if (langSys < 0) yield break;
 
         int featureCount = ReadUInt16(featureList);
         var featureIndexes = new List<ushort>();
@@ -320,7 +341,7 @@ internal sealed class OfficeOpenTypeKerning {
         for (int index = 0; index < langSysFeatureCount; index++) {
             budget.Charge();
             int offset = checked(langSys + 6 + (index * 2));
-            if (!InBounds(offset, 2)) yield break;
+            if (!InPositioningBounds(offset, 2, budget)) yield break;
             ushort featureIndex = ReadUInt16(offset);
             if (seenFeatures.Add(featureIndex)) featureIndexes.Add(featureIndex);
         }
@@ -329,15 +350,15 @@ internal sealed class OfficeOpenTypeKerning {
             budget.Charge();
             if (featureIndex >= featureCount) continue;
             int record = checked(featureList + 2 + (featureIndex * 6));
-            if (!InBounds(record, 6)) yield break;
+            if (!InPositioningBounds(record, 6, budget)) yield break;
             if (!TagEquals(record, featureTag)) continue;
             int feature = checked(featureList + ReadUInt16(record + 4));
-            if (!InBounds(feature, 4)) yield break;
+            if (!InPositioningBounds(feature, 4, budget)) yield break;
             int lookupCount = ReadUInt16(feature + 2);
             for (int lookup = 0; lookup < lookupCount; lookup++) {
                 budget.Charge();
                 int offset = checked(feature + 4 + (lookup * 2));
-                if (!InBounds(offset, 2)) yield break;
+                if (!InPositioningBounds(offset, 2, budget)) yield break;
                 yield return ReadUInt16(offset);
             }
         }
@@ -348,10 +369,10 @@ internal sealed class OfficeOpenTypeKerning {
         for (int index = 0; index < scriptCount; index++) {
             budget.Charge();
             int record = checked(scriptList + 2 + (index * 6));
-            if (!InBounds(record, 6)) return -1;
+            if (!InPositioningBounds(record, 6, budget)) return -1;
             if (!TagEquals(record, scriptTag)) continue;
             int script = checked(scriptList + ReadUInt16(record + 4));
-            return InBounds(script, 4) ? script : -1;
+            return InPositioningBounds(script, 4, budget) ? script : -1;
         }
         return -1;
     }
@@ -407,9 +428,9 @@ internal sealed class OfficeOpenTypeKerning {
         int lookupCount = ReadUInt16(lookupList);
         if (lookupIndex >= lookupCount) return false;
         int lookupOffset = checked(lookupList + 2 + (lookupIndex * 2));
-        if (!InBounds(lookupOffset, 2)) return false;
+        if (!InPositioningBounds(lookupOffset, 2, budget)) return false;
         int lookup = checked(lookupList + ReadUInt16(lookupOffset));
-        if (!InBounds(lookup, 6)) return false;
+        if (!InPositioningBounds(lookup, 6, budget)) return false;
         ushort lookupType = ReadUInt16(lookup);
         if (lookupType != 2 && lookupType != 9) return false;
         if (lookupType == 9 && !_includeExtendedGpos) return false;
@@ -418,10 +439,10 @@ internal sealed class OfficeOpenTypeKerning {
         for (int index = 0; index < subtableCount; index++) {
             budget.Charge();
             int subtableOffset = checked(lookup + 6 + (index * 2));
-            if (!InBounds(subtableOffset, 2)) break;
+            if (!InPositioningBounds(subtableOffset, 2, budget)) break;
             int subtable = checked(lookup + ReadUInt16(subtableOffset));
             if (lookupType == 9) {
-                if (!InBounds(subtable, 8) || ReadUInt16(subtable) != 1 || ReadUInt16(subtable + 2) != 2) continue;
+                if (!InPositioningBounds(subtable, 8, budget) || ReadUInt16(subtable) != 1 || ReadUInt16(subtable + 2) != 2) continue;
                 uint extensionOffset = ReadUInt32(subtable + 4);
                 if (extensionOffset > int.MaxValue) continue;
                 subtable = checked(subtable + (int)extensionOffset);
@@ -442,7 +463,7 @@ internal sealed class OfficeOpenTypeKerning {
         PositioningWorkBudget budget,
         out OfficeOpenTypePairPositioning adjustment) {
         adjustment = default;
-        if (!InBounds(subtable, 10)) return false;
+        if (!InPositioningBounds(subtable, 10, budget)) return false;
         ushort format = ReadUInt16(subtable);
         if (format == 2) {
             return _includeExtendedGpos &&
@@ -457,9 +478,9 @@ internal sealed class OfficeOpenTypeKerning {
         if (coverageIndex < 0 || coverageIndex >= pairSetCount) return false;
 
         int pairSetOffset = checked(subtable + 10 + (coverageIndex * 2));
-        if (!InBounds(pairSetOffset, 2)) return false;
+        if (!InPositioningBounds(pairSetOffset, 2, budget)) return false;
         int pairSet = checked(subtable + ReadUInt16(pairSetOffset));
-        if (!InBounds(pairSet, 2)) return false;
+        if (!InPositioningBounds(pairSet, 2, budget)) return false;
 
         int value1Size = ValueRecordSize(valueFormat1);
         int value2Size = ValueRecordSize(valueFormat2);
@@ -470,17 +491,18 @@ internal sealed class OfficeOpenTypeKerning {
             budget.Charge();
             int mid = low + ((high - low) / 2);
             int record = checked(pairSet + 2 + (mid * recordSize));
-            if (!InBounds(record, recordSize)) return false;
+            if (!InPositioningBounds(record, recordSize, budget)) return false;
             ushort candidate = ReadUInt16(record);
             if (candidate == right) {
-                OfficeOpenTypePairValue first = ReadValueRecordHorizontal(pairSet, record + 2, valueFormat1);
-                OfficeOpenTypePairValue second = ReadValueRecordHorizontal(pairSet, record + 2 + value1Size, valueFormat2);
+                OfficeOpenTypePairValue first = ReadValueRecord(pairSet, record + 2, valueFormat1, budget);
+                OfficeOpenTypePairValue second = ReadValueRecord(pairSet, record + 2 + value1Size, valueFormat2, budget);
                 adjustment = new OfficeOpenTypePairPositioning(
                     first.XPlacement,
                     first.XAdvance,
                     second.XPlacement,
                     second.XAdvance,
-                    secondValueRecordPresent: valueFormat2 != 0);
+                    secondValueRecordPresent: valueFormat2 != 0,
+                    first.YPlacement, first.YAdvance, second.YPlacement, second.YAdvance);
                 return true;
             }
             if (candidate < right) low = mid + 1;
@@ -492,7 +514,7 @@ internal sealed class OfficeOpenTypeKerning {
     private bool TryGposClassPairAdjustment(int subtable, ushort left, ushort right,
         PositioningWorkBudget budget, out OfficeOpenTypePairPositioning adjustment) {
         adjustment = default;
-        if (!InBounds(subtable, 16)) return false;
+        if (!InPositioningBounds(subtable, 16, budget)) return false;
         int coverage = checked(subtable + ReadUInt16(subtable + 2));
         if (CoverageIndex(coverage, left, budget) < 0) return false;
 
@@ -512,29 +534,30 @@ internal sealed class OfficeOpenTypeKerning {
         if (recordSize == 0) return false;
         int recordIndex = checked((class1 * class2Count) + class2);
         int record = checked(subtable + 16 + (recordIndex * recordSize));
-        if (!InBounds(record, recordSize)) return false;
-        OfficeOpenTypePairValue first = ReadValueRecordHorizontal(subtable, record, valueFormat1);
-        OfficeOpenTypePairValue second = ReadValueRecordHorizontal(subtable, record + value1Size, valueFormat2);
+        if (!InPositioningBounds(record, recordSize, budget)) return false;
+        OfficeOpenTypePairValue first = ReadValueRecord(subtable, record, valueFormat1, budget);
+        OfficeOpenTypePairValue second = ReadValueRecord(subtable, record + value1Size, valueFormat2, budget);
         adjustment = new OfficeOpenTypePairPositioning(
             first.XPlacement,
             first.XAdvance,
             second.XPlacement,
             second.XAdvance,
-            secondValueRecordPresent: valueFormat2 != 0);
+            secondValueRecordPresent: valueFormat2 != 0,
+            first.YPlacement, first.YAdvance, second.YPlacement, second.YAdvance);
         return true;
     }
 
     private int ClassDefinition(int classDef, ushort glyph, PositioningWorkBudget budget) {
-        if (!InBounds(classDef, 4)) return -1;
+        if (!InPositioningBounds(classDef, 4, budget)) return -1;
         ushort format = ReadUInt16(classDef);
         if (format == 1) {
             ushort startGlyph = ReadUInt16(classDef + 2);
-            if (!InBounds(classDef, 6)) return -1;
+            if (!InPositioningBounds(classDef, 6, budget)) return -1;
             int glyphCount = ReadUInt16(classDef + 4);
             int index = glyph - startGlyph;
             if (index < 0 || index >= glyphCount) return 0;
             int valueOffset = checked(classDef + 6 + (index * 2));
-            return InBounds(valueOffset, 2) ? ReadUInt16(valueOffset) : -1;
+            return InPositioningBounds(valueOffset, 2, budget) ? ReadUInt16(valueOffset) : -1;
         }
 
         if (format != 2) return -1;
@@ -545,7 +568,7 @@ internal sealed class OfficeOpenTypeKerning {
             budget.Charge();
             int mid = low + ((high - low) / 2);
             int range = checked(classDef + 4 + (mid * 6));
-            if (!InBounds(range, 6)) return -1;
+            if (!InPositioningBounds(range, 6, budget)) return -1;
             ushort start = ReadUInt16(range);
             ushort end = ReadUInt16(range + 2);
             if (glyph < start) high = mid - 1;
@@ -556,7 +579,7 @@ internal sealed class OfficeOpenTypeKerning {
     }
 
     private int CoverageIndex(int coverage, ushort glyph, PositioningWorkBudget budget) {
-        if (!InBounds(coverage, 4)) return -1;
+        if (!InPositioningBounds(coverage, 4, budget)) return -1;
         ushort format = ReadUInt16(coverage);
         if (format == 1) {
             int count = ReadUInt16(coverage + 2);
@@ -566,7 +589,7 @@ internal sealed class OfficeOpenTypeKerning {
                 budget.Charge();
                 int mid = low + ((high - low) / 2);
                 int offset = checked(coverage + 4 + (mid * 2));
-                if (!InBounds(offset, 2)) return -1;
+                if (!InPositioningBounds(offset, 2, budget)) return -1;
                 ushort candidate = ReadUInt16(offset);
                 if (candidate == glyph) return mid;
                 if (candidate < glyph) low = mid + 1;
@@ -580,7 +603,7 @@ internal sealed class OfficeOpenTypeKerning {
         for (int index = 0; index < rangeCount; index++) {
             budget.Charge();
             int range = checked(coverage + 4 + (index * 6));
-            if (!InBounds(range, 6)) return -1;
+            if (!InPositioningBounds(range, 6, budget)) return -1;
             ushort start = ReadUInt16(range);
             ushort end = ReadUInt16(range + 2);
             if (glyph < start || glyph > end) continue;
@@ -589,34 +612,51 @@ internal sealed class OfficeOpenTypeKerning {
         return -1;
     }
 
-    private OfficeOpenTypePairValue ReadValueRecordHorizontal(int subtable, int offset, ushort valueFormat) {
+    private OfficeOpenTypePairValue ReadValueRecord(int subtable, int offset, ushort valueFormat, PositioningWorkBudget budget) {
+        if ((valueFormat & 0xFF00) != 0 || !InPositioningBounds(offset, ValueRecordSize(valueFormat), budget))
+            throw new InvalidDataException("A GPOS value record is unsupported or truncated.");
         int xPlacement = 0;
         int xAdvance = 0;
+        int yPlacement = 0;
+        int yAdvance = 0;
         if ((valueFormat & 0x0001) != 0) {
             xPlacement = ReadInt16(offset);
             offset += 2;
         }
-        if ((valueFormat & 0x0002) != 0) offset += 2;
+        if ((valueFormat & 0x0002) != 0) {
+            yPlacement = ReadInt16(offset);
+            offset += 2;
+        }
         if ((valueFormat & 0x0004) != 0) {
             xAdvance = ReadInt16(offset);
             offset += 2;
         }
-        if ((valueFormat & 0x0008) != 0) offset += 2;
-        if ((valueFormat & 0x0010) != 0) {
-            xPlacement = checked(xPlacement + ReadVariationAdjustment(subtable, ReadUInt16(offset)));
+        if ((valueFormat & 0x0008) != 0) {
+            yAdvance = ReadInt16(offset);
             offset += 2;
         }
-        if ((valueFormat & 0x0020) != 0) offset += 2;
-        if ((valueFormat & 0x0040) != 0) {
-            xAdvance = checked(xAdvance + ReadVariationAdjustment(subtable, ReadUInt16(offset)));
+        if ((valueFormat & 0x0010) != 0) {
+            xPlacement = checked(xPlacement + ReadVariationAdjustment(subtable, ReadUInt16(offset), budget));
+            offset += 2;
         }
-        return new OfficeOpenTypePairValue(xPlacement, xAdvance);
+        if ((valueFormat & 0x0020) != 0) {
+            yPlacement = checked(yPlacement + ReadVariationAdjustment(subtable, ReadUInt16(offset), budget));
+            offset += 2;
+        }
+        if ((valueFormat & 0x0040) != 0) {
+            xAdvance = checked(xAdvance + ReadVariationAdjustment(subtable, ReadUInt16(offset), budget));
+            offset += 2;
+        }
+        if ((valueFormat & 0x0080) != 0) {
+            yAdvance = checked(yAdvance + ReadVariationAdjustment(subtable, ReadUInt16(offset), budget));
+        }
+        return new OfficeOpenTypePairValue(xPlacement, xAdvance, yPlacement, yAdvance);
     }
 
-    private int ReadVariationAdjustment(int subtable, ushort relativeOffset) {
+    private int ReadVariationAdjustment(int subtable, ushort relativeOffset, PositioningWorkBudget budget) {
         if (relativeOffset == 0) return 0;
         int variationIndex = checked(subtable + relativeOffset);
-        if (!InBounds(variationIndex, 6)) {
+        if (!InPositioningBounds(variationIndex, 6, budget)) {
             throw new InvalidDataException("A GPOS device or variation-index table is truncated.");
         }
         if (ReadUInt16(variationIndex + 4) != 0x8000) return 0;
@@ -641,10 +681,17 @@ internal sealed class OfficeOpenTypeKerning {
         private const long MaximumOperations = 8_000_000L;
         private readonly CancellationToken _cancellationToken;
         private long _operations;
+        private readonly int _positioningStart;
+        private readonly int _positioningEnd;
 
-        internal PositioningWorkBudget(CancellationToken cancellationToken) {
+        internal PositioningWorkBudget(CancellationToken cancellationToken, int positioningStart = 0, int positioningEnd = int.MaxValue) {
             _cancellationToken = cancellationToken;
+            _positioningStart = positioningStart;
+            _positioningEnd = positioningEnd;
         }
+
+        internal bool Contains(int offset, int count) => count >= 0 && offset >= _positioningStart
+            && offset <= _positioningEnd - count;
 
         internal void Charge() {
             if (++_operations > MaximumOperations) {
@@ -655,13 +702,17 @@ internal sealed class OfficeOpenTypeKerning {
     }
 
     private readonly struct OfficeOpenTypePairValue {
-        internal OfficeOpenTypePairValue(int xPlacement, int xAdvance) {
+        internal OfficeOpenTypePairValue(int xPlacement, int xAdvance, int yPlacement = 0, int yAdvance = 0) {
             XPlacement = xPlacement;
             XAdvance = xAdvance;
+            YPlacement = yPlacement;
+            YAdvance = yAdvance;
         }
 
         internal int XPlacement { get; }
         internal int XAdvance { get; }
+        internal int YPlacement { get; }
+        internal int YAdvance { get; }
     }
 
     private bool TagEquals(int offset, string tag) =>
@@ -670,6 +721,9 @@ internal sealed class OfficeOpenTypeKerning {
         _data[offset + 1] == tag[1] &&
         _data[offset + 2] == tag[2] &&
         _data[offset + 3] == tag[3];
+
+    private bool InPositioningBounds(int offset, int count, PositioningWorkBudget budget) =>
+        InBounds(offset, count) && budget.Contains(offset, count);
 
     private bool InBounds(int offset, int count) => offset >= 0 && count >= 0 && offset <= _data.Length - count;
     private ushort ReadUInt16(int offset) => (ushort)((_data[offset] << 8) | _data[offset + 1]);

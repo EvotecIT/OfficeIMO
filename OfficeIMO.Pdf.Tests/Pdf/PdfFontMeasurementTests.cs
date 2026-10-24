@@ -258,7 +258,7 @@ public class PdfFontMeasurementTests {
 
     [Fact]
     public void DefaultMeasurementPreservesSubstitutionBoundariesAndScalarFallback() {
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn");
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", blankSpace: true);
         var font = PdfTrueTypeFontProgram.Parse(data, "Measurement");
         Assert.Equal(5, font.MeasureTextWidth("fi", 10, PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(10, font.MeasureTextWidth("f\u200Ei", 10, PdfTextShapingMode.OpenTypeLigatures));
@@ -268,7 +268,10 @@ public class PdfFontMeasurementTests {
         Assert.Equal(15, unsupported.MeasureTextWidth("A,B", 10, PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(10, unsupported.MeasureTextWidth("11", 10, PdfTextShapingMode.OpenTypeLigatures));
         var marked = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithInheritedMarkSubstitution(), "Marked");
-        Assert.Equal(15, marked.MeasureTextWidth("A\u0301", 10, PdfTextShapingMode.OpenTypeLigatures));
+        PdfGlyphRun fallback = marked.ShapeText("A\u0301", PdfTextShapingOptions.ForRendering("Marked", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(10, fallback.TotalAdvanceWidth1000 * 10D / 1000D);
+        Assert.Equal(fallback.TotalAdvanceWidth1000 * 10D / 1000D,
+            marked.MeasureTextWidth("A\u0301", 10, PdfTextShapingMode.OpenTypeLigatures));
     }
 
     [Theory]

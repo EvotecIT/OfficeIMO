@@ -53,7 +53,7 @@ internal static partial class TextLayoutEngine {
             ReadingDirection = readingDirection;
             if (spans.Count > 0) {
                 // Compatible directions use one common basis for duplicate comparison.
-                var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]));
+                var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]), useLogicalLayoutBaseline: true);
                 BaselineNormal = baselineNormal ?? spans.Average(coordinates.Normal);
                 BaselineStart = spans.Min(coordinates.Along);
                 BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.LogicalLayoutAdvance));
@@ -287,7 +287,7 @@ internal static partial class TextLayoutEngine {
     }
 
     private static List<List<PdfTextSpan>> SplitWideSameBaselineRuns(List<PdfTextSpan> spans, Options options) {
-        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees);
+        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees, useLogicalLayoutBaseline: true);
         var ordered = spans.OrderBy(coordinates.Along).ToList();
         var runs = new List<List<PdfTextSpan>>();
         var current = new List<PdfTextSpan> { ordered[0] };
@@ -324,11 +324,11 @@ internal static partial class TextLayoutEngine {
             sourceOrder.Select(static span => span.Text));
         // Keep stored geometry left-to-right for table/cell detection while emitting line text
         // in the resolved writing direction.
-        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees);
+        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees, useLogicalLayoutBaseline: true);
         double? baseY = baselineSpans is { Count: > 0 }
-            ? baselineSpans.OrderBy(static span => span.X).First().Y : null;
+            ? baselineSpans.OrderBy(static span => span.LogicalLayoutX).First().LogicalLayoutY : null;
         double? baseNormal = baselineSpans is { Count: > 0 }
-            ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0])).Normal) : null;
+            ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0]), useLogicalLayoutBaseline: true).Normal) : null;
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
         var visualOrder = spans.OrderBy(coordinates.Along).ToList();
         IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
@@ -412,7 +412,7 @@ internal static partial class TextLayoutEngine {
                 ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
                 : NormalizeLineText(outText);
         }
-        return new TextLine(baseY ?? spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans),
+        return new TextLine(baseY ?? spans[0].LogicalLayoutY, xs, xe, outText, new List<PdfTextSpan>(spans),
             options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
     }
 

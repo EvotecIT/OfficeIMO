@@ -196,15 +196,32 @@ public sealed partial class HtmlRenderingTests {
         var font = new OfficeFontInfo("OfficeIMO Shaping Test", 12D);
 
         for (int index = 0; index < HtmlShapedTextMeasurementCache.MaximumEntries * 2; index++) {
-            cache.Store("token-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture), font, index);
+            cache.Store("token-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture), font,
+                OfficeTextFeatureSettings.Default, "ar", index);
         }
-        cache.Store(new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1), font, 1D);
+        string oversizedText = new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1);
+        cache.Store(oversizedText, font, OfficeTextFeatureSettings.Default, "ar", 1D);
 
         Assert.Equal(HtmlShapedTextMeasurementCache.MaximumEntries, cache.Count);
-        Assert.InRange(cache.RetainedTextCharacters, 1, HtmlShapedTextMeasurementCache.MaximumRetainedTextCharacters);
-        Assert.True(cache.TryGet("token-0", font, out double measured));
+        Assert.InRange(cache.RetainedKeyCharacters, 1, HtmlShapedTextMeasurementCache.MaximumRetainedKeyCharacters);
+        Assert.True(cache.TryGet("token-0", font, OfficeTextFeatureSettings.Default, "ar", out double measured));
         Assert.Equal(0D, measured);
-        Assert.False(cache.TryGet(new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1), font, out _));
+        Assert.False(cache.TryGet(oversizedText, font, OfficeTextFeatureSettings.Default, "ar", out _));
+
+        // Language is authored input too; a short text cannot retain an unbounded
+        // language key, and successful repeated stores must not consume its budget.
+        var languageCache = new HtmlShapedTextMeasurementCache();
+        string language = new string('x', HtmlShapedTextMeasurementCache.MaximumRetainedKeyCharacters - 1);
+        languageCache.Store("A", font, OfficeTextFeatureSettings.Default, language, 8D);
+        languageCache.Store("A", font, OfficeTextFeatureSettings.Default, language, 8D);
+        languageCache.Store("B", font, OfficeTextFeatureSettings.Default, "ar", 8D);
+        Assert.Equal(1, languageCache.Count);
+        Assert.Equal(HtmlShapedTextMeasurementCache.MaximumRetainedKeyCharacters, languageCache.RetainedKeyCharacters);
+        Assert.True(languageCache.TryGet("A", font, OfficeTextFeatureSettings.Default, language, out _));
+        var rejected = new HtmlShapedTextMeasurementCache();
+        rejected.Store("A", font, OfficeTextFeatureSettings.Default, language + "x", 8D);
+        Assert.Equal(0, rejected.Count);
+        Assert.Equal(0, rejected.RetainedKeyCharacters);
     }
 
     [Theory]

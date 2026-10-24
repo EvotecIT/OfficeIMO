@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private const int MaximumTextLayoutLines = 100_000;
+    internal const int MaximumTextLayoutLines = 100_000;
     private const double DefaultParagraphTabStopWidth = 36D;
     private static readonly char[] TokenSplitChars = new[] { ' ', '\n', '\t' };
     private static readonly char[] HardLineSplitChars = new[] { '\n' };
@@ -87,30 +87,38 @@ internal static partial class PdfWriter {
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
             if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                 namedFontProgram != null) {
-                return CanWriteWithEmbeddedFont(text, namedFontProgram, options.TextShapingModeSnapshot);
+                return CanWriteWithEmbeddedFont(text, namedFontProgram, options.TextShapingModeSnapshot,
+                    CreateSelectedManagedCoverageOptions(options, namedFontProgram.FontName, run,
+                        options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
 
             if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                 namedCffFontProgram != null) {
-                return CanWriteWithEmbeddedFont(text, namedCffFontProgram, options.TextShapingModeSnapshot);
+                return CanWriteWithEmbeddedFont(text, namedCffFontProgram, options.TextShapingModeSnapshot,
+                    CreateSelectedManagedCoverageOptions(options, namedCffFontProgram.FontName, run,
+                        options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
         }
 
         PdfStandardFont fontForRun = ResolveFontForRun(run, baseFont);
-        return CanWriteTextWithSelectedFont(text, fontForRun, options);
+        return CanWriteTextWithSelectedFont(text, fontForRun, options, run);
     }
 
-    private static bool CanWriteTextWithSelectedFont(string text, PdfStandardFont fontForRun, PdfOptions? options) {
+    private static bool CanWriteTextWithSelectedFont(string text, PdfStandardFont fontForRun, PdfOptions? options, PdfTextRun run) {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, fontProgram, options.TextShapingModeSnapshot);
+            return CanWriteWithEmbeddedFont(text, fontProgram, options.TextShapingModeSnapshot,
+                CreateSelectedManagedCoverageOptions(options, fontProgram.FontName, run,
+                    options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, cffFontProgram, options.TextShapingModeSnapshot);
+            return CanWriteWithEmbeddedFont(text, cffFontProgram, options.TextShapingModeSnapshot,
+                CreateSelectedManagedCoverageOptions(options, cffFontProgram.FontName, run,
+                    options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
 
         return PdfWinAnsiEncoding.CanEncode(text, out _);
@@ -127,8 +135,10 @@ internal static partial class PdfWriter {
                     : runBaseFont;
     }
 
-    private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram,
+        PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? managedCoverage = null) {
         text = WithoutOptionalBreaks(text);
+        if (TryGetSelectedManagedCoverage(text, fontProgram, managedCoverage, out bool covered)) return covered;
         int index = 0;
         while (index < text.Length) {
             int scalarStart = index;
@@ -171,8 +181,10 @@ internal static partial class PdfWriter {
         return fontProgram.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
     }
 
-    private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram,
+        PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? managedCoverage = null) {
         text = WithoutOptionalBreaks(text);
+        if (TryGetSelectedManagedCoverage(text, fontProgram, managedCoverage, out bool covered)) return covered;
         int index = 0;
         while (index < text.Length) {
             int scalarStart = index;

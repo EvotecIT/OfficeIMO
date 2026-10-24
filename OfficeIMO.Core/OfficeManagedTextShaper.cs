@@ -6,6 +6,30 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeManagedTextShaper {
+    /// <summary>Identifies non-painting shaping controls while retaining their logical source and lookup boundaries.</summary>
+    internal static bool IsNonPaintingControl(int scalar) {
+        // Noncharacters have bidi class BN, but are not default-ignorable
+        // shaping controls. A blank space cannot supply their font coverage.
+        if (scalar is >= 0xFDD0 and <= 0xFDEF || (scalar & 0xFFFF) is 0xFFFE or 0xFFFF) return false;
+        return scalar is 0x034F or 0x061C or 0x200E or 0x200F
+        || OfficeUnicodeBidi.GetClass(scalar) is OfficeBidiClass.BN or OfficeBidiClass.LRE or OfficeBidiClass.RLE
+            or OfficeBidiClass.LRO or OfficeBidiClass.RLO or OfficeBidiClass.PDF or OfficeBidiClass.LRI
+            or OfficeBidiClass.RLI or OfficeBidiClass.FSI or OfficeBidiClass.PDI;
+    }
+
+    /// <summary>Finds controls that require explicit nonpainting glyphs and original-source ownership.</summary>
+    internal static bool ContainsNonPaintingControl(string text, System.Threading.CancellationToken cancellationToken) {
+        for (int index = 0; index < text.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = text[index];
+            if (current is >= ' ' and <= '~') continue;
+            int scalar = char.IsHighSurrogate(current) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])
+                ? char.ConvertToUtf32(current, text[++index]) : current;
+            if (IsNonPaintingControl(scalar)) return true;
+        }
+        return false;
+    }
+
     internal static OfficeManagedTextFallback Resolve(
         string text,
         IOfficeFontProgram font,

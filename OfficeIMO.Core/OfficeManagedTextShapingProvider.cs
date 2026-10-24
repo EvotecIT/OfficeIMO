@@ -5,8 +5,8 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Dependency-light shaping provider for bounded Arabic joining, bidirectional text, and common
-/// OpenType substitutions that can be represented by a TrueType-outline font.
+/// Dependency-light shaping provider for bounded Arabic joining and ligatures, bidirectional text,
+/// and font-directed Latin, Hebrew and Arabic mark positioning in static TrueType and OpenType/CFF fonts.
 /// </summary>
 /// <remarks>
 /// The provider deliberately declines scripts and lookup types that require shaping beyond the
@@ -39,6 +39,29 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     }
 
     private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        bool controls = OfficeManagedTextShaper.ContainsNonPaintingControl(request.Text, request.CancellationToken);
+        // A resolved slice contains original visible source, not a second set
+        // of embedding directives for the provider to interpret again.
+        if (request.ResolvedDirectionalRun && OfficeTextElements.ContainsBidiControl(request.Text)) return null;
+        bool forcedDirection = RequiresResolvedTypography(request);
+        if (forcedDirection && allowDiagnosedFallback) return null;
+        if (!allowDiagnosedFallback && controls && !forcedDirection) {
+            OfficeTextShapingResult? variable = ShapeNominalVariableControls(request);
+            if (variable != null) return variable;
+        }
+        if (!allowDiagnosedFallback &&
+            (forcedDirection || controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
+            if (typography != null) return typography;
+            // A partial font-directed run cannot turn into an undiagnosed approximation.
+            // The old length-preserving joining route remains useful for simple fonts.
+            if (forcedDirection || controls || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
+                OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
+        }
+        // Legacy visual tokens omit default ignorables. Their useful diagnosed
+        // approximation cannot claim a complete result that drops source controls.
+        if (controls) return null;
         if (!TryShapeTokens(request, out IOfficeFontProgram font, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
             out OfficeTextDirection resolvedDirection, allowDiagnosedFallback)) return null;
         // Pair kerning is a default OpenType feature; only an explicit kern=0 disables it.
@@ -52,6 +75,8 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
         OfficeOpenTypeGlyphPositioning[] positioning = kerningEnabled
             ? PositionGlyphRun(font, glyphIds, scalars, request.CancellationToken)
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
+        if (!allowDiagnosedFallback && kerningValue > 0 &&
+            !CanRepresentExplicitKerning(font, tokens, request, positioning)) return null;
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
         var advanceAdjustments = new List<int>(tokens.Count);
         for (int index = 0; index < tokens.Count; index++) {
@@ -137,6 +162,23 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
         if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars, cancellationToken);
         if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars, cancellationToken);
         return new OfficeOpenTypeGlyphPositioning[glyphIds.Count];
+    }
+
+    // An explicit positive kern request cannot claim success when active font
+    // positioning differs from the legacy pair-only result. Default token and
+    // measurement consumers retain their established positioning route.
+    private static bool CanRepresentExplicitKerning(IOfficeFontProgram font,
+        IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request,
+        OfficeOpenTypeGlyphPositioning[] positioning) {
+        if (!TryPositionTypography(font, tokens, request, out OfficeOpenTypeGlyphPositioning[] strict)
+            || strict.Length != positioning.Length) return false;
+        for (int index = 0; index < positioning.Length; index++) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            if (strict[index].XPlacement != positioning[index].XPlacement
+                || strict[index].XAdvance != positioning[index].XAdvance
+                || strict[index].YPlacement != 0 || strict[index].YAdvance != 0) return false;
+        }
+        return true;
     }
 
     private static bool IsBidiControlElement(string value) =>
