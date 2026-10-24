@@ -1,8 +1,8 @@
 {
-  "generatedAtUtc": "2026-10-17T06:33:23.4175910Z",
+  "generatedAtUtc": "2026-10-24T11:57:54.3711547Z",
   "sourceCount": 3,
-  "referenceCount": 105864,
-  "duplicateCount": 0,
+  "referenceCount": 105889,
+  "duplicateCount": 59,
   "references": [
     {
       "uid": "Add-OfficeExcelAutoFilter",
@@ -34709,6 +34709,15 @@
       ]
     },
     {
+      "uid": "F:OfficeIMO.Html.HtmlCapabilitySpecificationIds.Unicode16",
+      "name": "HtmlCapabilitySpecificationIds.Unicode16",
+      "href": "/api/html/officeimo-html-htmlcapabilityspecificationids/#field-unicode16",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlCapabilitySpecificationIds.Unicode16",
+        "OfficeIMO.Html.HtmlCapabilitySpecificationIds.Unicode16"
+      ]
+    },
+    {
       "uid": "F:OfficeIMO.Html.HtmlCapabilitySpecificationIds.Unicode17",
       "name": "HtmlCapabilitySpecificationIds.Unicode17",
       "href": "/api/html/officeimo-html-htmlcapabilityspecificationids/#field-unicode17",
@@ -36065,6 +36074,15 @@
       "aliases": [
         "global::OfficeIMO.Html.HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported",
         "OfficeIMO.Html.HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.Html.HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending",
+      "name": "HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending",
+      "href": "/api/html/officeimo-html-htmlrenderdiagnosticcodes/#field-constrainedoverflowpaginationpending",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending",
+        "OfficeIMO.Html.HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending"
       ]
     },
     {
@@ -83306,276 +83324,6 @@
       "aliases": [
         "global::OfficeIMO.Word.WordImageCompressionQuality.Screen",
         "OfficeIMO.Word.WordImageCompressionQuality.Screen"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingImageWrap",
-      "name": "WordImageExportDiagnosticCodes.LimitedFloatingImageWrap",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedfloatingimagewrap",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingImageWrap",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingImageWrap"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap",
-      "name": "WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedfloatingshapewrap",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap",
-      "name": "WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedfloatingtextboxwrap",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback",
-      "name": "WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedpicturebullettextfallback",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedPictureBulletTextFallback"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmallCaps",
-      "name": "WordImageExportDiagnosticCodes.LimitedSmallCaps",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedsmallcaps",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmallCaps",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmallCaps"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmartArt",
-      "name": "WordImageExportDiagnosticCodes.LimitedSmartArt",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-limitedsmartart",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmartArt",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.LimitedSmartArt"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedBodyElement",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedBodyElement",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedbodyelement",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedBodyElement",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedBodyElement"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedChart",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedChart",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedchart",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedChart",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedChart"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedExternalImage",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedExternalImage",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedexternalimage",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedExternalImage",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedExternalImage"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFloatingImage",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedFloatingImage",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedfloatingimage",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFloatingImage",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFloatingImage"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterElement",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedFooterElement",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedfooterelement",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterElement",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterElement"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedFooterOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedfooteroverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedFooterOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderElement",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedHeaderElement",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedheaderelement",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderElement",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderElement"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedheaderfooterelement",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterMeasurementOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedHeaderFooterMeasurementOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedheaderfootermeasurementoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterMeasurementOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderFooterMeasurementOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedHeaderOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedheaderoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedHeaderOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedImage",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedImage",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedimage",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedImage",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedImage"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedKeepMeasurementOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedKeepMeasurementOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedkeepmeasurementoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedKeepMeasurementOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedKeepMeasurementOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTable",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedNestedTable",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportednestedtable",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTable",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTable"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTableOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedNestedTableOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportednestedtableoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTableOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedNestedTableOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPageIndex",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedPageIndex",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedpageindex",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPageIndex",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPageIndex"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPagination",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedPagination",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedpagination",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPagination",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedPagination"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedShape",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedShape",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedshape",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedShape",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedShape"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedSmartArt",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedSmartArt",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedsmartart",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedSmartArt",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedSmartArt"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellMeasurementOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTableCellMeasurementOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtablecellmeasurementoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellMeasurementOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellMeasurementOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellTextOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTableCellTextOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtablecelltextoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellTextOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableCellTextOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableHeaderPagination",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTableHeaderPagination",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtableheaderpagination",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableHeaderPagination",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableHeaderPagination"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableImageOverflow",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTableImageOverflow",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtableimageoverflow",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableImageOverflow",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableImageOverflow"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableRowPagination",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTableRowPagination",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtablerowpagination",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableRowPagination",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTableRowPagination"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTextBox",
-      "name": "WordImageExportDiagnosticCodes.UnsupportedTextBox",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#field-unsupportedtextbox",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTextBox",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.UnsupportedTextBox"
       ]
     },
     {
@@ -266277,16 +266025,6 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Html.HtmlTargetCapabilityContract.#ctor(OfficeIMO.Html.HtmlConversionTarget,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature})",
-      "name": "HtmlTargetCapabilityContract.HtmlTargetCapabilityContract",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#constructor-ctor-officeimo-html-htmlconversiontarget-string-string-string-string-string-string-string-collections-generic-ienumerable-system-string-collections-generic-ienumerable-officeimo-html-htmlsemanticfeature-collections-generic-ienumerable-officeimo-html-htmlsemanticfeature-collections-generic-ienumerable-officeimo-html-htmlsemanticfeature",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.#ctor",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.#ctor",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.#ctor(OfficeIMO.Html.HtmlConversionTarget,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature},System.Collections.Generic.IEnumerable{OfficeIMO.Html.HtmlSemanticFeature})"
-      ]
-    },
-    {
       "uid": "M:OfficeIMO.Html.HtmlTargetCapabilityContract.Equals(System.Object)",
       "name": "HtmlTargetCapabilityContract.Equals",
       "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#method-equals-object",
@@ -266303,16 +266041,6 @@
       "aliases": [
         "global::OfficeIMO.Html.HtmlTargetCapabilityContract.GetHashCode",
         "OfficeIMO.Html.HtmlTargetCapabilityContract.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Html.HtmlTargetCapabilityContract.GetSupport(OfficeIMO.Html.HtmlSemanticFeature)",
-      "name": "HtmlTargetCapabilityContract.GetSupport",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#method-getsupport-officeimo-html-htmlsemanticfeature",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.GetSupport",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.GetSupport",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.GetSupport(OfficeIMO.Html.HtmlSemanticFeature)"
       ]
     },
     {
@@ -267692,6 +267420,16 @@
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate(OfficeIMO.Html.HtmlConversionDocument,System.Byte[])"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate(OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult,System.Threading.CancellationToken)",
+      "name": "HtmlPdfAccessibilityValidator.Validate",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-validate-officeimo-html-pdf-htmlpdfrenderrequestresult-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
+        "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
+        "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate(OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -528543,7 +528281,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.LegacyDocPdfConverter.Equals(System.Object)",
       "name": "LegacyDocPdfConverter.Equals",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/#method-equals-object",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter.Equals",
         "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.Equals",
@@ -528553,7 +528291,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetHashCode",
       "name": "LegacyDocPdfConverter.GetHashCode",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/#method-gethashcode",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetHashCode",
         "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetHashCode"
@@ -528562,7 +528300,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetType",
       "name": "LegacyDocPdfConverter.GetType",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/#method-gettype",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetType",
         "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.GetType"
@@ -528571,7 +528309,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToPdfDocumentResult(System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions,OfficeIMO.OfficeConversionLossPolicy,System.Threading.CancellationToken)",
       "name": "LegacyDocPdfConverter.ToPdfDocumentResult",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/#method-topdfdocumentresult-io-stream-officeimo-word-pdf-wordtopdfoptions-officeimo-word-legacydoc-legacydocimportoptions-officeimo-officeconversionlosspolicy-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/#method-topdfdocumentresult-io-stream-officeimo-word-pdf-wordtopdfoptions-officeimo-word-legacydoc-legacydocimportoptions-officeimo-officeconversionlosspolicy-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToPdfDocumentResult",
         "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToPdfDocumentResult",
@@ -528581,7 +528319,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToString",
       "name": "LegacyDocPdfConverter.ToString",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/#method-tostring",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToString",
         "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToString"
@@ -528590,7 +528328,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.#ctor(System.String,System.String,System.String)",
       "name": "PdfExportWarning.PdfExportWarning",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#constructor-ctor-string-string-string",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#constructor-ctor-string-string-string",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.#ctor",
         "OfficeIMO.Word.Pdf.PdfExportWarning.#ctor",
@@ -528600,7 +528338,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.Equals(System.Object)",
       "name": "PdfExportWarning.Equals",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#method-equals-object",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.Equals",
         "OfficeIMO.Word.Pdf.PdfExportWarning.Equals",
@@ -528610,7 +528348,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.GetHashCode",
       "name": "PdfExportWarning.GetHashCode",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#method-gethashcode",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.GetHashCode",
         "OfficeIMO.Word.Pdf.PdfExportWarning.GetHashCode"
@@ -528619,7 +528357,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.GetType",
       "name": "PdfExportWarning.GetType",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#method-gettype",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.GetType",
         "OfficeIMO.Word.Pdf.PdfExportWarning.GetType"
@@ -528628,7 +528366,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.ToConversionWarning",
       "name": "PdfExportWarning.ToConversionWarning",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#method-toconversionwarning",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#method-toconversionwarning",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.ToConversionWarning",
         "OfficeIMO.Word.Pdf.PdfExportWarning.ToConversionWarning"
@@ -528637,7 +528375,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.PdfExportWarning.ToString",
       "name": "PdfExportWarning.ToString",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#method-tostring",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.ToString",
         "OfficeIMO.Word.Pdf.PdfExportWarning.ToString"
@@ -529073,7 +528811,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.Equals(System.Object)",
       "name": "WordPdfConverterExtensions.Equals",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-equals-object",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.Equals",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.Equals",
@@ -529083,7 +528821,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetHashCode",
       "name": "WordPdfConverterExtensions.GetHashCode",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-gethashcode",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetHashCode",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetHashCode"
@@ -529092,7 +528830,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetType",
       "name": "WordPdfConverterExtensions.GetType",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-gettype",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetType",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.GetType"
@@ -529101,7 +528839,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdf",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdf-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdf-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf",
@@ -529111,7 +528849,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdf",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdf-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdf-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf",
@@ -529121,7 +528859,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfAsync",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync",
@@ -529131,7 +528869,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfAsync",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync",
@@ -529141,7 +528879,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfResult",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresult-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresult-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult",
@@ -529151,7 +528889,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfResult",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresult-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresult-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult",
@@ -529161,7 +528899,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfResultAsync",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresultasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresultasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync",
@@ -529171,7 +528909,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.SaveAsPdfResultAsync",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresultasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-saveaspdfresultasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync",
@@ -529181,7 +528919,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.ToPdfBytes",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfbytes-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfbytes-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes",
@@ -529191,7 +528929,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.ToPdfDocument",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfdocument-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfdocument-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument",
@@ -529201,7 +528939,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
       "name": "WordPdfConverterExtensions.ToPdfDocumentResult",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfdocumentresult-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-topdfdocumentresult-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult",
@@ -529211,7 +528949,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToString",
       "name": "WordPdfConverterExtensions.ToString",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/#method-tostring",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToString",
         "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToString"
@@ -529220,7 +528958,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.#ctor",
       "name": "WordToPdfOptions.WordToPdfOptions",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#constructor-ctor",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#constructor-ctor",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.#ctor",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.#ctor"
@@ -529229,7 +528967,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.Clone",
       "name": "WordToPdfOptions.Clone",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-clone",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-clone",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Clone",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Clone"
@@ -529238,7 +528976,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.Equals(System.Object)",
       "name": "WordToPdfOptions.Equals",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-equals-object",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Equals",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Equals",
@@ -529248,7 +528986,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.GetHashCode",
       "name": "WordToPdfOptions.GetHashCode",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-gethashcode",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.GetHashCode",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.GetHashCode"
@@ -529257,7 +528995,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.GetType",
       "name": "WordToPdfOptions.GetType",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-gettype",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.GetType",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.GetType"
@@ -529266,7 +529004,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.ToString",
       "name": "WordToPdfOptions.ToString",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-tostring",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.ToString",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.ToString"
@@ -529275,7 +529013,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.UseProfile(OfficeIMO.Pdf.PdfExportProfile)",
       "name": "WordToPdfOptions.UseProfile",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-useprofile-officeimo-pdf-pdfexportprofile",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-useprofile-officeimo-pdf-pdfexportprofile",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.UseProfile",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.UseProfile",
@@ -529285,7 +529023,7 @@
     {
       "uid": "M:OfficeIMO.Word.Pdf.WordToPdfOptions.UseRenderingProfile(OfficeIMO.Drawing.OfficeRenderingProfile,OfficeIMO.Drawing.OfficeRenderingProfileApplyMode)",
       "name": "WordToPdfOptions.UseRenderingProfile",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#method-userenderingprofile-officeimo-drawing-officerenderingprofile-officeimo-drawing-officerenderingprofileapplymode",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#method-userenderingprofile-officeimo-drawing-officerenderingprofile-officeimo-drawing-officerenderingprofileapplymode",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.UseRenderingProfile",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.UseRenderingProfile",
@@ -531526,6 +531264,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordChart.SetCountAxis(System.Nullable{System.UInt32})",
+      "name": "WordChart.SetCountAxis",
+      "href": "/api/word/officeimo-word-wordchart/#method-setcountaxis-nullable-system-uint32",
+      "aliases": [
+        "global::OfficeIMO.Word.WordChart.SetCountAxis",
+        "OfficeIMO.Word.WordChart.SetCountAxis",
+        "OfficeIMO.Word.WordChart.SetCountAxis(System.Nullable{System.UInt32})"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordChart.SetData(OfficeIMO.Drawing.OfficeChartKind,OfficeIMO.Drawing.OfficeChartData)",
       "name": "WordChart.SetData",
       "href": "/api/word/officeimo-word-wordchart/#method-setdata-officeimo-drawing-officechartkind-officeimo-drawing-officechartdata",
@@ -531543,6 +531291,16 @@
         "global::OfficeIMO.Word.WordChart.SetDataPointStyle",
         "OfficeIMO.Word.WordChart.SetDataPointStyle",
         "OfficeIMO.Word.WordChart.SetDataPointStyle(System.Int32,System.UInt32,OfficeIMO.Drawing.OfficeChartPointStyle)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordChart.SetPaperStyle(System.Boolean,System.String)",
+      "name": "WordChart.SetPaperStyle",
+      "href": "/api/word/officeimo-word-wordchart/#method-setpaperstyle-boolean-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordChart.SetPaperStyle",
+        "OfficeIMO.Word.WordChart.SetPaperStyle",
+        "OfficeIMO.Word.WordChart.SetPaperStyle(System.Boolean,System.String)"
       ]
     },
     {
@@ -535294,12 +535052,32 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordDocument.CreateFromTemplate(System.String)",
+      "name": "WordDocument.CreateFromTemplate",
+      "href": "/api/word/officeimo-word-worddocument/#method-createfromtemplate-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.CreateFromTemplate",
+        "OfficeIMO.Word.WordDocument.CreateFromTemplate",
+        "OfficeIMO.Word.WordDocument.CreateFromTemplate(System.String)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordDocument.CreateInspectionSnapshot",
       "name": "WordDocument.CreateInspectionSnapshot",
       "href": "/api/word/officeimo-word-worddocument/#method-createinspectionsnapshot",
       "aliases": [
         "global::OfficeIMO.Word.WordDocument.CreateInspectionSnapshot",
         "OfficeIMO.Word.WordDocument.CreateInspectionSnapshot"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.CreateInspectionSnapshot(System.Boolean,System.Threading.CancellationToken)",
+      "name": "WordDocument.CreateInspectionSnapshot",
+      "href": "/api/word/officeimo-word-worddocument/#method-createinspectionsnapshot-boolean-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.CreateInspectionSnapshot",
+        "OfficeIMO.Word.WordDocument.CreateInspectionSnapshot",
+        "OfficeIMO.Word.WordDocument.CreateInspectionSnapshot(System.Boolean,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -535618,6 +535396,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordDocument.GetEmbeddedPayloads(OfficeIMO.OfficeEmbeddedPayloadInspectionOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.GetEmbeddedPayloads",
+      "href": "/api/word/officeimo-word-worddocument/#method-getembeddedpayloads-officeimo-officeembeddedpayloadinspectionoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.GetEmbeddedPayloads",
+        "OfficeIMO.Word.WordDocument.GetEmbeddedPayloads",
+        "OfficeIMO.Word.WordDocument.GetEmbeddedPayloads(OfficeIMO.OfficeEmbeddedPayloadInspectionOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordDocument.GetEmbeddedPayloads(System.Boolean)",
       "name": "WordDocument.GetEmbeddedPayloads",
       "href": "/api/word/officeimo-word-worddocument/#method-getembeddedpayloads-boolean",
@@ -535843,6 +535631,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordDocument.InspectEmbeddedPayloads(OfficeIMO.OfficeEmbeddedPayloadInspectionOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.InspectEmbeddedPayloads",
+      "href": "/api/word/officeimo-word-worddocument/#method-inspectembeddedpayloads-officeimo-officeembeddedpayloadinspectionoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.InspectEmbeddedPayloads",
+        "OfficeIMO.Word.WordDocument.InspectEmbeddedPayloads",
+        "OfficeIMO.Word.WordDocument.InspectEmbeddedPayloads(OfficeIMO.OfficeEmbeddedPayloadInspectionOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordDocument.InspectFeatures",
       "name": "WordDocument.InspectFeatures",
       "href": "/api/word/officeimo-word-worddocument/#method-inspectfeatures",
@@ -535858,6 +535656,16 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocument.InspectFields",
         "OfficeIMO.Word.WordDocument.InspectFields"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.InspectLoadedContentSafety(OfficeIMO.ContentSafety.OfficeContentSafetyOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.InspectLoadedContentSafety",
+      "href": "/api/word/officeimo-word-worddocument/#method-inspectloadedcontentsafety-officeimo-contentsafety-officecontentsafetyoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.InspectLoadedContentSafety",
+        "OfficeIMO.Word.WordDocument.InspectLoadedContentSafety",
+        "OfficeIMO.Word.WordDocument.InspectLoadedContentSafety(OfficeIMO.ContentSafety.OfficeContentSafetyOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -535920,6 +535728,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordDocument.InspectReview(System.Threading.CancellationToken)",
+      "name": "WordDocument.InspectReview",
+      "href": "/api/word/officeimo-word-worddocument/#method-inspectreview-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.InspectReview",
+        "OfficeIMO.Word.WordDocument.InspectReview",
+        "OfficeIMO.Word.WordDocument.InspectReview(System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordDocument.InspectReviewReport(OfficeIMO.Word.WordRevisionOperationReport[])",
       "name": "WordDocument.InspectReviewReport",
       "href": "/api/word/officeimo-word-worddocument/#method-inspectreviewreport-officeimo-word-wordrevisionoperationreport",
@@ -535956,6 +535774,15 @@
         "global::OfficeIMO.Word.WordDocument.InspectVbaProject",
         "OfficeIMO.Word.WordDocument.InspectVbaProject",
         "OfficeIMO.Word.WordDocument.InspectVbaProject(System.Boolean,System.Int64)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.InspectVbaProjectMetadata",
+      "name": "WordDocument.InspectVbaProjectMetadata",
+      "href": "/api/word/officeimo-word-worddocument/#method-inspectvbaprojectmetadata",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.InspectVbaProjectMetadata",
+        "OfficeIMO.Word.WordDocument.InspectVbaProjectMetadata"
       ]
     },
     {
@@ -536105,6 +535932,16 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocument.NormalizeTablesForOnline",
         "OfficeIMO.Word.WordDocument.NormalizeTablesForOnline"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.OpenEmbeddedPayload(System.String,System.Int64,System.Threading.CancellationToken)",
+      "name": "WordDocument.OpenEmbeddedPayload",
+      "href": "/api/word/officeimo-word-worddocument/#method-openembeddedpayload-string-int64-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.OpenEmbeddedPayload",
+        "OfficeIMO.Word.WordDocument.OpenEmbeddedPayload",
+        "OfficeIMO.Word.WordDocument.OpenEmbeddedPayload(System.String,System.Int64,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -536527,6 +536364,86 @@
         "global::OfficeIMO.Word.WordDocument.SaveAsJpegAsync",
         "OfficeIMO.Word.WordDocument.SaveAsJpegAsync",
         "OfficeIMO.Word.WordDocument.SaveAsJpegAsync(System.String,OfficeIMO.Word.WordImageExportOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdf",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdf-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdf",
+        "OfficeIMO.Word.WordDocument.SaveAsPdf",
+        "OfficeIMO.Word.WordDocument.SaveAsPdf(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdf(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdf",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdf-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdf",
+        "OfficeIMO.Word.WordDocument.SaveAsPdf",
+        "OfficeIMO.Word.WordDocument.SaveAsPdf(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfAsync",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfAsync",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfResult",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfresult-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfResult",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResult",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfResult",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfresult-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfResult",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResult",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResult(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfResultAsync",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfresultasync-officeimo-word-worddocument-io-stream-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.IO.Stream,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.SaveAsPdfResultAsync",
+      "href": "/api/word/officeimo-word-worddocument/#extension-saveaspdfresultasync-officeimo-word-worddocument-string-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Word.WordDocument.SaveAsPdfResultAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -536975,6 +536892,36 @@
         "global::OfficeIMO.Word.WordDocument.ToJpeg",
         "OfficeIMO.Word.WordDocument.ToJpeg",
         "OfficeIMO.Word.WordDocument.ToJpeg(OfficeIMO.Word.WordImageExportOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.ToPdfBytes(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.ToPdfBytes",
+      "href": "/api/word/officeimo-word-worddocument/#extension-topdfbytes-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.ToPdfBytes",
+        "OfficeIMO.Word.WordDocument.ToPdfBytes",
+        "OfficeIMO.Word.WordDocument.ToPdfBytes(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.ToPdfDocument(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.ToPdfDocument",
+      "href": "/api/word/officeimo-word-worddocument/#extension-topdfdocument-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.ToPdfDocument",
+        "OfficeIMO.Word.WordDocument.ToPdfDocument",
+        "OfficeIMO.Word.WordDocument.ToPdfDocument(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordDocument.ToPdfDocumentResult(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)",
+      "name": "WordDocument.ToPdfDocumentResult",
+      "href": "/api/word/officeimo-word-worddocument/#extension-topdfdocumentresult-officeimo-word-worddocument-officeimo-word-pdf-wordtopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.ToPdfDocumentResult",
+        "OfficeIMO.Word.WordDocument.ToPdfDocumentResult",
+        "OfficeIMO.Word.WordDocument.ToPdfDocumentResult(OfficeIMO.Word.WordDocument,OfficeIMO.Word.Pdf.WordToPdfOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -537771,16 +537718,6 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Word.WordDocumentImageExportBuilder.IncludeContent(System.Boolean)",
-      "name": "WordDocumentImageExportBuilder.IncludeContent",
-      "href": "/api/word/officeimo-word-worddocumentimageexportbuilder/#method-includecontent-boolean",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentImageExportBuilder.IncludeContent",
-        "OfficeIMO.Word.WordDocumentImageExportBuilder.IncludeContent",
-        "OfficeIMO.Word.WordDocumentImageExportBuilder.IncludeContent(System.Boolean)"
-      ]
-    },
-    {
       "uid": "M:OfficeIMO.Word.WordDocumentImageExportBuilder.OnFileConflict(OfficeImageExportFileConflictPolicy)",
       "name": "WordDocumentImageExportBuilder.OnFileConflict",
       "href": "/api/word/officeimo-word-worddocumentimageexportbuilder/#method-onfileconflict-officeimageexportfileconflictpolicy",
@@ -537926,15 +537863,6 @@
         "global::OfficeIMO.Word.WordDocumentImageExportBuilder.WithMaximumRasterPixels",
         "OfficeIMO.Word.WordDocumentImageExportBuilder.WithMaximumRasterPixels",
         "OfficeIMO.Word.WordDocumentImageExportBuilder.WithMaximumRasterPixels(System.Int64)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentImageExportBuilder.WithoutContent",
-      "name": "WordDocumentImageExportBuilder.WithoutContent",
-      "href": "/api/word/officeimo-word-worddocumentimageexportbuilder/#method-withoutcontent",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentImageExportBuilder.WithoutContent",
-        "OfficeIMO.Word.WordDocumentImageExportBuilder.WithoutContent"
       ]
     },
     {
@@ -538224,16 +538152,6 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocumentPageImageExportBuilder.GetType",
         "OfficeIMO.Word.WordDocumentPageImageExportBuilder.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentPageImageExportBuilder.IncludeContent(System.Boolean)",
-      "name": "WordDocumentPageImageExportBuilder.IncludeContent",
-      "href": "/api/word/officeimo-word-worddocumentpageimageexportbuilder/#method-includecontent-boolean",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentPageImageExportBuilder.IncludeContent",
-        "OfficeIMO.Word.WordDocumentPageImageExportBuilder.IncludeContent",
-        "OfficeIMO.Word.WordDocumentPageImageExportBuilder.IncludeContent(System.Boolean)"
       ]
     },
     {
@@ -538985,80 +538903,6 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocumentVariables.ToString",
         "OfficeIMO.Word.WordDocumentVariables.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualFragment.Equals(System.Object)",
-      "name": "WordDocumentVisualFragment.Equals",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.Equals",
-        "OfficeIMO.Word.WordDocumentVisualFragment.Equals",
-        "OfficeIMO.Word.WordDocumentVisualFragment.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualFragment.GetHashCode",
-      "name": "WordDocumentVisualFragment.GetHashCode",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.GetHashCode",
-        "OfficeIMO.Word.WordDocumentVisualFragment.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualFragment.GetType",
-      "name": "WordDocumentVisualFragment.GetType",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.GetType",
-        "OfficeIMO.Word.WordDocumentVisualFragment.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualFragment.ToString",
-      "name": "WordDocumentVisualFragment.ToString",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.ToString",
-        "OfficeIMO.Word.WordDocumentVisualFragment.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualRegion.Equals(System.Object)",
-      "name": "WordDocumentVisualRegion.Equals",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.Equals",
-        "OfficeIMO.Word.WordDocumentVisualRegion.Equals",
-        "OfficeIMO.Word.WordDocumentVisualRegion.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualRegion.GetHashCode",
-      "name": "WordDocumentVisualRegion.GetHashCode",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.GetHashCode",
-        "OfficeIMO.Word.WordDocumentVisualRegion.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualRegion.GetType",
-      "name": "WordDocumentVisualRegion.GetType",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.GetType",
-        "OfficeIMO.Word.WordDocumentVisualRegion.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordDocumentVisualRegion.ToString",
-      "name": "WordDocumentVisualRegion.ToString",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.ToString",
-        "OfficeIMO.Word.WordDocumentVisualRegion.ToString"
       ]
     },
     {
@@ -543554,43 +543398,6 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Word.WordImageExportDiagnosticCodes.Equals(System.Object)",
-      "name": "WordImageExportDiagnosticCodes.Equals",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.Equals",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.Equals",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordImageExportDiagnosticCodes.GetHashCode",
-      "name": "WordImageExportDiagnosticCodes.GetHashCode",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.GetHashCode",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordImageExportDiagnosticCodes.GetType",
-      "name": "WordImageExportDiagnosticCodes.GetType",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.GetType",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.Word.WordImageExportDiagnosticCodes.ToString",
-      "name": "WordImageExportDiagnosticCodes.ToString",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes.ToString",
-        "OfficeIMO.Word.WordImageExportDiagnosticCodes.ToString"
-      ]
-    },
-    {
       "uid": "M:OfficeIMO.Word.WordImageExportOptions.#ctor",
       "name": "WordImageExportOptions.WordImageExportOptions",
       "href": "/api/word/officeimo-word-wordimageexportoptions/#constructor-ctor",
@@ -547886,6 +547693,356 @@
       "aliases": [
         "global::OfficeIMO.Word.WordPageSizes.ToString",
         "OfficeIMO.Word.WordPageSizes.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperMetric.#ctor(System.String,System.String,System.String,System.String)",
+      "name": "WordPaperMetric.WordPaperMetric",
+      "href": "/api/word/officeimo-word-wordpapermetric/#constructor-ctor-string-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.#ctor",
+        "OfficeIMO.Word.WordPaperMetric.#ctor",
+        "OfficeIMO.Word.WordPaperMetric.#ctor(System.String,System.String,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperMetric.Equals(System.Object)",
+      "name": "WordPaperMetric.Equals",
+      "href": "/api/word/officeimo-word-wordpapermetric/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.Equals",
+        "OfficeIMO.Word.WordPaperMetric.Equals",
+        "OfficeIMO.Word.WordPaperMetric.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperMetric.GetHashCode",
+      "name": "WordPaperMetric.GetHashCode",
+      "href": "/api/word/officeimo-word-wordpapermetric/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.GetHashCode",
+        "OfficeIMO.Word.WordPaperMetric.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperMetric.GetType",
+      "name": "WordPaperMetric.GetType",
+      "href": "/api/word/officeimo-word-wordpapermetric/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.GetType",
+        "OfficeIMO.Word.WordPaperMetric.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperMetric.ToString",
+      "name": "WordPaperMetric.ToString",
+      "href": "/api/word/officeimo-word-wordpapermetric/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.ToString",
+        "OfficeIMO.Word.WordPaperMetric.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.#ctor",
+      "name": "WordPaperStyle.WordPaperStyle",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.#ctor",
+        "OfficeIMO.Word.WordPaperStyle.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddCallout(OfficeIMO.Word.WordDocument,System.String,System.String,System.String,System.String)",
+      "name": "WordPaperStyle.AddCallout",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addcallout-officeimo-word-worddocument-string-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddCallout",
+        "OfficeIMO.Word.WordPaperStyle.AddCallout",
+        "OfficeIMO.Word.WordPaperStyle.AddCallout(OfficeIMO.Word.WordDocument,System.String,System.String,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddCountTable(OfficeIMO.Word.WordDocument,System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.String,System.String}},System.String,System.String)",
+      "name": "WordPaperStyle.AddCountTable",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addcounttable-officeimo-word-worddocument-collections-generic-ienumerable-system-collections-generic-keyvaluepair-system-string-system-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddCountTable",
+        "OfficeIMO.Word.WordPaperStyle.AddCountTable",
+        "OfficeIMO.Word.WordPaperStyle.AddCountTable(OfficeIMO.Word.WordDocument,System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.String,System.String}},System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddCover(OfficeIMO.Word.WordDocument,System.String,System.String,System.String)",
+      "name": "WordPaperStyle.AddCover",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addcover-officeimo-word-worddocument-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddCover",
+        "OfficeIMO.Word.WordPaperStyle.AddCover",
+        "OfficeIMO.Word.WordPaperStyle.AddCover(OfficeIMO.Word.WordDocument,System.String,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddKeyValueTable(OfficeIMO.Word.WordDocument,System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.String,System.String}},System.String,System.String,System.Boolean,System.Boolean)",
+      "name": "WordPaperStyle.AddKeyValueTable",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addkeyvaluetable-officeimo-word-worddocument-collections-generic-ienumerable-system-collections-generic-keyvaluepair-system-string-system-string-string-string-boolean-boolean",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddKeyValueTable",
+        "OfficeIMO.Word.WordPaperStyle.AddKeyValueTable",
+        "OfficeIMO.Word.WordPaperStyle.AddKeyValueTable(OfficeIMO.Word.WordDocument,System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.String,System.String}},System.String,System.String,System.Boolean,System.Boolean)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddMetrics(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordPaperMetric[])",
+      "name": "WordPaperStyle.AddMetrics",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addmetrics-officeimo-word-worddocument-officeimo-word-wordpapermetric",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddMetrics",
+        "OfficeIMO.Word.WordPaperStyle.AddMetrics",
+        "OfficeIMO.Word.WordPaperStyle.AddMetrics(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordPaperMetric[])"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddNote(OfficeIMO.Word.WordDocument,System.String)",
+      "name": "WordPaperStyle.AddNote",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addnote-officeimo-word-worddocument-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddNote",
+        "OfficeIMO.Word.WordPaperStyle.AddNote",
+        "OfficeIMO.Word.WordPaperStyle.AddNote(OfficeIMO.Word.WordDocument,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.AddPageChrome(OfficeIMO.Word.WordDocument,System.String,System.String,System.String)",
+      "name": "WordPaperStyle.AddPageChrome",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-addpagechrome-officeimo-word-worddocument-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.AddPageChrome",
+        "OfficeIMO.Word.WordPaperStyle.AddPageChrome",
+        "OfficeIMO.Word.WordPaperStyle.AddPageChrome(OfficeIMO.Word.WordDocument,System.String,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyCellTone(OfficeIMO.Word.WordTableCell,System.String,System.String)",
+      "name": "WordPaperStyle.ApplyCellTone",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applycelltone-officeimo-word-wordtablecell-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyCellTone",
+        "OfficeIMO.Word.WordPaperStyle.ApplyCellTone",
+        "OfficeIMO.Word.WordPaperStyle.ApplyCellTone(OfficeIMO.Word.WordTableCell,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyCountTable(OfficeIMO.Word.WordTable,System.Boolean)",
+      "name": "WordPaperStyle.ApplyCountTable",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applycounttable-officeimo-word-wordtable-boolean",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyCountTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyCountTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyCountTable(OfficeIMO.Word.WordTable,System.Boolean)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyKeyValueTable(OfficeIMO.Word.WordTable,System.Boolean,System.Boolean)",
+      "name": "WordPaperStyle.ApplyKeyValueTable",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applykeyvaluetable-officeimo-word-wordtable-boolean-boolean",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyKeyValueTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyKeyValueTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyKeyValueTable(OfficeIMO.Word.WordTable,System.Boolean,System.Boolean)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplySpacerCell(OfficeIMO.Word.WordTableCell,System.String)",
+      "name": "WordPaperStyle.ApplySpacerCell",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applyspacercell-officeimo-word-wordtablecell-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplySpacerCell",
+        "OfficeIMO.Word.WordPaperStyle.ApplySpacerCell",
+        "OfficeIMO.Word.WordPaperStyle.ApplySpacerCell(OfficeIMO.Word.WordTableCell,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyTable(OfficeIMO.Word.WordTable,System.Boolean,System.Boolean,System.Boolean)",
+      "name": "WordPaperStyle.ApplyTable",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applytable-officeimo-word-wordtable-boolean-boolean-boolean",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyTable",
+        "OfficeIMO.Word.WordPaperStyle.ApplyTable(OfficeIMO.Word.WordTable,System.Boolean,System.Boolean,System.Boolean)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyTypography(OfficeIMO.Word.WordDocument)",
+      "name": "WordPaperStyle.ApplyTypography",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applytypography-officeimo-word-worddocument",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyTypography",
+        "OfficeIMO.Word.WordPaperStyle.ApplyTypography",
+        "OfficeIMO.Word.WordPaperStyle.ApplyTypography(OfficeIMO.Word.WordDocument)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ApplyValueCard(OfficeIMO.Word.WordTableCell,System.String,System.String,System.String,System.String)",
+      "name": "WordPaperStyle.ApplyValueCard",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-applyvaluecard-officeimo-word-wordtablecell-string-string-string-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ApplyValueCard",
+        "OfficeIMO.Word.WordPaperStyle.ApplyValueCard",
+        "OfficeIMO.Word.WordPaperStyle.ApplyValueCard(OfficeIMO.Word.WordTableCell,System.String,System.String,System.String,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.Equals(System.Object)",
+      "name": "WordPaperStyle.Equals",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Equals",
+        "OfficeIMO.Word.WordPaperStyle.Equals",
+        "OfficeIMO.Word.WordPaperStyle.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.FitTableColumnsToHeaders(OfficeIMO.Word.WordTable,System.Int32[])",
+      "name": "WordPaperStyle.FitTableColumnsToHeaders",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-fittablecolumnstoheaders-officeimo-word-wordtable-int32",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.FitTableColumnsToHeaders",
+        "OfficeIMO.Word.WordPaperStyle.FitTableColumnsToHeaders",
+        "OfficeIMO.Word.WordPaperStyle.FitTableColumnsToHeaders(OfficeIMO.Word.WordTable,System.Int32[])"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.GetHashCode",
+      "name": "WordPaperStyle.GetHashCode",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.GetHashCode",
+        "OfficeIMO.Word.WordPaperStyle.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.GetType",
+      "name": "WordPaperStyle.GetType",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.GetType",
+        "OfficeIMO.Word.WordPaperStyle.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.SetCellText(OfficeIMO.Word.WordTableCell,System.String)",
+      "name": "WordPaperStyle.SetCellText",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-setcelltext-officeimo-word-wordtablecell-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.SetCellText",
+        "OfficeIMO.Word.WordPaperStyle.SetCellText",
+        "OfficeIMO.Word.WordPaperStyle.SetCellText(OfficeIMO.Word.WordTableCell,System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperStyle.ToString",
+      "name": "WordPaperStyle.ToString",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.ToString",
+        "OfficeIMO.Word.WordPaperStyle.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.Equals(System.Object)",
+      "name": "WordPaperText.Equals",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.Equals",
+        "OfficeIMO.Word.WordPaperText.Equals",
+        "OfficeIMO.Word.WordPaperText.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.GetHashCode",
+      "name": "WordPaperText.GetHashCode",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.GetHashCode",
+        "OfficeIMO.Word.WordPaperText.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.GetType",
+      "name": "WordPaperText.GetType",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.GetType",
+        "OfficeIMO.Word.WordPaperText.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.HumanizeIdentifier(System.String)",
+      "name": "WordPaperText.HumanizeIdentifier",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-humanizeidentifier-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.HumanizeIdentifier",
+        "OfficeIMO.Word.WordPaperText.HumanizeIdentifier",
+        "OfficeIMO.Word.WordPaperText.HumanizeIdentifier(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.RemoveOptionalBreaks(System.String)",
+      "name": "WordPaperText.RemoveOptionalBreaks",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-removeoptionalbreaks-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.RemoveOptionalBreaks",
+        "OfficeIMO.Word.WordPaperText.RemoveOptionalBreaks",
+        "OfficeIMO.Word.WordPaperText.RemoveOptionalBreaks(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.SentenceCase(System.String)",
+      "name": "WordPaperText.SentenceCase",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-sentencecase-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.SentenceCase",
+        "OfficeIMO.Word.WordPaperText.SentenceCase",
+        "OfficeIMO.Word.WordPaperText.SentenceCase(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.SplitIdentifier(System.String)",
+      "name": "WordPaperText.SplitIdentifier",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-splitidentifier-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.SplitIdentifier",
+        "OfficeIMO.Word.WordPaperText.SplitIdentifier",
+        "OfficeIMO.Word.WordPaperText.SplitIdentifier(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.ToString",
+      "name": "WordPaperText.ToString",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.ToString",
+        "OfficeIMO.Word.WordPaperText.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.WithIdentifierBreaks(System.String)",
+      "name": "WordPaperText.WithIdentifierBreaks",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-withidentifierbreaks-string",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.WithIdentifierBreaks",
+        "OfficeIMO.Word.WordPaperText.WithIdentifierBreaks",
+        "OfficeIMO.Word.WordPaperText.WithIdentifierBreaks(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Word.WordPaperText.WithIdentifierBreaks(System.String,System.Char[])",
+      "name": "WordPaperText.WithIdentifierBreaks",
+      "href": "/api/word/officeimo-word-wordpapertext/#method-withidentifierbreaks-string-char",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText.WithIdentifierBreaks",
+        "OfficeIMO.Word.WordPaperText.WithIdentifierBreaks",
+        "OfficeIMO.Word.WordPaperText.WithIdentifierBreaks(System.String,System.Char[])"
       ]
     },
     {
@@ -634947,7 +635104,7 @@
     {
       "uid": "OfficeIMO.Word.Pdf.LegacyDocPdfConverter",
       "name": "LegacyDocPdfConverter",
-      "href": "/api/word-pdf/officeimo-word-pdf-legacydocpdfconverter/",
+      "href": "/api/word/officeimo-word-pdf-legacydocpdfconverter/",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.LegacyDocPdfConverter",
         "LegacyDocPdfConverter",
@@ -634957,7 +635114,7 @@
     {
       "uid": "OfficeIMO.Word.Pdf.PdfExportWarning",
       "name": "PdfExportWarning",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning",
         "PdfExportWarning",
@@ -635017,7 +635174,7 @@
     {
       "uid": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions",
       "name": "WordPdfConverterExtensions",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordpdfconverterextensions/",
+      "href": "/api/word/officeimo-word-pdf-wordpdfconverterextensions/",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordPdfConverterExtensions",
         "T:OfficeIMO.Word.Pdf.WordPdfConverterExtensions",
@@ -635027,7 +635184,7 @@
     {
       "uid": "OfficeIMO.Word.Pdf.WordToPdfOptions",
       "name": "WordToPdfOptions",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions",
         "T:OfficeIMO.Word.Pdf.WordToPdfOptions",
@@ -635907,26 +636064,6 @@
       ]
     },
     {
-      "uid": "OfficeIMO.Word.WordDocumentVisualFragment",
-      "name": "WordDocumentVisualFragment",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment",
-        "T:OfficeIMO.Word.WordDocumentVisualFragment",
-        "WordDocumentVisualFragment"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Word.WordDocumentVisualRegion",
-      "name": "WordDocumentVisualRegion",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion",
-        "T:OfficeIMO.Word.WordDocumentVisualRegion",
-        "WordDocumentVisualRegion"
-      ]
-    },
-    {
       "uid": "OfficeIMO.Word.WordDocumentVisualSnapshot",
       "name": "WordDocumentVisualSnapshot",
       "href": "/api/word/officeimo-word-worddocumentvisualsnapshot/",
@@ -636484,16 +636621,6 @@
         "global::OfficeIMO.Word.WordImageCompressionQuality",
         "T:OfficeIMO.Word.WordImageCompressionQuality",
         "WordImageCompressionQuality"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.Word.WordImageExportDiagnosticCodes",
-      "name": "WordImageExportDiagnosticCodes",
-      "href": "/api/word/officeimo-word-wordimageexportdiagnosticcodes/",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImageExportDiagnosticCodes",
-        "T:OfficeIMO.Word.WordImageExportDiagnosticCodes",
-        "WordImageExportDiagnosticCodes"
       ]
     },
     {
@@ -637154,6 +637281,36 @@
         "global::OfficeIMO.Word.WordPageSizes",
         "T:OfficeIMO.Word.WordPageSizes",
         "WordPageSizes"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Word.WordPaperMetric",
+      "name": "WordPaperMetric",
+      "href": "/api/word/officeimo-word-wordpapermetric/",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric",
+        "T:OfficeIMO.Word.WordPaperMetric",
+        "WordPaperMetric"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Word.WordPaperStyle",
+      "name": "WordPaperStyle",
+      "href": "/api/word/officeimo-word-wordpaperstyle/",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle",
+        "T:OfficeIMO.Word.WordPaperStyle",
+        "WordPaperStyle"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Word.WordPaperText",
+      "name": "WordPaperText",
+      "href": "/api/word/officeimo-word-wordpapertext/",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperText",
+        "T:OfficeIMO.Word.WordPaperText",
+        "WordPaperText"
       ]
     },
     {
@@ -743918,6 +744075,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Html.HtmlRenderSemanticGroup.ListStyleType",
+      "name": "HtmlRenderSemanticGroup.ListStyleType",
+      "href": "/api/html/officeimo-html-htmlrendersemanticgroup/#property-liststyletype",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlRenderSemanticGroup.ListStyleType",
+        "OfficeIMO.Html.HtmlRenderSemanticGroup.ListStyleType"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Html.HtmlRenderSemanticGroup.MathMlSource",
       "name": "HtmlRenderSemanticGroup.MathMlSource",
       "href": "/api/html/officeimo-html-htmlrendersemanticgroup/#property-mathmlsource",
@@ -746681,15 +746847,6 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.ApproximatedFeatures",
-      "name": "HtmlTargetCapabilityContract.ApproximatedFeatures",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-approximatedfeatures",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.ApproximatedFeatures",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.ApproximatedFeatures"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.ArtifactName",
       "name": "HtmlTargetCapabilityContract.ArtifactName",
       "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-artifactname",
@@ -746744,39 +746901,12 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.IoAndAsyncBoundary",
-      "name": "HtmlTargetCapabilityContract.IoAndAsyncBoundary",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-ioandasyncboundary",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.IoAndAsyncBoundary",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.IoAndAsyncBoundary"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.PackageName",
       "name": "HtmlTargetCapabilityContract.PackageName",
       "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-packagename",
       "aliases": [
         "global::OfficeIMO.Html.HtmlTargetCapabilityContract.PackageName",
         "OfficeIMO.Html.HtmlTargetCapabilityContract.PackageName"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.Profiles",
-      "name": "HtmlTargetCapabilityContract.Profiles",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-profiles",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.Profiles",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.Profiles"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.SupportedFeatures",
-      "name": "HtmlTargetCapabilityContract.SupportedFeatures",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-supportedfeatures",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.SupportedFeatures",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.SupportedFeatures"
       ]
     },
     {
@@ -746804,15 +746934,6 @@
       "aliases": [
         "global::OfficeIMO.Html.HtmlTargetCapabilityContract.TargetToHtml",
         "OfficeIMO.Html.HtmlTargetCapabilityContract.TargetToHtml"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Html.HtmlTargetCapabilityContract.UnsupportedFeatures",
-      "name": "HtmlTargetCapabilityContract.UnsupportedFeatures",
-      "href": "/api/html/officeimo-html-htmltargetcapabilitycontract/#property-unsupportedfeatures",
-      "aliases": [
-        "global::OfficeIMO.Html.HtmlTargetCapabilityContract.UnsupportedFeatures",
-        "OfficeIMO.Html.HtmlTargetCapabilityContract.UnsupportedFeatures"
       ]
     },
     {
@@ -912733,7 +912854,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.PdfExportWarning.Code",
       "name": "PdfExportWarning.Code",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#property-code",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#property-code",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.Code",
         "OfficeIMO.Word.Pdf.PdfExportWarning.Code"
@@ -912742,7 +912863,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.PdfExportWarning.Message",
       "name": "PdfExportWarning.Message",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#property-message",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#property-message",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.Message",
         "OfficeIMO.Word.Pdf.PdfExportWarning.Message"
@@ -912751,7 +912872,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.PdfExportWarning.Source",
       "name": "PdfExportWarning.Source",
-      "href": "/api/word-pdf/officeimo-word-pdf-pdfexportwarning/#property-source",
+      "href": "/api/word/officeimo-word-pdf-pdfexportwarning/#property-source",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.PdfExportWarning.Source",
         "OfficeIMO.Word.Pdf.PdfExportWarning.Source"
@@ -913129,7 +913250,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Author",
       "name": "WordToPdfOptions.Author",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-author",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-author",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Author",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Author"
@@ -913138,7 +913259,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.DateTimeFieldUpdateOptions",
       "name": "WordToPdfOptions.DateTimeFieldUpdateOptions",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-datetimefieldupdateoptions",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-datetimefieldupdateoptions",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.DateTimeFieldUpdateOptions",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.DateTimeFieldUpdateOptions"
@@ -913147,7 +913268,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultOrientation",
       "name": "WordToPdfOptions.DefaultOrientation",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-defaultorientation",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-defaultorientation",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultOrientation",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultOrientation"
@@ -913156,7 +913277,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultPageSize",
       "name": "WordToPdfOptions.DefaultPageSize",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-defaultpagesize",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-defaultpagesize",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultPageSize",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultPageSize"
@@ -913165,7 +913286,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultTableBorders",
       "name": "WordToPdfOptions.DefaultTableBorders",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-defaulttableborders",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-defaulttableborders",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultTableBorders",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.DefaultTableBorders"
@@ -913174,7 +913295,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.FontFamily",
       "name": "WordToPdfOptions.FontFamily",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-fontfamily",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-fontfamily",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.FontFamily",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.FontFamily"
@@ -913183,7 +913304,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.IncludePageNumbers",
       "name": "WordToPdfOptions.IncludePageNumbers",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-includepagenumbers",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-includepagenumbers",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.IncludePageNumbers",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.IncludePageNumbers"
@@ -913192,7 +913313,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Keywords",
       "name": "WordToPdfOptions.Keywords",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-keywords",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-keywords",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Keywords",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Keywords"
@@ -913201,7 +913322,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Margins",
       "name": "WordToPdfOptions.Margins",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-margins",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-margins",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Margins",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Margins"
@@ -913210,7 +913331,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.MaxImagesPerParagraph",
       "name": "WordToPdfOptions.MaxImagesPerParagraph",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-maximagesperparagraph",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-maximagesperparagraph",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.MaxImagesPerParagraph",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.MaxImagesPerParagraph"
@@ -913219,7 +913340,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Orientation",
       "name": "WordToPdfOptions.Orientation",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-orientation",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-orientation",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Orientation",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Orientation"
@@ -913228,7 +913349,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.PageNumberFormat",
       "name": "WordToPdfOptions.PageNumberFormat",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-pagenumberformat",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-pagenumberformat",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.PageNumberFormat",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.PageNumberFormat"
@@ -913237,7 +913358,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.PageSize",
       "name": "WordToPdfOptions.PageSize",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-pagesize",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-pagesize",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.PageSize",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.PageSize"
@@ -913246,7 +913367,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.PdfOptions",
       "name": "WordToPdfOptions.PdfOptions",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-pdfoptions",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-pdfoptions",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.PdfOptions",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.PdfOptions"
@@ -913255,7 +913376,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.ResourcePolicy",
       "name": "WordToPdfOptions.ResourcePolicy",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-resourcepolicy",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-resourcepolicy",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.ResourcePolicy",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.ResourcePolicy"
@@ -913264,7 +913385,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Subject",
       "name": "WordToPdfOptions.Subject",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-subject",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-subject",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Subject",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Subject"
@@ -913273,7 +913394,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.TextFallbacks",
       "name": "WordToPdfOptions.TextFallbacks",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-textfallbacks",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-textfallbacks",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.TextFallbacks",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.TextFallbacks"
@@ -913282,7 +913403,7 @@
     {
       "uid": "P:OfficeIMO.Word.Pdf.WordToPdfOptions.Title",
       "name": "WordToPdfOptions.Title",
-      "href": "/api/word-pdf/officeimo-word-pdf-wordtopdfoptions/#property-title",
+      "href": "/api/word/officeimo-word-pdf-wordtopdfoptions/#property-title",
       "aliases": [
         "global::OfficeIMO.Word.Pdf.WordToPdfOptions.Title",
         "OfficeIMO.Word.Pdf.WordToPdfOptions.Title"
@@ -916088,6 +916209,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Word.WordDocument.IsDisposed",
+      "name": "WordDocument.IsDisposed",
+      "href": "/api/word/officeimo-word-worddocument/#property-isdisposed",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.IsDisposed",
+        "OfficeIMO.Word.WordDocument.IsDisposed"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Word.WordDocument.LegacyDocCompoundFeatures",
       "name": "WordDocument.LegacyDocCompoundFeatures",
       "href": "/api/word/officeimo-word-worddocument/#property-legacydoccompoundfeatures",
@@ -916499,6 +916629,24 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocument.SourceFormatDescriptor",
         "OfficeIMO.Word.WordDocument.SourceFormatDescriptor"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordDocument.SourcePackageSecurityReport",
+      "name": "WordDocument.SourcePackageSecurityReport",
+      "href": "/api/word/officeimo-word-worddocument/#property-sourcepackagesecurityreport",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SourcePackageSecurityReport",
+        "OfficeIMO.Word.WordDocument.SourcePackageSecurityReport"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordDocument.SourcePackageSecurityScope",
+      "name": "WordDocument.SourcePackageSecurityScope",
+      "href": "/api/word/officeimo-word-worddocument/#property-sourcepackagesecurityscope",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocument.SourcePackageSecurityScope",
+        "OfficeIMO.Word.WordDocument.SourcePackageSecurityScope"
       ]
     },
     {
@@ -917204,87 +917352,6 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualFragment.BlockIndex",
-      "name": "WordDocumentVisualFragment.BlockIndex",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#property-blockindex",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.BlockIndex",
-        "OfficeIMO.Word.WordDocumentVisualFragment.BlockIndex"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualFragment.Kind",
-      "name": "WordDocumentVisualFragment.Kind",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#property-kind",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.Kind",
-        "OfficeIMO.Word.WordDocumentVisualFragment.Kind"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualFragment.Region",
-      "name": "WordDocumentVisualFragment.Region",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#property-region",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.Region",
-        "OfficeIMO.Word.WordDocumentVisualFragment.Region"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualFragment.SectionIndex",
-      "name": "WordDocumentVisualFragment.SectionIndex",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#property-sectionindex",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.SectionIndex",
-        "OfficeIMO.Word.WordDocumentVisualFragment.SectionIndex"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualFragment.Text",
-      "name": "WordDocumentVisualFragment.Text",
-      "href": "/api/word/officeimo-word-worddocumentvisualfragment/#property-text",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualFragment.Text",
-        "OfficeIMO.Word.WordDocumentVisualFragment.Text"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualRegion.Height",
-      "name": "WordDocumentVisualRegion.Height",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#property-height",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.Height",
-        "OfficeIMO.Word.WordDocumentVisualRegion.Height"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualRegion.Width",
-      "name": "WordDocumentVisualRegion.Width",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#property-width",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.Width",
-        "OfficeIMO.Word.WordDocumentVisualRegion.Width"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualRegion.X",
-      "name": "WordDocumentVisualRegion.X",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#property-x",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.X",
-        "OfficeIMO.Word.WordDocumentVisualRegion.X"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualRegion.Y",
-      "name": "WordDocumentVisualRegion.Y",
-      "href": "/api/word/officeimo-word-worddocumentvisualregion/#property-y",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualRegion.Y",
-        "OfficeIMO.Word.WordDocumentVisualRegion.Y"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.Word.WordDocumentVisualSnapshot.Diagnostics",
       "name": "WordDocumentVisualSnapshot.Diagnostics",
       "href": "/api/word/officeimo-word-worddocumentvisualsnapshot/#property-diagnostics",
@@ -917303,15 +917370,6 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Word.WordDocumentVisualSnapshot.Fragments",
-      "name": "WordDocumentVisualSnapshot.Fragments",
-      "href": "/api/word/officeimo-word-worddocumentvisualsnapshot/#property-fragments",
-      "aliases": [
-        "global::OfficeIMO.Word.WordDocumentVisualSnapshot.Fragments",
-        "OfficeIMO.Word.WordDocumentVisualSnapshot.Fragments"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.Word.WordDocumentVisualSnapshot.Height",
       "name": "WordDocumentVisualSnapshot.Height",
       "href": "/api/word/officeimo-word-worddocumentvisualsnapshot/#property-height",
@@ -917327,6 +917385,15 @@
       "aliases": [
         "global::OfficeIMO.Word.WordDocumentVisualSnapshot.PageIndex",
         "OfficeIMO.Word.WordDocumentVisualSnapshot.PageIndex"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordDocumentVisualSnapshot.TextSpans",
+      "name": "WordDocumentVisualSnapshot.TextSpans",
+      "href": "/api/word/officeimo-word-worddocumentvisualsnapshot/#property-textspans",
+      "aliases": [
+        "global::OfficeIMO.Word.WordDocumentVisualSnapshot.TextSpans",
+        "OfficeIMO.Word.WordDocumentVisualSnapshot.TextSpans"
       ]
     },
     {
@@ -919499,6 +919566,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Word.WordHyperLink.Runs",
+      "name": "WordHyperLink.Runs",
+      "href": "/api/word/officeimo-word-wordhyperlink/#property-runs",
+      "aliases": [
+        "global::OfficeIMO.Word.WordHyperLink.Runs",
+        "OfficeIMO.Word.WordHyperLink.Runs"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Word.WordHyperLink.Scheme",
       "name": "WordHyperLink.Scheme",
       "href": "/api/word/officeimo-word-wordhyperlink/#property-scheme",
@@ -919577,15 +919653,6 @@
       "aliases": [
         "global::OfficeIMO.Word.WordImage.BlackWhiteThreshold",
         "OfficeIMO.Word.WordImage.BlackWhiteThreshold"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Word.WordImage.BlackWiteMode",
-      "name": "WordImage.BlackWiteMode",
-      "href": "/api/word/officeimo-word-wordimage/#property-blackwitemode",
-      "aliases": [
-        "global::OfficeIMO.Word.WordImage.BlackWiteMode",
-        "OfficeIMO.Word.WordImage.BlackWiteMode"
       ]
     },
     {
@@ -920174,12 +920241,12 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.Word.WordImageExportOptions.IncludeDocumentContent",
-      "name": "WordImageExportOptions.IncludeDocumentContent",
-      "href": "/api/word/officeimo-word-wordimageexportoptions/#property-includedocumentcontent",
+      "uid": "P:OfficeIMO.Word.WordImageExportOptions.LayoutOptions",
+      "name": "WordImageExportOptions.LayoutOptions",
+      "href": "/api/word/officeimo-word-wordimageexportoptions/#property-layoutoptions",
       "aliases": [
-        "global::OfficeIMO.Word.WordImageExportOptions.IncludeDocumentContent",
-        "OfficeIMO.Word.WordImageExportOptions.IncludeDocumentContent"
+        "global::OfficeIMO.Word.WordImageExportOptions.LayoutOptions",
+        "OfficeIMO.Word.WordImageExportOptions.LayoutOptions"
       ]
     },
     {
@@ -920324,6 +920391,15 @@
       "aliases": [
         "global::OfficeIMO.Word.WordImageExportOptions.Scale",
         "OfficeIMO.Word.WordImageExportOptions.Scale"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordImageExportOptions.SvgTextAsPaths",
+      "name": "WordImageExportOptions.SvgTextAsPaths",
+      "href": "/api/word/officeimo-word-wordimageexportoptions/#property-svgtextaspaths",
+      "aliases": [
+        "global::OfficeIMO.Word.WordImageExportOptions.SvgTextAsPaths",
+        "OfficeIMO.Word.WordImageExportOptions.SvgTextAsPaths"
       ]
     },
     {
@@ -921440,6 +921516,24 @@
       "aliases": [
         "global::OfficeIMO.Word.WordLoadOptions.AccessMode",
         "OfficeIMO.Word.WordLoadOptions.AccessMode"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordLoadOptions.AllowLegacyProjection",
+      "name": "WordLoadOptions.AllowLegacyProjection",
+      "href": "/api/word/officeimo-word-wordloadoptions/#property-allowlegacyprojection",
+      "aliases": [
+        "global::OfficeIMO.Word.WordLoadOptions.AllowLegacyProjection",
+        "OfficeIMO.Word.WordLoadOptions.AllowLegacyProjection"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordLoadOptions.CaptureSourcePackageSecurity",
+      "name": "WordLoadOptions.CaptureSourcePackageSecurity",
+      "href": "/api/word/officeimo-word-wordloadoptions/#property-capturesourcepackagesecurity",
+      "aliases": [
+        "global::OfficeIMO.Word.WordLoadOptions.CaptureSourcePackageSecurity",
+        "OfficeIMO.Word.WordLoadOptions.CaptureSourcePackageSecurity"
       ]
     },
     {
@@ -923213,6 +923307,159 @@
       "aliases": [
         "global::OfficeIMO.Word.WordPageSizes.Width",
         "OfficeIMO.Word.WordPageSizes.Width"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperMetric.Color",
+      "name": "WordPaperMetric.Color",
+      "href": "/api/word/officeimo-word-wordpapermetric/#property-color",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.Color",
+        "OfficeIMO.Word.WordPaperMetric.Color"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperMetric.Label",
+      "name": "WordPaperMetric.Label",
+      "href": "/api/word/officeimo-word-wordpapermetric/#property-label",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.Label",
+        "OfficeIMO.Word.WordPaperMetric.Label"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperMetric.Qualifier",
+      "name": "WordPaperMetric.Qualifier",
+      "href": "/api/word/officeimo-word-wordpapermetric/#property-qualifier",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.Qualifier",
+        "OfficeIMO.Word.WordPaperMetric.Qualifier"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperMetric.Value",
+      "name": "WordPaperMetric.Value",
+      "href": "/api/word/officeimo-word-wordpapermetric/#property-value",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperMetric.Value",
+        "OfficeIMO.Word.WordPaperMetric.Value"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.Accent",
+      "name": "WordPaperStyle.Accent",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-accent",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Accent",
+        "OfficeIMO.Word.WordPaperStyle.Accent"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.Border",
+      "name": "WordPaperStyle.Border",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-border",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Border",
+        "OfficeIMO.Word.WordPaperStyle.Border"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.DisplayFontFamily",
+      "name": "WordPaperStyle.DisplayFontFamily",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-displayfontfamily",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.DisplayFontFamily",
+        "OfficeIMO.Word.WordPaperStyle.DisplayFontFamily"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.FontFamily",
+      "name": "WordPaperStyle.FontFamily",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-fontfamily",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.FontFamily",
+        "OfficeIMO.Word.WordPaperStyle.FontFamily"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.Ink",
+      "name": "WordPaperStyle.Ink",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-ink",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Ink",
+        "OfficeIMO.Word.WordPaperStyle.Ink"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.Muted",
+      "name": "WordPaperStyle.Muted",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-muted",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Muted",
+        "OfficeIMO.Word.WordPaperStyle.Muted"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.RuleSize",
+      "name": "WordPaperStyle.RuleSize",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-rulesize",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.RuleSize",
+        "OfficeIMO.Word.WordPaperStyle.RuleSize"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.Surface",
+      "name": "WordPaperStyle.Surface",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-surface",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.Surface",
+        "OfficeIMO.Word.WordPaperStyle.Surface"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding",
+      "name": "WordPaperStyle.TableCellHorizontalPadding",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-tablecellhorizontalpadding",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding",
+        "OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding",
+      "name": "WordPaperStyle.TableCellVerticalPadding",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-tablecellverticalpadding",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding",
+        "OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.TableFontSizePoints",
+      "name": "WordPaperStyle.TableFontSizePoints",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-tablefontsizepoints",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.TableFontSizePoints",
+        "OfficeIMO.Word.WordPaperStyle.TableFontSizePoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints",
+      "name": "WordPaperStyle.TableLineSpacingPoints",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-tablelinespacingpoints",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints",
+        "OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints",
+      "name": "WordPaperStyle.TableParagraphSpacingPoints",
+      "href": "/api/word/officeimo-word-wordpaperstyle/#property-tableparagraphspacingpoints",
+      "aliases": [
+        "global::OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints",
+        "OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints"
       ]
     },
     {
@@ -927014,6 +927261,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Word.WordSettings.DecimalSymbol",
+      "name": "WordSettings.DecimalSymbol",
+      "href": "/api/word/officeimo-word-wordsettings/#property-decimalsymbol",
+      "aliases": [
+        "global::OfficeIMO.Word.WordSettings.DecimalSymbol",
+        "OfficeIMO.Word.WordSettings.DecimalSymbol"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Word.WordSettings.DefaultTabStop",
       "name": "WordSettings.DefaultTabStop",
       "href": "/api/word/officeimo-word-wordsettings/#property-defaulttabstop",
@@ -929657,6 +929913,15 @@
       "aliases": [
         "global::OfficeIMO.Word.WordTableOfContent.TextNoContent",
         "OfficeIMO.Word.WordTableOfContent.TextNoContent"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Word.WordTableOfContent.TitleParagraph",
+      "name": "WordTableOfContent.TitleParagraph",
+      "href": "/api/word/officeimo-word-wordtableofcontent/#property-titleparagraph",
+      "aliases": [
+        "global::OfficeIMO.Word.WordTableOfContent.TitleParagraph",
+        "OfficeIMO.Word.WordTableOfContent.TitleParagraph"
       ]
     },
     {
@@ -1016183,7 +1016448,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 105864,
+  "previousReferenceCount": 105889,
   "referenceDeltaCount": 0,
   "referenceDeltaPercent": 0
 }

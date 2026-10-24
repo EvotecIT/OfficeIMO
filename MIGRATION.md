@@ -1,5 +1,28 @@
 # Upgrading OfficeIMO
 
+## Removed obsolete image and HTML capability aliases
+
+Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and
+image black-and-white behavior are unchanged.
+
+`HtmlTargetCapabilityContract` accepts `HtmlToTargetCapabilityContract` and an
+optional `TargetToHtmlCapabilityContract`. Replace the constructor that took a
+single shared set of profiles and feature classifications with these directional
+contracts. Classify each direction independently and provide its diagnostics
+contract; pass `null` for `targetToHtml` when no reverse conversion exists.
+
+Read the following members from `contract.HtmlToTarget` for import, or from
+`contract.TargetToHtml` for reverse export:
+
+- `IoAndAsyncBoundary`
+- `Profiles`
+- `SupportedFeatures`, `ApproximatedFeatures`, and `UnsupportedFeatures`
+- `GetSupport(feature)`
+
+The former target-level aliases have been removed. Check `TargetToHtml` for
+`null` before reading a reverse contract. There is no combined profile list:
+select the direction that the application actually uses.
+
 ## PSWriteOffice file and workflow APIs
 
 Build and publish PSWriteOffice through `Build/Build-Release.ps1` so its version
@@ -3096,7 +3119,7 @@ Common Word changes are:
 | `FootnotePositionValues` / `EndnotePositionValues` / `RestartNumberValues` | `WordFootnotePosition` / `WordEndnotePosition` / `WordNoteNumberRestart` |
 | `LevelJustificationValues` / `LevelSuffixValues` | `WordListLevelAlignment` / `WordListLevelSuffix` |
 | `ShapeTypeValues` / `BlipCompressionValues` / `BlackWhiteModeValues` | `OfficePresetShapeType` / `WordImageCompressionQuality` / `WordImageBlackWhiteMode` |
-| `WordImage.BlackWiteMode` | `WordImage.BlackWhiteMode` (the misspelled member remains as an obsolete forwarding alias) |
+| `WordImage.BlackWiteMode` | `WordImage.BlackWhiteMode` |
 | chart `BarDirectionValues`, `BarGroupingValues`, and `LegendPositionValues` | `WordChartBarDirection`, `WordChartBarGrouping`, and `OfficeChartLegendPosition` |
 
 PowerPoint uses the same rule:
