@@ -82,22 +82,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layoutHeight: Math.Max(0.01D, textHeight), paintTopOverflow: paintTopOverflow,
                         ordinaryLineCarrier: true, fontDescriptor: box.Typography.FontDescriptor).WithWrappedLines(lines)
                 };
-                if (textHeight > height + 0.0001D || width <= 0D) {
+                // Zero advance does not mean zero ink. A retained combining
+                // mark can paint inside the padding of a zero-width content box.
+                bool zeroAdvanceText = width <= 0D && HasOnlyZeroAdvancePageMarginText(shaped);
+                bool clipWidth = width <= 0D && !zeroAdvanceText;
+                if (textHeight > height + 0.0001D || clipWidth) {
                     // The line advance determines admission, while the full selected-face
                     // frame must survive until the shared clip owner constrains glyph paint.
                     marginVisuals = new HtmlRenderVisual[] {
-                        new HtmlRenderClipGroup(x, y, width, height, width <= 0D, true,
+                        new HtmlRenderClipGroup(x, y, width, height, clipWidth, true,
                             marginVisuals, _paintOrder++, marginBoxSource)
                     };
                     if (_reportedMarginTextOverflow.Add(marginBoxSource)) {
                         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
-                            width <= 0D ? "Generated page-margin text had no available content width and was clipped."
+                            clipWidth ? "Generated page-margin text had no available content width and was clipped."
                                 : "Generated page-margin text exceeded the reserved margin height and was clipped.",
-                            HtmlDiagnosticSeverity.Warning, marginBoxSource, width <= 0D ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
+                            HtmlDiagnosticSeverity.Warning, marginBoxSource, clipWidth ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
                     }
                 }
                 AppendPageMarginVisuals(visuals, page, box, axisBounds,
-                    marginVisuals, x, y, width, height, textHeight, marginBoxSource);
+                    marginVisuals, x, y, width, height, textHeight, marginBoxSource, zeroAdvanceText);
             }
 
             rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts, page.RunningStrings, page.Margins, page.PrintProduction));

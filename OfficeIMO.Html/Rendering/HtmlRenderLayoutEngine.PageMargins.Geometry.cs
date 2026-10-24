@@ -105,7 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void AppendPageMarginVisuals(ICollection<HtmlRenderVisual> target, HtmlRenderPage page,
         HtmlCssPageMarginTemplate box, IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> bounds,
         IReadOnlyList<HtmlRenderVisual> content, double x, double y, double width, double height,
-        double naturalContentHeight, string source) {
+        double naturalContentHeight, string source, bool zeroAdvanceText = false) {
         IReadOnlyList<HtmlRenderVisual> children = content;
         if (box.HasBoxGeometry) {
             double contentWidth = width, contentHeight = height;
@@ -125,10 +125,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             decorated.AddRange(content);
             children = decorated;
             ReportPageMarginPhysicalOverflow(children, page, source);
-            if ((contentWidth <= 0D || contentHeight <= 0D) && content.Count > 0 && _reportedMarginTextOverflow.Add(source)) {
+            bool clipWidth = contentWidth <= 0D && !zeroAdvanceText;
+            if ((clipWidth || contentHeight <= 0D) && content.Count > 0 && _reportedMarginTextOverflow.Add(source)) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
                     "Generated page-margin content had no available content area and was clipped.",
-                    HtmlDiagnosticSeverity.Warning, source, contentWidth <= 0D ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
+                    HtmlDiagnosticSeverity.Warning, source, clipWidth ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
             }
         }
         // Paint-neutral containers need a positive carrier; the child clip keeps

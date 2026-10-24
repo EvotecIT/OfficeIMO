@@ -56,8 +56,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     PreserveContextualFallback = run.PreserveContextualFallback
                 });
         }
-        double maximum = MeasureMaxContentRuns(intrinsic);
-        return new PageMarginIntrinsicSize(true, Math.Min(maximum, MeasureMinContentRuns(intrinsic)), maximum);
+        // Accepted glyph advances can be zero or subpixel. The ordinary flow's
+        // minimum carrier width must not enlarge a generated CSS intrinsic box.
+        double maximum = MeasureMaxContentRuns(intrinsic, minimumWidth: 0D);
+        return new PageMarginIntrinsicSize(true,
+            Math.Min(maximum, MeasureMinContentRuns(intrinsic, minimumWidth: 0D)), maximum);
+    }
+
+    /// <summary>Retains combining-mark ink when accepted glyphs need no horizontal advance.</summary>
+    private static bool HasOnlyZeroAdvancePageMarginText(HtmlInlineLayout? layout) {
+        if (layout == null) return false;
+        bool hasGlyphs = false;
+        foreach (HtmlRenderText run in layout.Visuals.OfType<HtmlRenderText>()) {
+            if (run.PreparedShaping == null || run.TextAdvanceWidth != 0D) return false;
+            hasGlyphs |= run.PreparedShaping.Result.Glyphs.Count > 0;
+        }
+        return hasGlyphs;
     }
 
     private HtmlInlineLayout LayoutPageMarginShapedText(string text, HtmlCssPageMarginTemplate box, double width) {
