@@ -54,8 +54,9 @@ public static partial class WordPdfConverterExtensions {
             }
             foreach (W.Paragraph sourceParagraph in root.Descendants<W.Paragraph>()) {
                 var paragraph = new WordParagraph(story.Document, sourceParagraph);
+                if (!HasNativeParagraphBarTabs(paragraph)) continue;
                 RecordNativeParagraphBarTabDiagnostics(paragraph,
-                    options, source, omitted: !mapped || NativeBarParagraphProjectionOmitsRule(paragraph));
+                    options, source, omitted: !mapped || NativeBarParagraphProjectionOmitsRule(paragraph, section, options));
             }
         }
     }
@@ -74,11 +75,14 @@ public static partial class WordPdfConverterExtensions {
                 options, source + " text box", omitted: true);
     }
 
-    private static bool NativeBarParagraphProjectionOmitsRule(WordParagraph paragraph) {
+    private static bool NativeBarParagraphProjectionOmitsRule(WordParagraph paragraph,
+        WordSection section, WordToPdfOptions? options) {
         if (paragraph._paragraph.Ancestors<W.TableCell>().Any())
             return paragraph._paragraph.Ancestors<W.TextBoxContent>().Any();
         if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) return true;
         var runs = GetNativeRuns(paragraph);
+        if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0)
+            return !HasNativeMixedTextBoxOwnContent(paragraph, runs, section, options);
         if (IsNativeHorizontalRuleParagraph(paragraph, runs, paragraph.Text)) return true;
         // Object-only running paragraphs are emitted as flow objects. Unlike
         // body inline-picture paragraphs they have no separate rich text line.

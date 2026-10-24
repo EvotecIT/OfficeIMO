@@ -15,6 +15,14 @@ internal static partial class PdfWriter {
         internal double BarSpacingAfter { get; set; }
         internal bool IsFirstParagraphLine { get; set; }
         internal bool IsLastParagraphLine { get; set; }
+
+        /// <summary>Creates an empty line retaining placement and paragraph decorations independently of its text.</summary>
+        internal RichLine CopyPlacement() => new RichLine {
+            BaselineOffset = BaselineOffset, FrameFitHeight = FrameFitHeight, MinimumContentHeight = MinimumContentHeight,
+            BarTabStops = BarTabStops, BarOriginOffset = BarOriginOffset, BarLineHeight = BarLineHeight,
+            BarSpacingBefore = BarSpacingBefore, BarSpacingAfter = BarSpacingAfter,
+            IsFirstParagraphLine = IsFirstParagraphLine, IsLastParagraphLine = IsLastParagraphLine
+        };
     }
 
     private static double ResolveRichContentHeight(double contentHeight, PdfLineSpacing? spacing,

@@ -1572,23 +1572,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Ignores_Bar_And_Clear_TabStops_For_Text_Tabs() {
-            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeIgnoredTabStops.docx"));
-            WordParagraph paragraph = document.AddParagraph("Native ignored tab stops");
-            paragraph.AddTabStop(720, WordTabAlignment.Bar, WordTabLeader.None);
-            paragraph.AddTabStop(1440, WordTabAlignment.Clear, WordTabLeader.None);
-            paragraph.AddTabStop(2160, WordTabAlignment.Right, WordTabLeader.Dot);
-
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
-            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
-
-            PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Null(style.DefaultTabStopWidth);
-            Assert.Equal(108D, tabStop.Position);
-            Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
-        }
-
-        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Keeps_Default_Tab_Width_Separate_From_Explicit_TabStops() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTabWidth.docx"));
             WordParagraph paragraph = document.AddParagraph("Native default tab width");

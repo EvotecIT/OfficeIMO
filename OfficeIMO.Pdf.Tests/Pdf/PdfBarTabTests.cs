@@ -310,6 +310,88 @@ public sealed class PdfBarTabTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => stop.BarWidth = width);
     }
 
+    [Theory]
+    [InlineData("flow-viewport")]
+    [InlineData("canvas-viewport")]
+    [InlineData("flow-partial")]
+    public void EmptyCellGlyphOmissionRetainsItsIndependentParagraphRule(string route) {
+        var mark = new PdfTextRun(string.Empty, fontSize: 12) { IsLineBoxStrut = true };
+        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: 12,
+            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var cell = new PdfTableCell(new[] { mark }, new[] { paragraph });
+        if (route != "flow-partial") cell = cell.WithViewport(new PdfTableCellViewport(100, 36, 100, 36));
+        var table = BarOnlyCellStyle(100, 36);
+        table.PreservePartialCellLines = route == "flow-partial";
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
+            PdfTableCell[][] rows = { new[] { cell } };
+            if (route == "canvas-viewport") content.Canvas(canvas => canvas.Table(rows, 30, 30, 100, 36, table));
+            else content.Table(rows, style: table);
+        }), Options()).ToBytes();
+
+        using var actual = PdfPigDocument.Open(bytes);
+        PdfPigPage page = Assert.Single(actual.GetPages());
+        Assert.Empty(page.Letters);
+        var bar = Assert.Single(VerticalRules(page));
+        Assert.Equal(66D, bar.X, 3);
+        Assert.Equal(210D, bar.Top, 3);
+        Assert.Equal(18D, bar.Height, 3);
+    }
+
+    [Theory]
+    [InlineData("flow")]
+    [InlineData("canvas")]
+    public void HorizontalViewportCanOmitEveryGlyphWhileKeepingAnInFrameBar(string route) {
+        var runs = new[] { PdfTextRun.Normal("A") };
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: 12,
+            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var cell = new PdfTableCell(runs, new[] { paragraph })
+            .WithViewport(new PdfTableCellViewport(100, 36, 60, 36, offsetX: 24));
+        var table = BarOnlyCellStyle(60, 36);
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
+            PdfTableCell[][] rows = { new[] { cell } };
+            if (route == "canvas") content.Canvas(canvas => canvas.Table(rows, 30, 30, 60, 36, table));
+            else content.Table(rows, style: table);
+        }), Options()).ToBytes();
+
+        using var actual = PdfPigDocument.Open(bytes);
+        PdfPigPage page = Assert.Single(actual.GetPages());
+        Assert.Empty(page.Letters);
+        var bar = Assert.Single(VerticalRules(page));
+        // Full-cell origin30-offset24 plus source stop36; the glyph lies left
+        // of the visible interval, while the stationary rule remains inside.
+        Assert.Equal(42D, bar.X, 3);
+        Assert.Equal(210D, bar.Top, 3);
+        Assert.Equal(18D, bar.Height, 3);
+    }
+
+    [Theory]
+    [InlineData(90, 30D, 146D)]
+    [InlineData(-90, 48D, 174D)]
+    public void RotatedEmptyCellKeepsTheRuleAfterItsZeroWidthGlyphLineIsOmitted(int rotation, double left, double y) {
+        var mark = new PdfTextRun(string.Empty, fontSize: 12) { IsLineBoxStrut = true };
+        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: 12,
+            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var cell = new PdfTableCell(new[] { mark }, new[] { paragraph }, textRotation: rotation);
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Table(
+            new[] { new[] { cell } }, style: BarOnlyCellStyle(36, 100))), Options()).ToBytes();
+
+        using var actual = PdfPigDocument.Open(bytes);
+        PdfPigPage page = Assert.Single(actual.GetPages());
+        Assert.Empty(page.Letters);
+        var bar = Assert.Single(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
+            .Where(bounds => bounds.HasValue && Math.Abs(bounds.Value.Height) < .001D && bounds.Value.Width > 1D));
+        Assert.Equal(left, bar!.Value.Left, 3);
+        Assert.Equal(y, bar.Value.Bottom, 3);
+        Assert.Equal(18D, bar.Value.Width, 3);
+    }
+
+    private static PdfTableStyle BarOnlyCellStyle(double width, double height) => new() {
+        HeaderRowCount = 0, FontSize = 12, CellPaddingX = 0, CellPaddingY = 0,
+        BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0, MaxWidth = width, PreserveWidth = true,
+        ColumnWidthPoints = new System.Collections.Generic.List<double?> { width },
+        FixedRowHeights = new System.Collections.Generic.List<double?> { height }
+    };
+
     private static PdfOptions Options() => new() {
         PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
         MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica,

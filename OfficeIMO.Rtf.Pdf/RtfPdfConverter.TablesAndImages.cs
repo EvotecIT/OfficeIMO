@@ -90,7 +90,7 @@ internal static partial class RtfPdfConverter {
                 EnsureParagraphLineBoxStrut(document, paragraph, paragraphRuns, state);
                 cellParagraph = ToCellParagraph(document, paragraph, paragraphRuns, state.FontOptions);
             } else if (block is RtfTable nestedTable) {
-                paragraphRuns.Add(PdfCore.PdfTextRun.Normal(FlattenNestedTableText(nestedTable)));
+                paragraphRuns.Add(PdfCore.PdfTextRun.Normal(FlattenNestedTableText(document, nestedTable, options)));
                 cellParagraph = new PdfCore.PdfTableCellParagraph(paragraphRuns);
                 AddConversionWarning(
                     options,
@@ -138,12 +138,17 @@ internal static partial class RtfPdfConverter {
             keepWithNext: style?.KeepWithNext ?? false);
     }
 
-    private static string FlattenNestedTableText(RtfTable table) {
+    private static string FlattenNestedTableText(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
         return string.Join(" / ", table.Rows.Select(row =>
             string.Join(" | ", row.Cells.Select(cell =>
-                string.Join(" ", cell.Blocks.Select(block => block is RtfParagraph paragraph
-                    ? paragraph.ToPlainText()
-                    : block is RtfTable nested ? FlattenNestedTableText(nested) : string.Empty)
+                string.Join(" ", cell.Blocks.Select(block => {
+                    if (block is RtfParagraph paragraph) {
+                        RecordParagraphBarTabDiagnostic(document, paragraph, options,
+                            omittedSource: "TableCell/NestedTable/Paragraph/Tabs");
+                        return paragraph.ToPlainText();
+                    }
+                    return block is RtfTable nested ? FlattenNestedTableText(document, nested, options) : string.Empty;
+                })
                     .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 

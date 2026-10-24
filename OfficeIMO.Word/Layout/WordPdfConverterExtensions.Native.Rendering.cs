@@ -132,8 +132,6 @@ namespace OfficeIMO.Word.Pdf {
                     RecordNativeParagraphBarTabDiagnostics(paragraph, options, "anchored text-box paragraph");
                     return;
                 }
-                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "mixed text-box paragraph",
-                    omitted: NativeBarParagraphProjectionOmitsRule(paragraph));
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;

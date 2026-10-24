@@ -5,13 +5,13 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static partial class RtfPdfConverter {
     /// <summary>Reports the selected projection's bar fidelity once per source paragraph.</summary>
     private static void RecordParagraphBarTabDiagnostic(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, bool omitted = false) {
+        RtfToPdfOptions options, string? omittedSource = null) {
         if (!document.GetParagraphFormatting(paragraph).TabStops.Any(stop => stop.Alignment == RtfTabAlignment.Bar) ||
             !options.DiagnosedBarTabParagraphs.Add(paragraph)) return;
-        if (omitted) {
+        if (omittedSource != null) {
             options.Report.Add(new PdfCore.PdfConversionWarning(
-                "OfficeIMO.Rtf.Pdf", "BarTabOmitted", "HeaderFooter/Paragraph/Tabs",
-                "RTF bar tabs are omitted from running headers and footers projected as plain text.",
+                "OfficeIMO.Rtf.Pdf", "BarTabOmitted", omittedSource,
+                "RTF bar tabs are omitted when paragraph content is projected as plain text.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission,
                 details: new Dictionary<string, string> { ["RtfAction"] = RtfConversionAction.Omitted.ToString() }));
             return;

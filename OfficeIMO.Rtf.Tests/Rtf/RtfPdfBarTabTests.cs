@@ -76,6 +76,44 @@ public class RtfPdfBarTabTests {
         Assert.Equal(before, Snapshot(source));
     }
 
+    [Fact]
+    public void FlattenedNestedTableBarsReportOmissionAtEveryDepthWithoutChangingSource() {
+        RtfDocument source = Source("BODY", bar: false, positionTab: false, parsed: false);
+        source.AddStyle(7, "Inherited nested bar").AddTabStop(1440, RtfTabAlignment.Bar);
+        RtfTableCell outer = source.AddTable(1, 1).Rows[0].Cells[0];
+        outer.AddParagraph("OUTER");
+        RtfTableCell nested = outer.AddTable(1, 1).Rows[0].Cells[0];
+        nested.AddParagraph("NESTED").AddTabStop(720, RtfTabAlignment.Bar);
+        nested.AddParagraph().AddTabStop(2160, RtfTabAlignment.Bar);
+        nested.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("DEEP").SetStyle(7);
+        string before = Snapshot(source);
+
+        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+
+        PdfCore.PdfConversionWarning[] omissions = result.Warnings.Where(item => item.Code == "BarTabOmitted").ToArray();
+        Assert.Equal(3, omissions.Length);
+        Assert.All(omissions, warning => {
+            Assert.Equal("OfficeIMO.Rtf.Pdf", warning.Converter);
+            Assert.Equal("TableCell/NestedTable/Paragraph/Tabs", warning.Source);
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.Equal("Omitted", warning.Details["RtfAction"]);
+        });
+        Assert.Equal(OfficeConversionLossKind.Approximation,
+            Assert.Single(result.Warnings, item => item.Code == "NestedTableFlattened").LossKind);
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabAppearanceApproximated");
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        byte[] bytes = result.ToBytes();
+        using var actual = PdfPigDocument.Open(bytes);
+        Assert.Empty(VerticalRules(actual.GetPage(1)));
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
+        Assert.Contains("BODY", text, StringComparison.Ordinal);
+        Assert.Contains("OUTER", text, StringComparison.Ordinal);
+        Assert.Contains("NESTED", text, StringComparison.Ordinal);
+        Assert.Contains("DEEP", text, StringComparison.Ordinal);
+        Assert.Equal(before, Snapshot(source));
+    }
+
     private static RtfDocument Source(string text, bool bar, bool positionTab, bool parsed) {
         if (parsed) {
             string stops = (bar ? @"\tb720" : string.Empty) + (positionTab ? @"\tx2160" : string.Empty);
