@@ -126,6 +126,44 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         Assert.Empty(pdf.GetPage(1).GetImages());
     }
 
+    [Fact]
+    public void ContinuingParagraphUsesTheFollowingPicturesDestinationPageExclusion() {
+        using var word = BaseDocument();
+        int firstPageRows = (int)((300D - 2D * 30D) / Line);
+        string[] tokens = Enumerable.Range(0, firstPageRows + 1).Select(index => "PRE_" + index.ToString("00")).ToArray();
+        var preceding = word.AddParagraph();
+        Configure(preceding, string.Join("\n", tokens));
+        preceding.KeepLinesTogether = false;
+        preceding.KeepWithNextOverride = false;
+        var anchor = word.AddParagraph();
+        Configure(anchor, "ANCHOR");
+        anchor.KeepLinesTogether = false;
+        anchor.KeepWithNextOverride = false;
+        AddImage(word, anchor, WordImageTextWrapping.Square, distance: Line, verticalOffset: -Line);
+        string output = Path.Combine(AppContext.BaseDirectory, "picture-wrap-flow-artifacts");
+        Directory.CreateDirectory(output);
+        File.WriteAllBytes(Path.Combine(output, "crosspage-continuation.docx"), word.ToBytes());
+        string source = SourceXml(word);
+        Assert.Empty(word.ValidateDocument());
+        var result = word.ToPdfDocumentResult(Options());
+        using var pdf = PdfPigDocument.Open(Save("crosspage-continuation", word, result));
+        File.WriteAllText(Path.Combine(output, "crosspage-continuation.report.json"), JsonSerializer.Serialize(result.Warnings));
+        Assert.Equal(source, SourceXml(word));
+        AssertAdmitted(result);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains(pdf.GetPage(1).GetWords(), item => item.Text == tokens[0]);
+        var page = pdf.GetPage(2);
+        var continued = Assert.Single(page.GetWords(), item => item.Text == tokens[tokens.Length - 1]).BoundingBox;
+        var picture = Assert.Single(page.GetImages()).BoundingBox;
+        Assert.Empty(pdf.GetPage(1).GetImages());
+        Assert.All(tokens, token => Assert.Single(pdf.GetPages().SelectMany(item => item.GetWords()), item => item.Text == token));
+        bool visibleOverlap = continued.Left < picture.Right && continued.Right > picture.Left &&
+            continued.Top > picture.Bottom && continued.Bottom < picture.Top;
+        Assert.False(visibleOverlap, "A continued paragraph must honor the destination page's picture before painting.");
+        Assert.True(continued.Right <= picture.Left - Line + .01D || continued.Left >= picture.Right + Line - .01D,
+            "The continued physical row must also honor the authored picture text distances.");
+    }
+
     private static WordDocument KeepDocument(WordImageTextWrapping wrapping, double remaining) {
         var word = BaseDocument();
         double fillerHeight = 240D - remaining;
@@ -163,18 +201,19 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         paragraph.AvoidWidowAndOrphan = false;
     }
 
-    private static void AddImage(WordDocument word, WordParagraph paragraph, WordImageTextWrapping wrapping) {
+    private static void AddImage(WordDocument word, WordParagraph paragraph, WordImageTextWrapping wrapping,
+        double distance = Distance, double verticalOffset = 0D) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(2, 2, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(png);
         var image = paragraph.AddText(string.Empty).InsertImage(stream, "picture.png", ImageWidth / .75D, ImageHeight / .75D, wrapping);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.HorizontalPositionOffset = 30L * 12700L;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = 0L;
+        image.VerticalPositionOffset = (long)(verticalOffset * 12700D);
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         var anchor = main.Document!.Descendants<DW.Anchor>()
             .Concat(main.HeaderParts.SelectMany(part => part.Header!.Descendants<DW.Anchor>())).Single();
-        anchor.DistanceFromLeft = anchor.DistanceFromRight = anchor.DistanceFromTop = anchor.DistanceFromBottom = (uint)(Distance * 12700D);
+        anchor.DistanceFromLeft = anchor.DistanceFromRight = anchor.DistanceFromTop = anchor.DistanceFromBottom = (uint)(distance * 12700D);
         foreach (var extent in anchor.Descendants<DW.EffectExtent>()) extent.LeftEdge = extent.TopEdge = extent.RightEdge = extent.BottomEdge = 0L;
     }
 

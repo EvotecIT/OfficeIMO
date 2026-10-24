@@ -39,6 +39,7 @@ internal static partial class PdfWriter {
                 NewBlockFrame(forcePhysicalPage: forcePhysicalPage || SkipColumnsForParagraphOverflow());
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                pictureWrapping |= HasPictureExclusions;
                 if (pictureWrapping) {
                     // A page move changes paragraph anchors even when the frame width is unchanged.
                     (lines, lineHeights) = WrapPictureParagraph(rpb, currentOpts.MarginLeft, width, size,
@@ -188,6 +189,7 @@ internal static partial class PdfWriter {
                         CanOverflowImportedPictureLine(lines[lineIndex]));
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                pictureWrapping |= HasPictureExclusions;
                 if (pictureWrapping) {
                     IReadOnlyList<PdfTextRun> remaining = firstLogicalLine ? rpb.Runs :
                         BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
