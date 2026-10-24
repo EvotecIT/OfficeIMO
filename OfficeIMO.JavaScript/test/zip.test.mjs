@@ -29,8 +29,34 @@ test("ZIP rejects unsafe paths, duplicate entries and overlapping writes", async
   await assert.rejects(zip.finish(), { code: "INVALID_STATE" });
   release(); await adding;
   await readZip(await zip.toBlob());
-  const crc = new Crc32(); crc.update(new TextEncoder().encode("123")); crc.update(new TextEncoder().encode("456789"));
+});
+
+test("CRC-32 matches standard and independent vectors across update splits and byte-view offsets", () => {
+  const expected = bytes => {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const standard = new TextEncoder().encode("123456789"), crc = new Crc32();
+  assert.equal(crc.value, 0);
+  crc.update(standard.subarray(0, 3)); crc.update(standard.subarray(3));
   assert.equal(crc.value, 0xcbf43926);
+  for (const length of [0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 255, 256, 257]) {
+    for (const storage of [new Uint8Array(length + 7), Buffer.alloc(length + 7)]) {
+      const bytes = storage.subarray(3, 3 + length);
+      for (let index = 0; index < length; index++) bytes[index] = (index * 73 + 19) & 255;
+      for (const split of new Set([0, Math.min(1, length), Math.min(3, length), Math.min(4, length), Math.floor(length / 2), length])) {
+        const checksum = new Crc32();
+        checksum.update(bytes.subarray(0, split));
+        assert.equal(checksum.value, expected(bytes.subarray(0, split)));
+        checksum.update(bytes.subarray(split));
+        assert.equal(checksum.value, expected(bytes));
+      }
+    }
+  }
 });
 
 test("ZIP64 entry-count policy fails before writing a sentinel-sized directory", async () => {

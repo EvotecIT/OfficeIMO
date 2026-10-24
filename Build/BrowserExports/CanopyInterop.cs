@@ -11,9 +11,8 @@ internal static class CanopyInterop {
         string assets = Path.Combine(canopy, "CanopyX.Html", "Assets");
         string script = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "canopy-contracts.js"));
         var inputs = new Dictionary<string, string>();
-        foreach (string name in new[] { "canopyx-reporting.js", "canopyx-reporting.css", "canopyx-grid.js", "canopyx-grid.css", "canopyx-filter-editor.js", "canopyx-filter-editor.css" })
+        foreach (string name in new[] { "canopyx-reporting.js", "canopyx-reporting.css", "canopyx-grid.js", "canopyx-grid.css", "canopyx-filter-editor.js", "canopyx-filter-editor.css", "canopyx-export.js" })
             inputs.Add(name, File.ReadAllText(Path.Combine(assets, name)));
-        if (args.Contains("--canopy-structured")) inputs.Add("canopyx-export.js", File.ReadAllText(Path.Combine(assets, "canopyx-export.js")));
         var hashes = inputs.ToDictionary(pair => pair.Key, pair => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(pair.Value))).ToLowerInvariant());
         string regular = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "Carlito-Regular.ttf")));
         string bold = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "Carlito-Bold.ttf")));
@@ -68,11 +67,11 @@ internal static class CanopyInterop {
             });
             await session.Page.AddStyleTagAsync(new() { Content = inputs["canopyx-reporting.css"] + inputs["canopyx-filter-editor.css"] + "body{padding:16px;box-sizing:border-box}h1{font-size:22px;font-weight:400}#fixture{height:620px}.cx-host{height:100%}" });
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] + "\n" + inputs["canopyx-filter-editor.js"] });
+            // Inline native scripts cannot resolve their optional sibling from the evidence file URL.
+            await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-export.js"] });
             await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             if (args.Contains("--canopy-structured")) {
-                // Register the exact optional native part before prepareExport; no replacement loader or copied implementation.
-                await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-export.js"] });
                 JsonElement structured = await session.Page.EvaluateAsync<JsonElement>("() => runStructuredCanopyContracts()");
                 if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
                 var structuredReport = new { engine = engine.ToString(), browserVersion = session.Browser?.Version, canopy, inputs = hashes, asset = JavaScriptAssets.CanopyXScript.HashedFileName, structured, files, errors };
@@ -92,12 +91,14 @@ internal static class CanopyInterop {
             await CaptureAsync("canopy-compact", 420, 760);
             await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-grid.js"] });
+            await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-export.js"] });
             await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             JsonElement ordinary = await session.Page.EvaluateAsync<JsonElement>("args => runOrdinaryCanopyContracts(args)", new { regular, bold });
             if (args.Contains("--canopy-scale") || args.Contains("--canopy-pdf-scale")) {
                 await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
                 await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] });
+                await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-export.js"] });
                 await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
                 await session.Page.AddScriptTagAsync(new() { Content = script });
                 await CanopyScale.RunAsync(session, repository, output, args);

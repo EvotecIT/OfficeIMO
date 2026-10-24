@@ -448,6 +448,8 @@ const { OfficeIMOError } = _m3;
 const { ChunkedTextSink } = _m5;
 
 const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+const xmlEscapes = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
+    "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
 /** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
 function cleanXml(value, policy = "strip") {
     if (policy !== "strip" && policy !== "reject")
@@ -459,9 +461,7 @@ function cleanXml(value, policy = "strip") {
 }
 /** Escape data, including whitespace that XML parsers otherwise normalize. */
 function escapeXml(value, policy = "strip") {
-    const escapes = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
-        "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
-    return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]);
+    return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => xmlEscapes[c]);
 }
 /** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
 function escapeOoxmlAttribute(value, policy = "strip") {
@@ -1080,8 +1080,11 @@ class OpcPackage {
         return uri;
     }
     addPart(part) {
-        const uri = this.reserve(part.uri, part.contentType);
-        this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? new Uint8Array(part.data) : part.data });
+        const { uri: requestedUri, contentType, data } = part;
+        // Structural accessors and byte ownership are captured before reserving metadata.
+        const capturedData = data instanceof Uint8Array ? new Uint8Array(data) : data;
+        const uri = this.reserve(requestedUri, contentType);
+        this.parts.set(uri.toLowerCase(), { uri, contentType, data: capturedData });
     }
     /** @internal */
     addPrepared(uri, type, prepared) {
@@ -1106,17 +1109,19 @@ class OpcPackage {
         checkAbort(this.options.signal);
         this.open();
         source = source === "/" ? source : partUri(source);
-        if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id))
+        const { id, type, target: requestedTarget, external } = relationship;
+        this.open();
+        if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(id))
             throw new TypeError("Relationship id must be an XML ID.");
-        if (!/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"']+$/.test(relationship.type))
+        if (!/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"']+$/.test(type))
             throw new TypeError("Relationship type must be an absolute URI.");
-        const target = relationship.external ? relationship.target : partUri(relationship.target);
-        if (relationship.external && (!target || /[\u0000-\u0020]/.test(target)))
+        const target = external ? requestedTarget : partUri(requestedTarget);
+        if (external && (!target || /[\u0000-\u0020]/.test(target)))
             throw new TypeError("Invalid external relationship target.");
         const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map();
-        if (list.has(relationship.id))
-            throw new TypeError("Duplicate relationship id: " + relationship.id);
-        list.set(relationship.id, { ...relationship, target });
+        if (list.has(id))
+            throw new TypeError("Duplicate relationship id: " + id);
+        list.set(id, { id, type, target, ...(external === undefined ? {} : { external }) });
         this.relationships.set(key, list);
     }
     setProperties(core = {}, app = {}) {
@@ -3231,7 +3236,8 @@ class Worksheet {
             });
         const originalCharacters = typeof value === "string" ? value.length : 0;
         let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
-        if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
+        // Cleaning removes characters; ordinary strings cannot cross Excel's limit.
+        if (type === "string" && originalCharacters > 32767 && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
@@ -4452,11 +4458,14 @@ class Workbook {
     }
     addPart(part) {
         this.assertOpen();
+        const { uri, contentType, data, relationship } = part;
+        const capturedRelationship = relationship && { id: relationship.id, type: relationship.type, source: relationship.source };
+        this.assertOpen();
         // Reserve now so collisions and invalid names fail at the call site.
-        this.package.addPart(part);
-        if (part.relationship) {
-            const { source, ...rel } = part.relationship;
-            this.package.addRelationship(source ?? "/xl/workbook.xml", { ...rel, target: part.uri });
+        this.package.addPart({ uri, contentType, data });
+        if (capturedRelationship) {
+            const { source, id, type } = capturedRelationship;
+            this.package.addRelationship(source ?? "/xl/workbook.xml", { id, type, target: uri });
         }
     }
     /** Complete the archive and return counts. Does not close or dispose a caller-owned sink. */

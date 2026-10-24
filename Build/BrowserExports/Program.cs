@@ -3,6 +3,10 @@ using HtmlTinkerX;
 using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
+if (args.Length > 0 && args[0] == "--validate-table-engine") {
+    Console.WriteLine(JsonSerializer.Serialize(TableEngineComparisonVerifier.Verify(args)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate-wide") {
     string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.pdf", SearchOption.AllDirectories);
     if (files.Length == 0) throw new InvalidDataException("No wide report fixtures to validate.");

@@ -122,6 +122,24 @@ test("XLSX enforces string, width, column, date and declared-type boundaries", a
   await assert.rejects(dates.addRows([[new Date("1800-01-01T00:00:00Z")]]), RangeError);
 });
 
+test("XLSX applies the cell boundary after cleaning without reducing the raw text budget", async () => {
+  const boundary = "x".repeat(32767), dirty = boundary + "\u0001";
+  for (const value of [boundary, dirty]) {
+    const book = new Workbook({ compression: "store", oversizedText: "preserve",
+      limits: { maxOverflowCharacters: 0, maxTextCharacters: value.length } });
+    await book.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[value]]);
+    const zip = await readZip(await book.toBlob());
+    const sheet = zip.get("xl/worksheets/sheet1.xml").content;
+    assert.ok(sheet.includes('<t xml:space="preserve">' + boundary + '</t>'));
+    assert.doesNotMatch(sheet, /<hyperlinks>/);
+    assert.equal(book.worksheets.length, 1, "Cleaning to the boundary needs no preservation sheet");
+  }
+  const rejected = new Workbook({ invalidCharacterPolicy: "reject" });
+  await assert.rejects(rejected.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[dirty]]), { code: "INVALID_XML" });
+  const limited = new Workbook({ limits: { maxTextCharacters: boundary.length } });
+  await assert.rejects(limited.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[dirty]]), { code: "RESOURCE_LIMIT" });
+});
+
 test("maximum column projects the last cell to XFD", async () => {
   const book = new Workbook({ compression: "store" });
   const cols = Array.from({ length: 16384 }, () => ({ header: "V" }));

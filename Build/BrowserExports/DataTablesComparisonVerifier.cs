@@ -25,6 +25,7 @@ internal static class DataTablesComparisonVerifier {
             Require(row == rows, "CSV row count differs.");
         } else {
             using var archive = ZipFile.OpenRead(path);
+            string[] sharedStrings = ReadSharedStrings(archive);
             using var stream = (archive.GetEntry("xl/worksheets/sheet1.xml") ?? throw new InvalidDataException("Missing worksheet.")).Open();
             using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
             int row = 0, column = 0, widthColumns = 0;
@@ -45,13 +46,17 @@ internal static class DataTablesComparisonVerifier {
                     using XmlReader subtree = reader.ReadSubtree(); XElement cell = XElement.Load(subtree);
                     Require(column < columns && row > 0, "Unexpected XLSX cell.");
                     Require(cell.Attribute("r")?.Value == ColumnName(column + 1) + row, "XLSX cell coordinate differs.");
-                    string actual = string.Concat(cell.Descendants().Where(e => e.Name.LocalName is "t" or "v").Select(e => e.Value));
+                    Require(!cell.Elements().Any(element => element.Name.LocalName == "f"), "Plain comparison cells must not substitute cached formulas.");
+                    string? kind = cell.Attribute("t")?.Value;
+                    string actual = kind == "s" ? SharedString(cell, sharedStrings)
+                        : kind == "inlineStr" ? LiteralText(cell.Elements().Single(element => element.Name.LocalName == "is"))
+                        : cell.Elements().SingleOrDefault(element => element.Name.LocalName == "v")?.Value ?? "";
                     string expected = row == 1 ? "Column " + (column + 1) : Expected(row - 2, column, unique, textProfile);
                     longest[column] = Math.Max(longest[column], expected.EnumerateRunes().Count());
                     bool numeric = row > 1 && column % 3 != 1;
                     Require(numeric ? double.TryParse(actual, CultureInfo.InvariantCulture, out double number) && number == double.Parse(expected, CultureInfo.InvariantCulture) : actual == expected,
                         $"XLSX value differs at {row}/{column}.");
-                    Require(numeric ? cell.Attribute("t") is null or { Value: "n" } : cell.Attribute("t")?.Value == "inlineStr", "XLSX cell type differs.");
+                    Require(numeric ? kind is null or "n" : kind is "inlineStr" or "s" or "str", "XLSX cell type differs.");
                     column++; cells++;
                 }
             }
@@ -62,7 +67,34 @@ internal static class DataTablesComparisonVerifier {
         return new { rows, columns, cells, allValues = true, contract = "ordered typed numbers and literal Unicode strings; headers; " + (fullWidthScan ? "whole-table approximate width sizing" : "fixed width 20") };
     }
 
-    private static string Expected(int row, int column, bool unique, string textProfile) => column % 3 == 0 ? ((long)row * 10 + column).ToString(CultureInfo.InvariantCulture)
+    private static string[] ReadSharedStrings(ZipArchive archive) {
+        ZipArchiveEntry? part = archive.GetEntry("xl/sharedStrings.xml");
+        if (part is null) return [];
+        using var stream = part.Open();
+        using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
+        var values = new List<string>();
+        while (reader.Read()) {
+            if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "si") continue;
+            using XmlReader item = reader.ReadSubtree();
+            values.Add(LiteralText(XElement.Load(item)));
+        }
+        return values.ToArray();
+    }
+
+    private static string SharedString(XElement cell, string[] sharedStrings) {
+        string? value = cell.Elements().SingleOrDefault(element => element.Name.LocalName == "v")?.Value;
+        Require(int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
+            && index >= 0 && index < sharedStrings.Length, "XLSX shared-string index is missing or invalid.");
+        return sharedStrings[index];
+    }
+
+    // Phonetic annotations are not the displayed text of an inline/shared string.
+    private static string LiteralText(XElement item) => string.Concat(item.Elements().SelectMany(element =>
+        element.Name.LocalName == "t" ? new[] { element.Value }
+        : element.Name.LocalName == "r" ? element.Elements().Where(child => child.Name.LocalName == "t").Select(child => child.Value)
+        : Enumerable.Empty<string>()));
+
+    internal static string Expected(int row, int column, bool unique, string textProfile) => column % 3 == 0 ? ((long)row * 10 + column).ToString(CultureInfo.InvariantCulture)
         : column % 3 == 1 ? $"Łódź{(textProfile == "bmp" ? "" : " 🧪")} {(unique ? "row-" + row : "group-" + row % 100)}-column-{column}"
         : (row % 10000 + column / 100d).ToString("G", CultureInfo.InvariantCulture);
     private static string ColumnName(int column) { string name = ""; while (column > 0) { column--; name = (char)('A' + column % 26) + name; column /= 26; } return name; }

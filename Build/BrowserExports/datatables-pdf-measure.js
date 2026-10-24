@@ -18,7 +18,7 @@ globalThis.preparePdfMeasurement = function (encoded) {
   if (typeof pdfMake.addVirtualFileSystem === 'function') pdfMake.addVirtualFileSystem(files); else pdfMake.vfs = files;
   if (typeof pdfMake.addFonts === 'function') pdfMake.addFonts(faces); else pdfMake.fonts = faces;
   DataTable.Buttons.pdfMake(pdfMake);
-  comparisonPdf = { fonts: { regular: new OfficeIMO.PdfFont(programs.regular), bold: new OfficeIMO.PdfFont(programs.bold) },
+  comparisonPdf = { programs,
     regularSpacing: spacing(programs.regular), boldSpacing: spacing(programs.bold) };
 };
 
@@ -38,7 +38,9 @@ globalThis.customizePdfMeasurement = function (doc, spec) {
 };
 
 globalThis.pdfMeasurementOptions = function (spec) {
-  return { fonts: comparisonPdf.fonts, pageSize: 'A3', orientation: 'landscape', fontSize: 6,
+  // The competing document writer also parses its fonts per document during export.
+  return { fonts: { regular: new OfficeIMO.PdfFont(comparisonPdf.programs.regular), bold: new OfficeIMO.PdfFont(comparisonPdf.programs.bold) },
+    pageSize: 'A3', orientation: 'landscape', fontSize: 6,
     columnWidths: Array.from({ length: spec.columns }, () => (1190.551 - 72) / spec.columns), pageNumbers: false,
     ...(spec.styled ? { alternateRowColor: 'F3F4F6' } : {}) };
 };
