@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.Word {
 
                 WordParagraph paragraph2 = document.AddParagraph();
                 var paragraph2Image = paragraph2.InsertImage(filePathImage, 500, 500);
-                //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+                //paragraph2Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
                 paragraph2Image.Rotation = 180;
                 paragraph2Image.Shape = OfficePresetShapeType.ActionButtonMovie;
 
