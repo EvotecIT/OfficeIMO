@@ -8249,7 +8249,7 @@ class PdfTableBandFlow {
             await this.flush();
     }
     async row(row, allowFirstFragment = false) {
-        const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+        const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = minimumLines * row.lineHeight + padding * 2;
         if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
             throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
         // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
@@ -8283,9 +8283,14 @@ class PdfTableBandFlow {
                 let remaining = false;
                 const cells = rows[0].cells.map(cell => {
                     const source = this.layout.bands[index].columns[cell.first];
-                    const repeated = this.layout.repeatedColumn(source), visible = repeated ? cell.lines : cell.lines.slice(first, first + lines);
+                    const repeated = this.layout.repeatedColumn(source), reusable = cell.span === 1 && (cell.source?.span ?? 1) === 1 && (cell.rowSpan ?? 1) === 1 &&
+                        cell.height === undefined && first === 0 && (repeated || lines >= cell.lines.length);
+                    const visible = repeated || reusable ? cell.lines : cell.lines.slice(first, first + lines);
                     if (!repeated && (visible.length > 0 || cell.link !== undefined))
                         remaining = true;
+                    // A complete first fragment already owns these lines and their maximum font metrics.
+                    if (reusable)
+                        return cell;
                     const { height: _height, ...plain } = cell;
                     return { ...plain, lines: visible,
                         lineHeight: visible.reduce((value, line) => Math.max(value, line.lineHeight), cell.font.lineHeight(fontSize)),
@@ -8393,30 +8398,31 @@ class PdfTableStructure {
             return row.cells.map(cell => this.cells.get(cell));
         const rowId = this.structure.element("TR", parent);
         this.rows.set(row, rowId);
-        const headers = row.cells.map((cell, index) => rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex);
         // Allocate in source order, then resolve every row header before associating even earlier data cells.
         // Generated summary labels override detail roles so numeric subtotal cells never become row headers.
         const ids = row.cells.map((cell, index) => {
-            const id = this.structure.element(headers[index] ? "TH" : "TD", rowId);
+            const header = rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex;
+            const id = this.structure.element(header ? "TH" : "TD", rowId);
             this.cells.set(cell, id);
             return id;
         });
-        const rowHeaders = [];
+        let rowHeaders;
         for (let index = 0; index < ids.length; index++)
-            if (headers[index])
-                rowHeaders.push(await this.structure.identifier(ids[index]));
+            if (rowHeaderIndex === undefined ? row.cells[index].rowHeader === true : index === rowHeaderIndex)
+                (rowHeaders ??= []).push(await this.structure.identifier(ids[index]));
         for (let index = 0; index < row.cells.length; index++) {
             const cell = row.cells[index];
-            if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
+            if (!rowHeaders && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
                 const attributes = this.ordinaryAttributes[cell.first] ??=
                     await this.structure.attributeReference(this.attributeDictionary(cell, this.associations(cell)));
                 this.structure.setAttributes(ids[index], attributes);
                 continue;
             }
             const associations = this.associations(cell);
-            if (!headers[index])
+            const header = rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex;
+            if (!header && rowHeaders)
                 associations.push(...rowHeaders);
-            this.structure.setAttributes(ids[index], this.attributes(cell, associations, headers[index] ? "Row" : undefined));
+            this.structure.setAttributes(ids[index], this.attributes(cell, associations, header ? "Row" : undefined));
         }
         return ids;
     }
@@ -9211,9 +9217,15 @@ class PdfPages {
             marker: { line: item.marker, gap: item.markerGap, ...(label === undefined ? {} : { owner: label }) } });
         await this.structure?.complete(li);
     }
+    takeCommands() {
+        const content = this.commands.join("");
+        // Encoding and awaited delivery need the joined value, not the original command list.
+        this.commands = [];
+        return content;
+    }
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
-        await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+        await this.objects.stream(contents, this.takeCommands(), "", options.compression !== false);
         const annotations = [];
         for (const annotation of this.annotations) {
             annotations.push(annotation.id);
@@ -9225,7 +9237,6 @@ class PdfPages {
             (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
         if (this.structure)
             await this.structure.finishPage();
-        this.commands = [];
         this.annotations = [];
         this.commandBytes = 0;
         this.current = 0;

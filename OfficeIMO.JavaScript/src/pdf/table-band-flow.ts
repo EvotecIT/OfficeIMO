@@ -39,7 +39,7 @@ export class PdfTableBandFlow {
     if (this.count >= this.layout.settings.limits.maxTableWindowRows) await this.flush();
   }
   async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
-    const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+    const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = minimumLines * row.lineHeight + padding * 2;
     if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
       throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
     // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
@@ -68,8 +68,12 @@ export class PdfTableBandFlow {
         let remaining = false;
         const cells = rows[0]!.cells.map(cell => {
           const source = this.layout.bands![index]!.columns[cell.first]!;
-          const repeated = this.layout.repeatedColumn(source), visible = repeated ? cell.lines : cell.lines.slice(first, first + lines);
+          const repeated = this.layout.repeatedColumn(source), reusable = cell.span === 1 && (cell.source?.span ?? 1) === 1 && (cell.rowSpan ?? 1) === 1 &&
+            cell.height === undefined && first === 0 && (repeated || lines >= cell.lines.length);
+          const visible = repeated || reusable ? cell.lines : cell.lines.slice(first, first + lines);
           if (!repeated && (visible.length > 0 || cell.link !== undefined)) remaining = true;
+          // A complete first fragment already owns these lines and their maximum font metrics.
+          if (reusable) return cell;
           const { height: _height, ...plain } = cell;
           return { ...plain, lines: visible,
             lineHeight: visible.reduce((value, line) => Math.max(value, line.lineHeight), cell.font.lineHeight(fontSize)),

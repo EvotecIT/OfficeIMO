@@ -523,9 +523,15 @@ export class PdfPages {
     await this.structure?.complete(li);
   }
 
+  private takeCommands(): string {
+    const content = this.commands.join("");
+    // Encoding and awaited delivery need the joined value, not the original command list.
+    this.commands = [];
+    return content;
+  }
   private async finishPage(): Promise<void> {
     const contents = this.objects.reserve(), { page, options } = this.settings;
-    await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+    await this.objects.stream(contents, this.takeCommands(), "", options.compression !== false);
     const annotations: number[] = [];
     for (const annotation of this.annotations) {
       annotations.push(annotation.id);
@@ -536,7 +542,7 @@ export class PdfPages {
       (this.structure?.pageDictionary ?? "") +
       (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
     if (this.structure) await this.structure.finishPage();
-    this.commands = []; this.annotations = []; this.commandBytes = 0; this.current = 0;
+    this.annotations = []; this.commandBytes = 0; this.current = 0;
     await this.objects.flushBytes();
   }
   async finish(): Promise<void> {
