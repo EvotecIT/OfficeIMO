@@ -447,7 +447,7 @@ internal static partial class PdfWriter {
                 structurePage: currentPage,
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
-                lineWidths: visibleWidths, baselineFont: cellFont);
+                lineWidths: visibleWidths, baselineFont: cellFont, barClipFrame: inkClip);
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop, markedContentId);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {

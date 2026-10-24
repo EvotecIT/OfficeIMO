@@ -30,7 +30,10 @@ internal static partial class RtfPdfConverter {
         void Record(RtfHeaderFooter? story) {
             if (story == null) return;
             foreach (RtfParagraph paragraph in story.Paragraphs)
+            {
                 RecordParagraphFrameDiagnostic(document, paragraph, options, "HeaderFooter/Paragraph/Frame");
+                RecordParagraphBarTabDiagnostic(document, paragraph, options, omitted: true);
+            }
         }
     }
 }

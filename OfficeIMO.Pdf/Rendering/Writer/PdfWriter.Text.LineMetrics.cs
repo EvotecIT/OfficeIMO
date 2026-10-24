@@ -8,6 +8,13 @@ internal static partial class PdfWriter {
         internal double BaselineOffset { get; set; }
         internal double? FrameFitHeight { get; set; }
         internal double MinimumContentHeight { get; set; }
+        internal PdfTabStop[]? BarTabStops { get; set; }
+        internal double BarOriginOffset { get; set; }
+        internal double BarLineHeight { get; set; }
+        internal double BarSpacingBefore { get; set; }
+        internal double BarSpacingAfter { get; set; }
+        internal bool IsFirstParagraphLine { get; set; }
+        internal bool IsLastParagraphLine { get; set; }
     }
 
     private static double ResolveRichContentHeight(double contentHeight, PdfLineSpacing? spacing,
@@ -77,6 +84,7 @@ internal static partial class PdfWriter {
                 bodyAscent, inlineAscent, inlineDescent, hasInline);
         }
         RefreshRichLinePlacementMetrics(line, baseFont, fontSize, options, spacing);
+        if (line.BarTabStops != null) line.BarLineHeight = advance;
         return advance;
     }
 

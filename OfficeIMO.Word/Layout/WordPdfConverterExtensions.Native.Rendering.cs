@@ -91,6 +91,7 @@ namespace OfficeIMO.Word.Pdf {
             // A formatted section terminator is editable metadata, not a separate blank body line.
             if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) {
                 if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "section terminator", omitted: true);
                 return;
             }
 
@@ -127,7 +128,12 @@ namespace OfficeIMO.Word.Pdf {
             if (textBoxes.Count > 0) {
                 RenderNativeSmartArt(pdf, smartArtDrawings, ResolveNativeParagraphAlign(paragraph, allowJustify: false));
                 if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
-                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
+                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) {
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "anchored text-box paragraph");
+                    return;
+                }
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "mixed text-box paragraph",
+                    omitted: NativeBarParagraphProjectionOmitsRule(paragraph));
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;
@@ -197,6 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphFootnoteNumbers.Count == 0 &&
                 IsNativeHorizontalRuleParagraph(paragraph, runs, renderContent) &&
                 CreateNativeHorizontalRuleStyle(paragraph, style) is { } horizontalRuleStyle) {
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "horizontal-rule paragraph", omitted: true);
                 pdf.HR(style: horizontalRuleStyle);
                 return;
             }
@@ -206,8 +213,10 @@ namespace OfficeIMO.Word.Pdf {
                 // A flow object already occupies this paragraph's line. A real empty
                 // paragraph following it still contributes its own visible mark.
                 if (renderedFlowObject || renderedChart) {
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "object-only paragraph", omitted: true);
                     return;
                 }
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "empty paragraph");
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -217,6 +226,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph");
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
@@ -305,6 +315,8 @@ namespace OfficeIMO.Word.Pdf {
                 // A hidden mark contributes neither a line nor its paragraph spacing.
                 return;
             }
+
+            if (TryRenderNativeBarEmptyParagraph(pdf, paragraph, style, nativeDefaults, nativeFontMap)) return;
 
             double height = MeasureNativeEmptyParagraphLineHeight(
                 paragraph,
@@ -905,6 +917,7 @@ namespace OfficeIMO.Word.Pdf {
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
                     PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "text-box paragraph");
                     if (getMarker(paragraph) is { } paragraphMarker) {
                         ApplyNativeInlineListIndent(paragraph, paragraphStyle);
                         ApplyNativeInlineListMarkerAlignment(paragraph, paragraphMarker.Marker, paragraphStyle, nativeDefaults, nativeFontMap);
@@ -1104,6 +1117,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = paragraphStyle.SpacingAfter;
             }
 
+            // Headings currently use the containing margin as their text frame;
+            // retain the source origin rather than the paragraph's unused indent.
+            foreach (PdfCore.PdfTabStop stop in ResolveNativeParagraphTabStops(paragraph, 0D, 0D)
+                .Where(stop => stop.Alignment == PdfCore.PdfTabAlignment.Bar))
+                style.TabStops.Add(stop);
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
             foreach (string family in ResolveNativeParagraphStyleFontFamilies(paragraph._document, paragraph.StyleId)) {
                 if (nativeFontMap.TryGetNamedFontFamily(family, out string? registeredHeadingFamily)) {

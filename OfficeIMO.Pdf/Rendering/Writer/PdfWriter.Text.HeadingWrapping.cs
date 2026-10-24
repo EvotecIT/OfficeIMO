@@ -8,7 +8,8 @@ internal static partial class PdfWriter {
         PdfHeadingStyle? style, PdfAlign alignment) {
         var wrapped = WrapRichRunsWithSpacing(runs, maxWidthPts, fontSize, baseFont, lineHeight,
             firstLineWidthPts, tabStopWidth, options, style?.LineSpacing,
-            wordJustificationMode: style?.UseWordJustificationSpacing == true && alignment == PdfAlign.Justify ? style.JustificationMode : null);
+            wordJustificationMode: style?.UseWordJustificationSpacing == true && alignment == PdfAlign.Justify ? style.JustificationMode : null,
+            tabStops: style?.TabStops.ToArray());
         for (int lineIndex = 0; lineIndex < wrapped.Lines.Count; lineIndex++) {
             List<RichSeg> line = wrapped.Lines[lineIndex];
             var policy = new RichLineJustificationPolicy(style?.JustificationMode ?? PdfJustificationMode.Words,

@@ -260,6 +260,10 @@ namespace OfficeIMO.Word.Pdf {
             MapNativeTabLeader(leader.ToOpenXml());
 
         private static PdfCore.PdfTabAlignment MapNativeTabAlignment(W.TabStopValues alignment) {
+            if (alignment == W.TabStopValues.Bar) {
+                return PdfCore.PdfTabAlignment.Bar;
+            }
+
             if (alignment == W.TabStopValues.Center) {
                 return PdfCore.PdfTabAlignment.Center;
             }

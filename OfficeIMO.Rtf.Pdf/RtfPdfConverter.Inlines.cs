@@ -5,6 +5,7 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static partial class RtfPdfConverter {
     private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
+        RecordParagraphBarTabDiagnostic(document, paragraph, options);
         if (RtfPdfMapping.HasPageBreakBefore(document, paragraph)) {
             pdf.PageBreak();
         }

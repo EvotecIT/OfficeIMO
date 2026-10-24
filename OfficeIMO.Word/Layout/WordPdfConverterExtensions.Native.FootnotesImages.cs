@@ -231,6 +231,8 @@ namespace OfficeIMO.Word.Pdf {
                                 footnote.IsEndnote ? "endnote" : "footnote", runningStory: false);
                             RecordNativeParagraphFrameDiagnostics(new WordParagraph(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote");
+                            RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, paragraph), options,
+                                footnote.IsEndnote ? "endnote" : "footnote", omitted: true);
                         }
                     if (footnote.Source != null && footnote.IsEndnote && options != null)
                         AddNativeExportWarning(options, "NativeEndnoteContentApproximated", "endnote",

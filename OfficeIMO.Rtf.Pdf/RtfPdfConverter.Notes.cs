@@ -31,6 +31,7 @@ internal static partial class RtfPdfConverter {
 
             for (int i = 0; i < noteReference.Note.Paragraphs.Count; i++) {
                 RtfParagraph source = noteReference.Note.Paragraphs[i];
+                RecordParagraphBarTabDiagnostic(document, source, options);
                 if (RtfPdfMapping.HasPageBreakBefore(document, source)) pdf.PageBreak();
                 var runs = new List<PdfCore.PdfTextRun>();
                 if (i == 0) {

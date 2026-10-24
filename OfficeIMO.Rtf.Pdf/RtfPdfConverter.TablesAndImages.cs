@@ -85,6 +85,7 @@ internal static partial class RtfPdfConverter {
             var paragraphRuns = new List<PdfCore.PdfTextRun>();
             PdfCore.PdfTableCellParagraph? cellParagraph = null;
             if (block is RtfParagraph paragraph) {
+                RecordParagraphBarTabDiagnostic(document, paragraph, options);
                 AppendParagraphRuns(document, paragraph, paragraphRuns, options, state);
                 EnsureParagraphLineBoxStrut(document, paragraph, paragraphRuns, state);
                 cellParagraph = ToCellParagraph(document, paragraph, paragraphRuns, state.FontOptions);

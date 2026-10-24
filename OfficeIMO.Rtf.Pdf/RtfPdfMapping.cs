@@ -351,6 +351,8 @@ internal static class RtfPdfMapping {
 
     private static PdfCore.PdfTabAlignment ToPdfTabAlignment(RtfTabAlignment alignment) {
         switch (alignment) {
+            case RtfTabAlignment.Bar:
+                return PdfCore.PdfTabAlignment.Bar;
             case RtfTabAlignment.Center:
                 return PdfCore.PdfTabAlignment.Center;
             case RtfTabAlignment.Right:

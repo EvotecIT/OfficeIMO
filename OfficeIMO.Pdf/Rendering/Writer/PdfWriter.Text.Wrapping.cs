@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         }
 
         return tabStops
-            .Where(tabStop => !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Where(tabStop => tabStop.Alignment != PdfTabAlignment.Bar && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
             .Select(tabStop => tabStop.ResolveFramePosition(frameWidth))
             .OrderBy(tabStop => tabStop.Position)
             .ToArray();
@@ -23,8 +23,8 @@ internal static partial class PdfWriter {
         return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null) =>
-        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode);
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null, IReadOnlyList<PdfTabStop>? tabStops = null) =>
+        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode);
 
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null) {
         PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
@@ -37,6 +37,7 @@ internal static partial class PdfWriter {
         PdfTextRun? currentTextRun = null;
         var wordContinuations = MeasureRichWordContinuations(effectiveRuns, baseFont, fontSize, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops, maxWidthPts);
+        PdfTabStop[]? barTabStops = SnapshotBarTabStops(tabStops, maxWidthPts);
         // A field selected at a left stop can wrap and select an earlier non-left stop.
         bool mayReselectNonLeftTabStop = explicitTabStops?.Any(stop => AlignsCompleteTabField(stop.Alignment)) == true;
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
@@ -257,6 +258,8 @@ internal static partial class PdfWriter {
         void StartNewLine() {
             if (lines.Count >= MaximumTextLayoutLines)
                 throw new System.IO.InvalidDataException("PDF paragraph layout exceeds the 100,000-line limit.");
+            BindRichLineBarTabs((RichLine)lines[lines.Count - 1], barTabStops, CurrentLineOriginOffset(),
+                currentLineHeight - (currentFrame?.Gap ?? 0D));
             admittedLineWidths.Add(CurrentMaxWidth());
             heights.Add(currentLineHeight);
             completedHeight += currentLineHeight;
@@ -1078,7 +1081,11 @@ internal static partial class PdfWriter {
                 anchor.Line.Insert(index, anchor.Anchor);
             }
         }
-        if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
+        if (lines.Count > 0) BindRichLineBarTabs((RichLine)lines[lines.Count - 1], barTabStops,
+            CurrentLineOriginOffset(), currentLineHeight - (currentFrame?.Gap ?? 0D));
+        // A bar-only paragraph still owns one natural empty line. A trailing
+        // newline retains the existing policy and does not invent another line.
+        if (lines.Count > 0 && lines[lines.Count - 1].Count == 0 && (barTabStops == null || lines.Count > 1)) { lines.RemoveAt(lines.Count - 1); }
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
         if (admittedLineWidths.Count < lines.Count) admittedLineWidths.Add(CurrentMaxWidth());
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
@@ -1087,6 +1094,8 @@ internal static partial class PdfWriter {
             if (compressWordSpaces) BindWordCompressionPlan(line, admittedLineWidths[lineIndex]);
             RefreshRichLinePlacementMetrics(line, baseFont, fontSize, options, lineSpacing);
         }
+        if (lines.Count > 0 && lines[0] is RichLine firstParagraphBarLine) firstParagraphBarLine.IsFirstParagraphLine = true;
+        if (lines.Count > 0 && lines[lines.Count - 1] is RichLine lastParagraphBarLine) lastParagraphBarLine.IsLastParagraphLine = true;
         return (lines, heights);
 
         double MeasureLongTokenBoundary(string part) => runKerning.MeasureBoundary(lines[lines.Count - 1],

@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfTabStop {
     private double _position;
     private char? _decimalSeparator;
+    private PdfTabAlignment _alignment;
+    private double _barWidth = 0.5D;
     // Generated navigation anchors its final tab to each actual flow frame.
     // Authored tab stops retain their ordinary absolute positions.
     internal bool IsFrameRightRelative { get; set; }
@@ -14,7 +16,7 @@ public sealed class PdfTabStop {
     /// Creates a paragraph tab stop at the specified position.
     /// </summary>
     /// <param name="position">The finite tab stop position, in points, relative to the paragraph text frame. Zero and negative positions are permitted.</param>
-    /// <param name="alignment">The alignment applied to the text following the tab character.</param>
+    /// <param name="alignment">Text alignment, or Bar for a stationary paragraph rule.</param>
     /// <param name="leader">The leader drawn across the tab gap.</param>
     public PdfTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
         Position = position;
@@ -25,7 +27,8 @@ public sealed class PdfTabStop {
     /// <summary>Tab stop position, in points, relative to the paragraph text frame.</summary>
     /// <remarks>
     /// Zero is the main text-frame origin. Negative positions can be reached
-    /// from a hanging first line. A stop is used only while ahead of the line cursor.
+    /// from a hanging first line. A text stop is used only while ahead of the line cursor.
+    /// A bar rule is painted at its declared position independently of the text cursor.
     /// </remarks>
     public double Position {
         get => _position;
@@ -38,10 +41,29 @@ public sealed class PdfTabStop {
         }
     }
 
-    /// <summary>Alignment applied to the text following the tab character.</summary>
-    public PdfTabAlignment Alignment { get; set; }
+    /// <summary>Text alignment, or <see cref="PdfTabAlignment.Bar"/> for a stationary paragraph rule.</summary>
+    public PdfTabAlignment Alignment {
+        get => _alignment;
+        set {
+            if (value != PdfTabAlignment.Bar) Guard.TabAlignment(value, nameof(Alignment));
+            _alignment = value;
+        }
+    }
 
-    /// <summary>Leader drawn across the tab gap.</summary>
+    /// <summary>Positive finite stroke width in points for a bar rule. The default is 0.5pt.</summary>
+    /// <remarks>Other tab alignments do not use this value. Bar rules have square caps.</remarks>
+    public double BarWidth {
+        get => _barWidth;
+        set {
+            Guard.Positive(value, nameof(BarWidth));
+            _barWidth = value;
+        }
+    }
+
+    /// <summary>Stroke color for a bar rule. The default is black; other alignments do not use it.</summary>
+    public PdfColor BarColor { get; set; } = PdfColor.Black;
+
+    /// <summary>Leader drawn across a text tab gap. Bar rules do not use a leader.</summary>
     public PdfTabLeaderStyle Leader { get; set; }
 
     /// <summary>Gets or sets the character anchored by decimal alignment. Null accepts the first period or comma.</summary>
@@ -57,7 +79,8 @@ public sealed class PdfTabStop {
 
     /// <summary>Creates a copy of this tab stop.</summary>
     public PdfTabStop Clone() => new PdfTabStop(Position, Alignment, Leader) {
-        DecimalSeparator = DecimalSeparator, IsFrameRightRelative = IsFrameRightRelative
+        DecimalSeparator = DecimalSeparator, IsFrameRightRelative = IsFrameRightRelative,
+        BarWidth = BarWidth, BarColor = BarColor
     };
 
     internal PdfTabStop ResolveFramePosition(double frameWidth) {
