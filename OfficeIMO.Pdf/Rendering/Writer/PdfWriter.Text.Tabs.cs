@@ -146,6 +146,12 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, advance);
     }
 
+    // A short effective gap can select a leader without painting any glyphs.
+    // Keep line metrics on exactly the same decision as the painter.
+    private static bool HasPaintedRichTabLeader(RichSeg segment, PdfOptions? options) =>
+        segment.LeadingSpace && segment.LeadingIsTab &&
+        segment.LeadingTabLeader != PdfTabLeaderStyle.None &&
+        BuildTabLeaderText(segment.LeadingAdvance, segment, options ?? new PdfOptions()).Length > 0;
     private const int MaxTabLeaderGlyphCount = 4_096;
 
     private static string BuildTabLeaderText(double gap, RichSeg segment, PdfOptions options) {

@@ -49,6 +49,9 @@ internal static partial class PdfWriter {
         RichSeg? currentSpaceStyle = null;
         RichSeg? pendingTabSourceStyle = null;
         int pendingTabSourceLine = -1;
+        RichTabFieldMeasurement? pendingBufferedTabField = null;
+        double pendingBufferedTabFollowingWidth = 0D;
+        double? pendingBufferedTabSpaceWidth = null;
         bool pendingLeadingSeparator = false;
         bool pendingLeadingIsOrdinarySpace = false;
         bool oversizedWordContinuation = false;
@@ -125,6 +128,115 @@ internal static partial class PdfWriter {
                 CombinedContentHeight(0, includeCurrentRun: false) + (currentFrame?.Gap ?? 0));
         }
 
+        void RegisterRetainedTabLeaderMetrics(RichSeg tab) {
+            if (!HasPaintedRichTabLeader(tab, options)) return;
+            GetRichRunLineMetrics(tab.Font, tab.NamedFont, tab.FontSize, tab.Baseline,
+                options, lineSpacing, out double ascent, out double descent);
+            if (!tab.ContributesLineBoxDescent) descent = 0D;
+            if (lineSpacing?.IsExact != true) {
+                currentLineTextAscent = Math.Max(currentLineTextAscent, ascent);
+                currentLineTextDescent = Math.Max(currentLineTextDescent, descent);
+                if (tab.ContributesLineBoxDescent)
+                    currentLineBodyTextAscent = Math.Max(currentLineBodyTextAscent, ascent);
+            }
+            double advance = tab.ContributesLineBoxDescent
+                ? lineSpacing?.GetAdvance(tab.FontSize) ?? tab.FontSize * lineHeightRatio : 0D;
+            currentLineHeight = Math.Max(currentLineHeight,
+                Math.Max(advance, CombinedContentHeight(0D, includeCurrentRun: false)) + (currentFrame?.Gap ?? 0D));
+        }
+
+        void AppendRetainedSpaceFragments(ref double advance, bool clipped = false) {
+            if (pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab) {
+                PendingSpaceFragment first = pendingSpaceFragments[0];
+                bool consumeAll = Math.Abs(advance - pendingSpaceFragments.Sum(fragment => fragment.Advance)) <= 0.001D;
+                double prefix = consumeAll ? first.Advance : Math.Min(first.Advance, advance);
+                // A preserved tab can be clipped at the line edge. Admit the
+                // source font only for the prefix that will actually paint here.
+                double followingSpaces = pendingSpaceFragments.Skip(1).Sum(fragment => fragment.Advance);
+                RichSeg prepared = PrepareRetainedTabFrame(first.Style.WithLeadingAdvance(prefix),
+                    pendingBufferedTabFollowingWidth, pendingBufferedTabSpaceWidth,
+                    field: pendingBufferedTabField, followingSpaces: followingSpaces,
+                    clipToCurrentFrame: clipped, maximumAdvance: prefix);
+                double delta = prepared.LeadingAdvance - prefix;
+                pendingSpaceFragments[0] = new PendingSpaceFragment(
+                    prepared.WithLeadingAdvance(first.Advance + delta));
+                advance += delta;
+            }
+            List<RichSeg> fragments = ConsumePreservedSpaceFragments(pendingSpaceFragments, advance);
+            // Frame preparation can move the tab. Resolve the destination only
+            // after it completes, rather than evaluating an AddRange receiver first.
+            lines[lines.Count - 1].AddRange(fragments);
+            foreach (RichSeg fragment in fragments) RegisterRetainedTabLeaderMetrics(fragment);
+            lineWidth += advance;
+        }
+        RichSeg PrepareRetainedTabFrame(RichSeg tab, double followingWidth = 0D,
+            double? spaceWidth = null, string followingText = "", PdfStandardFont? followingFont = null,
+            double? followingSize = null, PdfTextBaseline? followingBaseline = null,
+            RichTabFieldMeasurement? field = null, double followingSpaces = 0D,
+            bool clipToCurrentFrame = false, double? maximumAdvance = null) {
+            double PaintableAdvance(RichSeg candidate) => clipToCurrentFrame
+                ? Math.Min(candidate.LeadingAdvance, Math.Min(maximumAdvance ?? double.MaxValue,
+                    Math.Max(0D, CurrentMaxWidth() - lineWidth))) : candidate.LeadingAdvance;
+            if (!HasPaintedRichTabLeader(tab.WithLeadingAdvance(PaintableAdvance(tab)), options)) return tab;
+            bool useSourceFont = !followingFont.HasValue;
+            PdfStandardFont measuredFont = followingFont ?? tab.Font;
+            double measuredSize = followingSize ?? tab.FontSize;
+            PdfTextBaseline measuredBaseline = followingBaseline ?? tab.Baseline;
+            PdfNamedFontFace? measuredNamedFont = useSourceFont ? tab.NamedFont : currentRunNamedFont;
+            OfficeTextFeatureSettings measuredFeatures = useSourceFont ? tab.FeatureSettings : currentRunFeatureSettings;
+            double measuredScaling = useSourceFont ? tab.HorizontalTextScaling : currentRunHorizontalTextScaling;
+            double measuredTracking = useSourceFont ? tab.CharacterSpacing : currentRunCharacterSpacing;
+            double measuredSpace = spaceWidth ?? MeasureRichText(" ", tab.Font, tab.NamedFont,
+                tab.FontSize, tab.Baseline, options, tab.FeatureSettings, tab.HorizontalTextScaling,
+                tab.CharacterSpacing, tab.TextDirection, tab.FontMetricScale);
+            int originalLine = lines.Count - 1;
+            double originalWidth = CurrentMaxWidth(), originalOrigin = CurrentLineOriginOffset();
+            double originalHeight = currentLineHeight - (currentFrame?.Gap ?? 0D);
+            var savedMetrics = (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent);
+            // PrepareLineFrame consumes incoming-run metrics as well as its explicit
+            // height. Supply the retained leader's source, even after a later space.
+            GetRichRunLineMetrics(tab.Font, tab.NamedFont, tab.FontSize, tab.Baseline,
+                options, lineSpacing, out currentRunAscent, out currentRunDescent);
+            currentRunContributesDescent = tab.ContributesLineBoxDescent;
+            if (!currentRunContributesDescent) currentRunDescent = 0D;
+            currentRunIsInline = false;
+            try {
+                PrepareLineFrame(RunLineHeight(tab.FontSize), PaintableAdvance(tab) + followingSpaces + followingWidth);
+            } finally {
+                (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent) = savedMetrics;
+            }
+            if (lineLayout == null || originalLine == lines.Count - 1 &&
+                Math.Abs(originalWidth - CurrentMaxWidth()) <= 0.001D &&
+                Math.Abs(originalOrigin - CurrentLineOriginOffset()) <= 0.001D)
+                return maximumAdvance.HasValue ? tab.WithLeadingAdvance(PaintableAdvance(tab)) : tab;
+
+            PdfTabStop? stop = originalLine == lines.Count - 1 ? tab.LeadingTabStop
+                : ResolveRelativeTabStop(pendingRelativeTabRun) ?? ResolveNextExplicitTabStop();
+            PdfTabAlignment alignment = stop?.Alignment ?? tab.LeadingTabAlignment;
+            PdfTabLeaderStyle leader = stop?.Leader ?? tab.LeadingTabLeader;
+            double selectedWidth = field != null && AlignsCompleteTabField(alignment) ? field.Width : followingWidth;
+            double advance = CalculateTabAdvance(lineWidth, followingSpaces + selectedWidth, measuredSpace,
+                alignment, tabStopWidth, followingText, measuredFont, measuredSize, measuredBaseline,
+                options, CurrentMaxWidth(), stop, CurrentLineOriginOffset(), measuredNamedFont,
+                measuredFeatures, measuredScaling, measuredTracking,
+                decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, options, followingSpaces));
+            tab = CreatePreservedTabFragment(tab, advance, stop, alignment, leader);
+            if (!HasPaintedRichTabLeader(tab.WithLeadingAdvance(PaintableAdvance(tab)), options)) {
+                // A different effective stop can remove the leader on the new line.
+                // Refit its geometry without admitting the discarded source font.
+                currentLineHeight = Math.Max(originalLine == lines.Count - 1 ? originalHeight : lineHeight,
+                    minimumLineHeight ?? 0D) + (currentFrame?.Gap ?? 0D);
+                PrepareLineFrame(0D, PaintableAdvance(tab) + followingSpaces + selectedWidth, includeCurrentRun: false);
+                advance = CalculateTabAdvance(lineWidth, followingSpaces + selectedWidth, measuredSpace,
+                    alignment, tabStopWidth, followingText, measuredFont, measuredSize, measuredBaseline,
+                    options, CurrentMaxWidth(), stop, CurrentLineOriginOffset(), measuredNamedFont,
+                    measuredFeatures, measuredScaling, measuredTracking,
+                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, options, followingSpaces));
+                tab = tab.WithLeadingAdvance(advance);
+            }
+            return maximumAdvance.HasValue ? tab.WithLeadingAdvance(PaintableAdvance(tab)) : tab;
+        }
+
         void StartNewLine() {
             if (lines.Count >= MaximumTextLayoutLines)
                 throw new System.IO.InvalidDataException("PDF paragraph layout exceeds the 100,000-line limit.");
@@ -146,25 +258,25 @@ internal static partial class PdfWriter {
             nextExplicitTabStopIndex = 0;
         }
 
-        void PrepareLineFrame(double contentHeight, double minimumWidth = 0) {
+        void PrepareLineFrame(double contentHeight, double minimumWidth = 0, bool includeCurrentRun = true) {
             if (lineLayout == null) return;
             if (lineSpacing?.IsExact == true) contentHeight = lineHeight;
             double incomingContentHeight = contentHeight;
-            contentHeight = CombinedContentHeight(contentHeight);
+            contentHeight = CombinedContentHeight(contentHeight, includeCurrentRun);
             currentContentHeight = Math.Max(lineHeight, contentHeight);
             double oldHeight = currentLineHeight - (currentFrame?.Gap ?? 0);
             var oldFrame = currentFrame;
             double height = lines[lines.Count - 1].Count == 0 ? currentContentHeight : Math.Max(oldHeight, contentHeight);
             double requiredWidth = Math.Max(currentMinimumWidth, minimumWidth);
-            var frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
+            var frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun), requiredWidth);
             if (lines[lines.Count - 1].Count > 0 &&
                 (MinimumLineWidth(lines[lines.Count - 1], lineWidth) > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001)) {
                 lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth);
                 currentFrame = oldFrame;
                 StartNewLine();
-                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight));
+                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun));
                 requiredWidth = minimumWidth;
-                frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
+                frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun), requiredWidth);
             }
             currentFrame = frame;
             currentMinimumWidth = requiredWidth;
@@ -269,6 +381,9 @@ internal static partial class PdfWriter {
         void ResetPendingLeading() {
             pendingLeadingAdvance = 0;
             pendingLeadingSpaceCount = 0;
+            pendingBufferedTabField = null;
+            pendingBufferedTabFollowingWidth = 0D;
+            pendingBufferedTabSpaceWidth = null;
             pendingSpaceFragments.Clear();
             pendingTabSourceStyle = null;
             pendingTabSourceLine = -1;
@@ -311,7 +426,9 @@ internal static partial class PdfWriter {
                 tab = pendingTabSourceStyle;
             }
             if (tab == null) return;
+            tab = PrepareRetainedTabFrame(tab);
             lines[lines.Count - 1].Add(tab);
+            RegisterRetainedTabLeaderMetrics(tab);
             lineWidth += tab.LeadingAdvance;
             ResetPendingLeading();
         }
@@ -350,8 +467,7 @@ internal static partial class PdfWriter {
 
             // Commit ordinary preserved separators before selecting the next stop.
             if (preserveWhitespace && pendingLeadingAdvance > 0D && currentSpaceStyle != null) {
-                lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
-                lineWidth += pendingLeadingAdvance;
+                AppendRetainedSpaceFragments(ref pendingLeadingAdvance);
             }
             pendingRelativeTabRun = currentTextRun?.RelativeTabStop.HasValue == true ? currentTextRun : null;
             PdfTabStop? explicitTabStop = ResolveRelativeTabStop(pendingRelativeTabRun) ?? ResolveNextExplicitTabStop();
@@ -366,7 +482,6 @@ internal static partial class PdfWriter {
             pendingLeadingIsTab = true;
             pendingTabSourceStyle = currentSpaceStyle;
             pendingTabSourceLine = lines.Count - 1;
-            RegisterLineHeight(currentSpaceStyle!.FontSize);
         }
 
         RichSeg? BufferedTabStyle() =>
@@ -391,12 +506,20 @@ internal static partial class PdfWriter {
                 font, size, baseline, options, CurrentMaxWidth(), tab.LeadingTabStop, CurrentLineOriginOffset(),
                 currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing,
                 decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, tab.LeadingTabAlignment, tab.LeadingTabStop, options, spaces));
+            tab = PrepareRetainedTabFrame(tab.WithLeadingAdvance(advance), selectedWidth, spaceWidth,
+                new string(' ', pendingLeadingSpaceCount) + followingText, font, size, baseline, field, spaces,
+                clipToCurrentFrame: fragment != null);
+            advance = tab.LeadingAdvance;
+            pendingBufferedTabField = field;
+            pendingBufferedTabFollowingWidth = selectedWidth;
+            pendingBufferedTabSpaceWidth = spaceWidth;
             if (fragment != null) {
                 pendingLeadingAdvance += advance - fragment.Advance;
-                fragment.Advance = advance;
+                pendingSpaceFragments[0] = new PendingSpaceFragment(tab);
             } else {
                 // Commit the collapsed tab without consuming its ordinary following space.
-                lines[lines.Count - 1].Add(tab.WithLeadingAdvance(advance));
+                lines[lines.Count - 1].Add(tab);
+                RegisterRetainedTabLeaderMetrics(tab);
                 lineWidth += advance;
                 pendingTabSourceStyle = null;
                 pendingTabSourceLine = -1;
@@ -547,8 +670,8 @@ internal static partial class PdfWriter {
 
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0
                     && (leadingAdvance != 0D || pendingLeadingAdvance == 0D)) {
-                    currentLine.AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, leadingAdvance));
-                    lineWidth += leadingAdvance;
+                    AppendRetainedSpaceFragments(ref leadingAdvance);
+                    currentLine = lines[lines.Count - 1];
                     leadingAdvance = 0D;
                 }
                 // Flexible ink is resolved only after the actual frame, tab and
@@ -645,16 +768,14 @@ internal static partial class PdfWriter {
                 if (completeWordFits && !preferEarlierWordBreak && preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0) {
                     // Trial the complete word before natural-width clipping can discard
                     // its authored separators. Commit their full natural advances only.
-                    lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
-                    lineWidth += pendingLeadingAdvance;
+                    AppendRetainedSpaceFragments(ref pendingLeadingAdvance);
                     ResetPendingLeading();
                 }
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0 && (token.Length > 0 || hadNewline)) {
                     // Retain the originating runs, including clipped portions of literal
                     // spaces, so a later cell/column continuation can remeasure them.
                     if (pendingLeadingAdvance <= 0.001D) {
-                        lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
-                        lineWidth += pendingLeadingAdvance;
+                        AppendRetainedSpaceFragments(ref pendingLeadingAdvance);
                     }
                     while (pendingLeadingAdvance > 0.001D) {
                         double available = CurrentMaxWidth() - lineWidth;
@@ -673,11 +794,11 @@ internal static partial class PdfWriter {
                                 throw new InvalidOperationException("No width is available for preserved text spacing.");
                             }
                         }
-                        double advance = Math.Min(available, pendingLeadingAdvance);
-                        lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, advance));
+                        double sourceAdvance = Math.Min(available, pendingLeadingAdvance);
+                        double advance = sourceAdvance;
+                        AppendRetainedSpaceFragments(ref advance, clipped: true);
                         RegisterLineHeight(runFontSize);
-                        lineWidth += advance;
-                        pendingLeadingAdvance -= advance;
+                        pendingLeadingAdvance -= sourceAdvance;
                         if (!preformattedWhitespace) break;
                     }
                     ResetPendingLeading();

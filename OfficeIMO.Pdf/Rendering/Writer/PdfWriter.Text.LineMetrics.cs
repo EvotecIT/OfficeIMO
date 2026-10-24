@@ -21,9 +21,9 @@ internal static partial class PdfWriter {
         double inlineAscent = 0D;
         double descent = 0D;
         foreach (RichSeg segment in segments) {
-            // Preserved spaces carry their source font for painting and later
-            // remeasurement. They have no visible glyph to move the line baseline.
-            if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null) continue;
+            // Empty separators move the baseline only when they paint a tab leader.
+            if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null &&
+                !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget) {
                 GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing,
                     out double runAscent, out double runDescent);
@@ -128,6 +128,8 @@ internal static partial class PdfWriter {
         ascender = 0D; descender = 0D;
         foreach (RichSeg segment in line) {
             if (segment.IsLineBoxStrut) continue;
+            if (segment.Text.Length == 0 && segment.LeadingIsTab && segment.InlineElement == null &&
+                !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is { } inline) {
                 if (inline is PdfInlineBox { SourceRule: { } rule } box) {
                     if (box.Width > 0D) {
