@@ -1,6 +1,6 @@
 """Independent pypdf readback for the tagged deterministic six/20-column PDF workloads.
 
-Usage: python verify-pdf-workload-structure.py <pdf> <source-rows> <columns>
+Usage: python verify-pdf-workload-structure.py <pdf> <source-rows> <columns> [--embedded-fonts]
 Physical every-cell/band checks remain with the canonical Poppler workload verifier.
 """
 from collections import Counter
@@ -27,7 +27,38 @@ def expected_row(index, columns):
     return values + ["M" + str(column) + "-" + str(index).zfill(6) for column in range(6, columns)]
 
 
-def verify_reader(reader, rows, columns):
+def verify_embedded_fonts(reader):
+    fonts = {}
+    for page in reader.pages:
+        resources = resolved(page["/Resources"])
+        page_fonts = resolved(resources.get("/Font"))
+        require(isinstance(page_fonts, DictionaryObject) and bool(page_fonts), "Embedded-font workload has no page fonts")
+        for value in page_fonts.values():
+            identity = reference(value)
+            require(identity is not None, "Embedded font must have an indirect resource")
+            if identity in fonts:
+                continue
+            font = resolved(value)
+            require(str(font.get("/Subtype")) == "/Type0" and str(font.get("/Encoding")) == "/Identity-H", "Embedded workload used a standard font instead of a Type0 Identity-H face")
+            unicode_map = resolved(font.get("/ToUnicode"))
+            require(hasattr(unicode_map, "get_data") and b"begincmap" in unicode_map.get_data(), "Embedded font has no ToUnicode map")
+            descendants = sequence(font.get("/DescendantFonts"))
+            require(len(descendants) == 1, "Embedded font must have one CID descendant")
+            descendant = resolved(descendants[0])
+            require(str(descendant.get("/Subtype")) == "/CIDFontType2", "Embedded font has no TrueType CID descendant")
+            descriptor = resolved(descendant.get("/FontDescriptor"))
+            require(isinstance(descriptor, DictionaryObject), "Embedded font has no descriptor")
+            stream = resolved(descriptor.get("/FontFile2"))
+            require(hasattr(stream, "get_data"), "Embedded font has no FontFile2 payload")
+            payload = stream.get_data()
+            require(bool(payload) and int(stream.get("/Length1", -1)) == len(payload), "Embedded font payload length differs")
+            fonts[identity] = {"baseFont": str(font.get("/BaseFont")), "decodedBytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+    require(bool(fonts), "Embedded workload produced no fonts")
+    return {"type0IdentityH": True, "toUnicode": True, "cidFontType2": True, "fontFile2": True,
+            "resources": list(fonts.values()), "fontPayloadBoundary": "Subset font payload hashes are recorded; equality with the full source fonts is not claimed."}
+
+
+def verify_reader(reader, rows, columns, embedded_fonts=False):
     require(rows >= 0 and columns in (6, 20), "Declare the deterministic six/20-column workload")
     catalog = reader.trailer["/Root"]
     require(bool(catalog["/MarkInfo"]["/Marked"]) and str(catalog["/Lang"]) == "en-US", "Tagged inventory language/marked contract differs")
@@ -89,8 +120,10 @@ def verify_reader(reader, rows, columns):
         digest.update((json.dumps(actual, separators=(",", ":")) + "\n").encode())
     return {"dataCells": rows * columns, "logicalRows": rows, "columnHeaders": columns, "logicalElements": len(nodes), "roles": dict(roles),
             "markedFragments": len(consumed), "logicalSha256": digest.hexdigest(), "logicalValuesAndOrder": True,
-            "headerAssociations": True, "uniqueMarkedOwners": True, "parentTree": True, "independentReader": "pypdf"}
+            "headerAssociations": True, "uniqueMarkedOwners": True, "parentTree": True, "independentReader": "pypdf",
+            **({"embeddedFonts": verify_embedded_fonts(reader)} if embedded_fonts else {})}
 
 
 if __name__ == "__main__":
-    print(json.dumps(verify_reader(PdfReader(sys.argv[1], strict=True), int(sys.argv[2]), int(sys.argv[3]))))
+    require(sys.argv[4:] in ([], ["--embedded-fonts"]), "Unknown workload verification option")
+    print(json.dumps(verify_reader(PdfReader(sys.argv[1], strict=True), int(sys.argv[2]), int(sys.argv[3]), embedded_fonts=bool(sys.argv[4:]))))

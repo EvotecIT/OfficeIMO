@@ -4,19 +4,21 @@
 
 ## Install
 
-Install the npm archive in your JavaScript application:
+Install the package in your JavaScript application:
 
 ```sh
-npm install /path/to/evotecit-officeimo-0.1.0.tgz
+npm install @evotecit/officeimo
 ```
 
-To produce the archive from this package's source directory:
+For local source qualification, produce an archive from this package's source directory:
 
 ```sh
 npm ci
 npm run build
 npm pack --pack-destination /path/to/local-packages
 ```
+
+Install that archive in an isolated consumer with `npm install /path/to/local-packages/evotecit-officeimo-0.1.0.tgz`.
 
 `tsc` produces ES modules and declarations in `dist/`. The archive contains those files, portable bundles, this README and the MIT license. TypeScript is a development dependency; installing the archive as an application dependency installs no compiler or runtime packages.
 
@@ -60,6 +62,8 @@ saveBlob(await writeCsv(rows, { columns }), "sales.csv");
 | Export a CanopyX record capture | `exportCanopy` / `writeCanopyTo` in the optional CanopyX entry | `Blob` or streamed `{ rows, columns, bytes }` |
 
 The table writers accept synchronous iterables and async iterables. XLSX defaults to the sheet name `Data`, a bold header, filtering when a header is present, and width sampling of up to 100 rows clamped to 6–54 characters. `sheet` supplies the existing worksheet layout options. Workbook-local style indexes belong to the advanced `Workbook` API; portable `ExportCell` presentation and row/cell style patches work with the table helper.
+
+CSV-only applications can import `writeCsv` or `writeCsvTo` from `@evotecit/officeimo/csv` to load the CSV module graph without the XLSX and PDF writers. The root entry remains useful when an application exports several formats.
 
 An `ExportCell` can carry an external link alongside its typed value, display text and presentation:
 

@@ -2333,7 +2333,8 @@ const { pdfNumber, unicodeHex } = _m19;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+const hexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+function cidHex(cid) { return hexBytes[cid >>> 8] + hexBytes[cid & 255]; }
 class PdfFontResource {
     index;
     bold;
@@ -2393,10 +2394,22 @@ class PdfFontResource {
         if (this.shared)
             return this.shared.encode(text);
         let hex = "";
-        for (const char of text) {
-            const cp = char.codePointAt(0);
-            this.width(cp);
-            hex += this.program ? this.mappings.get(cp).cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)];
+        for (let offset = 0; offset < text.length;) {
+            const cp = text.codePointAt(offset);
+            offset += cp > 0xffff ? 2 : 1;
+            if (this.program) {
+                let mapping = this.mappings.get(cp);
+                // Layout normally registered the scalar already; validate only a newly painted scalar.
+                if (!mapping) {
+                    this.width(cp);
+                    mapping = this.mappings.get(cp);
+                }
+                hex += cidHex(mapping.cid);
+            }
+            else {
+                this.width(cp);
+                hex += hexBytes[standardCode(cp)];
+            }
         }
         return "<" + hex + ">";
     }
@@ -2414,7 +2427,7 @@ class PdfFontResource {
             mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph], text };
             this.mappings.set(key, mapping);
         }
-        return "<" + mapping.cid.toString(16).padStart(4, "0") + ">";
+        return "<" + cidHex(mapping.cid) + ">";
     }
     async write(objects, compression) {
         checkAbort(this.signal);
@@ -2463,7 +2476,7 @@ class PdfFontResource {
             const batch = mapped.slice(i, i + 100);
             cmap += batch.length + " beginbfchar\n";
             for (const [, m] of batch)
-                cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(m.text) + ">\n";
+                cmap += "<" + cidHex(m.cid) + "> <" + unicodeHex(m.text) + ">\n";
             cmap += "endbfchar\n";
             if (taskYieldDue())
                 await pause();
@@ -3144,9 +3157,18 @@ function planTableBands(widths, settings) {
  * Runs/formatters are never recaptured, and vertical spans retain their original row ownership. */
 async function projectBandRows(rows, band, widths, settings, fonts) {
     const result = [];
+    const positions = new Map(band.columns.map((column, index) => [column, index]));
     for (const row of rows) {
         const cells = [];
         for (const cell of row.cells) {
+            // Ordinary data and leaf headings keep their captured width and lines in every band.
+            // Resolve them once instead of scanning the band's columns for each source cell.
+            if (cell.span === 1) {
+                const first = positions.get(cell.first);
+                if (first !== undefined)
+                    cells.push({ ...cell, source: cell.source ?? cell, first });
+                continue;
+            }
             for (let first = 0; first < band.columns.length;) {
                 const source = band.columns[first];
                 if (source < cell.first || source >= cell.first + cell.span) {
@@ -3157,7 +3179,7 @@ async function projectBandRows(rows, band, widths, settings, fonts) {
                 while (end < band.columns.length && band.columns[end] === band.columns[end - 1] + 1 && band.columns[end] < cell.first + cell.span)
                     end++;
                 const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index], 0);
-                const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
+                const lines = await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
                 cells.push({ ...cell, source: cell.source ?? cell, first, span: end - first, width, lines,
                     lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
                 first = end;

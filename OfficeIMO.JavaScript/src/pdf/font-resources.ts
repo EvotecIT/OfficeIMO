@@ -8,7 +8,9 @@ import type { PdfFonts } from "./types.js";
 import type { TrueTypeFont } from "./truetype.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 
-const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+const hexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+
+function cidHex(cid: number): string { return hexBytes[cid >>> 8]! + hexBytes[cid & 255]!; }
 
 export class PdfFontResource {
   readonly name: string;
@@ -45,9 +47,14 @@ export class PdfFontResource {
   encode(text: string): string {
     if (this.shared) return this.shared.encode(text);
     let hex = "";
-    for (const char of text) {
-      const cp = char.codePointAt(0)!; this.width(cp);
-      hex += this.program ? this.mappings.get(cp)!.cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)!]!;
+    for (let offset = 0; offset < text.length;) {
+      const cp = text.codePointAt(offset)!; offset += cp > 0xffff ? 2 : 1;
+      if (this.program) {
+        let mapping = this.mappings.get(cp);
+        // Layout normally registered the scalar already; validate only a newly painted scalar.
+        if (!mapping) { this.width(cp); mapping = this.mappings.get(cp)!; }
+        hex += cidHex(mapping.cid);
+      } else { this.width(cp); hex += hexBytes[standardCode(cp)!]!; }
     }
     return "<" + hex + ">";
   }
@@ -60,7 +67,7 @@ export class PdfFontResource {
       if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
       mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph]!, text }; this.mappings.set(key, mapping);
     }
-    return "<" + mapping.cid.toString(16).padStart(4, "0") + ">";
+    return "<" + cidHex(mapping.cid) + ">";
   }
   async write(objects: PdfObjects, compression: boolean): Promise<void> {
     checkAbort(this.signal);
@@ -93,7 +100,7 @@ export class PdfFontResource {
     const mapped = entries.filter(([, mapping]) => mapping.text.length);
     for (let i = 0; i < mapped.length; i += 100) {
       const batch = mapped.slice(i, i + 100); cmap += batch.length + " beginbfchar\n";
-      for (const [, m] of batch) cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(m.text) + ">\n";
+      for (const [, m] of batch) cmap += "<" + cidHex(m.cid) + "> <" + unicodeHex(m.text) + ">\n";
       cmap += "endbfchar\n";
       if (taskYieldDue()) await pause(); checkAbort(this.signal);
     }

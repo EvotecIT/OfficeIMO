@@ -1110,7 +1110,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1") ?? (() => {
+const _m0 = _modules.get("cd3caf8af163ac8bd46d7eafeea03652b0738ca24942f7af01affb2891a287af") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1157,7 +1157,7 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-        ? '"' + text.replace(/"/g, '""') + '"' : text;
+        ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
     const options = captureCsvOptions(configuration);
@@ -1257,7 +1257,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1", _exports);
+_modules.set("cd3caf8af163ac8bd46d7eafeea03652b0738ca24942f7af01affb2891a287af", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });

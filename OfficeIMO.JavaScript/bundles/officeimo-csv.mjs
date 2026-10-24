@@ -1133,7 +1133,7 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-        ? '"' + text.replace(/"/g, '""') + '"' : text;
+        ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
     const options = captureCsvOptions(configuration);

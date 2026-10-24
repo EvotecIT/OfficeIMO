@@ -62,7 +62,7 @@ function csvField(value: unknown, delimiter: string, protect: boolean, quote: No
   }
   if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
   return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-    ? '"' + text.replace(/"/g, '""') + '"' : text;
+    ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 
 /** Stream UTF-8 to a caller-owned sink; a failing/cancelled destination owns partial-byte disposal. */

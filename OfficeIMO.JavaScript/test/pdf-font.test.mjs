@@ -44,6 +44,22 @@ function withCharacters(characters) {
   return new PdfFont(bytes);
 }
 
+test("embedded PDF text retains two-byte CID order across the first byte boundary and repeated emphasis faces", async () => {
+  const glyph = new TrueTypeFont(source).glyph(65);
+  const scalars = Array.from({ length: 300 }, (_, index) => 0x4e00 + index), text = String.fromCodePoint(...scalars);
+  const font = withCharacters(scalars.map(scalar => [scalar, glyph]));
+  const pdf = await inspectPdf(await writePdfDocument([
+    { kind: "paragraph", text }, { kind: "paragraph", text, presentation: { bold: true } }
+  ], { fonts: { regular: font }, pageNumbers: false, compression: false,
+    pageSize: { width: 4000, height: 300 }, orientation: "landscape", margins: 24, fontSize: 8 }));
+  const expected = scalars.map((_, index) => (index + 1).toString(16).padStart(4, "0")).join("");
+  const operands = pdf.pages.flatMap(page => [...page.content.matchAll(/<([a-f0-9]+)> Tj/g)].map(match => match[1]));
+  assert.deepEqual(operands, [expected, expected], "Repeated/synthetic faces reuse the same complete CID mapping");
+  assert.deepEqual(pdf.pages.flatMap(page => page.lines), [text, text]);
+  const cmap = [...pdf.objects.values()].find(object => /beginbfchar/.test(object.body)).body;
+  assert.match(cmap, /<00ff> <4efe>/); assert.match(cmap, /<0100> <4eff>/); assert.match(cmap, /<012c> <4f2b>/);
+});
+
 test("PDF preserves missing no-break thin spaces through the font's blank thin-space glyph", async () => {
   const program = new TrueTypeFont(source), thin = program.glyph(0x2009), narrow = program.glyph(0x202f), text = "\u2009\u202f";
   const fonts = { regular: withCharacters([[0x2009, thin]]) };
