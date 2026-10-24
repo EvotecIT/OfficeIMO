@@ -281,11 +281,14 @@ export class Workbook {
   }
   addPart(part: ExtraPart): void {
     this.assertOpen();
+    const { uri, contentType, data, relationship } = part;
+    const capturedRelationship = relationship && { id: relationship.id, type: relationship.type, source: relationship.source };
+    this.assertOpen();
     // Reserve now so collisions and invalid names fail at the call site.
-    this.package.addPart(part);
-    if (part.relationship) {
-      const { source, ...rel } = part.relationship;
-      this.package.addRelationship(source ?? "/xl/workbook.xml", { ...rel, target: part.uri });
+    this.package.addPart({ uri, contentType, data });
+    if (capturedRelationship) {
+      const { source, id, type } = capturedRelationship;
+      this.package.addRelationship(source ?? "/xl/workbook.xml", { id, type, target: uri });
     }
   }
   /** Complete the archive and return counts. Does not close or dispose a caller-owned sink. */

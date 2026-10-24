@@ -3821,7 +3821,7 @@ _modules.set("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052",
 return _exports;
 })();
 
-const _m34 = _modules.get("ce2a4bebe6ca61c77a6a974bd91981622b1f263d4e56e6b8466af41419151410") ?? (() => {
+const _m34 = _modules.get("a7fca40cb8c75af206111c90db36839b4648982beeb4179efda0ddd1ee366210") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -4106,7 +4106,7 @@ class PdfPages {
             // Charge physical repeats without recapturing callbacks or making them semantic duplicates.
             for (const cell of header.cells)
                 if (!this.bandCellBudget && this.paintedHeaderBudgetCells.has(cell.source ?? cell))
-                    this.settings.budget.cell(cell.lines.map(line => line.text).join(""));
+                    this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" : cell.lines.map(line => line.text).join(""));
             const elements = this.tableStructure ? header.cells.map(cell => this.tableStructure.owner(cell.source ?? cell)) : undefined;
             const repeated = header.cells.map(cell => this.paintedHeaderCells.has(cell.source ?? cell));
             this.draw(header, 0, header.lines, elements, repeated);
@@ -4127,7 +4127,8 @@ class PdfPages {
         const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
         for (const [index, cell] of row.cells.entries()) {
             if (this.bandCellBudget)
-                this.settings.budget.cell((cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
+                this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
+                    (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
             if (cell.style.background)
                 this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
@@ -4512,7 +4513,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("ce2a4bebe6ca61c77a6a974bd91981622b1f263d4e56e6b8466af41419151410", _exports);
+_modules.set("a7fca40cb8c75af206111c90db36839b4648982beeb4179efda0ddd1ee366210", _exports);
 return _exports;
 })();
 
@@ -4955,7 +4956,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m18 = _modules.get("6f13eca1cc6a3dee16e260ffb7ee38115cc2390084e9b156f0a90915fa5b18b9") ?? (() => {
+const _m18 = _modules.get("eb2c981b4568b33deca2137956ace31ea621b6a6287755ec234336d0a7c23cfc") ?? (() => {
 const { PdfObjects, unicodeHex } = _m19;
 
 const { PdfFontResources } = _m21;
@@ -5018,11 +5019,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("6f13eca1cc6a3dee16e260ffb7ee38115cc2390084e9b156f0a90915fa5b18b9", _exports);
+_modules.set("eb2c981b4568b33deca2137956ace31ea621b6a6287755ec234336d0a7c23cfc", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("4a658d1639cc333dc8b174a84d2d80a7e20bec2f0e86409d00c3f77199e2eda2") ?? (() => {
+const _m1 = _modules.get("98eb735e985f873ed0ffc628449a20d1f3bb729a87b6d6b3099b6f308438fcb5") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -5087,7 +5088,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("4a658d1639cc333dc8b174a84d2d80a7e20bec2f0e86409d00c3f77199e2eda2", _exports);
+_modules.set("98eb735e985f873ed0ffc628449a20d1f3bb729a87b6d6b3099b6f308438fcb5", _exports);
 return _exports;
 })();
 
@@ -6566,7 +6567,7 @@ _modules.set("d43e573fd5bad18a7ec2d71752168c422c4f8fabbc51f1cef8e3ba389f298715",
 return _exports;
 })();
 
-const _m45 = _modules.get("67060b0c8b6d3f6a6d9d53d41dd780ee99ffdae0ed0f90004ac675d382a80223") ?? (() => {
+const _m45 = _modules.get("f6c70e9a0bed09b5a1c61a662ad7d3faf731c911f574e2df285f669bd643b947") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -6856,11 +6857,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("67060b0c8b6d3f6a6d9d53d41dd780ee99ffdae0ed0f90004ac675d382a80223", _exports);
+_modules.set("f6c70e9a0bed09b5a1c61a662ad7d3faf731c911f574e2df285f669bd643b947", _exports);
 return _exports;
 })();
 
-const _m43 = _modules.get("91d1ab43a388d5d7a78db095e27ed8b0f6d28004358cbf296ac818479c58c557") ?? (() => {
+const _m43 = _modules.get("879a0adeb3c62918085a071cbc37f221eb89a0fd73d56ebb5e9cfe0d49db8ee9") ?? (() => {
 const { assertGroupedReportSource } = _m44;
 
 const { BlobByteSink } = _m2;
@@ -6906,7 +6907,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m54.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("91d1ab43a388d5d7a78db095e27ed8b0f6d28004358cbf296ac818479c58c557", _exports);
+_modules.set("879a0adeb3c62918085a071cbc37f221eb89a0fd73d56ebb5e9cfe0d49db8ee9", _exports);
 return _exports;
 })();
 
@@ -6999,10 +7000,10 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("dcf6840f5eda4f8535cb4e226425587c2ae436c0eebfbd746aa0bc8a7acb6c4c") ?? (() => {
+const _m0 = _modules.get("2deab7b4ccb08bed297341ddb563d8fcf74277aff38c1dfc3d9edd61c0d98481") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m43.writeGroupedPdf, writeGroupedPdfTo: _m43.writeGroupedPdfTo, pdfGroupedTable: _m43.pdfGroupedTable, createGroupedReport: _m44.createGroupedReport, writePdfDocument: _m45.writePdfDocument, writePdfDocumentTo: _m45.writePdfDocumentTo, pdfTable: _m45.pdfTable, PdfFont: _m22.PdfFont, preflightPdfText: _m55.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m56.saveBlob });
-_modules.set("dcf6840f5eda4f8535cb4e226425587c2ae436c0eebfbd746aa0bc8a7acb6c4c", _exports);
+_modules.set("2deab7b4ccb08bed297341ddb563d8fcf74277aff38c1dfc3d9edd61c0d98481", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m56, pdf: _m0 });

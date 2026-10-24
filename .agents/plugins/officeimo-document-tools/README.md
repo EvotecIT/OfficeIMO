@@ -47,7 +47,7 @@ For MCP-only setup, add this server under `mcpServers` in the client's `mcp.json
   "officeimo": {
     "type": "stdio",
     "command": "dotnet",
-    "args": ["dnx", "OfficeIMO.Tool@3.5.1", "mcp", "serve", "--stdio", "--yes"],
+    "args": ["dnx", "OfficeIMO.Tool@3.5.2", "mcp", "serve", "--stdio", "--yes"],
     "env": { "OFFICEIMO_MCP_ALLOWED_ROOTS": "/absolute/path/to/documents" }
   }
 }
@@ -60,7 +60,7 @@ Manual MCP configuration exposes tools; install the plugin bundle to load its sk
 The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.0. Clients may support only a subset of components. A client with manual MCP configuration can launch the same server:
 
 ```text
-dotnet dnx OfficeIMO.Tool@3.5.1 mcp serve --stdio --yes
+dotnet dnx OfficeIMO.Tool@3.5.2 mcp serve --stdio --yes
 ```
 
 Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. Local tools require a client that can execute on the machine containing the documents. They cannot read a desktop folder from a cloud-only conversation.

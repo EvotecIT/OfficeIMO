@@ -24,6 +24,35 @@ test("OPC owns content types, relative relationships and core/app property docum
   assert.throws(() => packageFile.addPart({ uri: "/late.xml", contentType: "application/xml", data: "" }), { code: "INVALID_STATE" });
 });
 
+test("OPC captures structural part and relationship fields once before retaining them", async () => {
+  for (const ownFields of [false, true]) {
+    const packageFile = new OpcPackage({ compression: "store" });
+    const counts = { uri: 0, contentType: 0, data: 0, id: 0, type: 0, target: 0, external: 0 };
+    const bytes = Buffer.from("<first/>");
+    class Part {
+      get uri() { counts.uri++; return "/custom.xml"; }
+      get contentType() { counts.contentType++; return "application/xml"; }
+      get data() { return ++counts.data === 1 ? bytes : Buffer.from("<later/>"); }
+    }
+    class Link {
+      get id() { counts.id++; return "custom"; }
+      get type() { counts.type++; return relationshipTypes.customXml; }
+      get target() { counts.target++; return ownFields ? "https://example.com/report" : "/custom.xml"; }
+      get external() { counts.external++; return ownFields; }
+    }
+    const record = Type => ownFields ? Object.create(null, Object.getOwnPropertyDescriptors(Type.prototype)) : new Type();
+    packageFile.addPart(record(Part));
+    packageFile.addRelationship("/", record(Link));
+    bytes.fill(120);
+    const zip = await readZip(await packageFile.toBlob());
+    assert.equal(zip.get("custom.xml").content, "<first/>");
+    const relationships = zip.get("_rels/.rels").content;
+    assert.ok(relationships.includes('Id="custom" Type="' + relationshipTypes.customXml + '"'));
+    assert.ok(relationships.includes(ownFields ? 'Target="https://example.com/report" TargetMode="External"' : 'Target="custom.xml"'));
+    assert.deepEqual(counts, { uri: 1, contentType: 1, data: 1, id: 1, type: 1, target: 1, external: 1 });
+  }
+});
+
 test("OPC rejects malformed/colliding part URIs and unresolved relationships", async () => {
   for (const uri of ["relative", "/", "/a/../b", "/a%2Fb", "/%61.xml", "/bad%", "/bad.", "/a?x", "/a#x", "/Łódź.xml", '/quote".xml', "/angle<.xml", "/bracket[.xml"])
     assert.throws(() => partUri(uri), { code: "INVALID_PART_URI" });

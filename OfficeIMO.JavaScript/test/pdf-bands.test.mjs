@@ -90,6 +90,24 @@ test("band limits count physical repeated cells, annotations and pages, and reje
   assert.equal((await inspectPdf(await writePdf(data(1), { ...base, wideTable: "fit" }))).pages.length, 1);
 });
 
+test("band budgets retain exact physical cell counts with captured absent and zero text ceilings", async () => {
+  let cellReads = 0, textReads = 0;
+  class Limits {
+    get maxCells() { return ++cellReads === 1 ? 18 : 0; }
+    get maxTextCharacters() { return ++textReads === 1 ? undefined : 0; }
+  }
+  const pdf = await inspectPdf(await writePdf(data(1), { ...base, limits: new Limits() }));
+  assert.equal(pdf.pages.length, 3);
+  assert.equal(pdf.pages.flatMap(page => page.lines).length, 18, "Nine physical headings and nine physical data cells share the exact ceiling");
+  assert.equal(cellReads, 1); assert.equal(textReads, 1, "An absent text ceiling remains captured across every physical band");
+
+  const empty = [Object.fromEntries(columns.map(column => [column.key, ""]))];
+  assert.equal((await inspectPdf(await writePdf(empty, { ...base, includeHeader: false,
+    limits: { maxCells: 9, maxTextCharacters: 0 } }))).pages.length, 3);
+  await assert.rejects(writePdf(data(1), { ...base, includeHeader: false, limits: { maxTextCharacters: 0 } }),
+    error => error.code === "RESOURCE_LIMIT" && /maxTextCharacters/.test(error.message));
+});
+
 test("band policy accessors are captured once and sink backpressure/cancellation closes the source", async () => {
   const reads = { policy: 0, mode: 0, width: 0, repeat: 0 };
   const policy = { get mode() { reads.mode++; return "bands"; }, get minimumColumnWidth() { reads.width++; return 80; }, get repeatColumns() { reads.repeat++; return [0]; } };

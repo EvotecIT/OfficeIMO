@@ -241,7 +241,7 @@ export class PdfPages {
       // Prepared headings can be reused by continuation pages and several logical summary tables.
       // Charge physical repeats without recapturing callbacks or making them semantic duplicates.
       for (const cell of header.cells) if (!this.bandCellBudget && this.paintedHeaderBudgetCells.has(cell.source ?? cell))
-        this.settings.budget.cell(cell.lines.map(line => line.text).join(""));
+        this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" : cell.lines.map(line => line.text).join(""));
       const elements = this.tableStructure ? header.cells.map(cell => this.tableStructure!.owner(cell.source ?? cell)) : undefined;
       const repeated = header.cells.map(cell => this.paintedHeaderCells.has(cell.source ?? cell));
       this.draw(header, 0, header.lines, elements, repeated);
@@ -259,7 +259,8 @@ export class PdfPages {
     this.bodyAdded = true;
     const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
     for (const [index, cell] of row.cells.entries()) {
-      if (this.bandCellBudget) this.settings.budget.cell((cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
+      if (this.bandCellBudget) this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
+        (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
       const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
       if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
       this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));

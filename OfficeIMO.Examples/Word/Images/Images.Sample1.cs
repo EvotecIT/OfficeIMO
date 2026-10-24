@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph3 = document.AddParagraph();
             paragraph3.AddImage(filePathImage, 500, 500);
             var paragraph3Image = Guard.NotNull(paragraph3.Image, "Paragraph should contain the large image.");
-            //paragraph3Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+            //paragraph3Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
             paragraph3Image.Rotation = 180;
             paragraph3Image.Shape = OfficePresetShapeType.ActionButtonMovie;
 
