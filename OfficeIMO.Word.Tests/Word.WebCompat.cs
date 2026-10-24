@@ -1,4 +1,5 @@
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -91,6 +92,80 @@ namespace OfficeIMO.Tests {
                 .SelectMany(part => part.Header?.Descendants<Table>() ?? Enumerable.Empty<Table>())
                 .First();
             AssertMergedTable(headerMergedTable, expectedGridColumns: 3);
+        }
+
+        [Theory]
+        [InlineData(0, 240, "0", "240")]
+        [InlineData(120, 0, "120", "0")]
+        [InlineData(0, null, "0", "72")]
+        [InlineData(null, 240, "72", "240")]
+        public void Test_NormalizeTablesForOnline_PreservesExplicitNestedHostMargins(
+            int? top, int? bottom, string expectedTop, string expectedBottom) {
+            using var document = WordDocument.Create();
+            WordTableCell host = document.AddTable(1, 1).Rows[0].Cells[0];
+            WordTable nested = host.AddTable(1, 1);
+            nested.WidthType = WordTableWidthUnit.Dxa;
+            nested.Width = 2400;
+            host.MarginTopWidth = top.HasValue ? checked((short)top.Value) : null;
+            host.MarginBottomWidth = bottom.HasValue ? checked((short)bottom.Value) : null;
+
+            document.NormalizeTablesForOnline();
+            using var saved = new MemoryStream();
+            document.Save(saved);
+            saved.Position = 0;
+            using var package = WordprocessingDocument.Open(saved, false);
+            Table nestedXml = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<Table>(),
+                table => table.Ancestors<TableCell>().Any());
+            TableCellMargin? margins = nestedXml.Ancestors<TableCell>().First().TableCellProperties?.TableCellMargin;
+
+            Assert.Equal(expectedTop, margins?.TopMargin?.Width?.Value);
+            Assert.Equal(expectedBottom, margins?.BottomMargin?.Width?.Value);
+            Assert.Equal(TableWidthUnitValues.Dxa, margins?.TopMargin?.Type?.Value);
+            Assert.Equal(TableWidthUnitValues.Dxa, margins?.BottomMargin?.Type?.Value);
+        }
+
+        [Fact]
+        public void Test_NormalizeTablesForOnline_PreservesExplicitNestedTableTopBorderSuppression() {
+            using var document = WordDocument.Create();
+            WordTable nested = document.AddTable(1, 1).Rows[0].Cells[0].AddTable(1, 1);
+            nested.WidthType = WordTableWidthUnit.Dxa;
+            nested.Width = 2400;
+            nested.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil);
+
+            document.NormalizeTablesForOnline();
+            using var saved = new MemoryStream();
+            document.Save(saved);
+            saved.Position = 0;
+            using var package = WordprocessingDocument.Open(saved, false);
+            Table nestedXml = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<Table>(),
+                table => table.Ancestors<TableCell>().Any());
+            TableCell cell = Assert.Single(Assert.Single(nestedXml.Elements<TableRow>()).Elements<TableCell>());
+
+            Assert.Equal(BorderValues.Nil, nestedXml.GetFirstChild<TableProperties>()?.TableBorders?.TopBorder?.Val?.Value);
+            Assert.Null(cell.TableCellProperties?.TableCellBorders?.TopBorder);
+        }
+
+        [Fact]
+        public void Test_NormalizeTablesForOnline_PreservesExplicitNestedCellTopBorderSuppression() {
+            using var document = WordDocument.Create();
+            WordTable nested = document.AddTable(1, 1).Rows[0].Cells[0].AddTable(1, 2);
+            nested.WidthType = WordTableWidthUnit.Dxa;
+            nested.Width = 2400;
+            nested.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Nil;
+
+            document.NormalizeTablesForOnline();
+            using var saved = new MemoryStream();
+            document.Save(saved);
+            saved.Position = 0;
+            using var package = WordprocessingDocument.Open(saved, false);
+            Table nestedXml = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<Table>(),
+                table => table.Ancestors<TableCell>().Any());
+            TableCell[] cells = Assert.Single(nestedXml.Elements<TableRow>()).Elements<TableCell>().ToArray();
+
+            Assert.Equal(2, cells.Length);
+            Assert.Equal(BorderValues.Nil, cells[0].TableCellProperties?.TableCellBorders?.TopBorder?.Val?.Value);
+            Assert.Equal(BorderValues.Single, cells[1].TableCellProperties?.TableCellBorders?.TopBorder?.Val?.Value);
+            Assert.Equal(4U, cells[1].TableCellProperties?.TableCellBorders?.TopBorder?.Size?.Value);
         }
 
         private static void AssertMergedTable(Table table, int expectedGridColumns) {

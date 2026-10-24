@@ -1165,6 +1165,32 @@ When `OfficeWorkflowRequest` omits `ConversionRouteId`, converting a `.txt` sour
 
 Automatic literal-text decoding recognizes Unicode BOMs and otherwise requires valid UTF-8. Set `ConversionOptions.PlainText.EncodingName` when a source uses another known encoding; invalid byte sequences fail conversion instead of becoming replacement characters.
 
+## RTF paragraph spacing and layout diagnostics
+
+RTF conversion preserves the distinction between minimum, exact, and multiple line spacing. Positive non-multiple `LineSpacingTwips` values map to minimum heights; negative values map to exact positive Word advances; multiple values remain in 240ths of a line. Remove compensating sign or line-rule overrides added for the previous conversion behavior and recheck stored PDF baselines, including formatted table-cell and note paragraphs.
+
+Parsed RTF uses the stream's active line-spacing and tab-stop state instead of filling those properties from a referenced style. Omitted line spacing resolves to single spacing. API-authored paragraphs retain style inheritance for omitted spacing and an empty direct tab-stop list. Applications editing imported paragraphs should set the desired spacing or stops explicitly when replacing that active state. Parsed before/after gaps also resolve to zero when no source-style value or automatic spacing applies. Remove compensating gap overrides added only to offset destination paragraph defaults.
+
+RTF-to-Word conversion adds tab clears where required to preserve a replacement RTF tab list. Word-to-PDF conversion combines custom stops from document defaults, paragraph styles and direct formatting, including inherited-stop clears. Recheck output baselines that previously relied on a direct list hiding all inherited Word stops.
+
+An explicitly selected RTF document font also becomes the Word document default. Remove font overrides added only to compensate for the destination theme font replacing that source selection; explicit source style and run fonts remain in effect.
+
+Direct RTF PDF conversion preserves source spaces by default. To retain collapsed-space output, supply `new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse }` through `RtfToPdfOptions.PdfOptions`. Explicit `Preserve` and `Preformatted` selections remain effective. Recheck line-wrap snapshots that depended on collapsed spaces or an earlier hyphen break.
+
+Direct RTF PDF conversion disables pair kerning unless the source run supplies a positive `KerningHalfPoints` threshold. The threshold uses the effective font size, including inherited RTF formatting or the PDF default. `PdfOptions.TextKerning` no longer enables kerning for source runs without that threshold. Recheck width and line-wrap snapshots that relied on unconditional pair kerning.
+
+Word and PDF table imports no longer add preset borders or convenience padding to borderless zero-gap source tables. Author the required source borders and padding explicitly when those decorations are intended. Supported RTF row half-gaps map to Word table margins and an adjusted stored indent, rather than spacing between separated cells. Remove compensating gap or indent overrides added for the previous mapping. Strict callers must also account for `RtfWordTableCellGapFlattened` and `WordRtfTableCellSpacingOmitted`.
+
+`NormalizeTablesForOnline()` retains explicit nested host-cell top/bottom margins and direct top-border declarations, including zero margins and border suppression. Remove overrides added only to restore those values after normalization.
+
+Word-to-RTF retains all supported children of mixed-content runs in source order, including text around breaks, images and multiple note references. Recheck serialized-output snapshots that captured omitted or reordered content.
+
+Parsed RTF without a `\fet` declaration uses the legacy note policy. To select modern mixed-note behavior for an imported document, set `document.Settings.NoteMode = RtfNoteMode.FootnotesAndEndnotes` before conversion or semantic writing. A `null` `NoteMode` records the absence of a declaration: its effective default is legacy for parsed documents and mixed-note for freshly authored documents. `AddFootnote` and `AddEndnote` retain their requested raw note kinds. Semantic writing records mixed-note mode even for fresh documents that do not yet contain notes, so notes added after saving and rereading retain that authored policy. Recheck RTF header snapshots that expected the declaration to be absent.
+
+Semantic normalization retains an explicitly empty final footnote or endnote paragraph, including its paragraph formatting. Recheck code or snapshots that relied on the final blank paragraph being removed.
+
+Strict conversions also reject unsupported paragraph frames and Word tab-stop clears through explicit loss diagnostics. Review `RtfWordParagraphFramesFlattened`, `WordRtfParagraphFramesFlattened`, `WordRtfTabClearsOmitted`, and direct PDF `ParagraphFrameFlattened` before accepting ordinary-flow or omitted-control fallbacks. Carry a Word bridge's report into a composed PDF conversion with `WithSourceConversionReport(...)`.
+
 ## RTF HTML round-trip output
 
 Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.

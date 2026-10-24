@@ -1,10 +1,12 @@
+using OfficeIMO.Rtf.Diagnostics;
 using OfficeIMO.Rtf.Syntax;
 
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
-        private static void ReadDocumentSettings(RtfGroup root, RtfDocumentSettings settings) {
+        private void ReadDocumentSettings(RtfGroup root, RtfDocumentSettings settings) {
+            settings.HasParsedNoteDefaults = true;
             foreach (RtfNode child in root.Children) {
                 if (!(child is RtfControlWord control)) {
                     continue;
@@ -15,6 +17,11 @@ internal static partial class RtfSemanticReader {
                     case "sectd":
                     case "pard":
                         return;
+                    case "fet":
+                        if (control.Parameter.HasValue && control.Parameter.Value >= 0 && control.Parameter.Value <= 2) settings.NoteMode = (RtfNoteMode)control.Parameter.Value;
+                        else _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF108",
+                            "The document note-mode declaration is unsupported; the parsed legacy default is retained.", control.Position));
+                        break;
                     case "ansi":
                         settings.CharacterSet = RtfDocumentCharacterSet.Ansi;
                         break;

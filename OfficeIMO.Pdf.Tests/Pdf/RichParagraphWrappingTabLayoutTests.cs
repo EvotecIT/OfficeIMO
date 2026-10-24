@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests.Pdf {
             });
 
             var line = Assert.Single(ExtractLines(result));
-            Assert.Equal(new[] { "Revenue", "123" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.Equal(new[] { "Revenue", "123" }, line.ConvertAll(ExtractText).Where(text => text.Length > 0).ToArray());
             double revenueWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "Revenue", PdfStandardFont.Helvetica, 12.0);
             double valueWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "123", PdfStandardFont.Helvetica, 12.0);
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests.Pdf {
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var line = Assert.Single(ExtractLines(result));
-            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).Where(text => text.Length > 0).ToArray());
             Assert.False(ExtractLeadingSpace(line[0]));
             Assert.True(ExtractLeadingSpace(line[1]));
             Assert.False(ExtractLeadingSpaceIsExpandable(line[1]));
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests.Pdf {
             }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
 
             var line = Assert.Single(ExtractLines(result));
-            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).Where(text => text.Length > 0).ToArray());
             Assert.False(ExtractLeadingSpace(line[0]));
             Assert.True(ExtractLeadingSpace(line[1]));
             Assert.False(ExtractLeadingSpaceIsExpandable(line[1]));
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests.Pdf {
                 ExtractLeadingAdvance(segment) +
                 InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", ExtractText(segment), PdfStandardFont.Helvetica, 12.0));
 
-            Assert.Equal(new[] { "Column", "evidence", "1" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.Equal(new[] { "Column", "evidence", "1" }, line.ConvertAll(ExtractText).Where(text => text.Length > 0).ToArray());
             Assert.Equal(PdfTabLeaderStyle.Dots, ExtractLeadingTabLeader(line[2]));
             Assert.InRange(usedWidth, 178, 180.5);
         }

@@ -126,6 +126,7 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         internal NativeFieldResultDiagnosticIndex? FieldResultDiagnostics { get; set; }
+        internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> DiagnosedFrameParagraphs { get; } = new();
 
         /// <summary>
         /// Determines whether generated page numbers are rendered when the Word source has no page-number field. Defaults to false.

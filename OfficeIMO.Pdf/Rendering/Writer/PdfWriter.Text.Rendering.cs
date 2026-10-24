@@ -383,6 +383,10 @@ internal static partial class PdfWriter {
                         }
                         xCursor += gap;
                         content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
+                    } else if (s.LeadingIsTab) {
+                        // A plain tab is geometry; its source font may give SPACE visible ink.
+                        xCursor += gap;
+                        content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)

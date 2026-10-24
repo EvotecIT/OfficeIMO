@@ -9,7 +9,8 @@ internal static partial class PdfWriter {
         double descent = 0D;
         bool hasDescent = false;
         foreach (RichSeg segment in line) {
-            if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null) continue;
+            if (segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null &&
+                !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget) {
                 if (segment.ContributesLineBoxDescent) {
                     GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing,

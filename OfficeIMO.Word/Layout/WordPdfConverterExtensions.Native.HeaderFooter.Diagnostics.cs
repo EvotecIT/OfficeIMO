@@ -373,6 +373,7 @@ namespace OfficeIMO.Word.Pdf {
             if (paragraph._paragraph != null && !diagnosedParagraphs.Add(paragraph._paragraph)) return;
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: true);
+            RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
 
             if (HasNativeUnsupportedHeaderFooterTextBox(paragraph)) {
                 AddNativeExportWarning(
@@ -461,6 +462,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: false);
+            RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
 
             if (!mapsSmartArt && GetNativeRuns(paragraph).Any(run => run.IsSmartArt)) {
                 AddNativeExportWarning(

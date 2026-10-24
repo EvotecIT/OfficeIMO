@@ -497,7 +497,8 @@ namespace OfficeIMO.Word.Pdf {
                 !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>
                     image._Image != null && inlineImages.ContainsKey(image._Image)));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
-            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
+                .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
             var inlineControls = new NativeInlineContentControlProjection(tableCell: true);

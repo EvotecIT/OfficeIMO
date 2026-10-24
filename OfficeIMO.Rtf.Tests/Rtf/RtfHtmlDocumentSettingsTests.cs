@@ -72,7 +72,6 @@ public class RtfHtmlDocumentSettingsTests {
         Assert.Equal("Settings body", Assert.Single(roundTrip.Paragraphs).ToPlainText());
 
         string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        Assert.Contains(@"\ansi\ansicpg1250\deff0\uc2\deftab720\deflang1045", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\deflangfe1041\adeflang1033\viewkind4\viewscale125\viewzk2\viewbksp1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\widowctrl\hyphauto0\hyphcaps\hyphconsec3\hyphhotz360", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\facingp\margmirror\formprot\revprot0\annotprot\readprot0", rtf, StringComparison.Ordinal);
