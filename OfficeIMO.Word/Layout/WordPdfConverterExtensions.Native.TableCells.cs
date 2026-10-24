@@ -586,12 +586,12 @@ namespace OfficeIMO.Word.Pdf {
                         target.Add(CreateNativePositionalTab(positionalTab, run, nativeDefaults, tableStyleDefaults));
                     } else {
                         WordParagraph view = CreateNativeRunContentView(run, new[] { child });
-                        AddNativeCellRun(target, view.Text, view, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                        AddNativeCellRun(target, view.GetTextWithNonTextBreakReplacement('\n'), view, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                     }
                 }
                 return;
             }
-            AddNativeCellRun(target, run.Text, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+            AddNativeCellRun(target, run.GetTextWithNonTextBreakReplacement('\n'), run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
         }
 
         private static void AddNativeCellRun(List<PdfCore.PdfTextRun> target, string text, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {

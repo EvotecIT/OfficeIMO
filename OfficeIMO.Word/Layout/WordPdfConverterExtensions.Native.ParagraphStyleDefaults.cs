@@ -344,7 +344,8 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {
+        private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph,
+            W.Tabs? numberingTabs = null) {
             var tabStops = new Dictionary<int, WordTabStop>();
             int inspectedTabStops = 0;
             // Word tab lists compose across the hierarchy. Visit the most
@@ -358,6 +359,7 @@ namespace OfficeIMO.Word.Pdf {
                 AddTabs(style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>());
             }
 
+            AddTabs(numberingTabs);
             AddTabs(paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
                 .Styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
             return tabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();

@@ -119,6 +119,100 @@ public sealed class WordPdfTabInheritanceTests {
         Assert.DoesNotContain(page.Letters, letter => letter.Value == "." && letter.StartBaseLine.X > 288D);
     }
 
+    [Theory]
+    [InlineData("body", "clear")]
+    [InlineData("body", "bar")]
+    [InlineData("table", "clear")]
+    [InlineData("table", "bar")]
+    [InlineData("header", "clear")]
+    [InlineData("header", "bar")]
+    public void SaveAsPdf_ListLevelTabOverridesDocumentDefaultClearOrBar(string container, string defaultAlignment) {
+        using WordDocument document = WordDocument.Create();
+        AddDocumentDefaultTabs(document, Tab(720,
+            defaultAlignment == "clear" ? W.TabStopValues.Clear : W.TabStopValues.Bar));
+        WordParagraph paragraph = NumberedParagraph(document);
+        paragraph._paragraph.Remove();
+        AddToContainer(document, paragraph._paragraph, container);
+
+        using var pdf = PdfPigDocument.Open(ConvertDocument(document));
+        PdfPage page = Assert.Single(pdf.GetPages());
+        double origin = container == "table" ? Marker(page, "CELLORIGIN").First().StartBaseLine.X : 72D;
+        AssertStart(page, "LISTBODY", origin + 36D);
+        AssertStart(page, "LISTNEXT", origin + 72D);
+    }
+
+    [Theory]
+    [InlineData("style", "clear")]
+    [InlineData("style", "bar")]
+    [InlineData("direct", "clear")]
+    [InlineData("direct", "bar")]
+    public void SaveAsPdf_ListLevelTabCanBeSuppressedByParagraphStyleOrDirectTab(string declaration, string alignment) {
+        using WordDocument document = WordDocument.Create();
+        AddDocumentDefaultTabs(document, Tab(720));
+        W.TabStop suppression = Tab(720, alignment == "clear" ? W.TabStopValues.Clear : W.TabStopValues.Bar);
+        if (declaration == "style") AddStyle(document, "ListTabs", null, suppression);
+        NumberedParagraph(document, declaration == "style" ? "ListTabs" : null,
+            declaration == "direct" ? new W.Tabs(suppression) : null);
+
+        using var pdf = PdfPigDocument.Open(ConvertDocument(document));
+        PdfPage page = Assert.Single(pdf.GetPages());
+        AssertStart(page, "LISTBODY", 144D);
+        AssertStart(page, "LISTNEXT", 144D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_DirectListTabRestoresAStyleClearedPosition() {
+        using WordDocument document = WordDocument.Create();
+        AddStyle(document, "ListTabs", null, Tab(720, W.TabStopValues.Clear));
+        NumberedParagraph(document, "ListTabs", new W.Tabs(Tab(720, W.TabStopValues.Number)));
+
+        using var pdf = PdfPigDocument.Open(ConvertDocument(document));
+        PdfPage page = Assert.Single(pdf.GetPages());
+        AssertStart(page, "LISTBODY", 108D);
+        AssertStart(page, "LISTNEXT", 144D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ListTabsRetainDocumentDefaultStopsAtOtherPositions() {
+        using WordDocument document = WordDocument.Create();
+        AddDocumentDefaultTabs(document, Tab(720));
+        NumberedParagraph(document, listTabPosition: 1080);
+
+        using var pdf = PdfPigDocument.Open(ConvertDocument(document));
+        PdfPage page = Assert.Single(pdf.GetPages());
+        AssertStart(page, "LISTBODY", 108D);
+        AssertStart(page, "LISTNEXT", 144D);
+    }
+
+    private static WordParagraph NumberedParagraph(WordDocument document, string? styleId = null,
+        W.Tabs? tabs = null, int listTabPosition = 720) {
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 1080;
+        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(listTabPosition, W.TabStopValues.Number)), 0);
+        level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
+            new W.RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new W.FontSize { Val = "24" });
+        WordParagraph paragraph = list.AddItem("LISTBODY\nLISTNEXT");
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties!;
+        if (styleId != null) properties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
+        if (tabs != null) properties.Tabs = tabs;
+        return paragraph;
+    }
+
+    private static void AddDocumentDefaultTabs(WordDocument document, params W.TabStop[] tabs) {
+        W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        W.DocDefaults defaults = styles.DocDefaults ?? styles.PrependChild(new W.DocDefaults());
+        W.ParagraphPropertiesDefault paragraphDefaults = defaults.ParagraphPropertiesDefault ??
+            defaults.AppendChild(new W.ParagraphPropertiesDefault());
+        W.ParagraphPropertiesBaseStyle properties = paragraphDefaults.ParagraphPropertiesBaseStyle ??
+            paragraphDefaults.AppendChild(new W.ParagraphPropertiesBaseStyle());
+        properties.AddChild(new W.Tabs(tabs), true);
+    }
+
     private static W.TabStop Tab(int position, W.TabStopValues? alignment = null,
         W.TabStopLeaderCharValues? leader = null) => new W.TabStop {
         Position = position,
@@ -205,6 +299,7 @@ public sealed class WordPdfTabInheritanceTests {
         var main = document.OpenXmlDocument.MainDocumentPart!;
         var roots = new List<OpenXmlPartRootElement> { main.Document };
         if (main.FootnotesPart?.Footnotes is { } notes) roots.Add(notes);
+        if (main.NumberingDefinitionsPart?.Numbering is { } numbering) roots.Add(numbering);
         if (main.StyleDefinitionsPart?.Styles is { } styles) roots.Add(styles);
         if (main.DocumentSettingsPart?.Settings is { } settings) roots.Add(settings);
         roots.AddRange(main.HeaderParts.Select(part => Assert.IsType<W.Header>(part.Header)));

@@ -9,32 +9,25 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData("body", false)]
-    [InlineData("body", true)]
-    [InlineData("table", false)]
-    [InlineData("footnote", false)]
-    [InlineData("endnote", false)]
-    [InlineData("header", false)]
-    [InlineData("footer", false)]
-    public void SaveAsPdf_ParagraphFramesReportApproximationAndPreserveSource(string story, bool inherited) {
+    [InlineData("body", false, false)]
+    [InlineData("body", true, false)]
+    [InlineData("table", false, false)]
+    [InlineData("footnote", false, false)]
+    [InlineData("endnote", false, false)]
+    [InlineData("header", false, false)]
+    [InlineData("footer", false, false)]
+    [InlineData("table", false, true)]
+    [InlineData("footnote", false, true)]
+    [InlineData("endnote", false, true)]
+    [InlineData("header", false, true)]
+    [InlineData("footer", false, true)]
+    public void SaveAsPdf_ParagraphFramesReportApproximationAndPreserveSource(string story, bool inherited, bool breakOnly) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODY");
         WordParagraph paragraph = AddFrameDiagnosticParagraph(document, story);
-        paragraph.Text = "FRAMEDMARKER";
-        var frame = new W.FrameProperties();
-        frame.SetAttribute(new OpenXmlAttribute("w", "w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "3600"));
-        frame.SetAttribute(new OpenXmlAttribute("w", "x", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "1440"));
-        frame.SetAttribute(new OpenXmlAttribute("w", "y", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "720"));
-        if (inherited) {
-            document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
-                new W.Style(new W.StyleParagraphProperties(frame)) {
-                    Type = W.StyleValues.Paragraph, StyleId = "PositionedFrame"
-                });
-            paragraph.SetStyleId("PositionedFrame");
-        } else {
-            paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
-            paragraph._paragraph.ParagraphProperties.AddChild(frame, true);
-        }
+        paragraph.Text = breakOnly ? string.Empty : "FRAMEDMARKER";
+        if (breakOnly) paragraph.AddBreak(WordBreakType.Page);
+        SetFrameDiagnosticProperties(document, paragraph, inherited);
         Assert.Empty(document.ValidateDocument());
         string paragraphXml = paragraph._paragraph.OuterXml;
         string stylesXml = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
@@ -53,9 +46,11 @@ public partial class Word {
             Assert.True(saved.HasLoss);
             Assert.Single(saved.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
             byte[] savedPdf = output.ToArray();
-            Assert.Contains("FRAMEDMARKER", PdfReadDocument.Open(savedPdf,
-                new PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
-            if (story is "header" or "footer")
+            string allText = PdfReadDocument.Open(savedPdf,
+                new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+            Assert.Contains("BODY", allText, StringComparison.Ordinal);
+            if (!breakOnly) Assert.Contains("FRAMEDMARKER", allText, StringComparison.Ordinal);
+            if (!breakOnly && (story is "header" or "footer"))
                 Assert.DoesNotContain("FRAMEDMARKER", PdfReadDocument.Open(savedPdf).ExtractText(), StringComparison.Ordinal);
             Assert.Equal(paragraphXml, paragraph._paragraph.OuterXml);
             Assert.Equal(stylesXml, document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml);
@@ -69,6 +64,108 @@ public partial class Word {
         var result = document.ToPdfDocumentResult();
         Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
         Assert.Contains("PLAINMARKER", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_BreakOnlyParagraphFramesReportApproximation(bool columnBreak, bool inherited) {
+        using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, inherited, out WordParagraph paragraph);
+        string sourceXml = paragraph._paragraph.OuterXml;
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        Assert.Contains("BEFORE", text, StringComparison.Ordinal);
+        Assert.Contains("AFTER", text, StringComparison.Ordinal);
+        Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
+    }
+
+    [Fact]
+    public void SaveAsPdf_BreakOnlyFrameRequireNoLossRejectsApproximation() {
+        using WordDocument document = CreateFrameFlowBreakDocument(false, false, out _);
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void SaveAsPdf_SplitParagraphFrameReportsOnceAndPreservesContent(bool columnBreak, bool trailingLegacyMark) {
+        using WordDocument document = WordDocument.Create();
+        document.CompatibilitySettings.CompatibilityMode = trailingLegacyMark
+            ? WordCompatibilityMode.Word2003 : WordCompatibilityMode.Word2013;
+        document.CompatibilitySettings.SplitPageBreakAndParagraphMark = trailingLegacyMark;
+        if (columnBreak) document.Sections[0].ColumnCount = 2;
+        WordParagraph paragraph = document.AddParagraph("FRAMEBEFORE");
+        paragraph.AddBreak(columnBreak ? WordBreakType.Column : WordBreakType.Page);
+        if (!trailingLegacyMark) paragraph.AddText("FRAMEAFTER");
+        document.AddParagraph("TAIL");
+        SetFrameDiagnosticProperties(document, paragraph, inherited: false);
+        string sourceXml = paragraph._paragraph.OuterXml;
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+
+        Assert.Single(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        Assert.Equal(1, text.Split(new[] { "FRAMEBEFORE" }, StringSplitOptions.None).Length - 1);
+        if (!trailingLegacyMark) Assert.Equal(1, text.Split(new[] { "FRAMEAFTER" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("TAIL", text, StringComparison.Ordinal);
+        Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_BreakOnlyParagraphWithoutFrameRemainsLossless(bool columnBreak) {
+        using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, false, out WordParagraph paragraph);
+        paragraph._paragraph.ParagraphProperties!.RemoveAllChildren<W.FrameProperties>();
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        result.RequireNoLoss();
+        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        Assert.Contains("BEFORE", text, StringComparison.Ordinal);
+        Assert.Contains("AFTER", text, StringComparison.Ordinal);
+    }
+
+    private static WordDocument CreateFrameFlowBreakDocument(bool columnBreak, bool inherited, out WordParagraph paragraph) {
+        WordDocument document = WordDocument.Create();
+        document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
+        if (columnBreak) document.Sections[0].ColumnCount = 2;
+        document.AddParagraph("BEFORE");
+        paragraph = document.AddParagraph();
+        paragraph.AddBreak(columnBreak ? WordBreakType.Column : WordBreakType.Page);
+        document.AddParagraph("AFTER");
+        SetFrameDiagnosticProperties(document, paragraph, inherited);
+        return document;
+    }
+
+    private static void SetFrameDiagnosticProperties(WordDocument document, WordParagraph paragraph, bool inherited) {
+        var frame = new W.FrameProperties();
+        frame.SetAttribute(new OpenXmlAttribute("w", "w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "3600"));
+        frame.SetAttribute(new OpenXmlAttribute("w", "x", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "1440"));
+        frame.SetAttribute(new OpenXmlAttribute("w", "y", "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "720"));
+        if (inherited) {
+            document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new W.Style(new W.StyleParagraphProperties(frame)) {
+                    Type = W.StyleValues.Paragraph, StyleId = "PositionedFrame"
+                });
+            paragraph.SetStyleId("PositionedFrame");
+        } else {
+            paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.AddChild(frame, true);
+        }
     }
 
     private static WordParagraph AddFrameDiagnosticParagraph(WordDocument document, string story) {

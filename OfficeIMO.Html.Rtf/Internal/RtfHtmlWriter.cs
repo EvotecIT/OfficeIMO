@@ -139,6 +139,10 @@ internal static partial class RtfHtmlWriter {
 
     private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document, RtfListMarker? marker = null, bool closeListItem = true) {
         RtfParagraph effective = document.GetParagraphFormatting(paragraph);
+        if (paragraph.UseParsedParagraphDefaults && !paragraph.LineSpacingTwips.HasValue) {
+            // Let the browser choose its natural line box when the source has no \sl control.
+            effective.LineSpacingTwips = null;
+        }
         if (marker != null) {
             effective = effective.CopyFormattingView();
             effective.ListKind = marker.Formatting.Level.Kind;

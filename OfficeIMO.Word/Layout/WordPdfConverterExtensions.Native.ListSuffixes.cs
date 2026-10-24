@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -12,20 +11,9 @@ namespace OfficeIMO.Word.Pdf {
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
             double? indentStop = !IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D
                 ? textIndent : null;
-            var stops = new Dictionary<int, WordTabStop>();
             W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
-            if (levelTabs != null) {
-                foreach (W.TabStop tab in levelTabs.Elements<W.TabStop>().Take(MaxNativeParagraphTabStops)) {
-                    if (tab.Position == null) {
-                        continue;
-                    }
-
-                    var stop = new WordTabStop(paragraph, (W.TabStop)tab.CloneNode(true));
-                    stops[stop.Position] = stop;
-                }
-            }
-            foreach (WordTabStop stop in GetNativeParagraphEffectiveTabStops(paragraph)) stops[stop.Position] = stop;
-            foreach (WordTabStop tabStop in stops.Values.Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
+            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph, levelTabs)
+                .Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {
                 double position = tabStop.Position / 20D;
                 if (position > markerEnd + 0.01D) return indentStop.HasValue ? Math.Min(position, indentStop.Value) : position;
