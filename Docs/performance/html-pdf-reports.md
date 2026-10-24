@@ -117,3 +117,65 @@ when those supported workloads identify another material cost. Stop an optimizat
 that weakens content, diagnostics, cancellation or resource limits, or requires an
 unrelated redesign. Preserve slower and failed observations; do not repeat exhausted
 ideas unless the relevant source has changed.
+
+## Font, style and geometry reuse: 22 October 2026
+
+Baseline: `7361ba1a3ca75c7efb0b551d2d51fa9185b57a57`.
+Qualified runtime: `b18a1c4181d238d69dee51a5f3f0b1bc8208d142`.
+The [reuse evidence](../../Build/Project/Evidence/2026-10-22/pdf-render-reuse.json)
+retains all 28 matched rows, round-specific errors and earlier source-bound
+cohorts. The same maintained drivers run in baseline/candidate/candidate/baseline
+order. The hardware, runtime and measurement limits above apply; no outliers
+are removed. Allocation measures total managed bytes per operation.
+
+| Workload | Baseline round means (ms) | Candidate round means (ms) | Baseline allocation (MiB) | Candidate allocation (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Plain text | 53.82 / 47.56 | 35.32 / 46.72 | 94.31 | 47.24 |
+| Table | 122.60 / 121.27 | 110.09 / 107.64 | 200.21 | 156.51 |
+| Multilingual | 36.95 / 37.03 | 29.26 / 28.29 | 95.15 | 50.75 |
+| 250 rows, prepared layout | 170.69 / 333.43 | 286.52 / 370.54 | 187.42 | 181.76 |
+| 250 rows, PDF export | 189.41 / 487.08 | 303.80 / 468.35 | 284.32 | 270.93 |
+| 2,500 rows, prepared layout | 2462.52 / 4167.55 | 3567.96 / 4040.27 | 2383.14 | 1783.38 |
+| 2,500 rows, PDF export | 4672.48 / 5465.79 | 4769.81 / 4878.84 | 3364.08 | 2731.97 |
+
+The plain-text, table and multilingual combined means are 19.1%, 10.7% and
+22.2% lower. Both candidate round means are below both baseline round means for
+these three payloads. Their managed allocation falls by 49.9%, 21.8% and 46.7%.
+Plain-text errors overlap widely in the second pair; these are observed warm
+workload results, without a portable or formal significance claim.
+
+The purchase-report results remain mixed. The 250-row layout and export means
+are 30.3% and 14.1% higher, and the 2,500-row layout mean is 14.8% higher. The
+2,500-row export mean is 4.8% lower. Managed allocation falls across all seven
+workloads, but does not erase slower timings. Baseline round means themselves
+vary substantially, and paired contrasts change direction for the export and
+large-layout paths. No throughput improvement or general no-regression claim is
+made for these routes; their remaining costs stay on the roadmap. No cause for
+the timing variation is inferred, and no whole matrix is repeated to seek a
+favorable result.
+
+Built-in short-text measurements are reused within a conversion, keyed by the
+complete font descriptor and invalidated when font definitions change. Caller
+providers and dynamically selected host fonts retain their existing paths.
+Border/outline reuse includes the original numeric, color and character context;
+mutable parent boxes are resolved afresh. Both caches are bounded and bypass
+further probes once saturated. The writer copies immutable glyph outlines into
+bounded private placement storage and allocates afresh above its retention caps.
+Scroll-extent traversal uses the existing indexed lists with the same ordering,
+clipping, transforms and arithmetic. There is no public API or runtime dependency
+change.
+
+All 13 matched saved reports preserve exact PDF bytes, text, row markers and
+complete diagnostics, including the 42- and 417-page purchase reports. Both
+producers pass fresh syntax checks. Eight previous rendered views are reused
+only where PDF and image hashes match; any changed view is inspected afresh.
+These known report inputs do not establish engine-wide appearance, native or
+accessibility equivalence.
+
+Earlier dirty trials, the slower `fc604c6f` cohort, the inconclusive `e8b79548`
+cohort and its targeted confirmation, and the selected `2f76ef25` results remain
+in the evidence with their original runtime inputs and dispositions. The last
+of those used the earlier `8cc38e17` baseline; its gains are historical. Shared
+font-width, glyph/flow and HTML-normalization changes prompted this separate
+matched baseline and candidate qualification. None of the older timings,
+packages or native observations are relabeled as this combined source.
