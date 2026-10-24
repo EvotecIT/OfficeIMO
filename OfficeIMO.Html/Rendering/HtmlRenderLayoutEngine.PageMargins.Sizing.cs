@@ -3,39 +3,78 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    /// <summary>Allocates each horizontal strip from that page's resolved content before either text or running elements are laid out.</summary>
-    private IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds> ResolveHorizontalPageMarginBounds(
+    /// <summary>Allocates each variable-axis strip from that page's resolved content before either text or running elements are laid out.</summary>
+    private IReadOnlyDictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds> ResolvePageMarginAxisBounds(
         HtmlRenderPage page, IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes,
         int pageCount, out IReadOnlyDictionary<HtmlCssPageMarginPosition, string> renderedText) {
         var text = new Dictionary<HtmlCssPageMarginPosition, string>();
         var sizes = new Dictionary<HtmlCssPageMarginPosition, PageMarginIntrinsicSize>();
+        var bounds = new Dictionary<HtmlCssPageMarginPosition, PageMarginAxisBounds>();
         double availableWidth = Math.Max(1D, page.Width - page.Margins.Left - page.Margins.Right);
         foreach (HtmlCssPageMarginTemplate box in boxes.Values) {
             CheckCancellation();
-            if (IsCorner(box.Position) || IsSide(box.Position)) continue;
-            // An empty string still generates a box. content:none/normal does not,
-            // and a generated empty centre must retain its centering constraint.
+            // Empty strings generate a box; none/normal do not.
             bool generated = !box.Content.IsEmpty;
+            bool physical = IsSide(box.Position) || IsCorner(box.Position);
+            double fixedExtent = IsLeftMargin(box.Position) ? page.Margins.Left : page.Margins.Right;
+            PageMarginIntrinsicSize intrinsic;
+            HtmlCssRunningElementSnapshot? snapshot = null;
+            string value = string.Empty;
             if (box.Content.TryGetRunningElement(out string name, out HtmlCssRunningStringPosition position)) {
-                sizes[box.Position] = TryGetPageMarginRunningSnapshot(page, name, position, out var snapshot)
-                    ? MeasurePageMarginRunningSnapshot(snapshot, availableWidth, box)
+                if (TryGetPageMarginRunningSnapshot(page, name, position, out var found)) snapshot = found;
+                intrinsic = snapshot != null
+                    ? MeasurePageMarginRunningSnapshot(snapshot, physical ? fixedExtent : availableWidth, box)
                     : new PageMarginIntrinsicSize(generated, 0D, 0D);
+            } else if (box.Content.ContainsRunningElement || !generated || box.Font.Size <= 0D && !physical) {
+                intrinsic = new PageMarginIntrinsicSize(generated, 0D, 0D);
+            } else {
+                value = RenderPageMarginText(page, box, pageCount);
+                text.Add(box.Position, value);
+                intrinsic = box.Font.Size <= 0D ? new PageMarginIntrinsicSize(true, 0D, 0D)
+                    : MeasurePageMarginTextIntrinsics(value, box);
+            }
+            if (!physical) {
+                sizes[box.Position] = intrinsic;
                 continue;
             }
-            if (box.Content.ContainsRunningElement || box.Font.Size <= 0D || !generated) {
-                sizes[box.Position] = new PageMarginIntrinsicSize(generated, 0D, 0D);
-                continue;
-            }
-            string value = RenderPageMarginText(page, box, pageCount);
-            text.Add(box.Position, value);
-            sizes[box.Position] = MeasurePageMarginTextIntrinsics(value, box);
+            if (!generated) continue;
+            double fixedWidth = ResolvePageMarginFixedWidth(box.Typography, intrinsic, fixedExtent);
+            bounds[box.Position] = new PageMarginAxisBounds(0D, 0D, fixedWidth);
+            if (IsCorner(box.Position)) continue;
+            double innerWidth = Math.Max(0D, fixedWidth - box.Typography.HorizontalInsets);
+            double naturalHeight = snapshot != null
+                ? ResolveRunningElementSnapshot(snapshot, page, innerWidth).Height
+                : MeasurePageMarginWrappedHeight(value, box, innerWidth);
+            sizes[box.Position] = new PageMarginIntrinsicSize(true, naturalHeight, naturalHeight);
         }
 
-        var bounds = new Dictionary<HtmlCssPageMarginPosition, PageMarginHorizontalBounds>();
         ResolveStrip(HtmlCssPageMarginPosition.TopLeft, HtmlCssPageMarginPosition.TopCenter, HtmlCssPageMarginPosition.TopRight);
         ResolveStrip(HtmlCssPageMarginPosition.BottomLeft, HtmlCssPageMarginPosition.BottomCenter, HtmlCssPageMarginPosition.BottomRight);
+        ResolveSide(HtmlCssPageMarginPosition.LeftTop, HtmlCssPageMarginPosition.LeftMiddle, HtmlCssPageMarginPosition.LeftBottom);
+        ResolveSide(HtmlCssPageMarginPosition.RightTop, HtmlCssPageMarginPosition.RightMiddle, HtmlCssPageMarginPosition.RightBottom);
         renderedText = text;
         return bounds;
+
+        void ResolveSide(HtmlCssPageMarginPosition top, HtmlCssPageMarginPosition middle, HtmlCssPageMarginPosition bottom) {
+            sizes.TryGetValue(top, out var first);
+            sizes.TryGetValue(middle, out var center);
+            sizes.TryGetValue(bottom, out var last);
+            boxes.TryGetValue(top, out var topBox);
+            boxes.TryGetValue(middle, out var middleBox);
+            boxes.TryGetValue(bottom, out var bottomBox);
+            if (!first.Generated && !center.Generated && !last.Generated) return;
+            double availableHeight = Math.Max(0D, page.Height - page.Margins.Top - page.Margins.Bottom);
+            (double a, double b, double c) = ResolveConstrainedPageMarginStrip(
+                topBox, middleBox, bottomBox, first, center, last, availableHeight, vertical: true);
+            Set(top, page.Margins.Top, a);
+            Set(middle, page.Margins.Top + (availableHeight - b) / 2D, b);
+            Set(bottom, page.Height - page.Margins.Bottom - c, c);
+
+            void Set(HtmlCssPageMarginPosition position, double start, double extent) {
+                if (bounds.TryGetValue(position, out var previous))
+                    bounds[position] = new PageMarginAxisBounds(start, extent, previous.FixedWidth);
+            }
+        }
 
         void ResolveStrip(HtmlCssPageMarginPosition leftPosition, HtmlCssPageMarginPosition centerPosition,
             HtmlCssPageMarginPosition rightPosition) {
@@ -62,12 +101,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 (leftWidth, rightWidth) = DistributePageMarginPair(left, right, availableWidth);
                 centerWidth = 0D;
             }
-            if (left.Generated) bounds[leftPosition] = new PageMarginHorizontalBounds(page.Margins.Left, leftWidth);
-            if (center.Generated) bounds[centerPosition] = new PageMarginHorizontalBounds(
+            if (left.Generated) bounds[leftPosition] = new PageMarginAxisBounds(page.Margins.Left, leftWidth);
+            if (center.Generated) bounds[centerPosition] = new PageMarginAxisBounds(
                 page.Margins.Left + (availableWidth - centerWidth) / 2D, centerWidth);
-            if (right.Generated) bounds[rightPosition] = new PageMarginHorizontalBounds(
+            if (right.Generated) bounds[rightPosition] = new PageMarginAxisBounds(
                 page.Width - page.Margins.Right - rightWidth, rightWidth);
         }
+    }
+
+    /// <summary>Measures side contributions after the fixed-axis width has been resolved.</summary>
+    private double MeasurePageMarginWrappedHeight(string value, HtmlCssPageMarginTemplate box, double availableWidth) {
+        if (value.Length == 0) return 0D;
+        ResolvePageMarginTextMetrics(box, value, out double lineHeight, out _, out _, out _);
+        return MeasurePageMarginWrappedText(value, box, availableWidth).Lines.Count * lineHeight;
+    }
+
+    /// <summary>Shares wrapped-line admission and its typed truncation loss between sizing and final painting.</summary>
+    private OfficeTextBlockLayout MeasurePageMarginWrappedText(string value, HtmlCssPageMarginTemplate box, double availableWidth) {
+        OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(value, box.Font.Size,
+            Math.Max(0.01D, availableWidth), double.MaxValue, 1D, box.Font.Size,
+            (text, _) => MeasurePageMarginText(text ?? string.Empty, box),
+            wrap: true, forceSingleLine: false, shrinkToFit: false, overflowBehavior: OfficeTextOverflowBehavior.Clip);
+        string source = "@page @" + GetMarginBoxName(box.Position);
+        if (measured.Clipped && _reportedMarginTextOverflow.Add(source + " text-layout-limit")) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
+                HtmlDiagnosticSeverity.Warning, source, "text-layout-limit", OfficeConversionLossKind.Omission);
+        }
+        return measured;
     }
 
     private string RenderPageMarginText(HtmlRenderPage page, HtmlCssPageMarginTemplate box, int pageCount) {
@@ -80,6 +141,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasurePageMarginText(string value, HtmlCssPageMarginTemplate box) {
         CheckCancellation();
         ChargeLayoutOperations(value.Length, "@page @" + GetMarginBoxName(box.Position) + " text measurement");
+        // Zero-size generated text can retain leading and hard lines, but it
+        // must not reach positive-size fallback measurers or request a face.
+        if (box.Font.Size <= 0D) return 0D;
         return MeasureText(value, box.Font, box.Typography.FontDescriptor);
     }
 
@@ -135,6 +199,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Distributes auto widths through max-content, flexible-content and constrained-minimum regimes.</summary>
     private static (double First, double Second) DistributePageMarginPair(
         PageMarginIntrinsicSize first, PageMarginIntrinsicSize second, double availableWidth) {
+        (double a, double b) = DistributePageMarginPair(
+            (first.Generated, first.Minimum, first.Maximum), (second.Generated, second.Minimum, second.Maximum), availableWidth);
+        if (!first.Generated || !second.Generated) return (a, b);
+        // Preserve the original content-only profile's bounded outer allocation.
+        double firstWidth = Math.Max(0D, Math.Min(availableWidth, a));
+        return (firstWidth, availableWidth - firstWidth);
+    }
+
+    /// <summary>Uses signed outer contributions; the box-aware caller owns nonnegative content-size floors.</summary>
+    private static (double First, double Second) DistributePageMarginPair(
+        (bool Generated, double Minimum, double Maximum) first,
+        (bool Generated, double Minimum, double Maximum) second, double availableWidth) {
         if (!first.Generated) return (0D, second.Generated ? availableWidth : 0D);
         if (!second.Generated) return (availableWidth, 0D);
         double minimum = first.Minimum + second.Minimum;
@@ -156,9 +232,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             firstFactor = first.Minimum;
             secondFactor = second.Minimum;
         }
-        if (firstFactor + secondFactor <= 0D) firstFactor = secondFactor = 1D;
-        double firstWidth = Math.Max(0D, Math.Min(availableWidth,
-            basis + space * firstFactor / (firstFactor + secondFactor)));
+        if (firstFactor + secondFactor == 0D) firstFactor = secondFactor = 1D;
+        double firstWidth = basis + space * firstFactor / (firstFactor + secondFactor);
         return (firstWidth, availableWidth - firstWidth);
     }
 
@@ -173,9 +248,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Maximum { get; }
     }
 
-    private readonly struct PageMarginHorizontalBounds {
-        internal PageMarginHorizontalBounds(double x, double width) { X = x; Width = width; }
-        internal double X { get; }
-        internal double Width { get; }
+    /// <summary>The allocated margin-box outer frame; signed margins are removed at the border-frame owner.</summary>
+    private readonly struct PageMarginAxisBounds {
+        internal PageMarginAxisBounds(double start, double length, double? fixedWidth = null) {
+            Start = start; Length = length; FixedWidth = fixedWidth;
+        }
+        internal double Start { get; }
+        internal double Length { get; }
+        internal double? FixedWidth { get; }
     }
 }

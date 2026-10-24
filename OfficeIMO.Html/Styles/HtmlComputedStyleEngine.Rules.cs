@@ -1091,7 +1091,7 @@ public static partial class HtmlComputedStyleEngine {
             // Custom components and supported layout and image keywords can be lost by the retained
             // provider when another declaration makes the whole rule use this path.
             if (!isCustomProperty && propertyName is not ("display" or "flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform"
-                or "image-orientation" or "image-resolution")) continue;
+                or "object-position" or "image-orientation" or "image-resolution")) continue;
             string value = RestoreProtectedDeclarationValue(StripCssCommentsOutsideStrings(
                 OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization).AuthoredValue).Trim());
             if (!IsSupportedDeclarationValue(propertyName, value)) continue;

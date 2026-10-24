@@ -785,6 +785,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         if (!properties.Add(key)) return;
         string source = DescribeSource(element) + (pseudoElement ? "::generated" : string.Empty);
+        ReportUnsupportedColor(source, property, value);
+    }
+
+    private void ReportUnsupportedColor(string source, string property, string value) {
         _diagnostics.Add(
             "OfficeIMO.Html.Renderer",
             HtmlRenderDiagnosticCodes.ColorValueUnsupported,
@@ -927,11 +931,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private void ApplyPaint(IElement element, HtmlComputedStyle computed, HtmlRenderBoxStyle style, bool pseudoElement) {
         string backgroundShorthand = computed.GetValue("background");
-        string background = computed.GetValue("background-color");
-        if (background.Length == 0) background = backgroundShorthand;
-        if (string.Equals(background.Trim(), "currentcolor", StringComparison.OrdinalIgnoreCase)) {
-            style.BackgroundColor = style.Color;
-        } else if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) {
+        if (TryResolveBackgroundColor(computed, style.Color, out OfficeColor? backgroundColor)) {
             style.BackgroundColor = backgroundColor;
         } else if (computed.GetValue("background-color").Length > 0) {
             ReportUnsupportedColor(element, pseudoElement, "background-color", computed.GetValue("background-color"));
@@ -989,9 +989,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         IReadOnlyList<string> clipLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-clip"));
         IReadOnlyList<string> attachmentLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-attachment"));
         (string shorthandOrigin, string shorthandClip) = ExtractBackgroundBoxes(backgroundShorthand);
-        style.BackgroundColorClip = HtmlRenderBackgroundLayer.NormalizeBox(
-            GetLayerValue(clipLayers, Math.Max(0, sourceLayers.Count - 1), shorthandClip, "border-box"),
-            "border-box");
+        style.BackgroundColorClip = ResolveSolidBackgroundClip(computed, backgroundShorthand, sourceLayers.Count, out _);
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;
         bool hasDeclaredBackgroundImage = false;

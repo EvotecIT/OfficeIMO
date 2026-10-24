@@ -13,6 +13,10 @@ internal static class HtmlRenderScrollableOverflow {
         double right = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
             cancellationToken.ThrowIfCancellationRequested();
+            // Generated stationery occupies the reserved page margins. Its
+            // text, images and running snapshots do not widen the body flow.
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact } margin
+                && margin.Source?.StartsWith("@page @", StringComparison.Ordinal) == true) continue;
             OfficeTransform current = visual is HtmlRenderEffectGroup effect ? effect.Transform.Then(transform) : transform;
             IReadOnlyList<HtmlRenderVisual>? children = Children(visual);
             bool addedClip = false;

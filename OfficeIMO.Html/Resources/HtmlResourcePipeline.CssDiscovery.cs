@@ -27,6 +27,8 @@ public static partial class HtmlResourcePipeline {
             Dictionary<string, List<CssCustomPropertyDefinition>> ambientDefinitions = MergeCustomPropertyDefinitions(documentCustomPropertyDefinitions, inheritedDefinitions);
             AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, inlineSourceOrders, computedStyles, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
         }
+
+        if (!options.DeferPageMarginBackgrounds) AddPageMarginBackgroundResources(manifest, document, baseUri, options);
     }
 
 

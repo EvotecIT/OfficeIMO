@@ -269,6 +269,9 @@ public static partial class HtmlResourcePipeline {
             return true;
         }
 
+        // Generated boxes have a separate cascade; a DOM-selector heuristic cannot select their URLs.
+        if (IsCssPageBackgroundReference(css, index)) return false;
+
         if (TryGetEnclosingKeyframesName(css, index, out string keyframesName, out int keyframesStart)) {
             if (!IsLastActiveKeyframesDefinition(css, keyframesName, keyframesStart)) return false;
             computedStyles ??= HtmlComputedStyleEngine.Compute(document);

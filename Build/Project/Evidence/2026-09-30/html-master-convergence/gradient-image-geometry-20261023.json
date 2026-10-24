@@ -1,0 +1,3401 @@
+{
+  "schema": "officeimo.html.gradient-image-geometry-qualification/v1",
+  "collectedUtc": "2026-10-23T13:53:00.590182+00:00",
+  "outcome": "PASS_BOUNDED_OWNED_GEOMETRY_WITH_DECLARED_NATIVE_BOUNDARIES",
+  "collector": {
+    "path": "$TASK_ROOT/prep/final-qualification-v3/collect.py",
+    "bytes": 38110,
+    "sha256": "a31640d5ef62cfdf3135b3644beb04364d9b68313c2f94037dc82de07e227a15"
+  },
+  "reader": {
+    "path": "$TASK_ROOT/prep/final-qualification-v3/evidence_files.py",
+    "bytes": 12515,
+    "sha256": "5aeecbd85afdc500d46df200fbe92eaf6d529e0a07a801d06fb424fa082f4816"
+  },
+  "configuration": {
+    "path": "$TASK_ROOT/prep/final-qualification-v3/config.json",
+    "bytes": 6687,
+    "sha256": "9fefe59186832d7302f913233aa6e4c7de804555a0ae4ced2a351a4c8ae3d7aa"
+  },
+  "qualifiedSource": {
+    "head": "0c4572093533e75f299cc5671aa53309f32dced6",
+    "tree": "94c5cf3bf65ab83f519947b729ca28376fb9ec6f",
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-gradient-geometry-v3.json",
+      "bytes": 12233621,
+      "sha256": "7944ae80fd41a82eecb8b73d68037ee1032265be91f8e91a06d50e8ff70c2dd3"
+    },
+    "trackedFiles": 58584,
+    "inputContract": {
+      "path": "$TASK_ROOT/prep/package-qualification-v3/input-contract.prepared.json",
+      "bytes": 167703,
+      "sha256": "00547379ecd7e3fcc2b5296fab2d3ca0d65b66057446055a8d5c3576126a52ca"
+    },
+    "fixtureMatrix": {
+      "path": "$TASK_ROOT/prep/evidence/fixture-matrix-gradient-geometry-v2.json",
+      "bytes": 111267,
+      "sha256": "b41ba6766c5457c9415274523da3b8cd8ae39cee25b6d21a051b325eab241a95"
+    },
+    "startingCheckpoint": {
+      "head": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+      "tree": "50be25aa483eca9b32a1887a21bbba3843480081"
+    },
+    "protectedProviderRuntimeDiffPaths": []
+  },
+  "currentCheckpoint": {
+    "head": "0c4572093533e75f299cc5671aa53309f32dced6",
+    "tree": "94c5cf3bf65ab83f519947b729ca28376fb9ec6f",
+    "metadataDiffPaths": [],
+    "sourceCodeChangedSinceQualification": false
+  },
+  "frozenCohort": {
+    "fixtures": 16,
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged"
+    ],
+    "observationsPerSourceLane": 32,
+    "pagesPerSourceLane": 64,
+    "scope": "Gradient image sizing/position/repeat across ordinary div/table and horizontal top/bottom page-margin boxes, with independent background/object position control.",
+    "excludedClaims": [
+      "side/corner geometry",
+      "vertical writing",
+      "running elements",
+      "new page-margin radii",
+      "universal conic/native pixel equality",
+      "Windows profiling",
+      "provider convergence",
+      "package execution during preparation"
+    ]
+  },
+  "source": {
+    "net8": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net8-v3/summary.json",
+        "bytes": 5583332,
+        "sha256": "70a4a4d8825e755e9c84167c2ec5450a1c6f50ed755803dc4e612e73b6384562"
+      },
+      "declaredSourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+      "observations": 32,
+      "pages": 64,
+      "ownPngPdfPairsVerified": 64,
+      "svgArtifactsObserved": 64,
+      "svgElementTotals": {
+        "clipPath": 2492,
+        "defs": 3210,
+        "feColorMatrix": 52,
+        "feComposite": 26,
+        "filter": 26,
+        "g": 2808,
+        "image": 590,
+        "linearGradient": 428,
+        "mask": 26,
+        "path": 1212,
+        "radialGradient": 416,
+        "rect": 3972,
+        "stop": 11892,
+        "style": 64,
+        "svg": 64,
+        "text": 686
+      },
+      "svgRasterParityClaimed": false,
+      "lossyObservations": 0,
+      "diagnostics": {
+        "diagnostics": {},
+        "pdfDiagnostics": {},
+        "svgDiagnostics": {}
+      }
+    },
+    "net10": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net10-v3/summary.json",
+        "bytes": 5583587,
+        "sha256": "1d92dd849670b5dd4a3799d2a563dd43ad7d47f36cace99fc3870762c034742a"
+      },
+      "declaredSourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+      "observations": 32,
+      "pages": 64,
+      "ownPngPdfPairsVerified": 64,
+      "svgArtifactsObserved": 64,
+      "svgElementTotals": {
+        "clipPath": 2492,
+        "defs": 3210,
+        "feColorMatrix": 52,
+        "feComposite": 26,
+        "filter": 26,
+        "g": 2808,
+        "image": 590,
+        "linearGradient": 428,
+        "mask": 26,
+        "path": 1212,
+        "radialGradient": 416,
+        "rect": 3972,
+        "stop": 11892,
+        "style": 64,
+        "svg": 64,
+        "text": 686
+      },
+      "svgRasterParityClaimed": false,
+      "lossyObservations": 0,
+      "diagnostics": {
+        "diagnostics": {},
+        "pdfDiagnostics": {},
+        "svgDiagnostics": {}
+      }
+    }
+  },
+  "roles": {
+    "source": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-gradient-geometry-v3-closure.json",
+        "bytes": 3493,
+        "sha256": "8e2dd706b67e78a01ec4f7d11a5858645050baaf512d9e21504af89d65109015"
+      },
+      "expectedRoles": 4,
+      "completedRoles": 4,
+      "passed": true,
+      "executions": [
+        {
+          "role": "gradient-geometry-observer-net8-build-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-build-v3-execution.json",
+            "bytes": 1920,
+            "sha256": "5c5e4453d9a8683c10ac3f53b2628b81b9d94830a956746ae04619cddaa187b6"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-build-v3.log",
+            "bytes": 1873,
+            "sha256": "92eb41b7d8c3d58b7d1bc3f3f5acb1cb106b0e843fa93ad20c35c6a1d5eacdfa"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-observer-net8-run-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-run-v3-execution.json",
+            "bytes": 1603,
+            "sha256": "7f97baac985dc5250e3a0c2a62a5346f375d30101a26c30408c99defa2d69814"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-run-v3.log",
+            "bytes": 116,
+            "sha256": "d1f91c469082504bf63db91cf686de771f816978a6b17428ea984359f6426c33"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-observer-net10-build-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-build-v3-execution.json",
+            "bytes": 1926,
+            "sha256": "ca68ff025238ebecdc68531b9c9da5153647296692ade992cd4c6ce1efdcd28b"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-build-v3.log",
+            "bytes": 1179,
+            "sha256": "d070b650f415bf370c5cf95be0d59b38436dcf291e667e3a49558a0b8178b86d"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-observer-net10-run-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-run-v3-execution.json",
+            "bytes": 1609,
+            "sha256": "a75e22020f15ce53bbde740fb39f86c1c2415778e99e80a31b6a2e457b3a1632"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-run-v3.log",
+            "bytes": 117,
+            "sha256": "ac65434e06b2bc27b49bf150ede5490ad01d311cbf4fc2ce30dc79c518794735"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "producer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-producer-gradient-geometry-v3-closure.json",
+        "bytes": 7571,
+        "sha256": "afd885555815080e43a0c648763e3c8cf14c57ce53573886d814aea57b60194e"
+      },
+      "expectedRoles": 9,
+      "completedRoles": 9,
+      "passed": true,
+      "executions": [
+        {
+          "role": "gradient-geometry-package-preflight-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-preflight-v3-execution.json",
+            "bytes": 1798,
+            "sha256": "43edf24a79a0231a949069f5acb69e963984c8a9e0e78de804476925d1b2b727"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-preflight-v3.log",
+            "bytes": 89,
+            "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-source-restore-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-source-restore-v3-execution.json",
+            "bytes": 2815,
+            "sha256": "ec7d214694c38af205f14c3206a5b30f38634f8341a2d5eb8ae1ee3daf042ca3"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-source-restore-v3.log",
+            "bytes": 793,
+            "sha256": "ec85991173dbc0843c628f019385711a1283d192e3a6ac3df51e2631632083bf"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-source-build-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-source-build-v3-execution.json",
+            "bytes": 2822,
+            "sha256": "15713e48da16a0e1375e19b12daa9da7b6caef37d9c737f9e163d4a723bf66b4"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-source-build-v3.log",
+            "bytes": 4321,
+            "sha256": "0dd8413ff2d13229053b04a7262718a3a0500b10baa0f0adefb8076e94fd1279"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-pack-officeimo-core-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-pack-officeimo-core-v3-execution.json",
+            "bytes": 2870,
+            "sha256": "679c367eced85a7ca674b5d49a24ec878192e18cf5616e9dadd201c7aa9bbf8b"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-pack-officeimo-core-v3.log",
+            "bytes": 182,
+            "sha256": "40d8c4d0ba2db5296b797c1c65914b4ac2d3a8ed22bc19c952281d35a3d32ddf"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-pack-officeimo-pdf-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-pack-officeimo-pdf-v3-execution.json",
+            "bytes": 2865,
+            "sha256": "e559eab2becbab6525cedb16eb1a122988a91e6bb79cffe5d47096905193520b"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-pack-officeimo-pdf-v3.log",
+            "bytes": 181,
+            "sha256": "726049966d04639adcb72c38b6a05c1cabc035e11fb3cd9a954699cd4ed9a57b"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-pack-officeimo-html-core-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-pack-officeimo-html-core-v3-execution.json",
+            "bytes": 2891,
+            "sha256": "2efdd00b96424047cffc2405c381c1c5201fb7e471410e5bc732e8fde47b4989"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-pack-officeimo-html-core-v3.log",
+            "bytes": 187,
+            "sha256": "eb74ebef89b426a84bb0b6be8ea772a710ff5617b2cb374d5f9829067d20b433"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-pack-officeimo-html-anglesharp-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-pack-officeimo-html-anglesharp-v3-execution.json",
+            "bytes": 2915,
+            "sha256": "cb53d2500b6d18803f5e38e623a83cb4750788e12bcdae5d4f45c1abc0d8d2a3"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-pack-officeimo-html-anglesharp-v3.log",
+            "bytes": 193,
+            "sha256": "0afe25b39b1f59c40a54c95eddff5e4b99febb00761fd7f39c949751432bf79a"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-pack-officeimo-html-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-pack-officeimo-html-v3-execution.json",
+            "bytes": 2870,
+            "sha256": "710d76a725051416b5b04e4d81103de310c5ecbac71fc6678d2fb683548b488e"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-pack-officeimo-html-v3.log",
+            "bytes": 182,
+            "sha256": "e22cf6aef049ea44ebeb9c89e0495f35be037e2e4e26c3d963cfc3a378948d50"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-inspect-packages-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-inspect-packages-v3-execution.json",
+            "bytes": 1810,
+            "sha256": "3e59aa449a3c810d4444dd4af530cec58d6c97b459e1b5e6ef5f754854ee9c66"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-inspect-packages-v3.log",
+            "bytes": 81,
+            "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "consumer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-consumer-gradient-geometry-v3-closure.json",
+        "bytes": 6712,
+        "sha256": "ea9997eee04c140a79a200ad6e6c9a1599fbbdc69a3043f5952c5e2d64f75844"
+      },
+      "expectedRoles": 8,
+      "completedRoles": 8,
+      "passed": true,
+      "executions": [
+        {
+          "role": "gradient-geometry-package-bind-acceptance-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-bind-acceptance-v3-execution.json",
+            "bytes": 1800,
+            "sha256": "553b5502b7bdab07a340a635a864f125a170e2760b241ea419544755d653ca6c"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-bind-acceptance-v3.log",
+            "bytes": 98,
+            "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-net8-build-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-net8-build-v3-execution.json",
+            "bytes": 2635,
+            "sha256": "022e4ecd3c2b21028eb33e406359cf7931554c4632af3537e80d53b73afde84d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-net8-build-v3.log",
+            "bytes": 449,
+            "sha256": "5dbf185cb660cd33710a878533424ffc8a844ad933ef051cafbd1690c01b35e5"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-net8-run-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-net8-run-v3-execution.json",
+            "bytes": 2221,
+            "sha256": "a9e824f3ba8dd88cdc910cbb3faf675d1fc3ca49ccd2c30dd5a43f048bc9be9d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-net8-run-v3.log",
+            "bytes": 245,
+            "sha256": "0cbecd82cead97f0af680da15f35a6c51ec89b44f785f08e94c1091c33510457"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-net10-build-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-net10-build-v3-execution.json",
+            "bytes": 2640,
+            "sha256": "0d7e1b2b3f0e3f11738ce8639a89e2cbe7d0f4aa8da7adb7f5317c050a1e5b86"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-net10-build-v3.log",
+            "bytes": 450,
+            "sha256": "7b69dbbe07ee29def212cee63fb6920125920ff0c5076d5c4134e962cae1d509"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-net10-run-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-net10-run-v3-execution.json",
+            "bytes": 2227,
+            "sha256": "97294d4bdda4c7b23a362aecd600373ae1397ad2887d177fb3ba522aee4add8d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-net10-run-v3.log",
+            "bytes": 246,
+            "sha256": "b8a7b438931dae75a81adbd618d039a5238fc30a4e65b37f8327d2c5c0f0204e"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-aot-publish-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-aot-publish-v3-execution.json",
+            "bytes": 2700,
+            "sha256": "22b23946f6f6e38d24fd57b37ca14f425d4917178377b9bee1e5ad630c593bee"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-aot-publish-v3.log",
+            "bytes": 574,
+            "sha256": "4c1305631edc2dd99b0ff4bc54d9c04be2e32cfc6153f16706aba952f7f0aed7"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-aot-run-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-aot-run-v3-execution.json",
+            "bytes": 2169,
+            "sha256": "bedb08a98ebc22d6490ff887418ebedfd69a832ae047875b5627ac7751fbf2ff"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-aot-run-v3.log",
+            "bytes": 279,
+            "sha256": "f48bac2acac2ff319369b6ec6182ea1b5a27da5b8737ba0827df037ab51c2b2f"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "gradient-geometry-package-inspect-consumers-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-package-inspect-consumers-v3-execution.json",
+            "bytes": 1813,
+            "sha256": "330395d6a5a976107f9b53631f47d4623cda0942395eaa25af6b4db2d9e9d245"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-package-inspect-consumers-v3.log",
+            "bytes": 89,
+            "sha256": "a64c4a18638ec6321f8d56ccf2ee0753b32dc4736c82e4b199a1848f4988f13e"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "correctnessNet10": {
+      "receipt": {
+        "path": "$TASK_ROOT/correctness-net10-v3-closure.json",
+        "bytes": 1112,
+        "sha256": "5a34990319f80023ccece1c0bb052e1fa75b0cdce96f02dd4790a021415d99c0"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "full-html-net100-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/full-html-net100-v3-execution.json",
+            "bytes": 1790,
+            "sha256": "403435df61a3afb953ba46c9bb9ae138182ff6d31f443155430e6afb2683c053"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/full-html-net100-v3.log",
+            "bytes": 8519,
+            "sha256": "87936b5e5c972fc13ed829797b9b1a603a31d1abe28bfdc702adfe9071d762da"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "correctnessNet8": {
+      "receipt": {
+        "path": "$TASK_ROOT/correctness-net8-v3-closure.json",
+        "bytes": 1109,
+        "sha256": "bae07731f2a03f9af21b6ad482bace669da3dcb1e5584f7bee78f708f496ebbc"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "full-html-net80-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/full-html-net80-v3-execution.json",
+            "bytes": 1786,
+            "sha256": "ea1e374e1018428c7867528c1344fc3e6eee7f156a566d125c94590af1859c3e"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/full-html-net80-v3.log",
+            "bytes": 8480,
+            "sha256": "8b9c588967b107fe489cf38b7b633325689003d29b773c8df4d543a6c19871cf"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "correctnessNet472": {
+      "receipt": {
+        "path": "$TASK_ROOT/correctness-net472-v3-framework-override-closure.json",
+        "bytes": 1177,
+        "sha256": "e2a06e8a38f1f3c0b1a1874c00174db05b1b36fc4d23103244222d0147d3bae7"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "html-transitive-net472-v3-framework-override",
+          "receipt": {
+            "path": "$TASK_ROOT/html-transitive-net472-v3-framework-override-execution.json",
+            "bytes": 1640,
+            "sha256": "fdd0bc1e34f1ece09e8ca92b63063542c233607c51f9a3f09c7bf7d7b35ebb9a"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/html-transitive-net472-v3-framework-override.log",
+            "bytes": 1736,
+            "sha256": "6cd0992be6c0cb734d2a950e59f441b995f8f01843065cfc5a93fb9969b39bda"
+          },
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "nativeCapture": {
+      "receipt": {
+        "path": "$TASK_ROOT/native-full-v2-closure.json",
+        "bytes": 602,
+        "sha256": "5cb3d77bc7be515d73748d95e2a88872f001c0bdf011896030ccab566fa9bf52"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "native-cohort-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/native-cohort-v2-execution.json",
+            "bytes": 1920,
+            "sha256": "e61eaf73e12adabd25d72627c5aac64fa390a5dd40a081180d6e794a9befc034"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/native-cohort-v2.log",
+            "bytes": 999,
+            "sha256": "42236a8f9ed4f3306fbe252e3504c02553b0444da14d2b2d3019de54d1b711c4"
+          },
+          "sourceHead": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "sourceHeadAfter": "61bba5db8540a426329c7dbe37a45ba477980ee1",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/Diagnostics/HtmlDiagnosticCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssReplacedElementParser.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.BackgroundPositionEdges.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.GradientImageGeometry.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGeometry.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGradients.cs",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    }
+  },
+  "correctness": {
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/full-html-net80-v3.trx",
+        "bytes": 12543073,
+        "sha256": "d11a9c8f1e7b509a16ec68d688ae8bbd674dea25860fccc36b7223157f04c019"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 8034,
+        "executed": 8034,
+        "passed": 8034,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/full-html-net100-v3.trx",
+        "bytes": 12559142,
+        "sha256": "ffcb8acbb019e775788adae1229b4c237cffdce63f41aa8fcbc280f519dd4c9d"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 8034,
+        "executed": 8034,
+        "passed": 8034,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    }
+  },
+  "net472Boundary": "Compilation only; actual execution and closed process role bound in correctnessNet472. No extra PDF suite claim.",
+  "focusedDirtyDelta": {
+    "closure": {
+      "receipt": {
+        "path": "$TASK_ROOT/remediation-focused-net10-v3-closure.json",
+        "bytes": 447,
+        "sha256": "18820501b701dd0d89f2729950b77d81fc0f83a9594006fa784608984423475b"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "remediation-focused-net10-v3",
+          "receipt": {
+            "path": "$TASK_ROOT/remediation-focused-net10-v3-execution.json",
+            "bytes": 2731,
+            "sha256": "5e96a5260b21299555f46941eb8675e51dbf7879d50b4c941bcd3c18c73f04b9"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/remediation-focused-net10-v3.log",
+            "bytes": 8525,
+            "sha256": "b31568f2cc1dbeda22cf4bdd8f94faead193c44168ffe16b9cfdfd01009c7734"
+          },
+          "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceHeadAfter": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.BackgroundClips.cs\n M OfficeIMO.Html.Tests/Html.Rendering.GradientImageGeometry.cs\n M OfficeIMO.Html.Tests/Html.Rendering.Gradients.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGradients.cs",
+          "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.BackgroundClips.cs\n M OfficeIMO.Html.Tests/Html.Rendering.GradientImageGeometry.cs\n M OfficeIMO.Html.Tests/Html.Rendering.Gradients.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundGradients.cs",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": null
+        }
+      ]
+    },
+    "trx": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/remediation-focused-net10-v3.trx",
+        "bytes": 94166,
+        "sha256": "d9a822ea5119bbfd30ae730ef9034e1fe2b86e6a3c137c6a6746d5b1a3239d28"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 57,
+        "executed": 57,
+        "passed": 57,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "boundary": "Actual dirty-delta focused proof; not a clean candidate full-suite substitute."
+  },
+  "native": {
+    "execution": {
+      "path": "$TASK_ROOT/native-gradient-geometry-v2/execution.json",
+      "bytes": 987207,
+      "sha256": "35b230d6451d3dc8b22facd302c5f527a1b4e92ee9a9ff13582d66bb21142d1d"
+    },
+    "pdfObservations": 32,
+    "pages": 64,
+    "serverClosed": true,
+    "remainingOwnedEdge": [],
+    "printParameterBoundary": "PreferCSSPageSize=true; declared CSS paper360x480px/reference270x360pt; actual parsed page sizes retained separately with bounded<=0.5pt Chromium paper rounding; exact360x480 raster at96dpi still required; viewport360x480; Scale1; no browser header/footer templates.",
+    "qualificationBoundary": "Prepared image/gradient cohort records actual native PDFs only. Asset events prove exact served preload bytes, not active CSS painting. Image/pattern/gradient/vector inventory, geometry, source PNG/PDF replay and native visual acceptance remain separate ROOT-owned gates. No candidate geometry or universal parity is claimed; independent background/object reference observations retain their exact deltas.",
+    "universalNativeParityClaimed": false,
+    "analysisFiles": [
+      {
+        "path": "$TASK_ROOT/prep/evidence/final-current-geometry-comparison-v3.json",
+        "bytes": 15796031,
+        "sha256": "ab1772227cc9e1b50c38546aca07ca2e8fe22b3bb9b17e34e7c2099fd15e88c7"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/native-final-flag-classification-v3/report.json",
+        "bytes": 475983,
+        "sha256": "cdd005c9c3d154758541c22207be8727353b55b56bff736059725a4e52b2361d"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/native-final-flag-classification-v3/round-boundaries.json",
+        "bytes": 72435,
+        "sha256": "8a9087cbbf74f99e91dffc5bef89c102b6bad25363a4edf39ada0aeaf1b6b422"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/native-flag-analysis-v1/case16-baseline/report.json",
+        "bytes": 215046,
+        "sha256": "2c403de4593217e0294a6617dd4ef64a5e7a0cb92d482e8b41cd2a1620d31aa7"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/native-flag-analysis-v1/case15-causal-analysis-v1/report.json",
+        "bytes": 137526,
+        "sha256": "3531469e0a677db2c2cbf9ae064b573b856083d76b2a25146d10d4155cf8adf1"
+      },
+      {
+        "path": "$TASK_ROOT/root-native-phase-adjudication-v3.json",
+        "bytes": 4432,
+        "sha256": "b4ea0b592229b6104f7aff8d82a82271c643e8378d9fc09e7294698fe78be4cf"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/root-artifact-inventory-v3.json",
+        "bytes": 113383,
+        "sha256": "82b0fd12bffb38df62193cc0cd44827f8fabb37c32f7b60adada4ed3d2f9126b"
+      },
+      {
+        "path": "$TASK_ROOT/prep/evidence/final-round-recheck-v3/manifest.json",
+        "bytes": 4197,
+        "sha256": "b9370c2294d97cf4ac48b761711910b6c24bc986d7211df2ac2d8b868f4a1f7f"
+      },
+      {
+        "path": "$TASK_ROOT/native-zero-origin-postanalysis-v1/observations.json",
+        "bytes": 19472,
+        "sha256": "e814d78c7e6572a00cb238221eb5a494d36a661b4d05ae5651d290f3db7b45ce"
+      }
+    ]
+  },
+  "rootAcceptance": {
+    "receipt": {
+      "path": "$TASK_ROOT/root-render-acceptance-v3.json",
+      "bytes": 6026,
+      "sha256": "3baadce4ce9fa19f08efc87d89d2438d2541584d25f5fb0b5c5a5bee49cdbeea"
+    },
+    "nativeComparisonLimits": "ActualEdge32mainPDFs/64pages plus8causalPDFs/16pages. Strictbackground/objectpositionreference masks agree; authoredmainzerosuppression agrees. FullunshiftedRGBmetrics/130paletteflags remainpreserved: raster-backedrepeating/conic/alpha transitions, existingasset1pxextents andcase16lineboundary, pagecontextremperiod28vsdocumentroot40, andslicedpadding-origincontinuation mismatch. Roundauto defectfixed/requalified; no currentcase11 jointuniform3x3mismatches. Nativecase15whole-boxslice decision bound separately; EdgepixelagreementUNMATCHED_NOT_WAIVED. Supplementalzero-originstrictcheckerfailed/qualified0 retained; nativeURLround-zero paintdoesnotmatchadoptedCSSformula. No universalnative/spec/pixel/accessibility/physicalprint acceptance.",
+    "ownComparisonLimits": "Exactclean0c457source NET8/10 each32observations/64pages, no PNG/PDF/SVG loss, ownencodedPNG equals saved/reopenedPDF replay. Allsame-font/resourcebytes, tenbudgets, activegradient/vectorpattern/image/clip/layerpaint reviewed. ROOT viewed bothprofiles/twopages initialcontacts; final4roundpages re-viewed andother60pagePNGs perframework exactprioridentity verified. Paged-vs-continuous slicing retainswholeboxorigin. Theseare boundedfixtures, notgeneralCSSconformance, peakmemory/timing, Windowsruntime orfullbrowserbehavior proof. Privateconsumer/AOT execution remains an independently enforced subsequentgate.",
+    "svgComparisonLimits": "Actual128sourceSVGpages parsed/inventoried: positivevectorgradients, conicpaths, images, clips/masks/alpha, currentviewBox and typedloss observations; representative definitions and changedroundartifacts reviewed. No standaloneSVGbrowserrasterparity or universalnativeSVGappearance claim. Publicconsumer structure/replay remains subsequentgate.",
+    "svgRasterParityClaimed": false,
+    "universalNativeParityClaimed": false
+  },
+  "rootAdjudication": {
+    "receipt": {
+      "path": "$TASK_ROOT/root-native-phase-adjudication-v3.json",
+      "bytes": 4432,
+      "sha256": "b4ea0b592229b6104f7aff8d82a82271c643e8378d9fc09e7294698fe78be4cf"
+    },
+    "roundClosureHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+    "knownOwnedDefects": [
+      {
+        "id": "round-zero",
+        "reviewDisposition": "fixed post-round zero guard URL+gradient",
+        "recordedProof": {
+          "path": "$TASK_ROOT/reproduce-review-and-page-flow-v2-closure.json",
+          "bytes": 1478,
+          "sha256": "eff879532b0cecaa7bd58ed48f277ccebb6f6706e8fe23e7d5cb4eeae6b88489"
+        },
+        "finalSourceWitnesses": {
+          "net8": {
+            "path": "$TASK_ROOT/source-net8-v3/summary.json",
+            "bytes": 5583332,
+            "sha256": "70a4a4d8825e755e9c84167c2ec5450a1c6f50ed755803dc4e612e73b6384562"
+          },
+          "net10": {
+            "path": "$TASK_ROOT/source-net10-v3/summary.json",
+            "bytes": 5583587,
+            "sha256": "1d92dd849670b5dd4a3799d2a563dd43ad7d47f36cace99fc3870762c034742a"
+          }
+        },
+        "boundary": "Recorded original reproduction and actual review closure; final clean correctness/public source/package proof remain separate mandatory gates."
+      },
+      {
+        "id": "positive-tile-zero-origin",
+        "reviewDisposition": "removed premature origin-axis guard; concreteimagezero rules retained",
+        "recordedProof": {
+          "path": "$TASK_ROOT/repro-zero-origin-gradient-a4-v2/summary.json",
+          "bytes": 18714,
+          "sha256": "a6a6880f6c630c5b6d43cf0d399fbac44c462a2099566aa91b369a87f589f990"
+        },
+        "finalSourceWitnesses": {
+          "net8": {
+            "path": "$TASK_ROOT/source-net8-v3/summary.json",
+            "bytes": 5583332,
+            "sha256": "70a4a4d8825e755e9c84167c2ec5450a1c6f50ed755803dc4e612e73b6384562"
+          },
+          "net10": {
+            "path": "$TASK_ROOT/source-net10-v3/summary.json",
+            "bytes": 5583587,
+            "sha256": "1d92dd849670b5dd4a3799d2a563dd43ad7d47f36cace99fc3870762c034742a"
+          }
+        },
+        "boundary": "Recorded original reproduction and actual review closure; final clean correctness/public source/package proof remain separate mandatory gates."
+      },
+      {
+        "id": "fragment-pattern-atomic",
+        "reviewDisposition": "existing paint-phase metadata excludes decorative background fromatomiccontentchecks; full paint extents retained on request",
+        "recordedProof": {
+          "path": "$TASK_ROOT/repro-paged-siblings-a4-v2/summary.json",
+          "bytes": 1857546,
+          "sha256": "a52bdcf3de686f780d904902d9955b62afb2ab2cfa413ab8dcde5b71968aba8c"
+        },
+        "finalSourceWitnesses": {
+          "net8": {
+            "path": "$TASK_ROOT/source-net8-v3/summary.json",
+            "bytes": 5583332,
+            "sha256": "70a4a4d8825e755e9c84167c2ec5450a1c6f50ed755803dc4e612e73b6384562"
+          },
+          "net10": {
+            "path": "$TASK_ROOT/source-net10-v3/summary.json",
+            "bytes": 5583587,
+            "sha256": "1d92dd849670b5dd4a3799d2a563dd43ad7d47f36cace99fc3870762c034742a"
+          }
+        },
+        "boundary": "Recorded original reproduction and actual review closure; final clean correctness/public source/package proof remain separate mandatory gates."
+      },
+      {
+        "id": "stylesheet-position-retention",
+        "reviewDisposition": "existing authored fallback declaration recovery now retains object-position under existingvalidation/cascadeorder",
+        "recordedProof": {
+          "path": "$TASK_ROOT/logs/style-probe-a4-run.log",
+          "bytes": 365,
+          "sha256": "9fc80c9aaa28db0b5d3b5fbea13ee1b97426c8f9529502e7c2669c986205ac23"
+        },
+        "finalSourceWitnesses": {
+          "net8": {
+            "path": "$TASK_ROOT/source-net8-v3/summary.json",
+            "bytes": 5583332,
+            "sha256": "70a4a4d8825e755e9c84167c2ec5450a1c6f50ed755803dc4e612e73b6384562"
+          },
+          "net10": {
+            "path": "$TASK_ROOT/source-net10-v3/summary.json",
+            "bytes": 5583587,
+            "sha256": "1d92dd849670b5dd4a3799d2a563dd43ad7d47f36cace99fc3870762c034742a"
+          }
+        },
+        "boundary": "Recorded original reproduction and actual review closure; final clean correctness/public source/package proof remain separate mandatory gates."
+      }
+    ],
+    "phase15": {
+      "rootAdjudication": {
+        "path": "$TASK_ROOT/root-native-phase-adjudication-v3.json",
+        "bytes": 4432,
+        "sha256": "b4ea0b592229b6104f7aff8d82a82271c643e8378d9fc09e7294698fe78be4cf"
+      },
+      "state": "OWN_CONTINUOUS_SLICE_CONTRACT_SUPPORTED_NATIVE_APPEARANCE_UNMATCHED_NOT_WAIVED",
+      "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+      "nativePixelAgreement": "UNMATCHED_NOT_WAIVED",
+      "nativeCapture": {
+        "path": "$TASK_ROOT/native-case15-phase-controls-v1/execution.json",
+        "bytes": 159175,
+        "sha256": "ad8da73eff25fbf8a466cf23cd9263911d90dc084b99953eaeef793a708ba0ae"
+      },
+      "sourceDiagnostic": {
+        "path": "$TASK_ROOT/source-case15-phase-controls-net10-v1/summary.json",
+        "bytes": 1684580,
+        "sha256": "945335f01e35d69216ee77365894d96f5936e4dbbcfdddfc35855ee9390e37b8"
+      },
+      "savedArtifactAnalysis": {
+        "path": "$TASK_ROOT/prep/evidence/native-flag-analysis-v1/case15-causal-analysis-v1/report.json",
+        "bytes": 137526,
+        "sha256": "3531469e0a677db2c2cbf9ae064b573b856083d76b2a25146d10d4155cf8adf1"
+      },
+      "modelAnalysis": {
+        "path": "$TASK_ROOT/prep/evidence/native-flag-analysis-v1/case15-causal-analysis-v1/model-results.json",
+        "bytes": 183147,
+        "sha256": "ca3388e53219234d6f748831c144ce6b8f5f4560680c8f605c9db1e45b67f031"
+      },
+      "nativeClosure": {
+        "path": "$TASK_ROOT/case15-native-phase-controls-v1-closure.json",
+        "bytes": 1146,
+        "sha256": "f7b70a37a9eabe716d3d2a5c3d7f037d5a5ee840598e669ec14fb83118bcf339"
+      },
+      "sourceDiagnosticClosure": {
+        "path": "$TASK_ROOT/case15-source-diagnostic-v1-closure.json",
+        "bytes": 1140,
+        "sha256": "1e33a202a457547fcb908205079f408bc8cc21c528b723dbe975b74dd9f01cd1"
+      },
+      "nativeSupplementaryPdfObservations": 8,
+      "nativeSupplementaryPages": 16,
+      "sourceSupplementaryObservations": 8,
+      "boundary": "This adjudicates only the observed case15 continuation trigger. It does not waive nativepixelagreement, conic/raster sampling limits, zero-origin native mismatch, manualaccessibility orphysicalprint qualification. Nopackage evidence is inferred from diagnosticruntime reuse."
+    },
+    "zeroOriginNativeBoundary": {
+      "status": "UNMATCHED_NOT_WAIVED",
+      "decision": "ROUND_ZERO_FORMULA_RETAINED_NATIVE_URL_PAINT_DIFFERS",
+      "originalChecker": {
+        "path": "$TASK_ROOT/native-zero-origin-v1/execution.json",
+        "bytes": 8769,
+        "sha256": "3da8636de102d1dbf217ef5a24911c171ba2981942e9eee1f0387e723f138dc7"
+      },
+      "savedPostanalysis": {
+        "path": "$TASK_ROOT/native-zero-origin-postanalysis-v1/observations.json",
+        "bytes": 19472,
+        "sha256": "e814d78c7e6572a00cb238221eb5a494d36a661b4d05ae5651d290f3db7b45ce"
+      },
+      "originalCheckerPassed": false,
+      "qualifiedObservations": 0,
+      "actualSavedPdfObservations": 2,
+      "actualSavedPdfPages": 2,
+      "nativeAgreementClaimed": false
+    }
+  },
+  "privatePackages": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/package-binding.json",
+      "bytes": 25609,
+      "sha256": "234df98590d588e677eb0cc4c9c3ea118827b214c196b1bb0d1ea4c4137f3498"
+    },
+    "privateVersion": "3.5.33",
+    "packages": {
+      "OfficeIMO.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/feed/OfficeIMO.Core.3.5.33.nupkg",
+          "bytes": 8803360,
+          "sha256": "b14f00a2a609f318d721807f75ccd5ef708ec6b96ab443f9a324972c7c0b529c"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Core.dll": "cd22d1eadbd67c11dcee2fb0be964deeabf322c025694c791b1776043e6b799c",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "4aa75de8f47907fa8278197446de5b9b2fad751bf8378b58c6be06a176f9225e",
+          "lib/net8.0/OfficeIMO.Core.dll": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6",
+          "lib/net10.0/OfficeIMO.Core.dll": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790"
+        }
+      },
+      "OfficeIMO.Pdf": {
+        "package": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/feed/OfficeIMO.Pdf.3.5.33.nupkg",
+          "bytes": 14058129,
+          "sha256": "34bccedb41e86727843f40cf3cb85dc6b3a27e099703e68bc69cae74552f7aca"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Pdf.dll": "16d2bff62f5b26607325ff307ba56b2b87bb41dabe0edc765fc99eeed151a0f8",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "b9a62c0cabb4a7ad773159dbd873b0e0d689530765458779b94e5c63ee67a314",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de"
+        }
+      },
+      "OfficeIMO.Html.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/feed/OfficeIMO.Html.Core.3.5.33.nupkg",
+          "bytes": 325383,
+          "sha256": "cb7cce32d4652a7084eb8e50557edb60db99f076f36e8650b93ce0aead2b29ca"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "edf950f2bc778d6e6df2b76cebe9174d055e5961f3c40057bea1e9590791f466",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "109c64140080567934c4aeaaa2a17e3b0bebc5bf49c9f8e54202a19efe059391",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862"
+        }
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "package": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/feed/OfficeIMO.Html.AngleSharp.3.5.33.nupkg",
+          "bytes": 104250,
+          "sha256": "ac64ac5c5f6a186f57f1728d89ed4e15981837d2323245308b378ad4c10ceede"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "485eac88f2d928aa53201e440b17df68afb016eb3958040269b9108481c13d90",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "2613da9b9d127de858f8e45004a1381686c78f3e547e73ad4e3a7f499346d2eb",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365"
+        }
+      },
+      "OfficeIMO.Html": {
+        "package": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/feed/OfficeIMO.Html.3.5.33.nupkg",
+          "bytes": 4790709,
+          "sha256": "abc1bfb421488d227c5e070adc060dd9f4b88fc1b6a41f0d9a8b44ff7cfb8852"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.dll": "2ad58253652945b752dd45ea09db0eac5e51ea2423f1e635f1b52fd4c60f08a7",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "d794cbaff38c7672a346a80b65e31b5747a010dac69de8a64c03492a5427e474",
+          "lib/net8.0/OfficeIMO.Html.dll": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377",
+          "lib/net10.0/OfficeIMO.Html.dll": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f"
+        }
+      }
+    },
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "publicRelease": false
+  },
+  "publicApiConsumers": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/consumer-binding.json",
+      "bytes": 62804,
+      "sha256": "7ee884283ef75c243b095327d8262e61a651c31c6ebcdfa7bfb9de804751d63b"
+    },
+    "acceptance": {
+      "path": "$TASK_ROOT/prep/package-qualification-v3/acceptance.json",
+      "bytes": 280846,
+      "sha256": "414cb5db5dc52d4dadaa51d77014eb2663b220df29a2a6db7d0a14718b259785"
+    },
+    "lanes": [
+      {
+        "label": "net8",
+        "result": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/results/net8/result.json",
+          "bytes": 5357137,
+          "sha256": "4dc39396f3263123cf8a623800945547f8d5eab64d5d6d573f6c6a5b66c78f73"
+        },
+        "framework": ".NET 8.0.23",
+        "observations": 32,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false
+      },
+      {
+        "label": "net10",
+        "result": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/results/net10/result.json",
+          "bytes": 5357394,
+          "sha256": "eda9753740599bb7d7da9a906cd3e1c3efcf502eb152e46a57cf9d58b7b30f94"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 32,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false
+      },
+      {
+        "label": "aot",
+        "result": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/results/aot/result.json",
+          "bytes": 5355091,
+          "sha256": "5a6ed36c2113b1922ebb02f2319a17a439a751e0c5e77af5b5e43e6e19c2e50a"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 32,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false,
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/aot/GradientImageGeometryPackageaot",
+          "bytes": 34959200,
+          "sha256": "138ca2a12dbc10b92a01feb4fb8e7c5deb7c7b2e1bf6bd46a716d79012f6a009"
+        },
+        "nativeAotCompilation": true,
+        "dynamicCodeSupported": false,
+        "dynamicCodeCompiled": false,
+        "operatingSystem": "OSX",
+        "architecture": "Arm64"
+      }
+    ],
+    "observations": 96,
+    "pages": 192
+  },
+  "review": {
+    "ledger": {
+      "path": "$TASK_ROOT/prep/review/review-ledger.json",
+      "bytes": 4317,
+      "sha256": "795991c8a94261eb821e9f09c2ebde932c6e06efac13d54eac101aa4d0e86552"
+    },
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "reviewedHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+    "targetedHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+    "roundClosureHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+    "additionalActionableFindings": 0,
+    "closureReason": "Actual nativecase11 plus CSS2.9 exposed missed resolvedratio thirdstep afteroriginalconfirmation; no newfullpass/zero-findingloop"
+  },
+  "excludedAttempts": [
+    {
+      "packet": "baseline-a4-position-replay",
+      "closure": {
+        "path": "$TASK_ROOT/baseline-a4-position-replay-closure.json",
+        "bytes": 639,
+        "sha256": "60a85ffba9805eed9116519bf43fff47c7085512e85203463dd122300cac16ea"
+      },
+      "actualPassed": true,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/baseline-a4-position-replay-execution.json",
+            "bytes": 2474,
+            "sha256": "31eac99d71fa228587d6ba50fd5c71cdaad07de2c511baf06dd442875363e237"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/baseline-a4-position-replay.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "sourceHeadAfter": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "baseline-and-native-cohort-v1",
+      "closure": {
+        "path": "$TASK_ROOT/baseline-and-native-cohort-v1-closure.json",
+        "bytes": 643,
+        "sha256": "a3133a9eacf1808493706038071afd797aa063f4bc4210ad0c27e8fc030cb821"
+      },
+      "actualPassed": false,
+      "completedRoles": 1,
+      "expectedRoles": 2,
+      "disposition": "FAILED_RETAINED_NOT_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/baseline-a4-cohort-net10-execution.json",
+            "bytes": 2819,
+            "sha256": "f4acbde5747fdc813fd4ed242522f431219927b16d2e0ec671767c5384010ff3"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/baseline-a4-cohort-net10.log",
+            "bytes": 3928,
+            "sha256": "522a8acd51defa898c9058cda6c6239f304230f4bc41d769d6c6900ddc6b4831"
+          },
+          "exitCode": -6,
+          "sourceHead": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "sourceHeadAfter": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "case15-native-phase-controls-v1",
+      "closure": {
+        "path": "$TASK_ROOT/case15-native-phase-controls-v1-closure.json",
+        "bytes": 1146,
+        "sha256": "f7b70a37a9eabe716d3d2a5c3d7f037d5a5ee840598e669ec14fb83118bcf339"
+      },
+      "actualPassed": true,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/case15-native-phase-controls-v1-execution.json",
+            "bytes": 1383,
+            "sha256": "69813dd968302667871623394ba70d04e6d33b3349ee8e6b8351adbaee8e5c78"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/case15-native-phase-controls-v1.log",
+            "bytes": 404,
+            "sha256": "1c9e9848fbc31dbfa76e6712128b81013fa5bb6a20aeca5ce122600d686e875b"
+          },
+          "exitCode": 0,
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "case15-source-diagnostic-v1",
+      "closure": {
+        "path": "$TASK_ROOT/case15-source-diagnostic-v1-closure.json",
+        "bytes": 1140,
+        "sha256": "1e33a202a457547fcb908205079f408bc8cc21c528b723dbe975b74dd9f01cd1"
+      },
+      "actualPassed": true,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/case15-source-diagnostic-net10-v1-execution.json",
+            "bytes": 1647,
+            "sha256": "ec87f18e73966e0359c8f85fa3533785c4016d9fba10f47ec98c72afe6a6cdee"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/case15-source-diagnostic-net10-v1.log",
+            "bytes": 116,
+            "sha256": "8e3474cc7f62d7bf2c3d015982efa64ac93e245ade693f1ab1c46a73a88226b0"
+          },
+          "exitCode": 0,
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "correctness-full-v2",
+      "closure": {
+        "path": "$TASK_ROOT/correctness-full-v2-closure.json",
+        "bytes": 605,
+        "sha256": "58a251bd7afc51f9862d752e5958004b06f8b9801cf0044662d5e77f2c9b77a0"
+      },
+      "actualPassed": false,
+      "completedRoles": 1,
+      "expectedRoles": 3,
+      "disposition": "FAILED_RETAINED_NOT_FINAL",
+      "executions": [],
+      "tests": []
+    },
+    {
+      "packet": "correctness-net472-v3",
+      "closure": {
+        "path": "$TASK_ROOT/correctness-net472-v3-closure.json",
+        "bytes": 1122,
+        "sha256": "813194c7933709dc440900e19e71ecd2a6993651e1d6070d47c5318513debd61"
+      },
+      "actualPassed": false,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "FAILED_COMMAND_SETUP_UNIX_TFM_SELECTION_NOT_SOURCE_DEFECT",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/html-transitive-net472-v3-execution.json",
+            "bytes": 1569,
+            "sha256": "76dcd71c13a93a546a6ee57baa3b5709497628b874ac486e675a5255ac220eb0"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/html-transitive-net472-v3.log",
+            "bytes": 1230,
+            "sha256": "22396522f62ec33e74aaf5c3a27cc8a779a0431b7b356d13ec18025bb3b89732"
+          },
+          "exitCode": 1,
+          "sourceHead": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "sourceHeadAfter": "0c4572093533e75f299cc5671aa53309f32dced6",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "linear-and-matrix-generation-v1",
+      "closure": {
+        "path": "$TASK_ROOT/linear-and-matrix-generation-v1-closure.json",
+        "bytes": 1065,
+        "sha256": "33b84d4f0c5e2746b518352d2fd284fcbfdbabcee62b6a5085936ccc2160bf4d"
+      },
+      "actualPassed": true,
+      "completedRoles": 2,
+      "expectedRoles": 2,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/baseline-a4-linear-replay-execution.json",
+            "bytes": 1636,
+            "sha256": "1b26c420a2eaf653d1eadcecbbcfb6be52bd45b8a0768a53dbb7556db5431dbb"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/baseline-a4-linear-replay.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "61bba5db8540a426329c7dbe37a45ba477980ee1",
+          "sourceHeadAfter": "61bba5db8540a426329c7dbe37a45ba477980ee1",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/support-matrix-generation-net10-v1-execution.json",
+            "bytes": 2164,
+            "sha256": "f2f10a16286869768d714c57eccb85fbfd37933097559bc3a9768895658d1492"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/support-matrix-generation-net10-v1.log",
+            "bytes": 8533,
+            "sha256": "8a868e5e87b4f05838beb3f3b395966665421b05ffb1188d121abedc5df94989"
+          },
+          "exitCode": 0,
+          "sourceHead": "61bba5db8540a426329c7dbe37a45ba477980ee1",
+          "sourceHeadAfter": "61bba5db8540a426329c7dbe37a45ba477980ee1",
+          "dirtyBefore": false,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/support-matrix-generation-net10-v1.trx",
+            "bytes": 2971,
+            "sha256": "154a63008656d9123cfdad6f2774a4915cf9f9631aec5e1ba210babad16bce67"
+          },
+          "outcome": "Completed",
+          "counters": {
+            "total": 1,
+            "executed": 1,
+            "passed": 1,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      ]
+    },
+    {
+      "packet": "preliminary-focused-net10",
+      "closure": {
+        "path": "$TASK_ROOT/preliminary-focused-net10-closure.json",
+        "bytes": 633,
+        "sha256": "c469139471ed126a320e47ce59e50ad9cea1e2db81036bfb43773ac9eac16134"
+      },
+      "actualPassed": false,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "FAILED_RETAINED_NOT_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/preliminary-focused-net10-execution.json",
+            "bytes": 2690,
+            "sha256": "93ee0e1a57997db0d8830d68e3093d286ad89c9b5100b66b8d883aaa1ffbe5c3"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/preliminary-focused-net10.log",
+            "bytes": 10369,
+            "sha256": "445dcca54704c8f13a3cc48a5dc8307ff163347ed8d8e3fac3e38a190cbdeb72"
+          },
+          "exitCode": 1,
+          "sourceHead": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "sourceHeadAfter": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "preliminary-focused-net10-v2",
+      "closure": {
+        "path": "$TASK_ROOT/preliminary-focused-net10-v2-closure.json",
+        "bytes": 642,
+        "sha256": "7ea1674ff0e0e128a45b30f6b50faaed9e0ebb4eb778a8e495cfc3eade174523"
+      },
+      "actualPassed": true,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/preliminary-focused-net10-v2-execution.json",
+            "bytes": 2698,
+            "sha256": "34ebd390cc5dbb8ede5d4c4339c1861cf8d3c425cd87bc7f66fe7a4e4a4722ff"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/preliminary-focused-net10-v2.log",
+            "bytes": 8524,
+            "sha256": "43a2a7404221a831324a0b4d96bfae40dd2a885823276fa19e0453714178709b"
+          },
+          "exitCode": 0,
+          "sourceHead": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "sourceHeadAfter": "6fe5d31ff2d11e0327cc97195dc909fce2a00e6e",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/preliminary-focused-net10-v2.trx",
+            "bytes": 47637,
+            "sha256": "22460328ad933313244c4b80e17926eeb9c0913f2ca9a9d0bdf242cfc4be6190"
+          },
+          "outcome": "Completed",
+          "counters": {
+            "total": 28,
+            "executed": 28,
+            "passed": 28,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      ]
+    },
+    {
+      "packet": "remediation-focused-net10-v1",
+      "closure": {
+        "path": "$TASK_ROOT/remediation-focused-net10-v1-closure.json",
+        "bytes": 643,
+        "sha256": "18eec7c9f8149da9380cc46ff56cad946337d92ed732a0389acd84f0ea425b79"
+      },
+      "actualPassed": false,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "FAILED_RETAINED_NOT_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/remediation-focused-net10-v1-execution.json",
+            "bytes": 3048,
+            "sha256": "188382fde1730c69e4c7224b2618f31518ae4c9e964cefcfc24376288430ea51"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/remediation-focused-net10-v1.log",
+            "bytes": 8978,
+            "sha256": "3cbdd054624f86f185c9b43b8fd2f90919e01a9732683875c4386cd1c0086bca"
+          },
+          "exitCode": 1,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "remediation-focused-net10-v2",
+      "closure": {
+        "path": "$TASK_ROOT/remediation-focused-net10-v2-closure.json",
+        "bytes": 641,
+        "sha256": "aa656e727bfaf0f46b664db8796d0b5310616c567819e0bc97d31e93c3e8004f"
+      },
+      "actualPassed": true,
+      "completedRoles": 1,
+      "expectedRoles": 1,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/remediation-focused-net10-v2-execution.json",
+            "bytes": 3049,
+            "sha256": "6d08289e41ff10850078618061996cc4634e03c3d4105416bcfe70dc1d9676b5"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/remediation-focused-net10-v2.log",
+            "bytes": 8527,
+            "sha256": "4890bd0945f21e54e4e6d7244560f75033cbecfe61946e5528a8aa4375f64f72"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/trx/remediation-focused-net10-v2.trx",
+            "bytes": 75968,
+            "sha256": "24ee1fcf0a947ff3c017b184831c078c9a69d3cf724b23be3c23ea4aeca7abff"
+          },
+          "outcome": "Completed",
+          "counters": {
+            "total": 45,
+            "executed": 45,
+            "passed": 45,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          }
+        }
+      ]
+    },
+    {
+      "packet": "reproduce-review-and-page-flow-v1",
+      "closure": {
+        "path": "$TASK_ROOT/reproduce-review-and-page-flow-v1-closure.json",
+        "bytes": 1466,
+        "sha256": "d8107b7a46dc18b80f775790c9d5038486a53ba04152d838a6dacedaa2ebd9f3"
+      },
+      "actualPassed": true,
+      "completedRoles": 3,
+      "expectedRoles": 3,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/paged-background-siblings-a4-execution.json",
+            "bytes": 1595,
+            "sha256": "32a4fb4582b7b68f7b9c4cd626392717e61985f5686b692b75215600b5e71ce7"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/paged-background-siblings-a4.log",
+            "bytes": 116,
+            "sha256": "8e3474cc7f62d7bf2c3d015982efa64ac93e245ade693f1ab1c46a73a88226b0"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/zero-origin-gradient-a4-execution.json",
+            "bytes": 1639,
+            "sha256": "db4b1104740d9cd0e5f1f7d6755823dc70bc2a203a3dec04b28a1fb1608711d1"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/zero-origin-gradient-a4.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/zero-origin-url-round-a4-execution.json",
+            "bytes": 1639,
+            "sha256": "311df7011e09c14ec7b197036988b845f5a8dcd91957da623fa8c5db770066be"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/zero-origin-url-round-a4.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "reproduce-review-and-page-flow-v2",
+      "closure": {
+        "path": "$TASK_ROOT/reproduce-review-and-page-flow-v2-closure.json",
+        "bytes": 1478,
+        "sha256": "eff879532b0cecaa7bd58ed48f277ccebb6f6706e8fe23e7d5cb4eeae6b88489"
+      },
+      "actualPassed": false,
+      "completedRoles": 3,
+      "expectedRoles": 3,
+      "disposition": "FAILED_RETAINED_NOT_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/paged-background-siblings-a4-v2-execution.json",
+            "bytes": 1608,
+            "sha256": "51b586218752e5315628440026b632385e9f795c0d1be67f44f3d77ae48c6103"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/paged-background-siblings-a4-v2.log",
+            "bytes": 116,
+            "sha256": "8e3474cc7f62d7bf2c3d015982efa64ac93e245ade693f1ab1c46a73a88226b0"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/zero-origin-gradient-a4-v2-execution.json",
+            "bytes": 1651,
+            "sha256": "e1697e11a8e0ff442f109cbe0eb27f32c2f97134d76c01062f43d95f85f8ab96"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/zero-origin-gradient-a4-v2.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/zero-origin-url-round-a4-v2-execution.json",
+            "bytes": 1652,
+            "sha256": "18ec6185955bddcdfe1cf63ceb35ea3288e96fcffcff0f240504046284f79b7e"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/zero-origin-url-round-a4-v2.log",
+            "bytes": 7497,
+            "sha256": "956ecf93bc926f474b5ba336e5ac116f069d668e4c656e2eb6cda8946ccfa02b"
+          },
+          "exitCode": -6,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "source-gradient-geometry-v1",
+      "closure": {
+        "path": "$TASK_ROOT/source-gradient-geometry-v1-closure.json",
+        "bytes": 1903,
+        "sha256": "4387618d84994154d17b07ae4dcf22cceada262021b24eefbe0a2b94b5c12bd7"
+      },
+      "actualPassed": true,
+      "completedRoles": 4,
+      "expectedRoles": 4,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-build-v1-execution.json",
+            "bytes": 1914,
+            "sha256": "0c94e28656fa1887c60b3cfd164b2decfd211ba41ce03f1899ad949f9153d96e"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-build-v1.log",
+            "bytes": 1853,
+            "sha256": "18f545c9589e0050356e532cb1bf5a3970716f095ceb6201c2109c28ca7c1c14"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-run-v1-execution.json",
+            "bytes": 1598,
+            "sha256": "836ce7c95477a498c69e409b697d03e9179354e0cf8f59bf6749e2bd3320e004"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-run-v1.log",
+            "bytes": 116,
+            "sha256": "d1f91c469082504bf63db91cf686de771f816978a6b17428ea984359f6426c33"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-build-v1-execution.json",
+            "bytes": 1919,
+            "sha256": "3f6c44b21cf3e7cc4a378c9f0068af37d7f49e462bdc2d920a760c2f0c62e2cd"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-build-v1.log",
+            "bytes": 1162,
+            "sha256": "a9bc1129f5d0d28a4d29c9a50d80f66e09e35d60a0644a54b0c1911a9d2dd48f"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-run-v1-execution.json",
+            "bytes": 1602,
+            "sha256": "ca0cefbd8b7b74c831f46f156d8b3f6032bd11a74aae51bcb4010a5dce485ba1"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-run-v1.log",
+            "bytes": 117,
+            "sha256": "ac65434e06b2bc27b49bf150ede5490ad01d311cbf4fc2ce30dc79c518794735"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "source-gradient-geometry-v2",
+      "closure": {
+        "path": "$TASK_ROOT/source-gradient-geometry-v2-closure.json",
+        "bytes": 1915,
+        "sha256": "c7e15d07a21bdc091d087f333a5b903e6195bc54ea574438933aebdb832395c8"
+      },
+      "actualPassed": true,
+      "completedRoles": 4,
+      "expectedRoles": 4,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-build-v2-execution.json",
+            "bytes": 1921,
+            "sha256": "7d989d9d901a815c0911bd34e8d2412265cddaf9a4edf2ccf229151870f76015"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-build-v2.log",
+            "bytes": 1867,
+            "sha256": "69f24f9f01ff19bfb29ee946bb739eee7414e41e566ed8514bc331450126337b"
+          },
+          "exitCode": 0,
+          "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceHeadAfter": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net8-run-v2-execution.json",
+            "bytes": 1604,
+            "sha256": "489a69af9498d9df531504b649a959cb6f1546a1bee0472c062cc6a2b5989490"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net8-run-v2.log",
+            "bytes": 116,
+            "sha256": "d1f91c469082504bf63db91cf686de771f816978a6b17428ea984359f6426c33"
+          },
+          "exitCode": 0,
+          "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceHeadAfter": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-build-v2-execution.json",
+            "bytes": 1926,
+            "sha256": "ea71ecc4bfbbcb1a04489791e401388e9242bb2744b06d45be48b2dd2c15a561"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-build-v2.log",
+            "bytes": 1179,
+            "sha256": "7e68c30357c73508ad0164a73809a892888ac684be4e7a3e18588f0c45c6f119"
+          },
+          "exitCode": 0,
+          "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceHeadAfter": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/gradient-geometry-observer-net10-run-v2-execution.json",
+            "bytes": 1609,
+            "sha256": "82f2041c80b31b3b71fd4322d298843e59a83593f20439d7e41910173b335e2b"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/gradient-geometry-observer-net10-run-v2.log",
+            "bytes": 117,
+            "sha256": "ac65434e06b2bc27b49bf150ede5490ad01d311cbf4fc2ce30dc79c518794735"
+          },
+          "exitCode": 0,
+          "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "sourceHeadAfter": "07f0dcf6ed525d63487877112829103eabbe13f2",
+          "dirtyBefore": false,
+          "dirtyAfter": false
+        }
+      ],
+      "tests": []
+    },
+    {
+      "packet": "style-probe-a4",
+      "closure": {
+        "path": "$TASK_ROOT/style-probe-a4-closure.json",
+        "bytes": 993,
+        "sha256": "0bbffa4db1d0f0d0919baa9b773e1ac1a19d004835720397a1ff717c5bc6b90d"
+      },
+      "actualPassed": true,
+      "completedRoles": 2,
+      "expectedRoles": 2,
+      "disposition": "OPERATIONAL_OR_HISTORICAL_EXCLUDED_FROM_FINAL",
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/style-probe-a4-build-execution.json",
+            "bytes": 2737,
+            "sha256": "730eed3145f044e7c7f0db112504daa5cbeb8e248389dfb64c0ac0873b782102"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/style-probe-a4-build.log",
+            "bytes": 357,
+            "sha256": "1100ad9cf9e372bc160665fb9b885ae25f75cf98218214f522c9858c717588a5"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/style-probe-a4-run-execution.json",
+            "bytes": 2543,
+            "sha256": "d86650ad63aa31f9b5b90c4b8cd703972914af48a15f276778550f8a4abf5ccc"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/style-probe-a4-run.log",
+            "bytes": 365,
+            "sha256": "9fc80c9aaa28db0b5d3b5fbea13ee1b97426c8f9529502e7c2669c986205ac23"
+          },
+          "exitCode": 0,
+          "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "sourceHeadAfter": "a4d5b094b1501b8023517ef976c8fbe629160092",
+          "dirtyBefore": true,
+          "dirtyAfter": true
+        }
+      ],
+      "tests": []
+    }
+  ],
+  "storage": {
+    "cleanups": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup-v3/cleanup-result.json",
+          "bytes": 20120,
+          "sha256": "79b2228062e56a3c9fa7f382a083d892caa140dcace99f3d484a2e665d168564"
+        },
+        "removedLogicalBytes": 4006737022,
+        "retentionManifest": {
+          "path": "$TASK_ROOT/prep/cleanup-v3/retention-manifest.json",
+          "bytes": 1117299,
+          "sha256": "18bec932d6efee6359cae3b52581e76b8101172f55e4ee555fcd9d7f8d019521"
+        }
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/cleanup-result.json",
+          "bytes": 5059,
+          "sha256": "e90b7c1eae02b20dd32a40a6d957bde215074888ddb2326afeb9334da3c1b494"
+        },
+        "removedLogicalBytes": 28840443,
+        "retentionManifest": {
+          "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/retention-manifest.json",
+          "bytes": 34780,
+          "sha256": "6f28ad18c48dadd2df3239e2da5f46a2d97807a21c8afbd9d65714b6c89b3ec0"
+        }
+      }
+    ],
+    "retentions": [
+      {
+        "manifest": {
+          "path": "$TASK_ROOT/prep/cleanup-v3/retention-manifest.json",
+          "bytes": 1117299,
+          "sha256": "18bec932d6efee6359cae3b52581e76b8101172f55e4ee555fcd9d7f8d019521"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-runtime-metadata-gradient-geometry-v3.zip",
+          "bytes": 187292663,
+          "sha256": "bdd3629d14be7432388016763d2205982994ab2c3cb3c183c593154cab803552"
+        },
+        "mappingsReadBack": 537
+      },
+      {
+        "manifest": {
+          "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/retention-manifest.json",
+          "bytes": 34780,
+          "sha256": "6f28ad18c48dadd2df3239e2da5f46a2d97807a21c8afbd9d65714b6c89b3ec0"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-style-probe-unique-v1.zip",
+          "bytes": 49790,
+          "sha256": "ac30e9550b41c37dd0a56a6a430e2782c5f5a66437c98174e78b04acedc04069"
+        },
+        "mappingsReadBack": 28
+      }
+    ],
+    "archiveMappingsReadBack": 565,
+    "originalReferencesResolvedFromArchive": [
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/OfficeIMO.Html.dll",
+          "bytes": 3008512,
+          "sha256": "7e4676268554ad3dcf0ac28c8b204dc6b322aacccc40081ec8460e401c627ec1"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "7e4676268554ad3dcf0ac28c8b204dc6b322aacccc40081ec8460e401c627ec1-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "ba6b6e6a3026737ab03d7a28143777d2a46b1125c2e30892d2cf6f5f9ee7940d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ba6b6e6a3026737ab03d7a28143777d2a46b1125c2e30892d2cf6f5f9ee7940d-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "cb6f1c8ec8826a72298ec8fa58991c6612646d9bc6d051f45c6f1b0702431da3"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cb6f1c8ec8826a72298ec8fa58991c6612646d9bc6d051f45c6f1b0702431da3-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "a01893e1893f3d96ec2a41338845056b4513d75f688ac082e280c2adf3e4c8fa"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a01893e1893f3d96ec2a41338845056b4513d75f688ac082e280c2adf3e4c8fa-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "65f29b03030ef7cc039bcaa67ebceafc355e276c1accf734dd6da630c3bf78e7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "65f29b03030ef7cc039bcaa67ebceafc355e276c1accf734dd6da630c3bf78e7-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "b025de6b125477eb0dc9237787fac8be49ae366cd786a8c4654435afc3ee508f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b025de6b125477eb0dc9237787fac8be49ae366cd786a8c4654435afc3ee508f-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "b2dd2de6a3368822570e417c059eff1fb2d56dc42bad3c59cf846a350f84370d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b2dd2de6a3368822570e417c059eff1fb2d56dc42bad3c59cf846a350f84370d-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "af4bf85eb4f2be870ab872036c46d86abe2dc87e51f3cfb4bf42ba636edc42a6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "af4bf85eb4f2be870ab872036c46d86abe2dc87e51f3cfb4bf42ba636edc42a6-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "0bb459d7ae2b21d3db8658dcb35746133395eaa0dd9428435f81257ddf2724a4"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "0bb459d7ae2b21d3db8658dcb35746133395eaa0dd9428435f81257ddf2724a4-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "76a3b0b80bb396a71c75f095d596d0d7a41a882ba9debba324d803be0fbde778"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "76a3b0b80bb396a71c75f095d596d0d7a41a882ba9debba324d803be0fbde778-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v3/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "b069355aab69753ad036d6f0c040f2d1dfbe335867e0800ffee8147b3c0a3bb8"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b069355aab69753ad036d6f0c040f2d1dfbe335867e0800ffee8147b3c0a3bb8-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "db9ce557168b02163ca185ac0bd7170e312598279f342cd4801b2d7b1282f3f0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "db9ce557168b02163ca185ac0bd7170e312598279f342cd4801b2d7b1282f3f0-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "3cf27a70e84b105f10aa62dc6dc0841f7389242f9fa7336dd3c583a690b9bd13"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "3cf27a70e84b105f10aa62dc6dc0841f7389242f9fa7336dd3c583a690b9bd13-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "13249b5987ed9024763a1bc5d34dedac57da64fdb4442299ab43fa84f5409722"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "13249b5987ed9024763a1bc5d34dedac57da64fdb4442299ab43fa84f5409722-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "382fd1427b65f0a4a0e40b146bb0179cbc0d3519402b7950ba590b43a44108dc"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "382fd1427b65f0a4a0e40b146bb0179cbc0d3519402b7950ba590b43a44108dc-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-644/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-644/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-case15-phase-diagnostic-v1/diagnostic-runtime.json",
+          "bytes": 14116,
+          "sha256": "74885e1c5433b1818e0ec184ba0323f0b358fdeb9143b127762f4f740c2a93fa"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "74885e1c5433b1818e0ec184ba0323f0b358fdeb9143b127762f4f740c2a93fa-644/diagnostic-runtime.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/restoration.json",
+          "bytes": 39525,
+          "sha256": "721e66de3169c1e6b00b94936b4b8d71a0c2ca87cfb096b24e913a08b8e31208"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "721e66de3169c1e6b00b94936b4b8d71a0c2ca87cfb096b24e913a08b8e31208-644/restoration.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "d22a145e3bed9530e3c3060c34078a80d214f7d1f81a6c12bc195e7770ab32fa"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d22a145e3bed9530e3c3060c34078a80d214f7d1f81a6c12bc195e7770ab32fa-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "de8f3c45db61344beb9be21b3d97880b008b2edb774133ecf4030e1e58ab6dea"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "de8f3c45db61344beb9be21b3d97880b008b2edb774133ecf4030e1e58ab6dea-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "75526162cfda84463079d7e0615f47c4c45521fc5f77541fcb9c23b78da9f771"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "75526162cfda84463079d7e0615f47c4c45521fc5f77541fcb9c23b78da9f771-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "4fba057cabb3965391bd43af35178640fd98cc27b8e46c470076291394d8b6d3"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4fba057cabb3965391bd43af35178640fd98cc27b8e46c470076291394d8b6d3-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "cb72653894177e697ad200b18e58392969968a6268004fa63c9a076e460aed85"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cb72653894177e697ad200b18e58392969968a6268004fa63c9a076e460aed85-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/source-runtime-v2/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "1591ae553292bfb6c6c87ab5715353d90c4a461c3103bfd7fc6be50a1d9ad8df"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "1591ae553292bfb6c6c87ab5715353d90c4a461c3103bfd7fc6be50a1d9ad8df-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "c1d07bc4f05b9546e9e76c5998b20a4cd4aa1e27acd08e41a787dbacedc6367c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "c1d07bc4f05b9546e9e76c5998b20a4cd4aa1e27acd08e41a787dbacedc6367c-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "dc29218c842025f395cddb88a3fea95d7e102ce4759959f75fd2bb4966169bfc"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "dc29218c842025f395cddb88a3fea95d7e102ce4759959f75fd2bb4966169bfc-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "2721a549e5893ae1596c02fa218241af192acd8f9e13fde25d156d655a0727f5"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2721a549e5893ae1596c02fa218241af192acd8f9e13fde25d156d655a0727f5-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "180ddb9525b8f1b599128346ff4dade39bceb1a71ead9040f9de45f6fbfb478b"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "180ddb9525b8f1b599128346ff4dade39bceb1a71ead9040f9de45f6fbfb478b-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Core.deps.json",
+          "bytes": 414,
+          "sha256": "645fc766f13814c69f8459e3f5791d6e85e7da28a2f76fc7bd26eb0c73d0e6a9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "645fc766f13814c69f8459e3f5791d6e85e7da28a2f76fc7bd26eb0c73d0e6a9-644/OfficeIMO.Core.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Core.pdb",
+          "bytes": 1543164,
+          "sha256": "62869c79251e3d52018b9a7dcb25fa6914116efcbbc307069403a90c4a278f93"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "62869c79251e3d52018b9a7dcb25fa6914116efcbbc307069403a90c4a278f93-644/OfficeIMO.Core.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Core.xml",
+          "bytes": 1728429,
+          "sha256": "51a6f95006e7c23f2bb4a752d0090c4ef983ec6e8f8788c018bb5d03b60004f8"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "51a6f95006e7c23f2bb4a752d0090c4ef983ec6e8f8788c018bb5d03b60004f8-644/OfficeIMO.Core.xml"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.AngleSharp.deps.json",
+          "bytes": 1364,
+          "sha256": "328add6ac2ce7136e7394f6113b88b8869bd8f24359473a85391a3cc7f3d5f74"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "328add6ac2ce7136e7394f6113b88b8869bd8f24359473a85391a3cc7f3d5f74-644/OfficeIMO.Html.AngleSharp.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.AngleSharp.pdb",
+          "bytes": 25444,
+          "sha256": "1a80fcfbf95663dc85c4cea088945ae4e6b39a9225cae7281daef3fbdd2b80ed"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "1a80fcfbf95663dc85c4cea088945ae4e6b39a9225cae7281daef3fbdd2b80ed-644/OfficeIMO.Html.AngleSharp.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.AngleSharp.xml",
+          "bytes": 5302,
+          "sha256": "d70d0604ef4622d999099b436ca6fbba626ab4b224dc61443b7270b2036fac21"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d70d0604ef4622d999099b436ca6fbba626ab4b224dc61443b7270b2036fac21-644/OfficeIMO.Html.AngleSharp.xml"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.Core.deps.json",
+          "bytes": 429,
+          "sha256": "cda163e33c87caa1dc68b63f6f80eda841a00cbbbabbe70bb3b29bf119ea3d91"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cda163e33c87caa1dc68b63f6f80eda841a00cbbbabbe70bb3b29bf119ea3d91-644/OfficeIMO.Html.Core.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.Core.pdb",
+          "bytes": 61400,
+          "sha256": "1ee7d69e0abccdf4333655ec50985ec32d0e6e215abc132f2293a5e97149db9a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "1ee7d69e0abccdf4333655ec50985ec32d0e6e215abc132f2293a5e97149db9a-644/OfficeIMO.Html.Core.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.Core.xml",
+          "bytes": 105098,
+          "sha256": "5bb8772bb1d5b7dfa39f260e17fb1b6331e718d071848d59092e901eff9a6bb7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "5bb8772bb1d5b7dfa39f260e17fb1b6331e718d071848d59092e901eff9a6bb7-644/OfficeIMO.Html.Core.xml"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.deps.json",
+          "bytes": 3195,
+          "sha256": "02a55abdbd0189f6da0d0bc7208170c8a24aa6f0ad10fdd523aaf015b4532654"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "02a55abdbd0189f6da0d0bc7208170c8a24aa6f0ad10fdd523aaf015b4532654-644/OfficeIMO.Html.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.pdb",
+          "bytes": 825816,
+          "sha256": "ed411d0b4be0e87e1681463333e69b74208c4a6f604792a19c334fb6af779553"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed411d0b4be0e87e1681463333e69b74208c4a6f604792a19c334fb6af779553-644/OfficeIMO.Html.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Html.xml",
+          "bytes": 583037,
+          "sha256": "337e6325675e6e813b7dd7363e1809418316698562186fd66482fd78112bd0db"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "337e6325675e6e813b7dd7363e1809418316698562186fd66482fd78112bd0db-644/OfficeIMO.Html.xml"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Pdf.deps.json",
+          "bytes": 790,
+          "sha256": "4fd7f49ea817a16b7e4353c58cc3c7a8a054963729bbd4185623a6bb7699a76a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4fd7f49ea817a16b7e4353c58cc3c7a8a054963729bbd4185623a6bb7699a76a-644/OfficeIMO.Pdf.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Pdf.pdb",
+          "bytes": 2322008,
+          "sha256": "005bd755972a5011702f547df3ffc2bba599d1b4af046de97f3908fbe7db4400"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "005bd755972a5011702f547df3ffc2bba599d1b4af046de97f3908fbe7db4400-644/OfficeIMO.Pdf.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/OfficeIMO.Pdf.xml",
+          "bytes": 2372838,
+          "sha256": "cd0e3788df63199d09e1088add90471f2541720dd96e5e695955c9e890f2a777"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cd0e3788df63199d09e1088add90471f2541720dd96e5e695955c9e890f2a777-644/OfficeIMO.Pdf.xml"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/PageMarginBackgroundImagesSourcenet10",
+          "bytes": 124712,
+          "sha256": "a23baea5cba72a0ff6920b036e3ca67388a2eaafd80ff5fa8e116b8f8da801a7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a23baea5cba72a0ff6920b036e3ca67388a2eaafd80ff5fa8e116b8f8da801a7-755/PageMarginBackgroundImagesSourcenet10"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/PageMarginBackgroundImagesSourcenet10.deps.json",
+          "bytes": 3643,
+          "sha256": "41d212e339476ddce37dfb9e6c72bd3700ea9bce31e46c51bf61763173d9463f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "41d212e339476ddce37dfb9e6c72bd3700ea9bce31e46c51bf61763173d9463f-644/PageMarginBackgroundImagesSourcenet10.deps.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/PageMarginBackgroundImagesSourcenet10.dll",
+          "bytes": 79360,
+          "sha256": "827f398b07173b54ea3bcab8363519550d512b22033671bf4526fa62ae3be044"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "827f398b07173b54ea3bcab8363519550d512b22033671bf4526fa62ae3be044-644/PageMarginBackgroundImagesSourcenet10.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/PageMarginBackgroundImagesSourcenet10.pdb",
+          "bytes": 18488,
+          "sha256": "cfc60560fddd3abfa26b981d39cf02918d8be7c8d1571941176f382b44458dd0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cfc60560fddd3abfa26b981d39cf02918d8be7c8d1571941176f382b44458dd0-644/PageMarginBackgroundImagesSourcenet10.pdb"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/baseline-runtime/net10/PageMarginBackgroundImagesSourcenet10.runtimeconfig.json",
+          "bytes": 330,
+          "sha256": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f-644/PageMarginBackgroundImagesSourcenet10.runtimeconfig.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Core/release_net472/OfficeIMO.Core.dll",
+          "bytes": 4992000,
+          "sha256": "cd22d1eadbd67c11dcee2fb0be964deeabf322c025694c791b1776043e6b799c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cd22d1eadbd67c11dcee2fb0be964deeabf322c025694c791b1776043e6b799c-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Core/release_netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4991488,
+          "sha256": "4aa75de8f47907fa8278197446de5b9b2fad751bf8378b58c6be06a176f9225e"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4aa75de8f47907fa8278197446de5b9b2fad751bf8378b58c6be06a176f9225e-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+          "bytes": 5039616,
+          "sha256": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Pdf/release_net472/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "16d2bff62f5b26607325ff307ba56b2b87bb41dabe0edc765fc99eeed151a0f8"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "16d2bff62f5b26607325ff307ba56b2b87bb41dabe0edc765fc99eeed151a0f8-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Pdf/release_netstandard2.0/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "b9a62c0cabb4a7ad773159dbd873b0e0d689530765458779b94e5c63ee67a314"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9a62c0cabb4a7ad773159dbd873b0e0d689530765458779b94e5c63ee67a314-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.Core/release_net472/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "edf950f2bc778d6e6df2b76cebe9174d055e5961f3c40057bea1e9590791f466"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "edf950f2bc778d6e6df2b76cebe9174d055e5961f3c40057bea1e9590791f466-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.Core/release_netstandard2.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "109c64140080567934c4aeaaa2a17e3b0bebc5bf49c9f8e54202a19efe059391"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "109c64140080567934c4aeaaa2a17e3b0bebc5bf49c9f8e54202a19efe059391-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.Core/release_net8.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.Core/release_net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.AngleSharp/release_net472/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "485eac88f2d928aa53201e440b17df68afb016eb3958040269b9108481c13d90"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "485eac88f2d928aa53201e440b17df68afb016eb3958040269b9108481c13d90-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.AngleSharp/release_netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "2613da9b9d127de858f8e45004a1381686c78f3e547e73ad4e3a7f499346d2eb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2613da9b9d127de858f8e45004a1381686c78f3e547e73ad4e3a7f499346d2eb-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.AngleSharp/release_net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html.AngleSharp/release_net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html/release_net472/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "2ad58253652945b752dd45ea09db0eac5e51ea2423f1e635f1b52fd4c60f08a7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2ad58253652945b752dd45ea09db0eac5e51ea2423f1e635f1b52fd4c60f08a7-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html/release_netstandard2.0/OfficeIMO.Html.dll",
+          "bytes": 3007488,
+          "sha256": "d794cbaff38c7672a346a80b65e31b5747a010dac69de8a64c03492a5427e474"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d794cbaff38c7672a346a80b65e31b5747a010dac69de8a64c03492a5427e474-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll",
+          "bytes": 3008512,
+          "sha256": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/obj/OfficeIMO.Core/project.assets.json",
+          "bytes": 84001,
+          "sha256": "3d5fbb3a57c9793bbf14064fb4cbd13926e0b2fe17e9110efdf261f8810025a9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "3d5fbb3a57c9793bbf14064fb4cbd13926e0b2fe17e9110efdf261f8810025a9-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/obj/OfficeIMO.Html/project.assets.json",
+          "bytes": 115346,
+          "sha256": "7edf39bb3f83f788f49ce68d6e390b30cef8287075a3574810775dbb8f03f22d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "7edf39bb3f83f788f49ce68d6e390b30cef8287075a3574810775dbb8f03f22d-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/obj/OfficeIMO.Html.AngleSharp/project.assets.json",
+          "bytes": 104888,
+          "sha256": "e262e4dd58ca6fc789b021bdaa08216943a5ac033dee1bbf95269505a220624b"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "e262e4dd58ca6fc789b021bdaa08216943a5ac033dee1bbf95269505a220624b-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/obj/OfficeIMO.Html.Core/project.assets.json",
+          "bytes": 83931,
+          "sha256": "2d510efe10c2a854a24603a0f3785dd82371d71344b928a73cf8fcd6259db95d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2d510efe10c2a854a24603a0f3785dd82371d71344b928a73cf8fcd6259db95d-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-gradient-geometry-qualified-v3/obj/OfficeIMO.Pdf/project.assets.json",
+          "bytes": 87208,
+          "sha256": "708d81f0618f130719fafb3115f6e11c05753cd7ed122c165b05567acd213511"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "708d81f0618f130719fafb3115f6e11c05753cd7ed122c165b05567acd213511-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/consumer-graph/net8/obj/Consumer/project.assets.json",
+          "bytes": 11931,
+          "sha256": "27520dbdda01db9d2f9ddf5d6fbd1d328d8cfb5a6fd7e00d5c14c70f7dc5fe01"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "27520dbdda01db9d2f9ddf5d6fbd1d328d8cfb5a6fd7e00d5c14c70f7dc5fe01-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/officeimo.core.3.5.33.nupkg",
+          "bytes": 8803360,
+          "sha256": "b14f00a2a609f318d721807f75ccd5ef708ec6b96ab443f9a324972c7c0b529c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b14f00a2a609f318d721807f75ccd5ef708ec6b96ab443f9a324972c7c0b529c-644/officeimo.core.3.5.33.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/.nupkg.metadata",
+          "bytes": 262,
+          "sha256": "c3e37fba015488595dc2a7f8e52244a837d7541982f24ae3d0e59bfb10b9ea93"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "c3e37fba015488595dc2a7f8e52244a837d7541982f24ae3d0e59bfb10b9ea93-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/lib/net472/OfficeIMO.Core.dll",
+          "bytes": 4992000,
+          "sha256": "cd22d1eadbd67c11dcee2fb0be964deeabf322c025694c791b1776043e6b799c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cd22d1eadbd67c11dcee2fb0be964deeabf322c025694c791b1776043e6b799c-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/lib/netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4991488,
+          "sha256": "4aa75de8f47907fa8278197446de5b9b2fad751bf8378b58c6be06a176f9225e"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4aa75de8f47907fa8278197446de5b9b2fad751bf8378b58c6be06a176f9225e-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/lib/net8.0/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.core/3.5.33/lib/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5039616,
+          "sha256": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/officeimo.pdf.3.5.33.nupkg",
+          "bytes": 14058129,
+          "sha256": "34bccedb41e86727843f40cf3cb85dc6b3a27e099703e68bc69cae74552f7aca"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "34bccedb41e86727843f40cf3cb85dc6b3a27e099703e68bc69cae74552f7aca-644/officeimo.pdf.3.5.33.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/.nupkg.metadata",
+          "bytes": 262,
+          "sha256": "fe1615b318a1e19b87436d7df796f7f4f4b182ed9096de5b6c9c324bdf41af1f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "fe1615b318a1e19b87436d7df796f7f4f4b182ed9096de5b6c9c324bdf41af1f-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/lib/net472/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "16d2bff62f5b26607325ff307ba56b2b87bb41dabe0edc765fc99eeed151a0f8"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "16d2bff62f5b26607325ff307ba56b2b87bb41dabe0edc765fc99eeed151a0f8-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/lib/netstandard2.0/OfficeIMO.Pdf.dll",
+          "bytes": 8844800,
+          "sha256": "b9a62c0cabb4a7ad773159dbd873b0e0d689530765458779b94e5c63ee67a314"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9a62c0cabb4a7ad773159dbd873b0e0d689530765458779b94e5c63ee67a314-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/lib/net8.0/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.pdf/3.5.33/lib/net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/officeimo.html.core.3.5.33.nupkg",
+          "bytes": 325383,
+          "sha256": "cb7cce32d4652a7084eb8e50557edb60db99f076f36e8650b93ce0aead2b29ca"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "cb7cce32d4652a7084eb8e50557edb60db99f076f36e8650b93ce0aead2b29ca-644/officeimo.html.core.3.5.33.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/.nupkg.metadata",
+          "bytes": 262,
+          "sha256": "1c946aa432adefe603f9112aa6330d514bcdb036f3b708ccbbfdcfe0892615e0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "1c946aa432adefe603f9112aa6330d514bcdb036f3b708ccbbfdcfe0892615e0-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/lib/net472/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "edf950f2bc778d6e6df2b76cebe9174d055e5961f3c40057bea1e9590791f466"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "edf950f2bc778d6e6df2b76cebe9174d055e5961f3c40057bea1e9590791f466-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/lib/netstandard2.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "109c64140080567934c4aeaaa2a17e3b0bebc5bf49c9f8e54202a19efe059391"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "109c64140080567934c4aeaaa2a17e3b0bebc5bf49c9f8e54202a19efe059391-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/lib/net8.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.core/3.5.33/lib/net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/officeimo.html.anglesharp.3.5.33.nupkg",
+          "bytes": 104250,
+          "sha256": "ac64ac5c5f6a186f57f1728d89ed4e15981837d2323245308b378ad4c10ceede"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ac64ac5c5f6a186f57f1728d89ed4e15981837d2323245308b378ad4c10ceede-644/officeimo.html.anglesharp.3.5.33.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/.nupkg.metadata",
+          "bytes": 262,
+          "sha256": "d03259b4967bd43cff0a847cef23130f98260cb8c094a2503b7fcc9acb5b60da"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d03259b4967bd43cff0a847cef23130f98260cb8c094a2503b7fcc9acb5b60da-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "485eac88f2d928aa53201e440b17df68afb016eb3958040269b9108481c13d90"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "485eac88f2d928aa53201e440b17df68afb016eb3958040269b9108481c13d90-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "2613da9b9d127de858f8e45004a1381686c78f3e547e73ad4e3a7f499346d2eb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2613da9b9d127de858f8e45004a1381686c78f3e547e73ad4e3a7f499346d2eb-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html.anglesharp/3.5.33/lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/officeimo.html.3.5.33.nupkg",
+          "bytes": 4790709,
+          "sha256": "abc1bfb421488d227c5e070adc060dd9f4b88fc1b6a41f0d9a8b44ff7cfb8852"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "abc1bfb421488d227c5e070adc060dd9f4b88fc1b6a41f0d9a8b44ff7cfb8852-644/officeimo.html.3.5.33.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/.nupkg.metadata",
+          "bytes": 262,
+          "sha256": "13e5c513911e7e9af28e5f5197b9e97ac33d8d9173c13a8d35bf7ac307ebeae6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "13e5c513911e7e9af28e5f5197b9e97ac33d8d9173c13a8d35bf7ac307ebeae6-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/lib/net472/OfficeIMO.Html.dll",
+          "bytes": 3008000,
+          "sha256": "2ad58253652945b752dd45ea09db0eac5e51ea2423f1e635f1b52fd4c60f08a7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2ad58253652945b752dd45ea09db0eac5e51ea2423f1e635f1b52fd4c60f08a7-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/lib/netstandard2.0/OfficeIMO.Html.dll",
+          "bytes": 3007488,
+          "sha256": "d794cbaff38c7672a346a80b65e31b5747a010dac69de8a64c03492a5427e474"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d794cbaff38c7672a346a80b65e31b5747a010dac69de8a64c03492a5427e474-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/lib/net8.0/OfficeIMO.Html.dll",
+          "bytes": 3008512,
+          "sha256": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/candidate-cache/officeimo.html/3.5.33/lib/net10.0/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/consumer-graph/net10/obj/Consumer/project.assets.json",
+          "bytes": 30068,
+          "sha256": "1a82ddb0919dcba053948ef1667463650e211e1683dd33116369d8b75601d6ce"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "1a82ddb0919dcba053948ef1667463650e211e1683dd33116369d8b75601d6ce-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/consumer-graph/aot/obj/Consumer/project.assets.json",
+          "bytes": 39206,
+          "sha256": "093625ef8629d1676f5a5773250918cbd36936f26ba5c7880cadb881dd5e5da1"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "093625ef8629d1676f5a5773250918cbd36936f26ba5c7880cadb881dd5e5da1-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/OfficeIMO.Html.dll",
+          "bytes": 3008512,
+          "sha256": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "58a8f9cced41fbb5e1e6940d9c6e69dce7957f908d5d7977b5dd7ec7fe135377-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b7b8085bc41528b6bfb26d3fe9892e4661d65327d2727ded961fa495f54a58c6-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/OfficeIMO.Pdf.dll",
+          "bytes": 8851456,
+          "sha256": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "28cc9d717bf5207988164afb852b2c9a4ed0d127a7aaa24b420884cdd32889a6-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "f72af47a1d6855d4bd51576fa9a3e60aad4fe7f511f512e0760dceac70004598-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "48f9b167c50c9907a7b52ecf48cf628ae4079e13ffeb1772acea182510bf4ba4-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/AngleSharp.dll",
+          "bytes": 1081344,
+          "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net8/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/OfficeIMO.Html.dll",
+          "bytes": 3009536,
+          "sha256": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "892dd92ae8b3ba8bb46092d542053131c5830e42d0293f31ff6a7edf4dc14b6f-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/OfficeIMO.Core.dll",
+          "bytes": 5039616,
+          "sha256": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "6a32c62590ed31e747696bce0a6b469e83ce5b27dbb232a80830503cafcf3790-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/OfficeIMO.Pdf.dll",
+          "bytes": 8852992,
+          "sha256": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "be1751e36a77aa2f9aa91f9ea16ded938a9db0293865471c523dc32bb8c008de-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "61d2e5477ec7f51969ae918c58bc73221a11d30547a72365476a9afa42ceb862-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "06062e1073a948b53307749a15bf5ac0ae39f2ed2e3a05421e45c33c675aa365-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/AngleSharp.dll",
+          "bytes": 1083904,
+          "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911-744/AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/net10/AngleSharp.Css.dll",
+          "bytes": 616448,
+          "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61-744/AngleSharp.Css.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/gradient-geometry-qualified-v3/out/aot/GradientImageGeometryPackageaot",
+          "bytes": 34959200,
+          "sha256": "138ca2a12dbc10b92a01feb4fb8e7c5deb7c7b2e1bf6bd46a716d79012f6a009"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "138ca2a12dbc10b92a01feb4fb8e7c5deb7c7b2e1bf6bd46a716d79012f6a009-755/GradientImageGeometryPackageaot"
+      }
+    ],
+    "removedLogicalBytes": 4035577465,
+    "manifest": {
+      "path": "$TASK_ROOT/storage-manifest.json",
+      "bytes": 3011,
+      "sha256": "5df46d77b71f73bde08c25018899903a34679d36d1b0a42e2c728af11c37dc80"
+    },
+    "retainedLogicalBytes": 462251948,
+    "readbacks": [
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v3/before-retirement-readback.json",
+        "bytes": 1019,
+        "sha256": "8e605b9389d9a5d3d2e049ee97c938b639466ddb3c24d885b9fffeb2caa72914"
+      },
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v3/after-retirement-readback.json",
+        "bytes": 1020,
+        "sha256": "ed31b18f16777e82d6fb2f8a5ac0707c89ee42d91d1d03cd7abe6a905f01d5ef"
+      },
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/before-retirement-readback.json",
+        "bytes": 1282,
+        "sha256": "2c5ae69c4246d42b7ca1d6633993d0f630b0b3f839361a1290eabb58a71a9cde"
+      },
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/after-retirement-readback.json",
+        "bytes": 1283,
+        "sha256": "a93eb42a2be28aa11f8e93ded3313e2876a3cd1caa1c04a1b9898409075baf0e"
+      }
+    ],
+    "journalReceipts": [
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v3/storage-ledger-receipt.json",
+        "bytes": 3077,
+        "sha256": "0567ccd05f8c4b025ee7731deb884d60e7631f21a4053d8cd2439336367bbedd"
+      },
+      {
+        "path": "$TASK_ROOT/prep/cleanup-v2-style-probe/storage-ledger-receipt.json",
+        "bytes": 3144,
+        "sha256": "624a608f8b989703436e411f0de55f264ba813eb94b3d4bb97777ba0c0543a45"
+      }
+    ]
+  },
+  "delivery": {
+    "pullRequestCreated": false,
+    "publicPackagesPublished": false,
+    "windowsProfiling": "deferred",
+    "trackedReceiptPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/gradient-image-geometry-20261023.json",
+    "trackingAndPush": "Separate ROOT inspection, copy, commit and remote verification; collector writes no Git state.",
+    "providerBoundary": "No protected adapter/runtime source paths changed relative to the starting checkpoint; provider fork convergence was outside this milestone."
+  },
+  "operationalToolAliasResolutions": [
+    {
+      "originalBinding": {
+        "path": "/opt/homebrew/bin/pdftoppm",
+        "bytes": 75504,
+        "sha256": "452ce401b0cdad899cf48b846adc28f0cc6972edb2e8545f0fd570efe890958f"
+      },
+      "physicalBinding": {
+        "path": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftoppm",
+        "bytes": 75504,
+        "sha256": "452ce401b0cdad899cf48b846adc28f0cc6972edb2e8545f0fd570efe890958f"
+      },
+      "currentResolvedPath": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftoppm",
+      "originalIsSymlink": true,
+      "physicalRegularFileWithoutSymlink": true,
+      "bytesAndSha256MatchFrozenOriginal": true,
+      "scope": "Native-comparison operational tool only; frozen receipt binding is unchanged."
+    },
+    {
+      "originalBinding": {
+        "path": "/opt/homebrew/bin/pdftotext",
+        "bytes": 110712,
+        "sha256": "f9c8e0eb3da6c0bda2aa2b48cf416906b1ccb81d07e5f1d675b2846de0aa3d59"
+      },
+      "physicalBinding": {
+        "path": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftotext",
+        "bytes": 110712,
+        "sha256": "f9c8e0eb3da6c0bda2aa2b48cf416906b1ccb81d07e5f1d675b2846de0aa3d59"
+      },
+      "currentResolvedPath": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftotext",
+      "originalIsSymlink": true,
+      "physicalRegularFileWithoutSymlink": true,
+      "bytesAndSha256MatchFrozenOriginal": true,
+      "scope": "Native-comparison operational tool only; frozen receipt binding is unchanged."
+    }
+  ],
+  "excludedSourceAttempts": [
+    {
+      "attempt": "source-v1",
+      "lane": "net8",
+      "summary": {
+        "path": "$TASK_ROOT/source-net8/summary.json",
+        "bytes": 5693236,
+        "sha256": "d61e91030faf10c2f18df4b43e8a81d8eb6b9f4225947e209c0e0bcf66bb9891"
+      },
+      "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+      "observations": 32,
+      "pages": 66,
+      "recordedOwnPngPdfReplayEqual": true,
+      "disposition": "OPERATIONAL_EXCLUDED_FROM_FINAL_PAGE_FLOW_DEFECT"
+    },
+    {
+      "attempt": "source-v1",
+      "lane": "net10",
+      "summary": {
+        "path": "$TASK_ROOT/source-net10/summary.json",
+        "bytes": 5693493,
+        "sha256": "cd3ffdf4ed718272e5adc8ceac98a7f0c59f41ab7524c2105552a4d1e969a0fe"
+      },
+      "sourceHead": "a4d5b094b1501b8023517ef976c8fbe629160092",
+      "observations": 32,
+      "pages": 66,
+      "recordedOwnPngPdfReplayEqual": true,
+      "disposition": "OPERATIONAL_EXCLUDED_FROM_FINAL_PAGE_FLOW_DEFECT"
+    },
+    {
+      "attempt": "source-v2",
+      "lane": "net8",
+      "summary": {
+        "path": "$TASK_ROOT/source-net8-v2/summary.json",
+        "bytes": 5582740,
+        "sha256": "9743c3bbdb0ad0ef9c2e61e0be61ff2f115327d1425e20b9b74317f0d2f09ec3"
+      },
+      "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+      "observations": 32,
+      "pages": 64,
+      "recordedOwnPngPdfReplayEqual": true,
+      "disposition": "OPERATIONAL_EXCLUDED_FROM_FINAL_ROUND_RESOLVED_RATIO_DEFECT"
+    },
+    {
+      "attempt": "source-v2",
+      "lane": "net10",
+      "summary": {
+        "path": "$TASK_ROOT/source-net10-v2/summary.json",
+        "bytes": 5582995,
+        "sha256": "38826a9208dd98b149ef51064bedea0ddf3b302286eb813683a4eba717b68a3b"
+      },
+      "sourceHead": "07f0dcf6ed525d63487877112829103eabbe13f2",
+      "observations": 32,
+      "pages": 64,
+      "recordedOwnPngPdfReplayEqual": true,
+      "disposition": "OPERATIONAL_EXCLUDED_FROM_FINAL_ROUND_RESOLVED_RATIO_DEFECT"
+    }
+  ]
+}

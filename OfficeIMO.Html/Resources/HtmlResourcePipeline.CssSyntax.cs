@@ -62,6 +62,7 @@ public static partial class HtmlResourcePipeline {
         private readonly int[] _blockEnds;
         private readonly int[] _statementEnds;
         private readonly Dictionary<int, string> _selectors = new();
+        private List<SourceRange>? _pageRuleRanges;
 
         internal CssStructuralIndex(int[] blockStarts, int[] blockEnds, int[] statementEnds) {
             _blockStarts = blockStarts;
@@ -88,6 +89,38 @@ public static partial class HtmlResourcePipeline {
                 if (groupingStart >= 0) selector = selector.Substring(groupingStart + 1).Trim();
                 _selectors.Add(blockStart, selector);
                 return selector;
+            }
+        }
+
+        // Reuse the validated discovery index instead of lexing every URL's at-rule ancestry again.
+        internal IReadOnlyList<SourceRange> GetPageRuleRanges(string css) {
+            lock (_selectors) {
+                if (_pageRuleRanges != null) return _pageRuleRanges;
+                var pageOpens = new HashSet<int>();
+                int cursor = 0;
+                while (TryFindNextAtRule(css, cursor, "page", out _, out int nameEnd)) {
+                    int open = FindNextTopLevelBlockStart(css, nameEnd);
+                    if (open >= 0 && IsAtRuleAt(GetSelector(css, open), 0, "@page")) pageOpens.Add(open);
+                    cursor = nameEnd;
+                }
+                var ranges = new List<SourceRange>();
+                if (pageOpens.Count > 0) {
+                    var opens = new Stack<int>();
+                    int start = 0, end = 0;
+                    while (start < _blockStarts.Length || end < _blockEnds.Length) {
+                        if (start < _blockStarts.Length && (end >= _blockEnds.Length || _blockStarts[start] < _blockEnds[end])) {
+                            opens.Push(_blockStarts[start++]);
+                        } else {
+                            int close = _blockEnds[end++];
+                            if (opens.Count > 0) {
+                                int open = opens.Pop();
+                                if (pageOpens.Contains(open)) ranges.Add(new SourceRange(open, close + 1));
+                            }
+                        }
+                    }
+                    foreach (int open in opens) if (pageOpens.Contains(open)) ranges.Add(new SourceRange(open, css.Length));
+                }
+                return _pageRuleRanges = ranges;
             }
         }
 

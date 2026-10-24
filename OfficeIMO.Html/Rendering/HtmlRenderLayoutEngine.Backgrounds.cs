@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, sourceDescription, sourceDescription, sourceDescription);
         AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription);
 
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
@@ -63,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int backgroundStart = visuals.Count;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, HtmlRenderStyleResolver.DescribeSource(source), diagnosticSourceDescription, visualSourceDescription);
         AddInsetBoxShadows(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription);
         foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
     }
@@ -77,27 +77,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
-        IElement source,
+        string source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         // Outer shadows and outlines can expand a zero-layout box. Its own
         // background still has no paint area, for ordinary and generated boxes.
         if (width <= 0.0001D || height <= 0.0001D) return;
-        if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
-            BackgroundPaintBox colorBox = ResolveBackgroundBox(
-                style.BackgroundColorClip, x, y, width, height, borderInsets, style, radii);
-            if (colorBox.Width > 0D && colorBox.Height > 0D) {
-                OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
-                fill.FillColor = style.BackgroundColor;
-                fill.StrokeWidth = 0D;
-                bool canExtend = CanExtendBoxBackgroundThroughFragmentSlack(style, fill);
-                visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
-                    canExtendFragmentBackground: canExtend,
-                    fragmentSideBorders: canExtend && (style.Display == "table" && style.BorderCollapse == "separate"
-                        || CanExtendOrdinarySliceSides(style))
-                        ? style.Borders : null));
-            }
-        }
+        AddSolidBoxBackground(visuals, style, x, y, width, height, borderInsets, radii, visualSourceDescription);
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
     }
@@ -111,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
-        IElement source,
+        string source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         if (style.BackgroundImageLayerCount == 0) return;
@@ -176,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
-        IElement source,
+        string source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         string layerSuffix = style.BackgroundImageLayers.Count > 1
@@ -199,7 +185,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
         }
         if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
-            if (areaWidth <= 0D || areaHeight <= 0D) return;
             AddGradientBackground(
                 visuals,
                 style,
@@ -227,7 +212,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
-        BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback, style.CharacterAdvance);
+        BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style, out bool usedSizeFallback);
         if (usedSizeFallback) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
@@ -236,21 +221,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Size);
         }
 
-        bool repeatSupported = TryResolveBackgroundRepeat(layer.Repeat, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY);
-        if (!repeatSupported) {
-            AddUnsupported(
-                HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported,
-                "A CSS background-repeat value used a single-image fallback.",
-                source,
-                layer.Repeat);
-        }
-
-        if (!repeatSupported) {
-            repeatX = BackgroundRepeatMode.NoRepeat;
-            repeatY = BackgroundRepeatMode.NoRepeat;
-        }
-
+        ResolveBackgroundRepeatModes(layer.Repeat, source, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY);
+        if (imageSize.Width <= 0D || imageSize.Height <= 0D) return;
         imageSize = ApplyRoundBackgroundSize(imageSize, layer.Size, areaWidth, areaHeight, repeatX, repeatY);
+        if (imageSize.Width <= 0D || imageSize.Height <= 0D) return;
 
         // A viewBox fits to the concrete tile, including repeat:round sizing.
         // Without one, retain the intrinsic scene and existing tile projection.
@@ -267,25 +241,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        (double offsetX, double offsetY) = ResolveBackgroundPosition(
-            layer.Position,
-            areaWidth - imageSize.Width,
-            areaHeight - imageSize.Height,
-            style.Font.Size, style.CharacterAdvance);
-        double tileX = areaX + offsetX;
-        double tileY = areaY + offsetY;
-        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, clipBox.X, clipBox.Width, tileX, imageSize.Width);
-        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, clipBox.Y, clipBox.Height, tileY, imageSize.Height);
-        if (horizontal.Repeat || vertical.Repeat) {
-            var pattern = new OfficeImagePatternLayout(
-                new OfficeImagePlacement(clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height),
-                new OfficeImagePlacement(horizontal.Origin, vertical.Origin, imageSize.Width, imageSize.Height),
-                horizontal.Repeat,
-                vertical.Repeat,
-                horizontal.Step,
-                vertical.Step);
+        OfficeImagePatternLayout pattern = ResolveBackgroundPattern(layer, style, originBox, clipBox, imageSize, repeatX, repeatY);
+        double tileX = pattern.Tile.X;
+        double tileY = pattern.Tile.Y;
+        if (pattern.RepeatX || pattern.RepeatY) {
             long tileCount = pattern.EstimatedTileCount;
-            if (_operationBudget.TryReserveBackgroundImageTiles(tileCount, _options.MaxBackgroundImageTiles)) {
+            if (TryReserveBackgroundTiles(tileCount, diagnosticSourceDescription)) {
                 if (svgDrawing != null) {
                     AddBackgroundDrawingPattern(layerVisuals, svgDrawing, pattern, _options.MaxBackgroundImageTiles, layerVisualSource);
                 } else {
@@ -298,13 +259,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layerVisualSource));
                 }
             } else if (tileCount > 0L) {
-                _diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded,
-                    "Repeated CSS background images exceeded the configured operation-wide tile limit and used one clipped origin tile.",
-                    HtmlDiagnosticSeverity.Error,
-                    diagnosticSourceDescription,
-                    "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
                 if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
                 else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, layerVisualSource);
             }
@@ -322,97 +276,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             clipBox.Radii,
             layerVisualSource + ":clip");
 
-    }
-
-    private void AddGradientBackground(
-        ICollection<HtmlRenderVisual> visuals,
-        HtmlRenderBoxStyle style,
-        HtmlRenderBackgroundLayer layer,
-        double areaX,
-        double areaY,
-        double areaWidth,
-        double areaHeight,
-        HtmlResolvedBorderRadii radii,
-        BackgroundPaintBox clipBox,
-        IElement source,
-        string visualSourceDescription) {
-        if (!string.Equals(layer.Size.Trim(), "auto", StringComparison.OrdinalIgnoreCase)) {
-            AddUnsupported(
-                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                "An explicit CSS background-size on a gradient used the full paint area.",
-                source,
-                layer.Size);
-        }
-
-
-        if (layer.ConicGradient != null) {
-            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded, style.CharacterAdvance)
-                || conicGradient == null) {
-                if (conicStopLimitExceeded) {
-                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
-                        "A repeating CSS conic gradient exceeded the configured materialized color-stop limit and was omitted.",
-                        HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
-                        "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
-                } else {
-                    AddUnsupported(HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                        "A CSS conic gradient could not be resolved against its paint area and was omitted.",
-                        source, lossKind: OfficeConversionLossKind.Omission);
-                }
-                return;
-            }
-            OfficeDrawing drawing = conicGradient.CreateDrawing(areaWidth, areaHeight, _options.ConicGradientQualitySegments);
-            var layerVisuals = new List<HtmlRenderVisual> {
-                HtmlRenderDrawing.CreateShared(drawing, areaX, areaY, areaWidth, areaHeight, 0, null, null, visualSourceDescription)
-            };
-            AddBoxClipVisuals(visuals, layerVisuals, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, clipBox.Radii, visualSourceDescription + ":clip");
-            return;
-        }
-
-        OfficeShape fill = CreateBoxShape(areaWidth, areaHeight, radii);
-        fill.FillColor = null;
-        bool stopLimitExceeded = false;
-        OfficeLinearGradient? linearGradient = null;
-        if (layer.LinearGradient != null
-            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded, style.CharacterAdvance)) {
-            if (stopLimitExceeded) {
-                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
-                    "A repeating CSS linear gradient exceeded the configured materialized color-stop limit and was omitted.",
-                    HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
-                    "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
-                return;
-            }
-            AddUnsupported(
-                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                "A CSS linear gradient could not be resolved against its paint area and was omitted.",
-                source,
-                lossKind: OfficeConversionLossKind.Omission);
-            return;
-        }
-        fill.FillGradient = linearGradient;
-        OfficeRadialGradient? radialGradient = null;
-        if (layer.RadialGradient != null
-            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded, style.CharacterAdvance)) {
-            if (stopLimitExceeded) {
-                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
-                    "A repeating CSS radial gradient exceeded the configured materialized color-stop limit and was omitted.",
-                    HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
-                    "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
-                return;
-            }
-            AddUnsupported(
-                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                "A CSS radial gradient could not be resolved against its paint area and was omitted.",
-                source,
-                lossKind: OfficeConversionLossKind.Omission);
-            return;
-        }
-
-        fill.FillRadialGradient = radialGradient;
-        fill.StrokeWidth = 0D;
-        var gradientVisuals = new List<HtmlRenderVisual> {
-            new HtmlRenderShape(fill, areaX, areaY, 0, source: visualSourceDescription)
-        };
-        AddBoxClipVisuals(visuals, gradientVisuals, clipBox.X, clipBox.Y, clipBox.Width, clipBox.Height, clipBox.Radii, visualSourceDescription + ":clip");
     }
 
     private static BackgroundPaintBox ResolveBackgroundBox(
@@ -526,247 +389,4 @@ internal sealed partial class HtmlRenderLayoutEngine {
             sourceCrop: crop));
     }
 
-    private static bool TryResolveBackgroundRepeat(string value, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY) {
-        repeatX = BackgroundRepeatMode.Repeat;
-        repeatY = BackgroundRepeatMode.Repeat;
-        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty)
-            .Select(token => token.Trim().ToLowerInvariant())
-            .Where(token => token.Length > 0)
-            .ToList()
-            .AsReadOnly();
-        if (values.Count == 0) return true;
-        if (values.Count > 2) return false;
-        if (values.Count == 1 && values[0] == "repeat-x") {
-            repeatX = BackgroundRepeatMode.Repeat;
-            repeatY = BackgroundRepeatMode.NoRepeat;
-            return true;
-        }
-
-        if (values.Count == 1 && values[0] == "repeat-y") {
-            repeatX = BackgroundRepeatMode.NoRepeat;
-            repeatY = BackgroundRepeatMode.Repeat;
-            return true;
-        }
-
-        if (!TryParseBackgroundRepeatMode(values[0], out repeatX)) return false;
-        if (values.Count == 1) {
-            repeatY = repeatX;
-            return true;
-        }
-
-        return TryParseBackgroundRepeatMode(values[1], out repeatY);
-    }
-
-    private static bool TryParseBackgroundRepeatMode(string value, out BackgroundRepeatMode mode) {
-        switch (value) {
-            case "repeat":
-                mode = BackgroundRepeatMode.Repeat;
-                return true;
-            case "no-repeat":
-                mode = BackgroundRepeatMode.NoRepeat;
-                return true;
-            case "space":
-                mode = BackgroundRepeatMode.Space;
-                return true;
-            case "round":
-                mode = BackgroundRepeatMode.Round;
-                return true;
-            default:
-                mode = BackgroundRepeatMode.NoRepeat;
-                return false;
-        }
-    }
-
-    private static BackgroundRepeatAxis ResolveBackgroundRepeatAxis(
-        BackgroundRepeatMode mode,
-        double areaStart,
-        double areaLength,
-        double positionedTileStart,
-        double tileLength) {
-        if (mode == BackgroundRepeatMode.NoRepeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);
-        if (mode == BackgroundRepeatMode.Repeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: true);
-        if (mode == BackgroundRepeatMode.Round) return new BackgroundRepeatAxis(areaStart, tileLength, repeat: true);
-
-        long count = Math.Max(0L, (long)Math.Floor((areaLength + 0.0000001D) / tileLength));
-        if (count < 2L) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);
-        double step = (areaLength - tileLength) / (count - 1L);
-        return new BackgroundRepeatAxis(areaStart, Math.Max(tileLength, step), repeat: true);
-    }
-
-    private static BackgroundImageSize ApplyRoundBackgroundSize(
-        BackgroundImageSize size,
-        string sizeValue,
-        double areaWidth,
-        double areaHeight,
-        BackgroundRepeatMode repeatX,
-        BackgroundRepeatMode repeatY) {
-        double width = size.Width;
-        double height = size.Height;
-        double originalWidth = width;
-        double originalHeight = height;
-        ResolveBackgroundSizeAutoAxes(sizeValue, out bool widthAuto, out bool heightAuto);
-        if (repeatX == BackgroundRepeatMode.Round) {
-            width = ResolveRoundedTileLength(areaWidth, width);
-            if (repeatY != BackgroundRepeatMode.Round && heightAuto) height *= width / Math.Max(0.01D, originalWidth);
-        }
-
-        if (repeatY == BackgroundRepeatMode.Round) {
-            height = ResolveRoundedTileLength(areaHeight, height);
-            if (repeatX != BackgroundRepeatMode.Round && widthAuto) width *= height / Math.Max(0.01D, originalHeight);
-        }
-
-        return new BackgroundImageSize(Math.Max(0.01D, width), Math.Max(0.01D, height));
-    }
-
-    private static double ResolveRoundedTileLength(double areaLength, double tileLength) {
-        double ratio = areaLength / Math.Max(0.01D, tileLength);
-        long count = Math.Max(1L, (long)Math.Round(ratio, MidpointRounding.AwayFromZero));
-        return areaLength / count;
-    }
-
-    private static void ResolveBackgroundSizeAutoAxes(string value, out bool widthAuto, out bool heightAuto) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty);
-        if (parts.Count == 0 || (parts.Count == 1 && string.Equals(parts[0], "auto", StringComparison.OrdinalIgnoreCase))) {
-            widthAuto = true;
-            heightAuto = true;
-            return;
-        }
-
-        if (parts.Count == 1
-            && (string.Equals(parts[0], "cover", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(parts[0], "contain", StringComparison.OrdinalIgnoreCase))) {
-            widthAuto = false;
-            heightAuto = false;
-            return;
-        }
-
-        widthAuto = string.Equals(parts[0], "auto", StringComparison.OrdinalIgnoreCase);
-        heightAuto = parts.Count == 1 || string.Equals(parts[1], "auto", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private BackgroundImageSize ResolveBackgroundImageSize(
-        string value,
-        double areaWidth,
-        double areaHeight,
-        double intrinsicWidth,
-        double intrinsicHeight,
-        double fontSize,
-        out bool usedFallback, double characterAdvance = double.NaN) {
-        usedFallback = false;
-        string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
-        if (normalized.Length == 0 || normalized == "auto") {
-            return new BackgroundImageSize(intrinsicWidth, intrinsicHeight);
-        }
-
-        if (normalized == "cover" || normalized == "contain") {
-            double scaleX = areaWidth / Math.Max(0.01D, intrinsicWidth);
-            double scaleY = areaHeight / Math.Max(0.01D, intrinsicHeight);
-            double scale = normalized == "cover" ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);
-            return new BackgroundImageSize(intrinsicWidth * scale, intrinsicHeight * scale);
-        }
-
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(normalized).ToList().AsReadOnly();
-        if (parts.Count == 0 || parts.Count > 2) {
-            usedFallback = true;
-            return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
-        }
-
-        bool widthAuto = parts[0] == "auto";
-        bool heightAuto = parts.Count == 1 || parts[1] == "auto";
-        double resolvedWidth = intrinsicWidth;
-        double resolvedHeight = intrinsicHeight;
-        if (!widthAuto && !TryResolveLength(parts[0], areaWidth, fontSize, out resolvedWidth, characterAdvance)) {
-            usedFallback = true;
-            return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
-        }
-
-        if (!heightAuto && !TryResolveLength(parts[1], areaHeight, fontSize, out resolvedHeight, characterAdvance)) {
-            usedFallback = true;
-            return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
-        }
-
-        double ratio = intrinsicWidth / Math.Max(0.01D, intrinsicHeight);
-        if (widthAuto && !heightAuto) resolvedWidth = resolvedHeight * ratio;
-        if (!widthAuto && heightAuto) resolvedHeight = resolvedWidth / Math.Max(0.01D, ratio);
-        return new BackgroundImageSize(Math.Max(0.01D, resolvedWidth), Math.Max(0.01D, resolvedHeight));
-    }
-
-    private static BackgroundImageSize Contain(double areaWidth, double areaHeight, double intrinsicWidth, double intrinsicHeight) {
-        double scale = Math.Min(areaWidth / Math.Max(0.01D, intrinsicWidth), areaHeight / Math.Max(0.01D, intrinsicHeight));
-        return new BackgroundImageSize(intrinsicWidth * scale, intrinsicHeight * scale);
-    }
-
-    private (double X, double Y) ResolveBackgroundPosition(string value, double availableX, double availableY, double fontSize, double characterAdvance = double.NaN) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty).ToList().AsReadOnly();
-        string first = parts.Count > 0 ? parts[0].ToLowerInvariant() : "0%";
-        string second = parts.Count > 1 ? parts[1].ToLowerInvariant() : "center";
-        if (IsVerticalPosition(first) && !IsVerticalPosition(second)) {
-            (first, second) = (second, first);
-        }
-
-        return (
-            ResolveBackgroundAxis(first, availableX, fontSize, horizontal: true, characterAdvance),
-            ResolveBackgroundAxis(second, availableY, fontSize, horizontal: false, characterAdvance));
-    }
-
-    private double ResolveBackgroundAxis(string value, double available, double fontSize, bool horizontal, double characterAdvance = double.NaN) {
-        if (value == "center") return available / 2D;
-        if (value == (horizontal ? "right" : "bottom")) return available;
-        if (value == (horizontal ? "left" : "top")) return 0D;
-        if (value.EndsWith("%", StringComparison.Ordinal)
-            && double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
-            return available * percentage / 100D;
-        }
-
-        return TryResolveLength(value, available, fontSize, out double length, characterAdvance)
-            ? length
-            : 0D;
-    }
-
-    private static bool IsVerticalPosition(string value) => value == "top" || value == "bottom";
-
-    private readonly struct BackgroundPaintBox {
-        internal BackgroundPaintBox(double x, double y, double width, double height, HtmlResolvedBorderRadii radii) {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-            Radii = radii;
-        }
-
-        internal double X { get; }
-        internal double Y { get; }
-        internal double Width { get; }
-        internal double Height { get; }
-        internal HtmlResolvedBorderRadii Radii { get; }
-    }
-
-    private readonly struct BackgroundImageSize {
-        internal BackgroundImageSize(double width, double height) {
-            Width = width;
-            Height = height;
-        }
-
-        internal double Width { get; }
-        internal double Height { get; }
-    }
-
-    private readonly struct BackgroundRepeatAxis {
-        internal BackgroundRepeatAxis(double origin, double step, bool repeat) {
-            Origin = origin;
-            Step = step;
-            Repeat = repeat;
-        }
-
-        internal double Origin { get; }
-        internal double Step { get; }
-        internal bool Repeat { get; }
-    }
-
-    private enum BackgroundRepeatMode {
-        NoRepeat,
-        Repeat,
-        Space,
-        Round
-    }
 }

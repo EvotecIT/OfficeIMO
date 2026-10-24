@@ -1,0 +1,2453 @@
+{
+  "schema": "officeimo.html.page-margin-intrinsic-widths-qualification/v1",
+  "status": "qualified-static-rendering-checkpoint",
+  "recordedUtc": "2026-10-22T08:00:56.381400+00:00",
+  "qualifiedSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+  "base": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+  "proposedRepositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-intrinsic-widths-20261022.json",
+  "scope": [
+    "min-content, max-content and fit-content keywords for horizontal top/bottom page-margin width, min-width and max-width.",
+    "Existing intrinsic parser/resolver, width state and shared strip allocation; generated/running content and current typography/geometry owners remain canonical.",
+    "No new public API, production dependency or provider replacement."
+  ],
+  "logicalRoots": {
+    "$TASK_ROOT": "This intrinsic-width task's retained evidence root",
+    "$SOURCE_ROOT": "OfficeIMO source checkpoint identified by qualifiedSourceHead",
+    "$SCRATCH_ROOT": "Parent retained evidence root; original native host source/build provenance stays in its original sibling task",
+    "$DOTNET_ROOT": "Recorded local .NET host/SDK installation",
+    "$APPLICATIONS_ROOT": "Recorded local application installation root",
+    "$TOOLS_ROOT": "Recorded local independent PDF inspection tool installation root"
+  },
+  "source": {
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-51d292ec90.json",
+      "bytes": 12210304,
+      "sha256": "6cbe9ec8c18b6bcb2b3df74bd2110670f5daa1b1935e712a94610afb42458c2d"
+    },
+    "gitTree": "c9ccf802734314e727dacc54cd367078cf2f24f3",
+    "trackedSourceInputs": 58463,
+    "sealBoundary": "Exact committed source inventory captured before qualification. Execution receipts preserve their original source HEAD/status; later documentation/storage/delivery closure does not rewrite that inventory."
+  },
+  "sourceTests": [
+    {
+      "name": "candidate-full-html-net8",
+      "execution": {
+        "path": "$TASK_ROOT/candidate-full-html-net8-execution.json",
+        "bytes": 1766,
+        "sha256": "61530ea8b167c45ad1eceb876495a59219e4cf19de1e56501fd0dcd02414c278"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/candidate-full-html-net8.log",
+        "bytes": 7452,
+        "sha256": "673a1a2abdb9fbcf2743ab2b57cff4ed158e3884367e2528ded02ace9ca32bd8"
+      },
+      "exitCode": 0,
+      "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+      "sourceClean": true,
+      "elapsedSeconds": 148.182182958,
+      "framework": "net8.0",
+      "trx": {
+        "path": "$TASK_ROOT/trx/full-html-net8.trx",
+        "bytes": 11884235,
+        "sha256": "fa72181890d0affa1ac9c34c622f811058dd0f670138771bfaa4e11e6a698c00"
+      },
+      "total": 7787,
+      "executed": 7787,
+      "passed": 7787,
+      "failed": 0,
+      "notExecuted": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0
+    },
+    {
+      "name": "candidate-full-html-net10",
+      "execution": {
+        "path": "$TASK_ROOT/candidate-full-html-net10-execution.json",
+        "bytes": 1787,
+        "sha256": "c92a57bc10bae3c0603a330d15c2f0e24aa0d318a60c38129ffea376675b46fc"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/candidate-full-html-net10.log",
+        "bytes": 547,
+        "sha256": "b0ccbc2a6346af8eb68356f1d2619b08e9ab8d58de1994382d3d8d65cbc04b98"
+      },
+      "exitCode": 0,
+      "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+      "sourceClean": true,
+      "elapsedSeconds": 82.128759083,
+      "framework": "net10.0",
+      "trx": {
+        "path": "$TASK_ROOT/trx/full-html-net10.trx",
+        "bytes": 11899810,
+        "sha256": "349a01acb73233759716c69aac12fe53722c3806e806c9bc8844386f58ba93ec"
+      },
+      "total": 7787,
+      "executed": 7787,
+      "passed": 7787,
+      "failed": 0,
+      "notExecuted": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0
+    }
+  ],
+  "reproduction": {
+    "beforeTests": {
+      "name": "before-focused-tests",
+      "execution": {
+        "path": "$TASK_ROOT/before-focused-tests-execution.json",
+        "bytes": 1925,
+        "sha256": "74114388151f61ea98152996dc5ba2c86ccaca19f941c27c4becdfca24f84a3e"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/before-focused-tests.log",
+        "bytes": 31766,
+        "sha256": "7635d05e384d5549a4a856c75fbeb92aeb47afce6fe4a16d62d25ce615c4c84c"
+      },
+      "exitCode": 1,
+      "sourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+      "sourceClean": false,
+      "elapsedSeconds": 54.058745124999994,
+      "originalSourceStatusBefore": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "originalSourceStatusAfter": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "framework": "net10.0",
+      "trx": {
+        "path": "$TASK_ROOT/trx/before-focused.trx",
+        "bytes": 67229,
+        "sha256": "5eb3dd8362da9122d1a45bd1ab91a8c98087b3cd5d2a01f73ad2156e609d82cb"
+      },
+      "total": 18,
+      "executed": 18,
+      "passed": 1,
+      "failed": 17,
+      "notExecuted": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0
+    },
+    "intermediateFocusedFailure": {
+      "name": "candidate-focused-tests",
+      "execution": {
+        "path": "$TASK_ROOT/candidate-focused-tests-execution.json",
+        "bytes": 2492,
+        "sha256": "f50891ca195ea89bbf30f670e574d2741d19719291095c0baff48bec73749ee8"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/candidate-focused-tests.log",
+        "bytes": 9768,
+        "sha256": "73b816e21fbce2f12e3ef5b0a4a005c8996b733102b0cbda1e4cbd32706e6b93"
+      },
+      "exitCode": 1,
+      "sourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+      "sourceClean": false,
+      "elapsedSeconds": 26.255979375,
+      "originalSourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "originalSourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "framework": "net10.0",
+      "trx": {
+        "path": "$TASK_ROOT/trx/candidate-focused.trx",
+        "bytes": 107050,
+        "sha256": "e908252564c3a139041bfd1e9e7a4342bd098d6c6161a4130dbd93004a2c1c9b"
+      },
+      "total": 63,
+      "executed": 63,
+      "passed": 61,
+      "failed": 2,
+      "notExecuted": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0
+    },
+    "precommitFocusedPass": {
+      "name": "candidate-focused-tests-v2",
+      "execution": {
+        "path": "$TASK_ROOT/candidate-focused-tests-v2-execution.json",
+        "bytes": 2649,
+        "sha256": "9e6276ac599bf07195d915cd26fb97cea0caf2492028a85a4d5e337ee100b3a9"
+      },
+      "log": {
+        "path": "$TASK_ROOT/logs/candidate-focused-tests-v2.log",
+        "bytes": 7494,
+        "sha256": "660eeda86b2c7d696e0d16af57e41501aaac967d426cb7b789ed3005a6555f02"
+      },
+      "exitCode": 0,
+      "sourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+      "sourceClean": false,
+      "elapsedSeconds": 13.156775375,
+      "originalSourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.Remediation.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "originalSourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.Remediation.cs\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+      "framework": "net10.0",
+      "trx": {
+        "path": "$TASK_ROOT/trx/candidate-focused-v2.trx",
+        "bytes": 102680,
+        "sha256": "cbb9bf54a96f4bd1493290508c3efd4e3c0ec6ddad1fa3c337a9f5426d5f2212"
+      },
+      "total": 63,
+      "executed": 63,
+      "passed": 63,
+      "failed": 0,
+      "notExecuted": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0
+    },
+    "beforeSourceWitnesses": [
+      {
+        "summary": {
+          "path": "$TASK_ROOT/before/observations/summary.json",
+          "bytes": 555305,
+          "sha256": "1d764df9220b68382106b9568f42441ad6c89624f41d4e42489b2dd4f9c51413"
+        },
+        "declaredSourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+        "observations": 20,
+        "pages": 20,
+        "ownPngPdfPairsEqual": 20,
+        "font": {
+          "path": "$TASK_ROOT/inputs/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 20,
+        "diagnosticCodes": [
+          "HtmlRenderGeneratedContentUnsupported",
+          "HtmlRenderIntrinsicSizeUnsupported"
+        ],
+        "execution": {
+          "name": "before-observer-run",
+          "execution": {
+            "path": "$TASK_ROOT/before-observer-run-execution.json",
+            "bytes": 1662,
+            "sha256": "94ca8582b665fddf648a76d4b747707b5932f46f7758926697e3bf75087103c5"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/before-observer-run.log",
+            "bytes": 117,
+            "sha256": "9bfdbf37e40fc4e9ca646058fd8789d95ebb9e623db8a102789ea06f4949fff4"
+          },
+          "exitCode": 0,
+          "sourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+          "sourceClean": false,
+          "elapsedSeconds": 2.5401761659999997,
+          "originalSourceStatusBefore": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+          "originalSourceStatusAfter": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs"
+        }
+      },
+      {
+        "summary": {
+          "path": "$TASK_ROOT/before/fit-observations/summary.json",
+          "bytes": 128284,
+          "sha256": "c1998d367528b3fe1a91d1e3c70cc03f955b86f8780dc4524ed30526ba29ee55"
+        },
+        "declaredSourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+        "observations": 4,
+        "pages": 4,
+        "ownPngPdfPairsEqual": 4,
+        "font": {
+          "path": "$TASK_ROOT/inputs-fit/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 4,
+        "diagnosticCodes": [
+          "HtmlRenderGeneratedContentUnsupported",
+          "HtmlRenderIntrinsicSizeUnsupported"
+        ],
+        "execution": {
+          "name": "before-fit-observer-run",
+          "execution": {
+            "path": "$TASK_ROOT/before-fit-observer-run-execution.json",
+            "bytes": 2193,
+            "sha256": "932b1363faf8c5da72b21591223d8bb457e696a4bb388d95ebd2d146f84b808e"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/before-fit-observer-run.log",
+            "bytes": 116,
+            "sha256": "175f5b4e0d68cc1dc2ecf45ba6f121a1a33d9635a0f8ff519c5a48b3657c8069"
+          },
+          "exitCode": 0,
+          "sourceHead": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+          "sourceClean": false,
+          "elapsedSeconds": 1.097649042,
+          "originalSourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs",
+          "originalSourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginIntrinsicWidths.cs"
+        }
+      }
+    ],
+    "beforeGeometry": {
+      "path": "$TASK_ROOT/prep/before-reproduction.json",
+      "bytes": 2190,
+      "sha256": "2dd05b98e806245ea302723236f1a30e8a11aca567fb7ec0025e8430b86f8647"
+    },
+    "boundary": "Original receipts remain bound to their actual base HEAD and recorded precommit dirty state. The before run added the regression test source; focused implementation runs preceded the commit. These are reproduction/development proof, not clean final-source qualification."
+  },
+  "sourceRendering": {
+    "net8": {
+      "buildExecution": {
+        "name": "candidate-observer-net8-build",
+        "execution": {
+          "path": "$TASK_ROOT/candidate-observer-net8-build-execution.json",
+          "bytes": 1870,
+          "sha256": "6ef164bd70fc4aa099c943d63c797daad29122edfa5a116d77f3f5c69af10368"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net8-build.log",
+          "bytes": 1856,
+          "sha256": "204cec7de39c326af2dbd6e33403173d78ac670c32aa1dcbb448e843538619a3"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 19.899554209
+      },
+      "main": {
+        "summary": {
+          "path": "$TASK_ROOT/qualified/net8/summary.json",
+          "bytes": 542735,
+          "sha256": "100017aecc713e67dd88963e7b98374fb0b8d7be48744e698cbcc50d73aabf09"
+        },
+        "declaredSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "observations": 20,
+        "pages": 20,
+        "ownPngPdfPairsEqual": 20,
+        "font": {
+          "path": "$TASK_ROOT/inputs/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 0,
+        "diagnosticCodes": [],
+        "runtime": [
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/OfficeIMO.Html.dll",
+            "bytes": 2990592,
+            "sha256": "7fd2668e2ea7c9a3ea52b1253e53b14fd1f2768220c2aa3b482e79a3e9c20162"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/OfficeIMO.Core.dll",
+            "bytes": 5025792,
+            "sha256": "8c9b24cff69e1097098413cd3711b084439e3630541b7614cff36878e9a8709e"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/OfficeIMO.Pdf.dll",
+            "bytes": 8836096,
+            "sha256": "67be0fcd31427e41ab73b54f8861deba28ed32109dc26b9e603fe66c6a5e8ca1"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "6b1e1f67a67098d24a0ab859eefe38b8fd5517946fd681c4811bec3ea75b1f24"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "9486761bcb20c502c6e7e3589a88d960928c6ab08c9f72a584fa432daa947ac3"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/AngleSharp.dll",
+            "bytes": 1081344,
+            "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net8/AngleSharp.Css.dll",
+            "bytes": 616448,
+            "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+          }
+        ],
+        "execution": {
+          "name": "candidate-observer-net8-run",
+          "execution": {
+            "path": "$TASK_ROOT/candidate-observer-net8-run-execution.json",
+            "bytes": 1546,
+            "sha256": "57a83c57a8b1ce9e384585135ace7f7751d7d1a3726dfd2e4e1f1424593aa69f"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/candidate-observer-net8-run.log",
+            "bytes": 116,
+            "sha256": "8eded7a62c37edb546e902b9ca41d074910a41a73548505a415d78f8b60f3540"
+          },
+          "exitCode": 0,
+          "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+          "sourceClean": true,
+          "elapsedSeconds": 2.9564168750000004
+        }
+      },
+      "supplementalFit": {
+        "summary": {
+          "path": "$TASK_ROOT/qualified/fit-net8/summary.json",
+          "bytes": 105480,
+          "sha256": "f9af4519c5a707cd064dd527953b664250f290f46aa49a1f914a396f2c3528f9"
+        },
+        "declaredSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "observations": 4,
+        "pages": 4,
+        "ownPngPdfPairsEqual": 4,
+        "font": {
+          "path": "$TASK_ROOT/inputs-fit/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 0,
+        "diagnosticCodes": [],
+        "runtimeMatchesMain": true,
+        "execution": {
+          "name": "candidate-observer-fit-net8-run",
+          "execution": {
+            "path": "$TASK_ROOT/candidate-observer-fit-net8-run-execution.json",
+            "bytes": 1555,
+            "sha256": "525b06936cf27c36a6284932d34a73e704434b3558d5d46ec06f5465b038039d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/candidate-observer-fit-net8-run.log",
+            "bytes": 115,
+            "sha256": "09eb3890c411061d57e854140633e67e1e086d1846810babb93db004419dafff"
+          },
+          "exitCode": 0,
+          "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+          "sourceClean": true,
+          "elapsedSeconds": 1.135296625
+        }
+      }
+    },
+    "net10": {
+      "buildExecution": {
+        "name": "candidate-observer-net10-build",
+        "execution": {
+          "path": "$TASK_ROOT/candidate-observer-net10-build-execution.json",
+          "bytes": 1875,
+          "sha256": "61341eb46da5741bc0d3379f102670cd64f70ea78ae54d370f73f6e71c281b24"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net10-build.log",
+          "bytes": 1862,
+          "sha256": "aadb180008658335aa67faa4514d88111462f7fa2b61a72ada6441c1d803098b"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 22.51274375
+      },
+      "main": {
+        "summary": {
+          "path": "$TASK_ROOT/qualified/net10/summary.json",
+          "bytes": 542808,
+          "sha256": "0959aabe3789e40788b46784ede398925c7e3270815e4c533c676667c21ec935"
+        },
+        "declaredSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "observations": 20,
+        "pages": 20,
+        "ownPngPdfPairsEqual": 20,
+        "font": {
+          "path": "$TASK_ROOT/inputs/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 0,
+        "diagnosticCodes": [],
+        "runtime": [
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/OfficeIMO.Html.dll",
+            "bytes": 2991616,
+            "sha256": "0a61576ab7dde42dad58b195c2847361c82d98cfd6baf3e559a654ce01caf969"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/OfficeIMO.Core.dll",
+            "bytes": 5028864,
+            "sha256": "2b79b68de85ea3440b52496ecf6868d80eb305be9fe0be4fcb0f659b2a1c67ad"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/OfficeIMO.Pdf.dll",
+            "bytes": 8837632,
+            "sha256": "913f017b72890459ca4c29fd32ae6a5dffb499bb508359b423b94de80be88959"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "eb3c4fe7924ed1e912b19315e5c090f6a29f267a387cecdf3fe988bc759d0260"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "270ed52dd030513d2ec95b5f071462b0fdc05e66e1ee0283e7dc5c56e8e33330"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/AngleSharp.dll",
+            "bytes": 1083904,
+            "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+          },
+          {
+            "path": "$TASK_ROOT/qualified/runtime/net10/AngleSharp.Css.dll",
+            "bytes": 616448,
+            "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+          }
+        ],
+        "execution": {
+          "name": "candidate-observer-net10-run",
+          "execution": {
+            "path": "$TASK_ROOT/candidate-observer-net10-run-execution.json",
+            "bytes": 1544,
+            "sha256": "8f8049d9cd996b5f055b9317b8e3f401e3cd2079d26ef122027643917a1cf6fd"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/candidate-observer-net10-run.log",
+            "bytes": 117,
+            "sha256": "9bfdbf37e40fc4e9ca646058fd8789d95ebb9e623db8a102789ea06f4949fff4"
+          },
+          "exitCode": 0,
+          "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+          "sourceClean": true,
+          "elapsedSeconds": 2.139857584
+        }
+      },
+      "supplementalFit": {
+        "summary": {
+          "path": "$TASK_ROOT/qualified/fit-net10/summary.json",
+          "bytes": 105501,
+          "sha256": "6c0e70d9a4fff3973944ec2ccdeb755b8c877786e96262d93af1c86cc5a16026"
+        },
+        "declaredSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "observations": 4,
+        "pages": 4,
+        "ownPngPdfPairsEqual": 4,
+        "font": {
+          "path": "$TASK_ROOT/inputs-fit/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        "lossBearingObservations": 0,
+        "diagnosticCodes": [],
+        "runtimeMatchesMain": true,
+        "execution": {
+          "name": "candidate-observer-fit-net10-run",
+          "execution": {
+            "path": "$TASK_ROOT/candidate-observer-fit-net10-run-execution.json",
+            "bytes": 1567,
+            "sha256": "c6ce54681773e0bda9c49281f4a785d89b90f3f2920b949a30444d0340f20f16"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/candidate-observer-fit-net10-run.log",
+            "bytes": 116,
+            "sha256": "175f5b4e0d68cc1dc2ecf45ba6f121a1a33d9635a0f8ff519c5a48b3657c8069"
+          },
+          "exitCode": 0,
+          "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+          "sourceClean": true,
+          "elapsedSeconds": 1.1137988749999999
+        }
+      }
+    }
+  },
+  "native": {
+    "engine": "Microsoft Edge (Chromium), retained HtmlTinkerX host, actual saved PDFs and independent raster/text inspection",
+    "captures": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/native/execution.json",
+          "bytes": 196397,
+          "sha256": "a2ffd68339bd46c56cabbc773ca587470cf2b14a65b4e1ba74b1e33068ce1d02"
+        },
+        "observations": 20,
+        "pages": 20,
+        "matrix": {
+          "path": "$TASK_ROOT/prep/fixture-matrix.json",
+          "bytes": 8123,
+          "sha256": "8f35d3e1694d4172ed346ac4ba883ef2157935a1c1895bd43805f5fd36044ba7"
+        },
+        "capturePlan": {
+          "path": "$TASK_ROOT/prep/native-plan-v2.json",
+          "bytes": 2181,
+          "sha256": "07f8e9d54ee468b6bcd38ab6c219291c825426f5049d3b288aac144678c38f91"
+        },
+        "captureScript": {
+          "path": "$TASK_ROOT/prep/capture-native.py",
+          "bytes": 12011,
+          "sha256": "099d49dea12af7af4571cb0b5138adc78fd2b4732af78852d330e42d87d96a35"
+        },
+        "browser": {
+          "path": "$APPLICATIONS_ROOT/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          "bytes": 88560,
+          "sha256": "6d803495f9c3ce70c9d89001d968863925dd17317160f2d96b357f7c1872b61b"
+        },
+        "owner": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/build-native-primed/bin/BrowserProbe/release/HtmlTinkerX.dll",
+          "bytes": 2459104,
+          "sha256": "52e561bb5b333c6bc92e14ea7227f7e9719aab4d1355e3eca4d3489d7559722d"
+        },
+        "probe": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/build-native-primed/bin/BrowserProbe/release/BrowserProbe.dll",
+          "bytes": 19968,
+          "sha256": "9d86fae9c93c544a10d865aa275f3716bdc2685600701b874fc54412995af9ff"
+        },
+        "originalRuntimeBuildBinding": {
+          "path": "$SCRATCH_ROOT/html-page-margin-auto-sizing/prep/runtime-bindings.json",
+          "bytes": 60774,
+          "sha256": "9e0ad9941dcef00ba07fb1ec193229aa5756ceecd3c8505d9a612021de0c7dca"
+        },
+        "originalHostSource": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/prep/browser-primed/Program.cs",
+          "bytes": 5043,
+          "sha256": "79ad8a21d21a0a5b8089a35214665ac512936ed5577e2e962bbf2fb6bc14a824"
+        },
+        "originalHostBuildInventory": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/native-primed-runtime-binding.json",
+          "bytes": 47607,
+          "sha256": "d2a7c4699a1b200a544dd69f3d697eda06ea82f066be67039ad9a21ccea10f12"
+        },
+        "originalRuntimeBindingSourceHeads": {
+          "beforeSourceHead": "0d4e30160ad4977ec811913a85e90502c60be7ba",
+          "qualifiedCheckpointHead": "4700b9931b291ce7edfdf4fa98ee45a165b918d7"
+        },
+        "rows": [
+          {
+            "fixture": "01-preferred-min-max",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/print.pdf",
+              "bytes": 8480,
+              "sha256": "2305fc1856f819241cb3fc79a1553bcab2341c1dcac9f3cce4cb2f0c44edcd76"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/print-page-1.png",
+              "bytes": 12971,
+              "sha256": "5fa4f46efd41d97f0656d0493ad6e1010f69b08614d965eb3c2bd0a5b272c4fc"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/print-bbox.html",
+              "bytes": 2258,
+              "sha256": "1fcd85f3f28fe19d9d2f9c11f30be61bb4aac55c568459ffe574c2a54db41b5d"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "01-preferred-min-max",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/screen.pdf",
+              "bytes": 8480,
+              "sha256": "2305fc1856f819241cb3fc79a1553bcab2341c1dcac9f3cce4cb2f0c44edcd76"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/screen-page-1.png",
+              "bytes": 12971,
+              "sha256": "5fa4f46efd41d97f0656d0493ad6e1010f69b08614d965eb3c2bd0a5b272c4fc"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/01-preferred-min-max/screen-bbox.html",
+              "bytes": 2258,
+              "sha256": "1fcd85f3f28fe19d9d2f9c11f30be61bb4aac55c568459ffe574c2a54db41b5d"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "02-preferred-max-min",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/print.pdf",
+              "bytes": 8627,
+              "sha256": "3bd3e406440073f1771fee131f9a442db6cd8b799fa393d3d9b5a5fd85bee042"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/print-page-1.png",
+              "bytes": 13118,
+              "sha256": "443013bb4c517a4d9fed177fd0409c5ace6b839c2fba583f22e0c274e44050eb"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/print-bbox.html",
+              "bytes": 2258,
+              "sha256": "5b1e3c481be64f23cfbb52e90c1e3e23fd81028f8eebd40d6bce25564e90d78c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "02-preferred-max-min",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/screen.pdf",
+              "bytes": 8627,
+              "sha256": "3bd3e406440073f1771fee131f9a442db6cd8b799fa393d3d9b5a5fd85bee042"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/screen-page-1.png",
+              "bytes": 13118,
+              "sha256": "443013bb4c517a4d9fed177fd0409c5ace6b839c2fba583f22e0c274e44050eb"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/02-preferred-max-min/screen-bbox.html",
+              "bytes": 2258,
+              "sha256": "5b1e3c481be64f23cfbb52e90c1e3e23fd81028f8eebd40d6bce25564e90d78c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "03-pair-keyword-auto",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/print.pdf",
+              "bytes": 9665,
+              "sha256": "e8579e63fd7dad9813ae0f376884c5c01ba773887be6177f155de0680a39384c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/print-page-1.png",
+              "bytes": 12987,
+              "sha256": "796de174f541afcad5535caaa2a88915149a99d1a825d63aeb7f547d9349ad8a"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/print-bbox.html",
+              "bytes": 2341,
+              "sha256": "d29c78ec47480b93e569a613ec02eb082619e6e5075591c08cb130140184d48c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "03-pair-keyword-auto",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/screen.pdf",
+              "bytes": 9665,
+              "sha256": "e8579e63fd7dad9813ae0f376884c5c01ba773887be6177f155de0680a39384c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/screen-page-1.png",
+              "bytes": 12987,
+              "sha256": "796de174f541afcad5535caaa2a88915149a99d1a825d63aeb7f547d9349ad8a"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/03-pair-keyword-auto/screen-bbox.html",
+              "bytes": 2341,
+              "sha256": "d29c78ec47480b93e569a613ec02eb082619e6e5075591c08cb130140184d48c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "04-three-boxes",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/04-three-boxes/print.pdf",
+              "bytes": 9053,
+              "sha256": "e27d0a5a241b840bcfd7b453723795d6c67cb1701f49d6c5694ec2a95306fa76"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/04-three-boxes/print-page-1.png",
+              "bytes": 11183,
+              "sha256": "201556d2150c0e769761a9f30dfb9b33c73a4bd22e34fe8a2b571d17700b0a6c"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/04-three-boxes/print-bbox.html",
+              "bytes": 2146,
+              "sha256": "44bb542e0d0773ac1376064cd58def3cae578b2d825b05b63163c4b856c2d536"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "04-three-boxes",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/04-three-boxes/screen.pdf",
+              "bytes": 9053,
+              "sha256": "e27d0a5a241b840bcfd7b453723795d6c67cb1701f49d6c5694ec2a95306fa76"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/04-three-boxes/screen-page-1.png",
+              "bytes": 11183,
+              "sha256": "201556d2150c0e769761a9f30dfb9b33c73a4bd22e34fe8a2b571d17700b0a6c"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/04-three-boxes/screen-bbox.html",
+              "bytes": 2146,
+              "sha256": "44bb542e0d0773ac1376064cd58def3cae578b2d825b05b63163c4b856c2d536"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "05-min-max-constraints",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/print.pdf",
+              "bytes": 8810,
+              "sha256": "ca2b67295f7fb5a87ef5faaf3ce436a48d62f72144de6c3e5f970cc2fb3f388e"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/print-page-1.png",
+              "bytes": 13122,
+              "sha256": "77c49da05c9609077c641b51d837214f4390602576cb8aa8647da6a94f6ee426"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/print-bbox.html",
+              "bytes": 2262,
+              "sha256": "1294bb3ab86bfba2c868eaf8a303904e4f2540d24c98925249f20ece03f86f43"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "05-min-max-constraints",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/screen.pdf",
+              "bytes": 8810,
+              "sha256": "ca2b67295f7fb5a87ef5faaf3ce436a48d62f72144de6c3e5f970cc2fb3f388e"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/screen-page-1.png",
+              "bytes": 13122,
+              "sha256": "77c49da05c9609077c641b51d837214f4390602576cb8aa8647da6a94f6ee426"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/05-min-max-constraints/screen-bbox.html",
+              "bytes": 2262,
+              "sha256": "1294bb3ab86bfba2c868eaf8a303904e4f2540d24c98925249f20ece03f86f43"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "06-minimum-wins",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/print.pdf",
+              "bytes": 8393,
+              "sha256": "4b411934fc529c4db6cf9769f42548dc200652a5f6aff984e46ff70a3104eb0b"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/print-page-1.png",
+              "bytes": 10189,
+              "sha256": "63d6739b21d1d4050c7e07fcc808de80b35f1635053a3e234d958ffa01d69a6c"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/print-bbox.html",
+              "bytes": 1964,
+              "sha256": "3f175d778c9e039ac14d2f646f61e6dcf63a1d6f844254b1fbf805cf6680395c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "06-minimum-wins",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/screen.pdf",
+              "bytes": 8393,
+              "sha256": "4b411934fc529c4db6cf9769f42548dc200652a5f6aff984e46ff70a3104eb0b"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/screen-page-1.png",
+              "bytes": 10189,
+              "sha256": "63d6739b21d1d4050c7e07fcc808de80b35f1635053a3e234d958ffa01d69a6c"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/06-minimum-wins/screen-bbox.html",
+              "bytes": 1964,
+              "sha256": "3f175d778c9e039ac14d2f646f61e6dcf63a1d6f844254b1fbf805cf6680395c"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "07-padding-border",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/07-padding-border/print.pdf",
+              "bytes": 8846,
+              "sha256": "045fda92dfbde8b74b041b16fcee57ed3674d9ce0b8b9af02f5d05dc3b55f242"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/07-padding-border/print-page-1.png",
+              "bytes": 13050,
+              "sha256": "0f7e34b06688efbd431f7b55a3ab246a6f33310f6544a69a45108313a3e57b85"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/07-padding-border/print-bbox.html",
+              "bytes": 2252,
+              "sha256": "b5bd51bb59cb8dd2b768f1040ee6339c2cd05434572225d046173c29b56dc11b"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "07-padding-border",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/07-padding-border/screen.pdf",
+              "bytes": 8846,
+              "sha256": "045fda92dfbde8b74b041b16fcee57ed3674d9ce0b8b9af02f5d05dc3b55f242"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/07-padding-border/screen-page-1.png",
+              "bytes": 13050,
+              "sha256": "0f7e34b06688efbd431f7b55a3ab246a6f33310f6544a69a45108313a3e57b85"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/07-padding-border/screen-bbox.html",
+              "bytes": 2252,
+              "sha256": "b5bd51bb59cb8dd2b768f1040ee6339c2cd05434572225d046173c29b56dc11b"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "08-empty-and-none",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/print.pdf",
+              "bytes": 8516,
+              "sha256": "bbd8c7acaba8f9bc50a90dab008561c159323ccc68e22392f33b2fbec2d39b2d"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/print-page-1.png",
+              "bytes": 9335,
+              "sha256": "67792c0d510fbd7c76be21e230933146d5ebde64332b52f6324d977456b9012f"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/print-bbox.html",
+              "bytes": 1784,
+              "sha256": "dcda598ad4bf8aab18e3eaae2bdd5996ea4348de1113219ffb50e7661477a7ce"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "08-empty-and-none",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/screen.pdf",
+              "bytes": 8516,
+              "sha256": "bbd8c7acaba8f9bc50a90dab008561c159323ccc68e22392f33b2fbec2d39b2d"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/screen-page-1.png",
+              "bytes": 9335,
+              "sha256": "67792c0d510fbd7c76be21e230933146d5ebde64332b52f6324d977456b9012f"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/08-empty-and-none/screen-bbox.html",
+              "bytes": 1784,
+              "sha256": "dcda598ad4bf8aab18e3eaae2bdd5996ea4348de1113219ffb50e7661477a7ce"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "09-fit-keyword",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/print.pdf",
+              "bytes": 10087,
+              "sha256": "dcaf301b2486e33f59b22e10947b7c8f651b6088885b2bb1bba1df8cfc4dd2fc"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/print-page-1.png",
+              "bytes": 16576,
+              "sha256": "e9bef475bad003c543a2d572c9ff38fee72f5252b55743bfb444c790f5b449c0"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/print-bbox.html",
+              "bytes": 3095,
+              "sha256": "eae8bbaeeb03fd454703ad51506f762bfc8afccee78272727ad9cc23e0c64c94"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "09-fit-keyword",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/screen.pdf",
+              "bytes": 10087,
+              "sha256": "dcaf301b2486e33f59b22e10947b7c8f651b6088885b2bb1bba1df8cfc4dd2fc"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/screen-page-1.png",
+              "bytes": 16576,
+              "sha256": "e9bef475bad003c543a2d572c9ff38fee72f5252b55743bfb444c790f5b449c0"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/09-fit-keyword/screen-bbox.html",
+              "bytes": 3095,
+              "sha256": "eae8bbaeeb03fd454703ad51506f762bfc8afccee78272727ad9cc23e0c64c94"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "10-hard-lines",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/10-hard-lines/print.pdf",
+              "bytes": 8369,
+              "sha256": "b9379d0400ece5c06265d6bef4e8e039aa9d3c9316a75de96873da4b88191d6c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/10-hard-lines/print-page-1.png",
+              "bytes": 12422,
+              "sha256": "ff88bc3d83f5ff42388f5c60c511d38871a9ed07495a6fc13a40cf6e719c8f0f"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/10-hard-lines/print-bbox.html",
+              "bytes": 2245,
+              "sha256": "06695785865a361680bce5a26ad0572982dd339c7bfdb57615784e92117582fd"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "10-hard-lines",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native/10-hard-lines/screen.pdf",
+              "bytes": 8369,
+              "sha256": "b9379d0400ece5c06265d6bef4e8e039aa9d3c9316a75de96873da4b88191d6c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native/10-hard-lines/screen-page-1.png",
+              "bytes": 12422,
+              "sha256": "ff88bc3d83f5ff42388f5c60c511d38871a9ed07495a6fc13a40cf6e719c8f0f"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native/10-hard-lines/screen-bbox.html",
+              "bytes": 2245,
+              "sha256": "06695785865a361680bce5a26ad0572982dd339c7bfdb57615784e92117582fd"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/native-fit/execution.json",
+          "bytes": 42049,
+          "sha256": "efb6569b33d6ffe7672406900d407109a8820e0515a9407b09b74afd5b247505"
+        },
+        "observations": 4,
+        "pages": 4,
+        "matrix": {
+          "path": "$TASK_ROOT/prep/fixture-matrix-fit.json",
+          "bytes": 997,
+          "sha256": "21f99eda92d6e0a0666cd9903b79f5768e6c8025b2f23d2053ebc64417804ef7"
+        },
+        "capturePlan": {
+          "path": "$TASK_ROOT/prep/native-plan-fit.json",
+          "bytes": 2184,
+          "sha256": "f9b7c76b8b7c47abbab6de4a3b8c969b980e094607136a70e3bf0ca4cf393d38"
+        },
+        "captureScript": {
+          "path": "$TASK_ROOT/prep/capture-native-fit.py",
+          "bytes": 12019,
+          "sha256": "d418b57abb902a44cdb432e949ea43244c63afedd42686de29078e9af7f9c35f"
+        },
+        "browser": {
+          "path": "$APPLICATIONS_ROOT/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          "bytes": 88560,
+          "sha256": "6d803495f9c3ce70c9d89001d968863925dd17317160f2d96b357f7c1872b61b"
+        },
+        "owner": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/build-native-primed/bin/BrowserProbe/release/HtmlTinkerX.dll",
+          "bytes": 2459104,
+          "sha256": "52e561bb5b333c6bc92e14ea7227f7e9719aab4d1355e3eca4d3489d7559722d"
+        },
+        "probe": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/build-native-primed/bin/BrowserProbe/release/BrowserProbe.dll",
+          "bytes": 19968,
+          "sha256": "9d86fae9c93c544a10d865aa275f3716bdc2685600701b874fc54412995af9ff"
+        },
+        "originalRuntimeBuildBinding": {
+          "path": "$SCRATCH_ROOT/html-page-margin-auto-sizing/prep/runtime-bindings.json",
+          "bytes": 60774,
+          "sha256": "9e0ad9941dcef00ba07fb1ec193229aa5756ceecd3c8505d9a612021de0c7dca"
+        },
+        "originalHostSource": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/prep/browser-primed/Program.cs",
+          "bytes": 5043,
+          "sha256": "79ad8a21d21a0a5b8089a35214665ac512936ed5577e2e962bbf2fb6bc14a824"
+        },
+        "originalHostBuildInventory": {
+          "path": "$SCRATCH_ROOT/html-page-margin-inheritance/native-primed-runtime-binding.json",
+          "bytes": 47607,
+          "sha256": "d2a7c4699a1b200a544dd69f3d697eda06ea82f066be67039ad9a21ccea10f12"
+        },
+        "originalRuntimeBindingSourceHeads": {
+          "beforeSourceHead": "0d4e30160ad4977ec811913a85e90502c60be7ba",
+          "qualifiedCheckpointHead": "4700b9931b291ce7edfdf4fa98ee45a165b918d7"
+        },
+        "rows": [
+          {
+            "fixture": "11-fit-constraints",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/print.pdf",
+              "bytes": 8659,
+              "sha256": "bbb88374fa5ebc42013f81098a9b1bdb9e2a3cfc98740571e7749c37d69b2e1e"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/print-page-1.png",
+              "bytes": 12330,
+              "sha256": "9b687eea113238c0ca3ce59e9b3fe2caa138e02c132021a5d842aa5808e5b72b"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/print-bbox.html",
+              "bytes": 2253,
+              "sha256": "eb472b4d0ca84152c1ef9550c013402453b40b6a404cbcdcdc274939a5c85191"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "11-fit-constraints",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/screen.pdf",
+              "bytes": 8659,
+              "sha256": "bbb88374fa5ebc42013f81098a9b1bdb9e2a3cfc98740571e7749c37d69b2e1e"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/screen-page-1.png",
+              "bytes": 12330,
+              "sha256": "9b687eea113238c0ca3ce59e9b3fe2caa138e02c132021a5d842aa5808e5b72b"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native-fit/11-fit-constraints/screen-bbox.html",
+              "bytes": 2253,
+              "sha256": "eb472b4d0ca84152c1ef9550c013402453b40b6a404cbcdcdc274939a5c85191"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "12-fit-three-boxes",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/print.pdf",
+              "bytes": 9413,
+              "sha256": "50a8799bf531d9fe34faf542b646c12ea7f67ba8d746d4fa777a0828f6601e5c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/print-page-1.png",
+              "bytes": 9481,
+              "sha256": "1478734d51f6cc94e0cd618c72aaf113f208ae73c5a37f86aca8f0aeaed8cb07"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/print-bbox.html",
+              "bytes": 2152,
+              "sha256": "4867ed7bdc7a5af4c987db33fdb1716572e9f5f6fcfe2f6c60824319a35127ac"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "fixture": "12-fit-three-boxes",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pdf": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/screen.pdf",
+              "bytes": 9413,
+              "sha256": "50a8799bf531d9fe34faf542b646c12ea7f67ba8d746d4fa777a0828f6601e5c"
+            },
+            "raster": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/screen-page-1.png",
+              "bytes": 9481,
+              "sha256": "1478734d51f6cc94e0cd618c72aaf113f208ae73c5a37f86aca8f0aeaed8cb07"
+            },
+            "positionedText": {
+              "path": "$TASK_ROOT/native-fit/12-fit-three-boxes/screen-bbox.html",
+              "bytes": 2152,
+              "sha256": "4867ed7bdc7a5af4c987db33fdb1716572e9f5f6fcfe2f6c60824319a35127ac"
+            },
+            "actualPaperPoints": [
+              270.0,
+              360.0
+            ],
+            "paperDeltaPoints": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    ],
+    "observations": 24,
+    "pages": 24,
+    "comparison": {
+      "path": "$TASK_ROOT/prep/native-current-comparison.json",
+      "bytes": 42587,
+      "sha256": "c65cd5fed4556a32e8793ed893de84edea24fd2975c4ca58a1d797788e3b4874"
+    },
+    "comparisonSummary": {
+      "observations": 24,
+      "ownPairs": 24,
+      "bodyPixelsUnchanged": 24,
+      "savedTextPreserved": 24,
+      "allNativeBorderObservationsWithinOneCssPixel": true
+    },
+    "admission": {
+      "path": "$TASK_ROOT/prep/native-intrinsic-admission.json",
+      "bytes": 1363,
+      "sha256": "d798e4fd13be992892434fcf70e6335b26aed31937c690a76a9e0b792df9663b"
+    },
+    "visual": {
+      "head": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+      "contactsViewed": [
+        {
+          "path": "$TASK_ROOT/prep/candidate-native-contact-1.png",
+          "bytes": 69614,
+          "sha256": "08e44931f5ef2111e858392bcabfe9b6e81f54cd1fa8b89b748570f610278c51"
+        },
+        {
+          "path": "$TASK_ROOT/prep/candidate-native-contact-2.png",
+          "bytes": 75927,
+          "sha256": "6ddc0ee211af672a7bc4f03128d18e08ff224a429ccbbda82274ca593145233b"
+        }
+      ],
+      "nativeViews": "Actual raw-authored Edge PDF raster;12cases/2media, matching selected keyword frames, wrapping, min/max precedence, clipping and empty/no generation in sampled contacts. Existing pressure/percentage/zeroheight appearance gaps not reopened or claimed closed.",
+      "boundary": "ROOT viewed the current NET10/native cohort; clean NET8 source and same-framework private acceptance are independent gates. No full native pixel equality is inferred."
+    },
+    "preparationCountBoundary": "Actual execution rows and frozen 10+2 input matrices supply accepted counts. Copied preparation-only plan totals (including 18 pages and fit-plan ten-fixture fields) are not qualification evidence.",
+    "limits": "Actual same-input/same-Carlito Edge savedPDF cohort:12fixtures x PrintPaged/ScreenMediaPaged=24one-page observations. ROOT viewed both12-case native/current contacts plus full-page before/after; selected colored vertical frame edges within1CSSpx. NET8/NET10 RGBA pixels,scene geometry,full text,savedPDF spans match exactly on24observations; encoders differ. Same-framework ownPNG=PDF byte agreement holds48pairs. Bounded horizontal keyword evidence, not universal glyph/pixel/spec/native physical print/accessibility proof. Retained older three-box min/max pressure, percentage-padding placement and zero-height painting differences remain open. Functional fit-content(...) remains diagnosed unsupported. Browser paper rounding tolerance<=0.5pt separate from exact96dpi raster."
+  },
+  "privatePackages": {
+    "version": "3.5.26",
+    "freshPackages": 5,
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "candidateBinding": {
+      "path": "$TASK_ROOT/prep/package-qualification/candidate-binding.json",
+      "bytes": 1324,
+      "sha256": "63fd0771fc0ffefc5b9c61f73aa027b8afd071d5dc5655e81cbbad30ca85eb8e"
+    },
+    "plan": {
+      "path": "$TASK_ROOT/prep/package-qualification/plan.json",
+      "bytes": 38622,
+      "sha256": "792d4d40011fa4001cffe428bec1c0eb8c1c0eca3672a5f4bc3556b834d5159f"
+    },
+    "inputContract": {
+      "path": "$TASK_ROOT/prep/package-qualification/input-contract.json",
+      "bytes": 7178,
+      "sha256": "9c23cec2404d0142a49f6d831d72011359eb0c76011cff0c096f35088f96e46d"
+    },
+    "packageBinding": {
+      "path": "$TASK_ROOT/packages/intrinsic-qualified/package-binding.json",
+      "bytes": 25023,
+      "sha256": "2b305089686957ea48a6453753d52c78b7e16645346a73b36ceb4e7fc6f72471"
+    },
+    "consumerBinding": {
+      "path": "$TASK_ROOT/packages/intrinsic-qualified/consumer-binding.json",
+      "bytes": 60971,
+      "sha256": "d9efee083822b9d528f1d1831de7ca5fb56b25d569c65afc61787fc6f0d86a76"
+    },
+    "rootAcceptance": {
+      "path": "$TASK_ROOT/root-render-acceptance.json",
+      "bytes": 3505,
+      "sha256": "34e52527a00a210c213489e11d9536755cdf9cfd9f0d4f7097e4d31973f960c2"
+    },
+    "acceptance": {
+      "path": "$TASK_ROOT/prep/package-qualification/acceptance.json",
+      "bytes": 33419,
+      "sha256": "83574b4c4fbe3f0d38a532aecf904bc1a2ef25e378b748254b2168b9d724988e"
+    },
+    "crossFrameworkComparison": {
+      "receipt": {
+        "path": "$TASK_ROOT/prep/cross-framework-comparison.json",
+        "bytes": 6885,
+        "sha256": "e2217c52b4ae35565b7806a944e093e06405e77ef1a4f064b8b3a2757a234a90"
+      },
+      "observations": 24,
+      "ownPairs": 48,
+      "result": "PASS",
+      "encodingBoundary": "NET8/NET10 encoders produce different PNG bytes; decoded RGBA pixels are identical. Same-framework directPNG/savedPDFreplay PNG bytes are identical. Initial overly strict cross-framework encoded-byte comparison failed and produced no approval; this corrected pixel comparison retains the distinction."
+    },
+    "acceptanceSchemaCorrection": {
+      "receipt": {
+        "path": "$TASK_ROOT/prep/package-qualification/acceptance-schema-correction.json",
+        "bytes": 1210,
+        "sha256": "938742709a199a00c8219db0d92e89aa99adde5cec306484f82715c00246d5eb"
+      },
+      "original": {
+        "path": "$TASK_ROOT/prep/package-qualification/acceptance-original-schema.json",
+        "bytes": 33423,
+        "sha256": "f0fab036df826f38c99d09dae158ec924155ffcb3a2fd283c33b48bc34e045d4"
+      },
+      "corrected": {
+        "path": "$TASK_ROOT/prep/package-qualification/acceptance.json",
+        "bytes": 33419,
+        "sha256": "83574b4c4fbe3f0d38a532aecf904bc1a2ef25e378b748254b2168b9d724988e"
+      },
+      "changedKeys": [
+        "schema"
+      ],
+      "productChanges": false,
+      "executionRoleName": "intrinsic-package-acceptance-schema-correction",
+      "failedAttempt": "run-stages.py bind-acceptance consumer-build consumer-run inspect-consumers: bind succeeded then Fresh acceptance pending exception before first consumer launch",
+      "boundary": "Original binder source/manifest and its source/package assertions are unchanged. The first consumer-launch acceptance gate rejected the overwritten schema before starting a consumer. Only the acceptance schema field was corrected; all actual consumer gates remained required."
+    },
+    "nativeComparisonLimits": "Actual same-input/same-Carlito Edge savedPDF cohort:12fixtures x PrintPaged/ScreenMediaPaged=24one-page observations. ROOT viewed both12-case native/current contacts plus full-page before/after; selected colored vertical frame edges within1CSSpx. NET8/NET10 RGBA pixels,scene geometry,full text,savedPDF spans match exactly on24observations; encoders differ. Same-framework ownPNG=PDF byte agreement holds48pairs. Bounded horizontal keyword evidence, not universal glyph/pixel/spec/native physical print/accessibility proof. Retained older three-box min/max pressure, percentage-padding placement and zero-height painting differences remain open. Functional fit-content(...) remains diagnosed unsupported. Browser paper rounding tolerance<=0.5pt separate from exact96dpi raster.",
+    "packages": [
+      {
+        "packageId": "OfficeIMO.Core",
+        "package": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/feed/OfficeIMO.Core.3.5.26.nupkg",
+          "bytes": 8780164,
+          "sha256": "59b55a82dfb63465e4fe45387b0cfa821fc36559bb72d3be9b93da017ea811dd"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Core.dll": "c76b4b528c9c0edbe2ab0628aaa576d6ba35430f2470d4427c304c21606fb72b",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "ff42c6dd7b646658a6d984d3c0f397038757c8b911273c6368bf016e02cf020c",
+          "lib/net8.0/OfficeIMO.Core.dll": "b4b38af9969ff93eca0047c9b753a8611c9c842f725555c97ee79a0939d66cca",
+          "lib/net10.0/OfficeIMO.Core.dll": "7ff48849b85ed2ae129417b274ea30ca57e0c6ef93e48b8fba3f8aae9a7bff54"
+        },
+        "freshProducerAssets": {
+          "lib/net472/OfficeIMO.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Core/release_net472/OfficeIMO.Core.dll",
+            "bytes": 4981760,
+            "sha256": "c76b4b528c9c0edbe2ab0628aaa576d6ba35430f2470d4427c304c21606fb72b"
+          },
+          "lib/netstandard2.0/OfficeIMO.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Core/release_netstandard2.0/OfficeIMO.Core.dll",
+            "bytes": 4980736,
+            "sha256": "ff42c6dd7b646658a6d984d3c0f397038757c8b911273c6368bf016e02cf020c"
+          },
+          "lib/net8.0/OfficeIMO.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll",
+            "bytes": 5025792,
+            "sha256": "b4b38af9969ff93eca0047c9b753a8611c9c842f725555c97ee79a0939d66cca"
+          },
+          "lib/net10.0/OfficeIMO.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+            "bytes": 5028864,
+            "sha256": "7ff48849b85ed2ae129417b274ea30ca57e0c6ef93e48b8fba3f8aae9a7bff54"
+          }
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Core.nuspec",
+          "bytes": 1629,
+          "sha256": "9634b5507eccb1d1573d01c9cd8c78954be78842b00f69826be3bec2ea507fc9",
+          "packageId": "OfficeIMO.Core",
+          "version": "3.5.26",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "51d292ec9065db9617bf90e5f66133aabfd421f7"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      {
+        "packageId": "OfficeIMO.Pdf",
+        "package": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/feed/OfficeIMO.Pdf.3.5.26.nupkg",
+          "bytes": 14023277,
+          "sha256": "be07249e3f7e558adb24dc911fc359c50e15ce8605e578a6e9a46d322764c9a4"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Pdf.dll": "0169ec3f6926b01b9d8e1f6e1c5da97b0a9c8594612c7f45e7e51586f036619d",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "e77eacfe77aea208ba17c2e9c93111879a2d998783b82c56bce7c3eef028a74f",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "941010ec3703213a73ce55e7a8124c8872a114d32cd10a9e5d102add7229358e",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "a2e495f95b60041aaa75a05dc1f8550f353679d39e7fe86bf49839f658c657aa"
+        },
+        "freshProducerAssets": {
+          "lib/net472/OfficeIMO.Pdf.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Pdf/release_net472/OfficeIMO.Pdf.dll",
+            "bytes": 8829440,
+            "sha256": "0169ec3f6926b01b9d8e1f6e1c5da97b0a9c8594612c7f45e7e51586f036619d"
+          },
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Pdf/release_netstandard2.0/OfficeIMO.Pdf.dll",
+            "bytes": 8829440,
+            "sha256": "e77eacfe77aea208ba17c2e9c93111879a2d998783b82c56bce7c3eef028a74f"
+          },
+          "lib/net8.0/OfficeIMO.Pdf.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll",
+            "bytes": 8836096,
+            "sha256": "941010ec3703213a73ce55e7a8124c8872a114d32cd10a9e5d102add7229358e"
+          },
+          "lib/net10.0/OfficeIMO.Pdf.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll",
+            "bytes": 8837632,
+            "sha256": "a2e495f95b60041aaa75a05dc1f8550f353679d39e7fe86bf49839f658c657aa"
+          }
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Pdf.nuspec",
+          "bytes": 1549,
+          "sha256": "8ed0bc3b9679554ed860e089dc212f693f887053cd6719b2c7d74fff4910cd0f",
+          "packageId": "OfficeIMO.Pdf",
+          "version": "3.5.26",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "51d292ec9065db9617bf90e5f66133aabfd421f7"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "packageId": "OfficeIMO.Html.Core",
+        "package": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/feed/OfficeIMO.Html.Core.3.5.26.nupkg",
+          "bytes": 325376,
+          "sha256": "c59d7afd96771bc239f5a3b46ae820919a1c290c46eaa719b33e65d37dcb9e7c"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "dc851aa53d7857bdcb4b4908999b51ecd44a8768fcbae19c3be7a3dcfafc34aa",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "d6fb1480d683f616fdf2e85e0a1b64479bed5da8816a8d6376d7de0ea5856804",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "d6ca7bcb5eff96875b3d937b0236eb10229822e0af3dd8c5445fa7a9b86041c0",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "c79275fe3b9e095025317f985f1f9e40653f4bafd3ce6d531fc9a7d1d871c38a"
+        },
+        "freshProducerAssets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.Core/release_net472/OfficeIMO.Html.Core.dll",
+            "bytes": 150528,
+            "sha256": "dc851aa53d7857bdcb4b4908999b51ecd44a8768fcbae19c3be7a3dcfafc34aa"
+          },
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.Core/release_netstandard2.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150528,
+            "sha256": "d6fb1480d683f616fdf2e85e0a1b64479bed5da8816a8d6376d7de0ea5856804"
+          },
+          "lib/net8.0/OfficeIMO.Html.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.Core/release_net8.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "d6ca7bcb5eff96875b3d937b0236eb10229822e0af3dd8c5445fa7a9b86041c0"
+          },
+          "lib/net10.0/OfficeIMO.Html.Core.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.Core/release_net10.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "c79275fe3b9e095025317f985f1f9e40653f4bafd3ce6d531fc9a7d1d871c38a"
+          }
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.Core.nuspec",
+          "bytes": 935,
+          "sha256": "233358285a557c1ac47a07c77faa81a3f129d303150a50c3dfea28c0ab79ce6d",
+          "packageId": "OfficeIMO.Html.Core",
+          "version": "3.5.26",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "51d292ec9065db9617bf90e5f66133aabfd421f7"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      {
+        "packageId": "OfficeIMO.Html.AngleSharp",
+        "package": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/feed/OfficeIMO.Html.AngleSharp.3.5.26.nupkg",
+          "bytes": 104236,
+          "sha256": "3b049e106ad5b0c86064a44446d2c1b318a9b9033b8520d95baef43dc6b923e1"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "b17255ae281c026b824dae8d99dcc49c7795d2d8ca29d590d9682333b425ea90",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "b969535f666b18175d75c38d1e897eaa681350adfb49fe9c9c490e98c12aafd4",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "4bcfc4081284e6e477702a0936435c353ef442c662af9f5c02cf93115599e4c9",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "fdbe739178848ee556ffded672f526e7bd301ebc2fd339bb986163f0a7799338"
+        },
+        "freshProducerAssets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.AngleSharp/release_net472/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 49152,
+            "sha256": "b17255ae281c026b824dae8d99dcc49c7795d2d8ca29d590d9682333b425ea90"
+          },
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.AngleSharp/release_netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 49152,
+            "sha256": "b969535f666b18175d75c38d1e897eaa681350adfb49fe9c9c490e98c12aafd4"
+          },
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.AngleSharp/release_net8.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "4bcfc4081284e6e477702a0936435c353ef442c662af9f5c02cf93115599e4c9"
+          },
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html.AngleSharp/release_net10.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "fdbe739178848ee556ffded672f526e7bd301ebc2fd339bb986163f0a7799338"
+          }
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.AngleSharp.nuspec",
+          "bytes": 1884,
+          "sha256": "818c23dd8a4245cf18a518fc1d7f01fb3c3e5179d329ac3ecc96dbc478f5e589",
+          "packageId": "OfficeIMO.Html.AngleSharp",
+          "version": "3.5.26",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "51d292ec9065db9617bf90e5f66133aabfd421f7"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "packageId": "OfficeIMO.Html",
+        "package": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/feed/OfficeIMO.Html.3.5.26.nupkg",
+          "bytes": 4755140,
+          "sha256": "66dd8e4cbdf454072e117b1d1e13e4fb1fe92dd242abb77e6277069d7bf53ae3"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.dll": "ffa3fe345538c6bce901a7423388ff96418c65a181956a27d1c4c5a6609c097f",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "61aa4f955449d4282258db8be220847edbfb1987542f148236618e8d5d134983",
+          "lib/net8.0/OfficeIMO.Html.dll": "c97d4e37a127689bedad6a67ad3b420f70bc3b60631cc7ffa008c825debb3a32",
+          "lib/net10.0/OfficeIMO.Html.dll": "deafe9759de8697d2ec82d6d61c8e2432b4dcc4e09340cb249a791156290d01e"
+        },
+        "freshProducerAssets": {
+          "lib/net472/OfficeIMO.Html.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html/release_net472/OfficeIMO.Html.dll",
+            "bytes": 2990080,
+            "sha256": "ffa3fe345538c6bce901a7423388ff96418c65a181956a27d1c4c5a6609c097f"
+          },
+          "lib/netstandard2.0/OfficeIMO.Html.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html/release_netstandard2.0/OfficeIMO.Html.dll",
+            "bytes": 2990080,
+            "sha256": "61aa4f955449d4282258db8be220847edbfb1987542f148236618e8d5d134983"
+          },
+          "lib/net8.0/OfficeIMO.Html.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll",
+            "bytes": 2990592,
+            "sha256": "c97d4e37a127689bedad6a67ad3b420f70bc3b60631cc7ffa008c825debb3a32"
+          },
+          "lib/net10.0/OfficeIMO.Html.dll": {
+            "path": "$TASK_ROOT/packages/source-graph-intrinsic-qualified/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll",
+            "bytes": 2991616,
+            "sha256": "deafe9759de8697d2ec82d6d61c8e2432b4dcc4e09340cb249a791156290d01e"
+          }
+        },
+        "nuspec": {
+          "entry": "OfficeIMO.Html.nuspec",
+          "bytes": 3515,
+          "sha256": "a073ce141178e4d992a70e673edaf0954559607bc61f73f1da2e851798cdcd84",
+          "packageId": "OfficeIMO.Html",
+          "version": "3.5.26",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "51d292ec9065db9617bf90e5f66133aabfd421f7"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.26",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "recordedExecutionRoles": 19,
+    "executions": [
+      {
+        "name": "intrinsic-package-preflight",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-preflight-execution.json",
+          "bytes": 1751,
+          "sha256": "e6fc26e3280ff2464622cd2f38737f8193f6ef2a0f509f7a4a8825f6bd119a03"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-preflight.log",
+          "bytes": 89,
+          "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.07248462500000002,
+        "role": "preflight"
+      },
+      {
+        "name": "intrinsic-package-source-restore",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-source-restore-execution.json",
+          "bytes": 2710,
+          "sha256": "c077acf125a47b3404ba03a333d7e0a3c73b565ffafa8835fd1cb8a4c6968d97"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-source-restore.log",
+          "bytes": 809,
+          "sha256": "230b30537117f9007619c196b578cba6a258b62f405cc9ab354b9c24ec85ef61"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.4829654159999999,
+        "role": "source"
+      },
+      {
+        "name": "intrinsic-package-source-build",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-source-build-execution.json",
+          "bytes": 2718,
+          "sha256": "c46cba215e4c1377c9f9350aec12d1222fa41009d037c07e0b3bdfc3a4c7a1b8"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-source-build.log",
+          "bytes": 4021,
+          "sha256": "8e75761f97ad32dbd3f2c10eb5e21f232c7fd905d0543c15ae3e9ec9ef1ba8d5"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 45.558571625,
+        "role": "source"
+      },
+      {
+        "name": "intrinsic-package-pack-officeimo-core",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-pack-officeimo-core-execution.json",
+          "bytes": 2750,
+          "sha256": "8eea6e3a78cd35674d740b09707d39ba8dfc17ea8b5865cb269db94ab5e5cca6"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-pack-officeimo-core.log",
+          "bytes": 167,
+          "sha256": "dbb85180757b05b58d4973f57cb8d35c8e8e3e72c1e391c8d3d71aeb8e2c45e1"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.706121291,
+        "role": "pack"
+      },
+      {
+        "name": "intrinsic-package-pack-officeimo-pdf",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-pack-officeimo-pdf-execution.json",
+          "bytes": 2745,
+          "sha256": "1ddfb7a47b0df9ef9119a123cebc674948a6cff199115e3966a9e46620e024ff"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-pack-officeimo-pdf.log",
+          "bytes": 166,
+          "sha256": "14653d00b55981c336d455d3c49521660daff48216b3281968c1adfde5d432d4"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 3.48407775,
+        "role": "pack"
+      },
+      {
+        "name": "intrinsic-package-pack-officeimo-html-core",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-pack-officeimo-html-core-execution.json",
+          "bytes": 2770,
+          "sha256": "872f03a5a1f48cd524bac67be060214a0d0afb053419254282d38afb35d20ba2"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-pack-officeimo-html-core.log",
+          "bytes": 172,
+          "sha256": "36293b1741edba3aefd6513439126e1767529e4e5134d9a5b0a6de146bde8dd4"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.848213416,
+        "role": "pack"
+      },
+      {
+        "name": "intrinsic-package-pack-officeimo-html-anglesharp",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-pack-officeimo-html-anglesharp-execution.json",
+          "bytes": 2794,
+          "sha256": "9a7a288f7fd355811de3ffb372438939cf4bc2d50f636241286da0ac00193a5b"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-pack-officeimo-html-anglesharp.log",
+          "bytes": 178,
+          "sha256": "83c7bb1afa42601313e68ee6492189058fe019bb9401b966da9310e7e85b8877"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.798760084,
+        "role": "pack"
+      },
+      {
+        "name": "intrinsic-package-pack-officeimo-html",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-pack-officeimo-html-execution.json",
+          "bytes": 2757,
+          "sha256": "212349f46a74bd0f3a1cb5ab85b190971d1ecf4bcfde0779bf946b5b885f11ae"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-pack-officeimo-html.log",
+          "bytes": 167,
+          "sha256": "f26085f1400875a395826f3d390ab84f465fe00037eed7e3326555280f6bebaa"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.3956141249999998,
+        "role": "pack"
+      },
+      {
+        "name": "intrinsic-package-inspect-packages",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-inspect-packages-execution.json",
+          "bytes": 1756,
+          "sha256": "cd79daa8b2e0d0da2c5b159c8c621a9e334d60f0182513d8c2c5d390ac0052a5"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-inspect-packages.log",
+          "bytes": 81,
+          "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.250941167,
+        "role": "inspect-packages"
+      },
+      {
+        "name": "intrinsic-package-bind-acceptance",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-bind-acceptance-execution.json",
+          "bytes": 1754,
+          "sha256": "bad15a1722364bf2402f8aa42ffd70e5bd0afd98eaafd5c8eeeff4b2f35e5505"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-bind-acceptance.log",
+          "bytes": 98,
+          "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.13636591699999998,
+        "role": "bind-acceptance"
+      },
+      {
+        "name": "intrinsic-package-net8-build",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-net8-build-execution.json",
+          "bytes": 2503,
+          "sha256": "2a47970fc4eb3bc196176f1e170153bdd8b931e24451fd3a2637fb7bc570f55c"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-net8-build.log",
+          "bytes": 423,
+          "sha256": "0c5396089c61369734fe9c3f6a0fe039e190652a3cb50bbaf8a306278c21fc96"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.772745334,
+        "role": "consumer-build"
+      },
+      {
+        "name": "intrinsic-package-net8-run",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-net8-run-execution.json",
+          "bytes": 2114,
+          "sha256": "5cce60acca3f1b8cf4a2e5a1553db09d9752c00886749170adf11d4342b7dfe9"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-net8-run.log",
+          "bytes": 158,
+          "sha256": "3ebda3467b5fae08fa63e8193ffe73d111fab33eaf092abb81c26114c909051d"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 2.968373416,
+        "role": "consumer-run"
+      },
+      {
+        "name": "intrinsic-package-net10-build",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-net10-build-execution.json",
+          "bytes": 2508,
+          "sha256": "eec1d93515cace3a970ba881562a63cef41b39f3e0f03efa652bd7058a08aa18"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-net10-build.log",
+          "bytes": 425,
+          "sha256": "718777cbce050311901eda2c66d982c532e3f58e20422aef93431b7226a4aad6"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.688550167,
+        "role": "consumer-build"
+      },
+      {
+        "name": "intrinsic-package-net10-run",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-net10-run-execution.json",
+          "bytes": 2126,
+          "sha256": "9a4f5fef05add53565537aec1e41809f15f64cc61326d422b7296d365afc7f95"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-net10-run.log",
+          "bytes": 158,
+          "sha256": "3ebda3467b5fae08fa63e8193ffe73d111fab33eaf092abb81c26114c909051d"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 2.3646415419999998,
+        "role": "consumer-run"
+      },
+      {
+        "name": "intrinsic-package-aot-publish",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-aot-publish-execution.json",
+          "bytes": 2574,
+          "sha256": "9383a10e49fe3e59ae2ab42fa4ccbdc09cac08b05c3d7389ffc9dea8c27c0a42"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-aot-publish.log",
+          "bytes": 534,
+          "sha256": "cd592d02f40b4509f370e5df1ae1fe7c8deff5db72218ea62222a5892df4c4a3"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 30.586087624999998,
+        "role": "consumer-build"
+      },
+      {
+        "name": "intrinsic-package-aot-run",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-aot-run-execution.json",
+          "bytes": 2061,
+          "sha256": "89786d8dbc3a4db922ddb5292cdef7f39e3eb3144c2669277eaea01729c030de"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-aot-run.log",
+          "bytes": 158,
+          "sha256": "3ebda3467b5fae08fa63e8193ffe73d111fab33eaf092abb81c26114c909051d"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 1.233423417,
+        "role": "consumer-run"
+      },
+      {
+        "name": "intrinsic-package-inspect-consumers",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-inspect-consumers-execution.json",
+          "bytes": 1759,
+          "sha256": "bf4a4bd202f87639ee0c5c440927872b86a3631672e94cb7d94e388e6a4a3dd2"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-inspect-consumers.log",
+          "bytes": 92,
+          "sha256": "7dfdc9c4f79032d38e113dc077714964e3c424714d2a5ec3df6d54c8a2f352f6"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.288154209,
+        "role": "inspect-consumers"
+      },
+      {
+        "name": "intrinsic-package-bind-candidate",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-bind-candidate-execution.json",
+          "bytes": 1438,
+          "sha256": "85f1430f0a275afa41785d2851d481a7d8968840dc7af8a13fdbbc69d163d585"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-bind-candidate.log",
+          "bytes": 124,
+          "sha256": "701ba4bafa317c4fd5a99129de4dbd17fa7fa35e6dfb851c09b29e48976967ea"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 14.587658209,
+        "role": "candidate-binding"
+      },
+      {
+        "name": "intrinsic-package-acceptance-schema-correction",
+        "execution": {
+          "path": "$TASK_ROOT/intrinsic-package-acceptance-schema-correction-execution.json",
+          "bytes": 1308,
+          "sha256": "813883676857dc15c8639660531da6b2db02afaad79b8636a94ed2b796b69c90"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/intrinsic-package-acceptance-schema-correction.log",
+          "bytes": 102,
+          "sha256": "c6488e72c828a0d824cc6329536effa620cadcd8e01b334c978b1ace8c9c1892"
+        },
+        "exitCode": 0,
+        "sourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+        "sourceClean": true,
+        "elapsedSeconds": 0.08518545800000002,
+        "role": "acceptance-schema-correction"
+      }
+    ],
+    "consumers": [
+      {
+        "label": "net8",
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "dynamicCodeSupported": true,
+        "result": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/results/net8/result.json",
+          "bytes": 449834,
+          "sha256": "7d99b60f3cda0219b03a0fe3d42369fd7fbc842e07aedc91711598fa2fb7d9bf"
+        },
+        "restoreGraph": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/consumer-graph/net8/obj/Consumer/project.assets.json",
+          "bytes": 11847,
+          "sha256": "0aafd2c1621dadfa8aebcff79b93e9d64c313d61262fa15b2fa30f3785f51fcd"
+        },
+        "observations": 20,
+        "pages": 20,
+        "sameFrameworkSourcePngPairsEqual": 20,
+        "ownPngPdfPairsEqual": 20,
+        "executedBinary": {
+          "path": "$DOTNET_ROOT/dotnet",
+          "bytes": 141392,
+          "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+        }
+      },
+      {
+        "label": "net10",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "dynamicCodeSupported": true,
+        "result": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/results/net10/result.json",
+          "bytes": 449909,
+          "sha256": "8107b45fd38667cf20339c69ca7cbd7f40307bda052c06481027ad73bcce3564"
+        },
+        "restoreGraph": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/consumer-graph/net10/obj/Consumer/project.assets.json",
+          "bytes": 29984,
+          "sha256": "32b0f7511553cde8307a3b2ceb31f5cb455e3df918a91398532609515e527ed5"
+        },
+        "observations": 20,
+        "pages": 20,
+        "sameFrameworkSourcePngPairsEqual": 20,
+        "ownPngPdfPairsEqual": 20,
+        "executedBinary": {
+          "path": "$DOTNET_ROOT/dotnet",
+          "bytes": 141392,
+          "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+        }
+      },
+      {
+        "label": "aot",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "dynamicCodeSupported": false,
+        "result": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/results/aot/result.json",
+          "bytes": 448022,
+          "sha256": "945ab9456254cd21d5e91ffac3ebbcc93cd8c80cf29b0d8eb6f3304dca0710ec"
+        },
+        "restoreGraph": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/consumer-graph/aot/obj/Consumer/project.assets.json",
+          "bytes": 39122,
+          "sha256": "9c9306e4c608610a67b41d38d9e778bf9cc7d371e4c686e1e2519014a79fe99f"
+        },
+        "observations": 20,
+        "pages": 20,
+        "sameFrameworkSourcePngPairsEqual": 20,
+        "ownPngPdfPairsEqual": 20,
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/intrinsic-qualified/out/aot/PageMarginIntrinsicPackageaot",
+          "bytes": 34710416,
+          "sha256": "9037d7f65609477b226290d2e5e1db45de3422f1c1acfba132bd6121f033e060"
+        }
+      }
+    ],
+    "boundary": "Fresh private local artifacts only. Ten main fixtures per lane; supplemental 11/12 are source/native only. Producer/nupkg/restored/loaded DLL bytes are bound; independently built source DLLs need not have identical bytes. No publication or downstream CI claim."
+  },
+  "localReview": {
+    "receipt": {
+      "path": "$TASK_ROOT/prep/local-review.json",
+      "bytes": 1099,
+      "sha256": "ce40281fe727dc904922ce8617e0a8e67bcfcebc931a6a707a55c84ad1242391"
+    },
+    "base": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+    "head": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+    "diffSha256": "e9a5095140d671cc544e4ee35cf0bdb6a200997e68e643a02475eed18bec92bc",
+    "fullPasses": 1,
+    "targetedConfirmations": 0,
+    "actionableFindings": 0,
+    "productDisposition": "Accept as shaped: bounded reuse of existing intrinsic owners; no new public API/production dependency."
+  },
+  "evidenceBoundary": {
+    "source": "Actual clean NET8/NET10 full ordinary HTML suites and 20 main plus 4 supplemental public source observations per framework.",
+    "packages": "Fresh five packages, twenty framework assets, and NET8/NET10/actual osx-arm64 NativeAOT consumers: 20 main observations and pages per lane.",
+    "native": "24 same-input Edge saved-PDF observations; selected border edges within one CSS pixel, owned body unchanged, saved text preserved, current ROOT visual/native acceptance.",
+    "pdfSuite": "Old full OfficeIMO.Pdf evidence is historical context only; this receipt claims no new full PDF suite run.",
+    "excludedClaims": [
+      "functional fit-content(...) support",
+      "universal CSS/native conformance or native pixel/glyph identity",
+      "physical print acceptance",
+      "Windows execution/profiling",
+      "accessibility qualification",
+      "external CI",
+      "PR or merge readiness",
+      "public package publication"
+    ]
+  },
+  "unchangedBoundaries": [
+    "Authored height, margins, box-sizing, side/corner/vertical margin boxes, backgrounds and broader border styles stay outside this selected slice.",
+    "Previously recorded pressure, percentage-padding and zero-height native appearance gaps are not reopened or claimed closed."
+  ],
+  "storage": {
+    "status": "completed",
+    "cleanup": {
+      "path": "$TASK_ROOT/prep/cleanup-final/cleanup-result.json",
+      "bytes": 15542,
+      "sha256": "4a9731c57552daca7c0987bf4033651ac0d352e4c19334c4b17187d5f62e4ef1"
+    },
+    "retention": {
+      "path": "$TASK_ROOT/prep/cleanup-final/retention-manifest.json",
+      "bytes": 57844,
+      "sha256": "63d3ec9d55758bb225856f5d1f0929778fd8b4039c06a275b536a0acbea01fca"
+    },
+    "archive": {
+      "path": "$TASK_ROOT/retained-build-metadata.zip",
+      "bytes": 49757060,
+      "sha256": "87203f21634b11e8f8e47b2d60eccd3b37c7b7640e473137634fa189ec3e42ce"
+    },
+    "logicalBytesRemoved": 3522242666,
+    "approximateRetainedBytesAtSnapshot": 283718901,
+    "boundOriginalFileMappings": 117,
+    "storageJournal": {
+      "path": "$TASK_ROOT/prep/cleanup-final/storage-ledger-receipt.json",
+      "bytes": 3069,
+      "sha256": "ff7a072f46b9093c0b291296da6cbf6a791148d6995693c35beef49fcedbf727"
+    },
+    "allPriorJournalRowsPreserved": true,
+    "processClosure": {
+      "path": "$TASK_ROOT/prep/resource-release-ready.json",
+      "bytes": 422,
+      "sha256": "04eb7e2020f722ba849b2c78c8925534d8f3179e78078307fa04ef401929fc08"
+    },
+    "boundary": "Exact package/source/native/TRX/render proof retained. Original bound build/cache paths retired after CRC/SHA256/mode verification; retention manifest maps recoverable metadata. Active clean managed checkpoint worktree is deliberately retained. Shared caches/history/primary/user/otheragent state preserved."
+  },
+  "delivery": {
+    "scope": "qualified semantic branch checkpoint",
+    "branch": "feature/html-page-margin-intrinsic-widths",
+    "qualifiedSourceHead": "51d292ec9065db9617bf90e5f66133aabfd421f7",
+    "baseVerifiedCurrentMaster": "8cc38e17423cc434a8306b1cd9cfc184ae30ba6c",
+    "beforePush": {
+      "path": "$TASK_ROOT/prep/publication/before-push.json",
+      "bytes": 600,
+      "sha256": "1979b288aa24034a961bdb33a2dedda05f5b361110319bc95f674dd82c1b4696"
+    },
+    "authority": "Push checkpoint only; this proof does not assert PR, merge, release or public package availability.",
+    "workflowBoundary": "Feature branch pushes are backups; ordinary correctness workflows target master/main or pull requests. No branch CI qualification is claimed.",
+    "finalHeadBoundary": "The qualified source is51d292. A subsequent metadata-only commit records this receipt; exact final pushed head/readback and ownership release are recorded in machine-local continuation state without circular self-binding."
+  },
+  "collector": {
+    "script": {
+      "path": "$TASK_ROOT/prep/final-receipt/collect.py",
+      "bytes": 41368,
+      "sha256": "f0ce2ff9928a24773a9de354a5f524d11aeee83c78ec3607783d3d75606a4eda"
+    },
+    "originalCollectedProof": {
+      "path": "$TASK_ROOT/prep/final-receipt/qualification.json",
+      "bytes": 99186,
+      "sha256": "9afaf14a5fa8b45a822415a44424080a9aac5b5d208ce4a3e9234f3caa45e975"
+    },
+    "attempts": {
+      "path": "$TASK_ROOT/prep/final-receipt/collector-attempts.json",
+      "bytes": 775,
+      "sha256": "d564597c91fc499c02b08bee574660f3458458e31198e361a9a9e83f3a39b7d9"
+    },
+    "retentionAttempts": {
+      "path": "$TASK_ROOT/prep/cleanup-final/retention-attempts.json",
+      "bytes": 734,
+      "sha256": "af47d189f11fbdb71106daafa608a0335de4195d08743084c34ac28fd8ad9cc3"
+    },
+    "boundary": "Original rejected schema and cross-encoder/output-size/retention-mode preparation attempts remain recorded. Final actual product/source/native/package assertions all pass; no failed packet is relabeled as passing."
+  }
+}

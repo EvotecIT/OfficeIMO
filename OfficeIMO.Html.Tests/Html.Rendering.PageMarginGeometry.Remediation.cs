@@ -138,7 +138,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginGeometryRemediation_OnlyGeneratedContentHasApplicableGeometryFallbacks(
         string content, bool expectedLoss) {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
-            "@top-center{content:" + content + ";width:min-content}");
+            "@top-center{content:" + content + ";width:fit-content(80px)}");
 
         Assert.Equal(expectedLoss, rendered.HasLoss);
         if (expectedLoss) {

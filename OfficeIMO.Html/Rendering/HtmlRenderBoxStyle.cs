@@ -175,6 +175,13 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool MaxWidthUsesPercentage;
     internal double? MinHeight;
     internal double? MaxHeight;
+    // Horizontal page-margin block-axis keywords use the laid-out content height.
+    // Ordinary element sizing retains its separate intrinsic-height contract.
+    internal bool PageMarginIntrinsicHeight;
+    internal bool PageMarginIntrinsicMinHeight;
+    internal bool PageMarginIntrinsicMaxHeight;
+    internal bool HasPageMarginIntrinsicHeights => PageMarginIntrinsicHeight
+        || PageMarginIntrinsicMinHeight || PageMarginIntrinsicMaxHeight;
     internal string ObjectFit = "fill";
     internal string ObjectPosition = "50% 50%";
     internal bool ApplyEmbeddedImageOrientation = true;

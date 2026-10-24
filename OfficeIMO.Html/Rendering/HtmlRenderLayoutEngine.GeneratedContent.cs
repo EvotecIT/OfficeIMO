@@ -301,7 +301,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.PaintVisible) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, element, source);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, element, source, source);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, HtmlRenderStyleResolver.DescribeSource(element), source, source);
         AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, element, source);
         AddBorderPaint(visuals, style, x, y, width, height, radii, element, source);
     }

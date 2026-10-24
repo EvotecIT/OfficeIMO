@@ -122,6 +122,24 @@ public sealed class HtmlFontUsageTests {
     }
 
     [Theory]
+    [InlineData("height:max-content")]
+    [InlineData("height:0;min-height:max-content")]
+    [InlineData("height:80px;max-height:min-content")]
+    public async Task PageMarginZeroSizeTextDoesNotAttributeUnavailableFace(string height) {
+        var options = CreateOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.Margins = HtmlRenderMargins.All(40);
+        var rendered = await HtmlRenderEngine.RenderAsync(HtmlConversionDocument.Parse(Style(
+            "p{font-family:Good}@page{@top-center{content:'AAAA';font-family:Missing;font-size:0;line-height:20px;width:1px;"
+            + height + "}}") + "<p>Body</p>"), options);
+
+        HtmlDiagnostic unavailable = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.Equal(HtmlDiagnosticSeverity.Info, unavailable.Severity);
+        Assert.Equal(OfficeConversionLossKind.None, unavailable.LossKind);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData("value='\u03a9'", "input{font-family:Missing,Good}")]
     [InlineData("placeholder='\u03a9'", "input{font-family:Good}input::placeholder{font-family:Missing,Good}")]
     public async Task InputTextAttributesUnavailableUnicodeSubset(string attributes, string css) {

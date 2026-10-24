@@ -3,6 +3,45 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Uses the clockwise default page-margin painting order independently of enum declaration order.</summary>
+    private static int GetPageMarginPaintOrder(HtmlCssPageMarginPosition position) => position switch {
+        HtmlCssPageMarginPosition.TopLeftCorner => 0,
+        HtmlCssPageMarginPosition.TopLeft => 1,
+        HtmlCssPageMarginPosition.TopCenter => 2,
+        HtmlCssPageMarginPosition.TopRight => 3,
+        HtmlCssPageMarginPosition.TopRightCorner => 4,
+        HtmlCssPageMarginPosition.RightTop => 5,
+        HtmlCssPageMarginPosition.RightMiddle => 6,
+        HtmlCssPageMarginPosition.RightBottom => 7,
+        HtmlCssPageMarginPosition.BottomRightCorner => 8,
+        HtmlCssPageMarginPosition.BottomRight => 9,
+        HtmlCssPageMarginPosition.BottomCenter => 10,
+        HtmlCssPageMarginPosition.BottomLeft => 11,
+        HtmlCssPageMarginPosition.BottomLeftCorner => 12,
+        HtmlCssPageMarginPosition.LeftBottom => 13,
+        HtmlCssPageMarginPosition.LeftMiddle => 14,
+        HtmlCssPageMarginPosition.LeftTop => 15,
+        _ => throw new ArgumentOutOfRangeException(nameof(position))
+    };
+
+    /// <summary>Reports paint removed by a running-content clip, ignoring unused formatting-frame overflow.</summary>
+    private void ReportPageMarginContentClip(IReadOnlyList<HtmlRenderVisual> visuals,
+        double x, double y, double width, double height, bool clipHorizontal, bool clipVertical, string source) {
+        if (_reportedMarginTextOverflow.Contains(source)) return;
+        foreach (HtmlRenderVisual visual in visuals) {
+            foreach (HtmlRenderRectangle paint in EnumeratePageMarginPaintBounds(visual)) {
+                bool horizontal = clipHorizontal && (paint.X < x - 0.0001D || paint.Right > x + width + 0.0001D);
+                bool vertical = clipVertical && (paint.Y < y - 0.0001D || paint.Bottom > y + height + 0.0001D);
+                if (!horizontal && !vertical) continue;
+                _reportedMarginTextOverflow.Add(source);
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                    "Generated running-element paint exceeded its page-margin content area and was clipped.",
+                    HtmlDiagnosticSeverity.Warning, source, horizontal ? "margin-width" : "margin-height", OfficeConversionLossKind.Omission);
+                return;
+            }
+        }
+    }
+
     /// <summary>Checks generated paint rather than an authored margin box's potentially empty frame.</summary>
     private void ReportPageMarginPhysicalOverflow(IReadOnlyList<HtmlRenderVisual> visuals, HtmlRenderPage page, string source) {
         foreach (HtmlRenderVisual visual in visuals) {
