@@ -153,17 +153,22 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderSemanticGroup box = Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(),
             group => group.Source == "@page @top-center element(heading)");
-        HtmlRenderText[] lines = EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] fragments = EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[][] lines = fragments.GroupBy(text => text.Y).OrderBy(line => line.Key)
+            .Select(line => line.OrderBy(text => text.X).ToArray()).ToArray();
 
         Assert.Equal(expectedContentWidth + 24D, box.Width, 6);
         Assert.Equal(170D, box.X + box.Width / 2D, 6);
         Assert.Equal(keyword == "min-content" ? 2 : 1, lines.Length);
-        Assert.All(lines, text => {
-            Assert.Equal(box.X + 12D, text.X, 6);
+        Assert.Equal(keyword == "min-content" ? new[] { "ALPHA", "BETA" } : new[] { "ALPHA BETA" },
+            lines.Select(line => string.Concat(line.Select(text => text.Text))).ToArray());
+        Assert.All(lines, line => Assert.Equal(box.X + 12D, line[0].X, 6));
+        Assert.All(fragments, text => {
+            Assert.InRange(text.X, box.X + 12D, box.X + 12D + expectedContentWidth);
             Assert.InRange(text.Width, 0.01D, expectedContentWidth);
             Assert.InRange(text.X + text.Width, box.X + 12D, box.X + 12D + expectedContentWidth);
         });
-        Assert.Equal("ALPHABETA", PageMarginTypographyCompact(string.Concat(lines.Select(text => text.Text))));
+        Assert.Equal("ALPHABETA", PageMarginTypographyCompact(string.Concat(fragments.Select(text => text.Text))));
         Assert.Equal("BODY", rendered.Text.Trim());
         rendered.RequireNoLoss();
     }
