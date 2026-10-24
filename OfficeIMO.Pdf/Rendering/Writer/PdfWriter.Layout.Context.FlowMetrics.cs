@@ -272,7 +272,7 @@ internal static partial class PdfWriter {
 
         private double MeasureKeepWithNextBlockHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize) {
             if (block is HeadingBlock heading) {
-                return MeasureHeadingBlockHeight(heading, frameWidth);
+                return MeasureHeadingBlockHeight(heading, frameX, frameWidth);
             }
 
             if (block is RichParagraphBlock paragraph) {
@@ -312,7 +312,7 @@ internal static partial class PdfWriter {
             return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
         }
 
-        private double MeasureHeadingBlockHeight(HeadingBlock heading, double frameWidth) {
+        private double MeasureHeadingBlockHeight(HeadingBlock heading, double frameX, double frameWidth) {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(heading, currentOpts);
             double headingSize = GetHeadingFontSize(heading, headingStyle);
             double headingLeading = GetHeadingLeading(headingStyle, headingSize);
@@ -322,7 +322,8 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
-            var wrap = WrapRichHeadingRuns(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
+            var wrap = WrapHeadingForFrame(heading, headingRuns, headingStyle, frameX, frameWidth,
+                headingSize, headingLeading, y - spacingBefore);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }
 
@@ -456,10 +457,11 @@ internal static partial class PdfWriter {
                 double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
                     ? headingStyle?.SpacingBefore ?? 0D
                     : 0D;
-                if (headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
-                    var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle.Color);
-                    var wrap = WrapRichHeadingRuns(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
-                        headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
+                if (HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions ||
+                    headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
+                    var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle?.Color);
+                    var wrap = WrapHeadingForFrame(heading, runs, headingStyle, frameX, frameWidth,
+                        headingSize, headingLeading, y - spacingBefore);
                     return spacingBefore + (wrap.Lines.Count == 0 ? 0D : GetRichLineFrameFitHeight(wrap.Lines[0], wrap.LineHeights[0]));
                 }
                 return spacingBefore + headingLeading;

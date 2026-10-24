@@ -220,6 +220,48 @@ public sealed class PdfAnchoredPictureWrappingTests {
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterContentOverflow");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WrappedHeadingKeepsItsOutlineAndLinkBoundsOnThePaintedFragments(bool topAndBottom) {
+        const string uri = "https://example.test/heading";
+        string title = string.Join(" ", Tokens);
+        var options = Options();
+        options.CreateOutlineFromHeadings = true;
+        var style = new PdfHeadingStyle {
+            FontSize = 12D, Bold = false, LineSpacing = PdfLineSpacing.Exactly(15D),
+            SpacingBefore = 0D, SpacingAfter = 0D, KeepWithNext = false,
+            AnchoredCanvas = PictureStyle(topAndBottom ? PdfImageTextWrapKind.TopAndBottom :
+                PdfImageTextWrapKind.Square).AnchoredCanvas
+        };
+        var document = PdfDocument.Create(options);
+        document.Content.Heading(1, title, linkUri: uri, style: style);
+        byte[] bytes = document.ToBytes();
+        using var pdf = ReadEvidence(topAndBottom ? "heading-top-bottom" : "heading-square", bytes);
+        var page = Assert.Single(pdf.GetPages());
+        var image = Assert.Single(page.GetImages()).BoundingBox;
+        AssertTokensOnce(page.GetWords(), Tokens);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal(title, outline.Title);
+        Assert.Equal(1, outline.Level);
+        Assert.Equal(1, outline.PageNumber);
+        Assert.Equal(topAndBottom ? image.Bottom - 6D : 370D, outline.DestinationTop!.Value, 3);
+        Assert.NotEmpty(info.LinkAnnotations);
+        Assert.All(info.LinkAnnotations, link => {
+            Assert.Equal(uri, link.Uri);
+            Assert.True(link.Width > 0D && link.Height > 0D);
+            Assert.InRange(link.X1, 30D, 330D);
+            Assert.InRange(link.X2, 30D, 330D);
+            bool alongside = link.Y2 > image.Bottom - 6D && link.Y1 < image.Top + 6D;
+            Assert.True(!alongside || link.X2 <= image.Left - 6D + .01D ||
+                link.X1 >= image.Right + 6D - .01D);
+            if (topAndBottom) Assert.True(link.Y2 <= image.Bottom - 6D + .01D);
+        });
+        if (!topAndBottom) Assert.Contains(info.LinkAnnotations.GroupBy(link => Math.Round(link.Y1, 3)),
+            row => row.Any(link => link.X1 < image.Left - 6D) && row.Any(link => link.X1 >= image.Right + 6D));
+    }
+
     private static PdfOptions Options(double height = 400D) => new PdfOptions {
         PageWidth = 360D, PageHeight = height, MarginLeft = 30D, MarginRight = 30D,
         MarginTop = 30D, MarginBottom = 30D, DefaultFont = PdfStandardFont.Helvetica,
