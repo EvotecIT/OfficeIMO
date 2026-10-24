@@ -325,30 +325,50 @@ internal static partial class PdfWriter {
                 // Widow/orphan control can carry a previously simulated float-side line forward.
                 // Keep its line break, but remove the old page's exclusion offset and clearance.
                 if (floatingLineGaps != null) {
+                    PdfTabStop[]? destinationStops = NormalizeExplicitTabStops(paragraphStyle?.TabStops.ToArray(), textFrame.Width);
                     for (int index = lineIndex; index < lineHeights.Count; index++) {
                         lineHeights[index] -= floatingLineGaps[index];
+                        bool changedLeaderInk = false;
                         double lineWidth = 0;
+                        int nextDestinationStop = 0;
                         for (int segmentIndex = 0; segmentIndex < lines[index].Count; segmentIndex++) {
                             var segment = lines[index][segmentIndex];
                             var adjusted = segment;
-                            if (segment.LeadingTabStop != null) {
-                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
-                                RichTabFieldMeasurement? field = AlignsCompleteTabField(segment.LeadingTabStop.Alignment)
+                            if (segment.LeadingIsTab || segment.LeadingTabStop != null) {
+                                PdfTextRun? sourceTab = segment.SourceTabRun;
+                                PdfTabStop? stop = sourceTab?.RelativeTabStop is { } relative
+                                    ? new PdfTabStop(Math.Max(.001D, textFrame.Width * relative.Fraction + relative.Offset),
+                                        sourceTab.TabAlignment, sourceTab.TabLeader)
+                                    : TakeNextParagraphTabStop(destinationStops, lineWidth, ref nextDestinationStop);
+                                // Older positioned segments may have no source-run
+                                // provenance. Preserve their existing selected stop.
+                                if (sourceTab == null) stop ??= segment.LeadingTabStop;
+                                PdfTabAlignment alignment = stop?.Alignment ?? sourceTab?.TabAlignment ?? segment.LeadingTabAlignment;
+                                PdfTabLeaderStyle leader = stop?.Leader ?? sourceTab?.TabLeader ?? segment.LeadingTabLeader;
+                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                                    currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing,
+                                    segment.TextDirection, segment.FontMetricScale);
+                                RichTabFieldMeasurement? field = AlignsCompleteTabField(alignment)
                                     ? MeasureWrappedTabField(lines[index], segmentIndex) : null;
                                 double fieldWidth = field?.Width ?? GetRichSegmentWidth(segment);
-                                adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, fieldWidth, spaceWidth,
-                                    segment.LeadingTabStop.Alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
-                                    segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, segment.LeadingTabStop,
+                                double advance = CalculateTabAdvance(lineWidth, fieldWidth, spaceWidth,
+                                    alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
+                                    segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, stop,
                                     followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings,
                                     horizontalTextScaling: segment.HorizontalTextScaling, characterSpacing: segment.CharacterSpacing,
-                                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, segment.LeadingTabStop.Alignment,
-                                        segment.LeadingTabStop, currentOpts)));
+                                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, currentOpts));
+                                adjusted = segment.WithTabPlacement(advance, stop, alignment, leader);
+                                changedLeaderInk |= HasPaintedRichTabLeader(segment, currentOpts) !=
+                                    HasPaintedRichTabLeader(adjusted, currentOpts);
                                 lines[index][segmentIndex] = adjusted;
                             }
                             lineWidth += GetRichSegmentWidth(adjusted) + adjusted.LeadingAdvance;
                         }
                         if (paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify)
                             BindWordCompressionPlan(lines[index], textFrame.Width);
+                        if (changedLeaderInk && lines[index] is RichLine richLine)
+                            lineHeights[index] = RefreshRichLineMetrics(richLine, ChooseNormal(currentOpts.DefaultFont),
+                                size, leading, currentOpts, paragraphStyle?.LineSpacing);
                     }
                 }
                 floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;

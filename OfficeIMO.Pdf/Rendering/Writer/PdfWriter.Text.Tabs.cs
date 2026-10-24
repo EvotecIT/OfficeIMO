@@ -40,6 +40,14 @@ internal static partial class PdfWriter {
         return false;
     }
 
+    // Paragraph stops are consumed in source order on each line. A signed
+    // cursor may move backwards without selecting an already consumed stop.
+    private static PdfTabStop? TakeNextParagraphTabStop(PdfTabStop[]? stops,
+        double cursor, ref int nextIndex) {
+        if (stops == null) return null;
+        while (nextIndex < stops.Length && stops[nextIndex].Position <= cursor + .001D) nextIndex++;
+        return nextIndex < stops.Length ? stops[nextIndex++] : null;
+    }
     private static PdfTabStop? GetNextExplicitTabStop(double lineWidth, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
         if (tabStops == null || tabStops.Count == 0 || lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth)) {
             return null;

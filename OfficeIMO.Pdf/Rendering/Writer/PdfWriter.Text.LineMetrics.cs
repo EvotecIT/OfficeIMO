@@ -10,6 +10,90 @@ internal static partial class PdfWriter {
         internal double MinimumContentHeight { get; set; }
     }
 
+    private static double ResolveRichContentHeight(double contentHeight, PdfLineSpacing? spacing,
+        double textAscent, double textDescent, double bodyAscent,
+        double inlineAscent, double inlineDescent, bool hasInline) {
+        if (spacing?.IsExact == true) return contentHeight;
+        double combined = Math.Max(textAscent, inlineAscent) + Math.Max(textDescent, inlineDescent);
+        if (spacing?.FontLineBoxMultiplier is not double natural)
+            return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
+        if (spacing.LineGridPitch.HasValue)
+            return Math.Max(contentHeight, spacing.GetGridAdvance(combined));
+        double textAdvance = textAscent + textDescent;
+        if (spacing.Rule == PdfLineSpacingRule.Multiple)
+            textAdvance = bodyAscent == 0D && textDescent == 0D ? 0D
+                : (bodyAscent + textDescent) * spacing.Value / natural
+                    + Math.Max(0D, textAscent - bodyAscent);
+        contentHeight = Math.Max(contentHeight, textAdvance);
+        return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
+            ? Math.Max(contentHeight, combined) : contentHeight;
+    }
+
+    // A line's retained tab gaps can change after exclusion/page placement.
+    // Rebuild its owned metrics from the segments that will actually paint,
+    // while keeping the caller's line break and exact-spacing policy intact.
+    private static double RefreshRichLineMetrics(RichLine line, PdfStandardFont baseFont,
+        double fontSize, double leading, PdfOptions options, PdfLineSpacing? spacing) {
+        double advance = leading;
+        if (spacing?.IsExact != true) {
+            double textAscent = 0D, textDescent = 0D, bodyAscent = 0D;
+            double inlineAscent = 0D, inlineDescent = 0D;
+            bool hasInline = false;
+            double ratio = fontSize > 0D ? leading / fontSize : 1.2D;
+            foreach (RichSeg segment in line) {
+                bool emptySeparator = segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null;
+                if (emptySeparator && segment.LeadingIsTab && !HasPaintedRichTabLeader(segment, options)) continue;
+                if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
+                    double ascent = Math.Max(0D, inline.BaselineOffset + inline.Height);
+                    double descent = Math.Max(0D, -inline.BaselineOffset);
+                    inlineAscent = Math.Max(inlineAscent, ascent);
+                    inlineDescent = Math.Max(inlineDescent, descent);
+                    hasInline = true;
+                    double inlineAdvance = spacing?.FontLineBoxMultiplier != null
+                        ? Math.Max(leading, ascent + descent)
+                        : Math.Max(GetAscenderForOptions(baseFont, fontSize, options), ascent)
+                            + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), descent);
+                    advance = Math.Max(advance, inlineAdvance);
+                    continue;
+                }
+                if (segment.ContributesLineBoxDescent)
+                    advance = Math.Max(advance, spacing?.GetAdvance(segment.FontSize) ?? segment.FontSize * ratio);
+                // Literal source spaces retain their font advance. As with the
+                // wrapper's baseline policy, an empty separator has text metrics
+                // only when its resolved tab leader actually paints glyphs.
+                if (emptySeparator && !HasPaintedRichTabLeader(segment, options)) continue;
+                double runAscent, runDescent;
+                if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget)
+                    GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing, out runAscent, out runDescent);
+                else GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                    options, spacing, out runAscent, out runDescent);
+                textAscent = Math.Max(textAscent, runAscent);
+                if (segment.ContributesLineBoxDescent) {
+                    textDescent = Math.Max(textDescent, runDescent);
+                    bodyAscent = Math.Max(bodyAscent, runAscent);
+                }
+            }
+            advance = ResolveRichContentHeight(advance, spacing, textAscent, textDescent,
+                bodyAscent, inlineAscent, inlineDescent, hasInline);
+        }
+        RefreshRichLinePlacementMetrics(line, baseFont, fontSize, options, spacing);
+        return advance;
+    }
+
+    private static void RefreshRichLinePlacementMetrics(RichLine line, PdfStandardFont baseFont,
+        double fontSize, PdfOptions? options, PdfLineSpacing? spacing) {
+        foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, spacing);
+        line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, spacing);
+        line.MinimumContentHeight = 0D;
+        line.FrameFitHeight = null;
+        if (spacing == null) {
+            GetRichLineInkMetrics(line, options ?? new PdfOptions(), out _, out double descent);
+            line.MinimumContentHeight = line.BaselineOffset + descent;
+        }
+        if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.Multiple)
+            line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, spacing);
+    }
+
     private static double ResolveRichLineBaselineOffset(
         IReadOnlyList<RichSeg> segments, PdfStandardFont baseFont, double fontSize,
         PdfOptions? options, PdfLineSpacing? spacing) {
@@ -22,7 +106,7 @@ internal static partial class PdfWriter {
         double descent = 0D;
         foreach (RichSeg segment in segments) {
             // Empty separators move the baseline only when they paint a tab leader.
-            if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null &&
+            if (segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null &&
                 !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget) {
                 GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing,

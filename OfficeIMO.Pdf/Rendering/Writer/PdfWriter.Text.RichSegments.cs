@@ -146,6 +146,7 @@ internal static partial class PdfWriter {
             FormField = source.FormField;
             FootnoteReference = source.FootnoteReference;
             FootnoteReferenceOrigin = source.FootnoteReferenceOrigin;
+            SourceTabRun = source.SourceTabRun;
             JustificationAdvance = source.JustificationAdvance;
             JustificationPolicy = source.JustificationPolicy;
             LeadingIsOrdinarySpace = source.LeadingIsOrdinarySpace;
@@ -199,6 +200,18 @@ internal static partial class PdfWriter {
             return reference;
         }
 
+        // Keep source stop provenance separate from a stop selected in an old
+        // exclusion frame. A continuation may select a different paragraph stop.
+        internal PdfTextRun? SourceTabRun { get; private set; }
+        internal RichSeg WithSourceTabRun(PdfTextRun? source) { SourceTabRun = source; return this; }
+        internal RichSeg WithTabPlacement(double advance, PdfTabStop? stop, PdfTabAlignment alignment, PdfTabLeaderStyle leader) =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents,
+                Font, FontSize, Baseline, MeasuredWidth, advance > 0D, advance, false, leader,
+                EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle,
+                DecorationColor, FeatureSettings, TextDirection, stop, LeadingUnderlineStyle, LeadingDecorationColor,
+                LeadingDecorationFontSize, LeadingDecorationTextRise, true, alignment, HorizontalTextScaling,
+                CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance)
+                .CopyLayoutMetadataFrom(this);
         public PdfNamedFontFace? NamedFont { get; }
 
         public OfficeTextFeatureSettings FeatureSettings { get; }

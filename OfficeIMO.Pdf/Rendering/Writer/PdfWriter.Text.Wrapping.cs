@@ -177,7 +177,8 @@ internal static partial class PdfWriter {
             double PaintableAdvance(RichSeg candidate) => clipToCurrentFrame
                 ? Math.Min(candidate.LeadingAdvance, Math.Min(maximumAdvance ?? double.MaxValue,
                     Math.Max(0D, CurrentMaxWidth() - lineWidth))) : candidate.LeadingAdvance;
-            if (!HasPaintedRichTabLeader(tab.WithLeadingAdvance(PaintableAdvance(tab)), options)) return tab;
+            bool HasLeaderInk() => HasPaintedRichTabLeader(tab.WithLeadingAdvance(PaintableAdvance(tab)), options);
+            if (!HasLeaderInk()) return tab;
             bool useSourceFont = !followingFont.HasValue;
             PdfStandardFont measuredFont = followingFont ?? tab.Font;
             double measuredSize = followingSize ?? tab.FontSize;
@@ -192,51 +193,72 @@ internal static partial class PdfWriter {
             int originalLine = lines.Count - 1;
             double originalWidth = CurrentMaxWidth(), originalOrigin = CurrentLineOriginOffset();
             double originalHeight = currentLineHeight - (currentFrame?.Gap ?? 0D);
-            var savedMetrics = (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent);
-            // PrepareLineFrame consumes incoming-run metrics as well as its explicit
-            // height. Supply the retained leader's source, even after a later space.
-            GetRichRunLineMetrics(tab.Font, tab.NamedFont, tab.FontSize, tab.Baseline,
-                options, lineSpacing, out currentRunAscent, out currentRunDescent);
-            currentRunContributesDescent = tab.ContributesLineBoxDescent;
-            if (!currentRunContributesDescent) currentRunDescent = 0D;
-            currentRunIsInline = false;
-            try {
-                PrepareLineFrame(RunLineHeight(tab.FontSize), PaintableAdvance(tab) + followingSpaces + followingWidth);
-            } finally {
-                (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent) = savedMetrics;
+            void PrepareSourceFrame(double minimumWidth) {
+                var savedMetrics = (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent);
+                // Exclusions consume the incoming source metrics as well as its
+                // explicit height, even when a later space is the current run.
+                GetRichRunLineMetrics(tab.Font, tab.NamedFont, tab.FontSize, tab.Baseline,
+                    options, lineSpacing, out currentRunAscent, out currentRunDescent);
+                currentRunContributesDescent = tab.ContributesLineBoxDescent;
+                if (!currentRunContributesDescent) currentRunDescent = 0D;
+                currentRunIsInline = false;
+                try { PrepareLineFrame(RunLineHeight(tab.FontSize), minimumWidth); }
+                finally {
+                    (currentRunAscent, currentRunDescent, currentRunIsInline, currentRunContributesDescent) = savedMetrics;
+                }
             }
+            PrepareSourceFrame(PaintableAdvance(tab) + followingSpaces + followingWidth);
             if (lineLayout == null || originalLine == lines.Count - 1 &&
                 Math.Abs(originalWidth - CurrentMaxWidth()) <= 0.001D &&
                 Math.Abs(originalOrigin - CurrentLineOriginOffset()) <= 0.001D)
                 return maximumAdvance.HasValue ? tab.WithLeadingAdvance(PaintableAdvance(tab)) : tab;
 
-            PdfTabStop? stop = originalLine == lines.Count - 1 ? tab.LeadingTabStop
-                : ResolveRelativeTabStop(pendingRelativeTabRun) ?? ResolveNextExplicitTabStop();
-            PdfTabAlignment alignment = stop?.Alignment ?? tab.LeadingTabAlignment;
-            PdfTabLeaderStyle leader = stop?.Leader ?? tab.LeadingTabLeader;
-            double selectedWidth = field != null && AlignsCompleteTabField(alignment) ? field.Width : followingWidth;
-            double advance = CalculateTabAdvance(lineWidth, followingSpaces + selectedWidth, measuredSpace,
-                alignment, tabStopWidth, followingText, measuredFont, measuredSize, measuredBaseline,
-                options, CurrentMaxWidth(), stop, CurrentLineOriginOffset(), measuredNamedFont,
-                measuredFeatures, measuredScaling, measuredTracking,
-                decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, options, followingSpaces));
-            tab = CreatePreservedTabFragment(tab, advance, stop, alignment, leader);
-            if (!HasPaintedRichTabLeader(tab.WithLeadingAdvance(PaintableAdvance(tab)), options)) {
-                // A different effective stop can remove the leader on the new line.
-                // Refit its geometry without admitting the discarded source font.
-                currentLineHeight = Math.Max(originalLine == lines.Count - 1 ? originalHeight : lineHeight,
-                    minimumLineHeight ?? 0D) + (currentFrame?.Gap ?? 0D);
-                PrepareLineFrame(0D, PaintableAdvance(tab) + followingSpaces + selectedWidth, includeCurrentRun: false);
-                advance = CalculateTabAdvance(lineWidth, followingSpaces + selectedWidth, measuredSpace,
+            PdfTabStop? stop = tab.LeadingTabStop;
+            int stopLine = originalLine;
+            double selectedWidth = followingWidth;
+            void ResolveTabInCurrentFrame() {
+                if (stopLine != lines.Count - 1) {
+                    stop = ResolveRelativeTabStop(tab.SourceTabRun ?? pendingRelativeTabRun) ?? ResolveNextExplicitTabStop();
+                    stopLine = lines.Count - 1;
+                }
+                PdfTabAlignment alignment = stop?.Alignment ?? tab.LeadingTabAlignment;
+                PdfTabLeaderStyle leader = stop?.Leader ?? tab.LeadingTabLeader;
+                selectedWidth = field != null && AlignsCompleteTabField(alignment) ? field.Width : followingWidth;
+                double advance = CalculateTabAdvance(lineWidth, followingSpaces + selectedWidth, measuredSpace,
                     alignment, tabStopWidth, followingText, measuredFont, measuredSize, measuredBaseline,
                     options, CurrentMaxWidth(), stop, CurrentLineOriginOffset(), measuredNamedFont,
                     measuredFeatures, measuredScaling, measuredTracking,
                     decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, options, followingSpaces));
-                tab = tab.WithLeadingAdvance(advance);
+                tab = CreatePreservedTabFragment(tab, advance, stop, alignment, leader);
+            }
+            void RestoreGeometryHeight() => currentLineHeight = Math.Max(
+                originalLine == lines.Count - 1 ? originalHeight : lineHeight,
+                minimumLineHeight ?? 0D) + (currentFrame?.Gap ?? 0D);
+
+            ResolveTabInCurrentFrame();
+            if (!HasLeaderInk()) {
+                RestoreGeometryHeight();
+                PrepareLineFrame(0D, PaintableAdvance(tab) + followingSpaces + selectedWidth, includeCurrentRun: false);
+                ResolveTabInCurrentFrame();
+                if (HasLeaderInk()) {
+                    // The smaller box restored the old origin and made the leader
+                    // visible again. A width-only exclusion callback cannot require
+                    // that origin: a72pt span still fits to the right of a left float
+                    // whose origin is100pt. Preserve the admitted painted tab in the
+                    // full paragraph interval, using the existing below-float policy.
+                    double clearWidth = lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts;
+                    PrepareSourceFrame(clearWidth);
+                    ResolveTabInCurrentFrame();
+                    if (!HasLeaderInk()) {
+                        // A newly selected stop can explicitly remove the leader.
+                        RestoreGeometryHeight();
+                        PrepareLineFrame(0D, clearWidth, includeCurrentRun: false);
+                        ResolveTabInCurrentFrame();
+                    }
+                }
             }
             return maximumAdvance.HasValue ? tab.WithLeadingAdvance(PaintableAdvance(tab)) : tab;
         }
-
         void StartNewLine() {
             if (lines.Count >= MaximumTextLayoutLines)
                 throw new System.IO.InvalidDataException("PDF paragraph layout exceeds the 100,000-line limit.");
@@ -296,27 +318,8 @@ internal static partial class PdfWriter {
                 includeCurrentRun && currentRunIsInline ? currentRunAscent : 0);
             double inlineDescent = Math.Max(currentLineInlineDescent,
                 includeCurrentRun && currentRunIsInline ? currentRunDescent : 0);
-            double combined = Math.Max(textAscent, inlineAscent) + Math.Max(textDescent, inlineDescent);
-            if (lineSpacing?.FontLineBoxMultiplier is not double natural)
-                return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
-
-            if (lineSpacing.LineGridPitch.HasValue)
-                return System.Math.Max(contentHeight, lineSpacing.GetGridAdvance(combined));
-
-            // Imported spacing scales the visible fonts' natural advance.
-            // Horizontal list spacers must not suppress that multiplier.
-            double textAdvance = textAscent + textDescent;
-            // Multiple spacing scales body metrics. A label's additional ascent
-            // still enlarges the first line, without multiplying that excess.
-            if (lineSpacing.Rule == PdfLineSpacingRule.Multiple)
-                textAdvance = bodyAscent == 0D && textDescent == 0D ? 0D
-                    : (bodyAscent + textDescent) * lineSpacing.Value / natural
-                        + Math.Max(0D, textAscent - bodyAscent);
-            contentHeight = Math.Max(contentHeight, textAdvance);
-            // Inline objects retain their unscaled bounds when they extend
-            // beyond the text line box; a spacer inside it adds no height.
-            return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
-                ? Math.Max(contentHeight, combined) : contentHeight;
+            return ResolveRichContentHeight(contentHeight, lineSpacing, textAscent, textDescent,
+                bodyAscent, inlineAscent, inlineDescent, hasInline);
         }
 
         // Exclusions need the line's occupied box; completedHeight still carries
@@ -341,23 +344,8 @@ internal static partial class PdfWriter {
             return Math.Min(advance, Math.Max(0D, ascent + descent));
         }
 
-        PdfTabStop? ResolveNextExplicitTabStop() {
-            if (explicitTabStops == null || explicitTabStops.Length == 0) {
-                return null;
-            }
-
-            while (nextExplicitTabStopIndex < explicitTabStops.Length &&
-                   explicitTabStops[nextExplicitTabStopIndex].Position <= CurrentLineOriginOffset() + lineWidth + 0.001D) {
-                nextExplicitTabStopIndex++;
-            }
-
-            if (nextExplicitTabStopIndex >= explicitTabStops.Length) {
-                return null;
-            }
-
-            return explicitTabStops[nextExplicitTabStopIndex++];
-        }
-
+        PdfTabStop? ResolveNextExplicitTabStop() => TakeNextParagraphTabStop(explicitTabStops,
+            CurrentLineOriginOffset() + lineWidth, ref nextExplicitTabStopIndex);
         PdfTabStop? ResolveRelativeTabStop(PdfTextRun? run) => run?.RelativeTabStop is { } relative
             ? new PdfTabStop(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset), run.TabAlignment, run.TabLeader)
             : null;
@@ -480,7 +468,7 @@ internal static partial class PdfWriter {
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingIsExpandable = false;
             pendingLeadingIsTab = true;
-            pendingTabSourceStyle = currentSpaceStyle;
+            pendingTabSourceStyle = currentSpaceStyle?.WithSourceTabRun(currentTextRun);
             pendingTabSourceLine = lines.Count - 1;
         }
 
@@ -712,7 +700,8 @@ internal static partial class PdfWriter {
                     leadingDecorationColor: pendingLeadingDecorationColor,
                     leadingDecorationFontSize: pendingLeadingDecorationFontSize,
                     leadingDecorationTextRise: pendingLeadingDecorationTextRise,
-                    leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount, leadingIsOrdinarySpace: pendingLeadingIsOrdinarySpace));
+                    leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount, leadingIsOrdinarySpace: pendingLeadingIsOrdinarySpace).WithSourceTabRun(
+                        pendingLeadingIsTab ? pendingTabSourceStyle?.SourceTabRun : null));
                 lineWidth += leadingAdvance + inlineElement.Width;
                 if (usesSourceTextMetrics) RegisterLineHeight(runFontSize);
                 else RegisterLineMetrics();
@@ -1009,7 +998,8 @@ internal static partial class PdfWriter {
                     double segmentWidth = tokenW + leadingAdvance + (!pendingLeadingSeparator && currentLine.Count > 0
                         ? runKerning.MeasureBoundary(currentLine, tokenProbe) : 0D);
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, formField: currentTextRun?.FormField, footnoteReference: currentTextRun?.FootnoteReference, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount, leadingIsOrdinarySpace: pendingLeadingIsOrdinarySpace));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, formField: currentTextRun?.FormField, footnoteReference: currentTextRun?.FootnoteReference, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount, leadingIsOrdinarySpace: pendingLeadingIsOrdinarySpace).WithSourceTabRun(
+                        pendingLeadingIsTab ? pendingTabSourceStyle?.SourceTabRun : null));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();
@@ -1048,16 +1038,7 @@ internal static partial class PdfWriter {
             var line = (RichLine)lines[lineIndex];
             runKerning.Apply(line);
             if (compressWordSpaces) BindWordCompressionPlan(line, admittedLineWidths[lineIndex]);
-            foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, lineSpacing);
-            line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
-            if (lineSpacing == null) {
-                // A short baseline advance may overlap subsequent lines, but bottom-aligned
-                // table content must still reserve the last line's descent before its clip.
-                GetRichLineInkMetrics(line, options ?? new PdfOptions(), out _, out double descent);
-                line.MinimumContentHeight = line.BaselineOffset + descent;
-            }
-            if (lineSpacing?.FontLineBoxMultiplier != null && lineSpacing.Rule == PdfLineSpacingRule.Multiple)
-                line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, lineSpacing);
+            RefreshRichLinePlacementMetrics(line, baseFont, fontSize, options, lineSpacing);
         }
         return (lines, heights);
 

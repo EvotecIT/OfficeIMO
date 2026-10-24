@@ -249,6 +249,134 @@ public partial class RichParagraphWrappingTests {
         var heights = (System.Collections.Generic.List<double>)result.GetType().GetField("Item2")!.GetValue(result)!;
         Assert.Equal(28.8D, Assert.Single(heights), 3);
     }
+    [Fact]
+    public void ParagraphTabs_FinalLeaderFontBoxRemainsAdmittedAfterFloatRefit() {
+        var requests = new System.Collections.Generic.List<(double Height, double Origin, double Gap)>();
+        Func<int, double, double, double, (double Width, double Origin, double Gap)> frame =
+            (line, completed, height, minimumWidth) => {
+                // A left float occupies x0..100, starting20pt below this line
+                // and ending60pt below it. This matches the production exclusion
+                // rule: use the widest interval, or move below if it cannot fit.
+                var result = height <= 20D
+                    ? (Width: 288D, Origin: 0D, Gap: 0D)
+                    : minimumWidth <= 188D
+                        ? (Width: 188D, Origin: 100D, Gap: 0D)
+                        : (Width: 288D, Origin: 0D, Gap: 60D);
+                requests.Add((height, result.Origin, result.Gap));
+                return result;
+            };
+        object result = InvokePrivateFontMethod<object>("WrapRichRunsCoreWithFirstLineOrigin",
+            new[] { new PdfTextRun("\t", fontSize: 24D, tabLeader: PdfTabLeaderStyle.Underscores) },
+            288D, 12D, PdfStandardFont.Helvetica, 14.4D, null!, null!, 36D,
+            TrailingTabInkOptions(), new[] { new PdfTabStop(72D, leader: PdfTabLeaderStyle.Underscores) },
+            frame, null!, null!, PdfTextWhitespaceMode.Preserve);
+        var line = Assert.Single(ExtractLines(result));
+        var tab = Assert.Single(line);
+        double gap = ExtractLeadingAdvance(tab);
+        Assert.Equal(72D, gap, 3);
+        Assert.Equal(PdfTabLeaderStyle.Underscores, ExtractLeadingTabLeader(tab));
+        Assert.Equal(24D, (double)tab.GetType().GetProperty("FontSize")!.GetValue(tab)!, 3);
+        var heights = (System.Collections.Generic.List<double>)result.GetType().GetField("Item2")!.GetValue(result)!;
+        var admitted = requests.Last();
+        // A final paintable24pt leader cannot use a callback box that was only
+        // admitted for the12pt paragraph. Clearance is separate from its box.
+        Assert.Equal(admitted.Height + admitted.Gap, Assert.Single(heights), 3);
+        if (gap >= 36D) Assert.Equal(28.8D, admitted.Height, 3);
+    }
+
+    [Theory]
+    [InlineData(false, 72D)]
+    [InlineData(true, 72D)]
+    [InlineData(false, 112D)]
+    [InlineData(true, 112D)]
+    public void ParagraphTabs_WidowCarriedLeaderRefreshesItsFontBox(bool exact, double stop) {
+        byte[] Render(int count, bool floating) {
+            PdfOptions options = TrailingTabInkOptions();
+            options.PageWidth = 400D; options.PageHeight = 240D;
+            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40D;
+            var document = PdfDocument.Create(options);
+            if (floating) document.Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
+                HeaderRowCount = 0, FontSize = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
+                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 100D },
+                MinRowHeight = 145D, BorderColor = null, Position = new PdfTablePosition()
+            });
+            var style = new PdfParagraphStyle {
+                FontSize = 12D, LineHeight = 1.2D, SpacingBefore = 0D, SpacingAfter = 0D,
+                TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, WidowControl = true,
+                LineSpacing = exact ? PdfLineSpacing.Exactly(14.4D) : null
+            };
+            style.AddTabStop(stop, leader: PdfTabLeaderStyle.Underscores);
+            var runs = new System.Collections.Generic.List<PdfTextRun>();
+            for (int index = 0; index < count; index++) {
+                runs.Add(new PdfTextRun("\t", fontSize: 24D));
+                if (index + 1 < count) runs.Add(PdfTextRun.Normal("\n", fontSize: 12D));
+            }
+            return document.Paragraph(p => p.Runs(runs), style: style)
+                .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = 0D })
+                .ToBytes();
+        }
+        using var carried = UglyToad.PdfPig.PdfDocument.Open(Render(12, floating: true));
+        using var reference = UglyToad.PdfPig.PdfDocument.Open(Render(2, floating: false));
+        Assert.Equal(2, carried.NumberOfPages);
+        var actualPage = carried.GetPage(2);
+        var expectedPage = Assert.Single(reference.GetPages());
+        // The left float suppresses the stop on page1. Widow control carries
+        // two lines to a clear page, where their source24pt leaders paint.
+        // Reanchoring must refresh baseline, occupied box and next-line advance;
+        // exact spacing deliberately keeps the authored14.4pt contract.
+        Assert.Contains(actualPage.Letters, letter => letter.Value == "_");
+        Assert.Equal(string.Concat(expectedPage.Letters.Select(letter => letter.Value)),
+            string.Concat(actualPage.Letters.Select(letter => letter.Value)));
+        Assert.Equal(expectedPage.Letters.Count, actualPage.Letters.Count);
+        for (int index = 0; index < expectedPage.Letters.Count; index++) {
+            Assert.Equal(expectedPage.Letters[index].FontSize, actualPage.Letters[index].FontSize, 3);
+            Assert.Equal(expectedPage.Letters[index].StartBaseLine.X, actualPage.Letters[index].StartBaseLine.X, 3);
+            Assert.Equal(expectedPage.Letters[index].StartBaseLine.Y, actualPage.Letters[index].StartBaseLine.Y, 3);
+        }
+    }
+    [Fact]
+    public void ParagraphTabs_ContinuationRetainsTheEffectiveSourceStyle() {
+        const string family = "Tab Continuation";
+        PdfOptions options = TrailingTabInkOptions();
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
+            OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 200, 200,
+                Enumerable.Range(32, 95).ToArray())));
+        PdfTextRun source = new PdfTextRun("\t", fontSize: 24D, font: PdfStandardFont.Helvetica,
+            fontFamily: family, baseline: PdfTextBaseline.Superscript,
+            tabLeader: PdfTabLeaderStyle.Underscores, tabAlignment: PdfTabAlignment.Right)
+            .WithFeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default.With("kern", 0))
+            .WithHorizontalTextScaling(90D).WithCharacterSpacing(.3D);
+        object wrapped = InvokeWrapRichRunsWithOptions(new[] { source }, 288D, 12D, PdfStandardFont.Helvetica, options);
+        object lines = wrapped.GetType().GetField("Item1")!.GetValue(wrapped)!;
+        var restored = InvokePrivateFontMethod<System.Collections.Generic.List<PdfTextRun>>(
+            "BuildTextRunsFromWrappedLines", lines, 0, 1);
+        PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
+        Assert.Equal(source.FontSize, tab.FontSize);
+        Assert.Equal(source.Font, tab.Font);
+        Assert.Equal(source.FontFamily, tab.FontFamily);
+        Assert.Equal(source.Baseline, tab.Baseline);
+        Assert.Equal(source.TabLeader, tab.TabLeader);
+        Assert.Equal(source.TabAlignment, tab.TabAlignment);
+        Assert.Equal(source.FeatureSettings, tab.FeatureSettings);
+        Assert.Equal(source.HorizontalTextScaling, tab.HorizontalTextScaling);
+        Assert.Equal(source.CharacterSpacing, tab.CharacterSpacing);
+    }
+    [Fact]
+    public void ParagraphTabs_RelativeContinuationRetainsItsFrameBinding() {
+        PdfTextRun source = PdfTextRun.RelativeTab(PdfTabAlignment.Right,
+            PdfTabLeaderStyle.Underscores, .5D, -4D);
+        PdfOptions options = TrailingTabInkOptions();
+        object wrapped = InvokeWrapRichRunsWithOptions(new[] { source }, 288D, 24D, PdfStandardFont.Helvetica, options);
+        object lines = wrapped.GetType().GetField("Item1")!.GetValue(wrapped)!;
+        var restored = InvokePrivateFontMethod<System.Collections.Generic.List<PdfTextRun>>(
+            "BuildTextRunsFromWrappedLines", lines, 0, 1);
+        PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
+        Assert.Equal(source.RelativeTabStop, tab.RelativeTabStop);
+        Assert.Equal(24D, tab.FontSize);
+        object resized = InvokeWrapRichRunsWithOptions(restored, 200D, 12D, PdfStandardFont.Helvetica, options);
+        var resizedTab = Assert.Single(Assert.Single(ExtractLines(resized)));
+        Assert.Equal(96D, ExtractLeadingAdvance(resizedTab), 3);
+    }
     private static PdfOptions TrailingTabInkOptions() {
         PdfOptions options = TrailingTabOptions();
         options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Arial",
