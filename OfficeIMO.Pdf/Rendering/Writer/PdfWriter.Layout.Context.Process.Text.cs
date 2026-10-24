@@ -237,7 +237,25 @@ internal static partial class PdfWriter {
                 lines = originalLines; lineHeights = originalLineHeights;
                 floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
             }
-            if (HasFloatingTables) {
+            bool pictureWrapping = HasParagraphPictures(paragraphStyle) || HasPictureExclusions;
+            if (pictureWrapping) {
+                var wrapped = WrapPictureParagraph(rpb, currentOpts.MarginLeft, width, size,
+                    y - ResolveTopLevelSpacingBefore(spacingBefore));
+                lines = wrapped.Lines;
+                lineHeights = wrapped.LineHeights;
+                floatingLineGaps = lines.Select(line => ((RichLine)line).FragmentTopGap).ToList();
+                double paragraphHeight = ResolveTopLevelSpacingBefore(spacingBefore) +
+                    MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, floatingLineGaps) + spacingAfter;
+                if (paragraphStyle?.KeepTogether == true &&
+                    paragraphHeight <= GetMaximumBlockContinuationHeight() + .001D &&
+                    ShouldAdvanceForBlockHeight(paragraphHeight)) {
+                    NewParagraphStartFrame();
+                    wrapped = WrapPictureParagraph(rpb, currentOpts.MarginLeft, width, size, y);
+                    lines = wrapped.Lines;
+                    lineHeights = wrapped.LineHeights;
+                    floatingLineGaps = lines.Select(line => ((RichLine)line).FragmentTopGap).ToList();
+                }
+            } else if (HasFloatingTables) {
                 floatingLineOffsets = new(); floatingLineWidths = new(); floatingLineGaps = new();
                 floatingPageStarts = new();
                 double simulatedTop = y - (y < frameStart - 0.001 ? spacingBefore : 0);
@@ -314,6 +332,28 @@ internal static partial class PdfWriter {
                         CanOverflowImportedPictureLine(lines[lineIndex]));
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                if (pictureWrapping) {
+                    IReadOnlyList<PdfTextRun> remaining = firstLogicalLine ? rpb.Runs :
+                        BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
+                    PdfParagraphStyle? continuation = paragraphStyle?.Clone();
+                    if (!firstLogicalLine) {
+                        continuation ??= new PdfParagraphStyle();
+                        continuation.SpacingBefore = 0D;
+                        continuation.FirstLineIndent = 0D;
+                        continuation.AnchoredCanvas = null;
+                    }
+                    var remainder = new RichParagraphBlock(remaining, rpb.Align, rpb.DefaultColor, continuation);
+                    var wrapped = WrapPictureParagraph(remainder, currentOpts.MarginLeft, width, size, y);
+                    lines = wrapped.Lines;
+                    lineHeights = wrapped.LineHeights;
+                    floatingLineOffsets = null;
+                    floatingLineWidths = null;
+                    floatingLineGaps = lines.Select(line => ((RichLine)line).FragmentTopGap).ToList();
+                    floatingPageStarts = null;
+                    lineIndex = 0;
+                    wrappedWidth = textFrame.Width;
+                    return;
+                }
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
                     IReadOnlyList<PdfTextRun> remainingRuns = firstLogicalLine ? rpb.Runs :
                         BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
@@ -492,7 +532,8 @@ internal static partial class PdfWriter {
                 bool sliceStartsAtFirstLine = firstLogicalLine;
                 double firstLineTop = y - (floatingLineGaps?[lineIndex] ?? 0D);
                 RecordFlowPlacement(firstLineTop);
-                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderParagraphCanvas(paragraphCanvas, firstLineTop);
+                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas)
+                    RenderPictureParagraphCanvas(paragraphCanvas, y, firstLineTop);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");

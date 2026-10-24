@@ -10,6 +10,13 @@ internal static partial class PdfWriter {
                 IReadOnlyList<RichSeg> line = lines[start + lineIndex];
                 for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
                     RichSeg segment = line[segmentIndex];
+                    // A soft interval boundary retains its source separator even though the
+                    // next interval starts without a painted leading space.
+                    if (segmentIndex > 0 && !segment.LeadingSpace &&
+                        line[segmentIndex - 1].EndsWithTextSeparator &&
+                        line is RichLine { Fragments: { } fragments } &&
+                        fragments.Any(fragment => fragment.Start == segmentIndex))
+                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[segmentIndex - 1].WithoutLink(), preserveFootnote: false));
                     if (segment.LeadingIsTab) runs.Add(BuildTextRunFromWrappedSegment("\t", segment.WithoutLink(),
                         preserveFootnote: false, preserveTab: true));
                     if (segment.LeadingSpace && !segment.LeadingIsTab) {

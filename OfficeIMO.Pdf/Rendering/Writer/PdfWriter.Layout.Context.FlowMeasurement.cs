@@ -33,6 +33,7 @@ internal static partial class PdfWriter {
             double? initialY = null) {
             double savedY = y;
             var savedFloats = floatingTables.ToArray();
+            var savedPictures = pictureAnchors.Working.ToArray();
             try {
                 if (initialY.HasValue) {
                     y = initialY.Value;
@@ -50,7 +51,8 @@ internal static partial class PdfWriter {
                         deepest = Math.Min(deepest, floatingBottom);
                         continue;
                     }
-                    double? height = block is RichParagraphBlock paragraph && floatingTables.Count > savedFloats.Length
+                    double? height = block is RichParagraphBlock paragraph &&
+                        (floatingTables.Count > savedFloats.Length || HasPictureExclusions || HasParagraphPictures(EffectiveParagraphStyle(paragraph)))
                         ? MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize)
                         : MeasureWholeBlockHeight(block, frameX, frameWidth, fontSize);
                     if (!height.HasValue) {
@@ -83,6 +85,8 @@ internal static partial class PdfWriter {
             } finally {
                 y = savedY;
                 floatingTables.Clear(); floatingTables.AddRange(savedFloats);
+                pictureAnchors.Working.Clear();
+                foreach (var entry in savedPictures) pictureAnchors.Working.Add(entry.Key, entry.Value);
             }
         }
 

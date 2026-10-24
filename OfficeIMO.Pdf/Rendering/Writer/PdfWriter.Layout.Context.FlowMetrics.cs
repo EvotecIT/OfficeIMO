@@ -128,7 +128,10 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+            var wrap = HasParagraphPictures(paragraphStyle) || HasPictureExclusions
+                ? WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize,
+                    y - (suppressSpacingBefore ? 0D : ResolveTopLevelSpacingBefore(spacingBefore)))
+                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -195,6 +198,7 @@ internal static partial class PdfWriter {
         private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize, double precedingHeight) {
             double savedY = y;
             var savedFloats = floatingTables.ToArray();
+            var savedPictures = pictureAnchors.Working.ToArray();
             try {
                 y -= precedingHeight;
                 double startY = y;
@@ -228,7 +232,8 @@ internal static partial class PdfWriter {
                         blockHeight = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
                     }
 
-                    if (floatingTables.Count > savedFloats.Length) {
+                    if (floatingTables.Count > savedFloats.Length || HasPictureExclusions ||
+                        block is RichParagraphBlock pictureParagraph && HasParagraphPictures(EffectiveParagraphStyle(pictureParagraph))) {
                         if (block is RichParagraphBlock paragraph)
                             blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
@@ -257,6 +262,8 @@ internal static partial class PdfWriter {
             } finally {
                 y = savedY;
                 floatingTables.Clear(); floatingTables.AddRange(savedFloats);
+                pictureAnchors.Working.Clear();
+                foreach (var entry in savedPictures) pictureAnchors.Working.Add(entry.Key, entry.Value);
             }
         }
 
@@ -321,6 +328,8 @@ internal static partial class PdfWriter {
 
         private double MeasureParagraphBlockHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
+            if (HasParagraphPictures(paragraphStyle) || HasPictureExclusions)
+                return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));

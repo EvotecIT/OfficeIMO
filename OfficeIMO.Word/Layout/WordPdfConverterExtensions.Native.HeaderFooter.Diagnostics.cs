@@ -68,6 +68,8 @@ namespace OfficeIMO.Word.Pdf {
             WordToPdfOptions? footerTextDiagnostics = UsesNativeRunningFooter(section, options) ? null : options;
             RecordNativeRunningBarTabDiagnostics(section, options,
                 headerTextDiagnostics == null, footerTextDiagnostics == null);
+            RecordNativeRunningImageWrapDiagnostics(section, options,
+                headerTextDiagnostics == null, footerTextDiagnostics == null);
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.ResolveDefaultHeader(), listMarkers, nativeFontMap, headerTextDiagnostics);
             NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
             NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
