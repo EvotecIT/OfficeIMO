@@ -33,8 +33,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup artifact = PageMarginGeometryBox(page, position);
         Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, artifact.Role);
         HtmlRenderText margin = Assert.Single(PageMarginShapedText(artifact));
-        HtmlRenderText control = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
-            run => run.Source == "p#control" && run.Text.Length > 0);
+        HtmlRenderText control = Assert.Single(PageMarginBodyText(page));
         Assert.NotNull(control.PreparedShaping);
         Assert.NotNull(margin.PreparedShaping);
         Assert.Equal(text, margin.PreparedShaping!.Text);
@@ -176,8 +175,7 @@ public sealed partial class HtmlRenderingTests {
             PageMarginShapingSource("top-center", text, "width:1px", text)), PageMarginShapingOptions());
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderText margin = Assert.Single(PageMarginShapedText(PageMarginGeometryBox(page, "top-center")));
-        HtmlRenderText body = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
-            run => run.Source == "p#control" && run.Text.Length > 0);
+        HtmlRenderText body = Assert.Single(PageMarginBodyText(page));
 
         Assert.NotNull(margin.PreparedShaping);
         Assert.Equal(text, margin.PreparedShaping!.Text);
@@ -206,10 +204,14 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("ب")]
     [InlineData("A")]
     public void HtmlPageMarginShaping_CustomProviderControlsBothIntrinsicWidthAndRetainedPaint(string source) {
-        HtmlToPdfOptions options = PageMarginShapingOptions();
         byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
-            "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
+            source == "A" ? "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf"
+                : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
+        HtmlToPdfOptions options = PageMarginShapingOptions(fontData: font);
         var provider = new LanguageAdvanceTextShapingProvider(font);
+        // The provider's exact program must cover this positive fixture. Noto
+        // Arabic deliberately has no Latin A and correctly declines that text.
+        Assert.True(provider.Program.TryGetGlyphMetrics(source[0], out int glyphId, out _));
         options.TextShapingProvider = provider;
         options.TextShapingLanguage = "fa";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
@@ -220,6 +222,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(expected, artifact.Width, 6);
         Assert.NotNull(margin.PreparedShaping);
+        Assert.Equal(glyphId, Assert.Single(margin.PreparedShaping!.Result.Glyphs).GlyphId);
         Assert.Equal(expected, margin.TextAdvanceWidth!.Value, 6);
         Assert.NotEmpty(provider.Requests);
         Assert.All(provider.Requests, request => Assert.Equal("fa", request.Language));
@@ -252,8 +255,8 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
-    private static HtmlToPdfOptions PageMarginShapingOptions(bool cff = false) {
-        byte[] data = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), cff
+    private static HtmlToPdfOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {
+        byte[] data = fontData ?? File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), cff
             ? "OfficeIMO.Drawing.Tests/TestAssets/SourceSansPro-Regular.otf"
             : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
         var options = new HtmlToPdfOptions {
@@ -272,6 +275,17 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderText[] PageMarginShapedText(HtmlRenderSemanticGroup artifact) =>
         EnumerateRenderVisuals(artifact.Visuals).OfType<HtmlRenderText>().Where(run => !string.IsNullOrWhiteSpace(run.Text)).ToArray();
+
+    private static HtmlRenderText[] PageMarginBodyText(HtmlRenderPage page) {
+        // Ordinary text uses semantic source names unless an interaction owns a
+        // DOM identity. The Artifact scope, rather than an invented source name,
+        // distinguishes the body control from the identically worded header.
+        var artifacts = new HashSet<HtmlRenderText>(EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Artifact)
+            .SelectMany(group => EnumerateRenderVisuals(group.Visuals)).OfType<HtmlRenderText>());
+        return EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>()
+            .Where(run => !artifacts.Contains(run) && !string.IsNullOrWhiteSpace(run.Text)).ToArray();
+    }
 
     private sealed class DecliningPageMarginShapingProvider : IOfficeTextShapingProvider {
         internal int Calls { get; private set; }

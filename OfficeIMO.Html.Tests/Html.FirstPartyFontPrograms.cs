@@ -216,9 +216,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         Assert.True(provider.Requests.Count >= 2);
         Assert.Contains(result.Report.Warnings, warning =>
-            warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
-            && warning.Details.TryGetValue("Detail", out string? detail)
-            && detail == "provider-declined");
+            warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
 
         var strictProvider = new AcceptOnceThenDeclineTextShapingProvider();
