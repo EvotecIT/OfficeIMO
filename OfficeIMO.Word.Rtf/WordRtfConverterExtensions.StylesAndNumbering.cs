@@ -72,7 +72,19 @@ public static partial class WordRtfConverterExtensions {
         destination.FirstLineIndentTwips = ParseInt(paragraph.Indentation?.FirstLine?.Value) ?? Negate(ParseInt(paragraph.Indentation?.Hanging?.Value));
         destination.SpaceBeforeTwips = ParseInt(paragraph.SpacingBetweenLines?.Before?.Value);
         destination.SpaceAfterTwips = ParseInt(paragraph.SpacingBetweenLines?.After?.Value);
-        destination.LineSpacingTwips = ParseInt(paragraph.SpacingBetweenLines?.Line?.Value);
+        int? lineSpacing = ParseInt(paragraph.SpacingBetweenLines?.Line?.Value);
+        LineSpacingRuleValues? lineSpacingRule = paragraph.SpacingBetweenLines?.LineRule?.Value;
+        destination.LineSpacingTwips = ToRtfLineSpacingValue(lineSpacing, lineSpacingRule);
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(lineSpacing, lineSpacingRule);
+        if (paragraph.Tabs != null) {
+            foreach (TabStop tabStop in paragraph.Tabs.Elements<TabStop>()) {
+                if (tabStop.Val?.Value == TabStopValues.Clear) continue;
+                if (tabStop.Position?.Value is int position && position >= 0) {
+                    destination.AddTabStop(position, ToRtfTabAlignment(tabStop.Val?.Value ?? TabStopValues.Left),
+                        ToRtfTabLeader(tabStop.Leader?.Value ?? TabStopLeaderCharValues.None));
+                }
+            }
+        }
         destination.PageBreakBefore = ReadToggle(paragraph.PageBreakBefore);
         destination.KeepWithNext = ReadToggle(paragraph.KeepNext);
         destination.KeepLinesTogether = ReadToggle(paragraph.KeepLines);
@@ -223,7 +235,18 @@ public static partial class WordRtfConverterExtensions {
             };
         }
 
-        if (source.SpaceBeforeTwips.HasValue || source.SpaceAfterTwips.HasValue || source.LineSpacingTwips.HasValue) paragraph.SpacingBetweenLines = new SpacingBetweenLines { Before = FormatInt(source.SpaceBeforeTwips), After = FormatInt(source.SpaceAfterTwips), Line = FormatInt(source.LineSpacingTwips) };
+        if (source.SpaceBeforeTwips.HasValue || source.SpaceAfterTwips.HasValue || source.LineSpacingTwips.HasValue) {
+            paragraph.SpacingBetweenLines = new SpacingBetweenLines {
+                Before = FormatInt(source.SpaceBeforeTwips), After = FormatInt(source.SpaceAfterTwips),
+                Line = FormatInt(ToWordLineSpacingValue(source.LineSpacingTwips, source.LineSpacingMultiple)),
+                LineRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple)
+            };
+        }
+        if (source.TabStops.Count > 0) {
+            paragraph.Tabs = new Tabs(source.TabStops.Select(tabStop => new TabStop {
+                Position = tabStop.PositionTwips, Val = ToWordTabAlignment(tabStop.Alignment), Leader = ToWordTabLeader(tabStop.Leader)
+            }));
+        }
         if (source.PageBreakBefore.HasValue) paragraph.PageBreakBefore = new PageBreakBefore { Val = source.PageBreakBefore.Value };
         if (source.KeepWithNext.HasValue) paragraph.KeepNext = new KeepNext { Val = source.KeepWithNext.Value };
         if (source.KeepLinesTogether.HasValue) paragraph.KeepLines = new KeepLines { Val = source.KeepLinesTogether.Value };

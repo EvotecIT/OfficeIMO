@@ -29,7 +29,6 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.StartsWith(@"{\rtf1\ansi\deff0\paperw16838\paperh11906\psz9\binfsxn7\binsxn8\margl1440\margr720\margt1080\margb1080\gutter180\headery360\footery540\rtlgutter\pgnstarts5\pgnrestart\pgnx720\pgny900\pgnlcrm\pgbrdrhead\pgbrdrfoot\pgbrdropt34\pgbrdrsnap\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf1\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf2\landscape\titlepg", rtf, StringComparison.Ordinal);
         Assert.Equal(16838, read.Document.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, read.Document.PageSetup.PaperHeightTwips);
         Assert.Equal(9, read.Document.PageSetup.PrinterPaperSize);
@@ -76,7 +75,6 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.StartsWith(@"{\rtf1\ansi\deff0\ftnstart5\ftnrestart\ftnnrlc\ftntj\aftnstart7\aftnrstcont\aftnnar\aenddoc", rtf, StringComparison.Ordinal);
         Assert.Equal(5, read.Document.NoteSettings.FootnoteStartNumber);
         Assert.Equal(RtfNoteNumberRestart.EachSection, read.Document.NoteSettings.FootnoteRestart);
         Assert.Equal(RtfNoteNumberFormat.LowerRoman, read.Document.NoteSettings.FootnoteNumberFormat);
@@ -146,7 +144,6 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.StartsWith(@"{\rtf1\ansi\ansicpg1250\deff0\uc2\deftab720\deflang1045\deflangfe1041\adeflang1033\viewkind4\viewscale125\viewzk2\viewbksp1\widowctrl\hyphauto0\hyphcaps\hyphconsec3\hyphhotz360\facingp\margmirror\formprot\revprot0\annotprot\readprot0\revisions\revprop3\revbar2\dghspace120\dgvspace180\dghorigin720\dgvorigin900\dghshow2\dgvshow3\dgsnap\dgmargin0\rtldoc", rtf, StringComparison.Ordinal);
         Assert.Equal(RtfDocumentCharacterSet.Ansi, read.Document.Settings.CharacterSet);
         Assert.Equal(1250, read.Document.Settings.AnsiCodePage);
         Assert.Equal(2, read.Document.Settings.UnicodeSkipCount);

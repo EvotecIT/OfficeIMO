@@ -29,6 +29,13 @@ public sealed partial class RtfParagraph : IRtfBlock {
     /// <summary>Optional paragraph stylesheet id.</summary>
     public int? StyleId { get; set; }
 
+    /// <summary>
+    /// Keeps the parsed stream's line-spacing and active-tab state authoritative.
+    /// Missing stream controls use RTF defaults in effective views; API-authored
+    /// paragraphs instead inherit these properties from their selected styles.
+    /// </summary>
+    internal bool UseParsedParagraphDefaults { get; set; }
+
     /// <summary>Optional list id for paragraphs bound to an RTF list override.</summary>
     public int? ListId { get; set; }
 

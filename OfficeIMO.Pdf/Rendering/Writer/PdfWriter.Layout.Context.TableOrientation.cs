@@ -69,7 +69,8 @@ internal static partial class PdfWriter {
                         structureType: structureType, markedContentId: markedContentId, structurePage: currentPage,
                         lineAlignments: alignments,
                         lineXOffsets: offsets,
-                        lineWidths: widths, baselineFont: font);
+                        lineWidths: widths, baselineFont: font,
+                        barClipFrame: new TableCellContentFrame(clipX, clipBottom + inkClip.Width, inkClip.Height, inkClip.Width));
                     if (includeCellObjects && objectsHeight > 0D)
                         RenderTableCellObjects(currentPage!, cell, MapCellAlignment(paragraph.Align), left, width,
                             frame.Width - top - offset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap),

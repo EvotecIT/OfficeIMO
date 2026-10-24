@@ -48,7 +48,11 @@ File.WriteAllText("native-output.rtf", nativeOutput.Value);
 
 This mode writes the effective formatting supported by the semantic model across body paragraphs, tables, headers, notes, and field results. It leaves the source model unchanged. When it materializes inherited or default values, the result reports `RtfNormalizationFormattingInheritanceMaterialized`: reopening the output treats those values as direct formatting, and `RequireNoLoss()` rejects that loss of editing information. Set `MaterializeStyleFormatting = false` to retain editable inheritance in semantic output; native readers may then display inherited formatting differently. Full character effects and effective table-style formatting remain outside this mode's coverage.
 
-`AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Native writing declares support for both note kinds and writes endnotes as `\footnote\ftnalt`. Note paragraph breaks separate authored paragraphs without adding an empty trailing list item. Modern list bindings use the list tables, and Unicode list markers retain their native character counts.
+`AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Freshly authored documents use mixed-note mode (`\fet2`) unless `Settings.NoteMode` is set explicitly; endnotes are written as `\footnote\ftnalt`. Semantic writing records the authored policy even before the document contains notes, so a footnote added after saving and rereading remains a footnote. An explicitly empty final footnote or endnote paragraph and its paragraph formatting survive semantic save/read cycles without adding another empty paragraph.
+
+On reading, `Settings.NoteMode` retains the declared `\fet` value and stays `null` when the declaration is absent. Parsed documents without `\fet` use the legacy effective mode. The raw note kind and placement declarations remain in the model; the Word bridge projects ordinary notes with absent or section-end placement to endnotes at section end in legacy mode. In modern mode, ordinary notes remain footnotes and `\ftnalt` marks endnotes. Semantic writing retains the parsed note-mode policy.
+
+Modern list bindings use the list tables, and Unicode list markers retain their native character counts.
 
 Word 6/95 legacy paragraph numbering is exposed through `RtfParagraph.LegacyNumbering` and `RtfStyle.LegacyNumbering`. Semantic writing retains the modeled `\pn` controls, marker formatting and text before or after the number. The Word bridge maps supported single-level bullets and decimal lists to editable numbering, retaining start numbers, shared counters and supported marker formatting without changing the RTF model. Higher levels, continuation controls, special cell or section-restart behavior, legacy marker spacing and mismatched cached markers use cached or resolved marker text and report `RtfWordLegacyNumberingFlattened`. The lossless path preserves the original syntax.
 
@@ -57,6 +61,21 @@ Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.
 
 RTF editing restrictions are exposed through `RtfDocumentSettings.HasEditingProtection`. `IsContentEncrypted` remains `false`: form, revision, annotation, and read-only protection flags restrict editing behavior but do not encrypt RTF content.
+
+## Paragraph spacing and inheritance
+
+`RtfParagraph.LineSpacingTwips` stores the raw `\sl` value. Its units depend on `LineSpacingMultiple`, which represents `\slmult`:
+
+| Value | Mode | Meaning |
+| --- | --- | --- |
+| Positive, with `LineSpacingMultiple = false` | Minimum | A minimum line height in twips; taller text can enlarge the line. |
+| Negative, with `LineSpacingMultiple = false` | Exact | A fixed line advance whose magnitude is in twips; taller text does not enlarge it. |
+| Nonzero, with `LineSpacingMultiple = true` | Multiple | A line multiple in 240ths: `240` is single spacing and `360` is 1.5 lines. |
+| Zero | Automatic | Uses the renderer's natural line spacing. |
+
+For example, `SetLineSpacing(480, false)` requests at least 24 points, while `SetLineSpacing(-480, false)` requests exactly 24 points. The Word and PDF adapters preserve this distinction.
+
+Parsed paragraphs retain the RTF stream's active line-spacing and tab-stop state. An omitted line-spacing control resolves to single spacing; a stylesheet reference does not replace that state or restore a tab stop absent from the active stream. After source styles resolve, an absent before/after gap uses zero unless its automatic-spacing flag is true. The source model retains its nullable controls. For paragraphs created through the API, omitted spacing and an empty direct tab-stop list inherit from the selected paragraph style instead. `ResolveParagraphFormatting(...)` exposes the effective values without changing the source paragraph. Writing implicit parsed single spacing and zero non-auto gaps does not report a loss of style inheritance; materializing actual style-supplied values still does.
 
 ## Read untrusted RTF
 

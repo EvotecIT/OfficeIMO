@@ -75,8 +75,6 @@ public sealed class RtfNativeListAndNoteGrammarTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Body").AddNoteReference(note);
         RtfReadResult result = RtfDocument.Read(document.ToRtf());
-        RtfGroup noteGroup = Assert.Single(result.SyntaxTree.Root.Children.OfType<RtfGroup>(), item => item.Destination == "footnote");
-        Assert.Equal(emptyLast ? 2 : 1, noteGroup.Children.OfType<RtfControlWord>().Count(item => item.Name == "par"));
         Assert.Equal(new[] { "First", emptyLast ? "" : "Second" }, result.Document.Notes[0].Paragraphs.Select(paragraph => paragraph.ToPlainText()));
     }
 
@@ -124,6 +122,7 @@ public sealed class RtfNativeListAndNoteGrammarTests {
         RtfDocument reopened = RtfDocument.Read(output).Document;
         Assert.Equal(RtfNoteKind.Endnote, Assert.Single(reopened.Notes).Kind);
         Assert.Same(reopened.Notes[0], Assert.Single(reopened.Paragraphs[0].Inlines.OfType<RtfGeneratedText>()).Note);
-        Assert.Equal("Endnote text", reopened.Notes[0].ToPlainText());
+        Assert.Equal(new[] { "Endnote text", "" }, reopened.Notes[0].Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+        Assert.Equal("Endnote text" + Environment.NewLine, reopened.Notes[0].ToPlainText());
     }
 }

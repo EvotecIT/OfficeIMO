@@ -23,6 +23,10 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyDocumentSettings(RtfDocument source, WordDocument destination) {
+        if (source.Settings.DefaultFontId is int fontId && TryGetFontName(source, fontId, out string? fontName)) {
+            destination.Settings.FontFamily = fontName;
+        }
+
         if (source.Settings.DefaultTabWidthTwips.HasValue) {
             destination.Settings.DefaultTabStop = source.Settings.DefaultTabWidthTwips.Value;
         }

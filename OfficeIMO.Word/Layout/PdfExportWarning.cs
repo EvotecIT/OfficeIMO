@@ -68,7 +68,8 @@ namespace OfficeIMO.Word.Pdf {
             "NativeMixedDrawableUnsupported" or
             "NativeShapeGroupUnsupported" or
             "NativeWatermarkImageUnsupported" or
-            "NativeAnchoredImageClipped" => OfficeIMO.OfficeConversionLossKind.Omission,
+            "NativeAnchoredImageClipped" or
+            "NativeParagraphBarTabOmitted" => OfficeIMO.OfficeConversionLossKind.Omission,
             _ => OfficeIMO.OfficeConversionLossKind.Approximation
         };
     }

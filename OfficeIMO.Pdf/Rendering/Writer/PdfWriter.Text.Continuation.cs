@@ -10,7 +10,8 @@ internal static partial class PdfWriter {
                 IReadOnlyList<RichSeg> line = lines[start + lineIndex];
                 for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
                     RichSeg segment = line[segmentIndex];
-                    if (segment.LeadingIsTab) runs.Add(PdfTextRun.Tab(segment.LeadingTabLeader, segment.LeadingTabAlignment));
+                    if (segment.LeadingIsTab) runs.Add(BuildTextRunFromWrappedSegment("\t", segment.WithoutLink(),
+                        preserveFootnote: false, preserveTab: true));
                     if (segment.LeadingSpace && !segment.LeadingIsTab) {
                         AppendPreservedSpaceRuns(runs, segment);
                     }
@@ -44,7 +45,7 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment, bool preserveFootnote = true) {
+        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment, bool preserveFootnote = true, bool preserveTab = false) {
             var run = new PdfTextRun(
                 text,
                 segment.Bold,
@@ -58,11 +59,14 @@ internal static partial class PdfWriter {
                 segment.Contents,
                 segment.Baseline,
                 segment.DestinationName,
+                tabLeader: preserveTab ? segment.SourceTabRun?.TabLeader ?? segment.LeadingTabLeader : PdfTabLeaderStyle.None,
+                tabAlignment: preserveTab ? segment.SourceTabRun?.TabAlignment ?? segment.LeadingTabAlignment : PdfTabAlignment.Left,
                 backgroundColor: segment.BackgroundColor,
                 fontFamily: segment.NamedFont?.FamilyName,
                 underlineStyle: segment.UnderlineStyle,
                 strikeStyle: segment.StrikeStyle,
                 decorationColor: segment.DecorationColor);
+            if (preserveTab && segment.SourceTabRun != null) run = run.WithRelativeTabFrom(segment.SourceTabRun);
             if (HasRichTextSpacing(segment.HorizontalTextScaling, segment.CharacterSpacing))
                 run = run.WithHorizontalTextScaling(segment.HorizontalTextScaling).WithCharacterSpacing(segment.CharacterSpacing);
             if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
@@ -71,7 +75,7 @@ internal static partial class PdfWriter {
                 run = run.WithTextDirection(segment.TextDirection);
             run.ContributesLineBoxDescent = segment.ContributesLineBoxDescent;
             run.IsLineBoxStrut = segment.IsLineBoxStrut;
-            if (segment.FormField != null) run = run.WithFormField(segment.FormField);
+            if (!preserveTab && segment.FormField != null) run = run.WithFormField(segment.FormField);
             if (preserveFootnote && segment.FootnoteReference != null && text == segment.Text) run = run.WithFootnoteReference(segment.FootnoteReference);
             return run;
         }

@@ -4,12 +4,13 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
+        RecordParagraphBarTabDiagnostic(document, paragraph, options);
         if (RtfPdfMapping.HasPageBreakBefore(document, paragraph)) {
             pdf.PageBreak();
         }
 
-        PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph).Alignment : paragraph.Alignment);
-        PdfCore.PdfParagraphStyle? style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph);
+        PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
         AppendListMarker(paragraph, pendingRuns, state, options);
@@ -17,15 +18,16 @@ internal static partial class RtfPdfConverter {
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph, run) : run, pendingRuns, options, state);
+                    AppendRun(document, document.Styles.Count > 0 || run.UseDefaultCharacterFormatting
+                        ? document.GetRunFormatting(paragraph, run) : run, pendingRuns, options, state);
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page || rtfBreak.Kind == RtfBreakKind.SoftPage:
-                    FlushParagraph(pdf, pendingRuns, align, style);
+                    FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
                     emitted = true;
                     pdf.PageBreak();
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Column:
-                    FlushParagraph(pdf, pendingRuns, align, style);
+                    FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
                     emitted = true;
                     if (state.InColumns) pdf.AddColumnBreak();
                     else pdf.PageBreak();
@@ -48,7 +50,7 @@ internal static partial class RtfPdfConverter {
                     AppendGeneratedText(generatedText, pendingRuns, state);
                     break;
                 case RtfImage image:
-                    FlushParagraph(pdf, pendingRuns, align, style);
+                    FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
                     emitted = true;
                     RenderImage(image, pdf, options);
                     break;
@@ -61,7 +63,7 @@ internal static partial class RtfPdfConverter {
                     AppendPlainText(shape.ToPlainText(), pendingRuns);
                     break;
                 case RtfBookmarkMarker marker when marker.Kind == RtfBookmarkMarkerKind.Start:
-                    FlushParagraph(pdf, pendingRuns, align, style);
+                    FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
                     emitted = true;
                     pdf.Bookmark(marker.Name);
                     break;
@@ -69,24 +71,78 @@ internal static partial class RtfPdfConverter {
         }
 
         if (pendingRuns.Count > 0 || !emitted) {
-            FlushParagraph(pdf, pendingRuns, align, style);
+            FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
         }
     }
 
-    private static void FlushParagraph(PdfCore.PdfDocument pdf, List<PdfCore.PdfTextRun> runs, PdfCore.PdfAlign align, PdfCore.PdfParagraphStyle? style) {
-        List<PdfCore.PdfTextRun> snapshot = runs.Count == 0
-            ? new List<PdfCore.PdfTextRun> { PdfCore.PdfTextRun.Normal(string.Empty) }
-            : new List<PdfCore.PdfTextRun>(runs);
+    private static void FlushParagraph(RtfDocument document, RtfParagraph source, PdfCore.PdfDocument pdf,
+        List<PdfCore.PdfTextRun> runs, PdfCore.PdfAlign align, PdfRenderState state) {
+        List<PdfCore.PdfTextRun> snapshot = new List<PdfCore.PdfTextRun>(runs);
+        EnsureParagraphLineBoxStrut(document, source, snapshot, state);
         runs.Clear();
+        PdfCore.PdfParagraphStyle style = RtfPdfMapping.ToPdfParagraphStyle(document, source, snapshot, state.FontOptions);
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
     }
 
+    /// <summary>Keeps empty and control-only source lines' available character boxes without introducing visible text.</summary>
+    private static void EnsureParagraphLineBoxStrut(RtfDocument document, RtfParagraph source,
+        List<PdfCore.PdfTextRun> runs, PdfRenderState state, int bodyStartIndex = 0) {
+        PdfCore.PdfTextRun? controlStyle = null;
+        for (int index = bodyStartIndex; index < runs.Count; index++) {
+            PdfCore.PdfTextRun run = runs[index];
+            if (run.IsLineBoxStrut || run.InlineElement != null ||
+                run.Text.Any(character => character is not ('\r' or '\n' or '\t'))) return;
+            if (run.Text.Length > 0 && run.FontSize is double size && size > 0D &&
+                !double.IsNaN(size) && !double.IsInfinity(size)) controlStyle = run;
+        }
+
+        PdfCore.PdfTextRun strut;
+        if (controlStyle != null) {
+            // Tabs retain their source character formatting. Keep that known
+            // box even when wrapping discards their unpainted trailing advance.
+            strut = new PdfCore.PdfTextRun(string.Empty, bold: controlStyle.Bold, italic: controlStyle.Italic,
+                fontSize: controlStyle.FontSize, font: controlStyle.Font, fontFamily: controlStyle.FontFamily,
+                baseline: controlStyle.Baseline);
+        } else {
+            // RtfBreak carries no character state. Use only the source defaults
+            // or inherited style the existing semantic model can resolve.
+            RtfRun inherited = document.GetRunFormatting(source, new RtfRun(string.Empty) {
+                UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
+            });
+            strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
+                fontSize: inherited.FontSize, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic));
+        }
+        strut.IsLineBoxStrut = true;
+        if (strut.FontSize is double sourceSize && sourceSize > 0D &&
+            !double.IsNaN(sourceSize) && !double.IsInfinity(sourceSize)) {
+            for (int index = bodyStartIndex; index < runs.Count; index++) {
+                PdfCore.PdfTextRun control = runs[index];
+                if (control.FontSize.HasValue || control.Text.Length == 0) continue;
+                // Every blank source line needs its own known font box. A note
+                // label before the body must not become a break's fallback size.
+                runs[index] = new PdfCore.PdfTextRun(control.Text, bold: strut.Bold,
+                    underline: control.Underline, color: control.Color, italic: strut.Italic,
+                    strike: control.Strike, fontSize: sourceSize, font: strut.Font,
+                    linkUri: control.LinkUri, linkContents: control.LinkContents,
+                    baseline: strut.Baseline, linkDestinationName: control.LinkDestinationName,
+                    tabLeader: control.TabLeader, tabAlignment: control.TabAlignment,
+                    backgroundColor: control.BackgroundColor, fontFamily: strut.FontFamily,
+                    underlineStyle: control.UnderlineStyle, strikeStyle: control.StrikeStyle,
+                    decorationColor: control.DecorationColor).WithSpacingFrom(control);
+            }
+        }
+        runs.Add(strut);
+    }
+
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
+        RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
         AppendListMarker(paragraph, runs, state, options);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph, run) : run, runs, options, state, collectNotes, inheritedLinkUri, inheritedLinkDestinationName, inheritedLinkContents);
+                    AppendRun(document, document.Styles.Count > 0 || run.UseDefaultCharacterFormatting
+                        ? document.GetRunFormatting(paragraph, run) : run, runs, options, state, collectNotes,
+                        inheritedLinkUri, inheritedLinkDestinationName, inheritedLinkContents);
                     break;
                 case RtfBreak:
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
@@ -151,7 +207,7 @@ internal static partial class RtfPdfConverter {
         string? linkDestinationName = run.Hyperlink == null && linkUri == null ? inheritedLinkDestinationName : null;
         string? linkContents = (linkUri != null || linkDestinationName != null) && run.Hyperlink == null ? inheritedLinkContents : null;
 
-        runs.Add(new PdfCore.PdfTextRun(
+        var pdfRun = new PdfCore.PdfTextRun(
             text,
             bold: run.Bold,
             underline: run.Underline,
@@ -164,7 +220,13 @@ internal static partial class RtfPdfConverter {
             linkContents: linkContents,
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             linkDestinationName: linkDestinationName,
-            backgroundColor: background));
+            backgroundColor: background);
+        if (run.KerningHalfPoints is > 0) {
+            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize;
+            pdfRun = pdfRun.WithFeatureSettings(state.FontOptions.DefaultTextFeatureSettings.With("kern",
+                fontSize >= run.KerningHalfPoints.Value / 2D ? 1 : 0));
+        }
+        runs.Add(pdfRun);
     }
 
     private static void ReportUnsupportedRunFormatting(RtfRun run, RtfToPdfOptions options) {
@@ -182,7 +244,7 @@ internal static partial class RtfPdfConverter {
         if (run.CharacterShadingForegroundColorIndex.HasValue || run.CharacterShadingPatternPercent.HasValue
             || run.CharacterShadingPattern != RtfShadingPattern.None) features.Add("character-shading");
         if (run.CharacterBorder.HasAnyValue) features.Add("character-border");
-        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue || run.KerningHalfPoints.HasValue
+        if (run.CharacterSpacingTwips.HasValue || run.CharacterScalePercent.HasValue
             || run.CharacterOffsetHalfPoints.HasValue) features.Add("character-metrics");
         if (run.StyleId.HasValue || run.Direction.HasValue || run.LanguageId.HasValue) {
             features.Add("style-direction-or-language");

@@ -19,7 +19,9 @@ public static partial class WordPdfConverterExtensions {
             content.Descendants<W.Picture>().Any() || content.Descendants<W.EmbeddedObject>().Any() ||
             innerSource.ParagraphProperties?.NumberingProperties != null) return false;
         var inner = new WordParagraph(box.Document, innerSource);
-        if (WordDocumentTraversal.GetListInfo(inner).HasValue ||
+        // The rich text-box flow retains paragraph decoration. The fixed
+        // canvas text API has no paragraph tab-stop contract.
+        if (HasNativeParagraphBarTabs(inner) || WordDocumentTraversal.GetListInfo(inner).HasValue ||
             WordEquation.GetOccurrences(inner._document, inner._paragraph).Count > 0) return false;
         List<WordParagraph> innerRuns = GetNativeRuns(inner);
         if (HasNativeUnsupportedRunningTextBoxRunPaint(inner, innerRuns)) return false;

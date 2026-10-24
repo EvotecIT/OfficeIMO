@@ -9,6 +9,7 @@ public sealed class PdfHeadingStyle {
     private double _spacingBefore;
     private double? _spacingAfter;
     private string? _fontFamily;
+    private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
 
     /// <summary>Explicit line spacing. When set, this overrides <see cref="LineHeight"/>.</summary>
     public PdfLineSpacing? LineSpacing { get; set; }
@@ -67,6 +68,19 @@ public sealed class PdfHeadingStyle {
         }
     }
 
+    /// <summary>Explicit text stops and bar rules relative to the heading text frame.</summary>
+    public System.Collections.Generic.IList<PdfTabStop> TabStops => _tabStops;
+
+    /// <summary>Adds a text stop or stationary bar rule at the specified finite position.</summary>
+    public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
+        var stop = new PdfTabStop(position, alignment, leader);
+        _tabStops.Add(stop);
+        return stop;
+    }
+
+    /// <summary>Removes all explicit heading text stops and bar rules.</summary>
+    public void ClearTabStops() => _tabStops.Clear();
+
     /// <summary>When true, headings use the bold variant of the document font.</summary>
     public bool Bold { get; set; } = true;
 
@@ -90,7 +104,7 @@ public sealed class PdfHeadingStyle {
 
     /// <summary>Creates a copy of this heading style.</summary>
     public PdfHeadingStyle Clone() {
-        return new PdfHeadingStyle {
+        var clone = new PdfHeadingStyle {
             AnchoredCanvas = AnchoredCanvas,
             UseWordJustificationSpacing = UseWordJustificationSpacing,
             JustificationMode = JustificationMode,
@@ -108,6 +122,8 @@ public sealed class PdfHeadingStyle {
             ApplySpacingBeforeAtTop = ApplySpacingBeforeAtTop,
             KeepWithNext = KeepWithNext
         };
+        foreach (PdfTabStop stop in _tabStops) clone.TabStops.Add(stop.Clone());
+        return clone;
     }
 
     /// <summary>Absolute page content bound to the heading after pagination.</summary>

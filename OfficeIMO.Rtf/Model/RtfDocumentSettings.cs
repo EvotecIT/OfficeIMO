@@ -247,6 +247,7 @@ public sealed partial class RtfDocumentSettings {
     }
 
     internal bool HasAnyValue =>
+        NoteMode.HasValue ||
         CharacterSet.HasValue ||
         AnsiCodePage.HasValue ||
         UnicodeSkipCount.HasValue ||

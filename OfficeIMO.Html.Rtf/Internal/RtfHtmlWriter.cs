@@ -138,7 +138,11 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document, RtfListMarker? marker = null, bool closeListItem = true) {
-        RtfParagraph effective = document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph) : paragraph;
+        RtfParagraph effective = document.GetParagraphFormatting(paragraph);
+        if (paragraph.UseParsedParagraphDefaults && !paragraph.LineSpacingTwips.HasValue) {
+            // Let the browser choose its natural line box when the source has no \sl control.
+            effective.LineSpacingTwips = null;
+        }
         if (marker != null) {
             effective = effective.CopyFormattingView();
             effective.ListKind = marker.Formatting.Level.Kind;
@@ -154,7 +158,8 @@ internal static partial class RtfHtmlWriter {
             AppendParagraphControlAttributes(builder, paragraph);
             AppendParagraphFrameAttributes(builder, paragraph);
         }
-        if (options.IncludeRoundTripMetadata && document.Styles.Count > 0) AppendParagraphDirectFormatting(builder, paragraph);
+        if (options.IncludeRoundTripMetadata && (document.Styles.Count > 0 || paragraph.UseParsedParagraphDefaults))
+            AppendParagraphDirectFormatting(builder, paragraph);
         bool explicitMarker = marker != null && RequiresExplicitMarker(paragraph, marker);
         AppendParagraphStyle(builder, effective, document, explicitMarker);
         builder.Append('>');

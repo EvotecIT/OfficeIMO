@@ -4,6 +4,8 @@ internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void ApplyDocumentSettings(Dictionary<string, string> values) {
             RtfDocumentSettings settings = _document.Settings;
+            ApplyEnum<RtfNoteMode>(values, "noteMode", value => settings.NoteMode = value);
+            ApplyBool(values, "noteDefaultsParsed", value => settings.HasParsedNoteDefaults = value == true);
             ApplyEnum<RtfDocumentCharacterSet>(values, "characterSet", value => settings.CharacterSet = value);
             ApplyInt(values, "ansiCodePage", value => settings.AnsiCodePage = value);
             ApplyInt(values, "unicodeSkipCount", value => settings.UnicodeSkipCount = value);

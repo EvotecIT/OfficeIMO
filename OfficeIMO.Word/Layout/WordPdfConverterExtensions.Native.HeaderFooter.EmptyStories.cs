@@ -63,7 +63,9 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph paragraph = CreateNativeImplicitRunningParagraph(story);
         if (ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
-            flow.Spacer(style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, defaults, fontMap));
+            style.SpacingAfter = 0D;
+            if (!TryRenderNativeBarEmptyParagraph(flow, paragraph, style, defaults, fontMap))
+                flow.Spacer(style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, defaults, fontMap));
         }
     }
 
