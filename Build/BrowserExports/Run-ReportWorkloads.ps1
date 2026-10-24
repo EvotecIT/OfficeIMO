@@ -23,10 +23,13 @@ if ($Cases) { $selection = @('--cases', ($Cases -join ',')) }
 if ($EquivalentBaselineCases) { $selection += @('--equivalent-baseline-cases', ($EquivalentBaselineCases -join ',')) }
 $baselines = @()
 if ($PSCmdlet.ParameterSetName -eq 'NamedBaselines') {
-    if ($BaselineBundles.Count -eq 0) { throw 'BaselineBundles must declare at least one named baseline.' }
+    if ($BaselineBundles.PSBase.Count -eq 0) { throw 'BaselineBundles must declare at least one named baseline.' }
     $resolved = [ordered]@{}
-    foreach ($name in @($BaselineBundles.Keys | Sort-Object)) {
-        if ($name -cnotmatch '^[a-z][a-z0-9-]*$' -or $name -eq 'current') { throw 'Baseline names must be lowercase labels other than current.' }
+    foreach ($name in @($BaselineBundles.PSBase.Keys | Sort-Object)) {
+        if ($name -cnotmatch '^[a-z][a-z0-9-]*$' -or
+            $name -in @('current', 'psbase', 'psobject', 'pstypenames', 'psadapted', 'psextended')) {
+            throw 'Baseline names must be lowercase labels other than current or reserved PowerShell names (psbase, psobject, pstypenames, psadapted, psextended).'
+        }
         if ($BaselineBundles[$name] -isnot [string] -or [string]::IsNullOrWhiteSpace($BaselineBundles[$name])) { throw "Baseline $name must provide a bundle path." }
         $resolved[$name] = (Resolve-Path -LiteralPath $BaselineBundles[$name]).Path
     }
@@ -54,18 +57,32 @@ $variables = @{ Node = $node; Helper = $helper; Manifest = $manifest; Evidence =
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'report-workloads.benchmark.ps1') -OutputRoot $evidence -Variable $variables -Engine $Engine -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
 if ($Plan) { $result | Select-Object Scenario,Engine,Operation,IsSkipped; return }
 # Shared-runner warmups skip validation; qualify those actual outputs outside timing too.
-foreach ($file in Get-ChildItem -LiteralPath $evidence -Filter 'sample.*' -Recurse -File) {
+$warmups = @{}
+foreach ($fixture in $prepared.cases) {
+    foreach ($lane in $Engine) {
+        for ($iteration = -1; $iteration -ge -$WarmupCount; $iteration--) {
+            $warmups["$($fixture.name)|$lane|$iteration"] = $false
+        }
+    }
+}
+$runEvidence = Join-Path $evidence $result.RunId
+foreach ($file in Get-ChildItem -LiteralPath $runEvidence -Filter 'sample.*' -Recurse -File) {
     $iteration = 0
     if (-not [int]::TryParse($file.Directory.Name, [ref] $iteration) -or $iteration -ge 0) { continue }
     $measurementPath = Join-Path $file.DirectoryName 'measurement.json'
     # A failed warmup has no measurement: preserve its partial output and the runner's actual error.
     if (-not (Test-Path -LiteralPath $measurementPath -PathType Leaf)) { continue }
     $measurement = Get-Content -LiteralPath $measurementPath -Raw | ConvertFrom-Json
+    $warmupKey = "$($measurement.case)|$($measurement.engine)|$iteration"
+    if (-not $warmups.ContainsKey($warmupKey) -or $warmups[$warmupKey]) { continue }
     $proof = & $node $helper validate --manifest $manifest --case $measurement.case --output $file.FullName --qpdf $variables.Qpdf --pdftotext $variables.Pdftotext --python $variables.Python
     if ($LASTEXITCODE -ne 0 -or ($proof | ConvertFrom-Json).sha256 -ne $measurement.outputSha256) { throw 'Warmup output validation failed; report retained.' }
     $proof | Set-Content -LiteralPath (Join-Path $file.DirectoryName 'warmup-validation.json') -Encoding utf8
+    $warmups[$warmupKey] = $true
     Remove-Item -LiteralPath $file.FullName -ErrorAction Stop
 }
+$validatedWarmups = @($warmups.Values | Where-Object { $_ }).Count
+if ($validatedWarmups -ne $warmups.Count) { throw "Validated $validatedWarmups of $($warmups.Count) requested warmups; incomplete artifacts retained." }
 $runtime = & $node $helper verify --manifest $manifest
 if ($LASTEXITCODE -ne 0) { throw 'Measured workload runtime changed during the cohort.' }
 $runtime | Set-Content -LiteralPath (Join-Path $evidence 'runtime-final.json') -Encoding utf8

@@ -48,12 +48,26 @@ try {
         -Engine $Engine -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
     if ($Plan) { $result | Select-Object Scenario,Engine,Operation,IsSkipped; return }
     # Successful shared-runner warmups bypass its validation callback. Qualify their actual bytes here.
-    foreach ($artifact in Get-ChildItem -LiteralPath $evidence -Filter 'sample.*' -Recurse -File) {
+    $prepared = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+    $warmups = @{}
+    foreach ($fixture in $prepared.cases) {
+        foreach ($lane in $prepared.engines.PSObject.Properties) {
+            if ($fixture.format -notin $lane.Value.formats -or
+                ($null -ne $lane.Value.PSObject.Properties['capabilitySkip'] -and [bool] $lane.Value.capabilitySkip)) { continue }
+            for ($iteration = -1; $iteration -ge -$WarmupCount; $iteration--) {
+                $warmups["$($fixture.name)|$($lane.Name)|$iteration"] = $false
+            }
+        }
+    }
+    $runEvidence = Join-Path $evidence $result.RunId
+    foreach ($artifact in Get-ChildItem -LiteralPath $runEvidence -Filter 'sample.*' -Recurse -File) {
         $iteration = 0
         if (-not [int]::TryParse($artifact.Directory.Name, [ref] $iteration) -or $iteration -ge 0) { continue }
         $measurementPath = Join-Path $artifact.DirectoryName 'measurement.json'
         if (-not (Test-Path -LiteralPath $measurementPath -PathType Leaf)) { continue }
         $measurement = Get-Content -LiteralPath $measurementPath -Raw | ConvertFrom-Json
+        $warmupKey = "$($measurement.case)|$($measurement.engine)|$iteration"
+        if (-not $warmups.ContainsKey($warmupKey) -or $warmups[$warmupKey]) { continue }
         $uniqueValue = ([bool] $measurement.unique).ToString().ToLowerInvariant()
         $json = & $dotnet $binaryPath --validate-table-engine $artifact.FullName "--format=$($measurement.format)" `
             "--rows=$($measurement.rows)" "--columns=$($measurement.columns)" "--unique=$uniqueValue" "--text-profile=$($measurement.textProfile)"
@@ -75,8 +89,11 @@ try {
             }
         }
         $proof | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $artifact.DirectoryName 'warmup-validation.json') -Encoding utf8
+        $warmups[$warmupKey] = $true
         Remove-Item -LiteralPath $artifact.FullName -ErrorAction Stop
     }
+    $validatedWarmups = @($warmups.Values | Where-Object { $_ }).Count
+    if ($validatedWarmups -ne $warmups.Count) { throw "Validated $validatedWarmups of $($warmups.Count) requested warmups; incomplete artifacts retained." }
     & $node $helper verify --manifest $manifest | Set-Content -LiteralPath (Join-Path $evidence 'graph-final.json') -Encoding utf8
     if ($LASTEXITCODE -ne 0) { throw 'Comparison inputs changed during the cohort.' }
     if ((Get-FileHash -LiteralPath $qpdfPath -Algorithm SHA256).Hash -ne $qpdfHash) { throw 'Selected qpdf binary changed during the cohort.' }
