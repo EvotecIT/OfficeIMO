@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText lineText = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene)
             .OfType<HtmlRenderText>(), node => node.Text == "Hgyp");
         double savedBaseline = PaintBaseline(lineText);
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
         double sceneBaseline = image.Y + image.Height + 16D;
         Assert.InRange(Math.Abs(savedBaseline - sceneBaseline), 0D, 0.0005D / 0.75D);
 

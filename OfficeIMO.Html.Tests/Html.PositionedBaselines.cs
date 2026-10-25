@@ -25,10 +25,10 @@ public sealed class HtmlPositionedBaselineTests {
         Assert.Equal(normal + 20D * 0.15D, Baseline(subscript), 6);
         Assert.Equal(normal - 20D * 0.30D, Baseline(superscript), 6);
 
-        // This is nonempty source and exact contour/pen proof, including the
-        // reduced script faces and their authored baseline displacements.
+        // Retain nonempty source and font-specific vertical contour proof,
+        // including reduced script faces and authored baseline displacements.
         Assert.Equal("A2B3C", SvgPaintedText.Read(svg));
-        HtmlRenderingTests.AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], svg);
+        HtmlRenderingTests.AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], svg);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
         Assert.Equal("A2B3C", string.Concat(page.Letters.Select(letter => letter.Value)));

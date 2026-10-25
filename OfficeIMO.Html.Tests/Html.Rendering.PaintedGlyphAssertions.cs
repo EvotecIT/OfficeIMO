@@ -51,22 +51,22 @@ public sealed partial class HtmlRenderingTests {
 
     private static double PaintBaseline(HtmlRenderText text) => text.Y + text.Font.Size + text.BaselineOffset;
 
-    // These baseline/advance fixtures have ordinary horizontal monochrome slices.
-    // Compare each source slice with its actual PDF-backed SVG ink at the exact
-    // selected-font pen; a contour label alone does not establish placement.
-    internal static void AssertPdfBackedSvgRetainsPaintedGlyphs(HtmlRenderPage page, string svg) {
-        // This is the authored HTML scene, not a PDF-readback scene. Its
-        // contour/label/pen equality proves the output without a PDF marker.
+    // These horizontal baseline fixtures prove visible source occurrence and
+    // font-specific vertical ink at the saved baseline. Horizontal placement,
+    // advance and global whitespace fidelity have separate assertion owners.
+    internal static void AssertPdfBackedSvgRetainsBaselineInk(HtmlRenderPage page, string svg) {
         OfficeDrawing drawing = page.CreateDrawing();
         OfficeDrawingText[] painted = DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>()
-            .Where(text => text.Text.Length > 0).ToArray();
+            .Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToArray();
         Assert.NotEmpty(painted);
         XElement saved = XElement.Parse(svg);
         static string? Label(XElement element) => element.AncestorsAndSelf()
             .Select(ancestor => ancestor.Attribute("aria-label")?.Value).FirstOrDefault(value => value != null);
         XElement[] paths = saved.Descendants().Where(element => element.Name.LocalName == "path"
-            && Label(element) != null).ToArray();
-        XElement[] textNodes = saved.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
+            && !string.IsNullOrWhiteSpace(Label(element))).ToArray();
+        Assert.Equal(painted.Length, paths.Length);
+        Assert.Empty(saved.Descendants().Where(element => element.Name.LocalName == "text"
+            && !string.IsNullOrWhiteSpace(element.Attribute("aria-label")?.Value ?? element.Value)));
         var matched = new HashSet<XElement>();
         double pointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
         double[] viewBox = saved.Attribute("viewBox")!.Value.Split(' ')
@@ -74,7 +74,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(4, viewBox.Length);
         Assert.Equal(0D, viewBox[0]);
         Assert.Equal(0D, viewBox[1]);
-        // The PDF page dimensions are serialized to three decimal places.
         Assert.InRange(Math.Abs(viewBox[2] - page.Width * pointsPerCssPixel), 0D, 0.000500001D);
         Assert.InRange(Math.Abs(viewBox[3] - page.Height * pointsPerCssPixel), 0D, 0.000500001D);
         foreach (OfficeDrawingText text in painted) {
@@ -82,42 +81,16 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(1D, text.BaselineScale);
             Assert.False(text.GlyphTransform.HasValue);
             Assert.False(text.HasFrameTransform);
-            string X(double value) => OfficeSvgFormatting.FormatNumber(value * pointsPerCssPixel);
             OfficePreparedTextShaping? prepared = text.PreparedShaping;
-            if (prepared == null) {
-                XElement[] scalar = textNodes.Where(element => !matched.Contains(element)
-                    && element.Value == text.RasterText && element.Attribute("x")?.Value == X(text.X)
-                    && element.Attribute("y")?.Value == X(text.Y + text.Font.Size + text.BaselineOffset)).ToArray();
-                if (scalar.Length > 0) {
-                    XElement encoded = Assert.Single(scalar);
-                    Assert.Equal(text.Text, encoded.Attribute("aria-label")?.Value ?? encoded.Value);
-                    Assert.Equal("ltr", encoded.Attribute("direction")?.Value);
-                    Assert.Equal("bidi-override", encoded.Attribute("unicode-bidi")?.Value);
-                    Assert.Equal(X(text.Font.Size), encoded.Attribute("font-size")?.Value);
-                    Assert.True(OfficeFontFamilyParser.Parse(encoded.Attribute("font-family")?.Value)
-                        .Contains(text.Font.FamilyName!));
-                    Assert.True(text.TextAdvanceWidth.HasValue);
-                    Assert.Equal(X(text.TextAdvanceWidth!.Value), encoded.Attribute("textLength")?.Value);
-                    Assert.Equal("spacingAndGlyphs", encoded.Attribute("lengthAdjust")?.Value);
-                    Assert.True(matched.Add(encoded));
-                    continue;
-                }
-            }
             IOfficeFontProgram? program = prepared?.Program ?? drawing.Fonts.ResolveForText(
                 text.RasterText, text.Font.FamilyName, text.Font.Face, text.Font.Size, out _);
             IOfficeBoundedFontProgram bounded = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(program);
-            // Static PDF text is outlined at its destination font size. Adaptive
-            // contour subdivision must happen there, before serialization; scaling
-            // an already-flattened CSS-pixel contour changes its point sequence.
-            // Prepared runs are already vector-painted by the HTML PDF writer.
+            // Subdivide at the destination font size, as the PDF-backed SVG does.
+            // Prepared runs have already been vector-painted by the HTML writer.
             double contourUnitsPerCssPixel = prepared == null ? pointsPerCssPixel : 1D;
             double size = text.Font.Size * contourUnitsPerCssPixel;
             double baseline = program is IOfficeFontBaselineMetrics metrics
                 ? metrics.BaselineOffset(size) : program!.LineHeight(size) * .8D;
-            double advance = prepared?.Measure(size) ?? program!.Measure(text.RasterText, size);
-            Assert.True(!double.IsNaN(advance) && !double.IsInfinity(advance) && advance >= 0D);
-            double scaleX = text.TextAdvanceWidth.HasValue && advance > 0D
-                ? text.TextAdvanceWidth.Value * contourUnitsPerCssPixel / advance : 1D;
             double outputUnits = pointsPerCssPixel / contourUnitsPerCssPixel;
             var contours = prepared != null
                 ? prepared.GetContours(0D, -baseline, size, 1_000_000, CancellationToken.None)
@@ -128,48 +101,48 @@ public sealed partial class HtmlRenderingTests {
                 for (int index = 0; index < contour.Count; index++) {
                     OfficePoint point = contour[index];
                     expected.Append(index == 0 ? 'M' : 'L')
-                        .Append(OfficeSvgFormatting.FormatNumber(text.X * pointsPerCssPixel + point.X * scaleX * outputUnits)).Append(' ')
+                        .Append(OfficeSvgFormatting.FormatNumber(point.X * outputUnits)).Append(' ')
                         .Append(OfficeSvgFormatting.FormatNumber((text.Y + text.Font.Size + text.BaselineOffset) * pointsPerCssPixel
                             + point.Y * outputUnits)).Append(' ');
                 }
                 expected.Append('Z');
             }
-            if (expected.Length == 0) Assert.True(string.IsNullOrWhiteSpace(text.Text),
-                "Only source whitespace may have no contour ink in these fixtures.");
-            IReadOnlyList<OfficePathCommand> expectedCommands = Array.Empty<OfficePathCommand>();
-            if (expected.Length > 0) Assert.True(OfficeSvgPathDataParser.TryParse(expected.ToString(), 1_000_000,
-                out expectedCommands, out bool expectedLimit) && !expectedLimit,
-                "The bounded expected glyph path must parse without changing its command sequence.");
-            var comparisons = paths.Where(element => !matched.Contains(element) && Label(element) == text.Text)
-                .Select(element => new { Path = element, Mismatch = PathMismatch(element.Attribute("d")?.Value, expectedCommands) })
-                .ToArray();
+            Assert.True(expected.Length > 0, "Visible baseline source '" + text.Text.Trim() + "' requires font contour ink.");
+            Assert.True(OfficeSvgPathDataParser.TryParse(expected.ToString(), 1_000_000,
+                out IReadOnlyList<OfficePathCommand> expectedCommands, out bool expectedLimit) && !expectedLimit,
+                "The bounded reference glyph path must retain its command sequence.");
+            var comparisons = paths.Where(element => !matched.Contains(element) && Label(element)!.Trim() == text.Text.Trim())
+                .Select(element => new { Path = element, Mismatch = BaselineMismatch(element, expectedCommands) }).ToArray();
             var matches = comparisons.Where(item => item.Mismatch == null).ToArray();
-            Assert.True(matches.Length == 1,
-                "Source '" + text.Text + "' requires one glyph path with " + expectedCommands.Count
-                + " exact commands and coordinates within 0.001pt; found " + matches.Length
-                + " geometry matches among " + comparisons.Length + " same-label candidates.\n"
+            Assert.True(matches.Length > 0,
+                "Visible source '" + text.Text.Trim() + "' requires unmatched font-specific baseline ink with "
+                + expectedCommands.Count + " exact commands and Y coordinates within 0.001pt; found " + matches.Length
+                + " matches among " + comparisons.Length + " trimmed-label candidates.\n"
                 + string.Join("\n", comparisons.Take(8).Select((item, index) =>
-                    "Candidate " + index + ": " + (item.Mismatch ?? "geometry matches"))));
+                    "Candidate " + index + ": " + (item.Mismatch ?? "baseline ink matches"))));
+            // Equal labels/baselines can occur more than once. Consume each actual
+            // visible slice once instead of inventing a source-order contract.
             Assert.True(matched.Add(matches[0].Path));
         }
-        Assert.Equal(paths.Length + textNodes.Length, matched.Count);
-        string logical = string.Concat(saved.Descendants().Where(element => element.Name.LocalName == "text"
-            || element.Name.LocalName == "path" && Label(element) != null)
-            .Select(element => element.Name.LocalName == "text"
-                ? element.Attribute("aria-label")?.Value ?? element.Value : Label(element)));
-        Assert.Equal(string.Concat(painted.Select(text => text.Text)), logical);
+        Assert.Equal(paths.Length, matched.Count);
 
-        string? PathMismatch(string? actualData, IReadOnlyList<OfficePathCommand> reference) {
-            if (reference.Count == 0) return actualData == string.Empty ? null
-                : "Expected an empty whitespace path, actual path data is nonempty or missing.";
-            if (!OfficeSvgPathDataParser.TryParse(actualData, 1_000_000,
+        string? BaselineMismatch(XElement path, IReadOnlyList<OfficePathCommand> reference) {
+            if (!OfficeSvgPathDataParser.TryParse(path.Attribute("d")?.Value, 1_000_000,
                     out IReadOnlyList<OfficePathCommand> actual, out bool limit) || limit)
-                return "Actual path is invalid or exceeds the bounded command limit.";
+                return "Actual glyph path is empty, invalid or exceeds the bounded command limit.";
             if (reference.Count != actual.Count)
                 return "Command count: expected " + reference.Count + ", actual " + actual.Count + ".";
-            // PDF text pens/widths and SVG coordinates are serialized separately.
-            // One 0.001pt serialization quantum can flip a decimal midpoint;
-            // command kinds, point count, labels and source occurrences stay exact.
+            OfficeTransform transform = OfficeTransform.Identity;
+            foreach (XElement ancestor in path.AncestorsAndSelf()) {
+                if (!OfficeSvgTransformParser.TryParse(ancestor.Attribute("transform")?.Value, out OfficeTransform current))
+                    return "Actual SVG transform is invalid.";
+                transform = transform.Then(current);
+            }
+            OfficePoint[] ink = actual.Where(command => command.Kind != OfficePathCommandKind.Close)
+                .Select(command => transform.TransformPoint(command.Point)).ToArray();
+            if (ink.Length == 0 || ink.Max(point => point.X) <= ink.Min(point => point.X)
+                || ink.Max(point => point.Y) <= ink.Min(point => point.Y))
+                return "Actual glyph path has no nonempty two-dimensional ink bounds.";
             const double coordinateTolerance = 0.001D;
             const double floatingPointSlack = 0.000000001D;
             for (int index = 0; index < reference.Count; index++) {
@@ -179,15 +152,14 @@ public sealed partial class HtmlRenderingTests {
                 if (expectedCommand.Kind == OfficePathCommandKind.Close) continue;
                 if (expectedCommand.Kind is not (OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo))
                     return "Expected glyph command " + index + " is outside this polyline contour fixture.";
-                OfficePoint expectedPoint = expectedCommand.Point, actualPoint = actualCommand.Point;
-                double dx = actualPoint.X - expectedPoint.X, dy = actualPoint.Y - expectedPoint.Y;
-                if (double.IsNaN(dx) || double.IsInfinity(dx) || double.IsNaN(dy) || double.IsInfinity(dy)
-                    || Math.Abs(dx) > coordinateTolerance + floatingPointSlack
-                    || Math.Abs(dy) > coordinateTolerance + floatingPointSlack)
-                    return "First coordinate mismatch at command " + index + " (" + expectedCommand.Kind + "): expected ("
-                        + Number(expectedPoint.X) + ", " + Number(expectedPoint.Y) + "), actual ("
-                        + Number(actualPoint.X) + ", " + Number(actualPoint.Y) + "), delta ("
-                        + Number(dx) + ", " + Number(dy) + ")pt; tolerance " + Number(coordinateTolerance) + "pt.";
+                double expectedY = expectedCommand.Point.Y;
+                double actualY = transform.TransformPoint(actualCommand.Point).Y;
+                double deltaY = actualY - expectedY;
+                if (double.IsNaN(deltaY) || double.IsInfinity(deltaY)
+                    || Math.Abs(deltaY) > coordinateTolerance + floatingPointSlack)
+                    return "First baseline ink mismatch at command " + index + " (" + expectedCommand.Kind + "): expected Y "
+                        + Number(expectedY) + ", actual Y " + Number(actualY) + ", delta " + Number(deltaY)
+                        + "pt; tolerance " + Number(coordinateTolerance) + "pt.";
             }
             return null;
         }

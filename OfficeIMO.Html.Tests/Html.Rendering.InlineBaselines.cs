@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText large = Assert.Single(text, node => node.Text.Trim() == "AAAA");
         HtmlRenderText small = Assert.Single(text, node => node.Text.Trim() == "BBBB");
         Assert.Equal(PaintBaseline(large), PaintBaseline(small), 3);
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var letters = pdf.GetPage(1).Letters;

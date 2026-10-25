@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             double baseline = PaintBaseline(Assert.Single(text, item => item.Text.Trim() == "BASE"));
             Assert.Equal(expectedBaseline, baseline, 3);
             Assert.Equal(baseline - shift, PaintBaseline(Assert.Single(text, item => item.Text == "X")), 3);
-            AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+            AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
         }
 
         [Fact]

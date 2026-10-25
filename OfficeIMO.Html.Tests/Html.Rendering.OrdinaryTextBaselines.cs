@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(24D + expectedBaseline, PaintBaseline(text), 3);
         Assert.Equal("Hgyp", text.Text);
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
         double savedPdfBaseline = (page.Height - page.Letters.First(letter => letter.Value == "H").StartBaseLine.Y) / 0.75D;
@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(39D + index * 20D, PaintBaseline(text[index]), 3);
             Assert.Equal("Hgyp", text[index].Text.Trim());
         }
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(2, text.Length);
         Assert.All(text, node => Assert.Equal(47D, PaintBaseline(node), 3));
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, text.Length);
         Assert.Equal(47D, PaintBaseline(text[0]), 3);
         Assert.Equal(relativePaint ? 54D : 47D, PaintBaseline(text[1]), 3);
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Theory]
