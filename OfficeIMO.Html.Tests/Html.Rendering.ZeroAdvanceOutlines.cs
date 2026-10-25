@@ -14,20 +14,18 @@ public sealed partial class HtmlRenderingTests {
         const string mark = "\u0301";
         string content = svg
             ? "<svg xmlns='http://www.w3.org/2000/svg' width='80' height='50' viewBox='0 0 80 50'>"
-                + "<text x='20' y='30' font-family='Typography' font-size='18'>" + mark + "</text></svg>"
+                + "<text x='20' y='30' font-family='Typography' font-size='18' font-style='italic'>" + mark + "</text></svg>"
             : mark;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", string.Empty, "width:auto", content));
-        HtmlToPdfOptions options = svg
-            ? PageMarginShapingOptions(fontData: File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
-                "OfficeIMO.Drawing.Tests/TestAssets/RobotoFlex.ttf")))
-            : PageMarginShapingOptions(cff: true);
-        if (svg) {
-            // A variable face keeps this SVG control on the outline route.
-            OfficeFontFace face = Assert.Single(options.Fonts.Faces);
-            Assert.False(face.CanEmbedAsStaticPdfFont);
-            Assert.Equal(0D, face.Program.Measure(mark, 18D));
-        }
+        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        // SVG's authored italic style uses outlines when only the regular face is registered.
+        OfficeFontFace face = Assert.Single(options.Fonts.Faces);
+        Assert.Equal(OfficeFontStyle.Regular, face.Style);
+        Assert.True(face.Program.TryGetGlyphMetrics(mark[0], out int glyphId, out int advance));
+        Assert.NotEqual(0, glyphId);
+        Assert.Equal(0, advance);
+        Assert.Equal(0D, face.Program.Measure(mark, 18D));
         PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
@@ -43,6 +41,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf,
             OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, image.Bytes);
+        image.CreateReport().RequireNoLoss();
+        replay.CreateReport().RequireNoLoss();
         Assert.DoesNotContain(image.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
         Assert.DoesNotContain(replay.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
     }
