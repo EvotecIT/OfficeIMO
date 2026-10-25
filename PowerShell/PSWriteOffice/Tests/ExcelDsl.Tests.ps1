@@ -258,16 +258,9 @@ namespace PSWriteOfficeTestSupport {
         )
 
         if (-not ('DocumentFormat.OpenXml.Packaging.SpreadsheetDocument' -as [type])) {
-            $configuration = if ($env:PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION -in @('Debug', 'Release')) {
-                $env:PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION
-            } elseif ($env:BUILD_CONFIGURATION -in @('Debug', 'Release')) {
-                $env:BUILD_CONFIGURATION
-            } elseif (Test-Path (Join-Path $PSScriptRoot '..\Sources\PSWriteOffice\bin\Release')) {
-                'Release'
-            } else {
-                'Debug'
-            }
-            Add-Type -Path (Join-Path $PSScriptRoot "..\Sources\PSWriteOffice\bin\$configuration\net8.0\DocumentFormat.OpenXml.dll")
+            $moduleAssemblyPath = (Get-Command New-OfficeExcel -Module PSWriteOffice -CommandType Cmdlet -ErrorAction Stop).ImplementingType.Assembly.Location
+            $moduleAssemblyDirectory = Split-Path -Parent $moduleAssemblyPath
+            Add-Type -Path (Join-Path $moduleAssemblyDirectory 'DocumentFormat.OpenXml.dll')
         }
 
         $spreadsheet = [DocumentFormat.OpenXml.Packaging.SpreadsheetDocument]::Open($Path, $true)

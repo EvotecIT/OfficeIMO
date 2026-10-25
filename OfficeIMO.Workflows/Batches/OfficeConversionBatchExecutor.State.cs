@@ -53,7 +53,7 @@ internal static partial class OfficeConversionBatchExecutor {
         } finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
-    private static void EnsureNoLinks(string path) {
+    internal static void EnsureNoLinks(string path) {
         for (string? entry = Path.GetFullPath(path); entry != null; entry = Path.GetDirectoryName(entry))
             if ((File.Exists(entry) || Directory.Exists(entry)) && (File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("Batch paths must not traverse symbolic links or junctions.");

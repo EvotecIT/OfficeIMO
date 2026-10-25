@@ -20,6 +20,8 @@ internal sealed class StudioDataPaths {
 
     internal string WorkflowRecoveryRoot => Path.Combine(Root, "WorkflowRecovery");
 
+    internal string ConversionRunsRoot => Path.Combine(Root, "ConversionRuns");
+
     internal string DiagnosticsRoot => Path.Combine(Root, "Diagnostics");
 
     internal string SignaturesRoot => Path.Combine(Root, "Signatures");

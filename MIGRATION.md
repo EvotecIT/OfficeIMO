@@ -1,5 +1,31 @@
 # Upgrading OfficeIMO
 
+## Conversion batch outcomes and saved jobs
+
+CLI `workflow batch` now fails when no conversions are selected, including an
+all-skipped folder. Add `--allow-empty` only when an empty run is intentional.
+The default aggregate JSON remains unchanged; choose `--format json` for a
+versioned per-file report or `--format ndjson` for streamed item outcomes.
+Terminal discovery failures now return retained counts and `FailureSummary`
+(`failureSummary` in versioned JSON); check this alongside per-file failures.
+
+PSWriteOffice's `ConvertTo-OfficeDocument` and `Export-OfficeDocumentPdf` batches
+now emit an error for failed items or an empty selection. `-ErrorAction Stop`
+therefore stops a script after the batch summary is assigned. Completed outputs
+remain available. Inspect the summary or streamed item results when continuing
+after errors, and use `-AllowEmpty` only for intentional empty selections.
+
+Saved conversion jobs resolve relative paths against the job file, independently
+of the working directory. Keep job files outside their source, output and
+checkpoint trees. Use environment-variable references for source passwords;
+literal password values and unsupported native renderer settings cannot be
+captured in the portable job format.
+
+Newly captured relative paths use `/` on every operating system. Re-save older
+Windows definitions before moving them to another operating system if their
+relative paths contain `\`; Unix treats that character as part of a filename.
+Run reports are optional evidence and do not change checkpoint compatibility.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

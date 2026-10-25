@@ -38,6 +38,7 @@ public sealed partial class MainWindow : Window {
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
             document => ConfirmActiveCloseAsync([document]), _applicationDocument);
         ViewModel = TabHost.ActiveDocument;
+        _applicationDocument.SavedFolderJobReviewRequested = () => ViewModel.ShowConversionWorkbenchCommand.Execute(null);
         _session = new StudioSessionController(TabHost, _services, token => PickFileSafelyAsync(PickSavePdfAsync, token));
         ViewModel.Session = _session;
         InitializeComponent();

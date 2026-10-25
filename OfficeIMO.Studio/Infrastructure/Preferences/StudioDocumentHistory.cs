@@ -3,10 +3,11 @@ using OfficeIMO.Studio.Features.Home;
 namespace OfficeIMO.Studio.Infrastructure.Preferences;
 
 internal sealed record StudioHistoryCleanupResult(bool RecentDocuments, bool ReadingPositions, bool RestartSession) {
-    internal bool Succeeded => RecentDocuments && ReadingPositions && RestartSession;
+    internal bool ConversionRuns { get; init; } = true;
+    internal bool Succeeded => RecentDocuments && ReadingPositions && RestartSession && ConversionRuns;
 }
 
-/// <summary>Owns UI-thread document-history policy and explicit cleanup across its three stores.</summary>
+/// <summary>Owns UI-thread document-history policy and explicit cleanup across its stores.</summary>
 internal sealed class StudioDocumentHistory {
     private readonly StudioPreferencesService _preferences;
 
@@ -15,12 +16,14 @@ internal sealed class StudioDocumentHistory {
         RecentDocuments = new(paths.RecentDocumentsPath, () => RememberHistory, documents);
         ReadingPositions = new(paths.DocumentViewsPath, () => RememberHistory, documents);
         RestartSession = new(paths.SessionPath);
+        ConversionRuns = new(paths.ConversionRunsRoot, () => RememberHistory);
     }
 
     internal bool RememberHistory => _preferences.Current.RememberDocumentHistory;
     internal JsonRecentDocumentStore RecentDocuments { get; }
     internal StudioDocumentViewStore ReadingPositions { get; }
     internal StudioSessionStore RestartSession { get; }
+    internal StudioConversionRunStore ConversionRuns { get; }
     internal event EventHandler<StudioHistoryCleanupResult>? Cleared;
 
     /// <summary>Raised after any window or tab rewrites the recent-document list; the sender is the writer.</summary>
@@ -45,7 +48,9 @@ internal sealed class StudioDocumentHistory {
     internal StudioHistoryCleanupResult Clear() {
         // Attempt every store even if one file is locked. Report partial removal truthfully.
         var result = new StudioHistoryCleanupResult(
-            TryClear(RecentDocuments.Clear), TryClear(ReadingPositions.Clear), TryClear(RestartSession.Clear));
+            TryClear(RecentDocuments.Clear), TryClear(ReadingPositions.Clear), TryClear(RestartSession.Clear)) {
+            ConversionRuns = ConversionRuns.ClearFinished()
+        };
         Cleared?.Invoke(this, result);
         return result;
     }

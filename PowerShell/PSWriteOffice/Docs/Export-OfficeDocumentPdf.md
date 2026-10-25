@@ -16,12 +16,12 @@ Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <strin
 
 ### Directory
 ```powershell
-Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
@@ -67,6 +67,22 @@ PS> Get-ChildItem .\Documents -File | Export-OfficeDocumentPdf -OutputDirectory 
 
 
 ## PARAMETERS
+
+### -AllowEmpty
+Allow a batch that selects no executable inputs to complete without an error.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Directory, Files
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -AllowLegacyImportLoss
 Accept reported legacy DOC import loss. Known loss otherwise blocks conversion.
