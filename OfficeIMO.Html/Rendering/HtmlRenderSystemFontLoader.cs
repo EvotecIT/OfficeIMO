@@ -74,7 +74,7 @@ internal static partial class HtmlRenderSystemFontLoader {
             cancellationToken.ThrowIfCancellationRequested();
             if ((!request.NeedsText || visibleText.Contains(request.Element))
                 && (!request.DirectText || !ScopedFacesCoverDirectText(request.Element, request.Families, request.Descriptor,
-                    fonts, disclosures, cancellationToken)))
+                    fonts, supplied, disclosures, cancellationToken)))
                 LoadDefaults(request.Families, request.Descriptor);
         }
 

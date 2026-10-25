@@ -52,7 +52,8 @@ internal static partial class HtmlRenderSystemFontLoader {
 
     /// <summary>Keeps a covered caller-owned CSS prefix from causing unused default host discovery.</summary>
     private static bool ScopedFacesCoverDirectText(IElement element, string families,
-        OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, HtmlDisclosureState disclosures,
+        OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
+        HtmlDisclosureState disclosures,
         CancellationToken cancellationToken) {
         bool found = false;
         foreach (IText text in element.ChildNodes.OfType<IText>()) {
@@ -74,7 +75,8 @@ internal static partial class HtmlRenderSystemFontLoader {
         bool Covers(string value) {
             foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(value, families, descriptor)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, descriptor, out _)) return false;
+                if (!fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, descriptor, out OfficeFontFace? face)
+                    || face == null || !suppliedFamilies.Contains(face.FamilyName)) return false;
             }
             return true;
         }
