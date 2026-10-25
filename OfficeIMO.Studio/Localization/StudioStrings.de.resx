@@ -153,6 +153,15 @@
   <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
     <value>Die aufgezeichnete Ausgabe ist nicht mehr verfügbar.</value>
   </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Verlauf aktualisieren</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>Wird anderswo ausgeführt</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>{0:N0} aktiv · {1:N0} anderswo in Ausführung · {2:N0} abgeschlossen</value>
+  </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Eine vorbereitete Ausgabekopie ist verfügbar. Prüfen Sie das ausgewählte Ziel, bevor Sie erneut schreiben.</value>
   </data>

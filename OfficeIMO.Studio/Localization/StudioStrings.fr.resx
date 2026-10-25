@@ -153,6 +153,15 @@
   <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
     <value>La sortie consignée n’est plus disponible.</value>
   </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Actualiser l’historique</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>En cours ailleurs</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>Actives : {0:N0} · En cours ailleurs : {1:N0} · Terminées : {2:N0}</value>
+  </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Une copie du résultat préparé est disponible. Vérifiez la destination choisie avant toute nouvelle écriture.</value>
   </data>

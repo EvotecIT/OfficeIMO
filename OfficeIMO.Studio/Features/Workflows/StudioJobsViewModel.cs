@@ -66,6 +66,13 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     }
     public bool CanClear => History.CanClear;
 
+    /// <summary>Observes saved attempts again without resuming work or changing the selected surviving card.</summary>
+    [RelayCommand]
+    private void RefreshHistory() {
+        History.RefreshRunReports();
+        if (SelectedJob is not null && !History.Entries.Contains(SelectedJob)) SelectedJob = null;
+    }
+
     partial void OnSelectedJobChanged(StudioJobRecord? oldValue, StudioJobRecord? newValue) {
         if (oldValue is not null) oldValue.PropertyChanged -= OnSelectedChanged;
         if (newValue is not null) newValue.PropertyChanged += OnSelectedChanged;

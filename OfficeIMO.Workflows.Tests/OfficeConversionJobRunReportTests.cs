@@ -181,6 +181,41 @@ public sealed class OfficeConversionJobRunReportTests {
     }
 
     [Fact]
+    public async Task PrivacyOptOutPreservesAReportReplacedByAnotherWriter() {
+        using var scope = new RunDirectory();
+        bool retain = true;
+        const string replacement = "Another writer's replacement must survive privacy cleanup";
+        var runner = new BatchBoundary((_, progress, _) => {
+            progress?.Report(scope.Item());
+            File.WriteAllText(scope.ReportPath, replacement);
+            retain = false;
+            return Task.FromResult(new OfficeConversionBatchResult(1, 1, 0, 0, false));
+        });
+        OfficeConversionJobRunReport report = await OfficeConversionJobRunner.RunRecordedAsync(scope.Job, scope.JobPath, scope.ReportPath,
+            runner, retainReport: () => retain);
+        Assert.Equal(OfficeConversionJobRunState.Completed, report.State);
+        Assert.Equal(1, report.Batch!.Summary.Completed);
+        Assert.NotEmpty(report.RecordingError!);
+        Assert.Equal(replacement, File.ReadAllText(scope.ReportPath));
+        Assert.False(File.Exists(scope.ReportPath + ".lease"));
+        Assert.Equal(2, Directory.GetFiles(scope.Root).Length);
+    }
+
+    [Fact]
+    public void LeaseCleanupPreservesDifferentOwnerAndRemovesOnlyMatchingSnapshot() {
+        using var scope = new RunDirectory();
+        string previousOwner = Guid.NewGuid().ToString("N");
+        string replacementOwner = Guid.NewGuid().ToString("N");
+        string leasePath = scope.ReportPath + ".lease";
+        File.WriteAllText(leasePath, replacementOwner);
+        OfficeConversionJobRunReportSerializer.DeleteLease(leasePath, previousOwner);
+        Assert.Equal(replacementOwner, File.ReadAllText(leasePath));
+        OfficeConversionJobRunReportSerializer.DeleteLease(leasePath, replacementOwner);
+        Assert.False(File.Exists(leasePath));
+        Assert.Equal(new[] { scope.JobPath }, Directory.GetFiles(scope.Root));
+    }
+
+    [Fact]
     public async Task RecordedExecutionAdmitsOnlyExplicitRetryOverride() {
         using var scope = new RunDirectory();
         scope.Job.MaximumConcurrency = 3;

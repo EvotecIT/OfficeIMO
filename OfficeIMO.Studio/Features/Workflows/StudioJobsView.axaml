@@ -13,8 +13,11 @@
         <TextBlock Text="{Binding History.RecoveryError}" IsVisible="{Binding History.RecoveryError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
         <TextBlock Text="{Binding History.RunHistoryError}" IsVisible="{Binding History.RunHistoryError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
       </StackPanel>
-      <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.ClearFinished}" IsVisible="{Binding History.HasEntries}"
-              Command="{Binding ClearFinishedCommand}" VerticalAlignment="Top" />
+      <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceS}" VerticalAlignment="Top">
+        <Button Classes="tool" Content="{loc:Loc Jobs.RefreshHistory}" Command="{Binding RefreshHistoryCommand}" HorizontalAlignment="Stretch" />
+        <Button Classes="tool" Content="{loc:Loc Jobs.ClearFinished}" IsVisible="{Binding History.HasEntries}"
+                Command="{Binding ClearFinishedCommand}" HorizontalAlignment="Stretch" />
+      </StackPanel>
     </Grid>
     <TextBlock Grid.Row="1" Text="{Binding ActionError}" IsVisible="{Binding ActionError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
     <Grid Grid.Row="2">

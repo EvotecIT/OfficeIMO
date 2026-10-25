@@ -212,6 +212,7 @@ Retain a readable attempt independently of checkpoint state by choosing a new
 report path outside the input, output and checkpoint trees:
 
 ```text
+mkdir runs
 officeimo workflow job run ./monthly.officeimojob.json --report ./runs/first.json
 officeimo workflow job report ./runs/first.json
 officeimo workflow job run ./monthly.officeimojob.json --retry-failed --report ./runs/retry.json

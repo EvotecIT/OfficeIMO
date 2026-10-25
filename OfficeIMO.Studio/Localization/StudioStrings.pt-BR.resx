@@ -153,6 +153,15 @@
   <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
     <value>A saída registrada não está mais disponível.</value>
   </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Atualizar histórico</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>Em execução em outra instância</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>{0:N0} ativas · {1:N0} em execução em outra instância · {2:N0} concluídas</value>
+  </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Uma cópia da saída preparada está disponível. Confira o destino selecionado antes de gravar novamente.</value>
   </data>

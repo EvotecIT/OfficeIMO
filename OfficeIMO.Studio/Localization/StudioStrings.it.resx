@@ -153,6 +153,15 @@
   <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
     <value>L’output registrato non è più disponibile.</value>
   </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Aggiorna cronologia</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>In esecuzione altrove</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>{0:N0} attive · {1:N0} in esecuzione altrove · {2:N0} terminate</value>
+  </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>È disponibile una copia del risultato. Controlla la destinazione selezionata prima di scrivere di nuovo.</value>
   </data>

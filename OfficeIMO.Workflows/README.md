@@ -82,6 +82,7 @@ must exist, and reports stay outside source, output and checkpoint trees.
 ```csharp
 string jobPath = Path.GetFullPath("monthly.officeimojob.json");
 var saved = OfficeConversionJobSerializer.ReadFile(jobPath);
+Directory.CreateDirectory("runs");
 var recorded = await OfficeConversionJobRunner.RunRecordedAsync(
     saved, jobPath, Path.GetFullPath("runs/first.json"), runner);
 Console.WriteLine(recorded.Batch?.Summary.Completed);

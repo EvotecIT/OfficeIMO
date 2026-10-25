@@ -98,6 +98,10 @@ alongside workflow recovery copies. Expand **File results** to inspect up to 50
 recorded file outcomes and open available outputs; aggregate counts cover the
 whole attempt. Each retry creates a separate attempt and retains the earlier
 report. An abandoned attempt appears as **Interrupted** and never resumes itself.
+Attempts still owned by another instance appear as **Running elsewhere**, separate
+from this window's active and finished counts. Closing this window leaves those
+instances running. Opening Jobs or choosing **Refresh history** updates their
+cards; review and clearing become available after the other attempt ends.
 
 **Review job** loads the exact saved definition from an attempt into Convert
 without executing it. A missing or changed definition is explained before the

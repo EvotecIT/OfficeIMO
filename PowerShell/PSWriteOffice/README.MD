@@ -167,6 +167,7 @@ and verifies that a second run reuses checkpointed artifacts.
 Add `-ReportPath` when executing a saved job to retain a durable attempt:
 
 ```powershell
+New-Item -ItemType Directory -Path ./runs -Force | Out-Null
 Invoke-OfficeConversionJob -Path ./monthly.officejob.json `
     -ReportPath ./runs/first.json -SummaryVariable summary -ErrorAction Stop
 Get-OfficeConversionJobReport -Path ./runs/first.json

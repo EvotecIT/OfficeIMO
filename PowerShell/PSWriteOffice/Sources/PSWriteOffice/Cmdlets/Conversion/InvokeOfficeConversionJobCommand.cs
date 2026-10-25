@@ -91,14 +91,8 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
                 runtime, new BatchProgress(this), CancelToken, allowEmpty: AllowEmpty.IsPresent);
             result = report.Batch?.Summary ?? throw new InvalidOperationException("The run report has no conversion result.");
         }
-        SetSummary(result);
         WriteProgress(new ProgressRecord(1, "Run conversion job", "Finished") { RecordType = ProgressRecordType.Completed });
-        ErrorRecord? error = OfficeWorkflowCommandUtilities.GetBatchError(result, AllowEmpty.IsPresent, "OfficeConversionJob");
-        if (error != null) WriteError(error);
-        if (report?.RecordingError is { } recordingError)
-            WriteError(new ErrorRecord(new IOException("The conversions finished, but their run report could not be finalized: " + recordingError),
-                "OfficeConversionJobReportFailed", ErrorCategory.WriteError, report));
-        if (!ItemResults.IsPresent) WriteObject(result);
+        OfficeWorkflowCommandUtilities.WriteSavedJobOutcome(this, result, report, SummaryVariable, AllowEmpty.IsPresent, ItemResults.IsPresent);
 #endif
     }
 

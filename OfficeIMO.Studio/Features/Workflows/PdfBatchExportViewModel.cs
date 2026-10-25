@@ -96,6 +96,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
             OfficeConversionJobRunReport? recorded = null;
             OfficeConversionBatchResult result;
             if (reportPath is not null) {
+                job?.OwnRunReportPath(reportPath);
                 recorded = await OfficeConversionJobRunner.RunRecordedAsync(definition, SavedJobPath, reportPath, _runner,
                     progress: progress, cancellationToken: cancellation.Token, publicationGuard: _guard,
                     retainReport: () => _jobs!.RunStore!.CanRetainReport).ConfigureAwait(true);

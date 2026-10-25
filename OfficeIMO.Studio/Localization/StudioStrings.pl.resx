@@ -153,6 +153,15 @@
   <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
     <value>Zapisany plik wynikowy nie jest już dostępny.</value>
   </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Odśwież historię</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>Działa w innej instancji</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>Aktywne: {0:N0} · w innych instancjach: {1:N0} · zakończone: {2:N0}</value>
+  </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Przygotowana kopia wyniku jest dostępna. Sprawdź wybrane miejsce docelowe przed ponownym zapisem.</value>
   </data>

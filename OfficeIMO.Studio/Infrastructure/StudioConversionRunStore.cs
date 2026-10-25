@@ -44,6 +44,14 @@ internal sealed class StudioConversionRunStore {
         return new(entries.OrderByDescending(entry => entry.Report.StartedUtc).ToArray(), error);
     }
 
+    /// <summary>Refreshes an already admitted card without restoring new history while recording is disabled.</summary>
+    internal OfficeConversionJobRunReport ReadReport(string reportPath) {
+        string path = RequireOwnedPath(reportPath);
+        EnsureDirectory(create: false);
+        EnsureRegularFile(path);
+        return OfficeConversionJobRunReportSerializer.ReadFile(path);
+    }
+
     /// <summary>Removes only this store's inactive report. Referenced job, output and checkpoint paths are never followed.</summary>
     internal bool RemoveFinished(string reportPath) {
         try {

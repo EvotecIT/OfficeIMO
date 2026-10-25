@@ -113,6 +113,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnWorkspaceModeChanged(StudioWorkspaceMode value) {
+        if (value == StudioWorkspaceMode.Jobs) Jobs.RefreshHistoryCommand.Execute(null);
         // Opening an OCR screen checks for the engine, so a missing prerequisite is explained before recognition starts.
         if (value == StudioWorkspaceMode.Ocr) OcrReadiness?.Refresh();
         OnPropertyChanged(nameof(ShowOcrPrompt));

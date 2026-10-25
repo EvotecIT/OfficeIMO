@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Workflows;
 
@@ -8,7 +9,13 @@ public sealed partial class StudioJobRecord {
     internal OfficeConversionJobRunReport? RunReport { get; private set; }
     internal string? RunReportPath { get; private set; }
     public bool HasRunReport => RunReport is not null;
-    public bool CanReviewJob => HasRunReport && !IsActive;
+    public bool CanReviewJob => HasRunReport && !IsActive && !IsExternalRunning;
+    internal bool IsObservedRun { get; private set; }
+
+    /// <summary>A live report lease belongs to another instance; this window neither waits for nor cancels it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanReviewJob))]
+    private bool _isExternalRunning;
     public IReadOnlyList<StudioConversionRunItem> ReportItems { get; private set; } = [];
     public string? ReportNote { get; private set; }
     public string? RecordingError { get; private set; }
@@ -21,7 +28,10 @@ public sealed partial class StudioJobRecord {
         OnPropertyChanged(nameof(RecordingError));
     }
 
-    internal void ApplyRunReport(OfficeConversionJobRunReport report, string? reportPath) {
+    internal void OwnRunReportPath(string reportPath) => RunReportPath = reportPath;
+
+    internal void ApplyRunReport(OfficeConversionJobRunReport report, string? reportPath, bool observed = false) {
+        IsObservedRun |= observed;
         // Keep only metadata and totals on the card; the file owns the complete bounded report.
         RunReport = report with { Batch = report.Batch is { } observation ? observation with { Items = [] } : null };
         RunReportPath = reportPath;
@@ -35,9 +45,12 @@ public sealed partial class StudioJobRecord {
             ? _localizer.FormatOrDefault("Jobs.RunReport.Sample", "Showing {0} file results. The counts describe the whole attempt.", ReportItems.Count)
             : ReportItems.Count == 0 ? _localizer.GetOrDefault("Jobs.RunReport.NoFileResults", "No file results were recorded.") : null;
         ReportNote = _localizer.GetOrDefault("Jobs.RunReport.Note", "Saved attempts describe what happened. Checkpointed runs verify outputs again before reuse.");
-        if (report.State == OfficeConversionJobRunState.Running) {
+        IsExternalRunning = observed && reportPath is not null && OfficeConversionJobRunReportSerializer.IsActive(reportPath);
+        if (IsExternalRunning || report.State == OfficeConversionJobRunState.Running) {
             _cancel = null;
-            Status = _localizer.GetOrDefault("Jobs.Running", "Running");
+            IsActive = false;
+            Outcome = null; Progress = 0; HasOutput = false; OutputPath = null;
+            Status = _localizer.GetOrDefault("Jobs.RunReport.RunningElsewhere", "Running elsewhere");
             Summary = _localizer.GetOrDefault("Jobs.RunReport.RunningNote", "This saved job is running in another Studio instance. Review it after that attempt finishes.");
             CancelCommand.NotifyCanExecuteChanged();
         } else {
@@ -55,7 +68,7 @@ public sealed partial class StudioJobRecord {
             if (report.FailureSummary is { } runFailure && runFailure != summary?.FailureSummary) text += Environment.NewLine + runFailure;
             bool recordedOutput = summary is not null && (summary.Completed > 0 || summary.Reused > 0);
             bool availableOutput = recordedOutput && Directory.Exists(report.OutputDirectory);
-            CompleteBatch(outcome, recordedOutput ? report.OutputDirectory : null, text, [], availableOutput, isDirectoryOutput: true);
+            ApplyBatchCompletion(outcome, recordedOutput ? report.OutputDirectory : null, text, [], availableOutput, isDirectoryOutput: true);
             if (report.State == OfficeConversionJobRunState.Interrupted) {
                 Status = _localizer.GetOrDefault("Jobs.RunReport.Interrupted", "Interrupted");
                 Summary = _localizer.GetOrDefault("Jobs.RunReport.InterruptedNote", "This attempt ended without a final result. Review the saved job and outputs before running again.");

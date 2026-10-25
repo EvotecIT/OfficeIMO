@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.Workflows;
@@ -94,13 +95,20 @@ public static class OfficeConversionJobRunReportSerializer {
 
     internal static void DeleteOwned(string path, string expectedHash) {
         OfficeConversionBatchExecutor.EnsureNoLinks(path);
-        if (!MatchesSnapshot(path, expectedHash)) throw new IOException("The run report changed; its replacement was preserved.");
-        File.Delete(path);
+        if (!OfficeFileCommit.TryDeleteIfUnchanged(path, candidate => MatchesSnapshot(candidate, expectedHash)))
+            throw new IOException("The run report changed; its replacement was preserved.");
     }
 
     internal static void DeleteLease(string path, string runId) {
         OfficeConversionBatchExecutor.EnsureNoLinks(path);
-        if (File.Exists(path) && new FileInfo(path).Length == 32 && File.ReadAllText(path, Encoding.ASCII) == runId) File.Delete(path);
+        _ = OfficeFileCommit.TryDeleteIfUnchanged(path, candidate => {
+            OfficeConversionBatchExecutor.EnsureNoLinks(candidate);
+            using var stream = OfficePathIdentity.OpenRegularFileForRead(candidate, Path.GetDirectoryName(candidate)!, 32);
+            if (stream.Length != 32) return false;
+            byte[] owner = new byte[33];
+            int count = stream.ReadAtLeast(owner, 32, throwOnEndOfStream: false);
+            return count == 32 && Encoding.ASCII.GetString(owner, 0, count) == runId;
+        });
     }
 
     internal static void Validate(OfficeConversionJobRunReport report) {
