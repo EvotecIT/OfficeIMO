@@ -1,6 +1,6 @@
 # Conversion consistency checks
 
-This tool compares the native PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text baselines and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG before its pixels are compared with the direct PNG export.
+This tool compares the native PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text positions and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG before its pixels are compared with the direct PNG export.
 
 Each of those five image formats is required for every expected page. Capture,
 bundle export and verification share an explicit format set, so adding an image
@@ -16,6 +16,16 @@ SVG verification requests unhinted Chromium font rendering and records that
 setting in the result. This keeps host-specific glyph grid fitting separate from
 the comparison of supplied outlines; content, geometry and pixel tolerances
 remain unchanged.
+
+Searchable PDF baselines are checked against the authored coordinates. For SVG
+glyph outlines, the shared SVG reader resolves each labelled carrier's paths,
+ancestry and viewport into finite painted geometry. Its ink dimensions must match
+the saved PDF's visible glyph boxes; their offset from the PDF baseline locates
+the SVG baseline without mistaking a side bearing or ascender for the text origin.
+The authored position tolerance is unchanged. Selectable SVG text is checked in
+Chromium's PDF as before. An outlined position without a matching PDF glyph oracle
+fails explicitly. These horizontal text-position checks do not replace the
+independent raster, region or full-page comparisons.
 
 The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
 
@@ -34,7 +44,7 @@ dotnet $tool prepare --output "$evidence/fixtures"
 dotnet $tool svg-content-safety --output "$evidence/svg-content-safety" --pdftoppm pdftoppm
 dotnet $tool run --suite "$evidence/fixtures/suite.json" --output "$evidence/native"
 dotnet $tool run --suite Build/ConversionConsistency/suite.json --output "$evidence/reports"
-./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$evidence/native" -OutputPath "$evidence/negative"
+./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$evidence/native" -PositionBundlePath "$evidence/reports" -OutputPath "$evidence/negative"
 ```
 
 Linux needs Chromium's native operating-system dependencies. The Ubuntu 24.04 CI
@@ -69,4 +79,4 @@ The default pixel allowance is 2% with a mean channel error of 3. The dense repo
 
 These limits are stored per case. Reduced PDF coverage requires an explicit explanation. A passing result means the declared checks passed; it does not establish complete format fidelity or interchangeable Word, Excel, and HTML layouts.
 
-The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, a missing whole image format, duplicate pages, and invalid CLI options cannot produce a successful result.
+The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, a missing whole image format, duplicate pages, and invalid CLI options cannot produce a successful result. With `-PositionBundlePath`, they also move an actual labelled outline, remove its ink while retaining its label, and move a selectable SVG text baseline. Each artifact is rehashed and must fail the corresponding geometry check.
