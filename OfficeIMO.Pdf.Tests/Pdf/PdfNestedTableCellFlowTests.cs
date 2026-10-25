@@ -194,6 +194,82 @@ public class PdfNestedTableCellFlowTests {
         Assert.All(pdf.GetPages(), page => Assert.Contains(page.GetWords(), word => word.Text.StartsWith("Left", StringComparison.Ordinal)));
     }
 
+    [Theory]
+    [InlineData(false, 0D)]
+    [InlineData(true, 0D)]
+    [InlineData(true, 7D)]
+    public void FloatingBookmarkFollowsTheFirstTableRowAfterAutomaticPageClearance(bool orderedCells, double spacingBefore) {
+        var floating = Style();
+        floating.ColumnWidthPoints = new List<double?> { 280D };
+        floating.MinRowHeight = 190D;
+        floating.Position = new PdfTablePosition();
+        var targetStyle = Style();
+        targetStyle.SpacingBefore = spacingBefore;
+        PdfTableCell target = orderedCells
+            ? Cell(Paragraph("TargetFirstLine"), Paragraph("TargetSecondLine"))
+            : new PdfTableCell("TargetFirstLine\nTargetSecondLine");
+        var document = PdfDocument.Create(Options(240D))
+            .Table(new[] { new[] { "FloatingTable" } }, style: floating)
+            .Bookmark("ContainedTableStart")
+            .Flow(flow => flow.Table(new[] { new[] {
+                target
+            } }, style: targetStyle), new PdfFlowOptions { KeepTogether = true });
+        document.Content.Text("FollowingBody", style: ParagraphStyle());
+
+        byte[] bytes = document.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "FloatingTable");
+        var first = Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "TargetFirstLine");
+        var following = Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "FollowingBody");
+        Assert.True(first.BoundingBox.Bottom > following.BoundingBox.Top);
+        var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations,
+            item => item.Name == "ContainedTableStart");
+        Assert.Equal(2, destination.PageNumber);
+        Assert.Equal(220D - spacingBefore, destination.DestinationTop!.Value, 3);
+        Assert.InRange(destination.DestinationTop.Value - first.BoundingBox.Top, 0D, 12D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RepeatedHeadersKeepOneLinkPerTargetOnEachPageAndTheFirstNamedDestination(bool orderedCells) {
+        const string cellUri = "https://example.com/header-cell", runUri = "https://example.com/header-run";
+        var style = Style();
+        style.HeaderRowCount = 1;
+        style.RepeatHeaderRowCount = 1;
+        PdfTableCell cellHeader = orderedCells
+            ? new PdfTableCell(Array.Empty<PdfTextRun>(), null, linkUri: cellUri, linkContents: "HeaderCell",
+                namedDestinationName: "FirstHeader", blocks: new[] { Paragraph("HeaderCell") })
+            : new PdfTableCell("HeaderCell", linkUri: cellUri, namedDestinationName: "FirstHeader");
+        var linkedRuns = new[] { PdfTextRun.Link("HeaderRun", runUri) };
+        PdfTableCell runHeader = orderedCells
+            ? Cell(new RichParagraphBlock(linkedRuns, PdfAlign.Left, null, ParagraphStyle()))
+            : new PdfTableCell(linkedRuns);
+        var rows = new List<PdfTableCell[]> { new[] { cellHeader, runHeader } };
+        rows.AddRange(Enumerable.Range(0, 30).Select(index => new[] {
+            new PdfTableCell("Body" + index.ToString("00")), new PdfTableCell("Peer" + index.ToString("00"))
+        }));
+        var document = PdfDocument.Create(Options(190D)).TaggedPdfCatalogMarkers().Table(rows, style: style);
+
+        byte[] bytes = document.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.True(pdf.NumberOfPages > 1);
+        var inspection = PdfInspector.Inspect(bytes);
+        foreach (var page in pdf.GetPages()) {
+            Assert.Single(page.GetWords(), word => word.Text == "HeaderCell");
+            Assert.Single(page.GetWords(), word => word.Text == "HeaderRun");
+            Assert.Single(inspection.LinkAnnotations, link => link.PageNumber == page.Number && link.Uri == cellUri);
+            Assert.Single(inspection.LinkAnnotations, link => link.PageNumber == page.Number && link.Uri == runUri);
+        }
+        Assert.Equal(2 * pdf.NumberOfPages, inspection.LinkAnnotations.Count);
+        var destination = Assert.Single(inspection.NamedDestinations, item => item.Name == "FirstHeader");
+        Assert.Equal(1, destination.PageNumber);
+        Assert.Equal(170D, destination.DestinationTop!.Value, 3);
+        foreach (string token in Enumerable.Range(0, 30).Select(index => "Body" + index.ToString("00")))
+            Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == token);
+    }
+
     [Fact]
     public void PageNoteNestedTableContinuesThroughTheSameCellAndTableOwner() {
         var document = PdfDocument.Create(Options(190D));

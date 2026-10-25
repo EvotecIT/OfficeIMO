@@ -69,6 +69,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 double top = y;
+                RecordFlowPlacement(top - fragment.Before);
                 PaintTableFragment(fragment, 0D, frameWidth, ref top, noteContext: false);
                 RecordTableFrameContentBottom(table, top + fragment.After + fragment.Slices[fragment.Slices.Count - 1].GapAfter);
                 y = top;
