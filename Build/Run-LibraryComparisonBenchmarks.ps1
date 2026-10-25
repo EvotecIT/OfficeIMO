@@ -821,7 +821,7 @@ DocX is distributed under the Xceed Community License, which prohibits publishin
 
 if ($containsWordWorkload -and -not $AcceptNPOIOSMFLicense) {
     throw @'
-The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt, then rerun with -AcceptNPOIOSMFLicense to acknowledge it for this opt-in benchmark run.
+The Word comparison suite includes NPOI 2.8.1. Review the NPOI binary EULA at https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt, then rerun with -AcceptNPOIOSMFLicense to acknowledge it for this opt-in benchmark run.
 '@
 }
 
