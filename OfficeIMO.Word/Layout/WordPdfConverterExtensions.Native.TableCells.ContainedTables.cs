@@ -64,7 +64,8 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>
     /// Keeps source percentage widths relative until the shared owner knows the actual
-    /// containing cell frame. Compatibility offsets use the same mapped edges as body tables.
+    /// containing cell frame. Body-only legacy text-margin translations do not
+    /// apply to this already resolved physical cell frame.
     /// </summary>
     private static void ApplyNativeContainedTablePercentageWidth(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
@@ -79,23 +80,29 @@ public static partial class WordPdfConverterExtensions {
         if (source == null || ResolveNativeTablePreferredWidthType(source) != W.TableWidthUnitValues.Pct ||
             GetNativeTablePreferredWidthPercent(source) is not { } fraction) return;
         var (leftBorder, rightBorder) = GetNativeTableOuterBorderInsets(layout, style);
-        double frameAdjustment = -leftBorder - rightBorder;
-        bool legacy = !UsesModernNativeWordLayout(table.Document) &&
-            !UsesNativeSeparateTableCellBorders(table, style, defaults) &&
-            layout.Rows.Count > 0 && layout.Rows[0].Count > 0;
-        if (legacy) {
-            frameAdjustment += GetNativeTableCellHorizontalMargin(style, 0,
-                GetNativeTableRowStartColumn(layout, 0), right: false) +
-                GetNativeTableCellHorizontalMargin(style, 0,
-                    GetNativeTableLastCellStartColumn(layout, 0), right: true);
-        }
-        style.FrameWidthAdjustment = style.AutoFitColumns && !legacy ? 0D : frameAdjustment;
+        style.FrameWidthAdjustment = -leftBorder - rightBorder;
+        // The declared outer width includes the separate-border spacing envelope.
+        // This adjustment follows percentage scaling, just as it does for an
+        // absolute fixed width in ApplyNativeFixedTableMinimumWidths.
+        style.ResolvedWidthAdjustment = style.BorderFrame != null
+            ? -2D * style.CellSpacing : 0D;
         if (style.AutoFitColumns) {
             style.PreferredWidth = null;
             style.PreferredWidthFraction = fraction;
             style.PreserveWidth = true;
             style.AutoFitWidthUsesContentMinimum = style.CellSpacing <= 0D;
-            if (legacy) style.AllowWidthBeyondFrame = true;
+            List<double?> sourcePreferences = CreateNativeAutoFitColumnPreferences(layout);
+            if (sourcePreferences.Count > 0 && sourcePreferences.All(value => value is > 0D)) {
+                // Fully authored cell boxes in a percentage frame reserve their
+                // physical margins before the stored source preferences shrink.
+                // Automatic/null columns keep their ordinary content allocation.
+                style.AutoFitColumnPreferredWidthPoints = sourcePreferences;
+                style.ColumnWidthWeights = null;
+                style.MaxWidth = null;
+                style.MaxWidthFraction = fraction;
+                style.AutoFitWidthUsesContentMinimum = true;
+                style.PreserveAuthoredPreferencesAtWidthLimit = true;
+            }
         } else {
             style.MaxWidth = null;
             style.MaxWidthFraction = fraction;

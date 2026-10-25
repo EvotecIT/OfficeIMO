@@ -83,6 +83,12 @@ public partial class PdfTableStyle {
     /// wrap within the preferred grid, rather than for the unwrapped line width.
     /// </summary>
     internal bool AutoFitWidthUsesContentMinimum { get; set; }
+    /// <summary>
+    /// Captured absolute source preferences remain the compression basis when
+    /// their complete grid exceeds an explicit width limit. Normal AutoFit
+    /// content allocation remains active while that source budget fits.
+    /// </summary>
+    internal bool PreserveAuthoredPreferencesAtWidthLimit { get; set; }
     /// <summary>Document adapters can size an explicit automatic grid that has no positive authored width from its content minimum.</summary>
     internal bool AutoFitUnspecifiedWidthToContent { get; set; }
 
@@ -91,6 +97,11 @@ public partial class PdfTableStyle {
     internal double? PreferredWidthFraction { get; set; }
     internal double? MaxWidthFraction { get; set; }
     internal double FrameWidthAdjustment { get; set; }
+    /// <summary>
+    /// Converts a resolved source-relative frame width into grid width after
+    /// percentage scaling, for example when the source width includes its own spacing.
+    /// </summary>
+    internal double ResolvedWidthAdjustment { get; set; }
     /// <summary>Authored automatic-column preferences remain distinct from their measured content minimums.</summary>
     internal System.Collections.Generic.List<double?>? AutoFitColumnPreferredWidthPoints { get; set; }
     /// <summary>Source cells whose own absolute preference permits wrapped content instead of an unwrapped span preference.</summary>
@@ -735,6 +746,7 @@ public partial class PdfTableStyle {
             PreferredWidthFraction = PreferredWidthFraction,
             MaxWidthFraction = MaxWidthFraction,
             FrameWidthAdjustment = FrameWidthAdjustment,
+            ResolvedWidthAdjustment = ResolvedWidthAdjustment,
             PreserveWidth = PreserveWidth,
             AllowWidthBeyondFrame = AllowWidthBeyondFrame,
             ShrinkTextToFit = ShrinkTextToFit,
@@ -743,6 +755,7 @@ public partial class PdfTableStyle {
             HorizontalOffset = HorizontalOffset,
             AutoFitColumns = AutoFitColumns,
             AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
+            PreserveAuthoredPreferencesAtWidthLimit = PreserveAuthoredPreferencesAtWidthLimit,
             AutoFitUnspecifiedWidthToContent = AutoFitUnspecifiedWidthToContent,
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,

@@ -210,14 +210,20 @@ namespace OfficeIMO.Word.Pdf {
             // An explicit PDF table style retains its presentation placement.
             // Source compatibility geometry applies to the Word-owned style path.
             if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
-                ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
-            ApplyNativeFixedTableMinimumWidths(layout, style);
+                ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults, containedTable: tableNestingDepth > 0);
+            if (tableNestingDepth > 0) {
+                // The containing cell is already a physical frame. Retain its
+                // authored cell margins while compressing only grid flexibility.
+                if (!style.AutoFitColumns) style.CompressFixedColumnsAboveMinimums = true;
+                ApplyNativeContainedTablePercentageWidth(table, layout, style, tableStyleDefaults);
+            }
+            ApplyNativeFixedTableMinimumWidths(layout, style,
+                includeConstrainedAutoFit: style.PreserveAuthoredPreferencesAtWidthLimit);
             ApplyNativeZeroSpacingCellMargins(layout, style);
             ApplyNativeFixedPercentageColumnPreferences(layout, style);
             ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
             style = CreateNativeNoteTableStyle(table, style, nativeDefaults);
-            if (tableNestingDepth > 0) ApplyNativeContainedTablePercentageWidth(table, layout, style, tableStyleDefaults);
 
             if (horizontalAlignments != null) {
                 style.Alignments = horizontalAlignments;

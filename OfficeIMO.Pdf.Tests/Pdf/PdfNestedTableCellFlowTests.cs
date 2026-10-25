@@ -46,6 +46,112 @@ public class PdfNestedTableCellFlowTests {
         Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Note");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RelativeNestedTableWidthExcludesItsOwnFrameSpacingAfterScaling(bool preferredWidth) {
+        var nestedStyle = Style();
+        if (preferredWidth) nestedStyle.PreferredWidthFraction = .5D;
+        else nestedStyle.MaxWidthFraction = .5D;
+        nestedStyle.FrameWidthAdjustment = -1D;
+        nestedStyle.ResolvedWidthAdjustment = -12D;
+        nestedStyle.CellSpacing = 6D;
+        nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
+        nestedStyle.BorderFrame = new PdfTableBorderFrame {
+            Spacing = 6D, HorizontalInset = .5D,
+            Border = new PdfCellBorder { Color = PdfColor.Black, Width = 1D }
+        };
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("Left"), new PdfTableCell("Right") } },
+            PdfAlign.Left, nestedStyle);
+        var outer = Style();
+        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
+        outer.ColumnWidthPoints = new List<double?> { 216D };
+        var document = PdfDocument.Create(Options()).Table(new[] { new[] { Cell(nested) } }, style: outer);
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var page = pdf.GetPage(1);
+        var words = page.GetWords().ToArray();
+        var left = Assert.Single(words, word => word.Text == "Left");
+        var right = Assert.Single(words, word => word.Text == "Right");
+        // The source half-width includes the perimeter's spacing: 98.5pt
+        // centerline frame, 86.5pt grid, and equal cells separated by 6pt.
+        Assert.Equal(46.25D, right.BoundingBox.Left - left.BoundingBox.Left, 3);
+        Assert.Contains(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
+            bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - 98.5D) < .001D);
+        Assert.DoesNotContain(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
+            bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - 110.5D) < .001D);
+    }
+
+    [Fact]
+    public void CapturedRelativeCellWidthRetainsItsReferenceAndGridOffsetsAfterSourceStyleChanges() {
+        var nestedStyle = Style();
+        nestedStyle.MaxWidthFraction = .5D;
+        nestedStyle.FrameWidthAdjustment = 12D;
+        nestedStyle.ResolvedWidthAdjustment = -8D;
+        nestedStyle.HorizontalOffset = 7D;
+        nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("CapturedOffsets") } }, PdfAlign.Left, nestedStyle);
+        PdfTableCell captured = Cell(nested).WithNamedDestination("CapturedOffsetCell").WithNoWrap(false);
+        nestedStyle.MaxWidthFraction = .9D;
+        nestedStyle.FrameWidthAdjustment = 100D;
+        nestedStyle.ResolvedWidthAdjustment = 0D;
+        nested.Style!.MaxWidthFraction = .75D;
+        nested.Style.FrameWidthAdjustment = 50D;
+        nested.Style.ResolvedWidthAdjustment = 5D;
+        nested.Style.HorizontalOffset = 30D;
+        var outer = Style();
+        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
+        outer.ColumnWidthPoints = new List<double?> { 216D };
+        var document = PdfDocument.Create(Options()).Table(new[] { new[] { captured } }, style: outer);
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var page = pdf.GetPage(1);
+        Assert.Single(page.GetWords(), word => word.Text == "CapturedOffsets");
+        // The captured containing frame is 198pt; its retained source projection
+        // yields 97pt at the retained 7pt placement offset.
+        Assert.Contains(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
+            bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - 97D) < .001D &&
+                Math.Abs(bounds.Value.Left - 36D) < .001D);
+    }
+
+    [Fact]
+    public void RelativeFixedGridRetainsPhysicalColumnMinimumsAfterItsOwnSpacingIsRemoved() {
+        const double spacing = 6D, fraction = .1D;
+        var minimums = new List<double?> { 20D, 30D };
+        double minimumGrid = minimums.Sum(width => width ?? 0D) + spacing;
+        double expectedPerimeter = minimumGrid + 2D * spacing;
+        var nestedStyle = Style();
+        nestedStyle.MaxWidthFraction = fraction;
+        nestedStyle.FrameWidthAdjustment = -1D;
+        nestedStyle.ResolvedWidthAdjustment = -2D * spacing;
+        nestedStyle.CellSpacing = spacing;
+        nestedStyle.ColumnWidthPoints = new List<double?> { 45D, 105D };
+        nestedStyle.ColumnMinWidthPoints = minimums;
+        nestedStyle.CompressFixedColumnsAboveMinimums = true;
+        nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
+        nestedStyle.BorderFrame = new PdfTableBorderFrame {
+            Spacing = spacing, HorizontalInset = .5D,
+            Border = new PdfCellBorder { Color = PdfColor.Black, Width = 1D }
+        };
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("L"), new PdfTableCell("R") } },
+            PdfAlign.Left, nestedStyle);
+        var outer = Style();
+        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
+        outer.ColumnWidthPoints = new List<double?> { 216D };
+        var document = PdfDocument.Create(Options()).Table(new[] { new[] { Cell(nested) } }, style: outer);
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var page = Assert.Single(pdf.GetPages());
+        Assert.Equal("LR", string.Concat(page.Letters.Select(letter => letter.Value)));
+        var left = Assert.Single(page.Letters, letter => letter.Value == "L");
+        var right = Assert.Single(page.Letters, letter => letter.Value == "R");
+        // The parent content frame is198pt; its post-scale target is smaller
+        // than the authored20+30pt physical floors plus the6pt grid gap.
+        Assert.Equal(minimums[0]!.Value + spacing, right.StartBaseLine.X - left.StartBaseLine.X, 3);
+        Assert.Contains(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
+            bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - expectedPerimeter) < .001D);
+    }
+
     [Fact]
     public void ContinuedOuterRowResumesEachCellOnceAndKeepsFollowingParagraphBelowTheLastNestedRow() {
         var nested = new TableBlock(Enumerable.Range(0, 34).Select(index => new[] {

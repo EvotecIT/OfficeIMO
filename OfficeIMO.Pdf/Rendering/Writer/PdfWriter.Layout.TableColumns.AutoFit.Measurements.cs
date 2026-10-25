@@ -20,11 +20,13 @@ internal static partial class PdfWriter {
             AutoFitColumnProfile[] profiles,
             double[] preferredWidths,
             double[] minimumWidths,
-            double[] paddingWidths) {
+            double[] paddingWidths, double[]? sourcePreferredWidths = null, double[]? physicalMinimumWidths = null) {
             Profiles = profiles;
             PreferredWidths = preferredWidths;
             MinimumWidths = minimumWidths;
             PaddingWidths = paddingWidths;
+            SourcePreferredWidths = sourcePreferredWidths;
+            PhysicalMinimumWidths = physicalMinimumWidths;
         }
 
         internal AutoFitColumnProfile[] Profiles { get; }
@@ -34,6 +36,10 @@ internal static partial class PdfWriter {
         internal double[] MinimumWidths { get; }
 
         internal double[] PaddingWidths { get; }
+
+        internal double[]? SourcePreferredWidths { get; }
+
+        internal double[]? PhysicalMinimumWidths { get; }
     }
 
     private readonly struct AutoFitTextProfile {
@@ -155,6 +161,15 @@ internal static partial class PdfWriter {
         var preferredWidths = new double[cols];
         var minimumWidths = new double[cols];
         var paddingWidths = new double[cols];
+        bool captureConstrainedPreferences = style.PreserveAuthoredPreferencesAtWidthLimit &&
+            style.AutoFitWidthUsesContentMinimum && style.MaxWidth.HasValue &&
+            style.AutoFitColumnPreferredWidthPoints is { } sourceColumns && sourceColumns.Count == cols &&
+            sourceColumns.All(value => value.HasValue) &&
+            style.AutoFitCellPreferredWidthPoints?.Count > 0 && style.ImportedColumnWidthFractions == null;
+        var sourcePreferredWidths = captureConstrainedPreferences ? new double[cols] : null;
+        var physicalMinimumWidths = captureConstrainedPreferences ? new double[cols] : null;
+        var physicalSpanMinimums = captureConstrainedPreferences
+            ? new System.Collections.Generic.List<(int Column, int Span, double Width)>() : null;
         var precedingAbsolutePreferences = new bool[cols];
         var trailingAutomaticPreferences = new double[cols];
         bool automaticImportedPreferences = style.AutoFitUnspecifiedWidthToContent &&
@@ -165,6 +180,8 @@ internal static partial class PdfWriter {
                 minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
                     "Table minimum column widths must be positive finite values.") ?? 0D;
         }
+        if (physicalMinimumWidths != null)
+            Array.Copy(minimumWidths, physicalMinimumWidths, cols);
         var normalFont = ToOfficeFontInfo(ChooseNormal(options.DefaultFont), fontSize);
         var measurer = OfficeIMO.Drawing.OfficeTextMeasurer.Create(normalFont);
         bool useLargeDenseTechnicalTable = table.Rows.Count >= 100 && cols >= 6;
@@ -224,6 +241,10 @@ internal static partial class PdfWriter {
                 double requestedPerColumn = requestedWidth / cell.ColumnSpan;
                 for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols &&
                     (!automaticImportedPreferences || cell.ColumnSpan == 1); c++) {
+                    if (cell.ColumnSpan == 1 && sourcePreferredWidths != null) {
+                        bool absoluteSource = style.AutoFitCellPreferredWidthPoints!.ContainsKey((rowIndex, cell.Column));
+                        sourcePreferredWidths[c] = absoluteSource ? 0D : Math.Max(sourcePreferredWidths[c], requestedPerColumn);
+                    }
                     if (cell.ColumnSpan == 1 && automaticImportedPreferences &&
                         !(style.ImportedColumnWidthFractions != null &&
                           c < style.ImportedColumnWidthFractions.Count && style.ImportedColumnWidthFractions[c].HasValue)) {
@@ -260,6 +281,14 @@ internal static partial class PdfWriter {
                     if (useSourceTextWidthUnits)
                         minimum = Math.Ceiling(minimum * 20D - 1e-9D) / 20D;
                     minimum = Math.Max(1D, minimum + .001D);
+                    if (physicalMinimumWidths != null) {
+                        double indivisible = cell.NoWrap || cell.TextRotation != 0 ? wordWidth :
+                            MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, objectsOnly: true);
+                        double physical = Math.Max(indivisible, MeasureTableCellObjectWidth(cell)) + horizontalPadding;
+                        if (cell.ColumnSpan == 1)
+                            physicalMinimumWidths[cell.Column] = Math.Max(physicalMinimumWidths[cell.Column], physical);
+                        else physicalSpanMinimums!.Add((cell.Column, cell.ColumnSpan, physical));
+                    }
                     if (cell.ColumnSpan == 1)
                         minimumWidths[cell.Column] = Math.Max(minimumWidths[cell.Column], minimum);
                     else
@@ -354,6 +383,9 @@ internal static partial class PdfWriter {
         for (int columnIndex = 0; columnIndex < cols; columnIndex++) {
             double? authoredPreference = GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, columnIndex,
                 "Table preferred column widths must be positive finite values.");
+            if (sourcePreferredWidths != null)
+                sourcePreferredWidths[columnIndex] = Math.Max(authoredPreference!.Value,
+                    sourcePreferredWidths[columnIndex]);
             if (authoredPreference.HasValue && !(style.ImportedColumnWidthFractions != null &&
                 columnIndex < style.ImportedColumnWidthFractions.Count && style.ImportedColumnWidthFractions[columnIndex].HasValue))
                 // Absolute cells can wrap their own content. Later automatic
@@ -397,7 +429,24 @@ internal static partial class PdfWriter {
         if (style.AutoFitColumnPreferredWidthPoints != null)
             for (int column = 0; column < cols; column++)
                 preferredWidths[column] = Math.Max(preferredWidths[column], minimumWidths[column]);
-        return new AutoFitTableMeasurements(profiles, preferredWidths, minimumWidths, paddingWidths);
+        if (physicalMinimumWidths != null && sourcePreferredWidths != null) {
+            foreach (var span in physicalSpanMinimums!) {
+                int endColumn = Math.Min(cols, span.Column + span.Span);
+                ApplyImportedAutomaticSpanMinimum(physicalMinimumWidths, sourcePreferredWidths, span.Column, endColumn,
+                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+            }
+            foreach (var span in importedSpanMinimums) {
+                if (!span.HasAbsolutePreference) {
+                    int endColumn = Math.Min(cols, span.Column + span.Span);
+                    ApplyImportedAutomaticSpanPreference(sourcePreferredWidths, span.Column, endColumn,
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                }
+            }
+            for (int column = 0; column < cols; column++)
+                sourcePreferredWidths[column] = Math.Max(sourcePreferredWidths[column], physicalMinimumWidths[column]);
+        }
+        return new AutoFitTableMeasurements(profiles, preferredWidths, minimumWidths, paddingWidths,
+            sourcePreferredWidths, physicalMinimumWidths);
     }
 
     private static double IntrinsicBorderHalfWidth(bool enabled, PdfCellBorderSide? side, PdfCellBorder border) {

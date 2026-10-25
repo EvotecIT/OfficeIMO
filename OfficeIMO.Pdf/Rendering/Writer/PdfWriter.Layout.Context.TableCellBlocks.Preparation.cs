@@ -19,12 +19,22 @@ internal static partial class PdfWriter {
         private static PdfTableStyle ResolveContainedTableWidth(PdfTableStyle style, double frameWidth) {
             if (!style.PreferredWidthFraction.HasValue && !style.MaxWidthFraction.HasValue) return style;
             if ((double.IsNaN(style.FrameWidthAdjustment) || double.IsInfinity(style.FrameWidthAdjustment))) throw new ArgumentException("A table's frame adjustment must be finite.");
+            if (double.IsNaN(style.ResolvedWidthAdjustment) || double.IsInfinity(style.ResolvedWidthAdjustment))
+                throw new ArgumentException("A table's resolved width adjustment must be finite.");
             double referenceWidth = frameWidth + style.FrameWidthAdjustment;
             if (!(referenceWidth > 0D) || (double.IsNaN(referenceWidth) || double.IsInfinity(referenceWidth))) throw new ArgumentException("A table's relative width requires a positive finite containing frame.");
             var resolved = style.Clone();
+            // The source adapter already captured physical fixed-column minima,
+            // including distributed span minima. Retain the same grid floor after
+            // converting a source perimeter width into the enclosed cell grid.
+            double minimumWidth = (!style.AutoFitColumns || style.PreserveAuthoredPreferencesAtWidthLimit) &&
+                style.ColumnMinWidthPoints is { } minimums
+                ? minimums.Sum(width => width ?? 0D) + Math.Max(0, minimums.Count - 1) * style.CellSpacing
+                : 0D;
             double Resolve(double fraction) {
                 if (!(fraction > 0D) || (double.IsNaN(fraction) || double.IsInfinity(fraction))) throw new ArgumentException("A table's relative width must be positive and finite.");
-                return referenceWidth * fraction;
+                double width = referenceWidth * fraction + style.ResolvedWidthAdjustment;
+                return Math.Max(minimumWidth, width);
             }
             if (style.PreferredWidthFraction.HasValue) resolved.PreferredWidth = Resolve(style.PreferredWidthFraction.Value);
             if (style.MaxWidthFraction.HasValue) resolved.MaxWidth = Resolve(style.MaxWidthFraction.Value);
