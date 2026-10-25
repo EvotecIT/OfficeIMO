@@ -1,5 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -17,8 +19,13 @@ public sealed partial class HtmlRenderingTests {
             + "<p lang='" + language + "' dir='" + (language is "ar" or "he" ? "rtl" : "ltr")
             + "' style='font-family:Typography;font-size:24px;line-height:1.5;font-weight:"
             + (bold ? "700" : "400") + "'>" + text + "</p>");
-        var options = new HtmlRenderOptions { AllowSystemFontFallback = false };
-        options.Fonts.Add("Typography", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), fontPath)),
+        byte[] fontBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), fontPath));
+        var options = new HtmlToPdfOptions {
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FontFamily = new PdfCore.PdfEmbeddedFontFamily("Typography", fontBytes)
+        };
+        options.Fonts.Add("Typography", fontBytes,
             bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
@@ -36,6 +43,20 @@ public sealed partial class HtmlRenderingTests {
                 .Where(glyph => glyph.UnicodeText.Length > 0).OrderBy(glyph => glyph.TextIndex)
                 .Select(glyph => glyph.UnicodeText)));
         });
+
+        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        byte[] bytes = pdf.ToBytes();
+        pdf.RequireNoLoss();
+        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
+        Assert.Equal(text, Assert.Single(saved.Pages).ExtractText().Trim());
+        OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+        OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+            saved, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
+        png.CreateReport().RequireNoLoss();
+        svg.CreateReport().RequireNoLoss();
+        replay.CreateReport().RequireNoLoss();
+        Assert.Equal(replay.Bytes, png.Bytes);
     }
 
     [Fact]

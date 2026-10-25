@@ -345,9 +345,15 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             uint offsetValue = ReadUInt32(data, record + 8);
             uint lengthValue = ReadUInt32(data, record + 12);
             if (offsetValue > int.MaxValue || lengthValue > int.MaxValue || tables.ContainsKey(tag)) return null;
-            // Subsetters can leave an empty optional table recorded at the end of the file.
-            // It carries no data, so treat it as absent instead of rejecting the whole face.
-            if (lengthValue == 0 && offsetValue <= (uint)data.Length) continue;
+            // Optional empty tables carry no data. An empty glyf table is different:
+            // a space-only subset can have no outlines, with every loca entry zero.
+            if (lengthValue == 0 && offsetValue <= (uint)data.Length) {
+                if (tag == "glyf") {
+                    tables[tag] = (int)offsetValue;
+                    tableLengths[tag] = 0;
+                }
+                continue;
+            }
             var offset = CheckedOffset(data, offsetValue);
             int length = checked((int)lengthValue);
             if (offset > data.Length - length) return null;
@@ -363,6 +369,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int metricCount = ReadUInt16(data, tables["hhea"] + 34);
         if (glyphCount == 0 || metricCount == 0 || metricCount > glyphCount
             || tableLengths["hmtx"] < metricCount * 4) return null;
+        if (tableLengths["glyf"] == 0 && !OfficeTrueTypeGlyphData.HasOnlyEmptyLocations(
+                data, tables["loca"], tableLengths["loca"], glyphCount,
+                ReadInt16(data, tables["head"] + 50))) return null;
         return new OfficeTrueTypeFont(data, tables, tableLengths, collectionIndex, variationModel);
     }
 
