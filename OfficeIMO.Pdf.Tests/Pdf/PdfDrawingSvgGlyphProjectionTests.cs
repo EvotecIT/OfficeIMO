@@ -38,7 +38,15 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
         Assert.Equal(!string.IsNullOrWhiteSpace(text), paths.Any(path => path.Contains('M')));
 
         Assert.NotEmpty(OfficeDrawingRasterRenderer.Render(drawing).GetPixels());
-        byte[] replay = PdfDocument.Create(new PdfOptions().SetTextShapingProvider(new RejectReshaping()))
+        var replayOptions = new PdfOptions {
+            PageWidth = drawing.Width,
+            PageHeight = drawing.Height,
+            MarginLeft = 0D,
+            MarginRight = 0D,
+            MarginTop = 0D,
+            MarginBottom = 0D
+        }.SetTextShapingProvider(new RejectReshaping());
+        byte[] replay = PdfDocument.Create(replayOptions)
             .Drawing(drawing).ToBytes();
         Assert.Equal(text.Trim(), PdfReadDocument.Open(replay).ExtractText().Trim());
     }

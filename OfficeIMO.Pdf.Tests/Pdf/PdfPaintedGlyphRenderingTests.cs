@@ -286,7 +286,10 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.InRange(visual.RasterText[0], '\uE000', '\uF8FF');
         Assert.Equal(visual.Text, visual.Clone().Text);
         Assert.Equal(visual.RasterText, visual.Clone().RasterText);
-        Assert.Contains(visual.RasterText, OfficeDrawingSvgExporter.ToSvg(drawing));
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("aria-label=\"ffi\"", svg);
+        Assert.Contains("<path d=\"M", svg);
+        Assert.DoesNotContain(visual.RasterText, svg);
         Assert.NotEmpty(drawing.Fonts.Faces);
     }
 
