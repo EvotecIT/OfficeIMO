@@ -109,6 +109,7 @@ internal static partial class PdfWriter {
             NoWrap = noWrap;
             Viewport = viewport;
             TextRotation = textRotation;
+            Blocks = System.Array.Empty<IPdfBlock>();
         }
 
         public int Column { get; }
@@ -129,6 +130,7 @@ internal static partial class PdfWriter {
         public int TextRotation { get; }
         public double? OrientedRowTextHeight { get; init; }
         public bool ShrinkTextToFit { get; init; }
+        public System.Collections.Generic.IReadOnlyList<IPdfBlock> Blocks { get; init; }
     }
 
     private static LayoutResult LayoutBlocks(

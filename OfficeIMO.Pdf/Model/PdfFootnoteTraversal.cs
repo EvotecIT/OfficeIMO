@@ -21,6 +21,7 @@ internal static class PdfFootnoteTraversal {
             SemanticBlock semantic => semantic.Blocks,
             LayerBlock layer => layer.Blocks,
             SectionBlock section => section.Blocks,
+            TableBlock table => table.Cells.SelectMany(row => row).SelectMany(cell => cell.Blocks),
             _ => Array.Empty<IPdfBlock>()
         };
         foreach (IPdfBlock child in children)

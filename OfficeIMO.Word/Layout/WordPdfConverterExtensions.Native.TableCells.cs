@@ -192,7 +192,7 @@ namespace OfficeIMO.Word.Pdf {
         private static string GetNativeCellText(WordTableCell cell) =>
             GetNativeCellText(cell, null);
 
-        private readonly record struct NativeCellText(IReadOnlyList<PdfCore.PdfTextRun> Runs, IReadOnlyList<PdfCore.PdfTableCellParagraph> Paragraphs);
+        private readonly record struct NativeCellText(IReadOnlyList<PdfCore.PdfTextRun> Runs, IReadOnlyList<PdfCore.PdfTableCellParagraph> Paragraphs, IReadOnlyList<PdfCore.IPdfBlock>? Blocks = null);
 
         private static IReadOnlyList<PdfCore.PdfTextRun> CreateNativeCellRuns(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById) {
             return CreateNativeCellText(cell, footnoteNumbersById, GetNativeDocumentDefaults(cell.Document), NativeTableStyleDefaults.Empty).Runs;
@@ -202,9 +202,10 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordToPdfOptions? options = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, NativeNoteNumbering? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordToPdfOptions? options = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, bool preserveNestedBlocks = false) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
+            List<PdfCore.IPdfBlock>? blocks = preserveNestedBlocks ? new() : null;
             double? pendingSpacingAfter = null;
             List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
             List<PdfCore.PdfTextRun>?[]? paragraphRunsByElement = PrepareNativeCellParagraphRuns(
@@ -215,6 +216,15 @@ namespace OfficeIMO.Word.Pdf {
                 nativeFontMap, inlineImages);
             for (int i = 0; i < cellElements.Count; i++) {
                 if (cellElements[i] is WordTable nestedTable) {
+                    options?.CancellationToken.ThrowIfCancellationRequested();
+                    if (blocks != null && nativeFontMap != null) {
+                        PdfCore.TableBlock? nestedBlock = BuildNativeTableBlock(nestedTable, getMarker, footnoteNumbersById,
+                            options, contentWidth: null, nativeDefaults, nativeFontMap,
+                            supportsPositionedTables: false, tableNestingDepth: tableNestingDepth + 1);
+                        if (nestedBlock != null) blocks.Add(nestedBlock);
+                    }
+                    // Runs retain a semantic summary for intrinsic widths and diagnostics;
+                    // the ordered block sequence is the sole painted content owner.
                     AppendNativeNestedTableText(
                         nestedTable,
                         footnoteNumbersById,
@@ -314,7 +324,7 @@ namespace OfficeIMO.Word.Pdf {
                 W.JustificationValues? alignment = ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults);
                 var justification = new PdfCore.PdfParagraphStyle();
                 ApplyNativeParagraphJustification(justification, paragraph, alignment);
-                paragraphs.Add(new PdfCore.PdfTableCellParagraph(
+                var cellParagraph = new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
                     MapNativeParagraphAlign(alignment),
@@ -327,12 +337,15 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
-                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing));
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing);
+                paragraphs.Add(cellParagraph);
+                if (blocks != null && !IsNativeNestedTableCellEndCarrier(cellElements, i, lastIndex, paragraph, getMarker, pagination))
+                    blocks.Add(cellParagraph.ToBlock());
                 pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }
 
-            return new NativeCellText(runs, paragraphs);
+            return new NativeCellText(runs, paragraphs, blocks);
         }
 
         private static List<PdfCore.PdfTextRun>?[]? PrepareNativeCellParagraphRuns(

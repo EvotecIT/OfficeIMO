@@ -412,10 +412,6 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
-                    if (cellElements.Any(static element => element is WordTable)) {
-                        AddNativeNestedTableLayoutWarning(options, source);
-                    }
-
                     foreach (WordElement element in cellElements) {
                         if (element is WordParagraph paragraph) {
                             RecordNativeBodyParagraphDiagnostics(paragraph, options, source, mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
@@ -432,7 +428,7 @@ namespace OfficeIMO.Word.Pdf {
                 options,
                 "NativeNestedTableLayoutApproximated",
                 source,
-                "Supported nested Word table content is preserved, but its inner grid and mixed-content placement are flattened by PDF conversion.");
+                "This nested table profile retains its text through flattened cell flow; its inner grid and mixed-content placement are approximated.");
         }
 
         private static void RecordNativeBodyElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {

@@ -228,6 +228,21 @@ internal static partial class PdfWriter {
             throw new ArgumentException("Table cell spacing must leave a positive table width.");
         }
 
+        // An explicit source grid can require wrapping even when its word
+        // minima fit the cap. Preserve that captured preference budget without
+        // changing ordinary AutoFit or generic imported minimum compression.
+        if (autoFit?.SourcePreferredWidths is { } sourcePreferences &&
+            autoFit.PhysicalMinimumWidths is { } physicalMinimums &&
+            (style.AutoFitColumnPreferredWidthPoints!.Sum(width => width ?? 0D) > tableInnerWidth + .001D ||
+                physicalMinimums.Sum() > tableInnerWidth + .001D)) {
+            // Indivisible source/object/no-wrap minima retain the same width
+            // floor as fixed imported grids; the source cap cannot erase them.
+            tableInnerWidth = Math.Max(tableInnerWidth, physicalMinimums.Sum());
+            tableWidth = tableInnerWidth + (columns - 1) * columnGap;
+            autoFitWeights = sourcePreferences;
+            autoFitMinimumWidths = physicalMinimums;
+        }
+
         // Imported tables grow proportionally once their preferred content fits.
         // Residual flexibility is useful when shrinking below those preferences,
         // but using it during growth redistributes space merely because of no-wrap.

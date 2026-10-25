@@ -5,16 +5,18 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     /// <summary>Resolves Word's inline grid origin after effective cell margins and borders are known.</summary>
     private static void ApplyNativeInlineTablePlacement(WordTable table, TableLayout layout,
-        PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
+        PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults, bool containedTable = false) {
         if (layout.Rows.Count == 0 || layout.Rows[0].Count == 0 || style.CellSpacing > 0D ||
             style.BorderFrame?.Border != null ||
             table._tableProperties?.TablePositionProperties != null) return;
 
-        ApplyNativeLegacyPercentageTableDefaultIndent(table, layout, style, defaults);
+        // Body legacy placement translates its text margin into a page grid.
+        // A contained table already receives its physical cell content frame.
+        if (!containedTable) ApplyNativeLegacyPercentageTableDefaultIndent(table, layout, style, defaults);
         int firstColumn = GetNativeTableRowStartColumn(layout, 0);
         PdfCore.PdfAlign alignment = MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults));
         double firstMargin = GetNativeTableCellHorizontalMargin(style, 0, firstColumn, right: false);
-        if (!UsesModernNativeWordLayout(table.Document)) {
+        if (!containedTable && !UsesModernNativeWordLayout(table.Document)) {
             // Legacy left/right alignment uses the leading margin of the first
             // cell as a grid translation; the authored grid widths stay intact.
             if (alignment == PdfCore.PdfAlign.Right) style.HorizontalOffset += firstMargin;

@@ -258,6 +258,11 @@ Each wrapped line places its baseline using the fonts and sizes it contains.
 Larger text and lowered inline elements reserve their combined ascent and descent,
 including inside columns, table cells and canvas text boxes.
 
+Wrapping paragraphs retain an identifier's delimiter-separated groups when the
+measured group fits the available line. An oversized group uses ordinary long-token
+splitting instead of a soft overflow allowance. Wrapping table cells use the same
+width admission, including paragraphs inside nested tables.
+
 `PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
