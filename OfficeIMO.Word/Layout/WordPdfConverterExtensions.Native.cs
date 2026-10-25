@@ -235,14 +235,18 @@ namespace OfficeIMO.Word.Pdf {
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             nativeDefaults = nativeDefaults with { NoteNumbering = footnoteNumbersById };
             IReadOnlyList<WordSection> sections = document.Sections;
+            bool canContinueRunningStories = SupportsNativeContinuousRunningStoryDocument(document, sections);
             string? pageFootnoteBodyProfileGap = null;
             bool pageFootnoteBodyProfileChecked = false;
             var documentEndnotes = new List<PdfFootnote>();
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
+                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers, canContinueRunningStories);
+                bool changesRunningStories = NativeSectionGroupChangesRunningStories(sections, sectionIndex, sectionGroupEnd);
                 WordSection firstSection = sections[sectionIndex];
-                bool preserveLogicalRunningSections = UsesNativeSectionPageCounts(firstSection) || firstSection.DifferentFirstPage;
+                if (sectionIndex > 0) ReportNativeContinuousStoryPageFallback(
+                    sections[sectionIndex - 1], firstSection, sectionIndex, options);
+                bool preserveLogicalRunningSections = changesRunningStories || UsesNativeSectionPageCounts(firstSection) || firstSection.DifferentFirstPage;
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -260,7 +264,13 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
-                        if (preserveLogicalRunningSections) pdf.BeginRunningContentSection(currentSectionIndex);
+                        if (preserveLogicalRunningSections) {
+                            if (changesRunningStories && currentSectionIndex > sectionIndex) {
+                                PdfCore.PdfOptions continuationOptions = CreateNativeContinuousRunningOptions(
+                                    pdf, section, options, nativeFontMap, listMarkers, nativeDefaults);
+                                pdf.BeginRunningContentSection(currentSectionIndex, continuationOptions);
+                            } else pdf.BeginRunningContentSection(currentSectionIndex);
+                        }
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
@@ -394,16 +404,16 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, bool canContinueRunningStories) {
             int endIndex = startIndex + 1;
-            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options, listMarkers)) {
+            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options, listMarkers, canContinueRunningStories)) {
                 endIndex++;
             }
 
             return endIndex;
         }
 
-        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
+        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, bool canContinueRunningStories) {
             if (current.BreakType != WordSectionBreakType.Continuous) {
                 return false;
             }
@@ -422,8 +432,9 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            return NativeSectionHeaderFooterReferencesEquivalent(previous, current) &&
-                NativeSectionPageNumberingEquivalent(previous, current);
+            return NativeSectionPageNumberingEquivalent(previous, current) &&
+                (NativeSectionHeaderFooterReferencesEquivalent(previous, current) ||
+                 (canContinueRunningStories && CanContinueNativeDefaultHeaderStory(previous, current, options)));
         }
 
         private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {

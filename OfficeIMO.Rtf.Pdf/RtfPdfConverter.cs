@@ -57,6 +57,8 @@ internal static partial class RtfPdfConverter {
 
         PdfCore.PdfOptions currentPageOptions = pdf.Options.Clone();
         RtfSection currentPageSection = document.Sections[0];
+        options.CancellationToken.ThrowIfCancellationRequested();
+        bool canContinueRunningStories = SupportsContinuousRunningStoryDocument(document);
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index == 0) {
@@ -65,8 +67,8 @@ internal static partial class RtfPdfConverter {
             }
 
             if (!StartsNewPdfPage(section.BreakKind)) {
-                ReportContinuousSectionSettings(document, section, currentPageSection, currentPageOptions, pdfOptions, options);
-                RenderSectionBlocks(document, section, pdf, options, state);
+                RenderContinuousSectionBlocks(document, section, index, pdf, options, state, pdfOptions,
+                    canContinueRunningStories, ref currentPageSection, ref currentPageOptions);
                 continue;
             }
 
@@ -89,8 +91,8 @@ internal static partial class RtfPdfConverter {
                     RenderSectionBlocks(document, section, pdf, options, state);
                     while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
                         index++;
-                        ReportContinuousSectionSettings(document, document.Sections[index], currentPageSection, currentPageOptions, pdfOptions, options);
-                        RenderSectionBlocks(document, document.Sections[index], pdf, options, state);
+                        RenderContinuousSectionBlocks(document, document.Sections[index], index, pdf, options, state, pdfOptions,
+                            canContinueRunningStories, ref currentPageSection, ref currentPageOptions);
                     }
                 } finally {
                     state.FontOptions = previousFontOptions;

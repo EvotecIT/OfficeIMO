@@ -42,6 +42,7 @@ internal static partial class PdfWriter {
         private bool pageHasBodyContent;
         private int runningNonContentObjectCount;
         private int? currentRunningSectionId;
+        private PdfOptions? nextRunningPageOptions;
         // Body emission records logical ownership at the same point as page
         // dirtiness, after any paragraph/table pagination has taken place.
         private bool pageDirty {
@@ -136,6 +137,10 @@ internal static partial class PdfWriter {
 
         private void StartPage(PdfOptions options) {
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
+            if (nextRunningPageOptions != null) {
+                options = nextRunningPageOptions;
+                nextRunningPageOptions = null;
+            }
             options.Validate();
             int? effectiveMaximumPages = maximumGeneratedPages is int documentMaximum
                 ? options.MaxGeneratedPages is int pageMaximum ? System.Math.Min(documentMaximum, pageMaximum) : documentMaximum
