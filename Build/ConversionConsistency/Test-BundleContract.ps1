@@ -45,7 +45,8 @@ if ($PositionBundlePath) {
     $positions = Get-Content -LiteralPath (Join-Path $PositionBundlePath 'bundle.json') -Raw | ConvertFrom-Json -Depth 100
     $positionCase = $positions.cases | Where-Object { $_.contract.id -eq 'text-geometry' } | Select-Object -First 1
     if ($null -eq $positionCase) { throw 'Expected the authored text-geometry position fixture.' }
-    foreach ($failure in @('moved-outline', 'missing-outline-ink', 'moved-selectable-text')) {
+    foreach ($failure in @('moved-outline', 'missing-outline-ink', 'moved-selectable-text',
+        'clipped-outline-ink', 'cropped-outline-ink', 'masked-outline-ink')) {
         $target = Join-Path $OutputPath $failure
         New-Item -ItemType Directory -Path $target | Out-Null
         Copy-Item -LiteralPath (Join-Path $PositionBundlePath $positionCase.contract.id) -Destination $target -Recurse
@@ -65,6 +66,39 @@ if ($PositionBundlePath) {
             $carrier.SetAttribute('transform', $carrier.GetAttribute('transform') + ' translate(0 1)')
         } elseif ($failure -eq 'missing-outline-ink') {
             foreach ($path in @($carrier.SelectNodes('.//*[local-name()="path"]'))) { $path.ParentNode.RemoveChild($path) | Out-Null }
+        } elseif ($failure -in @('clipped-outline-ink', 'cropped-outline-ink', 'masked-outline-ink')) {
+            $namespace = $svg.DocumentElement.NamespaceURI
+            $defs = $svg.CreateElement('defs', $namespace)
+            $definition = $svg.CreateElement($(if ($failure -eq 'masked-outline-ink') { 'mask' } else { 'clipPath' }), $namespace)
+            $definition.SetAttribute('id', 'position-ink-rejection')
+            $rect = $svg.CreateElement('rect', $namespace)
+            $page = $entry.contract.pages[0]
+            if ($failure -eq 'masked-outline-ink') {
+                $definition.SetAttribute('maskUnits', 'userSpaceOnUse')
+                $definition.SetAttribute('maskContentUnits', 'userSpaceOnUse')
+                $definition.SetAttribute('mask-type', 'luminance')
+                $definition.SetAttribute('x', '0')
+                $definition.SetAttribute('y', '0')
+                $definition.SetAttribute('width', $page.width.ToString([Globalization.CultureInfo]::InvariantCulture))
+                $definition.SetAttribute('height', $page.height.ToString([Globalization.CultureInfo]::InvariantCulture))
+                $rect.SetAttribute('x', '0')
+                $rect.SetAttribute('y', '0')
+                $rect.SetAttribute('width', $page.width.ToString([Globalization.CultureInfo]::InvariantCulture))
+                $rect.SetAttribute('height', $page.height.ToString([Globalization.CultureInfo]::InvariantCulture))
+                $rect.SetAttribute('fill', 'black')
+                $carrier.SetAttribute('mask', 'url(#position-ink-rejection)')
+            } else {
+                $rect.SetAttribute('x', $(if ($failure -eq 'cropped-outline-ink') {
+                    $position.x.ToString([Globalization.CultureInfo]::InvariantCulture)
+                } else { ($page.width - 1).ToString([Globalization.CultureInfo]::InvariantCulture) }))
+                $rect.SetAttribute('y', '0')
+                $rect.SetAttribute('width', '1')
+                $rect.SetAttribute('height', $page.height.ToString([Globalization.CultureInfo]::InvariantCulture))
+                $carrier.SetAttribute('clip-path', 'url(#position-ink-rejection)')
+            }
+            $definition.AppendChild($rect) | Out-Null
+            $defs.AppendChild($definition) | Out-Null
+            $svg.DocumentElement.PrependChild($defs) | Out-Null
         } else {
             # A minimal selectable SVG exercises the independent browser/PDF
             # baseline path. Its intentional position error must be reported even
@@ -103,7 +137,7 @@ if ($LASTEXITCODE -ne 2) { throw 'An unknown CLI option was not rejected.' }
 & dotnet $ToolPath verify --output $BundlePath --output $BundlePath *> (Join-Path $OutputPath 'duplicate-option.log')
 if ($LASTEXITCODE -ne 2) { throw 'A duplicate CLI option was not rejected.' }
 Write-Host 'PASS: missing content, missing/corrupt images, missing formats, duplicate pages, and invalid CLI options are rejected.'
-if ($PositionBundlePath) { Write-Host 'PASS: moved outlines, labelled groups without ink, and moved selectable SVG text fail the position contract.' }
+if ($PositionBundlePath) { Write-Host 'PASS: moved, missing, clipped or masked outline ink and moved selectable SVG text fail the position contract.' }
 # Expected native failures above have been validated; do not leak their exit code
 # into callers such as the GitHub Actions PowerShell wrapper.
 $global:LASTEXITCODE = 0

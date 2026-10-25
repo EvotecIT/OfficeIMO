@@ -123,11 +123,20 @@ internal static class SvgTextPositions {
                     }
                     break;
                 case OfficeDrawingGroup group:
-                    OfficeTransform placement = OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY);
+                    // A clip retains its source contours in the scene. Only a
+                    // containing rectangular clip proves that all those contours
+                    // still paint; partial or other clips need a different oracle.
+                    var local = new List<OfficePoint>();
+                    if (group.ClipPath.Kind != OfficeClipPathKind.Rectangle ||
+                        !ReadPoints(group.Drawing, OfficeTransform.Translate(group.ContentOffsetX, group.ContentOffsetY), local) ||
+                        local.Any(point => point.X < 0D || point.Y < 0D ||
+                            point.X > group.ClipPath.Width || point.Y > group.ClipPath.Height)) return false;
+                    OfficeTransform placement = OfficeTransform.Translate(group.X, group.Y);
                     if (group.FrameTransform.HasValue) placement = placement.Then(group.FrameTransform.Value.CreateDestinationTransform());
-                    if (!ReadPoints(group.Drawing, placement.Then(parent), points)) return false;
+                    points.AddRange(local.Select(point => placement.Then(parent).TransformPoint(point)));
                     break;
                 case OfficeDrawingEffectGroup effect:
+                    if (effect.SoftMask != null || effect.BlendMode != OfficeBlendMode.Normal) return false;
                     if (effect.Opacity > 0 && !ReadPoints(effect.Drawing, effect.Transform.Then(parent), points)) return false;
                     break;
                 default:

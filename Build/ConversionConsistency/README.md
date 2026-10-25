@@ -26,6 +26,9 @@ The authored position tolerance is unchanged. Selectable SVG text is checked in
 Chromium's PDF as before. An outlined position without a matching PDF glyph oracle
 fails explicitly. These horizontal text-position checks do not replace the
 independent raster, region or full-page comparisons.
+Outline position proof accepts rectangular clips only when they contain every
+contour point. Intersecting or other clips, soft masks and non-normal blending
+fail explicitly because their visible ink is not proven by unmodified path bounds.
 
 The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
 
@@ -79,4 +82,4 @@ The default pixel allowance is 2% with a mean channel error of 3. The dense repo
 
 These limits are stored per case. Reduced PDF coverage requires an explicit explanation. A passing result means the declared checks passed; it does not establish complete format fidelity or interchangeable Word, Excel, and HTML layouts.
 
-The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, a missing whole image format, duplicate pages, and invalid CLI options cannot produce a successful result. With `-PositionBundlePath`, they also move an actual labelled outline, remove its ink while retaining its label, and move a selectable SVG text baseline. Each artifact is rehashed and must fail the corresponding geometry check.
+The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, a missing whole image format, duplicate pages, and invalid CLI options cannot produce a successful result. With `-PositionBundlePath`, they also move an actual labelled outline, remove, clip or mask its ink while retaining its label, and move a selectable SVG text baseline. Each artifact is rehashed and must fail the corresponding geometry check.
