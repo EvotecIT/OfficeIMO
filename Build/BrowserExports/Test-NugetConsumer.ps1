@@ -6,7 +6,7 @@ New-Item -ItemType Directory -Path $output -Force | Out-Null
 $project = Join-Path $repository 'OfficeIMO.JavaScript.Assets/OfficeIMO.JavaScript.Assets.csproj'
 [xml] $metadata = Get-Content -LiteralPath $project -Raw
 $version = $metadata.Project.PropertyGroup.VersionPrefix
-& dotnet pack $project -c Release --nologo -o $output
+& dotnet pack $project -c Release --nologo -p:UseSharedCompilation=false -o $output
 if ($LASTEXITCODE -ne 0) { throw 'Asset package build/pack failed.' }
 $consumer = Join-Path $output 'consumer'
 New-Item -ItemType Directory -Path $consumer -Force | Out-Null
@@ -65,7 +65,7 @@ if ((Get-FileHash -LiteralPath $archive).Hash -ne (Get-FileHash -LiteralPath $re
     throw 'The consumer did not restore the freshly packed local archive.'
 }
 foreach ($framework in 'net8.0','net10.0') {
-    & dotnet run --project $consumerProject -c Release -f $framework --no-restore -- (Join-Path $repository 'OfficeIMO.JavaScript/bundles')
+    & dotnet run --project $consumerProject -c Release -f $framework --no-restore -p:UseSharedCompilation=false -- (Join-Path $repository 'OfficeIMO.JavaScript/bundles')
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer failed: $framework" }
 }
 Write-Host "Packed .NET asset consumers passed: OfficeIMO.JavaScript.Assets.$version.nupkg"
