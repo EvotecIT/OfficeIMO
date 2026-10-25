@@ -1110,7 +1110,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("119a4414593636e06ab82e0590b51d32882abae3e29c8adce6a0efb922ae80f7") ?? (() => {
+const _m0 = _modules.get("936afeebe2c160e65fae2d208ab920122ff9ac2134fee8995f27911fdff2d389") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1144,8 +1144,11 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
         text = "";
     else if (kind === "string")
         text = value;
-    else if (kind === "number")
+    else if (kind === "number") {
         text = Number.isFinite(value) ? String(value) : "";
+        // Numeric text has no CSV delimiter, quote or line break to escape.
+        return quote === "all" ? '"' + text + '"' : text;
+    }
     else if (kind === "boolean")
         text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
@@ -1258,7 +1261,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("119a4414593636e06ab82e0590b51d32882abae3e29c8adce6a0efb922ae80f7", _exports);
+_modules.set("936afeebe2c160e65fae2d208ab920122ff9ac2134fee8995f27911fdff2d389", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });

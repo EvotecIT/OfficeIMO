@@ -5745,8 +5745,11 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
         text = "";
     else if (kind === "string")
         text = value;
-    else if (kind === "number")
+    else if (kind === "number") {
         text = Number.isFinite(value) ? String(value) : "";
+        // Numeric text has no CSV delimiter, quote or line break to escape.
+        return quote === "all" ? '"' + text + '"' : text;
+    }
     else if (kind === "boolean")
         text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
@@ -7386,7 +7389,7 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = String(bold) + String(italic), existing = selections.get(key);
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
         if (existing)
             return existing;
         const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);

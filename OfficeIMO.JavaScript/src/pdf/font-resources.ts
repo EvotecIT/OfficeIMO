@@ -119,9 +119,9 @@ export class PdfFontResource {
 }
 export class PdfFontResources {
   readonly resources: PdfFontResource[] = [];
-  private readonly selections = new Map<string, PdfFontResource>();
+  private readonly selections = new Map<number, PdfFontResource>();
   private readonly programs = new Map<PdfFont, PdfFontResource>();
-  private readonly explicitSelections = new Map<PdfFont, Map<string, PdfFontResource>>();
+  private readonly explicitSelections = new Map<PdfFont, Map<number, PdfFontResource>>();
   private readonly registered = new Set<PdfFont>();
   private fontBytes = 0;
   constructor(private readonly objects: PdfObjects, private readonly fonts?: PdfFonts, private readonly maxBytes = 16 * 1024 * 1024, private readonly signal?: AbortSignal) {
@@ -139,7 +139,7 @@ export class PdfFontResources {
     if (explicit) this.registerFont(explicit);
     let selections = this.selections;
     if (explicit) { const found = this.explicitSelections.get(explicit); selections = found ?? new Map(); if (!found) this.explicitSelections.set(explicit, selections); }
-    const key = String(bold) + String(italic), existing = selections.get(key);
+    const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
     if (existing) return existing;
     const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
     const shared = font ? this.programs.get(font) : undefined;

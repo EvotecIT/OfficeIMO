@@ -1120,8 +1120,11 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
         text = "";
     else if (kind === "string")
         text = value;
-    else if (kind === "number")
+    else if (kind === "number") {
         text = Number.isFinite(value) ? String(value) : "";
+        // Numeric text has no CSV delimiter, quote or line break to escape.
+        return quote === "all" ? '"' + text + '"' : text;
+    }
     else if (kind === "boolean")
         text = booleanText[value ? "true" : "false"];
     else if (isDate(value))

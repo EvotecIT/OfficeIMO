@@ -2533,7 +2533,7 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = String(bold) + String(italic), existing = selections.get(key);
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
         if (existing)
             return existing;
         const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);

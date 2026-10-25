@@ -31,6 +31,17 @@ test("CSV rejects unsupported values and malformed dialects", async () => {
   await assert.rejects(writeCsv([], { columns, lineEnding: "bad" }), RangeError);
 });
 
+test("CSV preserves numeric text and non-finite empty cells in every quoting mode and dialect", async () => {
+  const values = [0, -0, -4, 1e21, 1e-7, NaN, Infinity, -Infinity];
+  const text = ["0", "0", "-4", "1e+21", "1e-7", "", "", ""];
+  const columns = values.map(() => ({ header: "Value" }));
+  for (const delimiter of [",", ";", "\t"]) for (const quote of ["minimal", "all", "strings"]) {
+    const blob = await writeCsv([values], { columns, delimiter, quote, includeHeader: false });
+    const expected = (quote === "all" ? text.map(value => '"' + value + '"') : text).join(delimiter) + "\r\n";
+    assert.equal(await blob.text(), expected, `${quote} with ${JSON.stringify(delimiter)}`);
+  }
+});
+
 test("CSV cancels pending producer input promptly and returns its iterator", async () => {
   const controller = new AbortController();
   let returned = false;

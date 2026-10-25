@@ -54,7 +54,11 @@ function csvField(value: unknown, delimiter: string, protect: boolean, quote: No
   let text: string;
   if (value == null) text = "";
   else if (kind === "string") text = value as string;
-  else if (kind === "number") text = Number.isFinite(value) ? String(value) : "";
+  else if (kind === "number") {
+    text = Number.isFinite(value) ? String(value) : "";
+    // Numeric text has no CSV delimiter, quote or line break to escape.
+    return quote === "all" ? '"' + text + '"' : text;
+  }
   else if (kind === "boolean") text = booleanText[value ? "true" : "false"];
   else if (isDate(value)) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
   else {
