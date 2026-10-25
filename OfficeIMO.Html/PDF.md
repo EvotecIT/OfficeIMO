@@ -407,6 +407,8 @@ Font-directed Latin reversed by an explicit bidi override, cursive attachment, d
 
 Shaping uses `TextShapingLanguage` when set, otherwise the computed element language. Measurement and retained painting share that effective language. Eligible horizontal LTR combining-mark runs retain accepted managed glyph positions through painting. Mixed paragraphs retain their separately resolved LTR and RTL slices with the paragraph's direction, selected font and complete source clusters. This directional paint-retention path requires zero letter spacing and word spacing, and its glyph advance must agree with the retained layout width. A CSS bidi override whose pair-positioning context changes that width keeps diagnosed fallback; it cannot claim complete retained shaping. Ineligible complex spacing and non-horizontal paint remain outside that retained-glyph subset; an approximation is reported when the complete provider result cannot be retained, and strict mode rejects it.
 
+With the default Arial family and no registered font bytes, layout-only requests can use different metrics from PDF and image output. `RequireNoLoss()` currently does not identify this difference. Register the same font bytes when comparing geometry across these routes.
+
 Register the actual bold face when bold appearance matters. If a requested bold style has only a regular face available, font matching can select that nearest regular face; it does not reproduce the browser's synthetic bold weight. Compare native appearance with the same available faces and synthesis policy.
 
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:

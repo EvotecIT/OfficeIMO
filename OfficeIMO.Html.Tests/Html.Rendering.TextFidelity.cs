@@ -73,7 +73,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
         // No caller font is registered for this default-font workflow. The
         // serialized PDF owns its selected fallback program and glyphs.
-        byte[] savedPdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] savedPdf = document.ToPdfBytes(new HtmlToPdfOptions(options) {
+            Mode = options.Mode,
+            PageSize = new OfficePageSize(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch,
+                rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false
+        });
         var savedPage = OfficeIMO.Pdf.PdfReadDocument.Open(savedPdf).Pages[0];
         OfficeImageExportResult savedSvg = savedPage.ExportImage(OfficeImageExportFormat.Svg,
             new OfficeIMO.Pdf.PdfImageExportOptions {
@@ -92,21 +97,23 @@ public sealed partial class HtmlRenderingTests {
 
         using var independentPdf = UglyToad.PdfPig.PdfDocument.Open(savedPdf);
         var saved = independentPdf.GetPage(1);
-        HtmlRenderText[] firstLineSource = renderedText.Where(text => text.Text.Any(IsLatinLetter)).ToArray();
-        Assert.NotEmpty(firstLineSource);
+        // Compare the two readers after the same PDF font preparation. The raw
+        // no-font display list above remains its own source/drawing advance proof.
+        Assert.NotEmpty(savedPage.ToDrawing().Fonts.Faces);
+        var selectedLine = savedPage.GetTextSpans().Where(span => span.Text.Any(IsLatinLetter)).ToArray();
+        Assert.NotEmpty(selectedLine);
         var latinLetters = saved.Letters.Where(letter => letter.Value.Any(IsLatinLetter)).ToArray();
         Assert.NotEmpty(latinLetters);
-        double expectedBaseline = PaintBaseline(firstLineSource[0]);
-        Assert.All(firstLineSource, text => Assert.Equal(expectedBaseline, PaintBaseline(text), 6));
+        double expectedBaseline = selectedLine[0].Y;
+        Assert.All(selectedLine, span => Assert.Equal(expectedBaseline, span.Y, 3));
         Assert.All(latinLetters, letter => Assert.InRange(
-            Math.Abs((saved.Height - letter.StartBaseLine.Y) / 0.75D - expectedBaseline), 0D, 0.02D));
-        double savedBaseline = latinLetters[0].StartBaseLine.Y;
+            Math.Abs(letter.StartBaseLine.Y - expectedBaseline) / 0.75D, 0D, 0.02D));
         var firstLineLetters = saved.Letters.Where(letter =>
-            Math.Abs(letter.StartBaseLine.Y - savedBaseline) < 0.001D).ToArray();
-        Assert.InRange(Math.Abs(firstLineLetters.Min(letter => letter.StartBaseLine.X) / 0.75D
-            - firstLineSource.Min(text => text.X)), 0D, 0.02D);
-        Assert.InRange(Math.Abs(firstLineLetters.Max(letter => letter.EndBaseLine.X) / 0.75D
-            - firstLineSource.Max(text => text.X + text.TextAdvanceWidth!.Value)), 0D, 0.02D);
+            Math.Abs(letter.StartBaseLine.Y - expectedBaseline) < 0.001D).ToArray();
+        Assert.InRange(Math.Abs(firstLineLetters.Min(letter => letter.StartBaseLine.X)
+            - selectedLine.Min(span => span.X)) / 0.75D, 0D, 0.02D);
+        Assert.InRange(Math.Abs(firstLineLetters.Max(letter => letter.EndBaseLine.X)
+            - selectedLine.Max(span => span.X + span.Advance)) / 0.75D, 0D, 0.02D);
 
         static bool IsLatinLetter(char scalar) => scalar is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
         Assert.Contains("One model.", SvgPaintedText.Read(svg), StringComparison.Ordinal);

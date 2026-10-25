@@ -69,6 +69,14 @@ public sealed partial class HtmlRenderingTests {
         XElement[] textNodes = saved.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
         var matched = new HashSet<XElement>();
         double pointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
+        double[] viewBox = saved.Attribute("viewBox")!.Value.Split(' ')
+            .Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
+        Assert.Equal(4, viewBox.Length);
+        Assert.Equal(0D, viewBox[0]);
+        Assert.Equal(0D, viewBox[1]);
+        // The PDF page dimensions are serialized to three decimal places.
+        Assert.InRange(Math.Abs(viewBox[2] - page.Width * pointsPerCssPixel), 0D, 0.000500001D);
+        Assert.InRange(Math.Abs(viewBox[3] - page.Height * pointsPerCssPixel), 0D, 0.000500001D);
         foreach (OfficeDrawingText text in painted) {
             Assert.Equal(OfficeTextAlignment.Left, text.Alignment);
             Assert.Equal(1D, text.BaselineScale);
@@ -98,13 +106,19 @@ public sealed partial class HtmlRenderingTests {
             IOfficeFontProgram? program = prepared?.Program ?? drawing.Fonts.ResolveForText(
                 text.RasterText, text.Font.FamilyName, text.Font.Face, text.Font.Size, out _);
             IOfficeBoundedFontProgram bounded = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(program);
-            double size = text.Font.Size;
+            // Static PDF text is outlined at its destination font size. Adaptive
+            // contour subdivision must happen there, before serialization; scaling
+            // an already-flattened CSS-pixel contour changes its point sequence.
+            // Prepared runs are already vector-painted by the HTML PDF writer.
+            double contourUnitsPerCssPixel = prepared == null ? pointsPerCssPixel : 1D;
+            double size = text.Font.Size * contourUnitsPerCssPixel;
             double baseline = program is IOfficeFontBaselineMetrics metrics
                 ? metrics.BaselineOffset(size) : program!.LineHeight(size) * .8D;
             double advance = prepared?.Measure(size) ?? program!.Measure(text.RasterText, size);
             Assert.True(!double.IsNaN(advance) && !double.IsInfinity(advance) && advance >= 0D);
             double scaleX = text.TextAdvanceWidth.HasValue && advance > 0D
-                ? text.TextAdvanceWidth.Value / advance : 1D;
+                ? text.TextAdvanceWidth.Value * contourUnitsPerCssPixel / advance : 1D;
+            double outputUnits = pointsPerCssPixel / contourUnitsPerCssPixel;
             var contours = prepared != null
                 ? prepared.GetContours(0D, -baseline, size, 1_000_000, CancellationToken.None)
                 : bounded.GetTextContoursBounded(text.RasterText, 0D, -baseline, size, 1_000_000, CancellationToken.None);
@@ -113,8 +127,10 @@ public sealed partial class HtmlRenderingTests {
                 if (contour.Count < 3) continue;
                 for (int index = 0; index < contour.Count; index++) {
                     OfficePoint point = contour[index];
-                    expected.Append(index == 0 ? 'M' : 'L').Append(X(text.X + point.X * scaleX)).Append(' ')
-                        .Append(X(text.Y + size + text.BaselineOffset + point.Y)).Append(' ');
+                    expected.Append(index == 0 ? 'M' : 'L')
+                        .Append(OfficeSvgFormatting.FormatNumber(text.X * pointsPerCssPixel + point.X * scaleX * outputUnits)).Append(' ')
+                        .Append(OfficeSvgFormatting.FormatNumber((text.Y + text.Font.Size + text.BaselineOffset) * pointsPerCssPixel
+                            + point.Y * outputUnits)).Append(' ');
                 }
                 expected.Append('Z');
             }
