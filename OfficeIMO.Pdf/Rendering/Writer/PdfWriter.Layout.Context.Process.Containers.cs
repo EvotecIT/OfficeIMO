@@ -128,6 +128,15 @@ internal static partial class PdfWriter {
                     nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
                     keepHeight = elementHeight.Value + nextHeight;
                     fullPageHeight = GetMaximumBlockContinuationHeight();
+                    while (style.KeepTogether && elementHeight.Value > fullPageHeight + .001D &&
+                        AdvanceContainerAdmission(elementHeight.Value)) {
+                        elementHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                        if (!elementHeight.HasValue)
+                            throw new NotSupportedException("KeepTogether requires measurable element content after a page transition.");
+                        nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
+                        keepHeight = elementHeight.Value + nextHeight;
+                        fullPageHeight = GetMaximumBlockContinuationHeight();
+                    }
                     if (style.KeepTogether && elementHeight.Value > fullPageHeight + 0.001D)
                         throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }

@@ -184,33 +184,40 @@ internal static partial class PdfWriter {
                 HasPageFootnotes || tableHasFootnotes && HasUnscheduledFootnote(GetTableRowFootnoteSegments(tb, style, preparedRows, cols,
                     colPixel, colGapPx, rowGapPx, spanFlow, row, start, count, y, height, xOrigin,
                     Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), GetClosingTextPadding(style.SpacingAfter)));
-            void MovePastShortTableFrames(Func<double> requiredHeight, Action advance) {
-                while (requiredHeight() > maxContentHeight + 0.001D &&
-                    requiredHeight() <= MaximumContinuationHeight() + 0.001D &&
-                    MaximumContinuationHeight() > maxContentHeight + 0.001D) advance();
+            void MovePastShortTableFrames(Func<double> requiredHeight, Action<bool> advance, bool searchRunningFrames = true) {
+                RunningFrameAdmissionAttempt? runningAdmission = null;
+                while (requiredHeight() > maxContentHeight + .001D) {
+                    if (requiredHeight() <= MaximumContinuationHeight() + .001D &&
+                        MaximumContinuationHeight() > maxContentHeight + .001D) {
+                        advance(false);
+                        continue;
+                    }
+                    if (!searchRunningFrames || style.Position != null || !TryAdvanceForRunningContent(ref runningAdmission,
+                        requiredHeight(), advance, MaximumContinuationHeight())) break;
+                }
             }
             if (style.KeepTogether) {
-                RunningFrameAdmissionAttempt? runningAdmission = null;
                 double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
-                while (style.Position == null && KeepHeight() > MaximumContinuationHeight() + .001D &&
-                    TryAdvanceForRunningContent(ref runningAdmission, KeepHeight(), AdvanceInitialTablePage, MaximumContinuationHeight()))
-                    tableSpacingBefore = 0D;
-                MovePastShortTableFrames(KeepHeight, () => { NewInitialTablePage(); tableSpacingBefore = 0D; });
-                double keepHeight = KeepHeight();
-                if (keepHeight > maxContentHeight + 0.001) {
-                    throw new ArgumentException("Table height exceeds the available page content height.");
+                void AdmitKeptTableFrame() {
+                    MovePastShortTableFrames(KeepHeight, preserve => { AdvanceInitialTablePage(preserve); tableSpacingBefore = 0D; });
+                    if (KeepHeight() > maxContentHeight + .001D)
+                        throw new ArgumentException("Table height exceeds the available page content height.");
                 }
+                AdmitKeptTableFrame();
+                double keepHeight = KeepHeight();
 
                 double GroupTop() => y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
                 if ((y < GetCurrentFramePageStartY() - 0.001 || HasPageFootnotes) &&
                     (y - keepHeight < TableBottom() || !TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false))) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
+                    AdmitKeptTableFrame();
                     keepHeight = KeepHeight();
                 }
                 while (!TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false) && HasPageFootnotes) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
+                    AdmitKeptTableFrame();
                     keepHeight = KeepHeight();
                 }
                 if (!TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false))
@@ -270,7 +277,9 @@ internal static partial class PdfWriter {
                     (y < GetCurrentFramePageStartY() - 0.001D || HasPageFootnotes || MaximumContinuationHeight() > maxContentHeight + 0.001D)) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
-                    MovePastShortTableFrames(FirstPageGroupHeight, NewInitialTablePage);
+                    // This row-count preference is best effort; mandatory row/fragment
+                    // admission below owns the running-variant search and its cycle.
+                    MovePastShortTableFrames(FirstPageGroupHeight, AdvanceInitialTablePage, searchRunningFrames: false);
                     firstPageGroupHeight = FirstPageGroupHeight();
                 }
                 double groupTop = y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
@@ -320,7 +329,7 @@ internal static partial class PdfWriter {
 
             if (captionRuns != null && captionLines != null && captionLineHeights != null) {
                 double CaptionAndFirstRowHeight() => captionHeight + style.CaptionSpacingAfter + (rowHeights.Length > 0 ? rowHeights[0] : 0D);
-                MovePastShortTableFrames(CaptionAndFirstRowHeight, NewInitialTablePage);
+                MovePastShortTableFrames(CaptionAndFirstRowHeight, AdvanceInitialTablePage);
                 if (CaptionAndFirstRowHeight() > maxContentHeight + 0.001D)
                     throw new ArgumentException("Table caption and first row exceed the available page content height.");
                 var captionFont = ChooseNormal(currentOpts.DefaultFont);
@@ -423,46 +432,64 @@ internal static partial class PdfWriter {
                 pairedBorders.Clear();
             }
 
-            void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false, bool continuingSpanTail = false) {
-                int? fragmentTable = spanFlow.ActiveCells.Any(span => span.Height > .001D) ? EnsureTableStructureElement() : tableStructureElementIndex;
-                FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, fragmentTable, ref pairedBorders,
-                    cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
-                    closingPadding: GetClosingTextPadding(style.SpacingAfter));
-                FlushPairedBorders();
-                PrepareTableFrameContinuation(tb, rowIndex);
-                if (CanQueueColumnBalanceRemainder(blockList)) {
-                    ColumnFlowScope scope = activeColumnFlow!;
-                    QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
-                        MaximumContinuationHeight(), scope.Options.BalanceTableRowLines,
-                        rowIndex, startLine), tb, blockList, blockIndex);
+            void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false, bool continuingSpanTail = false,
+                bool preserveEmptyPage = false, bool admitRunningFrame = true) {
+                void AdvanceTableFrame(bool preserve) {
+                    int? fragmentTable = spanFlow.ActiveCells.Any(span => span.Height > .001D) ? EnsureTableStructureElement() : tableStructureElementIndex;
+                    FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, fragmentTable, ref pairedBorders,
+                        cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
+                        closingPadding: GetClosingTextPadding(style.SpacingAfter));
+                    FlushPairedBorders();
+                    PrepareTableFrameContinuation(tb, rowIndex);
+                    if (CanQueueColumnBalanceRemainder(blockList)) {
+                        ColumnFlowScope scope = activeColumnFlow!;
+                        QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
+                            MaximumContinuationHeight(), scope.Options.BalanceTableRowLines,
+                            rowIndex, startLine), tb, blockList, blockIndex);
+                    }
+                    NewPage(preserveEmptyPage: preserve);
+                    tableFrameHasBodyContent = false;
+                    PdfTableStyle continuationStyle = PrepareTableBorderContinuation(tb, style, rowIndex);
+                    bool paddingChanged = !ReferenceEquals(style, continuationStyle);
+                    style = continuationStyle;
+                    ReflowTableForCurrentFrame(rowIndex, startLine, paddingChanged);
+                    ReserveTableSpanRemainder(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, Math.Max(0D, maxContentHeight - (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)));
+                    repeatHeaderHeight = 0D;
+                    for (int header = 0; header < repeatHeaderRowCount; header++)
+                        repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
+                    xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+                    if (style.Position is { } continuationPosition) {
+                        flowYBeforeTable = y;
+                        pageBeforeTable = currentPage;
+                        xOrigin = PositionTableX(continuationPosition, tableWidth) + style.HorizontalOffset;
+                        double continuationHeight = remainingRowHeights[rowIndex];
+                        if (startLine > 0)
+                            continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];
+                        if (hasRepeatableHeader && rowIndex >= headerRowCount) continuationHeight += repeatHeaderHeight;
+                        y = PositionTableY(continuationPosition, Math.Min(maxContentHeight, continuationHeight));
+                    }
                 }
-                NewPage();
-                tableFrameHasBodyContent = false;
-                PdfTableStyle continuationStyle = PrepareTableBorderContinuation(tb, style, rowIndex);
-                bool paddingChanged = !ReferenceEquals(style, continuationStyle);
-                style = continuationStyle;
-                ReflowTableForCurrentFrame(rowIndex, startLine, paddingChanged);
-                ReserveTableSpanRemainder(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, Math.Max(0D, maxContentHeight - (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)));
-                repeatHeaderHeight = 0D;
-                for (int header = 0; header < repeatHeaderRowCount; header++)
-                    repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
-                xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
-                if (style.Position is { } continuationPosition) {
-                    flowYBeforeTable = y;
-                    pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(continuationPosition, tableWidth) + style.HorizontalOffset;
-                    double continuationHeight = remainingRowHeights[rowIndex];
-                    if (startLine > 0)
-                        continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];
-                    if (hasRepeatableHeader && rowIndex >= headerRowCount) continuationHeight += repeatHeaderHeight;
-                    y = PositionTableY(continuationPosition, Math.Min(maxContentHeight, continuationHeight));
+                double RequiredContinuationHeight() => continuingSpanTail
+                        ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex,
+                            minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight -
+                                (rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D))) +
+                            (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)
+                        : GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow);
+                double RequiredBodyFragmentHeight() {
+                    if (continuingSpanTail)
+                        return MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex,
+                            minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight -
+                                (rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D)));
+                    bool wholeRowRequired = !GetTableRowAllowBreakAcrossPages(style, rowIndex) ||
+                        viewportRowGroups[rowIndex] >= rowIndex;
+                    return GetRequiredSegmentHeight(rowIndex, startLine, wholeRowRequired);
                 }
-                double requiredHeight = continuingSpanTail
-                    ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex,
-                        minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight -
-                            (rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D))) +
-                        (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)
-                    : GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow);
+                AdvanceTableFrame(preserveEmptyPage);
+                // Admit only mandatory body content. Repeated headers and a
+                // whole splittable row remain optional if this frame is shorter.
+                // An outer row admission owns its own cycle search when present.
+                if (admitRunningFrame) MovePastShortTableFrames(RequiredBodyFragmentHeight, AdvanceTableFrame);
+                double requiredHeight = RequiredContinuationHeight();
                 ApplyTablePageContinuationSpacing(requiredHeight, rowIndex, startLine, requireWholeRow, continuingSpanTail);
                 if (continuingSpanTail ? hasRepeatableHeader && rowIndex >= headerRowCount && requiredHeight <= y - TableBottom() + .001D
                     : CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow)) {
@@ -581,7 +608,7 @@ internal static partial class PdfWriter {
                 PageStructElement? rowStructureElement = null;
                 while (startLine < totalLines) {
                     MovePastShortTableFrames(() => MeasureTableRowSegmentHeight(rowIndex, startLine, 1, suppressCellObjects: false),
-                        () => NewTablePage(rowIndex, startLine));
+                        preserve => NewTablePage(rowIndex, startLine, preserveEmptyPage: preserve, admitRunningFrame: false));
                     totalLines = rowLineCounts[rowIndex];
                     double available = y - TableBottom();
                     double minimumRowSegmentHeight = MeasureTableRowSegmentHeight(rowIndex, startLine, 1, suppressCellObjects: false);
@@ -664,16 +691,18 @@ internal static partial class PdfWriter {
                 ReserveTableSpanRemainder(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, Math.Max(0D, maxContentHeight - (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)));
                 if (viewportRowGroups[rowIndex] >= rowIndex)
                     MovePastShortTableFrames(() => GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx),
-                        () => NewTablePage(rowIndex, requireWholeRow: true));
+                        preserve => NewTablePage(rowIndex, requireWholeRow: true, preserveEmptyPage: preserve, admitRunningFrame: false));
                 double placementHeight = GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx);
                 if (viewportRowGroups[rowIndex] >= rowIndex && placementHeight > maxContentHeight + 0.001D)
                     throw new ArgumentException("A cell viewport's complete visible row span must fit within one page; divide it into explicit fragments before rendering.");
                 double requiredRowHeight = GetTableRowFixedHeight(style, rowIndex) ?? GetTableRowMinHeight(style, rowIndex);
-                MovePastShortTableFrames(() => requiredRowHeight, () => NewTablePage(rowIndex));
+                MovePastShortTableFrames(() => requiredRowHeight,
+                    preserve => NewTablePage(rowIndex, preserveEmptyPage: preserve, admitRunningFrame: false));
                 if (requiredRowHeight > maxContentHeight + 0.001D)
                     throw new ArgumentException("Table row height requirement exceeds the available page content height.");
                 if (!GetTableRowAllowBreakAcrossPages(style, rowIndex))
-                    MovePastShortTableFrames(() => rowHeights[rowIndex], () => NewTablePage(rowIndex, requireWholeRow: true));
+                    MovePastShortTableFrames(() => rowHeights[rowIndex],
+                        preserve => NewTablePage(rowIndex, requireWholeRow: true, preserveEmptyPage: preserve, admitRunningFrame: false));
                 if (rowHeights[rowIndex] > maxContentHeight + 0.001) {
                     if (TableRowHasViewport(tb, rowIndex, cols))
                         throw new ArgumentException("A row containing a cell viewport must fit within one page; divide it into explicit fragments before rendering.");

@@ -196,7 +196,7 @@ public sealed class PdfRunningFrameAdmissionTests {
 
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("INTRO", pdf.GetPage(1).Text);
-        Assert.Equal(1, Regex.Matches(pdf.GetPage(2).Text, "LIST").Count);
+        Assert.Single(Regex.Matches(pdf.GetPage(2).Text, "LIST").Cast<Match>());
     }
 
     [Theory]
@@ -216,6 +216,179 @@ public sealed class PdfRunningFrameAdmissionTests {
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("INTRO", pdf.GetPage(1).Text);
         Assert.Equal("FLOW", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void KeptFlowRechecksRunningFramesAfterAnOrdinaryMove(bool replayable, bool laterFrameFits) {
+        Action<PdfContentBuilder> target = flow => flow.Paragraph(paragraph => paragraph.Text("FLOW"),
+            style: TargetStyle(keepTogether: false));
+        PdfDocument document = CreateContentDocument(content => {
+            content.Spacer(150D);
+            var options = new PdfFlowOptions { KeepTogether = true };
+            if (replayable) content.Deferred(_ => target, options);
+            else content.Flow(target, options);
+        }, header => ConfigureStaticHeader(header, LargeBodyHeight,
+            laterFrameFits ? LargeBodyHeight : SmallBodyHeight, SmallBodyHeight));
+
+        if (!laterFrameFits) {
+            Assert.Throws<ArgumentException>(() => document.ToBytes());
+            return;
+        }
+        AssertLaterRunningFrame(document, "FLOW");
+    }
+
+    [Theory]
+    [InlineData("kept", true)]
+    [InlineData("fixed", true)]
+    [InlineData("fixed", false)]
+    [InlineData("unsplit", true)]
+    [InlineData("unsplit", false)]
+    [InlineData("split", true)]
+    [InlineData("split", false)]
+    public void TableFragmentsRecheckEachActualRunningFrame(string profile, bool occupiedFirstFrame) {
+        PdfTableStyle style = ReviewTableStyle(profile);
+        PdfDocument document = CreateContentDocument(content => {
+            if (occupiedFirstFrame) content.Spacer(150D);
+            content.Table(new[] { new[] { "ROW" } }, style: style);
+        }, header => ConfigureStaticHeader(header,
+            occupiedFirstFrame ? LargeBodyHeight : SmallBodyHeight, LargeBodyHeight, SmallBodyHeight));
+
+        AssertLaterRunningFrame(document, "ROW");
+    }
+
+    [Fact]
+    public void FixedRowRejectsARepeatedShortRunningFrameAfterAnOrdinaryMove() {
+        PdfDocument document = CreateContentDocument(content => {
+            content.Spacer(150D);
+            content.Table(new[] { new[] { "ROW" } }, style: ReviewTableStyle("fixed"));
+        }, header => ConfigureStaticHeader(header, LargeBodyHeight, SmallBodyHeight, SmallBodyHeight));
+
+        Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LaterTableRowRetainsItsHeightRequirementAfterAnOrdinaryMove(bool fixedHeight) {
+        PdfTableStyle style = ReviewTableStyle("fixed");
+        var heights = new List<double?> { 150D, RequiredParagraphHeight };
+        style.FixedRowHeights = fixedHeight ? heights : null;
+        if (!fixedHeight) style.RowMinHeights = heights;
+        style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
+        PdfDocument document = CreateContentDocument(content =>
+            content.Table(new[] { new[] { "PREFIX" }, new[] { "ROW" } }, style: style),
+            header => ConfigureStaticHeader(header, LargeBodyHeight, LargeBodyHeight, SmallBodyHeight));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTROPREFIX", pdf.GetPage(1).Text);
+        Assert.Empty(pdf.GetPage(2).Text);
+        Assert.Equal("ROW", pdf.GetPage(3).Text);
+    }
+
+    [Fact]
+    public void OptionalRepeatedTableHeaderDoesNotRejectAnOtherwiseFittingBodyRow() {
+        PdfTableStyle style = ReviewTableStyle("fixed");
+        style.HeaderRowCount = 1;
+        style.RepeatHeaderRowCount = 1;
+        style.FixedRowHeights = new List<double?> { 30D, 150D, 40D };
+        style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
+        PdfDocument document = CreateContentDocument(content =>
+            content.Table(new[] { new[] { "HEAD" }, new[] { "PREFIX" }, new[] { "ROW" } }, style: style),
+            header => ConfigureStaticHeader(header, LargeBodyHeight, SmallBodyHeight, SmallBodyHeight));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("INTROHEADPREFIX", pdf.GetPage(1).Text);
+        Assert.Equal("ROW", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
+    public void SplittableTableRowUsesALegalShortFrameInsteadOfSearchingForTheWholeRow() {
+        PdfTableStyle style = ReviewTableStyle("split");
+        style.FontSize = 20D;
+        style.FixedRowHeights = new List<double?> { 150D, null };
+        style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
+        var runs = new[] { PdfTextRun.Normal("B01\nB02\nB03\nB04") };
+        // The Word adapter supplies these paragraph-level widow constraints
+        // through the existing cell model. Two 25pt lines fit the short frame.
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
+            fontSize: 20D, lineSpacing: PdfLineSpacing.Exactly(25D), widowControl: true) });
+        PdfDocument document = CreateContentDocument(content =>
+            content.Table(new[] { new[] { new PdfTableCell("PREFIX") }, new[] { cell } }, style: style),
+            header => ConfigureStaticHeader(header, LargeBodyHeight, LargeBodyHeight, SmallBodyHeight));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTROPREFIX", pdf.GetPage(1).Text);
+        Assert.Equal("B01B02", pdf.GetPage(2).Text);
+        Assert.Equal("B03B04", pdf.GetPage(3).Text);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ContainerKeepWithNextRechecksRunningFramesAfterAnOrdinaryMove(bool laterFrameFits) {
+        PdfDocument document = CreateContentDocument(content => {
+            content.Spacer(90D);
+            content.Panel(panel => panel.Paragraph(paragraph => paragraph.Text("PANEL"),
+                style: TargetStyle(keepTogether: false)), new PdfPanelStyle {
+                    PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D,
+                    KeepTogether = true, KeepWithNext = true
+                });
+            content.Paragraph(paragraph => paragraph.Text("NEXT"), style: TargetStyle(keepTogether: false));
+        }, header => ConfigureStaticHeader(header, LargeBodyHeight,
+            laterFrameFits ? LargeBodyHeight : SmallBodyHeight, SmallBodyHeight));
+
+        if (!laterFrameFits) {
+            Assert.Throws<ArgumentException>(() => document.ToBytes());
+            return;
+        }
+        AssertLaterRunningFrame(document, "PANELNEXT");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IndivisibleListLinesRecheckEachActualRunningFrame(bool occupiedFirstFrame) {
+        PdfDocument document = CreateContentDocument(content => {
+            if (occupiedFirstFrame) content.Spacer(150D);
+            content.Bullets(new[] { "LIST" }, style: new PdfListStyle {
+                FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(RequiredParagraphHeight),
+                SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D
+            });
+        }, header => ConfigureStaticHeader(header,
+            occupiedFirstFrame ? LargeBodyHeight : SmallBodyHeight, LargeBodyHeight, SmallBodyHeight));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTRO", pdf.GetPage(1).Text);
+        Assert.Empty(pdf.GetPage(2).Text);
+        Assert.Single(Regex.Matches(pdf.GetPage(3).Text, "LIST").Cast<Match>());
+    }
+
+    private static PdfTableStyle ReviewTableStyle(string profile) {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        style.CellPaddingX = style.CellPaddingY = 0D;
+        style.SpacingBefore = style.SpacingAfter = 0D;
+        style.KeepTogether = profile == "kept";
+        style.AllowRowBreakAcrossPages = profile == "split";
+        if (profile is "kept" or "fixed")
+            style.FixedRowHeights = new List<double?> { RequiredParagraphHeight };
+        else style.FontSize = RequiredParagraphHeight / 1.25D;
+        return style;
+    }
+
+    private static void AssertLaterRunningFrame(PdfDocument document, string target) {
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTRO", pdf.GetPage(1).Text);
+        Assert.Empty(pdf.GetPage(2).Text);
+        Assert.Equal(target, pdf.GetPage(3).Text);
     }
 
     [Theory]
