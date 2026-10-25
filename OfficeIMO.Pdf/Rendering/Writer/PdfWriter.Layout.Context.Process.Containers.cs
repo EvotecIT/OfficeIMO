@@ -68,7 +68,8 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (style.KeepTogether) {
+            void AdmitKeptContainerFrame() {
+                if (!style.KeepTogether) return;
                 double? keepHeight = MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
                 double? fullPageKeepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
                 if (!keepHeight.HasValue || !fullPageKeepHeight.HasValue) {
@@ -109,6 +110,7 @@ internal static partial class PdfWriter {
                     }
                 }
             }
+            AdmitKeptContainerFrame();
             if (style.KeepWithNext && nextBlock != null) {
                 double? elementHeight = MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
                 if (!elementHeight.HasValue) {
@@ -120,32 +122,20 @@ internal static partial class PdfWriter {
                 double fullPageHeight = GetMaximumBlockContinuationHeight();
                 while (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewBlockFrame();
-                    style = ResolveContainerStyle(container);
-                    spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                    parentLeft = currentOpts.MarginLeft; parentWidth = width;
+                    RemeasureContainerStart();
+                    AdmitKeptContainerFrame();
                     elementHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
                     if (!elementHeight.HasValue) break;
                     nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
                     keepHeight = elementHeight.Value + nextHeight;
                     fullPageHeight = GetMaximumBlockContinuationHeight();
-                    while (style.KeepTogether && elementHeight.Value > fullPageHeight + .001D &&
-                        AdvanceContainerAdmission(elementHeight.Value)) {
-                        elementHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
-                        if (!elementHeight.HasValue)
-                            throw new NotSupportedException("KeepTogether requires measurable element content after a page transition.");
-                        nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
-                        keepHeight = elementHeight.Value + nextHeight;
-                        fullPageHeight = GetMaximumBlockContinuationHeight();
-                    }
-                    if (style.KeepTogether && elementHeight.Value > fullPageHeight + 0.001D)
-                        throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
             }
 
             if (style.KeepTogether) {
                 ReserveAtomicFootnoteGroup(new[] { container },
                     () => MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize) ?? 0D,
-                    () => { NewBlockFrame(); spacingBefore = 0D; parentLeft = currentOpts.MarginLeft; parentWidth = width; });
+                    () => { NewBlockFrame(); RemeasureContainerStart(); AdmitKeptContainerFrame(); });
             }
             y -= spacingBefore;
             if (style.AnchoredCanvas is { } anchoredCanvas) RenderParagraphCanvas(anchoredCanvas, y);

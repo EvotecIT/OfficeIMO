@@ -351,6 +351,83 @@ public sealed class PdfRunningFrameAdmissionTests {
     }
 
     [Theory]
+    [InlineData("table", true)]
+    [InlineData("table", false)]
+    [InlineData("list", true)]
+    [InlineData("list", false)]
+    public void KeptGroupsRemainWholeAfterTheirKeepWithNextMove(string kind, bool laterFrameFits) {
+        PdfDocument document = CreateContentDocument(content => {
+            content.Spacer(90D);
+            if (kind == "table") {
+                PdfTableStyle style = ReviewTableStyle("kept");
+                style.KeepWithNext = true;
+                style.FixedRowHeights = new List<double?> { 40D, 40D };
+                style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
+                content.Table(new[] { new[] { "FIRST" }, new[] { "SECOND" } }, style: style);
+            } else {
+                content.Bullets(new[] { "FIRST", "SECOND" }, style: new PdfListStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(40D), ItemSpacing = 0D,
+                    SpacingBefore = 0D, SpacingAfter = 0D, KeepTogether = true, KeepWithNext = true,
+                    KeepTogetherOverflow = PdfKeepTogetherOverflowBehavior.Reject
+                });
+            }
+            // The 80pt group fits the remaining 100pt. Its 30pt successor
+            // triggers the move but can itself fit the short 50pt frame.
+            content.Paragraph(paragraph => paragraph.Text("NEXT"), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(30D), SpacingBefore = 0D,
+                SpacingAfter = 0D, WidowControl = false
+            });
+        }, header => ConfigureStaticHeader(header, LargeBodyHeight,
+            laterFrameFits ? LargeBodyHeight : SmallBodyHeight, SmallBodyHeight));
+
+        if (!laterFrameFits) {
+            Assert.Throws<ArgumentException>(() => document.ToBytes());
+            return;
+        }
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTRO", pdf.GetPage(1).Text);
+        Assert.Empty(pdf.GetPage(2).Text);
+        Assert.Equal(new[] { "FIRST", "SECOND", "NEXT" },
+            Regex.Matches(pdf.GetPage(3).Text, "FIRST|SECOND|NEXT").Cast<Match>().Select(match => match.Value));
+    }
+
+    [Theory]
+    [InlineData("flow")]
+    [InlineData("panel")]
+    public void AtomicNoteMoveRechecksTheKeptBodyAgainstItsNewRunningFrame(string kind) {
+        var capture = new PdfLayoutPositionCapture();
+        PdfDocument document = CreateContentDocument(content => {
+            content.Spacer(90D);
+            PdfFootnoteDefinition note = content.DefineFootnote(body => body.Text("NOTE", style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(40D), SpacingBefore = 0D,
+                SpacingAfter = 0D, WidowControl = false
+            }));
+            Action<PdfContentBuilder> body = group => group.Paragraph(paragraph => paragraph.Runs(new[] {
+                PdfTextRun.Normal("REF").WithFootnoteReference(note)
+            }), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(80D), SpacingBefore = 0D,
+                SpacingAfter = 0D, WidowControl = false
+            });
+            if (kind == "flow") content.Flow(body, new PdfFlowOptions { KeepTogether = true }, capture);
+            else content.Panel(body, new PdfPanelStyle {
+                PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D, KeepTogether = true
+            });
+        }, header => ConfigureStaticHeader(header, LargeBodyHeight, LargeBodyHeight, SmallBodyHeight));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("INTRO", pdf.GetPage(1).Text);
+        Assert.Empty(pdf.GetPage(2).Text);
+        Assert.Single(pdf.GetPage(3).GetWords(), word => word.Text == "REF");
+        Assert.Single(pdf.GetPage(3).GetWords(), word => word.Text == "NOTE");
+        if (kind == "flow") {
+            Assert.False(capture.WasSkipped);
+            Assert.Equal(3, Assert.Single(capture.Regions).PageNumber);
+        }
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void IndivisibleListLinesRecheckEachActualRunningFrame(bool occupiedFirstFrame) {

@@ -149,7 +149,6 @@ internal static partial class PdfWriter {
                 y = PositionTableY(verticalPosition, Math.Min(maxContentHeight, tableContentHeight));
                 AvoidFloatingTable(verticalPosition, xOrigin, tableWidth, tableContentHeight);
             }
-            void NewInitialTablePage() => AdvanceInitialTablePage(preserveEmptyPage: false);
             void AdvanceInitialTablePage(bool preserveEmptyPage) {
                 FlushPairedBorders();
                 QueueColumnBalanceRemainder(tb, blockList, blockIndex);
@@ -196,13 +195,21 @@ internal static partial class PdfWriter {
                         requiredHeight(), advance, MaximumContinuationHeight())) break;
                 }
             }
+            double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
+            void AdmitKeptTableFrame() {
+                if (!style.KeepTogether) return;
+                MovePastShortTableFrames(KeepHeight, preserve => { AdvanceInitialTablePage(preserve); tableSpacingBefore = 0D; });
+                if (KeepHeight() > maxContentHeight + .001D)
+                    throw new ArgumentException("Table height exceeds the available page content height.");
+            }
+            void NewInitialTablePage() {
+                AdvanceInitialTablePage(preserveEmptyPage: false);
+                tableSpacingBefore = 0D;
+                // Every unpainted normal move must preserve the whole kept table,
+                // even when KeepWithNext or another prepaint rule caused it.
+                if (style.Position == null) AdmitKeptTableFrame();
+            }
             if (style.KeepTogether) {
-                double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
-                void AdmitKeptTableFrame() {
-                    MovePastShortTableFrames(KeepHeight, preserve => { AdvanceInitialTablePage(preserve); tableSpacingBefore = 0D; });
-                    if (KeepHeight() > maxContentHeight + .001D)
-                        throw new ArgumentException("Table height exceeds the available page content height.");
-                }
                 AdmitKeptTableFrame();
                 double keepHeight = KeepHeight();
 
@@ -211,13 +218,11 @@ internal static partial class PdfWriter {
                     (y - keepHeight < TableBottom() || !TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false))) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
-                    AdmitKeptTableFrame();
                     keepHeight = KeepHeight();
                 }
                 while (!TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false) && HasPageFootnotes) {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
-                    AdmitKeptTableFrame();
                     keepHeight = KeepHeight();
                 }
                 if (!TryReserveTableGroup(0, tb.Rows.Count, GroupTop(), y - keepHeight, commit: false))
@@ -239,7 +244,10 @@ internal static partial class PdfWriter {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
                     tableHeight = tableContentHeight + style.SpacingAfter;
-                    keepHeight = tableHeight + nextHeight;
+                    restoresFlow = RestoresMeasuredTableFlow(style, tableHeight, y - TableBottom());
+                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width,
+                        currentOpts.DefaultFontSize, restoresFlow ? 0D : tableHeight);
+                    keepHeight = restoresFlow ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
                     groupTop = y - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
                 }
                 if (nextHeight > .001D && keepHeight <= y - TableBottom() + .001D &&

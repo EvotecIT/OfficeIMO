@@ -53,19 +53,22 @@ internal static partial class PdfWriter {
                 ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)
                 : null;
             RunningFrameAdmissionAttempt? runningAdmission = null;
+            void RemeasureFlowFrame() {
+                context = CreateFlowContext();
+                if (flow.IsReplayable) blocks = MaterializeFlow(flow, context);
+                measuredHeight = MeasureFlowBlocks(blocks);
+                fullPageMeasuredHeight = measuredHeight.HasValue
+                    ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) : null;
+                available = y - FootnoteBodyBottom;
+                beforeFloatClearanceY = y;
+                cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + .001D;
+            }
             void AdmitRunningFlowFrame() {
                 while (flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue &&
                     fullPageMeasuredHeight.Value > GetMaximumBlockContinuationHeight() + .001D &&
                     TryAdvanceForRunningContent(ref runningAdmission, fullPageMeasuredHeight.Value,
                         preserve => NewBlockFrame(preserveEmptyPage: preserve), contextualBody: flow.IsReplayable)) {
-                    context = CreateFlowContext();
-                    if (flow.IsReplayable) blocks = MaterializeFlow(flow, context);
-                    measuredHeight = MeasureFlowBlocks(blocks);
-                    fullPageMeasuredHeight = measuredHeight.HasValue
-                        ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) : null;
-                    available = y - FootnoteBodyBottom;
-                    beforeFloatClearanceY = y;
-                    cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + .001D;
+                    RemeasureFlowFrame();
                 }
             }
             AdmitRunningFlowFrame();
@@ -119,9 +122,10 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            int startPageNumber = pages.Count + 1;
             if (flow.Options.KeepTogether && measuredHeight.HasValue)
-                ReserveAtomicFootnoteGroup(blocks, () => MeasureFlowBlocks(blocks) ?? measuredHeight.Value, () => NewBlockFrame());
+                ReserveAtomicFootnoteGroup(blocks, () => MeasureFlowBlocks(blocks) ?? measuredHeight.Value,
+                    () => { NewBlockFrame(); RemeasureFlowFrame(); AdmitRunningFlowFrame(); });
+            int startPageNumber = pages.Count + 1;
             double startY = y;
             PdfOptions startOptions = currentOpts;
             var paintedRegions = new FloatingFlowCapture();
