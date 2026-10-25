@@ -18,10 +18,20 @@ public sealed partial class HtmlRenderingTests {
             : mark;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", string.Empty, "width:auto", content));
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlToPdfOptions options = svg
+            ? PageMarginShapingOptions(fontData: File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
+                "OfficeIMO.Drawing.Tests/TestAssets/RobotoFlex.ttf")))
+            : PageMarginShapingOptions(cff: true);
+        if (svg) {
+            // A variable face keeps this SVG control on the outline route.
+            OfficeFontFace face = Assert.Single(options.Fonts.Faces);
+            Assert.False(face.CanEmbedAsStaticPdfFont);
+            Assert.Equal(0D, face.Program.Measure(mark, 18D));
+        }
         PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
+        Assert.Contains(pdf.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
 
         Assert.Equal(mark, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         OfficeDrawing drawing = PdfCore.PdfDocument.Load(bytes).Render.Drawing(1);
