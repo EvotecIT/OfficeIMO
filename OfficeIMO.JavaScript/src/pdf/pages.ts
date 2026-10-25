@@ -59,6 +59,10 @@ export class PdfPages {
   private readonly pendingBookmarks: Readonly<PdfBookmark>[] = [];
   private pageNumberWidth = 0;
   private readonly colors = new Map<string, string>();
+  private textFont: PdfFontResource | undefined;
+  private textSize = 0;
+  private textColor = "";
+  private textPrefix = "";
   private readonly externalObjects = new Map<string, number>();
   private bandFlow: PdfTableBandFlow | undefined;
   private bandCellBudget = false;
@@ -124,9 +128,15 @@ export class PdfPages {
     return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
   }
   private text(text: string, font: PdfFontResource, size: number, x: number, baseline: number, foreground = "111827", element?: number): void {
-    const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
-    const command = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-      (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+    const n = pdfNumber;
+    if (font !== this.textFont || size !== this.textSize || foreground !== this.textColor) {
+      const shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
+      // Keep one prefix, independent of report size. Resource identity includes synthetic styling.
+      this.textPrefix = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+        (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 ";
+      this.textFont = font; this.textSize = size; this.textColor = foreground;
+    }
+    const command = this.textPrefix + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
     this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
   }
   private link(link: ExportLink, x: number, bottom: number, width: number, height: number, element?: number): void {

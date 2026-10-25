@@ -8631,6 +8631,10 @@ class PdfPages {
     pendingBookmarks = [];
     pageNumberWidth = 0;
     colors = new Map();
+    textFont;
+    textSize = 0;
+    textColor = "";
+    textPrefix = "";
     externalObjects = new Map();
     bandFlow;
     bandCellBudget = false;
@@ -8717,9 +8721,17 @@ class PdfPages {
         return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
     }
     text(text, font, size, x, baseline, foreground = "111827", element) {
-        const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
-        const command = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+        const n = pdfNumber;
+        if (font !== this.textFont || size !== this.textSize || foreground !== this.textColor) {
+            const shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
+            // Keep one prefix, independent of report size. Resource identity includes synthetic styling.
+            this.textPrefix = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+                (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 ";
+            this.textFont = font;
+            this.textSize = size;
+            this.textColor = foreground;
+        }
+        const command = this.textPrefix + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
         this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
     }
     link(link, x, bottom, width, height, element) {
