@@ -31,6 +31,11 @@ Usage:
              [--profile faithful|lightweight|printready|textonly] [--maximum-files <count>]
              [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]
              [--maximum-xml-characters-in-part <characters>] [--diagram-layers screen|print] [--require-no-loss]
+             [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty]
+             [--format json|ndjson] [--save-job <new-job.json>]
+  officeimo workflow job plan <job.json>
+  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
+  officeimo workflow job report <run-report.json>
   officeimo workflow printers [--paper-sources <queue>]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
@@ -39,6 +44,11 @@ Usage:
 Page selections accept document-relative expressions such as 1-3,last.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
 Existing output is refused unless --force is supplied.
+Batch output defaults to the existing aggregate JSON. --format json adds per-file outcomes
+(up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
+Batch and saved jobs fail when no inputs are selected unless --allow-empty is supplied.
+--save-job writes a definition without converting files. Saved jobs contain secret references only.
+--report records an attempt independently of checkpoint receipts; job report inspects it without executing work.
 """;
 
     internal static async Task<int> RunAsync(
@@ -56,6 +66,8 @@ Existing output is refused unless --force is supplied.
                 return await WordImagesCommand.RunAsync(args.Skip(1).ToArray(), standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() == "batch")
                 return await WorkflowBatchCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            if (args.FirstOrDefault() == "job")
+                return await WorkflowJobCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() is "printers" or "print")
                 return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             WorkflowArguments parsed = WorkflowArguments.Parse(args);

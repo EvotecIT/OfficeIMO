@@ -34,7 +34,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null,
         Func<string, CancellationToken, Task>? openOutput = null,
-        Func<CancellationToken, Task<string?>>? pickPackage = null) {
+        Func<CancellationToken, Task<string?>>? pickPackage = null,
+        Func<IStudioFileDialogs>? fileDialogs = null) {
         _pickFiles = pickFiles;
         _pickPackage = pickPackage ?? (_ => Task.FromResult<string?>(null));
         _pickOutputFolder = pickOutputFolder;
@@ -42,7 +43,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Jobs.CollectionChanged += (_, _) => { if (_lossJobs.Count > 0) RefreshLossNotice(); };
-        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, _runner, jobHistory);
+        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, _runner, jobHistory,
+            fileDialogs);
         BatchExport.PropertyChanged += (_, change) => {
             if (change.PropertyName == nameof(PdfBatchExportViewModel.Status)) Status = BatchExport.Status;
             if (change.PropertyName == nameof(PdfBatchExportViewModel.IsBusy)) {
@@ -116,10 +118,15 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     public bool HasJobs => Jobs.Count > 0;
 
+    /// <summary>Shows the folder job's review while retaining the ordinary conversion queue unchanged.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRunBar))]
+    private bool _isFolderJobReviewVisible;
+
     private readonly string _introductoryStatus;
 
     /// <summary>The run bar appears once there is work or news; an empty queue already explains how to start.</summary>
-    public bool HasRunBar => HasJobs || IsBusy || !string.Equals(Status, _introductoryStatus, StringComparison.Ordinal);
+    public bool HasRunBar => !IsFolderJobReviewVisible && (HasJobs || IsBusy || !string.Equals(Status, _introductoryStatus, StringComparison.Ordinal));
 
     partial void OnStatusChanged(string value) => OnPropertyChanged(nameof(HasRunBar));
     public bool CanRun => CanEditQueue && Jobs.Any(job => job.State == ConversionJobState.Queued);

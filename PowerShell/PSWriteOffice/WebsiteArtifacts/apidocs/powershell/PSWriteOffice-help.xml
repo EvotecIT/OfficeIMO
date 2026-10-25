@@ -71778,6 +71778,18 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
       <command:syntaxItem parameterSetName="Files">
         <maml:name>ConvertTo-OfficeDocument</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowEmpty</maml:name>
+          <maml:description>
+            <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CheckpointDirectory</maml:name>
           <maml:description>
             <maml:para>Separate durable state directory. Completed artifacts are verified and reused.</maml:para>
@@ -71983,6 +71995,18 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Directory">
         <maml:name>ConvertTo-OfficeDocument</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowEmpty</maml:name>
+          <maml:description>
+            <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CheckpointDirectory</maml:name>
           <maml:description>
@@ -72213,6 +72237,18 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowEmpty</maml:name>
+        <maml:description>
+          <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>CheckpointDirectory</maml:name>
         <maml:description>
@@ -85140,6 +85176,808 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Export-OfficeConversionJob</command:name>
+      <command:verb>Export</command:verb>
+      <command:noun>OfficeConversionJob</command:noun>
+      <maml:description>
+        <maml:para>Saves a portable conversion job for Studio, the command-line tool and PowerShell.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Requires PowerShell 7.4 or newer. Saving records intent and never converts documents. Relative paths are based on the saved job's folder. Native renderer callbacks and settings outside the portable contract are rejected instead of omitted.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Directory">
+        <maml:name>Export-OfficeConversionJob</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>CheckpointDirectory</maml:name>
+          <maml:description>
+            <maml:para>Optional durable state directory outside source and output folders. Registered adapter routes do not support checkpoints.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConflictPolicy</maml:name>
+          <maml:description>
+            <maml:para>Existing destination behavior. Durable checkpoint jobs require Fail.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Fail</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Rename</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Replace</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConversionOptions</maml:name>
+          <maml:description>
+            <maml:para>Portable scalar reconstruction and plain-text settings from New-OfficeConversionOptions. Unsupported native settings are rejected.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeWorkflowConversionOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeWorkflowConversionOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConversionRouteId</maml:name>
+          <maml:description>
+            <maml:para>Optional exact executable conversion route identifier.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Replace an existing job file. Source documents and protected execution paths remain protected.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>InputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Source directory to discover when the job runs.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumConcurrency</maml:name>
+          <maml:description>
+            <maml:para>Maximum simultaneously executing conversion items.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumFiles</maml:name>
+          <maml:description>
+            <maml:para>Maximum discovered or selected files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes per document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumOutputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum output bytes per document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumXmlCharactersInPart</maml:name>
+          <maml:description>
+            <maml:para>Maximum XML characters per part for applicable conversions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Optional descriptive job name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoRecurse</maml:name>
+          <maml:description>
+            <maml:para>Do not discover source subdirectories.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination directory for converted documents.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OutputProfile</maml:name>
+          <maml:description>
+            <maml:para>Shared output intent, subject to each route's supported profiles.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Faithful</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Lightweight</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PrintReady</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TextOnly</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="LiteralPath">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Destination JSON file. Existing job files require Force.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PdfPasswordEnvironmentVariable</maml:name>
+          <maml:description>
+            <maml:para>Runtime environment variable supplying a PDF input password. Only the name is saved.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceExtension</maml:name>
+          <maml:description>
+            <maml:para>Restrict directory discovery to these source extensions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourcePasswordEnvironmentVariable</maml:name>
+          <maml:description>
+            <maml:para>Runtime environment variable supplying an encrypted Office input password. Only the name is saved.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TargetExtension</maml:name>
+          <maml:description>
+            <maml:para>Destination format extension, with or without the leading dot.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Files">
+        <maml:name>Export-OfficeConversionJob</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>CheckpointDirectory</maml:name>
+          <maml:description>
+            <maml:para>Optional durable state directory outside source and output folders. Registered adapter routes do not support checkpoints.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConflictPolicy</maml:name>
+          <maml:description>
+            <maml:para>Existing destination behavior. Durable checkpoint jobs require Fail.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Fail</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Rename</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Replace</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConversionOptions</maml:name>
+          <maml:description>
+            <maml:para>Portable scalar reconstruction and plain-text settings from New-OfficeConversionOptions. Unsupported native settings are rejected.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeWorkflowConversionOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeWorkflowConversionOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ConversionRouteId</maml:name>
+          <maml:description>
+            <maml:para>Optional exact executable conversion route identifier.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Replace an existing job file. Source documents and protected execution paths remain protected.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="named" aliases="FullName">
+          <maml:name>InputPath</maml:name>
+          <maml:description>
+            <maml:para>Selected source path strings or FileInfo objects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumConcurrency</maml:name>
+          <maml:description>
+            <maml:para>Maximum simultaneously executing conversion items.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumFiles</maml:name>
+          <maml:description>
+            <maml:para>Maximum discovered or selected files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumInputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum input bytes per document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumOutputBytes</maml:name>
+          <maml:description>
+            <maml:para>Maximum output bytes per document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaximumXmlCharactersInPart</maml:name>
+          <maml:description>
+            <maml:para>Maximum XML characters per part for applicable conversions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+          <dev:type>
+            <maml:name>Int64</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Optional descriptive job name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OutputDirectory</maml:name>
+          <maml:description>
+            <maml:para>Destination directory for converted documents.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OutputProfile</maml:name>
+          <maml:description>
+            <maml:para>Shared output intent, subject to each route's supported profiles.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Faithful</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Lightweight</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PrintReady</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">TextOnly</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="LiteralPath">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Destination JSON file. Existing job files require Force.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PdfPasswordEnvironmentVariable</maml:name>
+          <maml:description>
+            <maml:para>Runtime environment variable supplying a PDF input password. Only the name is saved.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourcePasswordEnvironmentVariable</maml:name>
+          <maml:description>
+            <maml:para>Runtime environment variable supplying an encrypted Office input password. Only the name is saved.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TargetExtension</maml:name>
+          <maml:description>
+            <maml:para>Destination format extension, with or without the leading dot.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>CheckpointDirectory</maml:name>
+        <maml:description>
+          <maml:para>Optional durable state directory outside source and output folders. Registered adapter routes do not support checkpoints.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ConflictPolicy</maml:name>
+        <maml:description>
+          <maml:para>Existing destination behavior. Durable checkpoint jobs require Fail.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Fail</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Rename</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Replace</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ConversionOptions</maml:name>
+        <maml:description>
+          <maml:para>Portable scalar reconstruction and plain-text settings from New-OfficeConversionOptions. Unsupported native settings are rejected.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeWorkflowConversionOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeWorkflowConversionOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ConversionRouteId</maml:name>
+        <maml:description>
+          <maml:para>Optional exact executable conversion route identifier.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>Replace an existing job file. Source documents and protected execution paths remain protected.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>InputDirectory</maml:name>
+        <maml:description>
+          <maml:para>Source directory to discover when the job runs.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="named" aliases="FullName">
+        <maml:name>InputPath</maml:name>
+        <maml:description>
+          <maml:para>Selected source path strings or FileInfo objects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaximumConcurrency</maml:name>
+        <maml:description>
+          <maml:para>Maximum simultaneously executing conversion items.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaximumFiles</maml:name>
+        <maml:description>
+          <maml:para>Maximum discovered or selected files.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaximumInputBytes</maml:name>
+        <maml:description>
+          <maml:para>Maximum input bytes per document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+        <dev:type>
+          <maml:name>Int64</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaximumOutputBytes</maml:name>
+        <maml:description>
+          <maml:para>Maximum output bytes per document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+        <dev:type>
+          <maml:name>Int64</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaximumXmlCharactersInPart</maml:name>
+        <maml:description>
+          <maml:para>Maximum XML characters per part for applicable conversions.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int64</command:parameterValue>
+        <dev:type>
+          <maml:name>Int64</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Name</maml:name>
+        <maml:description>
+          <maml:para>Optional descriptive job name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoRecurse</maml:name>
+        <maml:description>
+          <maml:para>Do not discover source subdirectories.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>OutputDirectory</maml:name>
+        <maml:description>
+          <maml:para>Destination directory for converted documents.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>OutputProfile</maml:name>
+        <maml:description>
+          <maml:para>Shared output intent, subject to each route's supported profiles.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Faithful</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Lightweight</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PrintReady</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TextOnly</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="LiteralPath">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Destination JSON file. Existing job files require Force.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PdfPasswordEnvironmentVariable</maml:name>
+        <maml:description>
+          <maml:para>Runtime environment variable supplying a PDF input password. Only the name is saved.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SourceExtension</maml:name>
+        <maml:description>
+          <maml:para>Restrict directory discovery to these source extensions.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SourcePasswordEnvironmentVariable</maml:name>
+        <maml:description>
+          <maml:para>Runtime environment variable supplying an encrypted Office input password. Only the name is saved.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TargetExtension</maml:name>
+        <maml:description>
+          <maml:para>Destination format extension, with or without the leading dot.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.Object[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Save a resumable conversion job, inspect its plan, then run it.</maml:title>
+        <dev:code>Export-OfficeConversionJob -InputDirectory ./source -OutputDirectory ./pdf -CheckpointDirectory ./state -Path ./monthly.officejob.json&#xD;
+            Invoke-OfficeConversionJob -Path ./monthly.officejob.json -Plan&#xD;
+            Invoke-OfficeConversionJob -Path ./monthly.officejob.json -ErrorAction Stop</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Save selected files with a runtime password reference.</maml:title>
+        <dev:code>Get-ChildItem ./reports -Filter *.docx | Export-OfficeConversionJob -OutputDirectory ./pdf -Path ./reports.officejob.json -SourcePasswordEnvironmentVariable DOCUMENT_PASSWORD</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Export-OfficeCsv</command:name>
       <command:verb>Export</command:verb>
       <command:noun>OfficeCsv</command:noun>
@@ -87924,6 +88762,18 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <command:syntaxItem parameterSetName="Directory">
         <maml:name>Export-OfficeDocumentPdf</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowEmpty</maml:name>
+          <maml:description>
+            <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLegacyImportLoss</maml:name>
           <maml:description>
             <maml:para>Accept reported legacy DOC import loss. Known loss otherwise blocks conversion.</maml:para>
@@ -88207,6 +89057,18 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Files">
         <maml:name>Export-OfficeDocumentPdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowEmpty</maml:name>
+          <maml:description>
+            <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLegacyImportLoss</maml:name>
           <maml:description>
@@ -88674,6 +89536,18 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowEmpty</maml:name>
+        <maml:description>
+          <maml:para>Allow a batch that selects no executable inputs to complete without an error.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllowLegacyImportLoss</maml:name>
         <maml:description>
@@ -101162,6 +102036,80 @@ expressions.</maml:para>
         <dev:code>Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown</dev:code>
         <dev:remarks>
           <maml:para>Returns the converted Markdown value and its ADF conversion report.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Get-OfficeConversionJobReport</command:name>
+      <command:verb>Get</command:verb>
+      <command:noun>OfficeConversionJobReport</command:noun>
+      <maml:description>
+        <maml:para>Reads a bounded saved conversion run report without executing its job or changing outputs.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Requires PowerShell 7.4 or newer. Reports describe an earlier attempt; checkpoint receipts and current source/output validation determine whether artifacts can be reused.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>Get-OfficeConversionJobReport</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="LiteralPath,FullName">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Literal run-report JSON path. Reading does not open referenced sources, outputs or jobs.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="0" aliases="LiteralPath,FullName">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Literal run-report JSON path. Reading does not open referenced sources, outputs or jobs.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.OfficeConversionJobRunReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Inspect the retained attempt, then review the job before explicitly retrying.</maml:title>
+        <dev:code>Get-OfficeConversionJobReport -Path ./runs/monthly.json&#xD;
+            Invoke-OfficeConversionJob -Path ./monthly.officejob.json -Plan</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -141178,6 +142126,241 @@ the script needs to work with list objects directly instead of using a text sear
             }</dev:code>
         <dev:remarks>
           <maml:para>Registers the flowchart catalog and makes it the default for later VisioStencil calls.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Invoke-OfficeConversionJob</command:name>
+      <command:verb>Invoke</command:verb>
+      <command:noun>OfficeConversionJob</command:noun>
+      <maml:description>
+        <maml:para>Plans or runs a saved conversion job through the same runner as Studio and the CLI.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Requires PowerShell 7.4 or newer. Plan performs no output or checkpoint writes. Execution revalidates current inputs and retains completed artifacts after a partial failure or cancellation. Password environment references are resolved only for execution; values are not written to the job or reports.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>Invoke-OfficeConversionJob</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowEmpty</maml:name>
+          <maml:description>
+            <maml:para>Allow execution to select no supported inputs without reporting an error.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ItemResults</maml:name>
+          <maml:description>
+            <maml:para>Stream per-file outcomes instead of only the final bounded summary.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="LiteralPath,FullName">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Literal saved-job JSON path. Relative paths in the job resolve against this file's folder.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Plan</maml:name>
+          <maml:description>
+            <maml:para>Inspect the job without converting files or creating output/checkpoint state.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ReportPath</maml:name>
+          <maml:description>
+            <maml:para>New run-report JSON path outside the job's source, output and checkpoint trees. Existing files are preserved.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RetryFailed</maml:name>
+          <maml:description>
+            <maml:para>Retry failed checkpoint items while verifying completed artifacts.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SummaryVariable</maml:name>
+          <maml:description>
+            <maml:para>Variable receiving the completed plan or batch summary, including when ItemResults is selected.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowEmpty</maml:name>
+        <maml:description>
+          <maml:para>Allow execution to select no supported inputs without reporting an error.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ItemResults</maml:name>
+        <maml:description>
+          <maml:para>Stream per-file outcomes instead of only the final bounded summary.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="LiteralPath,FullName">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Literal saved-job JSON path. Relative paths in the job resolve against this file's folder.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Plan</maml:name>
+        <maml:description>
+          <maml:para>Inspect the job without converting files or creating output/checkpoint state.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ReportPath</maml:name>
+        <maml:description>
+          <maml:para>New run-report JSON path outside the job's source, output and checkpoint trees. Existing files are preserved.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>RetryFailed</maml:name>
+        <maml:description>
+          <maml:para>Retry failed checkpoint items while verifying completed artifacts.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SummaryVariable</maml:name>
+        <maml:description>
+          <maml:para>Variable receiving the completed plan or batch summary, including when ItemResults is selected.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.OfficeConversionBatchResult</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.OfficeConversionBatchItemResult</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Workflows.OfficeConversionJobPlan</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Inspect selected files, destinations and prerequisites before executing a saved job.</maml:title>
+        <dev:code>Invoke-OfficeConversionJob -Path ./monthly.officejob.json -Plan&#xD;
+            Invoke-OfficeConversionJob -Path ./monthly.officejob.json -ItemResults -SummaryVariable summary -ErrorAction Stop</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Resume a checkpoint job and retry recorded failures.</maml:title>
+        <dev:code>Invoke-OfficeConversionJob -Path ./monthly.officejob.json -RetryFailed -ErrorAction Stop</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

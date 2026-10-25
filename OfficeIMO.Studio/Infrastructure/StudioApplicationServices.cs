@@ -29,7 +29,7 @@ internal sealed class StudioApplicationServices {
         Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots, documents);
         WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
         ConversionRunner = OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
-        Jobs = new StudioJobHistory(localizer, WorkflowRecovery);
+        Jobs = new StudioJobHistory(localizer, WorkflowRecovery, DocumentHistory);
         Signatures = new StudioSignatureStore(paths.SignaturesRoot);
     }
 

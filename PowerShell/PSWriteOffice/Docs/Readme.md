@@ -661,6 +661,9 @@ Copies an existing slide within a PowerPoint presentation.
 ### [Edit-OfficeExcelRow](Edit-OfficeExcelRow.md)
 Runs a script block against editable worksheet rows.
 
+### [Export-OfficeConversionJob](Export-OfficeConversionJob.md)
+Saves a portable conversion job for Studio, the command-line tool and PowerShell.
+
 ### [Export-OfficeCsv](Export-OfficeCsv.md)
 Exports objects or a CSV document to a CSV file.
 
@@ -756,6 +759,9 @@ Lists or downloads Confluence page attachments.
 
 ### [Get-OfficeConfluencePage](Get-OfficeConfluencePage.md)
 Reads one page or streams a filtered Confluence Cloud page listing.
+
+### [Get-OfficeConversionJobReport](Get-OfficeConversionJobReport.md)
+Reads a bounded saved conversion run report without executing its job or changing outputs.
 
 ### [Get-OfficeConversionRoute](Get-OfficeConversionRoute.md)
 Lists conversion contracts from the installed OfficeIMO catalog and their availability for PSWriteOffice batch PDF export.
@@ -1152,6 +1158,9 @@ Imports explicitly mapped tables into a new project without changing existing do
 
 ### [Import-OfficeVisioStencil](Import-OfficeVisioStencil.md)
 Registers a stencil catalog with the active Visio DSL scope.
+
+### [Invoke-OfficeConversionJob](Invoke-OfficeConversionJob.md)
+Plans or runs a saved conversion job through the same runner as Studio and the CLI.
 
 ### [Invoke-OfficeExcelAutoFit](Invoke-OfficeExcelAutoFit.md)
 Automatically fits Excel row heights and/or column widths.
