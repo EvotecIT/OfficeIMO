@@ -66,7 +66,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
         tokens = null!;
         resolvedDirection = request.Direction;
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (request.Direction == OfficeTextDirection.TopToBottom ||
+        if (RequiresResolvedTypography(request) || request.Direction == OfficeTextDirection.TopToBottom ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
             // Default Latin GSUB and its diagnostics own supported composition. The other
@@ -110,6 +110,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
                 tokens.Add(new OfficeOpenTypeSubstitution.GlyphToken(glyphId, AsciiCharacters[character - 32], index, character));
             }
         } else {
+            // Direct default-Latin and diagnosed callers reach this owner too.
+            // Only complete typography can retain a proven blank control glyph.
+            if (OfficeManagedTextShaper.ContainsNonPaintingControl(request.Text, request.CancellationToken)) return false;
             string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
             IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(request.Text, contextual, resolvedDirection,
                 request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures || request.Direction != OfficeTextDirection.Auto);

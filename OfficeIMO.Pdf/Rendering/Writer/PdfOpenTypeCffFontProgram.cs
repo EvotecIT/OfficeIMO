@@ -212,6 +212,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
         int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures &&
             !PdfExternalTextShaper.RequiresManagedDirectionalShaping(text!, options)
+            && !PdfExternalTextShaper.RequiresCompleteDefaultLatinShaping(text!)
             ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
             : ShapeText(text!, options).TotalAdvanceWidth1000;
         return advance * fontSize / 1000D;

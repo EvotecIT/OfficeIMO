@@ -148,6 +148,9 @@ internal sealed class HtmlInlineRun {
     internal bool IsFirstLetter { get; private set; }
     internal OfficePreparedTextShaping? PreparedShaping { get; set; }
     internal HtmlRenderBoxStyle? PreparedShapingStyle { get; set; }
+    // This source slice belongs to a complete word whose provider result could
+    // not be retained. Later fragments must keep its resolved scalar joining.
+    internal bool PreserveContextualFallback { get; set; }
 
     internal OfficePreparedTextShaping? GetPreparedShaping(string text, HtmlRenderBoxStyle style) =>
         PreparedShaping != null && string.Equals(text, PreparedShaping.Text, StringComparison.Ordinal)
@@ -209,6 +212,7 @@ internal sealed class HtmlInlineRun {
             IsFirstLetter = isFirstLetter,
             PreparedShaping = GetPreparedShaping(text, style),
             PreparedShapingStyle = PreparedShapingStyle,
+            PreserveContextualFallback = PreserveContextualFallback,
             PreparedHyphenation = PreparedHyphenation,
             EndsFirstLine = EndsFirstLine,
             FirstLineHyphen = FirstLineHyphen,

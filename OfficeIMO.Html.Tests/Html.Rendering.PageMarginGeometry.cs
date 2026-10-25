@@ -197,7 +197,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("width:min-content", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported)]
+    [InlineData("width:fit-content(80px)", HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported)]
     [InlineData("border:2px dashed red", HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported)]
     public void HtmlPageMarginGeometry_UnsupportedDimensionsAndBorderProfilesRetainTypedLoss(
         string declaration, string code) {

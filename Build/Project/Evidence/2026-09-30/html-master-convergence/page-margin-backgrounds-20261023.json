@@ -1,0 +1,3041 @@
+{
+  "schema": "officeimo.html.page-margin-backgrounds-qualification/v1",
+  "attempt": "backgrounds-v2",
+  "collectedUtc": "2026-10-23T09:46:08.340170+00:00",
+  "collector": {
+    "path": "$TASK_ROOT/prep/portable-backgrounds-v2.py",
+    "bytes": 25558,
+    "sha256": "a2a5a16d59b06272a59173ee367dc81b776f6d01af42640d80368d4179b823cc"
+  },
+  "outcome": "Required current bounded qualification and ROOT acceptance receipts verified",
+  "source": {
+    "candidate": {
+      "head": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+      "tree": "1c4aefbefc9c22f75b5ae7943177935dfbb3a71e",
+      "parents": [
+        "e9c494066df51c832f8c2cdb5104d753986b6dfb"
+      ]
+    },
+    "masterBase": {
+      "head": "b232a3513ede20f4c78e8056ca5794bc88b38edc",
+      "tree": "c133ab7ae4566eae7abda049558f9dc9004d76d3",
+      "parents": [
+        "f0633e0895700d65210c7f8dc9069346dc5479a0"
+      ]
+    },
+    "qualifiedPrerequisite": {
+      "head": "e3aba4c9a0f7ead3c4acaecac975d5f629f23538",
+      "tree": "517100ce762f0fff9f4e1a7f28587b4d71e9d277",
+      "parents": [
+        "ea910e1b3a64a972ab22d1bf6633e61788b33ad4"
+      ]
+    },
+    "composedBefore": {
+      "head": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+      "tree": "30ab9011314e2d7c7105834b3efce83fbe2fdfec",
+      "parents": [
+        "e3aba4c9a0f7ead3c4acaecac975d5f629f23538",
+        "b232a3513ede20f4c78e8056ca5794bc88b38edc"
+      ]
+    },
+    "protectedProviderFork": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "trackedSourceSeal": {
+      "path": "$TASK_ROOT/source-seal-b3f7a6.json",
+      "bytes": 12229654,
+      "sha256": "529cfe77479cabe127e1d1bd1577ece4a160c64b039a835070921b99a94231f4",
+      "trackedFiles": 58564,
+      "gitTree": "1c4aefbefc9c22f75b5ae7943177935dfbb3a71e",
+      "trackedLogicalBytes": 857544717
+    }
+  },
+  "frozenInputs": {
+    "matrix": {
+      "path": "$TASK_ROOT/prep/fixture-matrix-background.json",
+      "bytes": 27471,
+      "sha256": "4db1ae647d5ecf5d86d4c434b1dd6539c63585c014b5d4b1c9c15c4d4b9dfe42"
+    },
+    "fixtures": 12,
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged"
+    ],
+    "expectedObservationsPerLane": 24,
+    "expectedPagesPerLane": 48,
+    "scope": "Solid CSS background-color for horizontal page-margin boxes, including transparent/currentColor/cascade/inherit/alpha over page backdrop, shared background-clip, content suppression, zero area and physical clipping controls.",
+    "excludedClaims": [
+      "gradients",
+      "background images",
+      "background positioning/sizing/repeating",
+      "radii",
+      "new border styles",
+      "side and corner boxes",
+      "vertical writing",
+      "running elements",
+      "universal browser parity"
+    ]
+  },
+  "tests": {
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/background-full-html-net8-v1.trx",
+        "bytes": 11873006,
+        "sha256": "128f26ec8c1e051be7e7867540a2038d62cb5dfc0f3e240e751df7fc1bfa4df6"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 7926,
+        "executed": 7926,
+        "passed": 7926,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/background-full-html-net10-v1.trx",
+        "bytes": 11888859,
+        "sha256": "958411b28ccdc097a96f89c7729cf684da50f6f55cbf3641b78405a3aa1d8b46"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 7926,
+        "executed": 7926,
+        "passed": 7926,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "focusedRemediation": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/background-focused-net10-v6.trx",
+        "bytes": 158070,
+        "sha256": "83c4c9f737aad5a09ab4c96e7ebf405264c828a13f5cc998f7324c099c94e067"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 98,
+        "executed": 98,
+        "passed": 98,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "catalog": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/background-catalog-v2.trx",
+        "bytes": 2909,
+        "sha256": "24de69f22266c96a5c6842b15d6c3765c9be31c88c7598ece43e445a176d04f9"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    }
+  },
+  "closures": {
+    "full": {
+      "receipt": {
+        "path": "$TASK_ROOT/full-validation-v1-closure.json",
+        "bytes": 1427,
+        "sha256": "827f0c6f3e9947dad71c9aa9a7ab91c28dd4a99e65eb1e1595ab086770dd15e2"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "background-full-html-net8-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/background-full-html-net8-v1-execution.json",
+            "bytes": 1794,
+            "sha256": "79f41204f15fde6300d4c017c4b6021684236310697c7c8d18a989da8d18ec03"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/background-full-html-net8-v1.log",
+            "bytes": 6926,
+            "sha256": "e9e38d9e993e48b1ddca49ad4c6828313f827430a04af5fe2ddf42357b09b7e3"
+          }
+        },
+        {
+          "role": "background-full-html-net10-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/background-full-html-net10-v1-execution.json",
+            "bytes": 1796,
+            "sha256": "d253a0fdbda74cec46871b42a20bae8371d7c96667abb1bfa97032b21df730a8"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/background-full-html-net10-v1.log",
+            "bytes": 6965,
+            "sha256": "e3c3b979972c1ebf5e052c91137e07af97546587abe9aee902d35c6ee281d041"
+          }
+        },
+        {
+          "role": "background-html-net472-compile-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/background-html-net472-compile-v1-execution.json",
+            "bytes": 1616,
+            "sha256": "28407fec41c2eb48f9d595bdb408762efdc3a89b067d77fe3f0115034f8a8add"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/background-html-net472-compile-v1.log",
+            "bytes": 1576,
+            "sha256": "32060ad52e2e6dc27ebed50e314f627fd89d121db9b841d00ba8f33698069b6d"
+          }
+        }
+      ]
+    },
+    "source": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-backgrounds-v2-closure.json",
+        "bytes": 1861,
+        "sha256": "09b82971b0d348f6fec76f6616e93d3fc939dc764da023ff5f581b9710d8dd6d"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "backgrounds-observer-net8-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net8-build-v2-execution.json",
+            "bytes": 1804,
+            "sha256": "7c3e4896e62ac62432662d151904ecbab779982313ace028a8a730fbedca9d2c"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net8-build-v2.log",
+            "bytes": 1725,
+            "sha256": "0b7e4b65791b01632c14824a7130286828385a98d9541dd13fb8ece9a1fada67"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net8-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net8-run-v2-execution.json",
+            "bytes": 1489,
+            "sha256": "7afccd21f8eeaebe462aa1803ebf4cf7e00a6df7cf2ad17488dbc108eb6b13cf"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net8-run-v2.log",
+            "bytes": 116,
+            "sha256": "972d8aad50b87ae6210f982816169d0c0e09ddd3b265c42209b713d2c0d514d3"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net10-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net10-build-v2-execution.json",
+            "bytes": 1809,
+            "sha256": "93cc46c14ecd692235563729c6afdaea1ce3fb6dc9bef9f79cbd46e3f04f928d"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net10-build-v2.log",
+            "bytes": 1036,
+            "sha256": "80a66d99a2e559e89292a56891f6ae6bb8bc7fb778ccb3461f09a4a7272d0f00"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net10-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net10-run-v2-execution.json",
+            "bytes": 1493,
+            "sha256": "540a04d7c4a2f8903d69980cf64291fbd10cbd6761709833a90646f6215ed03e"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net10-run-v2.log",
+            "bytes": 117,
+            "sha256": "c6332bee8a5163996c902ef2a9d17635fae53fdb7197f488ef16154356606b60"
+          }
+        }
+      ]
+    },
+    "privateProducer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-producer-backgrounds-v2-closure.json",
+        "bytes": 4074,
+        "sha256": "60ac92006f95758ab9f52bed04dcc0dc34edcaffe74e6459fdca835d6b935fef"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "backgrounds-package-preflight-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-preflight-v2-execution.json",
+            "bytes": 1716,
+            "sha256": "79f4a03a90284e1957afd151db99594d846df3eb3ef819ecf944556581cfbcaf"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-preflight-v2.log",
+            "bytes": 89,
+            "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+          }
+        },
+        {
+          "role": "backgrounds-package-source-restore-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-source-restore-v2-execution.json",
+            "bytes": 2650,
+            "sha256": "1a0c104c69e4ca4b4072f7d05d897d4e845740ae621d7524f99410174ad0b41c"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-source-restore-v2.log",
+            "bytes": 784,
+            "sha256": "2fed19f524df0d84c296d032dee858cbcbf7f1d79bb4f742cb1f532e9c9d9b92"
+          }
+        },
+        {
+          "role": "backgrounds-package-source-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-source-build-v2-execution.json",
+            "bytes": 2663,
+            "sha256": "b66bf39830520d06aa16d23fb79c895d99bc3d691e74624e4f332bb6976bb587"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-source-build-v2.log",
+            "bytes": 3821,
+            "sha256": "6777d5e0a37caa75c97f8453ec7ff755c7407dcad4ebec026cbb0007deed7b4c"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-core-v2-execution.json",
+            "bytes": 2687,
+            "sha256": "e990d07c2c7f21646b2d4ee149868a39439cc6defa23da82324992ef179318de"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-core-v2.log",
+            "bytes": 157,
+            "sha256": "91c2cb4220de48b64a3df3583fe902afb37a221dbf09942e84f3623cdcd214d7"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-pdf-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-pdf-v2-execution.json",
+            "bytes": 2682,
+            "sha256": "7f1b94c1151c31644b4a14abb65605743ee15cd670b01d293389c7542a85b191"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-pdf-v2.log",
+            "bytes": 156,
+            "sha256": "6edc5e45460e469da3e34cebb8d779e42f3ef8a71c950c76edf2f23fa2b55d9a"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-core-v2-execution.json",
+            "bytes": 2707,
+            "sha256": "06789203f26ef897bd1ace62bb4b278edf4ce231b069a8df977c47f20637034e"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-core-v2.log",
+            "bytes": 162,
+            "sha256": "8722d0e5024628bac0a7c7048c7b4f3110f781513adc9f4347124a215f945ea8"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-anglesharp-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-anglesharp-v2-execution.json",
+            "bytes": 2731,
+            "sha256": "6bf0befc25a3805a77670236bfe3276c4719608e0a280e66492dba4f8cb0e21d"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-anglesharp-v2.log",
+            "bytes": 168,
+            "sha256": "eab87526b2a0af8ced5afd55d3ec3ca5074e50289306e03530687e9f6c81a976"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-v2-execution.json",
+            "bytes": 2686,
+            "sha256": "5e79a2bc83b68d5bb01adad48dd3f0d953a666b288cde4bfa28399f593703ede"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-v2.log",
+            "bytes": 157,
+            "sha256": "9586a8f48f4aa8f783ab8e1ad469a0ba017a15c38a9e9ba67ccd283784726d5b"
+          }
+        },
+        {
+          "role": "backgrounds-package-inspect-packages-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-inspect-packages-v2-execution.json",
+            "bytes": 1728,
+            "sha256": "f734b34b07a6ac2349fb3fdbedf5aa6612d7d9255b75725b2c6d0b74786d639a"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-inspect-packages-v2.log",
+            "bytes": 81,
+            "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+          }
+        }
+      ]
+    },
+    "privateConsumer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-consumer-backgrounds-v2-closure.json",
+        "bytes": 3592,
+        "sha256": "b1acd767e30be7015c19a5d7a927ba057d738876e77e3333030ed3ad0c8907cb"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "backgrounds-package-bind-acceptance-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-bind-acceptance-v2-execution.json",
+            "bytes": 1719,
+            "sha256": "a41f4f4ed046d317bebf75e4557cae3819d496260066526ca5f5bd2376dab196"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-bind-acceptance-v2.log",
+            "bytes": 98,
+            "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+          }
+        },
+        {
+          "role": "backgrounds-package-net8-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-net8-build-v2-execution.json",
+            "bytes": 2445,
+            "sha256": "f30f539ed978ffbc1770427bd5b592f0cf4f5efdc98459bddaeef3f2fe8d2875"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-net8-build-v2.log",
+            "bytes": 414,
+            "sha256": "40de88da7f5c92c27e35e9064f7e0a6a9a2ee373e0bd484c4496e31ed97738a7"
+          }
+        },
+        {
+          "role": "backgrounds-package-net8-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-net8-run-v2-execution.json",
+            "bytes": 2062,
+            "sha256": "ce53c2c0a9f5c34aec72b7a6ad09187a3c111b84960760e7b4ae28aba7df5fc2"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-net8-run-v2.log",
+            "bytes": 230,
+            "sha256": "8c0bab1f31c618086d6536b8f26f14bc3e3013a351c79f33a88c2723a704c472"
+          }
+        },
+        {
+          "role": "backgrounds-package-net10-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-net10-build-v2-execution.json",
+            "bytes": 2450,
+            "sha256": "bc595a145b7ce62d6576e6950f2276add4b0d79474fbcdf2259442c5f7b5a824"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-net10-build-v2.log",
+            "bytes": 416,
+            "sha256": "bf5edfb625d389af31aa51a4cc075eb4b6ffaf86545bf01f2b0f09b856cc95ba"
+          }
+        },
+        {
+          "role": "backgrounds-package-net10-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-net10-run-v2-execution.json",
+            "bytes": 2066,
+            "sha256": "80c00fc811b9871795e7da6dd1dc79daf6b972797f3193022e55f9b3bd1edac3"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-net10-run-v2.log",
+            "bytes": 231,
+            "sha256": "f697b4bf396143d18be22c03ec2e912e27a32fdc4eb0b79e421d447655c0f2bc"
+          }
+        },
+        {
+          "role": "backgrounds-package-aot-publish-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-aot-publish-v2-execution.json",
+            "bytes": 2509,
+            "sha256": "adbdba20388f8f723411c7fb4736dec082c1b5d9460ab0172a01d6b911b5888a"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-aot-publish-v2.log",
+            "bytes": 515,
+            "sha256": "7710fe7c6c274ba67d9502a152a4bb99e5eb6ffeda298ad14ef6a5aaafa59252"
+          }
+        },
+        {
+          "role": "backgrounds-package-aot-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-aot-run-v2-execution.json",
+            "bytes": 2010,
+            "sha256": "e0e9a0b6a0a289d3a782152486272395f3d3b8ff438a26005ebaa522d6b01c06"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-aot-run-v2.log",
+            "bytes": 264,
+            "sha256": "61898323b3794ba67a6ba51533f68004ac2095358c74165b32871a854ae69aa2"
+          }
+        },
+        {
+          "role": "backgrounds-package-inspect-consumers-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-inspect-consumers-v2-execution.json",
+            "bytes": 1731,
+            "sha256": "1cb0a3644f063b05658c2b6e0ef0967254957ffc90594b0b19bf42270f38995c"
+          },
+          "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-inspect-consumers-v2.log",
+            "bytes": 89,
+            "sha256": "434e06a1337c0cfae66ae6e5c40a77532d933ceff9c1ed5603bd1406f579fdd6"
+          }
+        }
+      ]
+    },
+    "remediationFocused": {
+      "receipt": {
+        "path": "$TASK_ROOT/color-remediation-focused-v2-closure.json",
+        "bytes": 641,
+        "sha256": "cc7941bf6d4e8b826811a76d66e5c3364141d8b317a6f641b649930f1ef691fa"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "background-focused-net10-v6",
+          "receipt": {
+            "path": "$TASK_ROOT/background-focused-net10-v6-execution.json",
+            "bytes": 2654,
+            "sha256": "fb81f6ef8f471821bf2c47286ad1c024dbf8cb2cd05e3cc3fb51456bb2fac0d1"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+          "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/background-focused-net10-v6.log",
+            "bytes": 6958,
+            "sha256": "004a89e07bcb026082ce6b0ca78e0fd8ea042a35fd23fc36950119befac74144"
+          }
+        }
+      ]
+    }
+  },
+  "sourceObservations": {
+    "net8": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net8-v2/summary.json",
+        "bytes": 2248613,
+        "sha256": "d1af4b65f9af4d2b86b05350489b211504fdc4d1013c7fdbafe8d5b876c10c7c"
+      },
+      "observations": 24,
+      "pages": 48,
+      "diagnosticsAndLossByObservation": [
+        {
+          "lane": "net8",
+          "fixture": "01-transparent-controls",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "01-transparent-controls",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "02-solid-insets",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "02-solid-insets",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "04-currentcolor",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "04-currentcolor",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "06-explicit-inherit",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "06-explicit-inherit",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "07-empty-content",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "07-empty-content",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "08-none-normal-suppression",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "08-none-normal-suppression",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "09-zero-area",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "09-zero-area",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "11-alpha-over-page",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "11-alpha-over-page",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "12-shared-background-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net8",
+          "fixture": "12-shared-background-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        }
+      ]
+    },
+    "net10": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net10-v2/summary.json",
+        "bytes": 2248740,
+        "sha256": "34592738e175f1bef29511dc179eb56d8833fca6912632eac6d7b9f1903a013e"
+      },
+      "observations": 24,
+      "pages": 48,
+      "diagnosticsAndLossByObservation": [
+        {
+          "lane": "net10",
+          "fixture": "01-transparent-controls",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "01-transparent-controls",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "02-solid-insets",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "02-solid-insets",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "04-currentcolor",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "04-currentcolor",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "06-explicit-inherit",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "06-explicit-inherit",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "07-empty-content",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "07-empty-content",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "08-none-normal-suppression",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "08-none-normal-suppression",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "09-zero-area",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "09-zero-area",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "11-alpha-over-page",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "11-alpha-over-page",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "12-shared-background-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": "net10",
+          "fixture": "12-shared-background-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        }
+      ]
+    }
+  },
+  "native": {
+    "execution": {
+      "path": "$TASK_ROOT/native-background/execution.json",
+      "bytes": 1072020,
+      "sha256": "96ce6ef9efcd7959b46b0d07038c0e827a96c2ab104268fff7b951486cfcc823"
+    },
+    "appearanceObservations": {
+      "path": "$TASK_ROOT/prep/native-current-appearance-v2.json",
+      "bytes": 12796582,
+      "sha256": "61d559b3dd66e09c64049c8474229f4e459d5d2216b992e895c427cfd0c63ad4"
+    },
+    "actualPdfObservations": 24,
+    "actualPdfPages": 48,
+    "serverClosed": true,
+    "remainingOwnedEdge": [],
+    "printParameterBoundary": "PreferCSSPageSize=true; declared CSS paper360x480px/reference270x360pt; actual parsed page sizes retained separately with bounded<=0.5pt Chromium paper rounding; exact360x480 raster at96dpi still required; viewport360x480; Scale1; no browser header/footer templates.",
+    "qualificationBoundary": "Prepared solid-background cohort captures actual native PDFs only. Fill geometry/color/cascade/inheritance/content suppression/zero area/physical clipping require ROOT PDF-stream/raster/scene/visual adjudication. Source PNG=own PDF replay acceptance remains a separate ROOT-owned gate; no gradient/image or universal native-parity claim."
+  },
+  "rootAcceptance": {
+    "receipt": {
+      "path": "$TASK_ROOT/root-render-acceptance-v2.json",
+      "bytes": 8718,
+      "sha256": "a6243eab623057e093566c4faa5e9eea1de5d3325151d53373196a0344275cb7"
+    },
+    "geometryAndVisualReviewed": true,
+    "colorAlphaAndBackgroundClipReviewed": true,
+    "nativeComparisonLimits": [
+      "Actual Edge 24 saved PDFs/48pages use the exact12inputs and Carlito font, CSS paper and background printing in print/screen media. All96 source-lane/native-page exact-palette AABB comparisons match, including empty/none/zero and physical edges. These are measured raster paint controls, not exact glyph/path ink or universal browser/spec appearance.",
+      "Font rasterisation differs. The 50% top fill over #ccddee is #d9be76 in Edge and #d9bf77 in the existing byte-alpha owner; the25% bottom fill is #aed0e1 in both. No native pixel equality is claimed.",
+      "The explicit-inherit color matches the page color, so raster appearance alone cannot distinguish its own fill; the current source inventory and cascade regressions supply that control. No background image/gradient, running-element, vertical/side/corner, physical print, accessibility or Windows profiling acceptance is added."
+    ],
+    "ownComparisonLimits": [
+      "Both clean-source lanes produce24observations/48pages. All96 encoded source PNGs equal actual saved/reopened own-PDF replay and their original same-framework e9 PNGs. Fullscene/diagnostics are unchanged for this validcohort; .NET8/10 decoded pages agree. Exact own-route pixels do not imply exact Edge text rasterisation.",
+      "Only authored negative-margin fixture10 accepts current typed physical clipping loss. Its current four lane/profile diagnostic arrays are copied below; complete logical/scene/Drawing/savedPDF content and route parity remain required. Every otherfixture is NO_LOSS.",
+      "One exact real font with ambient fallback disabled; bounded static paint, not general HTML/runtime/provider or cross-platform/native Windows completion."
+    ],
+    "physicalOverflowLossReview": [
+      {
+        "lane": "net8",
+        "fixture": "10-negative-margins-physical-clip",
+        "profile": "PrintPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net8",
+        "fixture": "10-negative-margins-physical-clip",
+        "profile": "ScreenMediaPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net10",
+        "fixture": "10-negative-margins-physical-clip",
+        "profile": "PrintPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      },
+      {
+        "lane": "net10",
+        "fixture": "10-negative-margins-physical-clip",
+        "profile": "ScreenMediaPaged",
+        "pngHasLoss": true,
+        "pdfHasLoss": true,
+        "pngDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ],
+        "pdfDiagnostics": [
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 2
+          },
+          {
+            "Code": "HtmlRenderGeneratedContentUnsupported",
+            "Source": "@page @bottom-center",
+            "Severity": 1,
+            "LossKind": 2
+          }
+        ]
+      }
+    ]
+  },
+  "privatePackages": {
+    "privateVersion": "3.5.31",
+    "binding": {
+      "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/package-binding.json",
+      "bytes": 24636,
+      "sha256": "759d419dbbbef99a00c9e109aab3de5537ee244ef3f364ee73af370260f14f7d"
+    },
+    "plan": {
+      "path": "$TASK_ROOT/prep/package-qualification-backgrounds-v2/plan.json",
+      "bytes": 39036,
+      "sha256": "fb218e4da7825b113b8d19a5041af9dbb5fe265ef980c61dc0d96b542088c23c"
+    },
+    "packages": {
+      "OfficeIMO.Core": {
+        "nupkg": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/feed/OfficeIMO.Core.3.5.31.nupkg",
+          "bytes": 8803300,
+          "sha256": "81387518af0c8d875d2c1d03ca648b3fb1c23a10933d183ab2e1c6283469227f"
+        },
+        "frameworkAssets": 4,
+        "nuspec": {
+          "entry": "OfficeIMO.Core.nuspec",
+          "bytes": 1629,
+          "sha256": "64cc06ec2319b7e8497360c58c9d0b10fdea9ab2a00729ede2b8c99aa6d689f6",
+          "packageId": "OfficeIMO.Core",
+          "version": "3.5.31",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      "OfficeIMO.Pdf": {
+        "nupkg": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/feed/OfficeIMO.Pdf.3.5.31.nupkg",
+          "bytes": 14058096,
+          "sha256": "76dbc1cd6e101b3caf094f8ef549131026586f62c22730cb66078004cabc15e8"
+        },
+        "frameworkAssets": 4,
+        "nuspec": {
+          "entry": "OfficeIMO.Pdf.nuspec",
+          "bytes": 1549,
+          "sha256": "ad66cb018975318a0756f39794e70c41b3ba68fe1e3e54aea466d5af82acbf1d",
+          "packageId": "OfficeIMO.Pdf",
+          "version": "3.5.31",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      "OfficeIMO.Html.Core": {
+        "nupkg": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/feed/OfficeIMO.Html.Core.3.5.31.nupkg",
+          "bytes": 325371,
+          "sha256": "940ef53faae30eadc8227a7efb2cf85ee1a378360f4ca9ffa36d01f0422f0da4"
+        },
+        "frameworkAssets": 4,
+        "nuspec": {
+          "entry": "OfficeIMO.Html.Core.nuspec",
+          "bytes": 935,
+          "sha256": "f1cb9bb3205e008054eeccda907feb13564eeb5b9506e857710824236956c9f8",
+          "packageId": "OfficeIMO.Html.Core",
+          "version": "3.5.31",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90"
+          },
+          "dependencyGroups": {
+            "net472": [],
+            "net8.0": [],
+            "net10.0": [],
+            "netstandard2.0": []
+          }
+        }
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "nupkg": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/feed/OfficeIMO.Html.AngleSharp.3.5.31.nupkg",
+          "bytes": 104224,
+          "sha256": "7ff35b23cd124132c061d00e03a541d87922dab8f33ff9a3509fcd779c532652"
+        },
+        "frameworkAssets": 4,
+        "nuspec": {
+          "entry": "OfficeIMO.Html.AngleSharp.nuspec",
+          "bytes": 1884,
+          "sha256": "9a5b04776fafe57b92b9a977c579d8c586651bee6c77b10cb9e180a9e90078b4",
+          "packageId": "OfficeIMO.Html.AngleSharp",
+          "version": "3.5.31",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "System.Text.Encoding.CodePages",
+                "version": "8.0.0",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      },
+      "OfficeIMO.Html": {
+        "nupkg": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/feed/OfficeIMO.Html.3.5.31.nupkg",
+          "bytes": 4770158,
+          "sha256": "927d2a1406588e92a39f2d66c9ece7be016f2b5390b039f7fce3e7ba0054319f"
+        },
+        "frameworkAssets": 4,
+        "nuspec": {
+          "entry": "OfficeIMO.Html.nuspec",
+          "bytes": 3515,
+          "sha256": "f404f0f22d5cc8c85d612823d09c01d581866156a8bfdd94f8107ac3b9d006bc",
+          "packageId": "OfficeIMO.Html",
+          "version": "3.5.31",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/EvotecIT/OfficeIMO",
+            "commit": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90"
+          },
+          "dependencyGroups": {
+            "net472": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net8.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "net10.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "netstandard2.0": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.AngleSharp",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Html.Core",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Pdf",
+                "version": "3.5.31",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp",
+                "version": "1.8.3",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "AngleSharp.Css",
+                "version": "1.1.3",
+                "exclude": "Build,Analyzers"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "publicRelease": false
+  },
+  "publicApiConsumers": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/consumer-binding.json",
+      "bytes": 59766,
+      "sha256": "deeeb92250519a4aeb1ec21d4583b6768061c4b4c97e0e41c55c6166d2ec968d"
+    },
+    "acceptance": {
+      "path": "$TASK_ROOT/prep/package-qualification-backgrounds-v2/acceptance.json",
+      "bytes": 55404,
+      "sha256": "bef4cd7b4d182f9dfbbb20d40b6b4b9312b0984d7adc8b03bf4dc63ad00dd595"
+    },
+    "lanes": [
+      {
+        "label": "net8",
+        "result": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/results/net8/result.json",
+          "bytes": 1911075,
+          "sha256": "e93d3c2eee153f7f0ce4fd2a0231a33de5792607e3ac570fc655f944c61a6f13"
+        },
+        "framework": ".NET 8.0.23",
+        "observations": 24,
+        "pages": 48,
+        "publicPackageOnly": true
+      },
+      {
+        "label": "net10",
+        "result": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/results/net10/result.json",
+          "bytes": 1911204,
+          "sha256": "a3e32528edd5564296587420766cf38ab4897226935d3ec8190757380ce5598c"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "pages": 48,
+        "publicPackageOnly": true
+      },
+      {
+        "label": "aot",
+        "result": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/results/aot/result.json",
+          "bytes": 1909258,
+          "sha256": "5e253ce25340ef7bf0ae26836fa5856235d667361cd9504fee4ff1ae8b3bf055"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 24,
+        "pages": 48,
+        "publicPackageOnly": true,
+        "nativeAotGuard": {
+          "nativeAotCompilation": true,
+          "dynamicCodeSupported": false,
+          "dynamicCodeCompiled": false,
+          "architecture": "Arm64",
+          "operatingSystem": "OSX"
+        },
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/backgrounds-qualified-v2/out/aot/PageMarginBackgroundPackageaot",
+          "bytes": 34776704,
+          "sha256": "03da9ec16ebdca350d464d3c208271796f6355b9ef32abd8c21c8624102c21cd"
+        }
+      }
+    ],
+    "observations": 72,
+    "pageObservations": 144,
+    "publicPackagePublication": false
+  },
+  "localReview": {
+    "ledger": {
+      "path": "$TASK_ROOT/review-ledger.json",
+      "bytes": 2071,
+      "sha256": "3f6fd4ea132847d2bbabcdfaa4c9d98d2e352fb0ea031a1ff55f5ede7192659a"
+    },
+    "reviewer": "/root/margin_background_evidence_prep",
+    "independence": "Read-only product review by non-author; reduced context independence: completed artifact-preparation agent reused after fresh no-history spawn was refused by agent thread limit. No product edits, engines or API mutations by reviewer.",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "confirmation": {
+      "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+      "findings": 0,
+      "scope": "Fixes, same generated color failure class and directly affected callers; no new full pass.",
+      "result": "Original P2 addressed; no additional findings; explicit computed inheritance and valid currentColor retained."
+    },
+    "findings": [
+      {
+        "priority": "P2",
+        "reportedAtHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+        "contract": "Accepted generated background longhand color failed static color resolution without typed loss; ordinary sibling reports approximation. Generated foreground sibling shared same failure invariant.",
+        "reproduction": "$TASK_ROOT/repro-relative-e9/summary.json",
+        "disposition": "Reproduced for direct background longhand in both media vs ordinarycontrol; variable/foreground regressions added. Shared typed emission now diagnoses generated background and foreground failure. Shorthand extra assertion rejected by retained grammar before used-value resolution, failedattempt retained.",
+        "fixedBy": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+        "status": "addressed"
+      }
+    ],
+    "noUnresolvedP0P2": true,
+    "productDisposition": "Accept as shaped: existing cascade, color, clip, paint and diagnostics owners; no public API, project, production dependency or provider role expansion. Final runtime/package/visual gates separate."
+  },
+  "beforeReproduction": {
+    "binding": {
+      "path": "$TASK_ROOT/prep/before-reproduction-binding.json",
+      "bytes": 8026,
+      "sha256": "7a778dd37e229d76ad92006bcd6b44788ecba7d69f96ddb5de1e80de2afeef2b"
+    },
+    "declaredProducerHead": "ea910e1b3a64a972ab22d1bf6633e61788b33ad4",
+    "purpose": "Retained qualified ea910 producer reused ONLY to reproduce missing generated solid paint. It is not the current-master composed before engine and never a fresh candidate/source/package witness.",
+    "observations": {
+      "summary": {
+        "path": "$TASK_ROOT/before-ea910/summary.json",
+        "bytes": 2185768,
+        "sha256": "197f5f1d168ea43bb2399dbdbb6421d78c4ebaf6bcfa23697ad29e7b8b9a3981"
+      },
+      "observations": 24,
+      "pages": 48,
+      "diagnosticsAndLossByObservation": [
+        {
+          "lane": null,
+          "fixture": "01-transparent-controls",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "01-transparent-controls",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "02-solid-insets",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "02-solid-insets",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "03-six-horizontal-boxes",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "04-currentcolor",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "04-currentcolor",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "05-shorthand-cascade-reset",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "06-explicit-inherit",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "06-explicit-inherit",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "07-empty-content",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "07-empty-content",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "08-none-normal-suppression",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "08-none-normal-suppression",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "09-zero-area",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "09-zero-area",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "10-negative-margins-physical-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": true,
+          "pdfHasLoss": true,
+          "pngDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pdfDiagnostics": [
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @top-center",
+              "Severity": 1,
+              "LossKind": 2
+            },
+            {
+              "Code": "HtmlRenderGeneratedContentUnsupported",
+              "Source": "@page @bottom-center",
+              "Severity": 1,
+              "LossKind": 2
+            }
+          ],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "11-alpha-over-page",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "11-alpha-over-page",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "12-shared-background-clip",
+          "profile": "PrintPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        },
+        {
+          "lane": null,
+          "fixture": "12-shared-background-clip",
+          "profile": "ScreenMediaPaged",
+          "pngHasLoss": false,
+          "pdfHasLoss": false,
+          "pngDiagnostics": [],
+          "pdfDiagnostics": [],
+          "pages": 2,
+          "ownPngPdfReplayEqual": true
+        }
+      ]
+    },
+    "boundary": "Historical retained producer reproduces missing paint only; it is not the composed current-master before engine, fresh source, package or candidate proof."
+  },
+  "originalBoundV1": {
+    "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+    "plan": {
+      "path": "$TASK_ROOT/prep/package-qualification-backgrounds-v1/plan.json",
+      "bytes": 38434,
+      "sha256": "56dbde630039925fb2e8621c92f33cc2aff4385651027ee71c707324359b01bf"
+    },
+    "packageBinding": {
+      "path": "$TASK_ROOT/packages/backgrounds-qualified/package-binding.json",
+      "bytes": 24546,
+      "sha256": "508d3090e3f86d8d11539f6016a6ff59209783d09a1469f69dcf096cbb513d93"
+    },
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-e9c494.json",
+      "bytes": 12229654,
+      "sha256": "a8cccadf341e81cdcff6497c9e1a8f7e18654710868de2e9bd9fc0033905f5e2"
+    },
+    "sourceWitnesses": {
+      "net8": {
+        "summary": {
+          "path": "$TASK_ROOT/source-net8/summary.json",
+          "bytes": 2248232,
+          "sha256": "eaca56653973fc250408638edc3adabb1156c24aa53c8782a3c91739128c7a5f"
+        },
+        "declaredSourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+        "observations": 24,
+        "pages": 48
+      },
+      "net10": {
+        "summary": {
+          "path": "$TASK_ROOT/source-net10/summary.json",
+          "bytes": 2248359,
+          "sha256": "47cb638523d7e57c8a6ff8fc1773e20f1588f54780857dedb024c815771a2204"
+        },
+        "declaredSourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+        "observations": 24,
+        "pages": 48
+      }
+    },
+    "sourceClosure": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-backgrounds-v1-closure.json",
+        "bytes": 1862,
+        "sha256": "af765d6de0055d7ddbaee0f386a7c12fac233eca9a6028288a94c9878b089eb0"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "backgrounds-observer-net8-build-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net8-build-v1-execution.json",
+            "bytes": 1799,
+            "sha256": "901705eed66656dd9bb5887e7e99d64d8bd8704c4e685db3793b7dfef375ae1f"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net8-build-v1.log",
+            "bytes": 1708,
+            "sha256": "90d4b4a87bedaca9c4b2bf16967df5c63e4a1cb526a91088ecc6c0a8707ee407"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net8-run-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net8-run-v1-execution.json",
+            "bytes": 1483,
+            "sha256": "f8035120701fcb459cbcfa8789359e17f2b3417e7ac887aa0aceeadcbf139ffc"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net8-run-v1.log",
+            "bytes": 116,
+            "sha256": "972d8aad50b87ae6210f982816169d0c0e09ddd3b265c42209b713d2c0d514d3"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net10-build-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net10-build-v1-execution.json",
+            "bytes": 1802,
+            "sha256": "1dcec63c9f62ba5e8a0643eef68461239763bcfcdd466be71e2c7d52f00a71ec"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net10-build-v1.log",
+            "bytes": 1019,
+            "sha256": "6fbf20903c281822b24d42db8b466b3b8a70e6188576cccadfe9289d0f16ede7"
+          }
+        },
+        {
+          "role": "backgrounds-observer-net10-run-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-observer-net10-run-v1-execution.json",
+            "bytes": 1488,
+            "sha256": "75b8e9e898c6ef6649a7221668dd8b9f73ae0ee2dc2bb3af7b0431d4ea85f8b5"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-observer-net10-run-v1.log",
+            "bytes": 117,
+            "sha256": "c6332bee8a5163996c902ef2a9d17635fae53fdb7197f488ef16154356606b60"
+          }
+        }
+      ]
+    },
+    "producerClosure": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-producer-backgrounds-v1-closure.json",
+        "bytes": 4072,
+        "sha256": "c7c18efa6b7588700540990689ee7ad2fe437ea29600562eda6085d80dc2189e"
+      },
+      "passed": true,
+      "executions": [
+        {
+          "role": "backgrounds-package-preflight-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-preflight-v1-execution.json",
+            "bytes": 1712,
+            "sha256": "49293b2f5c7b427ced5e7c75bc913ec606d31a9838deefad0a27ea62662d27f3"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-preflight-v1.log",
+            "bytes": 89,
+            "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+          }
+        },
+        {
+          "role": "backgrounds-package-source-restore-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-source-restore-v1-execution.json",
+            "bytes": 2638,
+            "sha256": "718b086c36ea8ec5c1a2c20ec4cf376317e96e2f28322863bc33d0acb8c79348"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-source-restore-v1.log",
+            "bytes": 793,
+            "sha256": "cd81f03f28f0479cbc96bd8a3e17de2c9bb9cb372f359211098d5ee427379cab"
+          }
+        },
+        {
+          "role": "backgrounds-package-source-build-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-source-build-v1-execution.json",
+            "bytes": 2655,
+            "sha256": "8cf4ee7401c700f88fbbfcd1cf055790123e65a80f92e0640297051ee7e916ec"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-source-build-v1.log",
+            "bytes": 3761,
+            "sha256": "3cb84c2c810d117ba33f57518ad6a3c598ef88245da46de1302c23d96d561807"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-core-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-core-v1-execution.json",
+            "bytes": 2674,
+            "sha256": "38a2005b7032e1c6be78b7df1a19ff9a7fbfa6b32b9ec7958e008205457fb0af"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-core-v1.log",
+            "bytes": 154,
+            "sha256": "56fa814fbc39a04538b74262ac79fef6085ca61992ecc08a56f3b64801bbc36a"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-pdf-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-pdf-v1-execution.json",
+            "bytes": 2671,
+            "sha256": "c84c728bb6cd8fca6c41f184eb161bc1eb2cdb4d1e38dc0504dc13397e224cae"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-pdf-v1.log",
+            "bytes": 153,
+            "sha256": "31220b6abd48923b15a7776935be7f5fcca6dd726b3350debc0cfa6520269413"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-core-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-core-v1-execution.json",
+            "bytes": 2694,
+            "sha256": "a4fd06705129ed0565f50e9a44e9980b6bf5ec6da2ccb63ae71fc3cb43b2fe9f"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-core-v1.log",
+            "bytes": 159,
+            "sha256": "d15de95204af58725c7de1962e94ce283616cab389fd109f6048ebad759d9259"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-anglesharp-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-anglesharp-v1-execution.json",
+            "bytes": 2719,
+            "sha256": "51ec2b0db7c0cb97d425893d3b5627bc829d22ab80ae78d31214cfbf4904a257"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-anglesharp-v1.log",
+            "bytes": 165,
+            "sha256": "62a6de5117514899fd81bb255de8938dd1a8106077e41321cf503ca678d8ce43"
+          }
+        },
+        {
+          "role": "backgrounds-package-pack-officeimo-html-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-pack-officeimo-html-v1-execution.json",
+            "bytes": 2675,
+            "sha256": "8da8e5b2701cf004ff083fd1e503b59fcfc3fbed6f0f5f871699efa2603824cc"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-pack-officeimo-html-v1.log",
+            "bytes": 154,
+            "sha256": "a14b0672062bc325c68f3921df41577ce81f548ed3a7eda746818bc760b384ec"
+          }
+        },
+        {
+          "role": "backgrounds-package-inspect-packages-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/backgrounds-package-inspect-packages-v1-execution.json",
+            "bytes": 1726,
+            "sha256": "2c5a58e6e0e0d5baccf86f9f5543a3b5f142690388fbdd494bfda30c928f7907"
+          },
+          "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "timedOut": false,
+          "ownedGroupAbsent": true,
+          "log": {
+            "path": "$TASK_ROOT/logs/backgrounds-package-inspect-packages-v1.log",
+            "bytes": 81,
+            "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+          }
+        }
+      ]
+    },
+    "boundary": "Original e9 candidate source/producer proof retained unchanged. It does not qualify the corrected v2 candidate; no v1 consumer run is claimed."
+  },
+  "generatedColorRemediation": {
+    "before": {
+      "path": "$TASK_ROOT/repro-relative-e9/summary.json",
+      "bytes": 541537,
+      "sha256": "ecdd8ce5602ed7d444de0fcc615ef1275afbc2db2d58de32822e13bbb0cce788"
+    },
+    "after": {
+      "path": "$TASK_ROOT/repro-relative-b3/summary.json",
+      "bytes": 542234,
+      "sha256": "5276aab9e357b61ee0495c4f2fea64352cba247b5e11c56c0de06f0e8f9d16f5"
+    },
+    "rows": [
+      {
+        "fixture": "01-generated-longhand",
+        "profile": "PrintPaged",
+        "beforeHasLoss": false,
+        "afterHasLoss": true,
+        "afterDiagnostics": [
+          {
+            "Code": "HtmlRenderColorValueUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 1
+          }
+        ]
+      },
+      {
+        "fixture": "01-generated-longhand",
+        "profile": "ScreenMediaPaged",
+        "beforeHasLoss": false,
+        "afterHasLoss": true,
+        "afterDiagnostics": [
+          {
+            "Code": "HtmlRenderColorValueUnsupported",
+            "Source": "@page @top-center",
+            "Severity": 1,
+            "LossKind": 1
+          }
+        ]
+      },
+      {
+        "fixture": "02-generated-shorthand",
+        "profile": "PrintPaged",
+        "beforeHasLoss": false,
+        "afterHasLoss": false,
+        "afterDiagnostics": []
+      },
+      {
+        "fixture": "02-generated-shorthand",
+        "profile": "ScreenMediaPaged",
+        "beforeHasLoss": false,
+        "afterHasLoss": false,
+        "afterDiagnostics": []
+      },
+      {
+        "fixture": "03-ordinary-control",
+        "profile": "PrintPaged",
+        "beforeHasLoss": true,
+        "afterHasLoss": true,
+        "afterDiagnostics": [
+          {
+            "Code": "HtmlRenderColorValueUnsupported",
+            "Source": "p#body-label",
+            "Severity": 1,
+            "LossKind": 1
+          }
+        ]
+      },
+      {
+        "fixture": "03-ordinary-control",
+        "profile": "ScreenMediaPaged",
+        "beforeHasLoss": true,
+        "afterHasLoss": true,
+        "afterDiagnostics": [
+          {
+            "Code": "HtmlRenderColorValueUnsupported",
+            "Source": "p#body-label",
+            "Severity": 1,
+            "LossKind": 1
+          }
+        ]
+      }
+    ],
+    "boundary": "Direct accepted relative-color longhand before/fix, ordinary typed-diagnostic control and retained-grammar-rejected shorthand control. Foreground/currentColor and variable longhand have focused/full correctness proof."
+  },
+  "historicalAttempts": {
+    "dispositions": {
+      "path": "$TASK_ROOT/prep/attempt-dispositions.json",
+      "bytes": 1215,
+      "sha256": "33420c7271f887736a24655996688f22301cfca9c5a1c70d96e64b2e535af5ea"
+    },
+    "authoredDispositions": [
+      {
+        "role": "focused-v1",
+        "result": "compilefailed; test used nonexistent HtmlRenderPage.BackgroundColor; corrected to actual public scene pagecolor shape. No productfailure or testresult."
+      },
+      {
+        "role": "focused-v2",
+        "result": "93pass"
+      },
+      {
+        "role": "focused-v3",
+        "result": "93pass/1failure: speculative background-clip:text assertion. Existing retained CSS grammar rejects that declaration before generated context, so absence of a used-value diagnostic is correct. Removed unreachable assertion, kept reachable uppercase supportedclip coverage. No product contract weakened."
+      },
+      {
+        "role": "background-focused-net10-v5",
+        "exitCode": 1,
+        "passedTests": 98,
+        "failedTests": 1,
+        "disposition": "The extra relative-color background shorthand assertion expected a used-value diagnostic, but retained shared shorthand grammar rejects this value before used-value resolution. Longhand, custom-property longhand and generated-foreground/currentColor controls pass. Removed the unreachable assertion; no product syntax expansion or failure relabeling."
+      }
+    ],
+    "closures": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/focused-v1-closure.json",
+          "bytes": 606,
+          "sha256": "2fa9bfae1ec72cecc8453b1cd0bd51bbbeb882aa3358d2f527602b245764c942"
+        },
+        "passed": false,
+        "executions": [
+          {
+            "role": "background-focused-net10-v1",
+            "receipt": {
+              "path": "$TASK_ROOT/background-focused-net10-v1-execution.json",
+              "bytes": 3110,
+              "sha256": "0f00816f80a0ee989962f936f5e2619381face4b77710d94f3f67dfb7c16c29f"
+            },
+            "sourceHead": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceHeadAfter": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceStatusBefore": "M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "sourceStatusAfter": "M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "exitCode": 1,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/background-focused-net10-v1.log",
+              "bytes": 13796,
+              "sha256": "75006478f22655ea1378efa6e5aee23d2fe3fb871929ea9973d6711f45427e9f"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/focused-v2-closure.json",
+          "bytes": 605,
+          "sha256": "8c1b5ea3e56498fbf93af60cfabee541ffbd6b143203ef9b4bb0ea0beab5e186"
+        },
+        "passed": true,
+        "executions": [
+          {
+            "role": "background-focused-net10-v2",
+            "receipt": {
+              "path": "$TASK_ROOT/background-focused-net10-v2-execution.json",
+              "bytes": 3112,
+              "sha256": "2f14d970198de14c845f6999b1b828082cf4c18369eda187664c31c5a350347e"
+            },
+            "sourceHead": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceHeadAfter": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceStatusBefore": "M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "sourceStatusAfter": "M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "exitCode": 0,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/background-focused-net10-v2.log",
+              "bytes": 6958,
+              "sha256": "d9639e8f4a746cc3aabfd530ce293d1255591aba45244ce4d51917d90065e08e"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/focused-v3-closure.json",
+          "bytes": 599,
+          "sha256": "f847fc162363b43f9c2b08683dcfeea596c64f021044b5c33bd17bb19fe6300d"
+        },
+        "passed": false,
+        "executions": [
+          {
+            "role": "background-focused-net10-v3",
+            "receipt": {
+              "path": "$TASK_ROOT/background-focused-net10-v3-execution.json",
+              "bytes": 3563,
+              "sha256": "fae2a1859252042666f6c9d6d69c56ddcd62b790fa040f068f39f056c665f4f0"
+            },
+            "sourceHead": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceHeadAfter": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundColors.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundColors.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "exitCode": 1,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/background-focused-net10-v3.log",
+              "bytes": 7766,
+              "sha256": "d7db3f6726dcfcd8d11b45f4af271947469d8688f85c3559eaf5474ba7b434d1"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/catalog-diagnostic-v2-closure.json",
+          "bytes": 621,
+          "sha256": "24761e87ef26d72a6a0deb3cd6fb936e4c22b12ae968f60c19fad7a5f1b69372"
+        },
+        "passed": true,
+        "executions": [
+          {
+            "role": "background-catalog-v2",
+            "receipt": {
+              "path": "$TASK_ROOT/background-catalog-v2-execution.json",
+              "bytes": 3731,
+              "sha256": "4375a2adecd533e8241a3472235a73e8191f1330763cc2dc78b91da21344c04f"
+            },
+            "sourceHead": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceHeadAfter": "c93b8e672fc0f49e8b13112078d9c2a7f1d3b863",
+            "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundColors.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Backgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.BackgroundColors.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs",
+            "exitCode": 0,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/background-catalog-v2.log",
+              "bytes": 6954,
+              "sha256": "34ea7ad45229968736cbd502e0dcb64470f763c81ed1da8e0a405474559b7921"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/color-remediation-focused-v1-closure.json",
+          "bytes": 642,
+          "sha256": "43d91d3ac8499f2d1c0ed9349657f57d1995913f0282a9d18d3504535a1027d2"
+        },
+        "passed": false,
+        "executions": [
+          {
+            "role": "background-focused-net10-v5",
+            "receipt": {
+              "path": "$TASK_ROOT/background-focused-net10-v5-execution.json",
+              "bytes": 2654,
+              "sha256": "9179bd36d63c897e6912b9a4428673d9b06294bed87236a4007358d6cc378984"
+            },
+            "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+            "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+            "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+            "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.PageMarginBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.BackgroundColors.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.GeneratedContexts.cs\n M OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+            "exitCode": 1,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/background-focused-net10-v5.log",
+              "bytes": 8138,
+              "sha256": "90c0cc49311a18dea0d2d620bf8337536b4ee0cb14d81b5795a592c630d28e47"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/relative-color-before-v1-closure.json",
+          "bytes": 636,
+          "sha256": "d62a34b52036d3f06f826bd7a3faf28ef14c375f904d2a9d5d120e7b7dac8a9b"
+        },
+        "passed": true,
+        "executions": [
+          {
+            "role": "relative-color-e9-reproduction",
+            "receipt": {
+              "path": "$TASK_ROOT/relative-color-e9-reproduction-execution.json",
+              "bytes": 1490,
+              "sha256": "2cb3e53fe4e27969d80a038bb41e3b09d7488a79b0839aa798a804ad729bcb0d"
+            },
+            "sourceHead": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+            "sourceHeadAfter": "e9c494066df51c832f8c2cdb5104d753986b6dfb",
+            "sourceStatusBefore": "",
+            "sourceStatusAfter": "",
+            "exitCode": 0,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/relative-color-e9-reproduction.log",
+              "bytes": 116,
+              "sha256": "abfdebf516e108fc21b7cf2bff47f1367c25db333672812c9c78500c4d99433d"
+            }
+          }
+        ]
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/relative-color-after-v2-closure.json",
+          "bytes": 634,
+          "sha256": "6a5500e382d2cc5fc70034524630d9e676d4aa6bef51c95e980a69a3166503e3"
+        },
+        "passed": true,
+        "executions": [
+          {
+            "role": "relative-color-b3-reproduction",
+            "receipt": {
+              "path": "$TASK_ROOT/relative-color-b3-reproduction-execution.json",
+              "bytes": 1494,
+              "sha256": "4d51f1ae26eaa6bc5c94d3ed2a7a2d08f302103aa05ba4993fb65edc3f095561"
+            },
+            "sourceHead": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+            "sourceHeadAfter": "b3f7a6ee28dd5efaf5d698b4043bd1c07f93fd90",
+            "sourceStatusBefore": "",
+            "sourceStatusAfter": "",
+            "exitCode": 0,
+            "timedOut": false,
+            "ownedGroupAbsent": true,
+            "log": {
+              "path": "$TASK_ROOT/logs/relative-color-b3-reproduction.log",
+              "bytes": 116,
+              "sha256": "abfdebf516e108fc21b7cf2bff47f1367c25db333672812c9c78500c4d99433d"
+            }
+          }
+        ]
+      }
+    ],
+    "boundary": "Failed and superseded attempts remain honest historical evidence; later green checks do not rewrite them."
+  },
+  "storage": {
+    "manifest": {
+      "path": "$TASK_ROOT/storage-manifest.json",
+      "bytes": 21630,
+      "sha256": "327fb1b3f6b795d606396dabc08ac8c9f72b498c41451edb2226760fb0017137"
+    },
+    "retainedLogicalBytes": 437434382,
+    "retainedRegularFiles": 1994,
+    "cleanup": {
+      "path": "$TASK_ROOT/prep/cleanup-final/cleanup-result.json",
+      "bytes": 22596,
+      "sha256": "5b6d6c0209555a548c0e45da9f9115826437b8cee735c3fa536466cd8788c203"
+    },
+    "removedLogicalBytes": 4261252195,
+    "retentionManifest": {
+      "path": "$TASK_ROOT/prep/cleanup-final/retention-manifest.json",
+      "bytes": 481618,
+      "sha256": "bd2243c01bd919f6f7b87945a4bfea09fbc5e58f5e64624a070a5d76dfb2e549"
+    },
+    "metadataArchive": {
+      "path": "$TASK_ROOT/retained-build-metadata.zip",
+      "bytes": 75488536,
+      "sha256": "602516b952678e7ae27de1582a3c8d9cca92e013507b3ef36c80bc5b1a7d949c"
+    },
+    "originalMetadataMappingCount": 292,
+    "journalReceipt": {
+      "path": "$TASK_ROOT/prep/cleanup-final/storage-ledger-receipt.json",
+      "bytes": 2981,
+      "sha256": "fafc90b3442c3d2d976aa68c8f82378032f7484fc2144e92335ad801cf1ce975"
+    }
+  },
+  "delivery": {
+    "prOpened": false,
+    "packagePublished": false,
+    "checkpointPush": "Separate ROOT Git checkpoint/remote verification required; collector performs no Git writes."
+  },
+  "limits": [
+    "Selected horizontal generated page-margin solid paint cohort only; current native and owned limits above remain authoritative.",
+    "NET472 compilation is not installed NET472 runtime or native Windows proof.",
+    "Windows profiling, provider fork convergence and wider browser/runtime/accessibility acceptance remain separate open work.",
+    "This scratch record does not publish, merge, release or complete the HTML programme."
+  ]
+}

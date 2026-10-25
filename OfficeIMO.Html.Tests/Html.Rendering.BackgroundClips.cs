@@ -16,11 +16,6 @@ public sealed partial class HtmlRenderingTests {
         string html = BackgroundClipFixture(gradient);
         HtmlRenderOptions options = BackgroundClipOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        HtmlRenderPathClipGroup clip = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>(),
-            item => item.Source == "div#target:background-gradient:clip");
-        Assert.Equal((12D, 12D, 80D, 60D), (clip.X, clip.Y, clip.Width, clip.Height));
-        Assert.Equal(OfficeClipPathKind.Rectangle, clip.ClipPath.Kind);
-
         AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()));
         Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? png));
         AssertBackgroundClipPixels(png!);

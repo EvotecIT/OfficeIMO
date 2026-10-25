@@ -273,7 +273,7 @@ public class DrawingManagedTextShapingProviderTests {
 
     [Fact]
     public void ManagedProvider_MapsExplicitBidiOverridesThroughSharedResolver() {
-        byte[] font = ManagedTextShapingTestAssets.CreateFont(0x61, 0x62, 0x63);
+        byte[] font = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x202E, blankSpace: true);
         var request = new OfficeTextShapingRequest(
             "\u202Eabc\u202C",
             ManagedTextShapingTestAssets.FamilyName,
@@ -285,12 +285,16 @@ public class DrawingManagedTextShapingProviderTests {
         OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
 
         Assert.NotNull(result);
-        Assert.Equal(new[] { 3, 2, 1 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
+        IOfficeFontProgram loaded = Assert.Single(new OfficeFontFaceCollection().Add("Bidi control", font).Faces).Program;
+        Assert.True(loaded.TryGetGlyphMetrics(' ', out int blankGlyph, out _));
+        Assert.Equal(new[] { 3, 2, 1 }, result!.Glyphs.Where(glyph => glyph.GlyphId != blankGlyph).Select(static glyph => glyph.TextIndex));
+        Assert.Equal(2, result.Glyphs.Count(glyph => glyph.GlyphId == blankGlyph && glyph.AdvanceWidth == 0));
+        Assert.Equal(request.Text, string.Concat(result.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
     }
 
     [Fact]
     public void ManagedProvider_AppliesKerningToThePreviousVisualGlyphAdvance() {
-        byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', adjustment: -120);
+        byte[] font = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x202E, blankSpace: true, withKerning: true);
         var request = new OfficeTextShapingRequest(
             "\u202EVA\u202C",
             ManagedTextShapingTestAssets.FamilyName,
@@ -302,12 +306,33 @@ public class DrawingManagedTextShapingProviderTests {
         OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
 
         Assert.NotNull(result);
-        Assert.Equal(new[] { 1, 2 }, result!.Glyphs.Select(static glyph => glyph.GlyphId));
-        Assert.All(result.Glyphs, static glyph => Assert.Null(glyph.AdvanceWidth));
-        Assert.Equal(-120, result.GetAdvanceAdjustment(0));
-        Assert.Equal(0, result.GetAdvanceAdjustment(1));
         OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
+        Assert.True(loaded.TryGetGlyphMetrics(' ', out int blankGlyph, out _));
+        Assert.True(loaded.TryGetGlyphMetrics('A', out int aGlyph, out _));
+        Assert.True(loaded.TryGetGlyphMetrics('V', out int vGlyph, out _));
+        OfficeShapedGlyph[] visible = result!.Glyphs.Where(glyph => glyph.GlyphId != blankGlyph).ToArray();
+        Assert.Equal(new[] { aGlyph, vGlyph }, visible.Select(static glyph => glyph.GlyphId));
+        Assert.Equal(new int?[] { 380, 500 }, visible.Select(glyph => glyph.AdvanceWidth));
+        Assert.Equal(0, visible[0].OffsetX);
+        Assert.Equal(380, visible[0].AdvanceWidth + visible[1].OffsetX);
+        Assert.Equal(request.Text, string.Concat(result.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
         Assert.Equal(880D, loaded.CreateShapedTextRun(request.Text, result).Measure(fontSize: 1000D), 6);
+    }
+
+    [Fact]
+    public void RtlParagraphBaseDoesNotOverrideTheResolvedLatinRunOrder() {
+        byte[] font = ManagedTextShapingTestAssets.CreateControlAdmissionFont(blankSpace: true, withKerning: true);
+        OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
+        Assert.True(loaded.TryGetGlyphMetrics('A', out int aGlyph, out _));
+        Assert.True(loaded.TryGetGlyphMetrics('V', out int vGlyph, out _));
+        var request = new OfficeTextShapingRequest("VA", ManagedTextShapingTestAssets.FamilyName, font, false, 1000,
+            OfficeTextDirection.RightToLeft, "en", OfficeTextFeatureSettings.Default.With("kern", 1));
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.Equal(new[] { vGlyph, aGlyph }, result.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal("VA", string.Concat(result.Glyphs.Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(1000D, loaded.CreateShapedTextRun(request.Text, result).Measure(fontSize: 1000D), 6);
     }
 
     [Fact]
@@ -328,6 +353,29 @@ public class DrawingManagedTextShapingProviderTests {
 
         Assert.Equal(0, result.GetAdvanceAdjustment(0));
         Assert.Equal(0, result.GetAdvanceAdjustment(1));
+    }
+
+    [Fact]
+    public void ManagedProvider_DeclinesExplicitKerningThatTheLegacyResultCannotRepresent() {
+        byte[] font = ManagedTextShapingTestAssets.CreateContextualPositioningFont();
+        var enabled = new OfficeTextShapingRequest("ABC", ManagedTextShapingTestAssets.FamilyName,
+            font, false, 1000, OfficeTextDirection.LeftToRight, "en",
+            OfficeTextFeatureSettings.Default.With("kern", 1));
+        var disabled = new OfficeTextShapingRequest("ABC", ManagedTextShapingTestAssets.FamilyName,
+            font, false, 1000, OfficeTextDirection.LeftToRight, "en",
+            OfficeTextFeatureSettings.Default.With("kern", 0));
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(enabled));
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(disabled));
+        Assert.Equal("ABC", string.Concat(result.Glyphs.Select(glyph => glyph.UnicodeText)));
+        Assert.All(result.Glyphs, glyph => {
+            Assert.Equal(0, glyph.OffsetX);
+            Assert.Equal(0, glyph.OffsetY);
+        });
+        Assert.Equal(1500D, Assert.Single(new OfficeFontFaceCollection().Add("Context", font).Faces)
+            .Program.MeasureShapedText(disabled.Text, result, 1000D));
     }
 
     [Fact]

@@ -28,13 +28,14 @@ public class PdfEmbeddedFontRenderingTests {
         Assert.StartsWith("ManagedEmbedded-", familyName, StringComparison.Ordinal);
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.font-substitution");
         var svg = System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(result.Bytes!));
-        // A PDF subset tag contains '+', so its SVG reference must be a CSS
-        // string selecting the same embedded face, after XML decoding.
-        string reference = "\"" + face.FamilyName + "\"";
-        Assert.Contains(svg.Descendants(), element => element.Name.LocalName == "text"
-            && element.Attribute("font-family")?.Value == reference);
-        Assert.Contains(svg.Descendants(), element => element.Name.LocalName == "style"
-            && element.Value.IndexOf("font-family:" + reference, StringComparison.Ordinal) >= 0);
+        // Proven PDF glyphs retain their contours and logical source; the PDF
+        // subset is not registered as a browser font.
+        var glyphProjection = Assert.Single(svg.Descendants().Where(element =>
+            element.Name.LocalName == "g"
+            && element.Attribute("aria-label")?.Value == "Document font outlines"));
+        Assert.Equal("img", glyphProjection.Attribute("role")?.Value);
+        Assert.Contains(glyphProjection.Descendants(), element => element.Name.LocalName == "path"
+            && element.Attribute("d")?.Value.StartsWith("M", StringComparison.Ordinal) == true);
     }
 
     [Fact]

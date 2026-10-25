@@ -18,8 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out HtmlRenderBoxStyle firstLineStyle)) return;
 
         IReadOnlyList<HtmlInlineRun> runs = PrepareArabicJoiningRuns(targetRuns);
-        if (_options.TextShapingProvider != null)
-            runs = PrepareConfiguredJoiningRuns(runs, parentStyle, run => CreateFirstLineRunStyle(run, firstLineStyle), reportLoss: false);
+        runs = PrepareConfiguredJoiningRuns(runs, parentStyle,
+            run => CreateFirstLineRunStyle(run, firstLineStyle), reportLoss: false);
         width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         PrepareInlineEdgeScopes(runs);

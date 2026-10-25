@@ -1031,10 +1031,14 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Theory]
-    [InlineData(true, 0)]
-    [InlineData(false, 1)]
-    public void StructureInspectorValidatesTrueTypeGlyphLocations(bool validLoca, int expectedUnembedded) {
-        byte[] pdf = BuildTrueTypeInspectionPdf(BuildMinimalTrueTypeProgram(validLoca));
+    [InlineData(true, false, 0)]
+    [InlineData(false, false, 1)]
+    [InlineData(true, true, 0)]
+    [InlineData(false, true, 1)]
+    public void StructureInspectorValidatesTrueTypeGlyphLocations(
+        bool validLoca, bool outlineFree, int expectedUnembedded) {
+        byte[] pdf = BuildTrueTypeInspectionPdf(BuildMinimalTrueTypeProgram(
+            validLoca, outlineFree ? Array.Empty<byte>() : null));
 
         PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
 

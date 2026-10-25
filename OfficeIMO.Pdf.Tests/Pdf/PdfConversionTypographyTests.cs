@@ -128,16 +128,18 @@ public sealed class PdfConversionTypographyTests {
             Assert.Equal("OpenType GSUB ligature", warning.Details["script"]);
             Assert.Equal("U+0066", warning.Details["codePoint"]);
 
+            PdfCore.PdfConversionWarning markWarning = Assert.Single(report.Warnings.Where(item =>
+                item.Code == "unsupported-mark-positioning-or-joiner-shaping" &&
+                item.Converter == expectedConverter).Take(1));
+            Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, markWarning.Severity);
+            Assert.Equal("combining-mark-or-joiner", markWarning.Details["script"]);
+            Assert.Equal("U+0301", markWarning.Details["codePoint"]);
         } else {
-            Assert.DoesNotContain(report.Warnings, item => item.Code == "unsupported-font-ligature-substitution");
+            // The managed SourceSerif run now applies ligatures and mark
+            // attachment; converters must not report those as unapplied.
+            Assert.DoesNotContain(report.Warnings, item => item.Code is
+                "unsupported-font-ligature-substitution" or "unsupported-mark-positioning-or-joiner-shaping");
         }
-
-        PdfCore.PdfConversionWarning markWarning = Assert.Single(report.Warnings.Where(item =>
-            item.Code == "unsupported-mark-positioning-or-joiner-shaping" &&
-            item.Converter == expectedConverter).Take(1));
-        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, markWarning.Severity);
-        Assert.Equal("combining-mark-or-joiner", markWarning.Details["script"]);
-        Assert.Equal("U+0301", markWarning.Details["codePoint"]);
     }
 
     [Theory]
@@ -365,8 +367,7 @@ Zażółć gęślą jaźń
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
-            _ = result.ToBytes();
-            return result.Report;
+            return CompleteOpenTypeReport(result, scalar);
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);
@@ -390,8 +391,7 @@ Zażółć gęślą jaźń
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
-            _ = result.ToBytes();
-            return result.Report;
+            return CompleteOpenTypeReport(result, scalar);
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);
@@ -405,8 +405,7 @@ Zażółć gęślą jaźń
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
         };
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse("office cafe\u0301").ToPdfDocumentResult(options);
-        _ = result.ToBytes();
-        return result.Report;
+        return CompleteOpenTypeReport(result, scalar);
     }
 
     private static PdfCore.PdfConversionReport CreatePowerPointOpenTypeReport(string fontPath, bool scalar) {
@@ -420,7 +419,18 @@ Zażółć gęślą jaźń
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
-        _ = result.ToBytes();
+        return CompleteOpenTypeReport(result, scalar);
+    }
+
+    private static PdfCore.PdfConversionReport CompleteOpenTypeReport(
+        PdfCore.PdfDocumentConversionResult result, bool scalar) {
+        byte[] bytes = result.ToBytes();
+        Assert.NotEmpty(bytes);
+        if (!scalar) {
+            // Inspect the adapter's saved PDF, not only its warning inventory:
+            // an NFC glyph/attached mark still retains the exact NFD source.
+            Assert.Contains("office cafe\u0301", PdfCore.PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        }
         return result.Report;
     }
 

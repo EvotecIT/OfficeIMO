@@ -29,7 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var trailingGroups = hasFloats ? new List<HtmlRenderTrailingGroup>() : null;
         _currentInlineEdgeGeometry.Clear();
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
-            .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
+            .Select(line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
             .ToArray();
         IReadOnlyList<IReadOnlyList<InlineSegment>>? resolvedBidiLines = ResolveInlineParagraphSegments(
             mergedLines,
@@ -327,7 +327,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             RecordInlineFontDecorationGeometry(current, paragraphStyle, formattingContainer,
                 lineStart, lineY, lineHeight, baseline, emptyAtomicBaseline, lineBidiResolved, inlineBounds);
 
-            if (lineBidiResolved && visuals.Count > lineVisualStart) {
+            bool retainedMeasurementScopes = mergedLines[lineIndex].Count > 1
+                && mergedLines[lineIndex].Any(HasProviderMeasurementContext);
+            if ((lineBidiResolved || retainedMeasurementScopes) && visuals.Count > lineVisualStart
+                && CanOwnRootInlineLineLogicalText(mergedLines[lineIndex], formattingContainer)) {
                 List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.RemoveRange(lineVisualStart, visuals.Count - lineVisualStart);
                 visuals.Add(new HtmlRenderLogicalTextGroup(

@@ -14,13 +14,27 @@ internal static class OfficeTrueTypeGlyphData {
     private const ushort UseMyMetrics = 0x0200;
     private const ushort SupportedCompositeFlags = 0x1FFF;
 
+    /// <summary>Validates the complete short or long location table for a font with no outline data.</summary>
+    internal static bool HasOnlyEmptyLocations(
+        byte[] data, int locaOffset, int locaLength, int glyphCount, short locationFormat) {
+        if (data == null || glyphCount <= 0 || glyphCount > ushort.MaxValue ||
+            (locationFormat != 0 && locationFormat != 1) || locaOffset < 0 || locaLength < 0 ||
+            locaOffset > data.Length - locaLength) return false;
+        int entrySize = locationFormat == 0 ? 2 : 4;
+        if (locaLength != (glyphCount + 1) * entrySize) return false;
+        for (int index = 0; index < locaLength; index++) {
+            if (data[locaOffset + index] != 0) return false;
+        }
+        return true;
+    }
+
     internal static bool IsStructurallyValid(
         byte[] data,
         int glyfOffset,
         int glyfLength,
         IReadOnlyList<uint> locations) {
         if (data == null || locations == null || locations.Count < 2 ||
-            glyfOffset < 0 || glyfLength <= 0 || glyfOffset > data.Length - glyfLength) return false;
+            glyfOffset < 0 || glyfLength < 0 || glyfOffset > data.Length - glyfLength) return false;
 
         int glyphCount = locations.Count - 1;
         var componentReferences = new int[glyphCount][];

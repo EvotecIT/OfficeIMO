@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Xml.Linq;
 using OfficeIMO.Html;
 using Xunit;
 
@@ -30,20 +29,18 @@ namespace OfficeIMO.Tests {
             var options = new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) };
             options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
                 "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf")));
-            HtmlRenderText[] text = EnumerateRenderVisuals(HtmlRenderTestDriver.Render(document, options).Pages[0].Scene)
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+            HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene)
                 .OfType<HtmlRenderText>().ToArray();
             HtmlRenderText tail = Assert.Single(text, item => item.Text == "TAIL");
             Assert.Equal(expectedHeight, tail.LayoutY, 6);
             HtmlRenderText following = Assert.Single(text, item => item.Text == "FOLLOWING");
             Assert.True(following.LayoutY >= tail.LayoutY + 32D - 0.000001D);
 
-            XElement[] svg = XDocument.Parse(document.ToSvg(options)).Descendants()
-                .Where(node => node.Name.LocalName == "text").ToArray();
-            double baseline = Y(Assert.Single(svg, item => item.Value.Trim() == "BASE"));
+            double baseline = PaintBaseline(Assert.Single(text, item => item.Text.Trim() == "BASE"));
             Assert.Equal(expectedBaseline, baseline, 3);
-            Assert.Equal(baseline - shift, Y(Assert.Single(svg, item => item.Value == "X")), 3);
-
-            static double Y(XElement element) => HtmlSvgTestCoordinates.CssValue(element, "y");
+            Assert.Equal(baseline - shift, PaintBaseline(Assert.Single(text, item => item.Text == "X")), 3);
+            AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
         }
 
         [Fact]

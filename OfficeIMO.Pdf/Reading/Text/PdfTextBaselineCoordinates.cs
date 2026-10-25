@@ -4,13 +4,17 @@ namespace OfficeIMO.Pdf;
 internal readonly struct PdfTextBaselineCoordinates {
     private readonly double _cos;
     private readonly double _sin;
+    private readonly bool _useLogicalLayoutBaseline;
 
-    internal PdfTextBaselineCoordinates(double rotationDegrees) {
+    internal PdfTextBaselineCoordinates(double rotationDegrees, bool useLogicalLayoutBaseline = false) {
         double radians = rotationDegrees * Math.PI / 180D;
         _cos = Math.Cos(radians);
         _sin = Math.Sin(radians);
+        _useLogicalLayoutBaseline = useLogicalLayoutBaseline;
     }
 
-    internal double Along(PdfTextSpan span) => _cos * span.X + _sin * span.Y;
-    internal double Normal(PdfTextSpan span) => -_sin * span.X + _cos * span.Y;
+    internal double Along(PdfTextSpan span) => _useLogicalLayoutBaseline
+        ? _cos * span.LogicalLayoutX + _sin * span.LogicalLayoutY : _cos * span.X + _sin * span.Y;
+    internal double Normal(PdfTextSpan span) => _useLogicalLayoutBaseline
+        ? -_sin * span.LogicalLayoutX + _cos * span.LogicalLayoutY : -_sin * span.X + _cos * span.Y;
 }

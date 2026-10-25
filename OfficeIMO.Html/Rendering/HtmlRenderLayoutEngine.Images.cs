@@ -503,6 +503,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         contentType = string.Empty;
         imageInfo = null;
         string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _resourceUrlPolicy);
+        // External CSS may already carry a policy-transformed URL. Both aliases
+        // identify the used paint even when another transform changes the URL.
+        _resources.MarkImageUsed(source);
         _resources.MarkImageUsed(resolvedSource);
         string extension = string.Empty;
         if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {

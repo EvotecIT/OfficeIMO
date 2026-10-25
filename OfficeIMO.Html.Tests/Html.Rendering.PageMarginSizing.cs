@@ -163,7 +163,7 @@ public sealed partial class HtmlRenderingTests {
                 && text.X >= margin.X - 0.001D && text.X < margin.X + margin.Width - 0.001D).ToArray();
 
     private static HtmlRenderDocument RenderMarginSizing(double availableWidth, string boxes,
-        string body = "<p>BODY</p>", bool zeroAdvance = false) {
+        string body = "<p>BODY</p>", bool zeroAdvance = false, ushort zeroGlyphAdvance = 500) {
         string family = ManagedTextShapingTestAssets.FamilyName;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true,
@@ -171,7 +171,8 @@ public sealed partial class HtmlRenderingTests {
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser
         };
         options.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
-            Enumerable.Range(32, 95).ToDictionary(scalar => scalar, _ => zeroAdvance ? (ushort)0 : (ushort)500)));
+            Enumerable.Range(32, 95).ToDictionary(scalar => scalar,
+                scalar => zeroAdvance ? (ushort)0 : scalar == '0' ? zeroGlyphAdvance : (ushort)500)));
         string width = (availableWidth + 40D).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
         string html = "<style>html,body,p{margin:0;padding:0;font:20px/20px '" + family
             + "';font-kerning:none}@page{size:" + width + "px 300px;margin:60px 20px;font:20px/20px '"

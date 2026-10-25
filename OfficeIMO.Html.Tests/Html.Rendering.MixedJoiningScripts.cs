@@ -18,19 +18,24 @@ public sealed partial class HtmlRenderingTests {
             AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };
-        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
-            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
-                (logical + OfficeArabicTextShaper.Shape(logical)).Select(character => (int)character).ToArray()));
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            (logical + OfficeArabicTextShaper.Shape(logical)).Select(character => (int)character).ToArray());
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, fontData);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(markup);
         HtmlRenderResult retained = HtmlRenderEngine.Execute(document,
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
-        string painted = string.Concat(EnumerateRenderVisuals(retained.Document.Pages[0].Scene)
-            .OfType<HtmlRenderText>().Select(text => text.Text));
-
-        Assert.Equal(OfficeArabicTextShaper.Shape(arabic).Where(IsArabicForm).OrderBy(character => character),
-            painted.Where(IsArabicForm).OrderBy(character => character));
-        Assert.DoesNotContain(painted, character => character >= '\u0620' && character <= '\u064A');
+        HtmlRenderText[] text = EnumerateRenderVisuals(retained.Document.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(fontData)!;
+        int[] expectedGlyphs = OfficeArabicTextShaper.Shape(arabic).Where(IsArabicForm).Reverse().Select(scalar => {
+            Assert.True(font.TryGetGlyphMetrics(scalar, out int glyph, out _));
+            return glyph;
+        }).ToArray();
+        var arabicGlyphs = new HashSet<int>(expectedGlyphs);
+        PaintedTestGlyph[] painted = ObservePaintedTrueTypeGlyphs(retained.Document, text);
+        Assert.All(painted, glyph => Assert.Equal(font.Fingerprint, glyph.Program.Fingerprint));
+        Assert.Equal(expectedGlyphs, painted.Where(glyph => arabicGlyphs.Contains(glyph.GlyphId)).Select(glyph => glyph.GlyphId));
         Assert.DoesNotContain(retained.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        retained.Document.RequireNoLoss();
         byte[] pdf = document.ToPdfBytes(options);
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains(logical, read.ExtractText(), StringComparison.Ordinal);

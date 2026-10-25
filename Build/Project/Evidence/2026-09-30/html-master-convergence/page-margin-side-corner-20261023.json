@@ -1,0 +1,2809 @@
+{
+  "schema": "officeimo.html.page-margin-side-corner-qualification/v1",
+  "collectedUtc": "2026-10-23T15:59:30.718556+00:00",
+  "outcome": "PASS_BOUNDED_SIDE_CORNER_CONTRACT_WITH_DECLARED_NATIVE_BOUNDARIES",
+  "collector": {
+    "path": "$TASK_ROOT/prep/final-qualification-v2/collect-v3.py",
+    "bytes": 31134,
+    "sha256": "92c3f81cb0258b8f1634af2dd0efd939bf9f5e03f0d6117d3321d98ac9bbe89c"
+  },
+  "reader": {
+    "path": "$TASK_ROOT/prep/final-qualification-v2/evidence_files.py",
+    "bytes": 12515,
+    "sha256": "5aeecbd85afdc500d46df200fbe92eaf6d529e0a07a801d06fb424fa082f4816"
+  },
+  "inspectors": {
+    "path": "$TASK_ROOT/prep/final-qualification-v2/observed.py",
+    "bytes": 13170,
+    "sha256": "6636c4075856d7c87753433f9e62a802294c21bf7fd57fb5ce394bcca49edd7f"
+  },
+  "configuration": {
+    "path": "$TASK_ROOT/prep/final-qualification-v2/config.json",
+    "bytes": 13677,
+    "sha256": "14b6750257073e142f2ce574e4af49fe82efa2a5474b119d4af35a407ab6acfe"
+  },
+  "qualifiedSource": {
+    "head": "918399c3d7c46941096b0786c54759a3bdd696bb",
+    "tree": "f79e67771810e6fcdb90ee75b5f9417f985f5fb6",
+    "sourceSeal": {
+      "path": "$TASK_ROOT/source-seal-side-corner-v2.json",
+      "bytes": 12239146,
+      "sha256": "d82f47d9dcccdbdd444c60b7a2f98365696b3d9f7e83b621e475e435b5d67542"
+    },
+    "trackedFiles": 58613,
+    "inputContract": {
+      "path": "$TASK_ROOT/prep/packages/input-contract.prepared.json",
+      "bytes": 388108,
+      "sha256": "8d618ca54b842bcd70f766b59709836c433a2a269e2e4c74f6d481f34332229e"
+    },
+    "fixtureMatrix": {
+      "path": "$TASK_ROOT/prep/evidence/fixture-matrix-side-corner.json",
+      "bytes": 408219,
+      "sha256": "8d23749de7bc3be0b8435d2996dff571dcb57b50258957be6195b4dbae3434e8"
+    },
+    "startingHead": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+    "protectedProviderRuntimeDiffPaths": []
+  },
+  "currentCheckpoint": {
+    "head": "918399c3d7c46941096b0786c54759a3bdd696bb",
+    "tree": "f79e67771810e6fcdb90ee75b5f9417f985f5fb6",
+    "metadataDiffPaths": [],
+    "sourceCodeChangedSinceQualification": false
+  },
+  "source": {
+    "net8": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net8-v2/summary.json",
+        "bytes": 4738126,
+        "sha256": "fbefeb4a770ae56e8e538c74076148845349d13b3cc00a0d1ca7eb87f721e230"
+      },
+      "declaredSourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+      "observations": 30,
+      "pages": 64,
+      "ownPngPdfPairsVerified": 64,
+      "svgArtifactsObserved": 64,
+      "svgElementTotals": {
+        "clipPath": 1304,
+        "defs": 1008,
+        "g": 936,
+        "image": 560,
+        "linearGradient": 8,
+        "rect": 4064,
+        "stop": 16,
+        "style": 64,
+        "svg": 64,
+        "text": 692
+      },
+      "svgRasterParityClaimed": false,
+      "lossyObservations": 0,
+      "diagnostics": {
+        "diagnostics": {},
+        "pdfDiagnostics": {},
+        "svgDiagnostics": {}
+      }
+    },
+    "net10": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net10-v2/summary.json",
+        "bytes": 4738355,
+        "sha256": "dc97b498811f146ffe219a5056ef5db7b995fbe7028fa7866e7ede6fe701cbff"
+      },
+      "declaredSourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+      "observations": 30,
+      "pages": 64,
+      "ownPngPdfPairsVerified": 64,
+      "svgArtifactsObserved": 64,
+      "svgElementTotals": {
+        "clipPath": 1304,
+        "defs": 1008,
+        "g": 936,
+        "image": 560,
+        "linearGradient": 8,
+        "rect": 4064,
+        "stop": 16,
+        "style": 64,
+        "svg": 64,
+        "text": 692
+      },
+      "svgRasterParityClaimed": false,
+      "lossyObservations": 0,
+      "diagnostics": {
+        "diagnostics": {},
+        "pdfDiagnostics": {},
+        "svgDiagnostics": {}
+      }
+    }
+  },
+  "sourceChecks": {
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-net8-check-v2.json",
+        "bytes": 186538,
+        "sha256": "428593a2294ae9fec5108b36dcac23ea1ce0bdc4868ff525512cc41efac61763"
+      },
+      "observations": 30,
+      "pages": 64,
+      "materialFlags": 0,
+      "rootAcceptanceAssigned": false
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/source-net10-check-v2.json",
+        "bytes": 186539,
+        "sha256": "6d0b1fa2ffa4148d0d8a16f0688740d46b711b47077ee7cda1a5f411daf7f23c"
+      },
+      "observations": 30,
+      "pages": 64,
+      "materialFlags": 0,
+      "rootAcceptanceAssigned": false
+    }
+  },
+  "native": {
+    "execution": {
+      "path": "$TASK_ROOT/native-side-corner/execution.json",
+      "bytes": 406427,
+      "sha256": "9ba766f4446b73904438a7e13a11c2c22224f8f02b66867f4534e056365cc16c"
+    },
+    "pdfObservations": 28,
+    "pages": 60,
+    "serverClosed": true,
+    "remainingOwnedEdge": [],
+    "printParameterBoundary": "PreferCSSPageSize=true; every actual page matches its frozen per-profile CSS paper and96dpi raster, with bounded<=0.5pt Chromium paper rounding; viewport360x480, Scale1, no browser header/footer templates.",
+    "qualificationBoundary": "Actual independent Edge PDFs and exact authored resource events only. Main and causal cohorts remain separately counted; source-only running is excluded. Geometry/active paint/pixel/alignment interpretation and native appearance require ROOT actual adjudication. No universal native/spec/pixel or browser-argv absence claim.",
+    "universalNativeParityClaimed": false,
+    "observationReceipt": {
+      "path": "$TASK_ROOT/native-main-observations-v1.json",
+      "bytes": 270899,
+      "sha256": "0eb8f751689c479540e9afe81c6d0883702cb15c0910c43ea0ad9448c78bdd3f"
+    },
+    "appearanceSummary": {
+      "path": "$TASK_ROOT/prep/native-analysis/v2/summary.json",
+      "bytes": 121280,
+      "sha256": "546ba65a4f53c31efa9fcca8e4b7114e39d22f8abb2cde15790a734be5fa3443"
+    },
+    "resourceResidualAnalysis": {
+      "path": "$TASK_ROOT/prep/native-analysis/v2/case13-resource-residual.json",
+      "bytes": 174089,
+      "sha256": "fe686ab8dd6cca1d0d27491e9d87b1b5c26c5589e642a3c406d31f777a524d9e"
+    },
+    "svgInventory": {
+      "path": "$TASK_ROOT/root-svg-inspection-v2.json",
+      "bytes": 32428,
+      "sha256": "b54d8a9ff7709c4128ddee2821ccd9d9a8b0867f727aeed5baf169ec339ebfc1"
+    },
+    "runningElementNativeOracleClaimed": false
+  },
+  "causal": {
+    "receipt": {
+      "path": "$TASK_ROOT/prep/native-analysis/v2/causal-current-v2.json",
+      "bytes": 6429,
+      "sha256": "6ee5b871bf349b9aaec1056b4f9c96ef177c629579ed007ef66202ab4da78d5a"
+    },
+    "source": {
+      "net8": {
+        "receipt": {
+          "path": "$TASK_ROOT/source-causal-net8-check-v2.json",
+          "bytes": 5416,
+          "sha256": "07aeb9b76d506bce5eabeaac6e40dadae65bf1009c8cf7a94a8e545667b9b5d3"
+        },
+        "observations": 2,
+        "pages": 2,
+        "materialFlags": 0,
+        "rootAcceptanceAssigned": false
+      },
+      "net10": {
+        "receipt": {
+          "path": "$TASK_ROOT/source-causal-net10-check-v2.json",
+          "bytes": 5417,
+          "sha256": "2297d76afd16d5a040fb7d4a88a280df9048344d5287245bc252218dbe9db1e5"
+        },
+        "observations": 2,
+        "pages": 2,
+        "materialFlags": 0,
+        "rootAcceptanceAssigned": false
+      }
+    },
+    "nativeObservations": 2,
+    "nativePages": 2,
+    "exactSavedProbeComparisons": 8
+  },
+  "rootAcceptance": {
+    "receipt": {
+      "path": "$TASK_ROOT/root-render-acceptance-side-corner-v2.json",
+      "bytes": 17352,
+      "sha256": "b59afe7a06582777039d9aee53a904b7fd82a0b885d2ae4dd6add37f4688488a"
+    },
+    "nativeComparisonLimits": "Actual Edge main28PDF/60pages plus causal2PDF/2pages, unchanged frozen HTML/fonts/assets. ROOT viewed all23 final comparative contacts plus actualcase14 source/Edge andcase13 source/Edge full pages. Authored page counts/frames/margins, side/corner allocation, CSS-wide alignment and clockwise overlap agree within the recorded paper-rounding and numeric probes. Source-only running snapshots have no Edge oracle. Raw pixel residuals remain82882 in each profile; gradient/resource/glyph rasterization is not pixel-identical and is not waived as anti-aliasing. No universal browser/native appearance, vertical-writing, accessibility, physical-print or Windows-profile claim.",
+    "ownComparisonLimits": "Finalsource main64pages/framework eachPNG equals actual saved-and-reopenedPDF replay;32observations66pages/framework including separatecausal controls. Bothframeworks decodedRGB agree; encoded bytes differ acrossframeworks and no crossframework encoded-byte identity isclaimed. Package same-framework equivalence and actualAOT execution remain separate pending gates. Excluded0d PrintPaged captures retain failure and wrong-paper evidence.",
+    "svgComparisonLimits": "Actual64NET10SVG pages parsed; bothsource matrix gates inspect actualSVG structure and resource/vector-fill inventories. Package proof will compare same-framework actualSVG structures. No independent SVG rasterization or native SVG appearance claim.",
+    "svgRasterParityClaimed": false,
+    "universalNativeParityClaimed": false
+  },
+  "roles": {
+    "source": {
+      "receipt": {
+        "path": "$TASK_ROOT/side-corner-source-v2-closure.json",
+        "bytes": 3445,
+        "sha256": "4e214a66b9084d4c0a86acfc2a80826c10f818f9814e6cff67812651c70a3878"
+      },
+      "expectedRoles": 4,
+      "completedRoles": 4,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-source-net8-v2-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net8-v2-build-v2-execution.json",
+            "bytes": 1911,
+            "sha256": "ed978a658303d2f6de1ce26f5dbaf4d4051fc54d9133161fc5ba084369f9299c"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net8-v2-build-v2.log",
+            "bytes": 1859,
+            "sha256": "0420fd1093e06c1733cab959d6ddacd6e2f80e00c40ed1e496829176364fc92f"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-source-net8-v2-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net8-v2-run-v2-execution.json",
+            "bytes": 1576,
+            "sha256": "47dc5dc0fd01c9721246f076881835f88b8e2c765ef4bb5e1167991c5662c85a"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net8-v2-run-v2.log",
+            "bytes": 116,
+            "sha256": "ec76ce60892961f51cccfc1027a98e502f1a5a3d7cdb8c9205c2a5960a7d3d7c"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-source-net10-v2-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net10-v2-build-v2-execution.json",
+            "bytes": 1916,
+            "sha256": "4d87696e434c6f4e7761e2285bea924580844ea06b77626266d85567a9055e35"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net10-v2-build-v2.log",
+            "bytes": 1168,
+            "sha256": "69e292c8be57519b36c2882acc8d6051557dc82c8168c2abacabaf38fbb3d739"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-source-net10-v2-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net10-v2-run-v2-execution.json",
+            "bytes": 1582,
+            "sha256": "0597034cffc4fe3d5bcc44ec3c7f32d25b8fcfb6f8e58818e922f906e90fd2ee"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net10-v2-run-v2.log",
+            "bytes": 117,
+            "sha256": "b37acbf97242aaee61347e01eaaad1c614207de12dc5215ddd24b6acfd334dba"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "sourceCausal": {
+      "receipt": {
+        "path": "$TASK_ROOT/side-corner-source-causal-v2-closure.json",
+        "bytes": 1927,
+        "sha256": "f01a165b812340b00618f9adecf2cb93003939de189ee70ec22c46452221bbda"
+      },
+      "expectedRoles": 2,
+      "completedRoles": 2,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-source-causal-net8-v2-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-causal-net8-v2-run-v2-execution.json",
+            "bytes": 1598,
+            "sha256": "e5f9e02305f82b0e407c1110f6e8653ad03db77e1c00255a54f29b33d409bef2"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-causal-net8-v2-run-v2.log",
+            "bytes": 115,
+            "sha256": "4a9496bdb8e121ed2f3ba044700217b1b473bd37103a53e21a0379af6dd72860"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-source-causal-net10-v2-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-causal-net10-v2-run-v2-execution.json",
+            "bytes": 1603,
+            "sha256": "0b7da51fad1e0b9a37dfc128e2ff8a21e5e8ca9ed6b67a2f18476f0a395bfe42"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-causal-net10-v2-run-v2.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "nativeMain": {
+      "receipt": {
+        "path": "$TASK_ROOT/side-corner-native-v1-closure.json",
+        "bytes": 1121,
+        "sha256": "98fdfb778528eab9ee3849c971cd39975349f7a172f8c3cd9597a688e14567bc"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-native-main-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-native-main-v1-execution.json",
+            "bytes": 1302,
+            "sha256": "aa777f3eecaccbc76b1d3cf90a6a6e0acefbb00245fc4b165bd8170f1c124811"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-native-main-v1.log",
+            "bytes": 975,
+            "sha256": "7b00e7cbf41d80246eca0a99a67b08aa531e686d0cd874f584f09ca945ce870b"
+          },
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "nativeCausal": {
+      "receipt": {
+        "path": "$TASK_ROOT/side-corner-native-causal-v1-closure.json",
+        "bytes": 1144,
+        "sha256": "0fb9e117ab19a1822e5fccae8e81f57232585600678da6a31e0a858d1c564073"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-native-overlap-causal-v1",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-native-overlap-causal-v1-execution.json",
+            "bytes": 1330,
+            "sha256": "e6e035e709b5b08092dc595b10158b21f82d60627315285d2443034047dde4c6"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-native-overlap-causal-v1.log",
+            "bytes": 223,
+            "sha256": "ec811456c3c50caaa11f17ffaf3b785bb69a8fbad93b99ab31bff8dfd7cf0090"
+          },
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "producer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-producer-side-corner-v2-closure.json",
+        "bytes": 7438,
+        "sha256": "7a840634cbd4943429b552745784ae5c282d14ba0f56b686cd7b3b21252d79f0"
+      },
+      "expectedRoles": 9,
+      "completedRoles": 9,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-package-preflight-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-preflight-v2-execution.json",
+            "bytes": 1990,
+            "sha256": "749c0e1092f448d86458e2c877a16ea38dfd6265bc8f8e68ace12c94ff234019"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-preflight-v2.log",
+            "bytes": 66,
+            "sha256": "d00ba2e7e9567d4f950458c4e48c1e5860cdcf56f9352c9ad405f14ddb754ac6"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-source-restore-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-source-restore-v2-execution.json",
+            "bytes": 2865,
+            "sha256": "d34886df3f9be3e89678cd0b5fcc478974af771cc3bfe02e8c321e91c08547dd"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-source-restore-v2.log",
+            "bytes": 785,
+            "sha256": "40657c5eca1977b3beebc88c818216e71bb7c056fedded9b26d1ea4e2c2ebcce"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-source-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-source-build-v2-execution.json",
+            "bytes": 2894,
+            "sha256": "6840ae547e0694b8d5d401884aa07b32f314185c42e7088522e1e1b09d416f4f"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-source-build-v2.log",
+            "bytes": 4001,
+            "sha256": "55aa9f7aebf911416bbc69f470d371cea22f01a88c247494a8fb2e819eb82a45"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-pack-officeimo-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-pack-officeimo-core-v2-execution.json",
+            "bytes": 2936,
+            "sha256": "f73289a23e350e74ef6f940579ff3ac375cb71094d9408bb0fb752d7e1d1adb7"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-pack-officeimo-core-v2.log",
+            "bytes": 176,
+            "sha256": "9c248f9961f1a4477d88ac0fbbc99d992e312f01749bb0052c0e228674b32809"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-pack-officeimo-pdf-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-pack-officeimo-pdf-v2-execution.json",
+            "bytes": 2926,
+            "sha256": "e6435d985c39a900b076877d24ffbcf453ead360adf7e6a9c4758ffa2e1dd5a4"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-pack-officeimo-pdf-v2.log",
+            "bytes": 175,
+            "sha256": "bbad7c86cc6b16fd366195fbbf73b401603955ddb0c361c4483da422f2da4f30"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-pack-officeimo-html-core-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-pack-officeimo-html-core-v2-execution.json",
+            "bytes": 2950,
+            "sha256": "84d40234b9eb9bb625ea069ceb3b58f18e532b4ca189dc1ef6a55e6bcde3943b"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-pack-officeimo-html-core-v2.log",
+            "bytes": 181,
+            "sha256": "29a3a22e1b7f4cb7ad04dbde0bcd1ee029ef915bff54fcebaf3345c497b4b84e"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-pack-officeimo-html-anglesharp-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-pack-officeimo-html-anglesharp-v2-execution.json",
+            "bytes": 2974,
+            "sha256": "153c62110fa6b26a469766127e38c2e041e2cc2f67f447e3148bdb1b2ac021e1"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-pack-officeimo-html-anglesharp-v2.log",
+            "bytes": 187,
+            "sha256": "2f149699528e119a51167a7aa124d9c22d68c6944cd8104c8d8b1d0d09e6d762"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-pack-officeimo-html-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-pack-officeimo-html-v2-execution.json",
+            "bytes": 2930,
+            "sha256": "9e23725524de29fc55e8510943334cac1ce1a9dbcfaf59162580c84a427b2c37"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-pack-officeimo-html-v2.log",
+            "bytes": 176,
+            "sha256": "f40401791f989f3cdaf182c7826315e124662d1fcd94551600f3c1f4ba09986f"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-inspect-packages-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-inspect-packages-v2-execution.json",
+            "bytes": 1995,
+            "sha256": "05a095fb95e76fae74b37fa505748435a76c630a4b27b7b122476ed6e505acfd"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-inspect-packages-v2.log",
+            "bytes": 81,
+            "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "consumer": {
+      "receipt": {
+        "path": "$TASK_ROOT/package-consumer-side-corner-recovery-v2-closure.json",
+        "bytes": 6673,
+        "sha256": "ff364ba4181a4cb83e18e8aa6273ef5cfdf31703810c6f5b4540da72fcf42652"
+      },
+      "expectedRoles": 8,
+      "completedRoles": 8,
+      "passed": true,
+      "executions": [
+        {
+          "role": "side-corner-package-bind-acceptance-recovery-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-bind-acceptance-recovery-v2-execution.json",
+            "bytes": 2204,
+            "sha256": "4c16974fa878297bc4181491816148c2ee343f4fa8f03e58cc4faa8a2d92de14"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-bind-acceptance-recovery-v2.log",
+            "bytes": 652,
+            "sha256": "3c551e15dc6fa326b0983fa8fd30bb2c3c771ada2d956bceb9f9a919565aaf19"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-net8-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-net8-build-v2-execution.json",
+            "bytes": 2696,
+            "sha256": "41a8f90b79f242171bb9c043d454b1127a9cd8e86ab28d26edd4253df3bec382"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-net8-build-v2.log",
+            "bytes": 414,
+            "sha256": "a3ba3d981d6ece7c18b8c039773d6e8158ef56e0ddb73188ef4bf1b2605d5f91"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-net8-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-net8-run-v2-execution.json",
+            "bytes": 2283,
+            "sha256": "0b2b482d98f1c0283adfa34df046946589546c8352eb702c1e9b9b7d3e8d4013"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-net8-run-v2.log",
+            "bytes": 245,
+            "sha256": "0cbecd82cead97f0af680da15f35a6c51ec89b44f785f08e94c1091c33510457"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-net10-build-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-net10-build-v2-execution.json",
+            "bytes": 2694,
+            "sha256": "6b57006f0dcc3b7addb1e1338dd03dbfd045092afb660c23041b9cc964cb9c77"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-net10-build-v2.log",
+            "bytes": 416,
+            "sha256": "b8327a3ed71cae6c998b7604df5c0d4b54fd31a98f7dc6eda1a2bff1a128b4a4"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-net10-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-net10-run-v2-execution.json",
+            "bytes": 2288,
+            "sha256": "1a2ab0428172c0fa5f2a75231082a79ff8c1aa98912a7991ba67302a98557d17"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-net10-run-v2.log",
+            "bytes": 246,
+            "sha256": "b8a7b438931dae75a81adbd618d039a5238fc30a4e65b37f8327d2c5c0f0204e"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-aot-publish-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-aot-publish-v2-execution.json",
+            "bytes": 2754,
+            "sha256": "e97055484dbce5d28a2413a1ac41dee04746e72ee26ba79c7b2fb8f2a52f2629"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-aot-publish-v2.log",
+            "bytes": 534,
+            "sha256": "5ca46bfe18f54495a52eb3442a993fece4afc46ba4111724070694692ab4e268"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-aot-run-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-aot-run-v2-execution.json",
+            "bytes": 2237,
+            "sha256": "7dcc5510f39f4f23b1293aae54a30793bc52ed323b2d39eaee5dffd6f4d31ebe"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-aot-run-v2.log",
+            "bytes": 279,
+            "sha256": "f48bac2acac2ff319369b6ec6182ea1b5a27da5b8737ba0827df037ab51c2b2f"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "role": "side-corner-package-inspect-consumers-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-inspect-consumers-v2-execution.json",
+            "bytes": 1998,
+            "sha256": "4f58483cf84c1c77feb5c18c0c5ffb4f9464e66570ad781c116db8f14fba7c46"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-inspect-consumers-v2.log",
+            "bytes": 1277,
+            "sha256": "44b9657f0cae90266f539ef24464b75cd2435bdc7f25aefef5da6d3ac52291f5"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/full-html-net8-v2-closure.json",
+        "bytes": 1101,
+        "sha256": "e85d09e379cf79e364c252b70122644953880ed34754f0dcfb9907676dcb29cd"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "full-html-net8-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/full-html-net8-v2-execution.json",
+            "bytes": 1739,
+            "sha256": "1abed045ead7a2c9062e66b84d9bfc1779ca7b38f711ece9403343522d63d053"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/full-html-net8-v2.log",
+            "bytes": 7561,
+            "sha256": "91b4804ed8bd84107f1768866296ea10003360a9cd6c833f6e590ef08d804c1f"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/full-html-net10-v2-closure.json",
+        "bytes": 1104,
+        "sha256": "98bd585c97cd9f0f738c8c2428576acb8df441b8519bb68ead9b10b61b605894"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "full-html-net10-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/full-html-net10-v2-execution.json",
+            "bytes": 1743,
+            "sha256": "ea54f39a26d82b12eecde2a2b631ff21465777bb7cff3e80bf07c74d32c8ae38"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/full-html-net10-v2.log",
+            "bytes": 7600,
+            "sha256": "1bfcae029f9af640b3b04387992ded11faa40534e87cebe858dfd96d46bb7812"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "net472": {
+      "receipt": {
+        "path": "$TASK_ROOT/compile-html-net472-v2-closure.json",
+        "bytes": 1116,
+        "sha256": "fe387673f964bcc2a48126a663ce6ecda637e499db93b42a4e024bab3b7cc7cb"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "compile-html-net472-v2",
+          "receipt": {
+            "path": "$TASK_ROOT/compile-html-net472-v2-execution.json",
+            "bytes": 1558,
+            "sha256": "2a10f0c5973f6f681f9dff7d35a55be69d1d732e806a4310cc5a0e1fc8c2b726"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/compile-html-net472-v2.log",
+            "bytes": 1674,
+            "sha256": "1303ccf83633bbd9b44f3543fddb7811565ba512cd86e23e041a840fbfef9898"
+          },
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    }
+  },
+  "correctness": {
+    "net8": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/full-html-net8-v2.trx",
+        "bytes": 12495536,
+        "sha256": "66a4806e35148a2addcf97ea309fc95a9fb81c8d83cda52a911fb3bd60c9b0c4"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 8124,
+        "executed": 8124,
+        "passed": 8124,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "net10": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/full-html-net10-v2.trx",
+        "bytes": 12511785,
+        "sha256": "b69b98968ca342095d19cc309756e0d05560d108599c1beb6d0a59e7a2826a82"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 8124,
+        "executed": 8124,
+        "passed": 8124,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    }
+  },
+  "net472Boundary": "Compilation only; actual closed compile role. No native Windows execution or extra PDF suite claim.",
+  "focusedDirtyDelta": {
+    "closure": {
+      "receipt": {
+        "path": "$TASK_ROOT/focused-final-closure.json",
+        "bytes": 1098,
+        "sha256": "c8a32e04c899d92aa9f58be0742c6ebf06f56668aef7c9d9dd52697d71d2332a"
+      },
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "passed": true,
+      "executions": [
+        {
+          "role": "focused-final-net10",
+          "receipt": {
+            "path": "$TASK_ROOT/focused-final-net10-execution.json",
+            "bytes": 2749,
+            "sha256": "12d650443eebd33b74560252da51122236f2acdd4b319de71fd9173ed5c20b85"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/focused-final-net10.log",
+            "bytes": 7597,
+            "sha256": "b04ddb4ef6757e88d365dd2368a51e65a5b3dbfae21d3b8f7deae0ec67288f2e"
+          },
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.PaintBounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.PaintBounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs",
+          "exitCode": 0,
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ]
+    },
+    "trx": {
+      "receipt": {
+        "path": "$TASK_ROOT/trx/focused-final-net10.trx",
+        "bytes": 783743,
+        "sha256": "0c1d8d53cb812952b818c4f688777200cf18994a80f44efd36c4316061321f59"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": 485,
+        "executed": 485,
+        "passed": 485,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      }
+    },
+    "boundary": "Original dirty-delta focused proof preserved; full clean current candidate suites independently required."
+  },
+  "privatePackages": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/side-corner-qualified-v2/package-binding.json",
+      "bytes": 25105,
+      "sha256": "8dc68436da01bd12316f7b3e72a507aab4b1341e5117efb3f05749a26b6083de"
+    },
+    "privateVersion": "3.5.34",
+    "packages": {
+      "OfficeIMO.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/feed/OfficeIMO.Core.3.5.34.nupkg",
+          "bytes": 8803354,
+          "sha256": "527a63b026d0f60e51710d2da185cc980d5e190967f526f86b9e133a0a415948"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Core.dll": "8ed9184b3bc74677747746683a00b5bf5e8e55a713b85f2930ea78e9c49607c9",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "2c2d163ce5ba3ab91677b9547c8ed79d9ac117d3f09d9e9e39ccda5d55a9fe1a",
+          "lib/net8.0/OfficeIMO.Core.dll": "56e3687d29e6ba5decb72e58cfa3b05312ced7ff3b54dc18b570e88d83151c2c",
+          "lib/net10.0/OfficeIMO.Core.dll": "073f07fa910d493c407ec238fc04f52ef97483200dbc03e7991b843eb919b59c"
+        }
+      },
+      "OfficeIMO.Pdf": {
+        "package": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/feed/OfficeIMO.Pdf.3.5.34.nupkg",
+          "bytes": 14089866,
+          "sha256": "a607be1587a501971931ae831bde8ce6eac8f19e708e44c62afce6639623ec23"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Pdf.dll": "b79f672194498c5cef350e594734a883a59f9c0445cde3016bba7fb12ae2e2c6",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "2cb7e0a032edde53ae60798386bc71d28d68ba8b521bea0e09a0d642d741f889",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "8109cac4f70550ec49edd5c589439411a2503b1c9c50273c49d1387822a900cf",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "b12e078899e44dc2365ccb8ce0a001c19c3c87ae04687abbf32d737296e62418"
+        }
+      },
+      "OfficeIMO.Html.Core": {
+        "package": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/feed/OfficeIMO.Html.Core.3.5.34.nupkg",
+          "bytes": 325369,
+          "sha256": "65e56dfb26c93547328d6009ac51ed30c2cc1de36772f28398a6ad29c0aa6227"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "aac4365f2afa9cd3c08464bbb51a1c1c5fdae0896c1ca0690afd7237d6dd4e1a",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "167d3a076aa5f5787c77226b837abbc3ddf86e4ab06d63221db165a87e691beb",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "a6d24ae85e82bea2712a9af7d9e0b9182e15467a39b21a65dd32e06075b400ee",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "fd106a7dab55dbd8dcf20dbbfa9e732c0484cc388b083f0f8d6d53c5c6a31347"
+        }
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "package": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/feed/OfficeIMO.Html.AngleSharp.3.5.34.nupkg",
+          "bytes": 104257,
+          "sha256": "ac54897de202d2e76a550907a301814730828b903add752ac87d692ee31f5b15"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "18022b346a79fcf0a24a9ae03179d6bb7d6cf6cf332b4fb58ecdd6451e2ab384",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "15e7f2d82f702f01d994d0565679fa1f090b220a7835fc7cb988505314b934d9",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "485b7d8895fbef63740fa26f74152981fca6e2e1a508b33ff262be29f47c0bcd",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "2290a52dd4a96c5e5898673c9219f822992e488b0e0a639ead9fa1f30a8d98eb"
+        }
+      },
+      "OfficeIMO.Html": {
+        "package": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/feed/OfficeIMO.Html.3.5.34.nupkg",
+          "bytes": 4799678,
+          "sha256": "c9f9f507ee55cccd3f9a402184c6c5f310d864aec6dfb8c055b51014877e9035"
+        },
+        "frameworkAssets": {
+          "lib/net472/OfficeIMO.Html.dll": "c99c10be15ac2b7a892091109671e14233add8ba3ed79a0366bcc2c64f3a5ff1",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "d5f1b06a453fccaf3e9c680f4505d6997a922fd1723ca4e13efbfab578c493a0",
+          "lib/net8.0/OfficeIMO.Html.dll": "a61749dfc36a4d68519f6e05ab0834da430a40c0adb5c6999dc1106386b2479f",
+          "lib/net10.0/OfficeIMO.Html.dll": "a455d545aa0b80177586ab19442bc961204cee890c8f6b429d3cda016f3d967d"
+        }
+      }
+    },
+    "freshFrameworkAssets": 20,
+    "reusedFrameworkAssets": 0,
+    "publicRelease": false
+  },
+  "publicApiConsumers": {
+    "binding": {
+      "path": "$TASK_ROOT/packages/side-corner-qualified-v2/consumer-binding.json",
+      "bytes": 62029,
+      "sha256": "7a06d990306bfb58169f5a46dc1798c5cac09010a4a4271d01f5b26d8de37523"
+    },
+    "acceptance": {
+      "path": "$TASK_ROOT/prep/packages/acceptance-v2.json",
+      "bytes": 487563,
+      "sha256": "3f0f75ae5265b8e1a31ab0cf67eaf168ed957ad361913c669dec67b62d03215e"
+    },
+    "lanes": [
+      {
+        "label": "net8",
+        "result": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/results/net8/result.json",
+          "bytes": 4731656,
+          "sha256": "fe3db7ca1be7e284c37bc3f4200ca15f18461b2a536ea17941aec26867dcfe63"
+        },
+        "framework": ".NET 8.0.23",
+        "observations": 30,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false
+      },
+      {
+        "label": "net10",
+        "result": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/results/net10/result.json",
+          "bytes": 4731887,
+          "sha256": "f5e89c655e5e7a34a38ddc3ddcdd9246dcad4eebde69b6edbed6a91ffb0f0ce0"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 30,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false
+      },
+      {
+        "label": "aot",
+        "result": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/results/aot/result.json",
+          "bytes": 4729613,
+          "sha256": "bef14966080828ab6dfa5eb7bf081d8e303c8940f6aaa4b2c2bb15458596347d"
+        },
+        "framework": ".NET 10.0.13",
+        "observations": 30,
+        "pages": 64,
+        "ownPngPdfPairsVerified": 64,
+        "sameFrameworkSourcePngPairsVerified": 64,
+        "svgArtifactsObserved": 64,
+        "svgRasterParityClaimed": false,
+        "executedBinary": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/out/aot/SideCornerPackageaot",
+          "bytes": 35041848,
+          "sha256": "91dcb87c9028f1fa98712e1c2880e2eaeaa0308ba056c4760fa891eff5787133"
+        },
+        "nativeAotCompilation": true,
+        "dynamicCodeSupported": false,
+        "dynamicCodeCompiled": false,
+        "operatingSystem": "OSX",
+        "architecture": "Arm64"
+      }
+    ],
+    "observations": 90,
+    "pages": 192
+  },
+  "packageMatrixGateBindings": [
+    {
+      "path": "$TASK_ROOT/prep/packages/consumer-matrix-gate-binding-v2.json",
+      "bytes": 1606,
+      "sha256": "9715ca4758bbe0b0936c5016e18b6bcc95aec378bc2acd46ea8eda3a735134f5"
+    }
+  ],
+  "actualSourceAndConsumerMatrixGates": {
+    "source": {
+      "net8": {
+        "path": "$TASK_ROOT/prep/packages/source-net8-matrix-gates-v2.json",
+        "bytes": 186538,
+        "sha256": "428593a2294ae9fec5108b36dcac23ea1ce0bdc4868ff525512cc41efac61763"
+      },
+      "net10": {
+        "path": "$TASK_ROOT/prep/packages/source-net10-matrix-gates-v2.json",
+        "bytes": 186539,
+        "sha256": "6d0b1fa2ffa4148d0d8a16f0688740d46b711b47077ee7cda1a5f411daf7f23c"
+      }
+    },
+    "consumer": {
+      "net8": {
+        "path": "$TASK_ROOT/prep/packages/consumer-net8-matrix-gates-v2.json",
+        "bytes": 186791,
+        "sha256": "8b7c0e5e9b3e26359d1b4ef07b5b6b1b07b760f88e90bd1b38804108cb79cefc"
+      },
+      "net10": {
+        "path": "$TASK_ROOT/prep/packages/consumer-net10-matrix-gates-v2.json",
+        "bytes": 186793,
+        "sha256": "08579566fad259932c4afc379aaea8ddaa3f32515a060c27900f587ead7f4160"
+      },
+      "aot": {
+        "path": "$TASK_ROOT/prep/packages/consumer-aot-matrix-gates-v2.json",
+        "bytes": 186791,
+        "sha256": "bc794bafc1a5dc0f7eec1e08fdf8c0a41e2899e97457a8a3eff1b3e68f280f78"
+      }
+    }
+  },
+  "executionReconciliation": {
+    "consumerRecoveryPacket": {
+      "path": "$TASK_ROOT/prep/package-recovery-v2/package-consumer-side-corner-recovery-v2-packet.json",
+      "bytes": 12430,
+      "sha256": "7b2e7981e35330a94bf1a76af8223af9e72b9e10186d19a43317c3e18c0b469e"
+    },
+    "consumerRecoveryReceipt": {
+      "path": "$TASK_ROOT/prep/package-recovery-v2/source-matrix-binding-recovery-v2.json",
+      "bytes": 11454,
+      "sha256": "408f0eb770cd6685dcccf8040b82b29c064b8b933d2b2a4a10ab14aaed588171"
+    },
+    "labelReconciliation": {
+      "path": "$TASK_ROOT/prep/packages/execution-label-reconciliation-v2.json",
+      "bytes": 1695,
+      "sha256": "7d588c87452d6dc34971394d19a9533851666beba823292203e53453a7d47280"
+    },
+    "pythonReconciliation": {
+      "path": "$TASK_ROOT/prep/packages/execution-python-binding-v2.json",
+      "bytes": 1548,
+      "sha256": "14278c691132ead0c55e493c42c74c978cac0c058031b6308100673876ff3993"
+    },
+    "packets": {
+      "producer": {
+        "path": "$TASK_ROOT/prep/packages/package-producer-side-corner-v2-tool-bound-execution.json",
+        "bytes": 16097,
+        "sha256": "f1f55d614fdb85f62161e1b22bfa2e380b8c643fbae008040c65a743e93393ac"
+      },
+      "consumer": {
+        "path": "$TASK_ROOT/prep/packages/package-consumer-side-corner-v2-tool-bound-execution.json",
+        "bytes": 11393,
+        "sha256": "15f617a8b8c04a35bc3b43acf7e2d6f5b282f204cd6ee7100bc2ea21a5a09f35"
+      }
+    },
+    "bundledPythonExecutable": "/Users/przemyslawklys/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "pythonBindingBoundary": "Exact executed argument only; no Python/source/evidence alias registered in the strict reader."
+  },
+  "review": {
+    "fullReview": {
+      "path": "$TASK_ROOT/prep/review/review.json",
+      "bytes": 3054,
+      "sha256": "c76b72c94f74b75327be14dd24fef29f22d2fcaefb70bf8fdd50c0ff4fac3a3e"
+    },
+    "targetedReview": {
+      "path": "$TASK_ROOT/prep/review/targeted-confirmation-918399c.json",
+      "bytes": 2996,
+      "sha256": "ca8ea631335914c3715f4b4584ed689b42a941cb5d49e9d35e5060f5252b30ce"
+    },
+    "reviewedHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+    "additionalActionableFindings": 0,
+    "fullPasses": 1,
+    "targetedConfirmations": 1
+  },
+  "excludedSourceV1": {
+    "net8": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net8/summary.json",
+        "bytes": 4797645,
+        "sha256": "127f8140e9288955baf5eba5fb6ed22c9ae4dc110369657cdf39ddf8bc3ce61f"
+      },
+      "failedCheck": {
+        "path": "$TASK_ROOT/source-net8-check-v1.json",
+        "bytes": 223929,
+        "sha256": "44a32789f48a19c846785c210d63b0563cddafdab3bee70bdca3a34425fb286a"
+      },
+      "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+      "observations": 30,
+      "pages": 64,
+      "actualMaterialFlags": 352,
+      "disposition": "EXCLUDED_FAILED_PRINT_FIT_NOT_REWRITTEN"
+    },
+    "net10": {
+      "summary": {
+        "path": "$TASK_ROOT/source-net10/summary.json",
+        "bytes": 4797874,
+        "sha256": "f85f7b50880e7b6b0a5761309f2a987ff49279b25033a0f2a61d4876402046d4"
+      },
+      "failedCheck": {
+        "path": "$TASK_ROOT/source-net10-check-v1.json",
+        "bytes": 223930,
+        "sha256": "9bf8ab7b9f64859d8133f39f56feff16a68229a8873280acd7f1f4b61a20d410"
+      },
+      "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+      "observations": 30,
+      "pages": 64,
+      "actualMaterialFlags": 352,
+      "disposition": "EXCLUDED_FAILED_PRINT_FIT_NOT_REWRITTEN"
+    }
+  },
+  "historicalAttempts": [
+    {
+      "closure": {
+        "path": "$TASK_ROOT/baseline-red-closure.json",
+        "bytes": 1094,
+        "sha256": "e6778b2137a9d607fee3685857702bc957995577b79c07e86f39b3b0a12eba48"
+      },
+      "packetPassed": false,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/baseline-red-net10-execution.json",
+            "bytes": 1894,
+            "sha256": "47b30ebeeacfc4be87959c07878d6ed2b528b71a0bf95c65f252fb4bfefbd924"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/baseline-red-net10.log",
+            "bytes": 103061,
+            "sha256": "e1c0edb31dab8f2dbc6c19379ac22cb33baaa623d7da47bc2e5bc9b6f92abfcf"
+          },
+          "exitCode": 1,
+          "sourceHead": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceHeadAfter": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceStatusBefore": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs",
+          "sourceStatusAfter": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/baseline-red-net10.trx",
+          "bytes": 283670,
+          "sha256": "9cb4462044fe50edd50e1d2813f66d45b74d0619ca016c704b1070a0c11e1ca7"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 68,
+          "executed": 68,
+          "passed": 9,
+          "failed": 59,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/focused-green1-closure.json",
+        "bytes": 1102,
+        "sha256": "1dd378700eb3fea28a3bc62a3209fca5dc17e772bc60f9743b11e63ff1ea65ef"
+      },
+      "packetPassed": false,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-green1-net10-execution.json",
+            "bytes": 3425,
+            "sha256": "f5d40f9b3826f16064178e94dd29fd31d36959f11d37fa29ddb07f0eeccf1199"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/focused-green1-net10.log",
+            "bytes": 9885,
+            "sha256": "c9eebeb9a8aeca800a677e885e96e01edccbf4a56d617ba5fdaa3e176785b843"
+          },
+          "exitCode": 1,
+          "sourceHead": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceHeadAfter": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n D OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Allocation.cs",
+          "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n D OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Allocation.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/focused-green1-net10.trx",
+          "bytes": 778803,
+          "sha256": "735858dbb0538af17e75869dceb4cda3b67cff05c428a5e7f64a0dc743487124"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 479,
+          "executed": 479,
+          "passed": 477,
+          "failed": 2,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/focused-green2-closure.json",
+        "bytes": 1101,
+        "sha256": "c36c50cdce7fe72a7063d1f66d11f969c0d7c4610b5cfb7e9650383f1eca0fbb"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-green2-net10-execution.json",
+            "bytes": 3572,
+            "sha256": "9a3a0292ff55f943ab058d25b2b05963e1aabda0448cb411b6565eedfd1a0840"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/focused-green2-net10.log",
+            "bytes": 7597,
+            "sha256": "eb43c766027ebbc3314e5c0463ae0556a32292a7a146675e717931d53a84b68a"
+          },
+          "exitCode": 0,
+          "sourceHead": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceHeadAfter": "650dcf621eb08487fb913e2c37a35ecc8d38f8c4",
+          "sourceStatusBefore": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.FlowHelpers.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n D OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Allocation.cs",
+          "sourceStatusAfter": "M OfficeIMO.Html.Tests/Html.Rendering.GeneratedBackgroundResources.cs\n M OfficeIMO.Html.Tests/Html.ResourcePipeline.GeneratedBackgrounds.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs\n M OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.FlowHelpers.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n D OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n?? OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Allocation.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/focused-green2-net10.trx",
+          "bytes": 774241,
+          "sha256": "ce484596b7155b3ffd8a5cf193b6d8db91c68e258b34cbe55e30206bed39940a"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 479,
+          "executed": 479,
+          "passed": 479,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/focused-green3-closure.json",
+        "bytes": 1101,
+        "sha256": "bd1c4da65453737a74928148b740b84c37d5bcffa619fe0bf17f16ae559d3c08"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-green3-net10-execution.json",
+            "bytes": 2460,
+            "sha256": "92464969361f76dee83f224cdbabdfa3c54c612767dc6da8e571659ac3b8fc4c"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/focused-green3-net10.log",
+            "bytes": 7597,
+            "sha256": "8c3f9f711675715658904bfeb406d94dfdf858bccd3c1ca0c8d4694c31982cd1"
+          },
+          "exitCode": 0,
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/focused-green3-net10.trx",
+          "bytes": 775751,
+          "sha256": "ff4b3fa4068ef3acb0febe70a3541c7bef56de3a49f25264e4b29822cec94ea4"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 480,
+          "executed": 480,
+          "passed": 480,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/focused-green4-closure.json",
+        "bytes": 1101,
+        "sha256": "0ecb6fc82b9f5683fbfe4c86d85229263f853f6bf4d2ce31ece8c3f481f58a9e"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/focused-green4-net10-execution.json",
+            "bytes": 2753,
+            "sha256": "0e599cd5cd93f5f5d25495c984245cabd0f420c3060614bafbf7ea9c08f21366"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/focused-green4-net10.log",
+            "bytes": 7598,
+            "sha256": "f1612ddcf705f7cb6c54af7fbf3efdef93d48cabc77eba19409631b6847239c5"
+          },
+          "exitCode": 0,
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.PaintBounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.PaintBounds.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/focused-green4-net10.trx",
+          "bytes": 778891,
+          "sha256": "a502ee49e351df6dace8626625797c758591d07047f25f6d4b04723ad8b4f39d"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 482,
+          "executed": 482,
+          "passed": 482,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/zero-leading-red-closure.json",
+        "bytes": 1108,
+        "sha256": "0b0eb97bedaff399f138abbfd1082ad93542e5b4b554dd496e3399dc9858b296"
+      },
+      "packetPassed": false,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/zero-leading-red-net10-execution.json",
+            "bytes": 2347,
+            "sha256": "7564197ffe885ecf2e64fc5f98a05105c62d3031118aa2ffad5d48ab90e00ea4"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/zero-leading-red-net10.log",
+            "bytes": 8809,
+            "sha256": "acdab815ee06ac65e3e5d5dff34ccef5954c11ecd4595262af3213c5928b06d1"
+          },
+          "exitCode": 1,
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/zero-leading-red-net10.trx",
+          "bytes": 5537,
+          "sha256": "480808b49e299fc53eaa76086e4f179c2fe065ee6651a9c5b07a6d3996667018"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 1,
+          "executed": 1,
+          "passed": 0,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/clockwise-red-closure.json",
+        "bytes": 1098,
+        "sha256": "d14112b1e158a6a2b9b78e2abfe29e41b394f7ad7a81f1a4697846cdef2a5a05"
+      },
+      "packetPassed": false,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/clockwise-red-net10-execution.json",
+            "bytes": 2479,
+            "sha256": "9750a501e6b8a248e12ceb463b2078abe30ddf57fb28d7cd660b2b0a4177b495"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/clockwise-red-net10.log",
+            "bytes": 9564,
+            "sha256": "0da3b9e15cf8eed53f0a923fa9ff78aa4d7e71b1736f0205b0f30ce657c2f022"
+          },
+          "exitCode": 1,
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html.Tests/Html.Rendering.PageMarginSideCorner.cs\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md\n M OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/clockwise-red-net10.trx",
+          "bytes": 8554,
+          "sha256": "4c03e028b92ad650f88c0bdddf5f86c6a2c1e4fbe431f9d863df529c1aa52004"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 2,
+          "executed": 2,
+          "passed": 0,
+          "failed": 2,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/print-fit-red-closure.json",
+        "bytes": 1099,
+        "sha256": "30aed6eff0a8a65adf68205f5ca6fb9209250ccfc67498657520533c1e76541b"
+      },
+      "packetPassed": false,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/print-fit-red-net10-execution.json",
+            "bytes": 1900,
+            "sha256": "37de844d89f33a6ca14e0d1639afb3de14f9b69a4bff8ff5df7344c1d62fb4d0"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/print-fit-red-net10.log",
+            "bytes": 12676,
+            "sha256": "f6ca5d2cf235df5117ce74386e921fcc7a8a34dceb356d886c5b4d0fd0241537"
+          },
+          "exitCode": 1,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginPrintFitting.cs",
+          "sourceStatusAfter": "?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginPrintFitting.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/print-fit-red-net10.trx",
+          "bytes": 20662,
+          "sha256": "624bfba1d11ca153b4f6ea1f19fbcec6ac487e7423c31fc5f3804b0f23606c09"
+        },
+        "outcome": "Failed",
+        "counters": {
+          "total": 6,
+          "executed": 6,
+          "passed": 0,
+          "failed": 6,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/print-fit-green-closure.json",
+        "bytes": 1103,
+        "sha256": "88a2c3476f9af9b2e968b92ae1f1d8bf6e3e918b2c86ecfa79f3d1060322365c"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/print-fit-green-net10-execution.json",
+            "bytes": 2079,
+            "sha256": "77ddbb635cab934ed6428157f64d0d28c0b19311a6f9ee0763258c9a6710379d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/print-fit-green-net10.log",
+            "bytes": 7599,
+            "sha256": "03626dcec06be62712c464e4eef1657a1657d652597e063c6a20541527f82bc0"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "M OfficeIMO.Html/Rendering/HtmlRenderScrollableOverflow.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginPrintFitting.cs",
+          "sourceStatusAfter": "M OfficeIMO.Html/Rendering/HtmlRenderScrollableOverflow.cs\n?? OfficeIMO.Html.Tests/Html.Rendering.PageMarginPrintFitting.cs",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/print-fit-green-net10.trx",
+          "bytes": 850623,
+          "sha256": "a8cab4596f0834cafa0feeb57a47bbd3fcd974ec017b664a38d0f5d4622d8021"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 529,
+          "executed": 529,
+          "passed": 529,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/generate-support-closure.json",
+        "bytes": 1107,
+        "sha256": "9151a28d5f384d2dfbb14e4d866e55c586f7fa215caa71834978ff53bcd2c0a3"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/generate-support-net10-execution.json",
+            "bytes": 2392,
+            "sha256": "061199cec4e68c02d9fe03853e36adb3c6755867cd9ba18dd75ba4b648b43ea3"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/generate-support-net10.log",
+            "bytes": 7601,
+            "sha256": "e0cdedc9cd7121a406c58ac883afc0b1c4e972251f540d264c88da30df24121d"
+          },
+          "exitCode": 0,
+          "sourceHead": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceHeadAfter": "3cb991681ca29f70afe0f4cb4357ca475efcb27f",
+          "sourceStatusBefore": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md",
+          "sourceStatusAfter": "M Docs/ROADMAP.md\n M Docs/officeimo.html-engine-design.md\n M Docs/officeimo.html-support-matrix.md\n M OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs\n M OfficeIMO.Html/README.md",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": {
+        "receipt": {
+          "path": "$TASK_ROOT/trx/generate-support-net10.trx",
+          "bytes": 2947,
+          "sha256": "72e9750dbafef4164a98ded5e72dcdd38707f035a1ca60f30215238e473a6244"
+        },
+        "outcome": "Completed",
+        "counters": {
+          "total": 1,
+          "executed": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        }
+      },
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/side-corner-source-v1-closure.json",
+        "bytes": 3432,
+        "sha256": "292c3c3c8d2d764e7f064c04500cf9d320683bc88769364e571a2fc38e7a561c"
+      },
+      "packetPassed": true,
+      "expectedRoles": 4,
+      "completedRoles": 4,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net8-build-v1-execution.json",
+            "bytes": 1898,
+            "sha256": "776cd88a5f02dae876c00a2cdc04f660428a844b3aa1aea62d1931a78bc449c7"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net8-build-v1.log",
+            "bytes": 1840,
+            "sha256": "c21970d74b5c32cbc4d7e09381bde74a78f11fc1e45cdac711a5e4515d81eb07"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net8-run-v1-execution.json",
+            "bytes": 1564,
+            "sha256": "3182dd6ec729c485d604fb3fc18af825053cb12f96c3f1adc104c1ccbc759261"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net8-run-v1.log",
+            "bytes": 116,
+            "sha256": "ec76ce60892961f51cccfc1027a98e502f1a5a3d7cdb8c9205c2a5960a7d3d7c"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net10-build-v1-execution.json",
+            "bytes": 1904,
+            "sha256": "faa6b5812fbd9f9c079b7f1d1479fcce1e6df2c1ca73ceb92b479eca9ab39ef1"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net10-build-v1.log",
+            "bytes": 1151,
+            "sha256": "3a71018f556c5556ffe87f55015419b788e49e27729927549f6f11036237e3a1"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-net10-run-v1-execution.json",
+            "bytes": 1570,
+            "sha256": "2f67b548fa9320798f43306bfdd4424f52e82461b6bf4ecfe4274fb1d684b9f5"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-net10-run-v1.log",
+            "bytes": 117,
+            "sha256": "b37acbf97242aaee61347e01eaaad1c614207de12dc5215ddd24b6acfd334dba"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/side-corner-source-causal-v1-closure.json",
+        "bytes": 1928,
+        "sha256": "3086b43e43ea0ecf42088c875c5181b0f20e071b273076e574deb11df8b32021"
+      },
+      "packetPassed": true,
+      "expectedRoles": 2,
+      "completedRoles": 2,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-causal-net8-run-v1-execution.json",
+            "bytes": 1592,
+            "sha256": "c28ec71c8fb2a1cee74e30d42c1ccd4ba134808a8be3beeec4b3d8ebb7c9b70c"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-causal-net8-run-v1.log",
+            "bytes": 115,
+            "sha256": "4a9496bdb8e121ed2f3ba044700217b1b473bd37103a53e21a0379af6dd72860"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        },
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-source-causal-net10-run-v1-execution.json",
+            "bytes": 1598,
+            "sha256": "858e67f4cd1f7bfc76b741485495e66e3052191edab6d44f286f47b6d07b598a"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-source-causal-net10-run-v1.log",
+            "bytes": 116,
+            "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/source-seal-side-corner-closure.json",
+        "bytes": 1122,
+        "sha256": "102291b633e83f8a96914cdabdd5f47a98f4932fa57f854794e56e5370a563cf"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/source-seal-side-corner-execution.json",
+            "bytes": 1396,
+            "sha256": "3d351ffd562020106b9325eba5445a4c2611e76fd1f572a11e41b7e7929c1afa"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/source-seal-side-corner.log",
+            "bytes": 285,
+            "sha256": "f396f660cd04031509379f465b5b7f8057cad25a61ba0345bc23312918fa140a"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/bind-source-side-corner-closure.json",
+        "bytes": 1123,
+        "sha256": "f54121acba12a6507159532fc8f4988891e4e2c147c973275e9caebe0dc2bbcb"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/bind-source-side-corner-execution.json",
+            "bytes": 1448,
+            "sha256": "f57b14810a601a85185ab0f269d7957c8e0cb4317ef654a12eaa6243f3b8597d"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/bind-source-side-corner.log",
+            "bytes": 57,
+            "sha256": "2ca01fadbd9be6fce29a888e1ce3b8d95bcbdddb68f75e67efb45fa5f001aefe"
+          },
+          "exitCode": 0,
+          "sourceHead": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceHeadAfter": "0d727ae451546905a758b281d34c9ec7904b4dbc",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/source-seal-side-corner-v2-closure.json",
+        "bytes": 1131,
+        "sha256": "214ba860fc9ed8de20611aba5525f96e171858bdad2549938b8e3e0cd6df41f1"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/source-seal-side-corner-v2-execution.json",
+            "bytes": 1402,
+            "sha256": "c8231153518b8e2e73b791fe49cc17bd4a7583b91cc395303ab8fd512e9a3212"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/source-seal-side-corner-v2.log",
+            "bytes": 285,
+            "sha256": "7819024504d939d5727757065578cf8b83311ee5a3155543c951a44e83619e07"
+          },
+          "exitCode": 0,
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/bind-source-side-corner-v2-closure.json",
+        "bytes": 1132,
+        "sha256": "a4e8b522a1ace4807b552296e969e3ebaca80e9524f755634619848d3572e5f3"
+      },
+      "packetPassed": true,
+      "expectedRoles": 1,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/bind-source-side-corner-v2-execution.json",
+            "bytes": 1476,
+            "sha256": "753177d6385027a5dad61635fd3adb3092f8dbeead007d5e93c6bdf3553ba664"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/bind-source-side-corner-v2.log",
+            "bytes": 63,
+            "sha256": "c5a82d7336638fe26362f96c64f1c6dfbfd54ef6f1b4bfbae407d251f3ae05b1"
+          },
+          "exitCode": 0,
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FROM_FINAL_ACCEPTANCE_OR_OPERATIONAL_PREPARATION"
+    },
+    {
+      "closure": {
+        "path": "$TASK_ROOT/package-consumer-side-corner-v2-closure.json",
+        "bytes": 1155,
+        "sha256": "625d389cfc9a3ffbfe8c8f6f30153fd2e355635a47cfc3cb862d296e1e5f9344"
+      },
+      "packetPassed": false,
+      "expectedRoles": 8,
+      "completedRoles": 1,
+      "executions": [
+        {
+          "receipt": {
+            "path": "$TASK_ROOT/side-corner-package-bind-acceptance-v2-execution.json",
+            "bytes": 1999,
+            "sha256": "7e9cede07825062254272aea2808346860a98d97f11904dc562c3747497a5dad"
+          },
+          "log": {
+            "path": "$TASK_ROOT/logs/side-corner-package-bind-acceptance-v2.log",
+            "bytes": 2691,
+            "sha256": "d31f09a7148925850954f1aeebed6e6dafd65639783beb75a89aabd6368ccb06"
+          },
+          "exitCode": 1,
+          "sourceHead": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceHeadAfter": "918399c3d7c46941096b0786c54759a3bdd696bb",
+          "sourceStatusBefore": "",
+          "sourceStatusAfter": "",
+          "ownedGroupAbsent": true,
+          "timedOut": false
+        }
+      ],
+      "trx": null,
+      "disposition": "EXCLUDED_FAILED_BIND_ACCEPTANCE_BEFORE_ANY_CONSUMER_BUILD; SOURCE_MATRIX_GATES_PRESERVED; ORIGINAL_PLAN_ROLE_NAMES_DIFFER_FROM_ACTUAL_V2_SOURCE_ROLES"
+    }
+  ],
+  "storage": {
+    "cleanups": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup/cleanup-result.json",
+          "bytes": 15885,
+          "sha256": "fc0e08ec61b4dda6b485f68207c49680e0054e571691ecb4db4fc61cdc651099"
+        },
+        "removedLogicalBytes": 3504058124,
+        "retentionManifest": {
+          "path": "$TASK_ROOT/prep/cleanup/retention-manifest.json",
+          "bytes": 612330,
+          "sha256": "65a8773f933076f4cf7c290d97481f6f0cc946cfd9f871255c64201208ba552a"
+        }
+      }
+    ],
+    "retentions": [
+      {
+        "manifest": {
+          "path": "$TASK_ROOT/prep/cleanup/retention-manifest.json",
+          "bytes": 612330,
+          "sha256": "65a8773f933076f4cf7c290d97481f6f0cc946cfd9f871255c64201208ba552a"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained-side-corner-build-runtime-metadata-v2.zip",
+          "bytes": 146776697,
+          "sha256": "4909166f5e401629590d8d0277d04c1448fc2054c4a7d3887bba642434caafc6"
+        },
+        "mappingsReadBack": 383
+      }
+    ],
+    "readbacks": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup/before-retirement-readback.json",
+          "bytes": 1015,
+          "sha256": "c6e3a746c416174aef4289415a548aff6e9e381d93945719bd84849c82c344a1"
+        },
+        "requireLiveOriginals": true,
+        "originalMappingsVerified": 383,
+        "liveOriginals": 383,
+        "retiredOriginals": 0
+      },
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup/after-retirement-readback.json",
+          "bytes": 1018,
+          "sha256": "f1f3124e00b5954aabe091d1a1f5e57c6500d61c5ad66bfd9f505248d78d16d5"
+        },
+        "requireLiveOriginals": false,
+        "originalMappingsVerified": 383,
+        "liveOriginals": 136,
+        "retiredOriginals": 247
+      }
+    ],
+    "journalReceipts": [
+      {
+        "receipt": {
+          "path": "$TASK_ROOT/prep/cleanup/storage-ledger-receipt.json",
+          "bytes": 2897,
+          "sha256": "affa9dd70e4b7cb8c7cfa88aa20a0546edcf729672e30da2cc57335da3fedb56"
+        },
+        "priorRows": 5466,
+        "newRows": 5467,
+        "rowsAppended": 1,
+        "alreadyRecorded": false
+      }
+    ],
+    "removedLogicalBytes": 3504058124,
+    "archiveMappingsReadBack": 383,
+    "originalReferencesResolvedFromArchive": [
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Core/release_net472/OfficeIMO.Core.dll",
+          "bytes": 4992000,
+          "sha256": "8ed9184b3bc74677747746683a00b5bf5e8e55a713b85f2930ea78e9c49607c9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "8ed9184b3bc74677747746683a00b5bf5e8e55a713b85f2930ea78e9c49607c9-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Core/release_netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4991488,
+          "sha256": "2c2d163ce5ba3ab91677b9547c8ed79d9ac117d3f09d9e9e39ccda5d55a9fe1a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2c2d163ce5ba3ab91677b9547c8ed79d9ac117d3f09d9e9e39ccda5d55a9fe1a-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "56e3687d29e6ba5decb72e58cfa3b05312ced7ff3b54dc18b570e88d83151c2c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "56e3687d29e6ba5decb72e58cfa3b05312ced7ff3b54dc18b570e88d83151c2c-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "073f07fa910d493c407ec238fc04f52ef97483200dbc03e7991b843eb919b59c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "073f07fa910d493c407ec238fc04f52ef97483200dbc03e7991b843eb919b59c-644/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Pdf/release_net472/OfficeIMO.Pdf.dll",
+          "bytes": 8865792,
+          "sha256": "b79f672194498c5cef350e594734a883a59f9c0445cde3016bba7fb12ae2e2c6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b79f672194498c5cef350e594734a883a59f9c0445cde3016bba7fb12ae2e2c6-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Pdf/release_netstandard2.0/OfficeIMO.Pdf.dll",
+          "bytes": 8865280,
+          "sha256": "2cb7e0a032edde53ae60798386bc71d28d68ba8b521bea0e09a0d642d741f889"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2cb7e0a032edde53ae60798386bc71d28d68ba8b521bea0e09a0d642d741f889-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll",
+          "bytes": 8872448,
+          "sha256": "8109cac4f70550ec49edd5c589439411a2503b1c9c50273c49d1387822a900cf"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "8109cac4f70550ec49edd5c589439411a2503b1c9c50273c49d1387822a900cf-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8873984,
+          "sha256": "b12e078899e44dc2365ccb8ce0a001c19c3c87ae04687abbf32d737296e62418"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b12e078899e44dc2365ccb8ce0a001c19c3c87ae04687abbf32d737296e62418-644/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.Core/release_net472/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "aac4365f2afa9cd3c08464bbb51a1c1c5fdae0896c1ca0690afd7237d6dd4e1a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "aac4365f2afa9cd3c08464bbb51a1c1c5fdae0896c1ca0690afd7237d6dd4e1a-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.Core/release_netstandard2.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "167d3a076aa5f5787c77226b837abbc3ddf86e4ab06d63221db165a87e691beb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "167d3a076aa5f5787c77226b837abbc3ddf86e4ab06d63221db165a87e691beb-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.Core/release_net8.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "a6d24ae85e82bea2712a9af7d9e0b9182e15467a39b21a65dd32e06075b400ee"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a6d24ae85e82bea2712a9af7d9e0b9182e15467a39b21a65dd32e06075b400ee-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.Core/release_net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "fd106a7dab55dbd8dcf20dbbfa9e732c0484cc388b083f0f8d6d53c5c6a31347"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "fd106a7dab55dbd8dcf20dbbfa9e732c0484cc388b083f0f8d6d53c5c6a31347-644/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.AngleSharp/release_net472/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "18022b346a79fcf0a24a9ae03179d6bb7d6cf6cf332b4fb58ecdd6451e2ab384"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "18022b346a79fcf0a24a9ae03179d6bb7d6cf6cf332b4fb58ecdd6451e2ab384-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.AngleSharp/release_netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "15e7f2d82f702f01d994d0565679fa1f090b220a7835fc7cb988505314b934d9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "15e7f2d82f702f01d994d0565679fa1f090b220a7835fc7cb988505314b934d9-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.AngleSharp/release_net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "485b7d8895fbef63740fa26f74152981fca6e2e1a508b33ff262be29f47c0bcd"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "485b7d8895fbef63740fa26f74152981fca6e2e1a508b33ff262be29f47c0bcd-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html.AngleSharp/release_net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "2290a52dd4a96c5e5898673c9219f822992e488b0e0a639ead9fa1f30a8d98eb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2290a52dd4a96c5e5898673c9219f822992e488b0e0a639ead9fa1f30a8d98eb-644/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html/release_net472/OfficeIMO.Html.dll",
+          "bytes": 3012096,
+          "sha256": "c99c10be15ac2b7a892091109671e14233add8ba3ed79a0366bcc2c64f3a5ff1"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "c99c10be15ac2b7a892091109671e14233add8ba3ed79a0366bcc2c64f3a5ff1-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html/release_netstandard2.0/OfficeIMO.Html.dll",
+          "bytes": 3012096,
+          "sha256": "d5f1b06a453fccaf3e9c680f4505d6997a922fd1723ca4e13efbfab578c493a0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d5f1b06a453fccaf3e9c680f4505d6997a922fd1723ca4e13efbfab578c493a0-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll",
+          "bytes": 3012608,
+          "sha256": "a61749dfc36a4d68519f6e05ab0834da430a40c0adb5c6999dc1106386b2479f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a61749dfc36a4d68519f6e05ab0834da430a40c0adb5c6999dc1106386b2479f-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll",
+          "bytes": 3013632,
+          "sha256": "a455d545aa0b80177586ab19442bc961204cee890c8f6b429d3cda016f3d967d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a455d545aa0b80177586ab19442bc961204cee890c8f6b429d3cda016f3d967d-644/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/obj/OfficeIMO.Core/project.assets.json",
+          "bytes": 83957,
+          "sha256": "6804f176379de03c128b82fba64f2950147d220a63cf073f148be29ab512dbc5"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "6804f176379de03c128b82fba64f2950147d220a63cf073f148be29ab512dbc5-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/obj/OfficeIMO.Html/project.assets.json",
+          "bytes": 115302,
+          "sha256": "ed7147b6ba2b9b18858134885a053bb575b5ef2c7004e3d7aa370d2dd65accd1"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ed7147b6ba2b9b18858134885a053bb575b5ef2c7004e3d7aa370d2dd65accd1-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/obj/OfficeIMO.Html.AngleSharp/project.assets.json",
+          "bytes": 104844,
+          "sha256": "0624392d207bce784e89cb68e20afc69c37ba85c4f84701c99d4aa0d9428a4c4"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "0624392d207bce784e89cb68e20afc69c37ba85c4f84701c99d4aa0d9428a4c4-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/obj/OfficeIMO.Html.Core/project.assets.json",
+          "bytes": 83887,
+          "sha256": "40051ede1ec2c34c4258787ebfe8c1437a0f20a8196d58b121de9121694d437b"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "40051ede1ec2c34c4258787ebfe8c1437a0f20a8196d58b121de9121694d437b-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/source-graph-side-corner-v2/obj/OfficeIMO.Pdf/project.assets.json",
+          "bytes": 87164,
+          "sha256": "5a004ec60e4fcf28296dc408cc588a5ddace2a4e1f62bbea22fc1be2f086a8e7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "5a004ec60e4fcf28296dc408cc588a5ddace2a4e1f62bbea22fc1be2f086a8e7-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/consumer-graph/net8/obj/Consumer/project.assets.json",
+          "bytes": 11848,
+          "sha256": "6eb01418fd4b0d3c6b944987220ca3cec216840580b11da423efd98c422ed1f0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "6eb01418fd4b0d3c6b944987220ca3cec216840580b11da423efd98c422ed1f0-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/officeimo.core.3.5.34.nupkg",
+          "bytes": 8803354,
+          "sha256": "527a63b026d0f60e51710d2da185cc980d5e190967f526f86b9e133a0a415948"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "527a63b026d0f60e51710d2da185cc980d5e190967f526f86b9e133a0a415948-644/officeimo.core.3.5.34.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/.nupkg.metadata",
+          "bytes": 256,
+          "sha256": "4a977a3537d99f16dee9cf27426853343788e670a0eeabb88cfc1dca2fd53136"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4a977a3537d99f16dee9cf27426853343788e670a0eeabb88cfc1dca2fd53136-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/lib/net472/OfficeIMO.Core.dll",
+          "bytes": 4992000,
+          "sha256": "8ed9184b3bc74677747746683a00b5bf5e8e55a713b85f2930ea78e9c49607c9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "8ed9184b3bc74677747746683a00b5bf5e8e55a713b85f2930ea78e9c49607c9-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/lib/netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4991488,
+          "sha256": "2c2d163ce5ba3ab91677b9547c8ed79d9ac117d3f09d9e9e39ccda5d55a9fe1a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2c2d163ce5ba3ab91677b9547c8ed79d9ac117d3f09d9e9e39ccda5d55a9fe1a-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/lib/net8.0/OfficeIMO.Core.dll",
+          "bytes": 5036032,
+          "sha256": "56e3687d29e6ba5decb72e58cfa3b05312ced7ff3b54dc18b570e88d83151c2c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "56e3687d29e6ba5decb72e58cfa3b05312ced7ff3b54dc18b570e88d83151c2c-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.core/3.5.34/lib/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5039104,
+          "sha256": "073f07fa910d493c407ec238fc04f52ef97483200dbc03e7991b843eb919b59c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "073f07fa910d493c407ec238fc04f52ef97483200dbc03e7991b843eb919b59c-744/OfficeIMO.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/officeimo.pdf.3.5.34.nupkg",
+          "bytes": 14089866,
+          "sha256": "a607be1587a501971931ae831bde8ce6eac8f19e708e44c62afce6639623ec23"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a607be1587a501971931ae831bde8ce6eac8f19e708e44c62afce6639623ec23-644/officeimo.pdf.3.5.34.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/.nupkg.metadata",
+          "bytes": 256,
+          "sha256": "085283986dd497abf5473c9ba7b33c304fb0dda0eab10993ade62d1f9e12c753"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "085283986dd497abf5473c9ba7b33c304fb0dda0eab10993ade62d1f9e12c753-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/lib/net472/OfficeIMO.Pdf.dll",
+          "bytes": 8865792,
+          "sha256": "b79f672194498c5cef350e594734a883a59f9c0445cde3016bba7fb12ae2e2c6"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b79f672194498c5cef350e594734a883a59f9c0445cde3016bba7fb12ae2e2c6-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/lib/netstandard2.0/OfficeIMO.Pdf.dll",
+          "bytes": 8865280,
+          "sha256": "2cb7e0a032edde53ae60798386bc71d28d68ba8b521bea0e09a0d642d741f889"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2cb7e0a032edde53ae60798386bc71d28d68ba8b521bea0e09a0d642d741f889-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/lib/net8.0/OfficeIMO.Pdf.dll",
+          "bytes": 8872448,
+          "sha256": "8109cac4f70550ec49edd5c589439411a2503b1c9c50273c49d1387822a900cf"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "8109cac4f70550ec49edd5c589439411a2503b1c9c50273c49d1387822a900cf-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.pdf/3.5.34/lib/net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8873984,
+          "sha256": "b12e078899e44dc2365ccb8ce0a001c19c3c87ae04687abbf32d737296e62418"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "b12e078899e44dc2365ccb8ce0a001c19c3c87ae04687abbf32d737296e62418-744/OfficeIMO.Pdf.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/officeimo.html.core.3.5.34.nupkg",
+          "bytes": 325369,
+          "sha256": "65e56dfb26c93547328d6009ac51ed30c2cc1de36772f28398a6ad29c0aa6227"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "65e56dfb26c93547328d6009ac51ed30c2cc1de36772f28398a6ad29c0aa6227-644/officeimo.html.core.3.5.34.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/.nupkg.metadata",
+          "bytes": 256,
+          "sha256": "72da4f25385382d34314bc997a1b7277eb7936856afbf3c13fc3071ef83aa925"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "72da4f25385382d34314bc997a1b7277eb7936856afbf3c13fc3071ef83aa925-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/lib/net472/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "aac4365f2afa9cd3c08464bbb51a1c1c5fdae0896c1ca0690afd7237d6dd4e1a"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "aac4365f2afa9cd3c08464bbb51a1c1c5fdae0896c1ca0690afd7237d6dd4e1a-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/lib/netstandard2.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150528,
+          "sha256": "167d3a076aa5f5787c77226b837abbc3ddf86e4ab06d63221db165a87e691beb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "167d3a076aa5f5787c77226b837abbc3ddf86e4ab06d63221db165a87e691beb-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/lib/net8.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "a6d24ae85e82bea2712a9af7d9e0b9182e15467a39b21a65dd32e06075b400ee"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a6d24ae85e82bea2712a9af7d9e0b9182e15467a39b21a65dd32e06075b400ee-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.core/3.5.34/lib/net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "fd106a7dab55dbd8dcf20dbbfa9e732c0484cc388b083f0f8d6d53c5c6a31347"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "fd106a7dab55dbd8dcf20dbbfa9e732c0484cc388b083f0f8d6d53c5c6a31347-744/OfficeIMO.Html.Core.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/officeimo.html.anglesharp.3.5.34.nupkg",
+          "bytes": 104257,
+          "sha256": "ac54897de202d2e76a550907a301814730828b903add752ac87d692ee31f5b15"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "ac54897de202d2e76a550907a301814730828b903add752ac87d692ee31f5b15-644/officeimo.html.anglesharp.3.5.34.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/.nupkg.metadata",
+          "bytes": 256,
+          "sha256": "4b671835978b260c7f299dbaf1d3108ef0bb336b9e0c1c7dfabcec2a839e64a7"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "4b671835978b260c7f299dbaf1d3108ef0bb336b9e0c1c7dfabcec2a839e64a7-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "18022b346a79fcf0a24a9ae03179d6bb7d6cf6cf332b4fb58ecdd6451e2ab384"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "18022b346a79fcf0a24a9ae03179d6bb7d6cf6cf332b4fb58ecdd6451e2ab384-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 49152,
+          "sha256": "15e7f2d82f702f01d994d0565679fa1f090b220a7835fc7cb988505314b934d9"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "15e7f2d82f702f01d994d0565679fa1f090b220a7835fc7cb988505314b934d9-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "485b7d8895fbef63740fa26f74152981fca6e2e1a508b33ff262be29f47c0bcd"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "485b7d8895fbef63740fa26f74152981fca6e2e1a508b33ff262be29f47c0bcd-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html.anglesharp/3.5.34/lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "2290a52dd4a96c5e5898673c9219f822992e488b0e0a639ead9fa1f30a8d98eb"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "2290a52dd4a96c5e5898673c9219f822992e488b0e0a639ead9fa1f30a8d98eb-744/OfficeIMO.Html.AngleSharp.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/officeimo.html.3.5.34.nupkg",
+          "bytes": 4799678,
+          "sha256": "c9f9f507ee55cccd3f9a402184c6c5f310d864aec6dfb8c055b51014877e9035"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "c9f9f507ee55cccd3f9a402184c6c5f310d864aec6dfb8c055b51014877e9035-644/officeimo.html.3.5.34.nupkg"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/.nupkg.metadata",
+          "bytes": 256,
+          "sha256": "3637b8c83b15f43d8408d6e8ae7dda5440c9e01048f00bc61ff2b32c6ef9e75c"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "3637b8c83b15f43d8408d6e8ae7dda5440c9e01048f00bc61ff2b32c6ef9e75c-644/.nupkg.metadata"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/lib/net472/OfficeIMO.Html.dll",
+          "bytes": 3012096,
+          "sha256": "c99c10be15ac2b7a892091109671e14233add8ba3ed79a0366bcc2c64f3a5ff1"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "c99c10be15ac2b7a892091109671e14233add8ba3ed79a0366bcc2c64f3a5ff1-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/lib/netstandard2.0/OfficeIMO.Html.dll",
+          "bytes": 3012096,
+          "sha256": "d5f1b06a453fccaf3e9c680f4505d6997a922fd1723ca4e13efbfab578c493a0"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "d5f1b06a453fccaf3e9c680f4505d6997a922fd1723ca4e13efbfab578c493a0-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/lib/net8.0/OfficeIMO.Html.dll",
+          "bytes": 3012608,
+          "sha256": "a61749dfc36a4d68519f6e05ab0834da430a40c0adb5c6999dc1106386b2479f"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a61749dfc36a4d68519f6e05ab0834da430a40c0adb5c6999dc1106386b2479f-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/candidate-cache/officeimo.html/3.5.34/lib/net10.0/OfficeIMO.Html.dll",
+          "bytes": 3013632,
+          "sha256": "a455d545aa0b80177586ab19442bc961204cee890c8f6b429d3cda016f3d967d"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "a455d545aa0b80177586ab19442bc961204cee890c8f6b429d3cda016f3d967d-744/OfficeIMO.Html.dll"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/consumer-graph/net10/obj/Consumer/project.assets.json",
+          "bytes": 29985,
+          "sha256": "5f2608afdf72816c0b517f0ecc3891b5744cf0984ce615f24da58a620abf6a82"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "5f2608afdf72816c0b517f0ecc3891b5744cf0984ce615f24da58a620abf6a82-644/project.assets.json"
+      },
+      {
+        "original": {
+          "path": "$TASK_ROOT/packages/side-corner-qualified-v2/consumer-graph/aot/obj/Consumer/project.assets.json",
+          "bytes": 39123,
+          "sha256": "aec700d4825e5a6e001deb616039fb58a4a3637eab827257cf6bfdc7410ad336"
+        },
+        "archiveIndex": 0,
+        "archiveEntry": "aec700d4825e5a6e001deb616039fb58a4a3637eab827257cf6bfdc7410ad336-644/project.assets.json"
+      }
+    ]
+  },
+  "operationalToolAliasResolutions": [
+    {
+      "originalBinding": {
+        "path": "/opt/homebrew/bin/pdftoppm",
+        "bytes": 75504,
+        "sha256": "452ce401b0cdad899cf48b846adc28f0cc6972edb2e8545f0fd570efe890958f"
+      },
+      "physicalBinding": {
+        "path": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftoppm",
+        "bytes": 75504,
+        "sha256": "452ce401b0cdad899cf48b846adc28f0cc6972edb2e8545f0fd570efe890958f"
+      },
+      "currentResolvedPath": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftoppm",
+      "originalIsSymlink": true,
+      "physicalRegularFileWithoutSymlink": true,
+      "bytesAndSha256MatchFrozenOriginal": true,
+      "scope": "Native-comparison operational tool only; frozen receipt binding is unchanged."
+    },
+    {
+      "originalBinding": {
+        "path": "/opt/homebrew/bin/pdftotext",
+        "bytes": 110712,
+        "sha256": "f9c8e0eb3da6c0bda2aa2b48cf416906b1ccb81d07e5f1d675b2846de0aa3d59"
+      },
+      "physicalBinding": {
+        "path": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftotext",
+        "bytes": 110712,
+        "sha256": "f9c8e0eb3da6c0bda2aa2b48cf416906b1ccb81d07e5f1d675b2846de0aa3d59"
+      },
+      "currentResolvedPath": "/opt/homebrew/Cellar/poppler/26.09.0/bin/pdftotext",
+      "originalIsSymlink": true,
+      "physicalRegularFileWithoutSymlink": true,
+      "bytesAndSha256MatchFrozenOriginal": true,
+      "scope": "Native-comparison operational tool only; frozen receipt binding is unchanged."
+    }
+  ],
+  "delivery": {
+    "pullRequestCreated": false,
+    "publicPackagesPublished": false,
+    "trackedReceiptPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-side-corner-20261023.json",
+    "push": "Separate ROOT copy/commit/remote verification; collector does not mutate Git."
+  }
+}

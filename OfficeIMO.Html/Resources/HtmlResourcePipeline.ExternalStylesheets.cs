@@ -5,17 +5,20 @@ internal sealed class HtmlExternalStylesheetAnalysis {
         string css,
         IReadOnlyList<HtmlExternalStylesheetImport> imports,
         IReadOnlyList<HtmlResourceReference> fontResources,
-        IReadOnlyList<HtmlResourceReference> imageResources) {
+        IReadOnlyList<HtmlResourceReference> imageResources,
+        IReadOnlyList<HtmlResourceReference> deferredImageResources) {
         Css = css;
         Imports = imports;
         FontResources = fontResources;
         ImageResources = imageResources;
+        DeferredImageResources = deferredImageResources;
     }
 
     internal string Css { get; }
     internal IReadOnlyList<HtmlExternalStylesheetImport> Imports { get; }
     internal IReadOnlyList<HtmlResourceReference> FontResources { get; }
     internal IReadOnlyList<HtmlResourceReference> ImageResources { get; }
+    internal IReadOnlyList<HtmlResourceReference> DeferredImageResources { get; }
 }
 
 internal sealed class HtmlExternalStylesheetImport {
@@ -87,6 +90,7 @@ public static partial class HtmlResourcePipeline {
         var imports = new List<HtmlExternalStylesheetImport>();
         var fontResources = new List<HtmlResourceReference>();
         var imageResources = new List<HtmlResourceReference>();
+        var deferredImageResources = new List<HtmlResourceReference>();
         HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
         foreach (CssImportReference import in ExtractCssImports(normalized)) {
             string source = DecodeCssEscapes(import.Source);
@@ -138,7 +142,7 @@ public static partial class HtmlResourcePipeline {
                 || IsInsideCssString(normalized, match.Index)
                 || IsInRanges(match.Index, importRanges)
                 || IsInRanges(match.Index, inactiveRanges)
-                || ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Image) {
+                || ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Image && !IsCustomPropertyUrl(normalized, match.Index)) {
                 continue;
             }
 
@@ -147,22 +151,26 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            AddImage(source, "css-url");
+            AddImage(source, "css-url", match.Index, IsCustomPropertyUrl(normalized, match.Index));
         }
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(normalized)) {
+            bool customProperty = TryGetCustomPropertyName(normalized, reference.Start, out _);
             if (IsInRanges(reference.Start, inactiveRanges) || IsInRanges(reference.Start, importRanges) ||
-                ClassifyCssUrl(normalized, reference.Start) != HtmlResourceKind.Image) continue;
+                ClassifyCssUrl(normalized, reference.Start) != HtmlResourceKind.Image && !customProperty) continue;
             string source = DecodeCssEscapes(reference.Source);
-            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source)) AddImage(source, "css-image-set");
+            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source)) AddImage(source, "css-image-set", reference.Start, customProperty);
         }
 
-        return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly());
+        return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly(), deferredImageResources.AsReadOnly());
 
-        void AddImage(string source, string attribute) {
+        void AddImage(string source, string attribute, int index, bool customProperty) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
             bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Image, resolved);
-            imageResources.Add(new HtmlResourceReference(HtmlResourceKind.Image, "style", attribute, source, resolved, allowed,
-                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image), baseUri, resourcePolicy.ResolvedUrlTransform));
+            var reference = new HtmlResourceReference(HtmlResourceKind.Image, "style", attribute, source, resolved, allowed,
+                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image), baseUri, resourcePolicy.ResolvedUrlTransform);
+            // The final document cascade decides which generated box exists and which declaration wins.
+            if (customProperty || options.DeferPageMarginBackgrounds && IsInCssPageRule(normalized, index)) deferredImageResources.Add(reference);
+            else imageResources.Add(reference);
         }
     }
 

@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     // Layout retains U+200B as a break opportunity. Font operations see only
     // painted text; linguistic join controls remain part of that text.
-    private static string WithoutOptionalBreaks(string text) => text.Replace("\u200B", string.Empty);
+    internal static string WithoutOptionalBreaks(string text) => text.Replace("\u200B", string.Empty);
 
     // A single unspaced identifier may wrap at authored zero-width opportunities.
     // Its selection/search text must remain the identifier, without those layout controls.

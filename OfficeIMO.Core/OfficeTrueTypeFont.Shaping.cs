@@ -44,6 +44,12 @@ public sealed partial class OfficeTrueTypeFont {
         IReadOnlyList<int> scalars,
         System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
+    /// <summary>Positions logical substituted tokens before bidi reordering, declining unsupported active GPOS.</summary>
+    internal bool TryPositionGlyphRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
+        string? language, System.Threading.CancellationToken cancellationToken,
+        out OfficeOpenTypeGlyphPositioning[] positions, bool rejectMarkAdjustments = false) =>
+        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions, rejectMarkAdjustments);
+
     /// <summary>Positions an already validated BMP scalar run using the same pair adjustment and tracking owner as native paint.</summary>
     internal IReadOnlyList<double> PositionPortableScalars(string text, double fontSize) {
         var glyphs = new List<int>(text.Length);
@@ -231,7 +237,7 @@ public sealed partial class OfficeTrueTypeFont {
             ReferenceEquals(font, _font) ? this : new ShapedTextRun(font, this);
 
         internal bool HasNegativeAdvance => _advanceWidth < 0L;
-        internal bool HasZeroTrackedAdvance => _advanceWidth == 0L && _font._tracking != null;
+        internal bool HasZeroTrackedAdvance => _advanceWidth == 0L && _font._tracking != null && _trackingGlyphCount != 0;
         internal OfficeTextDirection Direction { get; }
 
         internal double Measure(double fontSize) => Direction == OfficeTextDirection.TopToBottom

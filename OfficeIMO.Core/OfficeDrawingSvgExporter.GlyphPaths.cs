@@ -74,7 +74,8 @@ public static partial class OfficeDrawingSvgExporter {
         }
         double advance = prepared?.Measure(size) ?? (shaped == null
             ? font.Measure(text.RasterText, size) : font.MeasureShapedText(text.RasterText, shaped, size));
-        if (advance < 0D || advance == 0D && prepared == null || double.IsNaN(advance) || double.IsInfinity(advance)) return false;
+        if (advance < 0D || advance == 0D && prepared == null && !text.PreservesPaintedGlyphs ||
+            double.IsNaN(advance) || double.IsInfinity(advance)) return false;
         double scaleX = text.TextAdvanceWidth.HasValue && advance > 0D ? text.TextAdvanceWidth.Value / advance : 1D;
         double width = advance * scaleX;
         double x = text.X + (text.Alignment == OfficeTextAlignment.Center ? (text.Width - width) / 2D :

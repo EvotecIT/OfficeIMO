@@ -132,12 +132,14 @@ internal static partial class HtmlPdfRenderedConverter {
         ClipBounds? logicalClip,
         IReadOnlyList<OutlinedFontRun> runs) {
         double measuredAdvance = runs.Sum(run => run.Advance);
-        if (measuredAdvance <= 0D) return false;
+        if (double.IsNaN(measuredAdvance) || double.IsInfinity(measuredAdvance) || measuredAdvance < 0D) return false;
         double? paintWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth;
         double resolvedAdvance = paintWidth.HasValue && Math.Abs(paintWidth.Value) > 0.0001D
             ? Math.Abs(paintWidth.Value)
             : measuredAdvance;
-        double scaleX = resolvedAdvance / measuredAdvance;
+        // Combining marks can have ink without advancing the pen. Keep their
+        // natural contours rather than dividing by zero or inventing an advance.
+        double scaleX = measuredAdvance > 0D ? resolvedAdvance / measuredAdvance : 1D;
         double textX = ResolveOutlinedTextX(frameWidth, resolvedAdvance, visual.Alignment);
         var lineHeights = new double[runs.Count];
         var baselineOffsets = new double[runs.Count];
@@ -391,31 +393,8 @@ internal static partial class HtmlPdfRenderedConverter {
         if (logicalTextOwned) {
             addDrawingAndLink(canvas);
         } else {
-            double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
-            var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X + textX, visual.Y, resolvedAdvance, logicalHeight)
-                ?? (X: visual.X + textX, Y: visual.Y, Width: resolvedAdvance, Height: logicalHeight);
-            PdfCore.PdfCanvasTextStructureRole role = asSpan
-                ? PdfCore.PdfCanvasTextStructureRole.Span
-                : MapStructureRole(visual.SemanticRole);
-            if (role == PdfCore.PdfCanvasTextStructureRole.Span) {
-                canvas.ActualText(
-                    visual.Text,
-                    carrier.X * PointsPerCssPixel,
-                    carrier.Y * PointsPerCssPixel,
-                    carrier.Width * PointsPerCssPixel,
-                    carrier.Height * PointsPerCssPixel,
-                    addDrawingAndLink, logicalOrder: visual.SemanticSourceOrder);
-            } else {
-                canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
-                    nested.ActualText(
-                        visual.Text,
-                        carrier.X * PointsPerCssPixel,
-                        carrier.Y * PointsPerCssPixel,
-                        carrier.Width * PointsPerCssPixel,
-                        carrier.Height * PointsPerCssPixel,
-                        addDrawingAndLink, logicalOrder: visual.SemanticSourceOrder),
-                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
-            }
+            AddOutlinedLogicalTextReplacement(canvas, visual, textX, resolvedAdvance,
+                asSpan, logicalClip, addDrawingAndLink);
         }
 
         ReportOutlinedFontEvidence(conversionReport, visual, runs);

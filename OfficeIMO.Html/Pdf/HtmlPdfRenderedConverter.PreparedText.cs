@@ -23,7 +23,7 @@ internal static partial class HtmlPdfRenderedConverter {
             return false;
         }
         double advance = prepared.Measure(visual.Font.Size);
-        if (double.IsNaN(advance) || double.IsInfinity(advance) || advance <= 0D) {
+        if (double.IsNaN(advance) || double.IsInfinity(advance) || advance < 0D) {
             ReportPreparedShapingFallback(report, visual, "unrepresentable-selected-advance");
             return false;
         }
