@@ -1,8 +1,35 @@
 # HTML-to-PDF report performance
 
-The [22 October evidence](../../Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json)
-records report-layout checks and measurements of the shared HTML/PDF owners.
-[Open work](../ROADMAP.md#release-wide-quality) remains in the product roadmap.
+The [report-layout evidence](../../Build/Project/Evidence/2026-10-22/pdf-report-layout-performance.json)
+and [reuse evidence](../../Build/Project/Evidence/2026-10-22/pdf-render-reuse.json)
+record the dated source revisions, output checks and measurements below. Their
+numbers describe those revisions; they are not speed claims for later source.
+Open product work remains in the [roadmap](../ROADMAP.md#release-wide-quality).
+
+## Reuse contracts
+
+Built-in short-text measurements are reused within a conversion, keyed by the
+complete font descriptor and invalidated when font definitions change. Caller
+providers and dynamically selected host fonts keep their existing paths.
+Declaration, border and outline reuse retains its numeric, color, character and
+inherited context; mutable used boxes are resolved for each occurrence.
+
+Position-only shape projections share the captured private geometry. Public
+`HtmlRenderShape.Shape` reads return detached copies, so editing a returned shape
+does not modify retained paint or its siblings. The PDF writer copies cached
+outlines into bounded private placement storage and allocates fresh storage
+above its retention caps. Indexed extent traversal preserves its existing
+ordering, clipping, transforms and floating-point arithmetic.
+
+Table-internal math uses the canonical parsed-length resolver with the current
+font and numeric context. A bounded TrueType coverage record reuses only prior
+successful printable-ASCII scalar diagnostics for the same immutable font
+program. It retains neither error labels nor shaped glyphs and does not record
+document glyph usage. Other diagnostic paths keep their original behavior.
+
+These changes add no public API or runtime dependency. Exact saved output,
+complete diagnostics, cancellation and resource limits remain the behavior to
+preserve.
 
 ## Reproduce the measurements
 
@@ -35,7 +62,7 @@ The paired runs use the same inputs, fonts, page settings and benchmark drivers.
 Complete content, saved-page geometry and independent rendering checks run
 outside the timed section. Timing and allocation measurements stay opt-in.
 
-## Final paired results: 22 October 2026
+## Report-layout measurements: 22 October 2026
 
 Baseline: `0612ee6a8bd8a18ba13eb7c3b64fcb104d182945`.
 Candidate runtime: `765057d2bdf16706be5e0cdec228fd541abf8ee8`.
@@ -44,14 +71,14 @@ launch sets `DOTNET_PROCESSOR_COUNT=3`, overriding the processor count reported
 to .NET rather than pinning execution to three cores. The evidence retains both
 the hardware count and the child-process environment. Runs use normal development
 activity and OS scheduling. This is not a quiet-host, cold-start,
-peak-memory or portable ranking study. Each run has six warmups, twelve measured
+peak-memory or portable ranking study. Each run has six warmup iterations, twelve measured
 iterations and no outlier removal. Allocation is total managed allocation per
 operation, not retained or peak memory.
 
 The timing table describes the named runtime revision. The dated evidence also
 records a separate check with later shared PDF text-rendering changes. That
-combined-output check does not extend these timings, private-package results
-or NativeAOT observations to the later combination.
+combined-output check does not extend these timings or platform observations
+to the later combination.
 
 | Purchase-table workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
 | --- | ---: | ---: | ---: | ---: |
@@ -76,33 +103,9 @@ Two shared-payload pairs ran in baseline/candidate/candidate/baseline order:
 
 All three OfficeIMO payload PDFs are byte-identical to the baseline. The table
 improvement repeats in both pairs. Plain-text and multilingual timings overlap
-or change direction; no throughput improvement is claimed for them. The separate
-nine-case shared comparison retains all successful engines and their differing
-outputs; these results do not establish a speed lead over other libraries.
+or change direction; no throughput improvement is claimed for them.
 
-## Investigations and disposition
-
-An instrumented 30-conversion table profile retained a byte-identical PDF. It
-identified repeated CSS length setup/default parsing and repeated all-page scans
-while enumerating tagged-PDF children. Sampling guided the following bounded
-changes; it does not attribute the final gain to one change in isolation.
-
-| Attempt | Observation and disposition |
-| --- | --- |
-| Reject empty, `auto`, `none` and `normal` length defaults early | First combined draft reduced table allocation by about 6.4%, but measured slower. Kept for lower allocation; no isolated throughput claim. |
-| Cache successful short parsed length expressions | Clean `6a741e7f` trial: table 117.36–118.49 ms versus 116.85–119.42 ms; 203.83–204.26 MiB versus 222.33–222.45 MiB. Kept for lower allocation, not isolated speed. Cache is per resolver, at most 128 expressions of 128 characters; values resolve afresh for each context. |
-| Reuse the private synchronous resolution workspace | Trial: 118.19–122.04 ms versus 117.68–118.13 ms; 200.28–200.57 MiB versus 222.45 MiB. Kept for allocation; all context inputs are overwritten and context controls pass. |
-| Index tagged-PDF children once per write | Combined development trial: table 107.06–109.19 ms, about 199.6 MiB; 2,500-row export 6,129.1 to 2,572.7 ms with identical output. Kept after ordering, parent-identity and tagged-artifact checks; final results above replace this trial for current claims. |
-| Integrated `ddddaa1c` checkpoint | Earlier paired export: 6,088.99 to 2,569.03 ms. The 250-row layout mean rose from 178.75 to 194.90 ms. Retained as historical evidence; later whitespace correction required the fresh candidate measurements above. |
-| Preformatted-text correction | Nested styled text previously lost repeated spaces and line breaks. Saved RFC footer columns now align closely with the independent reference. This is a layout fix, not an optimization; the final candidate was remeasured. |
-| Repeat glyph-outline/contour caching | Not attempted: the current profile points elsewhere. Earlier changes already addressed that owner. |
-
-The [20 October evidence](../../Build/Project/Evidence/2026-10-20/pdf-workflow-reliability.json)
-keeps its original `83efd` source and platform. Its 66–87% selected mean reductions
-and 60–83% allocation reductions remain historical; they are not measurements of
-this candidate or later shared-glyph source.
-
-## Limits and next work
+## Coverage limits
 
 Generated table text, printed link destinations, ordinary scroll-panel pagination
 and nested preformatted text have saved-file controls. The frozen captured reports
@@ -111,17 +114,10 @@ still have named font/resource and layout differences. The RFC case retains all
 spacing differs from the native reference. Successful conversion and syntax checks
 do not establish full appearance or accessibility equivalence.
 
-Next, use the roadmap's licensed, font-matched corpus to qualify wide tables,
-rotated labels and all-page native/assistive-technology behavior. Reprofile only
-when those supported workloads identify another material cost. Stop an optimization
-that weakens content, diagnostics, cancellation or resource limits, or requires an
-unrelated redesign. Preserve slower and failed observations; do not repeat exhausted
-ideas unless the relevant source has changed.
-
-## Font, style and geometry reuse: 22 October 2026
+## Font, style and geometry measurements: 22 October 2026
 
 Baseline: `7361ba1a3ca75c7efb0b551d2d51fa9185b57a57`.
-Qualified runtime: `b18a1c4181d238d69dee51a5f3f0b1bc8208d142`.
+Measured runtime: `b18a1c4181d238d69dee51a5f3f0b1bc8208d142`.
 The [reuse evidence](../../Build/Project/Evidence/2026-10-22/pdf-render-reuse.json)
 retains all 28 matched rows, round-specific errors and earlier source-bound
 cohorts. The same maintained drivers run in baseline/candidate/candidate/baseline
@@ -150,74 +146,20 @@ are 30.3% and 14.1% higher, and the 2,500-row layout mean is 14.8% higher. The
 workloads, but does not erase slower timings. Baseline round means themselves
 vary substantially, and paired contrasts change direction for the export and
 large-layout paths. No throughput improvement or general no-regression claim is
-made for these routes; their remaining costs stay on the roadmap. No cause for
-the timing variation is inferred, and no whole matrix is repeated to seek a
-favorable result.
+made for these routes. The observations do not establish a cause for the
+timing variation.
 
-Built-in short-text measurements are reused within a conversion, keyed by the
-complete font descriptor and invalidated when font definitions change. Caller
-providers and dynamically selected host fonts retain their existing paths.
-Border/outline reuse includes the original numeric, color and character context;
-mutable parent boxes are resolved afresh. Both caches are bounded and bypass
-further probes once saturated. The writer copies immutable glyph outlines into
-bounded private placement storage and allocates afresh above its retention caps.
-Scroll-extent traversal uses the existing indexed lists with the same ordering,
-clipping, transforms and arithmetic. There is no public API or runtime dependency
-change.
+These measurements describe the named combined source, without isolating the
+contribution of an individual cache, snapshot or traversal change.
 
-All 13 matched saved reports preserve exact PDF bytes, text, row markers and
-complete diagnostics, including the 42- and 417-page purchase reports. Both
-producers pass fresh syntax checks. Eight previous rendered views are reused
-only where PDF and image hashes match; any changed view is inspected afresh.
+In this cohort, all 13 matched saved reports preserved exact PDF bytes, text,
+row markers and complete diagnostics, including the 42- and 417-page purchase
+reports. Baseline and candidate PDFs passed fresh syntax checks. Eight existing
+sample views were reused where PDF and image hashes matched.
 These known report inputs do not establish engine-wide appearance, native or
 accessibility equivalence.
 
-Earlier dirty trials, the slower `fc604c6f` cohort, the inconclusive `e8b79548`
-cohort and its targeted confirmation, and the selected `2f76ef25` results remain
-in the evidence with their original runtime inputs and dispositions. The last
-of those used the earlier `8cc38e17` baseline; its gains are historical. Shared
-font-width, glyph/flow and HTML-normalization changes prompted this separate
-matched baseline and candidate qualification. None of the older timings,
-packages or native observations are relabeled as this combined source.
-
-
-## Further owner investigations: 23 October 2026
-
-Later experiments use the maintained warm, 229-row Table payload with its exact
-six-page OfficeIMO PDF. These are provisional source-bound investigations,
-separate from the qualified `b18a1c41` results above. Each retained comparison
-keeps all twelve measured samples per launch, six warmups, the same actual
-runtime inputs and normal development-host activity. No new final throughput
-result is claimed from a single exploratory engine pair.
-
-| Attempt | Observation and disposition |
-| --- | --- |
-| Reuse complete used-style results | Rejected: the predeclared baseline/candidate/candidate/baseline contrast had a 2.4% higher pooled mean and disagreed in direction between pairs. |
-| Reuse a completed rule-application prefix, partition paint phases once, and combine font metrics without a temporary list | Rejected as a combined experiment: the four-launch contrast had a 0.3% higher pooled mean despite about 12.6% lower allocation. Pair directions disagreed. The original source was restored; this does not establish each component's isolated cost. |
-| Reuse the existing parsed-length owner for table auto-math | Retained for further qualification. Simple non-math defaults avoid unnecessary setup, while actual math still resolves with a fresh font and numeric context. The explicit table/math controls include repeated 16 px / 24 px / 16 px font contexts. No isolated latency improvement is claimed. |
-| Prove that an added simple rectangular clip leaves the existing admitted ink region unchanged | Rejected: the four-launch contrast had a 6.2% higher pooled mean and neither pair favored the candidate. Exact report bytes and complete warnings passed, but the extra implementation did not earn its maintenance cost. The helper and its experiment-only tests were removed. |
-| Prove successful default scalar font preflight by checking printable ASCII coverage without building an unused glyph run | Rejected: 2,290 focused cases and the exact report/warning checks passed, but the four-launch contrast had a 7.2% higher pooled mean and neither pair favored the candidate. Allocation fell about 4.2%; the latency gate still failed, so the source was restored. |
-| Index the paint phases present in each transient subtree before the original filtering passes | Rejected: 7,800 HTML cases and all exact report/warning checks passed, but the four-launch contrast reduced the pooled mean by only 1.2% with opposing pair directions. The phase index was removed; a small allocation reduction did not satisfy its latency rule. |
-| Fuse semantic paint projection with zero translation to avoid copying retained descendants at each ancestor | Rejected: 7,800 HTML cases and all exact report/warning checks passed. The four-launch contrast had only a 1.0% lower pooled mean with opposing pair directions. Removed after preserving the source, actual execution inputs and all measurements. |
-
-| Reuse parsed font-family, descriptor and feature declarations | Rejected: 7,800 HTML cases and all exact report/warning checks passed, but the four-launch contrast had a 7.3% higher pooled mean and opposing pair directions. Removed after preserving every executed input and measurement. |
-
-| Share complete ordinary table-cell styles across equal declarations and inherited-value contexts, retaining distinct widths | Rejected: all 7,803 HTML cases and exact report/warning checks passed after correcting a direct fixture to use expanded padding longhands. The four-launch contrast had an 8.0% lower pooled mean, but pair directions disagreed and missed the predeclared 10% threshold. The template code and its experiment-only tests were removed. |
-
-A separate public-API investigation compares fresh model construction with full
-conversion using the same Table input. Each model is eventually serialized to
-the exact canonical PDF. Its two construction means were 65.95 and 82.80 ms;
-the full-conversion means were 185.16 and 166.55 ms. These operations do different
-work, so subtracting their means does not establish phase durations or CPU
-percentages. All four observations remain in the diagnostic evidence.
-
-The remaining work is to identify consequential repeated processing before
-adding more caches. Existing layout-font and stroke caches were not saturated
-on this workload. A separate counter-only PDF investigation found no short-text cache hits or
-evictions: all 1,655 shaping calls in one Table conversion were diagnostic-only
-scalar calls and did not qualify for that cache. Raising its capacity would not
-address those calls.
-Instrumented builds are diagnostic inputs and cannot qualify speed or package
-results. Keep removed experiments removed unless new evidence identifies a
-specific reason to revisit them. Exact saved output, complete warnings,
-cancellation and resource-limit behavior remain acceptance requirements.
+The dated record also retains earlier `fc604c6f`, `e8b79548` and `2f76ef25`
+cohorts, supplementary reverse-order rows, and their slower or inconclusive
+results. Each keeps its own source and baseline. None of these measurements is
+extended to later source combinations.
