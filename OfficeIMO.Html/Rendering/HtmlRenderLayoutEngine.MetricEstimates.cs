@@ -45,6 +45,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    /// <summary>Freezes font coverage while this text is constructed, before a later iframe imports faces.</summary>
+    private HtmlRenderText CaptureTextMetricProvenance(HtmlRenderText text) {
+        if (text.EstimatedFontMetrics.HasValue) return text;
+        bool estimated = _options.FallbackTextMeasurement == null && text.PreparedShaping == null
+            && (_estimatedMetricRequests.Contains((text.Font.FamilyName, text.FontDescriptor))
+                || _estimatedMetricRequestsSaturated)
+            && !HasCoveringMetricFont(text, _fonts);
+        return text.WithEstimatedFontMetrics(estimated);
+    }
+
+    private void AddTextMetricVisual(ICollection<HtmlRenderVisual> visuals, HtmlRenderText text) =>
+        visuals.Add(CaptureTextMetricProvenance(text));
+
+    private bool HasCoveringMetricFont(HtmlRenderText text, OfficeFontFaceCollection fonts) {
+        foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(text.Text, text.Font.FamilyName, text.FontDescriptor)) {
+            CheckCancellation();
+            if (!fonts.TryResolveFaceForText(run.Text, run.FamilyName, text.FontDescriptor,
+                    text.Font.Size, out _)) return false;
+        }
+        return true;
+    }
+
     /// <summary>
     /// Attributes actual raw width estimates to paintable text in the completed layout.
     /// Exact retained shaping and covering scoped programs remain authoritative. Target metric
@@ -78,16 +100,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!_estimatedMetricRequests.Contains((text.Font.FamilyName, text.FontDescriptor))
                     && !_estimatedMetricRequestsSaturated) continue;
                 ChargeLayoutOperations(text.Text.Length, "font metric attribution text");
-                bool covered = true;
-                foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(text.Text, text.Font.FamilyName, text.FontDescriptor)) {
-                    CheckCancellation();
-                    if (!fonts.TryResolveFaceForText(run.Text, run.FamilyName, text.FontDescriptor,
-                            text.Font.Size, out _)) {
-                        covered = false;
-                        break;
-                    }
-                }
-                if (covered) continue;
+                if (text.EstimatedFontMetrics == false
+                    || text.EstimatedFontMetrics == null && HasCoveringMetricFont(text, fonts)) continue;
 
                 string source = BoundMetricIdentity(string.IsNullOrWhiteSpace(text.Source) ? "html:text" : text.Source!);
                 string family = BoundMetricIdentity(text.Font.FamilyName);

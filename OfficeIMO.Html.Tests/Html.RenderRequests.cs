@@ -90,7 +90,7 @@ public sealed class HtmlRenderRequestTests {
     [Fact]
     public void ScreenFullPageAppliesBodyMarginPaddingAndWidthToTheRootFormattingBox() {
         const string html = "<body style='margin:8px;padding:12px;width:180px'><div style='height:10px;background:#336699'>Root box</div></body>";
-        var options = new HtmlRenderOptions {
+        var options = new HtmlRenderOptions { AllowSystemFontFallback = false,
             ViewportWidth = 320D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D)

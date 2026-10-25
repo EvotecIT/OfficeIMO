@@ -163,7 +163,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layoutHeight: text.LayoutHeight,
             fontDescriptor: text.FontDescriptor,
             paintTopOverflow: text.PaintTopOverflow,
-            paintOnly: true).WithPreparedShaping(text.PreparedShaping);
+            paintOnly: true, estimatedFontMetrics: text.EstimatedFontMetrics).WithPreparedShaping(text.PreparedShaping);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

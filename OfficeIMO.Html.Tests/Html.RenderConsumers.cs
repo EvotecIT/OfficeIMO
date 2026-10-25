@@ -310,7 +310,8 @@ public sealed class HtmlRenderConsumerTests {
         Assert.True(jsonPage.GetProperty("hasLoss").GetBoolean());
         Assert.Contains(jsonPage.GetProperty("encodingDiagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("code").GetString() == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
-        JsonElement provenance = Assert.Single(json.RootElement.GetProperty("diagnostics").EnumerateArray())
+        JsonElement provenance = Assert.Single(json.RootElement.GetProperty("diagnostics").EnumerateArray(),
+            diagnostic => diagnostic.GetProperty("code").GetString() == "ARCHIVE_SOURCE")
             .GetProperty("provenance");
         Assert.Equal("archive.mhtml", provenance.GetProperty("sourceAddress").GetString());
         Assert.Equal(0, provenance.GetProperty("sourceLine").GetInt32());

@@ -533,7 +533,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Lime, pngRaster.GetPixel(40, 20));
         System.Xml.Linq.XNamespace svgNamespace = "http://www.w3.org/2000/svg";
         string svgText = string.Concat(System.Xml.Linq.XDocument.Parse(exportedSvg).Descendants(svgNamespace + "text")
-            .Select(text => text.Value));
+            .Select(text => text.Value)
+            .Concat(System.Xml.Linq.XDocument.Parse(exportedSvg).Descendants()
+                .Select(element => (string?)element.Attribute("aria-label") ?? string.Empty)));
         Assert.Contains("SvgLabelX", string.Concat(svgText.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);

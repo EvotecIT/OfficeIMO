@@ -384,8 +384,9 @@ public sealed class HtmlPdfTests {
         var options = new HtmlToPdfOptions { FontFamily = family };
         byte[] pdf = HtmlConversionDocument.Parse(
             "<p style='font-family:Arial'>Evidence · " + arabic + " · terminal</p>").ToPdfBytes(options);
-        using PdfPigDocument document = PdfPigDocument.Open(new MemoryStream(pdf));
-        string extracted = string.Concat(document.GetPages().Select(page => page.Text));
+        // Retained glyphs can be painted as contours with logical ActualText.
+        // A glyph-only extractor does not observe that searchable-content contract.
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string logical = OfficeArabicTextShaper.ToLogicalText(extracted);
         string canonical = string.Concat(logical.Where(character =>
             !char.IsWhiteSpace(character) &&

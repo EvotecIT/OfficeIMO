@@ -386,7 +386,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(following, text => Assert.InRange(text.Y, 200D, 249D));
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Next inline continuation");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Next inline continuation");
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]

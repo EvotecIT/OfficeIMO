@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public async Task HtmlRenderAsync_MissingAlternateFontSourceDoesNotReportVisibleOmission() {
-        byte[] fontData = CreateHtmlRenderTestFont();
+        byte[] fontData = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('S', 'a', 'm', 'p', 'l', 'e');
         var options = new HtmlRenderOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
                 request.Uri.AbsolutePath.EndsWith("/demo.ttf", StringComparison.Ordinal)

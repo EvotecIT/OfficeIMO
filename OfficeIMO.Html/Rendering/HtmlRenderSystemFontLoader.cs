@@ -46,7 +46,7 @@ internal static partial class HtmlRenderSystemFontLoader {
             DefaultFontVisibility currentVisibility = ResolveDefaultFontVisibility(element, computed, parentVisibility, disclosures);
             visibility[element] = currentVisibility;
             LoadList(families, descriptor);
-            if (currentVisibility.CanPaint && HasDirectDefaultFontText(element, disclosures)) {
+            if (currentVisibility.CanPaint && HasDirectDefaultFontText(element, computed, disclosures)) {
                 visibleText.Add(element);
                 defaults.Add((element, families, descriptor, false, true));
             }

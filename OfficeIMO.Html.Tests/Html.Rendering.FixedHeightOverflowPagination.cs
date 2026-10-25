@@ -240,17 +240,22 @@ public sealed partial class HtmlRenderingTests {
         + "html,body,p{margin:0;padding:0}html,body{font:14px/20px Arial;background:white}"
         + "p{font:inherit;orphans:1;widows:1}</style>" + content;
 
-    private static HtmlRenderOptions FixedHeightOverflowOptions() => new() {
-        Mode = HtmlRenderMode.Paged,
-        PageSize = new OfficePageSize(700D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
-        ViewportWidth = 800D,
-        ViewportHeight = 1000D,
-        Margins = HtmlRenderMargins.All(0D),
-        HonorCssPageRules = false,
-        UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
-        AllowSystemFontFallback = false,
-        BackgroundColor = OfficeColor.White
-    };
+    private static HtmlRenderOptions FixedHeightOverflowOptions() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(700D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            ViewportWidth = 800D,
+            ViewportHeight = 1000D,
+            Margins = HtmlRenderMargins.All(0D),
+            HonorCssPageRules = false,
+            UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
+            AllowSystemFontFallback = false,
+            BackgroundColor = OfficeColor.White
+        };
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
+        return options;
+    }
 
     private static void AssertFixedHeightOverflowPlacement(HtmlRenderDocument rendered, string label, int page, double top) {
         Assert.Equal(page, DescendantSpannerTextPage(rendered, label).PageNumber);

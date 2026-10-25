@@ -30,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (chunk.Start > 0.0001D && entry.MarkerStyle.Font.Size > 0D) {
                     _fontUsage?.Observe("\u00a0(cont.)", entry.MarkerStyle.Font.FamilyName, entry.MarkerStyle.FontDescriptor);
-                    children.Add(new HtmlRenderText(
+                    AddTextMetricVisual(children, new HtmlRenderText(
                         "\u00a0(cont.)",
                         x + entry.MarkerBlock.Width,
                         cursorY,
@@ -53,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         fontDescriptor: entry.MarkerStyle.FontDescriptor) { SemanticSourceOrder = sourceOrder });
                 }
             } else if (entry.MarkerStyle.Font.Size > 0D) {
-                children.Add(new HtmlRenderText(
+                AddTextMetricVisual(children, new HtmlRenderText(
                     marker,
                     x,
                     cursorY,

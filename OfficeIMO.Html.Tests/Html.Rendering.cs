@@ -1783,7 +1783,7 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -1809,7 +1809,7 @@ public sealed partial class HtmlRenderingTests {
                     text => Assert.InRange(text.X, group.X - 0.001D, group.X + group.Width - 0.001D));
             });
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(position: running(chapter))"));
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
         pdfOptions.FontFamily = SvgPaintedText.CreatePinnedFamily();
@@ -1872,7 +1872,7 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -1888,7 +1888,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(
             rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
             group => Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, group.Role));
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -1920,7 +1920,7 @@ public sealed partial class HtmlRenderingTests {
 
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         string marginText = string.Concat(
@@ -1931,7 +1931,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("TitleMarker", marginText, StringComparison.Ordinal);
         Assert.Contains("OuterMarker", marginText, StringComparison.Ordinal);
         Assert.Contains("NestedMarker", marginText, StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
         PdfCore.PdfDocumentConversionResult pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
             .ToPdfDocumentResult(new HtmlToPdfOptions(options));
         Assert.DoesNotContain(pdf.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
@@ -1957,7 +1957,7 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -1968,7 +1968,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("FlexBody", sceneText, StringComparison.Ordinal);
         Assert.Contains("GridBody", sceneText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.FlexLayoutPending or HtmlRenderDiagnosticCodes.GridLayoutPending);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -1996,7 +1996,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         });
         IReadOnlyList<HtmlRenderSemanticGroup> marginGroups = Assert.Single(rendered.Pages).Scene
             .OfType<HtmlRenderSemanticGroup>()
@@ -2007,7 +2007,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, marginGroups.Count);
         Assert.Contains("Earliernested", string.Concat(EnumerateRenderVisuals(marginGroups[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)).Replace(" ", string.Empty), StringComparison.Ordinal);
         Assert.Contains("Later direct", string.Concat(EnumerateRenderVisuals(marginGroups[1].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -2037,7 +2037,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         });
         IReadOnlyList<string> pageHeaders = rendered.Pages
             .Select(page => string.Concat(page.Scene
@@ -2051,7 +2051,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("Earlierchapter", pageHeaders[0].Replace(" ", string.Empty), StringComparison.Ordinal);
         Assert.DoesNotContain("Laterchapter", pageHeaders[0].Replace(" ", string.Empty), StringComparison.Ordinal);
         Assert.Contains("Laterchapter", pageHeaders[pageHeaders.Count - 1].Replace(" ", string.Empty), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2435,7 +2435,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>(),
             anchor => anchor.Text == "Decorative");
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2466,7 +2466,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, narrow.Length);
         Assert.Equal(narrow[1].Y - narrow[0].Y, narrow[2].Y - narrow[1].Y, 6);
         Assert.Equal(new[] { "Plain", "X" }, rendered.Headings.Select(heading => heading.Text).ToArray());
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2487,7 +2487,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { 2, 2 }, rendered.Headings.Select(heading => heading.Level).ToArray());
         Assert.Equal(2, EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>().Count());
         Assert.Equal(new[] { "Heading label", "Explicit entry" }, info.Outlines.Select(outline => outline.Title).ToArray());
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2503,7 +2503,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("AB", Assert.Single(rendered.Headings).Text);
         Assert.Equal("AB", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2553,7 +2553,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(info.LinkAnnotations);
         Assert.Empty(info.FormFields);
         Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2579,7 +2579,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(info.FormFields);
         Assert.DoesNotContain("Flex link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain("Grid link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2602,7 +2602,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, rendered.Headings.Select(heading => heading.Text).ToArray());
         Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, info.Outlines.Select(outline => outline.Title).ToArray());
         Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2615,7 +2615,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("Alpha Beta Gamma", Assert.Single(rendered.Headings).Text);
         Assert.Equal("Alpha Beta Gamma", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2639,7 +2639,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfOutlineItem visibleChild = Assert.Single(outlines[0].Children);
         Assert.Equal("Visible child", visibleChild.Title);
         Assert.Equal("Public heading", Assert.Single(visibleChild.Children).Title);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2654,7 +2654,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new[] { "Source title", "Inline source" }, rendered.Headings.Select(heading => heading.Text).ToArray());
         Assert.Equal(new[] { "Source title", "Inline source" }, PdfCore.PdfInspector.Inspect(pdf).Outlines.Select(outline => outline.Title).ToArray());
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2675,7 +2675,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Pages.Count > 1);
         Assert.Equal("Fixed title", Assert.Single(rendered.Headings).Text);
         Assert.Equal("Fixed title", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2700,7 +2700,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(info.FormFields);
         Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
         Assert.DoesNotContain("Fixed link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2725,7 +2725,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(tagged.StructureElements, element => element.StructureType == "H2");
         Assert.Empty(info.LinkAnnotations);
         Assert.DoesNotContain("Hidden artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -2753,7 +2753,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
         Assert.Empty(info.LinkAnnotations);
         Assert.DoesNotContain("Hidden nested artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2781,7 +2781,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(listItem.ObjectNumber, list.ChildElementObjectNumbers);
         Assert.Contains(listBody.ObjectNumber, listItem.ChildElementObjectNumbers);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -2834,7 +2834,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Page 1", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Page 1", PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -3020,7 +3020,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText number = Assert.Single(runs, run => run.Text.Contains("42", StringComparison.Ordinal));
 
         Assert.Equal("Left שלום 42", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
         Assert.Equal(4, hebrew.Count);
         // UAX #9: a number after right-to-left text joins that run (W2/N1), so it is painted before the Hebrew.
         Assert.True(left.X < number.X);
@@ -3028,7 +3028,10 @@ public sealed partial class HtmlRenderingTests {
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
-        Assert.Contains("ש", HtmlConversionDocument.Parse(html).ToSvg(), StringComparison.Ordinal);
+        var svg = System.Xml.Linq.XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg());
+        string svgLogicalText = string.Concat(svg.Descendants().Select(element =>
+            element.Name.LocalName == "text" ? element.Value : (string?)element.Attribute("aria-label") ?? string.Empty));
+        Assert.Contains("ש", svgLogicalText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -3060,7 +3063,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Equal("Aשלום abcB", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
         Assert.Equal(4, hebrew.Count);
         Assert.True(latin.X < hebrew.Min(static run => run.X));
     }

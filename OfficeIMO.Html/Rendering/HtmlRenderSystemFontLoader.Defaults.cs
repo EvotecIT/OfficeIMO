@@ -40,10 +40,12 @@ internal static partial class HtmlRenderSystemFontLoader {
     private static bool IsAbsoluteZeroFontSize(string value) =>
         HtmlRenderCssValues.TryLength(value, double.NaN, double.NaN, double.NaN, out double size) && size == 0D;
 
-    private static bool HasDirectDefaultFontText(IElement element, HtmlDisclosureState disclosures) {
+    private static bool HasDirectDefaultFontText(IElement element, HtmlComputedStyle computed, HtmlDisclosureState disclosures) {
         if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return false;
         if (element.ChildNodes.OfType<IText>().Any(text => !string.IsNullOrWhiteSpace(text.Data)
                 && !disclosures.IsClosedChild(text))) return true;
+        if (element.LocalName == "li" && !computed.GetValue("list-style-type").Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.LocalName == "img" && !string.IsNullOrWhiteSpace(element.GetAttribute("alt"))) return true;
         return element.LocalName == "input" && (!string.IsNullOrEmpty(element.GetAttribute("value"))
             || !string.IsNullOrEmpty(element.GetAttribute("placeholder"))
             || string.Equals(element.GetAttribute("type"), "submit", StringComparison.OrdinalIgnoreCase)
@@ -62,8 +64,8 @@ internal static partial class HtmlRenderSystemFontLoader {
             found = true;
             if (!Covers(text.Data)) return false;
         }
-        if (element.LocalName == "input") {
-            string? value = element.GetAttribute("value");
+        if (element.LocalName is "input" or "img") {
+            string? value = element.LocalName == "img" ? element.GetAttribute("alt") : element.GetAttribute("value");
             if (string.IsNullOrEmpty(value)) value = element.GetAttribute("placeholder");
             if (!string.IsNullOrEmpty(value)) {
                 found = true;
@@ -96,8 +98,10 @@ internal static partial class HtmlRenderSystemFontLoader {
 
     private static bool TryGetDefaultPseudoRequest(IElement element, HtmlPseudoElementKind kind,
         HtmlComputedStyle pseudo, out bool needsText) {
-        needsText = kind is HtmlPseudoElementKind.FirstLine or HtmlPseudoElementKind.FirstLetter or HtmlPseudoElementKind.Marker;
+        needsText = kind is HtmlPseudoElementKind.FirstLine or HtmlPseudoElementKind.FirstLetter;
         if (needsText) return true;
+        if (kind == HtmlPseudoElementKind.Marker)
+            return !pseudo.GetValue("content").Trim().Equals("none", StringComparison.OrdinalIgnoreCase);
         if (kind == HtmlPseudoElementKind.Placeholder)
             return string.IsNullOrEmpty(element.GetAttribute("value")) && !string.IsNullOrEmpty(element.GetAttribute("placeholder"));
         string content = pseudo.GetValue("content").Trim();

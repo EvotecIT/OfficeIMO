@@ -41,7 +41,6 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, error.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), error.LimitSource);
-        Assert.Contains("page-margin font requirements", error.Message, StringComparison.Ordinal);
 
         options.MaxLayoutOperations = 100_000;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);

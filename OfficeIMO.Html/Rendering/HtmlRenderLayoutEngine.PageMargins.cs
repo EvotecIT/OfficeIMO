@@ -74,13 +74,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = shaped != null
                     ? shaped.Visuals.Select(visual => visual.Translate(x, y, _paintOrder++)).ToArray()
                     : new HtmlRenderVisual[] {
-                    new HtmlRenderText(text, x, y + baseline - box.Font.Size, Math.Max(0.01D, width),
+                    CaptureTextMetricProvenance(new HtmlRenderText(text, x, y + baseline - box.Font.Size, Math.Max(0.01D, width),
                         Math.Max(0.01D, (lines!.Count - 1) * lineHeight + linePaintHeight),
                         box.Font, box.Color, box.Alignment, lineHeight, _paintOrder++,
                         linkUri: null, source: marginBoxSource, semanticRole: "page-margin", layoutY: y,
                         semanticNodeId: null, textAdvanceWidth: null,
                         layoutHeight: Math.Max(0.01D, textHeight), paintTopOverflow: paintTopOverflow,
-                        ordinaryLineCarrier: true, fontDescriptor: box.Typography.FontDescriptor).WithWrappedLines(lines)
+                        ordinaryLineCarrier: true, fontDescriptor: box.Typography.FontDescriptor).WithWrappedLines(lines))
                 };
                 // Zero advance does not mean zero ink. A retained combining
                 // mark can paint inside the padding of a zero-width content box.

@@ -50,7 +50,7 @@ public sealed class HtmlBlockFloatTests {
     public void FollowingBlockBackgroundDoesNotCoverTheFloat(bool paged) {
         var rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             "<style>@page{size:300px 100px;margin:0}</style><div><div style='float:left;width:40px;height:40px;background:red'></div><div style='height:40px;background:blue'>Body</div></div>"),
-            new HtmlRenderOptions { Mode = paged ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous, ViewportWidth = 300, Margins = HtmlRenderMargins.All(0) });
+            new HtmlRenderOptions { AllowSystemFontFallback = false, Mode = paged ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous, ViewportWidth = 300, Margins = HtmlRenderMargins.All(0) });
         var raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(255, raster.GetPixel(10, 10).R);
         Assert.Equal(255, raster.GetPixel(100, 30).B);
@@ -76,7 +76,7 @@ public sealed class HtmlBlockFloatTests {
     public void FloatPaintAndTextSurvivePageFragmentsWithoutRepeatingTheLabel() {
         var rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             "<style>@page{size:300px 100px;margin:0}</style><div style='font:10px Arial;line-height:20px'><div style='float:left;width:40px;height:140px;background:red'>Label</div><div style='height:140px;background:blue'>Body</div></div>"),
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0) });
+            new HtmlRenderOptions { AllowSystemFontFallback = false, Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0) });
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Single(rendered.Pages.SelectMany(p => Flatten(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Label");
         foreach (var page in rendered.Pages) {
@@ -95,7 +95,7 @@ public sealed class HtmlBlockFloatTests {
 
     private static HtmlRenderText[] Text(string body) => HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
         "<div style='font:10px Arial;line-height:20px'>" + body + "</div>"),
-        new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300, Margins = HtmlRenderMargins.All(0) })
+        new HtmlRenderOptions { AllowSystemFontFallback = false, Mode = HtmlRenderMode.Continuous, ViewportWidth = 300, Margins = HtmlRenderMargins.All(0) })
         .Pages.SelectMany(p => Flatten(p.Scene)).OfType<HtmlRenderText>().ToArray();
 
     private static IEnumerable<HtmlRenderVisual> Flatten(IEnumerable<HtmlRenderVisual> visuals) {

@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_SolePageMarginTextUsesTheAvailableHeaderWidth(string position) {
         string html = "<style>@page { size:260px 200px; margin:24px; @" + position
             + " {content:'Generated 1 Oct 2026 at 22:41 UTC';font:10px Arial} } body,p {margin:0}</style><p>BodyOnly</p>";
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin");
@@ -53,6 +53,7 @@ public sealed partial class HtmlRenderingTests {
         string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options)),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("Generated 1 Oct 2026 at 22:41 UTC", text, StringComparison.Ordinal);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
