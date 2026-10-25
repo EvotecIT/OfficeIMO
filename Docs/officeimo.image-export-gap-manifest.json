@@ -57,7 +57,8 @@
       "evidence": [
         "OfficeIMO.Word.Tests/Word.ImageExport.SharedLayout.cs",
         "OfficeIMO.Word.Tests/Word.ImageExport.RasterFormats.cs",
-        "OfficeIMO.Word.Tests/Pdf/Word.PdfPageImageLayoutTests.cs"
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfPageImageLayoutTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfRunningPictureWrap.cs"
       ]
     },
     {

@@ -190,14 +190,11 @@ public sealed class PdfInlineRuleTests {
         Assert.Equal(expectedWidth, band.Width, 3);
         using var pdf = PdfPigDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;
-        // The existing explicit-tab painter emits one SPACE glyph before
-        // positioning at the tab stop; retain that source separator in inventory.
-        Assert.Equal("A TAIL", string.Concat(letters.Select(letter => letter.Value)));
+        // The authored TAB positions the rule without adding a SPACE glyph.
+        Assert.Equal("ATAIL", string.Concat(letters.Select(letter => letter.Value)));
         var lead = letters[0];
         Assert.Equal("A", lead.Value);
-        var separator = Assert.Single(letters, letter => letter.Value == " ");
         var tail = Assert.Single(letters, letter => letter.Value == "T");
-        Assert.Equal(lead.StartBaseLine.Y, separator.StartBaseLine.Y, 3);
         Assert.True(tail.StartBaseLine.Y < lead.StartBaseLine.Y);
         Assert.Equal(20D, tail.StartBaseLine.X, 3);
     }
@@ -224,9 +221,7 @@ public sealed class PdfInlineRuleTests {
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
-        Assert.Equal("A BCD", string.Concat(letters.Select(letter => letter.Value)));
-        Assert.Equal(Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y,
-            Assert.Single(letters, letter => letter.Value == " ").StartBaseLine.Y, 3);
+        Assert.Equal("ABCD", string.Concat(letters.Select(letter => letter.Value)));
         Assert.True(Assert.Single(letters, letter => letter.Value == "B").StartBaseLine.Y <
             Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y);
         Assert.All(letters, letter => Assert.InRange(letter.StartBaseLine.X, 20D, 120D));

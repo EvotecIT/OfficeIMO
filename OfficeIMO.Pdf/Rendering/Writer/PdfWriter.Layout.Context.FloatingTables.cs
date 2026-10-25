@@ -122,13 +122,9 @@ internal static partial class PdfWriter {
                     if (!ReferenceEquals(region.Page, currentPage) || top - height >= region.Top || top <= region.Bottom) continue;
                     if (region.Right <= left || region.Left >= left + lineWidth) continue;
                     nextBottom = Math.Min(nextBottom, region.Bottom);
-                    var remaining = new List<(double Left, double Right)>();
-                    foreach (var interval in intervals) {
-                        if (region.Right <= interval.Left || region.Left >= interval.Right) { remaining.Add(interval); continue; }
-                        if (region.Left > interval.Left) remaining.Add((interval.Left, Math.Min(interval.Right, region.Left)));
-                        if (region.Right < interval.Right) remaining.Add((Math.Max(interval.Left, region.Right), interval.Right));
-                    }
-                    intervals = remaining;
+                    intervals = SubtractTextExclusion(intervals.Select(interval =>
+                            new RichTextInterval(interval.Left, interval.Right - interval.Left)).ToArray(), region.Left, region.Right)
+                        .Select(interval => (Left: interval.X, Right: interval.X + interval.Width)).ToList();
                 }
                 var best = intervals.OrderByDescending(interval => interval.Right - interval.Left).FirstOrDefault();
                 if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize * 2))))

@@ -14,6 +14,11 @@ internal static partial class RtfPdfConverter {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        // RTF leaves pair kerning disabled unless a run supplies a positive threshold.
+        pdfOptions.TextKerning = false;
+        if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
+            pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
+        }
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
         IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
@@ -33,7 +38,7 @@ internal static partial class RtfPdfConverter {
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
-        PdfRenderState state = new PdfRenderState(document, fontSlots);
+        PdfRenderState state = new PdfRenderState(document, fontSlots, pdf.Options);
 
         RenderDocumentBlocks(document, pdf, normalized, state, documentDefaults);
 
@@ -73,12 +78,17 @@ internal static partial class RtfPdfConverter {
                 ApplyPageSetup(document, section, page, pdfOptions);
                 ApplySectionHeaderFooters(document, section, page, options);
                 currentPageOptions = page.Options.Clone();
-                RenderSectionBlocks(document, section, pdf, options, state);
-
-                while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
-                    index++;
-                    ReportContinuousSectionSettings(document, document.Sections[index], currentPageOptions, pdfOptions, options);
-                    RenderSectionBlocks(document, document.Sections[index], pdf, options, state);
+                PdfCore.PdfOptions previousFontOptions = state.FontOptions;
+                state.FontOptions = page.Options;
+                try {
+                    RenderSectionBlocks(document, section, pdf, options, state);
+                    while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
+                        index++;
+                        ReportContinuousSectionSettings(document, document.Sections[index], currentPageOptions, pdfOptions, options);
+                        RenderSectionBlocks(document, document.Sections[index], pdf, options, state);
+                    }
+                } finally {
+                    state.FontOptions = previousFontOptions;
                 }
             });
         }

@@ -4,6 +4,21 @@ public sealed partial class RtfDocument {
     private void ImportMergeSettings(RtfDocument source, RtfConversionReport report, bool hasDestinationContent) {
         RtfDocumentSettings from = source.Settings;
         var flattened = new List<string>();
+        if (!hasDestinationContent && !Settings.NoteMode.HasValue) {
+            Settings.NoteMode = from.NoteMode;
+            Settings.HasParsedNoteDefaults = from.HasParsedNoteDefaults;
+        } else if (Settings.EffectiveNoteMode != from.EffectiveNoteMode &&
+            RtfNoteReferenceCollector.Collect(source).Concat(source.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) {
+            flattened.Add(nameof(Settings.NoteMode));
+        }
+        NoteSettings.FootnoteStartNumber = RetainMergeSetting(NoteSettings.FootnoteStartNumber, source.NoteSettings.FootnoteStartNumber, hasDestinationContent, "NoteSettings.FootnoteStartNumber", flattened);
+        NoteSettings.FootnoteRestart = RetainMergeSetting(NoteSettings.FootnoteRestart, source.NoteSettings.FootnoteRestart, hasDestinationContent, "NoteSettings.FootnoteRestart", flattened);
+        NoteSettings.FootnoteNumberFormat = RetainMergeSetting(NoteSettings.FootnoteNumberFormat, source.NoteSettings.FootnoteNumberFormat, hasDestinationContent, "NoteSettings.FootnoteNumberFormat", flattened);
+        NoteSettings.FootnotePlacement = RetainMergeSetting(NoteSettings.FootnotePlacement, source.NoteSettings.FootnotePlacement, hasDestinationContent, "NoteSettings.FootnotePlacement", flattened);
+        NoteSettings.EndnoteStartNumber = RetainMergeSetting(NoteSettings.EndnoteStartNumber, source.NoteSettings.EndnoteStartNumber, hasDestinationContent, "NoteSettings.EndnoteStartNumber", flattened);
+        NoteSettings.EndnoteRestart = RetainMergeSetting(NoteSettings.EndnoteRestart, source.NoteSettings.EndnoteRestart, hasDestinationContent, "NoteSettings.EndnoteRestart", flattened);
+        NoteSettings.EndnoteNumberFormat = RetainMergeSetting(NoteSettings.EndnoteNumberFormat, source.NoteSettings.EndnoteNumberFormat, hasDestinationContent, "NoteSettings.EndnoteNumberFormat", flattened);
+        NoteSettings.EndnotePlacement = RetainMergeSetting(NoteSettings.EndnotePlacement, source.NoteSettings.EndnotePlacement, hasDestinationContent, "NoteSettings.EndnotePlacement", flattened);
         // Encoding, default font and primary language are handled by semantic decoding/resource remapping.
         Settings.DefaultTabWidthTwips = RetainMergeSetting(Settings.DefaultTabWidthTwips, from.DefaultTabWidthTwips, hasDestinationContent, nameof(Settings.DefaultTabWidthTwips), flattened);
         Settings.DefaultFarEastLanguageId = RetainMergeSetting(Settings.DefaultFarEastLanguageId, from.DefaultFarEastLanguageId, hasDestinationContent, nameof(Settings.DefaultFarEastLanguageId), flattened);

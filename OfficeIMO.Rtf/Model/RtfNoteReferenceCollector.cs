@@ -13,6 +13,12 @@ internal static class RtfNoteReferenceCollector {
         return notes;
     }
 
+    internal static HashSet<RtfNote> Collect(IEnumerable<IRtfBlock> blocks) {
+        var notes = new HashSet<RtfNote>();
+        CollectBlocks(blocks, notes);
+        return notes;
+    }
+
     public static int CountHeaderFooterReferences(RtfDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         int count = 0;

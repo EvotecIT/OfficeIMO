@@ -87,7 +87,8 @@ internal static partial class PdfWriter {
             IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
             int previousDocumentPages = 1,
             DrawingPatternAnnotationBudget? drawingPatternAnnotations = null,
-            System.Threading.CancellationToken cancellationToken = default) {
+            PictureAnchorState? pictureAnchors = null, System.Threading.CancellationToken cancellationToken = default) {
+            this.pictureAnchors = pictureAnchors ?? new PictureAnchorState();
             this.drawingPatternAnnotations = drawingPatternAnnotations ?? new DrawingPatternAnnotationBudget();
             currentOpts = options;
             currentPageBaseOptions = options;
@@ -233,6 +234,8 @@ internal static partial class PdfWriter {
                 behindTextCanvases.Clear();
             }
             ReportFreeTextAnnotationDiagnostics();
+            foreach (PictureParagraphPlanKey key in pictureAnchors.Paragraphs.Keys.Where(key => key.Page == PicturePage).ToArray())
+                pictureAnchors.Paragraphs.Remove(key);
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             emittedPageGroups.Add(currentPage.PageGroupId);

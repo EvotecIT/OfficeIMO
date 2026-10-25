@@ -13,9 +13,11 @@ internal static partial class PdfWriter {
             var captured = new RichParagraphBlock(paragraph.Runs, paragraph.Align, paragraph.DefaultColor, style);
             for (int index = 0; index < wrapped.Lines.Count; index++) {
                 if (units.Count >= MaximumTextLayoutLines) throw new InvalidDataException("Footnote flow exceeded the 100,000-fragment limit.");
+                double advance = Math.Max(wrapped.LineHeights[index], GetRichLineFrameFitHeight(wrapped.Lines[index], wrapped.LineHeights[index]));
+                if (wrapped.Lines[index] is RichLine barLine) barLine.BarLineHeight = advance;
                 units.Add(new FootnoteUnit {
                     Block = captured, Line = wrapped.Lines[index],
-                    Advance = Math.Max(wrapped.LineHeights[index], GetRichLineFrameFitHeight(wrapped.Lines[index], wrapped.LineHeights[index])),
+                    Advance = advance,
                     Before = index == 0 ? GetParagraphSpacingBefore(style) : 0D,
                     After = index == wrapped.Lines.Count - 1 ? GetParagraphSpacingAfter(style, leading) : 0D,
                     Size = size, Leading = leading, X = index == 0 ? frame.FirstLineX : frame.X,
@@ -56,7 +58,8 @@ internal static partial class PdfWriter {
                 firstLineXOverride: firstLineFrame ? currentOpts.MarginLeft + first.X : null,
                 firstLineWidthOverride: firstLineFrame ? first.Width : null,
                 structureType: "Note", markedContentId: markedContentId, structurePage: currentPage,
-                hasFollowingParagraphLines: last.ParagraphLine + 1 < last.ParagraphLines);
+                hasFollowingParagraphLines: last.ParagraphLine + 1 < last.ParagraphLines, paragraphSpacingAfter: last.After,
+                paragraphSpacingBefore: first.Before);
             pageDirty = true;
             top -= advance + last.After;
         }

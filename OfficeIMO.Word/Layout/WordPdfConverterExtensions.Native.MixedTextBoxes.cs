@@ -28,6 +28,7 @@ public static partial class WordPdfConverterExtensions {
         if (paragraphStyle.SpacingBefore is > 0D)
             pdf.ParagraphSpacingBefore(paragraphStyle.SpacingBefore);
         bool first = true;
+        bool emittedOwnParagraph = false;
         foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
@@ -51,9 +52,11 @@ public static partial class WordPdfConverterExtensions {
                         groupStyle.SpacingAfter = 0D;
                         RenderNativeParagraphShapeGroups(pdf, paragraph, new[] { view },
                             ResolveNativeParagraphAlign(paragraph, allowJustify: false), options, groupStyle, ref imageCount, null);
-                        if (groupStyle.AnchoredCanvas != null)
+                        if (groupStyle.AnchoredCanvas != null) {
                             pdf.Paragraph(builder => builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
                                 defaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak(), style: groupStyle);
+                            emittedOwnParagraph = true;
+                        }
                         continue;
                     }
                     if (view.Shape is WordShape shape) {
@@ -79,6 +82,10 @@ public static partial class WordPdfConverterExtensions {
             }
         }
         Flush();
+        // Child boxes paint their own paragraphs. Classify this owner's rule
+        // from the styled lines actually emitted, not recursively read box text.
+        RecordNativeParagraphBarTabDiagnostics(paragraph, options, "mixed text-box paragraph",
+            omitted: !emittedOwnParagraph);
         if (!ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph) && paragraphStyle.SpacingAfter is > 0D)
             pdf.ParagraphSpacingAfter(paragraphStyle.SpacingAfter.Value);
 
@@ -104,9 +111,40 @@ public static partial class WordPdfConverterExtensions {
                 inlineMarkerColumnWidth: currentMarker == null ? null : ResolveNativeInlineListMarkerColumnWidth(
                     paragraph, currentMarker.Value.Marker, style, defaults, fontMap), projectedContentOnly: true),
                 ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: style);
+            emittedOwnParagraph = true;
             first = false;
             pending.Clear();
         }
+    }
+
+    // Running content needs its loss report before deferred page callbacks.
+    // Inspect the same selected run children as the mixed flow owner: a child
+    // box/object cannot supply its parent's text line. Numbering, references and
+    // synthesized equations remain meaningful paragraph content without letters.
+    private static bool HasNativeMixedTextBoxOwnContent(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs,
+        WordSection section, WordToPdfOptions? options) {
+        if (WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true) return true;
+        foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, default)) {
+            if (IsNativeHiddenTextRun(run, paragraph)) continue;
+            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+                if (child is W.RunProperties) continue;
+                WordParagraph view = CreateNativeRunContentView(run, new[] { child });
+                if (view.GetTextBoxes().Any() || view.IsImage && view.Image != null) continue;
+                if (HasNativeParagraphShapeGroups(new[] { view })) {
+                    // Supported anchored groups emit an actual owner line. Inline,
+                    // flowed or unsupported groups remain separate flow objects.
+                    if (HasNativeParagraphShapeGroupAnchor(GetNativePageSize(section, options),
+                        paragraph, new[] { view }, options)) return true;
+                    continue;
+                }
+                if (view.Shape != null || view.Chart != null) continue;
+                if (IsNativeRenderableTextRun(view, paragraph)) return true;
+                var main = paragraph._document._wordprocessingDocument.MainDocumentPart;
+                if (child is W.FootnoteReference foot && WordNoteResolver.FindFootnote(main, foot.Id?.Value) != null ||
+                    child is W.EndnoteReference end && WordNoteResolver.FindEndnote(main, end.Id?.Value) != null) return true;
+            }
+        }
+        return false;
     }
 
     private static List<int> GetNativeMixedTextBoxNoteNumbers(IReadOnlyList<WordParagraph> runs,

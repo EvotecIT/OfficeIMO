@@ -84,17 +84,17 @@ public sealed class WordPdfReportedTabTests {
 
         byte[] bytes = ConvertReportedTabDocument(document);
         using var pdf = PdfPigDocument.Open(bytes);
-        var words = Assert.Single(pdf.GetPages()).GetWords().ToArray();
-        var after = Assert.Single(words, word => word.Text == "AFTERTAB");
-        var later = Assert.Single(words, word => word.Text == "LATERLINE");
+        var page = Assert.Single(pdf.GetPages());
+        var after = TabMarkerStart(page, "AFTERTAB");
+        var later = TabMarkerStart(page, "LATERLINE");
         double frameOrigin = container == "table"
-            ? Assert.Single(words, word => word.Text == "CELLORIGIN").Letters.First().StartBaseLine.X : 72D;
+            ? TabMarkerStart(page, "CELLORIGIN").StartBaseLine.X : 72D;
         double authoredStop = frameOrigin + tabStopTwips / 20D;
-        Assert.InRange(after.Letters.First().StartBaseLine.X, authoredStop - .1D, authoredStop + .1D);
+        Assert.InRange(after.StartBaseLine.X, authoredStop - .1D, authoredStop + .1D);
         // Both declared stops are behind the second-line cursor. The default
         // 36pt interval applies from that line's 36pt-indented text frame.
-        Assert.InRange(later.Letters.First().StartBaseLine.X, frameOrigin + 71.9D, frameOrigin + 72.1D);
-        Assert.True(later.Letters.First().StartBaseLine.Y < after.Letters.First().StartBaseLine.Y);
+        Assert.InRange(later.StartBaseLine.X, frameOrigin + 71.9D, frameOrigin + 72.1D);
+        Assert.True(later.StartBaseLine.Y < after.StartBaseLine.Y);
     }
 
     [Theory]
@@ -147,6 +147,16 @@ public sealed class WordPdfReportedTabTests {
         Assert.InRange(anchor, authoredStop - .1D, authoredStop + .1D);
         Assert.Equal(prefix.Letters.First().StartBaseLine.Y, lastWord.Letters.First().StartBaseLine.Y, 3);
         Assert.True(followingLine.Letters.First().StartBaseLine.Y < firstWord.Letters.First().StartBaseLine.Y);
+    }
+
+    // Tight tab geometry need not produce a boundary in a reader's word heuristic.
+    // These fixtures use ASCII markers; locate their painted letters directly.
+    private static UglyToad.PdfPig.Content.Letter TabMarkerStart(UglyToad.PdfPig.Content.Page page, string marker) {
+        var starts = Enumerable.Range(0, page.Letters.Count).Where(index =>
+            string.Concat(page.Letters.Skip(index).Take(marker.Length).Select(letter => letter.Value)) == marker);
+        var letters = page.Letters.Skip(Assert.Single(starts)).Take(marker.Length).ToArray();
+        Assert.All(letters, letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
+        return letters[0];
     }
 
     private static W.Run TabRun(string text, params OpenXmlElement[] following) {

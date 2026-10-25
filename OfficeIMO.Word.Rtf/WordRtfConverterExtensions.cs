@@ -86,7 +86,6 @@ public static partial class WordRtfConverterExtensions {
         RtfHeaderFooter destination = addDestination(kind);
         foreach (WordParagraph wordParagraph in source.Paragraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First())) {
             RtfParagraph paragraph = destination.AddParagraph();
-            CopyTabStops(wordParagraph, paragraph);
             CopyParagraphFormatting(wordParagraph, paragraph, rtf);
             AppendFormattedRuns(wordParagraph, paragraph, rtf, revisionAuthorIndexes);
         }
@@ -94,6 +93,9 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopyTabStops(WordParagraph source, RtfParagraph destination) {
         foreach (WordTabStop tabStop in source.TabStops) {
+            // RTF has no corresponding clear-stop declaration in this model;
+            // conversion diagnostics report the unsupported source control.
+            if (tabStop.Alignment == WordTabAlignment.Clear) continue;
             destination.AddTabStop(tabStop.Position, ToRtfTabAlignment(tabStop.Alignment.ToOpenXml()), ToRtfTabLeader(tabStop.Leader.ToOpenXml()));
         }
     }
@@ -751,48 +753,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static bool AppendWordRun(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, RtfRevisionKind revisionKind = RtfRevisionKind.None, int? revisionAuthorIndex = null) {
-        if (wordRun.Break != null) {
-            paragraph.AddBreak(ToRtfBreakKind(wordRun.Break.BreakType.ToOpenXml()));
-            previousRun = null;
-            return true;
-        }
-
-        if (wordRun.FootNote != null) {
-            RtfNote note = CopyNote(wordRun.FootNote.Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes);
-            if (previousRun != null) {
-                previousRun.Note = note;
-            } else {
-                paragraph.AddNoteReference(note);
-            }
-
-            return previousRun == null;
-        }
-
-        if (wordRun.EndNote != null) {
-            RtfNote note = CopyNote(wordRun.EndNote.Paragraphs, RtfNoteKind.Endnote, rtfDocument, revisionAuthorIndexes);
-            if (previousRun != null) {
-                previousRun.Note = note;
-            } else {
-                paragraph.AddNoteReference(note);
-            }
-
-            return previousRun == null;
-        }
-
-        bool appendedImage = false;
-        foreach (WordImage wordImage in wordRun.EnumerateImages()) {
-            RtfImage? image = CreateRtfImage(wordImage, out _, out _);
-            if (image == null) continue;
-            CopyImage(image, paragraph.AddImage(image.Format, image.Data));
-            appendedImage = true;
-        }
-        if (wordRun.IsImage) {
-            if (!appendedImage) return false;
-            previousRun = null;
-            return true;
-        }
-
+    private static bool AppendWordRunText(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, RtfRevisionKind revisionKind, int? revisionAuthorIndex) {
         string? text = GetWordRunText(wordRun, revisionKind);
         if (string.IsNullOrEmpty(text)) {
             return false;
@@ -819,7 +780,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         var builder = new StringBuilder();
-        foreach (OpenXmlElement child in wordRun._run.ChildElements) {
+        foreach (OpenXmlElement child in wordRun._visibleRunSourceChildren ?? wordRun._run.ChildElements) {
             switch (child) {
                 case Text text:
                     builder.Append(text.Text);
@@ -862,19 +823,39 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AppendParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = document.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
     private static void AppendParagraph(WordHeaderFooter headerFooter, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = headerFooter.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }
 
-    private static void ApplyTabStops(WordParagraph destination, RtfParagraph source) {
+    private static void ApplyTabStops(WordParagraph destination, RtfParagraph source, RtfDocument document) {
+        if (source.StyleId.HasValue && HasRtfStyle(document, source.StyleId.Value, RtfStyleKind.Paragraph)) {
+            // Word merges tabs along the retained style chain, while an RTF
+            // tab list replaces that chain's list. Inventory declarations, not
+            // only the effective nearest style, so an ancestor cannot add ink
+            // or move a tab absent from the effective RTF paragraph.
+            var activePositions = new HashSet<int>(source.TabStops.Select(stop => stop.PositionTwips));
+            var visitedStyles = new HashSet<int>();
+            var clearedPositions = new HashSet<int>();
+            int? styleId = source.StyleId;
+            while (styleId.HasValue && visitedStyles.Add(styleId.Value)) {
+                RtfStyle? style = document.Styles.LastOrDefault(item =>
+                    item.Id == styleId.Value && item.Kind == RtfStyleKind.Paragraph);
+                if (style == null) break;
+                foreach (RtfTabStop tabStop in style.TabStops) {
+                    int position = tabStop.PositionTwips;
+                    if (!activePositions.Contains(position) && clearedPositions.Add(position)) {
+                        destination.AddTabStop(position, WordTabAlignment.Clear);
+                    }
+                }
+                styleId = style.BasedOnStyleId;
+            }
+        }
         foreach (RtfTabStop tabStop in source.TabStops) {
             destination.AddTabStop(tabStop.PositionTwips, ToWordTabAlignment(tabStop.Alignment).ToOfficeEnum(), ToWordTabLeader(tabStop.Leader).ToOfficeEnum());
         }
@@ -1111,63 +1092,6 @@ public static partial class WordRtfConverterExtensions {
         if (openBookmarks.TryGetValue(marker.Name, out string? bookmarkId)) {
             wordParagraph._paragraph.Append(new BookmarkEnd { Id = bookmarkId });
             openBookmarks.Remove(marker.Name);
-        }
-    }
-
-    private static void AppendNote(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
-        if (note.Kind == RtfNoteKind.Annotation) {
-            AppendAnnotationComment(wordRun, note, rtfDocument, numbering);
-            return;
-        }
-
-        if (note.Kind != RtfNoteKind.Footnote && note.Kind != RtfNoteKind.Endnote) {
-            return;
-        }
-
-        RtfParagraph? firstParagraph = note.Paragraphs.FirstOrDefault();
-        WordParagraph noteParagraph = firstParagraph != null
-            ? CreateDetachedWordParagraph(wordRun._document, firstParagraph, rtfDocument, numbering)
-            : new WordParagraph(wordRun._document, newParagraph: true, newRun: true);
-        WordParagraph referenceRun = note.Kind == RtfNoteKind.Endnote
-            ? WordEndNote.AddEndNote(wordRun._document, wordRun, noteParagraph)
-            : WordFootNote.AddFootNote(wordRun._document, wordRun, noteParagraph);
-        AppendAdditionalNoteParagraphs(referenceRun, note, rtfDocument, numbering);
-    }
-
-    private static WordParagraph CreateDetachedWordParagraph(WordDocument document, RtfParagraph paragraph, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
-        var wordParagraph = new WordParagraph(document, newParagraph: true, newRun: false);
-        if (rtfDocument != null) {
-            ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
-        }
-
-        AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
-        return wordParagraph;
-    }
-
-    private static void AppendAdditionalNoteParagraphs(WordParagraph referenceRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
-        if (note.Paragraphs.Count <= 1) {
-            return;
-        }
-
-        long? referenceId = note.Kind == RtfNoteKind.Endnote
-            ? referenceRun.EndNote?.ReferenceId
-            : referenceRun.FootNote?.ReferenceId;
-        if (!referenceId.HasValue) {
-            return;
-        }
-
-        OpenXmlCompositeElement? noteElement = note.Kind == RtfNoteKind.Endnote
-            ? referenceRun._document._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
-                .ChildElements.OfType<Endnote>()
-                .FirstOrDefault(item => item.Id?.Value == referenceId.Value)
-            : referenceRun._document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
-                .ChildElements.OfType<Footnote>()
-                .FirstOrDefault(item => item.Id?.Value == referenceId.Value);
-        if (noteElement == null) return;
-
-        foreach (RtfParagraph paragraph in note.Paragraphs.Skip(1)) {
-            WordParagraph wordParagraph = CreateDetachedWordParagraph(referenceRun._document, paragraph, rtfDocument, numbering);
-            noteElement.Append(wordParagraph._paragraph);
         }
     }
 

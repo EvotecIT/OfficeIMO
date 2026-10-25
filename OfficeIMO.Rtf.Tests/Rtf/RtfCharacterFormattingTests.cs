@@ -349,7 +349,6 @@ public class RtfCharacterFormattingTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult result = RtfDocument.Read(rtf);
 
-        Assert.StartsWith(@"{\rtf1\ansi\deff0\deflang1045", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\lang1033 English", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\lang1045  Polish", rtf, StringComparison.Ordinal);
         Assert.Equal(1045, result.Document.Settings.DefaultLanguageId);

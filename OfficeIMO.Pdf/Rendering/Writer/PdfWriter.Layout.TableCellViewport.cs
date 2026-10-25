@@ -135,8 +135,11 @@ internal static partial class PdfWriter {
             else if (lineAlignment == PdfAlign.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
             GetRichLineInkMetrics(line, options, out double ascender, out double descender);
             if (clipWidth <= 0D || clipHeight <= 0D || lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
-                inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight)
-                lines[index] = new List<RichSeg>();
+                inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight) {
+                // Omitting glyph ink does not omit independent paragraph rules.
+                // The rule painter retains its actual cell clip and interval.
+                lines[index] = line is RichLine rich ? rich.CopyPlacement() : new List<RichSeg>();
+            }
             lineY -= index < heights.Count ? heights[index] : leading;
         }
     }

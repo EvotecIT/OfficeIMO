@@ -170,6 +170,28 @@ public class PdfInlineElementTests {
     }
 
     [Fact]
+    public void RichParagraph_CollapsedSpaceRetainsTabBeforeInlineElement() {
+        const double margin = 20D, stop = 72D;
+        var fill = new PdfColor(0.17D, 0.61D, 0.83D);
+        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
+        style.AddTabStop(stop, leader: PdfTabLeaderStyle.Dots);
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+            PageWidth = 240D, MarginLeft = margin, MarginRight = margin,
+            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D, CompressContentStreams = false
+        }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(18, 12, background: fill), style: style)
+            .ToBytes();
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var page = Assert.Single(pdf.GetPages());
+        var a = Assert.Single(page.Letters, letter => letter.Value == "A");
+        Assert.Contains(page.Letters, letter => letter.Value == ".");
+        double monospaceAdvance = a.EndBaseLine.X - a.StartBaseLine.X;
+        Assert.True(monospaceAdvance > 0D);
+        double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 18, 12);
+        Assert.Equal(margin + stop + monospaceAdvance, x, 2);
+    }
+
+    [Fact]
     public void TableShrinkToFit_PreservesInlineElementRuns() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         var fill = new PdfColor(0.19D, 0.63D, 0.87D);

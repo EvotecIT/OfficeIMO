@@ -78,7 +78,9 @@
       "OfficeIMO.Html.AngleSharp",
       "OfficeIMO.Html.Core",
       "OfficeIMO.Html.Pdf",
-      "OfficeIMO.Html.Rtf"
+      "OfficeIMO.Html.Rtf",
+      "OfficeIMO.Word.Pdf",
+      "OfficeIMO.PowerPoint.Pdf"
     ],
     "typography-package-consumers": [
       "OfficeIMO.Core",

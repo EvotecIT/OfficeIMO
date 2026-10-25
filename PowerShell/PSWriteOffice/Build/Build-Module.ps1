@@ -62,7 +62,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
 
     if ($IncludePackages) {
         New-ConfigurationProjectBuild -ConfigPath '../../Build/project.build.json' -BuildBeforeModule -UseAsReleaseVersionSource `
-            -SignAssemblies:$SignModule -SignPackages:$SignModule
+            -SignAssemblies:$SignModule -SignPackages:$SignModule -PublishNuget
         New-ConfigurationRelease -VersionSource ProjectBuild -PrimaryProject 'OfficeIMO.Word' -SynchronizeModuleVersion `
             -BuildOrder Packages, Module -PublishOrder NuGet, PowerShellGallery, GitHub -ResumeIncompleteRelease:$ResumeIncompleteRelease
     }

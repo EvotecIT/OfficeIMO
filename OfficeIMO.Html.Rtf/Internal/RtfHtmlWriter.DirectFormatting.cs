@@ -3,6 +3,7 @@ namespace OfficeIMO.Html;
 internal static partial class RtfHtmlWriter {
     private static void AppendParagraphDirectFormatting(StringBuilder builder, RtfParagraph source) {
         var values = new Dictionary<string, string> { ["version"] = "1" };
+        AddBool(values, "parsedParagraphDefaults", source.UseParsedParagraphDefaults);
         AddNullableInt(values, "ListId", source.ListId);
         AddNullableInt(values, "ListLevel", source.ListLevel);
         AddEnum(values, "DirectAlignment", source.DirectAlignment);

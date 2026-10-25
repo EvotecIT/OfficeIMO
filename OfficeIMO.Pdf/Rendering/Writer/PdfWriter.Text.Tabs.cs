@@ -40,6 +40,15 @@ internal static partial class PdfWriter {
         return false;
     }
 
+    // Paragraph stops are consumed in source order on each line. A signed
+    // cursor may move backwards without selecting an already consumed stop.
+    private static PdfTabStop? TakeNextParagraphTabStop(PdfTabStop[]? stops,
+        double cursor, ref int nextIndex) {
+        if (stops == null) return null;
+        while (nextIndex < stops.Length && (stops[nextIndex].Alignment == PdfTabAlignment.Bar ||
+            stops[nextIndex].Position <= cursor + .001D)) nextIndex++;
+        return nextIndex < stops.Length ? stops[nextIndex++] : null;
+    }
     private static PdfTabStop? GetNextExplicitTabStop(double lineWidth, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
         if (tabStops == null || tabStops.Count == 0 || lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth)) {
             return null;
@@ -48,7 +57,7 @@ internal static partial class PdfWriter {
         PdfTabStop? next = null;
         for (int i = 0; i < tabStops.Count; i++) {
             PdfTabStop tabStop = tabStops[i];
-            if (tabStop.Position <= lineWidth + 0.001D) {
+            if (tabStop.Alignment == PdfTabAlignment.Bar || tabStop.Position <= lineWidth + 0.001D) {
                 continue;
             }
 
@@ -146,6 +155,12 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, advance);
     }
 
+    // A short effective gap can select a leader without painting any glyphs.
+    // Keep line metrics on exactly the same decision as the painter.
+    private static bool HasPaintedRichTabLeader(RichSeg segment, PdfOptions? options) =>
+        segment.LeadingSpace && segment.LeadingIsTab &&
+        segment.LeadingTabLeader != PdfTabLeaderStyle.None &&
+        BuildTabLeaderText(segment.LeadingAdvance, segment, options ?? new PdfOptions()).Length > 0;
     private const int MaxTabLeaderGlyphCount = 4_096;
 
     private static string BuildTabLeaderText(double gap, RichSeg segment, PdfOptions options) {

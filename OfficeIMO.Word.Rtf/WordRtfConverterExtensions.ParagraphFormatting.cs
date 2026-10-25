@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphFormatting(WordParagraph source, RtfParagraph destination, RtfDocument document) {
         CopyParagraphStyleAndNumbering(source, destination, document);
+        CopyTabStops(source, destination);
         CopyParagraphLayout(source, destination);
 
         string shading = source.ShadingFillColorHex;
@@ -45,8 +46,11 @@ public static partial class WordRtfConverterExtensions {
 
     private static void ApplyParagraphFormatting(WordParagraph destination, RtfParagraph source, RtfDocument document, RtfWordNumberingPlan numbering) {
         int? projectedNumberId = numbering.GetNumberId(source);
-        if (document.Styles.Count > 0) source = document.GetParagraphFormatting(source);
+        source = document.GetParagraphFormatting(source);
         ApplyParagraphStyleAndNumbering(destination, source, document, projectedNumberId);
+        // The common formatting path receives effective style tabs, including
+        // paragraphs in tables, notes and running stories.
+        ApplyTabStops(destination, source, document);
         ApplyParagraphLayout(destination, source);
 
         if (source.BackgroundColorIndex.HasValue) {

@@ -15,11 +15,22 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph? nextParagraph) {
         if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after)) return false;
 
+        // Splitting can leave no renderable fragment. Diagnose the authored frame
+        // once, then keep its synthetic fragments out of the diagnostic count.
+        if (options != null) {
+            RecordNativeParagraphFrameDiagnostics(paragraph, options, "body paragraph");
+            RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph",
+                omitted: before == null && after == null);
+        }
         if (HasNativePageBreakBefore(paragraph)) pdf.PageBreak();
         if (paragraph._paragraph != null && string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
             headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
         while (true) {
             if (before != null) {
+                if (before._paragraph != null) {
+                    options?.DiagnosedFrameParagraphs.Add(before._paragraph);
+                    options?.DiagnosedBarTabElements.Add(before._paragraph);
+                }
                 before.PageBreakBeforeOverride = false;
                 before.KeepWithNextOverride = false;
                 before.LineSpacingAfterPoints = 0;
@@ -40,6 +51,10 @@ public static partial class WordPdfConverterExtensions {
                 after = new WordParagraph(paragraph._document, mark);
             }
             if (after == null) return true;
+            if (after._paragraph != null) {
+                options?.DiagnosedFrameParagraphs.Add(after._paragraph);
+                options?.DiagnosedBarTabElements.Add(after._paragraph);
+            }
             after.PageBreakBeforeOverride = false;
             after.LineSpacingBeforePoints = 0;
             W.ParagraphProperties properties = after._paragraph!.ParagraphProperties ??= new W.ParagraphProperties();

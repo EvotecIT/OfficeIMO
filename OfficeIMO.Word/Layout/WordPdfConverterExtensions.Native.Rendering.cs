@@ -91,6 +91,7 @@ namespace OfficeIMO.Word.Pdf {
             // A formatted section terminator is editable metadata, not a separate blank body line.
             if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) {
                 if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "section terminator", omitted: true);
                 return;
             }
 
@@ -127,7 +128,10 @@ namespace OfficeIMO.Word.Pdf {
             if (textBoxes.Count > 0) {
                 RenderNativeSmartArt(pdf, smartArtDrawings, ResolveNativeParagraphAlign(paragraph, allowJustify: false));
                 if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
-                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
+                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) {
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "anchored text-box paragraph");
+                    return;
+                }
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;
@@ -197,6 +201,7 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphFootnoteNumbers.Count == 0 &&
                 IsNativeHorizontalRuleParagraph(paragraph, runs, renderContent) &&
                 CreateNativeHorizontalRuleStyle(paragraph, style) is { } horizontalRuleStyle) {
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "horizontal-rule paragraph", omitted: true);
                 pdf.HR(style: horizontalRuleStyle);
                 return;
             }
@@ -206,8 +211,10 @@ namespace OfficeIMO.Word.Pdf {
                 // A flow object already occupies this paragraph's line. A real empty
                 // paragraph following it still contributes its own visible mark.
                 if (renderedFlowObject || renderedChart) {
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "object-only paragraph", omitted: true);
                     return;
                 }
+                RecordNativeParagraphBarTabDiagnostics(paragraph, options, "empty paragraph");
                 RenderNativeEmptyParagraph(
                     pdf,
                     paragraph,
@@ -217,6 +224,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph");
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
@@ -305,6 +313,8 @@ namespace OfficeIMO.Word.Pdf {
                 // A hidden mark contributes neither a line nor its paragraph spacing.
                 return;
             }
+
+            if (TryRenderNativeBarEmptyParagraph(pdf, paragraph, style, nativeDefaults, nativeFontMap)) return;
 
             double height = MeasureNativeEmptyParagraphLineHeight(
                 paragraph,
@@ -593,6 +603,9 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image, WordToPdfOptions? options) {
             if (!TryPrepareNativeBodyImage(image, options, "table cell image", out byte[] preparedBytes)) return;
 
+            if (image._Image != null && HasNativeImageTextWrap(image._Image))
+                RecordNativeImageWrapApproximation(options, image._Image, "table cell image",
+                    "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             images.Add(new PdfCore.PdfTableCellImage(preparedBytes, width, height, CreateNativeImageStyle()));
@@ -670,7 +683,8 @@ namespace OfficeIMO.Word.Pdf {
 
             int bodyRunStart = builder.CurrentRuns.Count;
             var emittedNoteTokens = new HashSet<int>();
-            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
+                .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
             int tabIndex = 0;
             bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             var inlineControls = new NativeInlineContentControlProjection(tableCell: false);
@@ -904,6 +918,7 @@ namespace OfficeIMO.Word.Pdf {
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
                     PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "text-box paragraph");
                     if (getMarker(paragraph) is { } paragraphMarker) {
                         ApplyNativeInlineListIndent(paragraph, paragraphStyle);
                         ApplyNativeInlineListMarkerAlignment(paragraph, paragraphMarker.Marker, paragraphStyle, nativeDefaults, nativeFontMap);
@@ -1103,6 +1118,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = paragraphStyle.SpacingAfter;
             }
 
+            // Headings currently use the containing margin as their text frame;
+            // retain the source origin rather than the paragraph's unused indent.
+            foreach (PdfCore.PdfTabStop stop in ResolveNativeParagraphTabStops(paragraph, 0D, 0D)
+                .Where(stop => stop.Alignment == PdfCore.PdfTabAlignment.Bar))
+                style.TabStops.Add(stop);
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
             foreach (string family in ResolveNativeParagraphStyleFontFamilies(paragraph._document, paragraph.StyleId)) {
                 if (nativeFontMap.TryGetNamedFontFamily(family, out string? registeredHeadingFamily)) {

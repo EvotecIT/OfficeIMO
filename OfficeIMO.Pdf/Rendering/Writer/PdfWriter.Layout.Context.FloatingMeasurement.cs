@@ -43,6 +43,8 @@ internal static partial class PdfWriter {
 
         private double MeasureFloatingParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool firstVisualOnly = false) {
             var style = EffectiveParagraphStyle(paragraph);
+            if (HasParagraphPictures(style) || HasPictureExclusions)
+                return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly);
             fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(style, fontSize);
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));

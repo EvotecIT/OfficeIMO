@@ -344,55 +344,54 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {
-            W.Tabs? directTabs = paragraph._paragraphProperties?.Tabs;
-            if (directTabs != null) {
-                WordTabStop[] directTabStops = directTabs.Elements<W.TabStop>()
-                    .Take(MaxNativeParagraphTabStops)
-                    .Select(tabStop => new WordTabStop(paragraph, tabStop))
-                    .ToArray();
-                if (directTabStops.Length > 0) {
-                    return directTabStops;
+        private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph,
+            W.Tabs? numberingTabs = null) {
+            numberingTabs ??= WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
+            var tabStops = new Dictionary<int, WordTabStop>();
+            int inspectedTabStops = 0;
+            // Word tab lists compose across the hierarchy. Visit the most
+            // specific declaration first, including clears that mask ancestors.
+            AddTabs(paragraph._paragraphProperties?.Tabs);
+            bool hasDirectNumbering = paragraph._paragraphProperties?.NumberingProperties is W.NumberingProperties directNumbering
+                && (directNumbering.NumberingId?.Val?.Value is > 0
+                    || directNumbering.NumberingLevelReference?.Val?.Value is >= 0);
+            // A directly applied numbering definition precedes paragraph styles;
+            // style-inherited numbering remains below the style declarations.
+            if (hasDirectNumbering) AddTabs(numberingTabs);
+            foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Reverse()) {
+                if (inspectedTabStops >= MaxNativeParagraphTabStops) {
+                    break;
                 }
+
+                AddTabs(style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>());
             }
 
-            var styleTabStops = new Dictionary<int, WordTabStop>();
-            int inspectedStyleTabStops = 0;
-            foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Reverse()) {
-                W.Tabs? tabs = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>();
+            if (!hasDirectNumbering) AddTabs(numberingTabs);
+            AddTabs(paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
+                .Styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
+            return tabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
+
+            void AddTabs(W.Tabs? tabs) {
                 if (tabs == null) {
-                    continue;
+                    return;
                 }
 
                 foreach (W.TabStop tabStop in tabs.Elements<W.TabStop>()) {
-                    if (inspectedStyleTabStops >= MaxNativeParagraphTabStops) {
+                    if (inspectedTabStops >= MaxNativeParagraphTabStops) {
                         break;
                     }
 
-                    inspectedStyleTabStops++;
-                    WordTabStop wordTabStop = new WordTabStop(paragraph, (W.TabStop)tabStop.CloneNode(true));
-                    if (wordTabStop.Position <= 0 || !IsNativeRenderableTextTabStop(wordTabStop.Alignment)) {
+                    inspectedTabStops++;
+                    if (tabStop.Position == null) {
                         continue;
                     }
 
-                    if (!styleTabStops.ContainsKey(wordTabStop.Position)) {
-                        styleTabStops.Add(wordTabStop.Position, wordTabStop);
-                    }
-                    if (styleTabStops.Count >= MaxNativeParagraphTabStops) {
-                        break;
+                    WordTabStop wordTabStop = new WordTabStop(paragraph, (W.TabStop)tabStop.CloneNode(true));
+                    if (!tabStops.ContainsKey(wordTabStop.Position)) {
+                        tabStops.Add(wordTabStop.Position, wordTabStop);
                     }
                 }
-
-                if (inspectedStyleTabStops >= MaxNativeParagraphTabStops) {
-                    break;
-                }
             }
-
-            if (styleTabStops.Count == 0) {
-                return Array.Empty<WordTabStop>();
-            }
-
-            return styleTabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
         }
 
         private static bool IsNativeParagraphStyle(W.Style style) {

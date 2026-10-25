@@ -80,7 +80,7 @@ public static partial class WordRtfConverterExtensions {
         document.RtlGutter = rtfDocument.PageSetup.RtlGutter;
         ApplyPageNumbering(rtfDocument.PageSetup, document.Sections[0]);
         ApplyPageBorders(rtfDocument.PageSetup.PageBorders, document.Sections[0], rtfDocument);
-        ApplyNoteSettings(rtfDocument.NoteSettings, document.Sections[0]);
+        ApplyNoteSettings(RtfNoteProjection.Resolve(rtfDocument).Settings, document.Sections[0]);
     }
 
     private static int? ToInt32(UInt32Value? value) {
