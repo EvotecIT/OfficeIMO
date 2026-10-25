@@ -85,18 +85,34 @@ internal sealed class OfficeOpenTypeTracking {
         return _adjustments[lower] + (_adjustments[upper] - _adjustments[lower]) * weight;
     }
 
-    // Place one advance at the edge of each shaped grapheme, including a ligature's single cluster.
+    // Place one advance at the edge of each visible shaped grapheme, including
+    // a ligature's single cluster. Retained source-only controls are not glyph
+    // spacing opportunities; visible zero-advance marks and spaces still are.
     internal static bool[] GetBoundaries(string text, IReadOnlyList<int> indexes, bool negative = false) {
         int[] starts = StringInfo.ParseCombiningCharacters(text);
+        var visible = new bool[starts.Length];
+        for (int cluster = 0; cluster < starts.Length; cluster++) {
+            int end = cluster + 1 < starts.Length ? starts[cluster + 1] : text.Length;
+            for (int at = starts[cluster]; at < end;) {
+                char first = text[at++];
+                int scalar = char.IsHighSurrogate(first) && at < end && char.IsLowSurrogate(text[at])
+                    ? char.ConvertToUtf32(first, text[at++]) : first;
+                if (!OfficeManagedTextShaper.IsNonPaintingControl(scalar)) { visible[cluster] = true; break; }
+            }
+        }
         var clusters = new int[indexes.Count];
         for (int index = 0; index < indexes.Count; index++) {
             int cluster = Array.BinarySearch(starts, indexes[index]);
             clusters[index] = cluster < 0 ? ~cluster - 1 : cluster;
         }
         var boundaries = new bool[indexes.Count];
-        for (int index = 0; index < indexes.Count; index++) {
-            int adjacent = negative ? index - 1 : index + 1;
-            boundaries[index] = adjacent < 0 || adjacent >= indexes.Count || clusters[index] != clusters[adjacent];
+        int adjacent = -1;
+        for (int offset = 0; offset < indexes.Count; offset++) {
+            int index = negative ? offset : indexes.Count - offset - 1;
+            int cluster = clusters[index];
+            if (cluster < 0 || !visible[cluster]) continue;
+            boundaries[index] = cluster != adjacent;
+            adjacent = cluster;
         }
         return boundaries;
     }

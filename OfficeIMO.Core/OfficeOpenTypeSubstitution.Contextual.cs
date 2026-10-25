@@ -46,7 +46,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return true;
     }
 
-    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges = true) {
+    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges = true,
+        OfficeOpenTypeGlyphFilter? glyphFilter = null, int inheritedFlags = -1) {
         cancellationToken.ThrowIfCancellationRequested();
         if (depth >= MaximumLookupRecursion || ++inspections > MaximumPreflightInspections) return false;
         Ensure(_lookupList, 2);
@@ -56,7 +57,16 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int lookup = Relative(_lookupList, _reader.ReadUInt16(_lookupList + 2 + lookupIndex * 2), 6);
         int lookupType = _reader.ReadUInt16(lookup);
         int lookupFlags = _reader.ReadUInt16(lookup + 2);
-        if ((lookupFlags & 0xFF1E) != 0 || lookupType < 1 || lookupType > 8) return false;
+        if (lookupType < 1 || lookupType > 8) return false;
+        if (glyphFilter == null) {
+            if ((lookupFlags & 0xFF1E) != 0) return false;
+        } else {
+            int set = (lookupFlags & 0x10) != 0
+                ? _reader.ReadUInt16(lookup + 6 + _reader.ReadUInt16(lookup + 4) * 2) : -1;
+            if (!glyphFilter.SupportsFlags((ushort)lookupFlags, set)
+                || inheritedFlags >= 0 && ((lookupFlags & 0xFF1E) != (inheritedFlags & 0xFF1E)
+                    || (lookupFlags & 0x10) != 0)) return false;
+        }
         int subtableCount = _reader.ReadUInt16(lookup + 4);
         if (subtableCount > MaximumSubtablesPerLookup) return false;
         Ensure(lookup + 6, checked(subtableCount * 2));
@@ -74,17 +84,22 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 subtable = Relative(subtable, (int)relative, 2);
             }
             if (effectiveType < 1 || effectiveType > 8 || effectiveType == 7) return false;
+            int format = _reader.ReadUInt16(subtable);
+            if (effectiveType == 1 && format != 1 && format != 2 ||
+                effectiveType is 2 or 3 or 4 && format != 1) return false;
             if (!allowGlyphCountChanges && (effectiveType == 2 || effectiveType == 4)) return false;
             if (effectiveType == 8 && (depth > 0 || subtableCount != 1)) return false;
             if ((effectiveType == 5 || effectiveType == 6) && _reader.ReadUInt16(subtable) != 3) return false;
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
             if ((effectiveType == 5 || effectiveType == 6)
-                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, cancellationToken, allowGlyphCountChanges)) return false;
+                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, cancellationToken, allowGlyphCountChanges,
+                    glyphFilter, lookupFlags)) return false;
         }
         return true;
     }
 
-    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges) {
+    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, CancellationToken cancellationToken,
+        bool allowGlyphCountChanges, OfficeOpenTypeGlyphFilter? glyphFilter = null, int inheritedFlags = -1) {
         int records;
         int recordCount;
         int inputGlyphCount;
@@ -122,7 +137,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             // Later records address original input slots. Until slot tracking is supported,
             // decline any earlier record (including nested contexts) that can change their positions.
             if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections, cancellationToken,
-                allowGlyphCountChanges && record == recordCount - 1)) return false;
+                allowGlyphCountChanges && record == recordCount - 1, glyphFilter, inheritedFlags)) return false;
         }
         return true;
     }
@@ -151,7 +166,9 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (glyphId <= 0 || glyphId >= _reader.GlyphCount) return 0;
             replacements[replacementIndex] = replacementIndex == 0
                 ? source.WithGlyph(glyphId)
-                : new GlyphToken(glyphId, string.Empty, source.TextIndex, source.Scalar, isUnicodeContinuation: true, clusterStart: source.ClusterStart);
+                : new GlyphToken(glyphId, string.Empty, source.TextIndex, source.Scalar, isUnicodeContinuation: true, clusterStart: source.ClusterStart,
+                    ligatureComponentTextIndexes: source.LigatureComponentTextIndexes, ligatureIdentity: source.LigatureIdentity,
+                    ligatureComponent: source.LigatureComponent, lookupOrder: source.LookupOrder, lookupIdentity: source.LookupIdentity);
         }
         glyphs.RemoveAt(index);
         glyphs.InsertRange(index, replacements);

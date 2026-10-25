@@ -1,0 +1,6127 @@
+{
+  "schema": "officeimo.html.page-margin-box-sizing-qualification/v1",
+  "capturedUtc": "2026-10-22T19:42:17.575236+00:00",
+  "qualified": true,
+  "milestone": "Horizontal page-margin numeric box-sizing",
+  "contract": "Generated content-box/default and border-box numeric width/height/min/max use selected CSS edges, zero content floors, minimum precedence and existing intrinsic-content measurements. Cascade/custom properties/explicit inheritance, signed margins and running-content clips retain shared owners; no public API or runtime dependency introduction.",
+  "source": {
+    "qualifiedProductionHead": "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+    "productionSeal": {
+      "path": "$TASK_ROOT/source-seal-fc0a55f.json",
+      "bytes": 12219858,
+      "sha256": "d3f99b615d20817149fed9f4445614b80f47f108fb4fa6584a77db661b027f60"
+    },
+    "trackedInputs": 58513,
+    "baseMaster": "799b2bd0d0004640b54bebce33ba1fec537f6c9d",
+    "previousQualifiedHeightCheckpoint": "f3a9e4145960000c87117d4c1eda68af01418e17",
+    "currentMasterAdoption": {
+      "utc": "2026-10-22T19:34:53.493669+00:00",
+      "qualifiedProductionHead": "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+      "adoptedMaster": "ac86c4b65919a110fb3a723a5bad3afc44912a4b",
+      "compositionHead": "bb2de750a91e4d517ca6acae9a0fe86645f8dee7",
+      "changedFiles": [
+        "OfficeIMO.Markup.VSCode/package-lock.json"
+      ],
+      "trackedFilesReverified": 58513,
+      "unchangedQualifiedInputs": 58512,
+      "allDotnetProductTestBuildPackageFontAndRuntimeInputsUnchanged": true,
+      "compositionSourceSeal": {
+        "path": "$TASK_ROOT/source-seal-bb2de75.json",
+        "bytes": 12219858,
+        "sha256": "af6801c9f1f6be89b43c99b5508e937f72edb73d2d66647276c1c554f6ed8855"
+      },
+      "runtimeProofBinding": "All actual tests/source/Edge/packages/NativeAOT retain originalfc0a55f producer bindings. Composition changes only one unrelatedVSCodeJSdependencylock; no fresh runtime claim or duplicate qualification."
+    },
+    "productionAndTestFiles": [
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs",
+        "blob": "3c105ddc23eb992edfa12dc4415824481e9c80ef",
+        "currentBlob": "3c105ddc23eb992edfa12dc4415824481e9c80ef"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs",
+        "blob": "c9dc3aa599cf86fc4539ba0c35aa40d4429f8031",
+        "currentBlob": "c9dc3aa599cf86fc4539ba0c35aa40d4429f8031"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs",
+        "blob": "1dd85721e8800eeecedaf5b52de9572b762bc36a",
+        "currentBlob": "1dd85721e8800eeecedaf5b52de9572b762bc36a"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginBoxSizing.cs",
+        "blob": "f32bdfb079e1158d425a93dfa4c710534b4fe11f",
+        "currentBlob": "f32bdfb079e1158d425a93dfa4c710534b4fe11f"
+      }
+    ]
+  },
+  "validation": {
+    "sourceTests": [
+      {
+        "role": "focused-box-sizing-v2",
+        "counters": {
+          "total": "189",
+          "executed": "189",
+          "passed": "189",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "$TASK_ROOT/trx/focused-box-sizing-v2.trx",
+          "bytes": 302933,
+          "sha256": "86e950b51a08497b00ff1202e565914c6476cb0a5e1a4d543252b200c74f1903"
+        },
+        "execution": {
+          "path": "$TASK_ROOT/focused-box-sizing-v2-execution.json",
+          "bytes": 1983,
+          "sha256": "522d77fa98eeea684c8bf875e2f7410723fdf5894d533b94d36d8332d3065293"
+        }
+      },
+      {
+        "role": "full-html-net8",
+        "counters": {
+          "total": "7875",
+          "executed": "7875",
+          "passed": "7875",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "$TASK_ROOT/trx/full-html-net8.trx",
+          "bytes": 11933613,
+          "sha256": "04d8f7386e6ea2827e049ec1e2a78d62d049c77e0221341246ece801a15943b9"
+        },
+        "execution": {
+          "path": "$TASK_ROOT/full-html-net8-execution.json",
+          "bytes": 1716,
+          "sha256": "931591ddd8bdd4559f57809343074ed668c5c8fec937801ccc56f9196fb9ca48"
+        }
+      },
+      {
+        "role": "full-html-net10",
+        "counters": {
+          "total": "7875",
+          "executed": "7875",
+          "passed": "7875",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "trx": {
+          "path": "$TASK_ROOT/trx/full-html-net10.trx",
+          "bytes": 11949364,
+          "sha256": "a975f43e91c16b08350b06dd7c1baf326061adfa7c7731127db18fe5fc95427d"
+        },
+        "execution": {
+          "path": "$TASK_ROOT/full-html-net10-execution.json",
+          "bytes": 1757,
+          "sha256": "867d9c9fb9ccf6004a3c0e9109a14f5ebc5fb88be4d8f46c9291e3f0f22ac0c8"
+        }
+      }
+    ],
+    "net472": {
+      "compileOnly": true,
+      "actualNativeWindowsExecution": false,
+      "execution": {
+        "path": "$TASK_ROOT/html-net472-compile-execution.json",
+        "bytes": 1542,
+        "sha256": "bec328d80c7d0290ee3203b4c5271a928eb2892e2795f459ca633104cf2dc458"
+      }
+    },
+    "sourceRendering": {
+      "encodedOwnPngEqualsSavedReopenedPdfPairs": 52,
+      "mainObservationsPerFramework": 20,
+      "priorControlObservationsPerFramework": 6,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "report": {
+        "path": "$TASK_ROOT/qualified/box-sizing-inspection-v3/report.json",
+        "bytes": 99742,
+        "sha256": "f3d042eaef44604aa7a676df34e79aa783d31fae8df1f2fd8fd63519e242242f"
+      },
+      "beforeReproduction": {
+        "producerHead": "f014ea9b04167f0a63561bce231f37a6345e41d3",
+        "summary": {
+          "path": "$TASK_ROOT/before/checkpoint-main/summary.json",
+          "bytes": 360572,
+          "sha256": "4f279e6a6243a21e98e7d6ef8896ffd13adb2b42aa4c720ca9c918df37c0e86b"
+        },
+        "mismatchedFrames": 30,
+        "examples": [
+          {
+            "fixture": "03-border-box-numeric",
+            "profile": "PrintPaged",
+            "label": "top",
+            "actualBefore": [
+              96,
+              13,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              20.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "03-border-box-numeric",
+            "profile": "PrintPaged",
+            "label": "bottom",
+            "actualBefore": [
+              96,
+              397,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              404.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "03-border-box-numeric",
+            "profile": "ScreenMediaPaged",
+            "label": "top",
+            "actualBefore": [
+              96,
+              13,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              20.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "03-border-box-numeric",
+            "profile": "ScreenMediaPaged",
+            "label": "bottom",
+            "actualBefore": [
+              96,
+              397,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              404.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "04-border-box-minimum",
+            "profile": "PrintPaged",
+            "label": "top",
+            "actualBefore": [
+              96,
+              13,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              20.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "04-border-box-minimum",
+            "profile": "PrintPaged",
+            "label": "bottom",
+            "actualBefore": [
+              96,
+              397,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              404.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "04-border-box-minimum",
+            "profile": "ScreenMediaPaged",
+            "label": "top",
+            "actualBefore": [
+              96,
+              13,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              20.0,
+              150,
+              56
+            ]
+          },
+          {
+            "fixture": "04-border-box-minimum",
+            "profile": "ScreenMediaPaged",
+            "label": "bottom",
+            "actualBefore": [
+              96,
+              397,
+              168,
+              70
+            ],
+            "expected": [
+              105.0,
+              404.0,
+              150,
+              56
+            ]
+          }
+        ]
+      },
+      "priorControls": [
+        {
+          "lane": "net8",
+          "observations": 6,
+          "sameFrameworkPriorDecodedPixelsSceneDrawingTextSavedSpansAndDiagnosticsExact": true,
+          "original": {
+            "path": "$PRIOR_HEIGHT_ROOT/qualified/net8/summary.json",
+            "bytes": 427944,
+            "sha256": "f72cc53209128349a47181dfa37a4b8e3d6c3a0abcbc5252766e0d496ed90f80"
+          },
+          "current": {
+            "summary": {
+              "path": "$TASK_ROOT/qualified/prior-controls-net8/summary.json",
+              "bytes": 112720,
+              "sha256": "721ff654fd3acc1d0c03ed6eb7c379d0f1e3f803bff0f46df57bd087586ff3a2"
+            },
+            "build": {
+              "path": "$TASK_ROOT/candidate-observer-net8-build-execution.json",
+              "bytes": 1819,
+              "sha256": "6fe954afefc4ae04af5dd945335c3f72dca033281fadc7948bdc3de4442a7d35"
+            },
+            "run": {
+              "path": "$TASK_ROOT/candidate-prior-controls-net8-run-execution.json",
+              "bytes": 1552,
+              "sha256": "29e29dda79a3e228290e5dd1363bc89c16be29b5b6187d061156a300050f2af3"
+            },
+            "observer": {
+              "path": "$TASK_ROOT/qualified/runtime/net8/PageMarginGeometrySourcenet8.dll",
+              "bytes": 68608,
+              "sha256": "4aa902f1296a863a209373b742ed0dc960d7bdbdde7a36c5702dae1ab95d5494"
+            }
+          }
+        },
+        {
+          "lane": "net10",
+          "observations": 6,
+          "sameFrameworkPriorDecodedPixelsSceneDrawingTextSavedSpansAndDiagnosticsExact": true,
+          "original": {
+            "path": "$PRIOR_HEIGHT_ROOT/qualified/net10/summary.json",
+            "bytes": 428057,
+            "sha256": "00660889777d7195cbc3506a6ef6de24279fafe1851734123511cd487afe32c8"
+          },
+          "current": {
+            "summary": {
+              "path": "$TASK_ROOT/qualified/prior-controls-net10/summary.json",
+              "bytes": 112753,
+              "sha256": "ab2082d686ee487075b2d2273ee08e003d4bf0f3cc21f9f2792e52fd3dcc3998"
+            },
+            "build": {
+              "path": "$TASK_ROOT/candidate-observer-net10-build-execution.json",
+              "bytes": 1824,
+              "sha256": "8860c0909c569d4223ad94b3aeeac94bfa7fc4318375f4a5fe25390141272e60"
+            },
+            "run": {
+              "path": "$TASK_ROOT/candidate-prior-controls-net10-run-execution.json",
+              "bytes": 1556,
+              "sha256": "be3b3c04d9d8671211f2ecdc23bbae8cee82421f1bea6014fc55a9c3921d4aae"
+            },
+            "observer": {
+              "path": "$TASK_ROOT/qualified/runtime/net10/PageMarginGeometrySourcenet10.dll",
+              "bytes": 69120,
+              "sha256": "bbaa0bd73b2b4d2be0ee1ae17704cbfdb0539779117e552081f73ca1aecf9cb4"
+            }
+          }
+        }
+      ]
+    },
+    "nativeEdge": {
+      "actualPdfObservations": 20,
+      "actualPdfPages": 20,
+      "matchedObservations": 18,
+      "unmatchedObservations": 2,
+      "universalParity": false,
+      "measurement": {
+        "path": "$TASK_ROOT/prep/native-analysis-v2/native-measurements.json",
+        "bytes": 132369,
+        "sha256": "e1fe97883629f7b7cebb837904bb52c53fdce044e1b6af11fbaf0a2840751319"
+      },
+      "capture": {
+        "path": "$TASK_ROOT/native/execution.json",
+        "bytes": 153210,
+        "sha256": "718ff375ef2535931ac7917380b817c98ee199c9e237c1b6fece3d1c1cef64bf"
+      },
+      "font": [
+        {
+          "path": "$TASK_ROOT/inputs/regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        }
+      ],
+      "viewportAndRasterCssPx": [
+        360,
+        480
+      ],
+      "frameworkComparisons": [
+        {
+          "framework": "net8",
+          "fixture": "01-default-content-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "01-default-content-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "02-explicit-content-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "02-explicit-content-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "03-border-box-numeric",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "03-border-box-numeric",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "04-border-box-minimum",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "04-border-box-minimum",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "05-border-box-maximum",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "05-border-box-maximum",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "06-border-box-min-wins",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                100,
+                18,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                18.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                18.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                100,
+                402,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                402.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                402.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "06-border-box-min-wins",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                100,
+                18,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                18.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                18.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                100,
+                402,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                402.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                402.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "07-inset-floor-empty",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                171,
+                41,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                41.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                41.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                171,
+                425,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                425.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                425.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "07-inset-floor-empty",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                171,
+                41,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                41.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                41.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                171,
+                425,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                425.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                425.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "08-percent-border-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                24,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                24.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                24.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                408,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                408.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                408.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "08-percent-border-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                24,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                24.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                24.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                408,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                408.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                408.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "09-custom-property-cascade",
+          "profile": "PrintPaged",
+          "status": "UNMATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                0.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                0,
+                330,
+                96
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            },
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                384.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                384,
+                330,
+                480
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "09-custom-property-cascade",
+          "profile": "ScreenMediaPaged",
+          "status": "UNMATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                0.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                0,
+                330,
+                96
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            },
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                384.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                384,
+                330,
+                480
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "10-intrinsic-numeric-constraints",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                142.30859375,
+                404,
+                75.3828125,
+                56
+              ],
+              "nativeBorderCssPx": [
+                142.0,
+                404.0,
+                76.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": null,
+              "nativeDeltaCssPx": [
+                0.30859375,
+                0.0,
+                -0.6171875,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": "Each x/y rectangle endpoint <=0.5 CSSpx; width delta <=1 CSSpx, unchanged before content width required",
+              "ownColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net8",
+          "fixture": "10-intrinsic-numeric-constraints",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                142.30859375,
+                404,
+                75.3828125,
+                56
+              ],
+              "nativeBorderCssPx": [
+                142.0,
+                404.0,
+                76.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": null,
+              "nativeDeltaCssPx": [
+                0.30859375,
+                0.0,
+                -0.6171875,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": "Each x/y rectangle endpoint <=0.5 CSSpx; width delta <=1 CSSpx, unchanged before content width required",
+              "ownColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "01-default-content-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "01-default-content-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "02-explicit-content-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "02-explicit-content-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                96,
+                13,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                13.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                13.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                13,
+                264,
+                83
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                96,
+                397,
+                168,
+                70
+              ],
+              "nativeBorderCssPx": [
+                96.0,
+                397.0,
+                168.0,
+                70.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                96.0,
+                397.0,
+                168,
+                70
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "nativeColoredPixelAabb": [
+                96,
+                397,
+                264,
+                467
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "03-border-box-numeric",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "03-border-box-numeric",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "04-border-box-minimum",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "04-border-box-minimum",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "05-border-box-maximum",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "05-border-box-maximum",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                404.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "06-border-box-min-wins",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                100,
+                18,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                18.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                18.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                100,
+                402,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                402.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                402.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "06-border-box-min-wins",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                100,
+                18,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                18.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                18.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                18,
+                260,
+                78
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                100,
+                402,
+                160,
+                60
+              ],
+              "nativeBorderCssPx": [
+                100.0,
+                402.0,
+                160.0,
+                60.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                100.0,
+                402.0,
+                160,
+                60
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "nativeColoredPixelAabb": [
+                100,
+                402,
+                260,
+                462
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "07-inset-floor-empty",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                171,
+                41,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                41.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                41.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                171,
+                425,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                425.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                425.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "07-inset-floor-empty",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                171,
+                41,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                41.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                41.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                41,
+                189,
+                55
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                171,
+                425,
+                18,
+                14
+              ],
+              "nativeBorderCssPx": [
+                171.0,
+                425.0,
+                18.0,
+                14.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                171.0,
+                425.0,
+                18,
+                14
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "nativeColoredPixelAabb": [
+                171,
+                425,
+                189,
+                439
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "08-percent-border-box",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                24,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                24.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                24.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                408,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                408.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                408.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "08-percent-border-box",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                24,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                24.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                24.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                24,
+                255,
+                72
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                408,
+                150,
+                48
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                408.0,
+                150.0,
+                48.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                408.0,
+                150,
+                48
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                408,
+                255,
+                456
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "09-custom-property-cascade",
+          "profile": "PrintPaged",
+          "status": "UNMATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                0.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                0,
+                330,
+                96
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            },
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                384.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                384,
+                330,
+                480
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "09-custom-property-cascade",
+          "profile": "ScreenMediaPaged",
+          "status": "UNMATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                0.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                0,
+                330,
+                96
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            },
+            {
+              "comparisonStatus": "UNMATCHED",
+              "explicitValueSourceCounterpart": "03-border-box-numeric",
+              "label": "bottom",
+              "ownBorderCssPx": [
+                105,
+                404,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                30.0,
+                384.0,
+                300.0,
+                96.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                404.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                75.0,
+                20.0,
+                -150.0,
+                -40.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                404,
+                255,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                30,
+                384,
+                330,
+                480
+              ],
+              "rasterAabbDeltaPixels": [
+                75,
+                20,
+                -75,
+                -20
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "10-intrinsic-numeric-constraints",
+          "profile": "PrintPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                142.30859375,
+                404,
+                75.3828125,
+                56
+              ],
+              "nativeBorderCssPx": [
+                142.0,
+                404.0,
+                76.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": null,
+              "nativeDeltaCssPx": [
+                0.30859375,
+                0.0,
+                -0.6171875,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": "Each x/y rectangle endpoint <=0.5 CSSpx; width delta <=1 CSSpx, unchanged before content width required",
+              "ownColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "framework": "net10",
+          "fixture": "10-intrinsic-numeric-constraints",
+          "profile": "ScreenMediaPaged",
+          "status": "MATCHED",
+          "bodySceneUnchanged": true,
+          "frames": [
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "top",
+              "ownBorderCssPx": [
+                105,
+                20,
+                150,
+                56
+              ],
+              "nativeBorderCssPx": [
+                105.0,
+                20.0,
+                150.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": [
+                105.0,
+                20.0,
+                150,
+                56
+              ],
+              "nativeDeltaCssPx": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": null,
+              "ownColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "nativeColoredPixelAabb": [
+                105,
+                20,
+                255,
+                76
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "comparisonStatus": "MATCHED",
+              "explicitValueSourceCounterpart": null,
+              "label": "bottom",
+              "ownBorderCssPx": [
+                142.30859375,
+                404,
+                75.3828125,
+                56
+              ],
+              "nativeBorderCssPx": [
+                142.0,
+                404.0,
+                76.0,
+                56.0
+              ],
+              "cssExpectedContinuousBorderCssPx": null,
+              "nativeDeltaCssPx": [
+                0.30859375,
+                0.0,
+                -0.6171875,
+                0.0
+              ],
+              "nativeEndpointRoundingRule": "Each x/y rectangle endpoint <=0.5 CSSpx; width delta <=1 CSSpx, unchanged before content width required",
+              "ownColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "nativeColoredPixelAabb": [
+                142,
+                404,
+                218,
+                460
+              ],
+              "rasterAabbDeltaPixels": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "limits": "20 actual Edge PDFs/pages at fixed360x480/realCarlito:18 ordinary frame observations agree; 2 fixture09 page-scoped custom-property observations are UNMATCHED (Edge auto full strip versus owned resolved dimensions). Exact explicit-value counterpart03 agrees. Intrinsic10bottom has unchanged owned width75.3828125 vs Edge76; each corresponding x/y rectangle endpoint differs at most0.30859375CSSpx, within0.5CSSpx; width component delta0.6171875 remains recorded. Other numeric frame components<=0.5CSSpx and ordinary colored border AABB<=1rasterpixel. Complete required text and body origins retained. No universal pixel/glyph-ink/physical-print/accessibility claim; prior running/severe overflow/percentage padding limits retained."
+    },
+    "privatePackages": {
+      "version": "3.5.28",
+      "packageCount": 5,
+      "newFrameworkAssets": 20,
+      "reusedFrameworkAssets": 0,
+      "binding": {
+        "path": "$TASK_ROOT/packages/box-sizing-qualified/package-binding.json",
+        "bytes": 24818,
+        "sha256": "d3037fdd1fab72858959f69d5927b9195b0cb248f3571a16d83f6f33d2f9e8b3"
+      },
+      "packages": {
+        "OfficeIMO.Core": {
+          "package": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/feed/OfficeIMO.Core.3.5.28.nupkg",
+            "bytes": 8793757,
+            "sha256": "dcd4e1a4e36a299ce98da6732ee56f2efb1fc203bd0e07a9c1d4956278eb2d88"
+          },
+          "assets": {
+            "lib/net472/OfficeIMO.Core.dll": "a07e63ce7a01b139d4f502f4d6ab7f1a7c9e99fc88b60aa429f1b5fef1e20e08",
+            "lib/netstandard2.0/OfficeIMO.Core.dll": "c9648374810f6d9c1c092593295f0d9ce3c2fde8c06a9b94da4f7f7684a3ba77",
+            "lib/net8.0/OfficeIMO.Core.dll": "618a5e8e02efd08b6ccc0036a6bbfccc53b7e74c4a33f5ef67bb0c3444ec72c9",
+            "lib/net10.0/OfficeIMO.Core.dll": "55560d738ec360c608b4d52e72e6117122775500b66cc29634b41a0ee8c8d2df"
+          }
+        },
+        "OfficeIMO.Pdf": {
+          "package": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/feed/OfficeIMO.Pdf.3.5.28.nupkg",
+            "bytes": 14030888,
+            "sha256": "cd8c0bb7718669fadff7a35869229645845567235d6209dc4dc433a6e3e2f9b5"
+          },
+          "assets": {
+            "lib/net472/OfficeIMO.Pdf.dll": "14dffdc2c6f45052db01deb552e8cf730a5cc910928df576d87d49e89b9053a3",
+            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "4d664959dcd970f48cdb816ca9a7f877663cc9f7a663d5b90390c71e8f9c1875",
+            "lib/net8.0/OfficeIMO.Pdf.dll": "800a3d06e7e79a0fd1253b6292a231c996797c0ba20aacc796fc0dcd04d107de",
+            "lib/net10.0/OfficeIMO.Pdf.dll": "8aecce1a14110d3d8542cb851f6c76952a318187eb79bd0dc00181a0b4c80108"
+          }
+        },
+        "OfficeIMO.Html.Core": {
+          "package": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/feed/OfficeIMO.Html.Core.3.5.28.nupkg",
+            "bytes": 325344,
+            "sha256": "a7a363745fd54fb31d9d3196bcb6662095a361460899bce3dd3f884cb333ab21"
+          },
+          "assets": {
+            "lib/net472/OfficeIMO.Html.Core.dll": "dd304301de3143353bf2b6c491004f15a05c5861ad76db985e1277d09e3d2bd0",
+            "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "819872d068c50e77a0122116ae969d5677c990325ecfc27d7e49885624a09ae9",
+            "lib/net8.0/OfficeIMO.Html.Core.dll": "5fa4cf106f733fd0f261b13f4ab028fa74e22ac122c2e84ea8056412676d4601",
+            "lib/net10.0/OfficeIMO.Html.Core.dll": "b01e1c1816569a73b7c24ffe2845440c434f18a6d1ca2ba7ac472b61317d93f1"
+          }
+        },
+        "OfficeIMO.Html.AngleSharp": {
+          "package": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/feed/OfficeIMO.Html.AngleSharp.3.5.28.nupkg",
+            "bytes": 104209,
+            "sha256": "11968856984c547d9bbf1827bbeef0f9951682ec697332f7e477e276fb9d16ac"
+          },
+          "assets": {
+            "lib/net472/OfficeIMO.Html.AngleSharp.dll": "9c4e71a4d69e9f9c236b7a7ea6555a920dcf63c590d37a439d09027b987e6aa6",
+            "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "7f0be75928744812cebdab0e9c63b193e7a3b13f080c9011e885f69b74c0ed94",
+            "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "9de7eda585d2b6441594f994f7e7b238f010efc4454e13135bd3cd202680f077",
+            "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "87118bcdff03dea1a42bc1a365f51e77c52bdd7e56e9ff40758a0666bd3101bf"
+          }
+        },
+        "OfficeIMO.Html": {
+          "package": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/feed/OfficeIMO.Html.3.5.28.nupkg",
+            "bytes": 4763206,
+            "sha256": "b57b51f398dc1d415dfe57ce7c7f12411362cdff0460f1dcd0432522498af31a"
+          },
+          "assets": {
+            "lib/net472/OfficeIMO.Html.dll": "feb724f086db1afe21f18009588ded17d1def5f3d9604837cc13dc528304da79",
+            "lib/netstandard2.0/OfficeIMO.Html.dll": "6c2b72ca122d1637dec5e21e06e5be2d5e423cff366f358b1918f947179e4934",
+            "lib/net8.0/OfficeIMO.Html.dll": "d80b2817a8d878f0e330cecb0733ca594f513c998ebc82d6b4daf65f64d9e2c5",
+            "lib/net10.0/OfficeIMO.Html.dll": "71046beec45c80aeccfebcb1a4ce249671fc10c98df3c012449ba6f2368a4ef3"
+          }
+        }
+      },
+      "consumerBinding": {
+        "path": "$TASK_ROOT/packages/box-sizing-qualified/consumer-binding.json",
+        "bytes": 60337,
+        "sha256": "85947aa74b026fd38fd52ced95abdeb91a1f49d2003e5600d27e4d710446e09d"
+      },
+      "consumerObservations": 60,
+      "consumerPages": 60,
+      "lanes": [
+        {
+          "framework": "net8.0",
+          "label": "net8",
+          "result": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/results/net8/result.json",
+            "bytes": 304567,
+            "sha256": "4ebb61e141456b66bf2052d7c04e82c7d77f5eb09d43a77d48f980d2513f07d7"
+          }
+        },
+        {
+          "framework": "net10.0",
+          "label": "net10",
+          "result": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/results/net10/result.json",
+            "bytes": 304664,
+            "sha256": "5e09f86f23ae0ecf1c89263cbcdaab737009f4d0d2c143594191f172703c5545"
+          }
+        },
+        {
+          "framework": "net10.0",
+          "label": "aot",
+          "result": {
+            "path": "$TASK_ROOT/packages/box-sizing-qualified/results/aot/result.json",
+            "bytes": 302807,
+            "sha256": "e7c26bbe830f437dbe91897e4c39634b3f1fc05c59e0a938d6f8725c559c5c05"
+          }
+        }
+      ],
+      "actualMacArm64NativeAot": true,
+      "publicPublication": false
+    },
+    "rootVisual": {
+      "schema": "officeimo.html.page-margin-box-sizing-root-render-acceptance/v1",
+      "sourceHead": "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+      "sourceSeal": {
+        "path": "$TASK_ROOT/source-seal-fc0a55f.json",
+        "bytes": 12219858,
+        "sha256": "d3f99b615d20817149fed9f4445614b80f47f108fb4fa6584a77db661b027f60"
+      },
+      "sourceWitnesses": {
+        "net8": {
+          "path": "$TASK_ROOT/qualified/net8/summary.json",
+          "bytes": 360074,
+          "sha256": "7a9b5dafe3ffe9bee2a9b23f46879c8d53e44008f2101fc4d80c0718b1515f8c"
+        },
+        "net10": {
+          "path": "$TASK_ROOT/qualified/net10/summary.json",
+          "bytes": 360169,
+          "sha256": "0a3e8ed8301b7fc035ec43f54098d2b79fbdb25c0a002c2119e43ed9c4a537a7"
+        }
+      },
+      "geometryAndVisualReviewed": true,
+      "nativeComparisonLimits": "20 actual Edge PDFs/pages at fixed360x480/realCarlito:18 ordinary frame observations agree; 2 fixture09 page-scoped custom-property observations are UNMATCHED (Edge auto full strip versus owned resolved dimensions). Exact explicit-value counterpart03 agrees. Intrinsic10bottom has unchanged owned width75.3828125 vs Edge76; each corresponding x/y rectangle endpoint differs at most0.30859375CSSpx, within0.5CSSpx; width component delta0.6171875 remains recorded. Other numeric frame components<=0.5CSSpx and ordinary colored border AABB<=1rasterpixel. Complete required text and body origins retained. No universal pixel/glyph-ink/physical-print/accessibility claim; prior running/severe overflow/percentage padding limits retained.",
+      "state": "ACTUAL_ROOT_GEOMETRY_AND_VISUAL_ACCEPTED_WITH_EXPLICIT_NATIVE_LIMITS",
+      "ownComparisonLimits": "52 exact encoded directPNG=saved/reopenedPDF replay pairs across NET8/NET10 (40main+12priorcontrols). Authored CSS equations and inset floors strict; intrinsic bottom width unchanged from retainedf014 runtime. Six prior observations per framework preserve decoded pixels, scene/drawing/text/spans/diagnostics. All new10mainfixtures x2profiles onepage each/no loss; own09 frames equal explicit03. Shared source/package geometry acceptance only; does not mean native raster/text equality.",
+      "qualificationScope": "Ten main box-sizing fixtures x PrintPaged/ScreenMediaPaged:20 observations/20 one-page scenes per lane,60/60 across managed NET8/NET10 and actual osx-arm64 NativeAOT NET10. Every observation requires no loss, own PNG=saved/reopened PDF replay, and exact same-framework qualified-source frame/scene/drawing/saved-text equivalence. Candidate head/seal, ROOT actual geometry and visual inspection, nativeComparisonLimits and ownComparisonLimits remain pending explicit gates. No historical native acceptance is adopted.",
+      "acceptedUtc": "2026-10-22T19:31:06.720600+00:00",
+      "reviewedBy": "ROOT01a11a92-00a5-7873-aa1a-7bffe37b27b9",
+      "sourceInspection": {
+        "path": "$TASK_ROOT/qualified/box-sizing-inspection-v3/report.json",
+        "bytes": 99742,
+        "sha256": "f3d042eaef44604aa7a676df34e79aa783d31fae8df1f2fd8fd63519e242242f"
+      },
+      "actualViewed": [
+        {
+          "path": "$TASK_ROOT/prep/native-analysis-v2/native-contact.png",
+          "bytes": 33711,
+          "sha256": "8912751f3d418eb011d5cbfe437d6dd9feb1bfc97e136496b58e794c69257208"
+        },
+        {
+          "path": "$TASK_ROOT/qualified/box-sizing-inspection-v3/net8-contact.png",
+          "bytes": 64238,
+          "sha256": "68905847e0e6194e56841236c9f6faf33969b42b2371b2e2e0a19ff577db1ef1"
+        },
+        {
+          "path": "$TASK_ROOT/qualified/box-sizing-inspection-v3/net10-contact.png",
+          "bytes": 64238,
+          "sha256": "68905847e0e6194e56841236c9f6faf33969b42b2371b2e2e0a19ff577db1ef1"
+        },
+        {
+          "path": "$TASK_ROOT/qualified/net10/03-border-box-numeric/PrintPaged/direct-01.png",
+          "bytes": 10336,
+          "sha256": "e9846a8479af2480a4b564d08f8eec9eb5ab0e217090eb1c4e40ef0180879611"
+        },
+        {
+          "path": "$TASK_ROOT/native/03-border-box-numeric/print-page-1.png",
+          "bytes": 9476,
+          "sha256": "6e665004207140b83f0442813cf287a187d2dee5477794a85d431fe0d4c9e4f3"
+        },
+        {
+          "path": "$TASK_ROOT/qualified/net10/10-intrinsic-numeric-constraints/PrintPaged/direct-01.png",
+          "bytes": 10859,
+          "sha256": "0f63903e61b23476b72ee54b0d02f9da437604f319b90845a1610bd05a19eda0"
+        }
+      ],
+      "visualFinding": "All10case contact pairs on both frameworks and native contact inspected; generated margins/borders/body content remain readable and retain authored frames; exact variable-case discrepancy visible and retained. Focused full03 and10 images inspected at actual360x480."
+    },
+    "independentReview": {
+      "fullPasses": 1,
+      "targetedConfirmations": 0,
+      "sourceBoundary": "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+      "actionableFindings": 0,
+      "productDisposition": "Accept as shaped; canonical owner/noAPIexpansion/noDependencyApprovalGap",
+      "gapDisposition": "Reviewer only inspected source and actual189caseTRX; subsequent native/source/package appearance and framework proof accepted separately byROOT."
+    },
+    "actualExecutions": [
+      {
+        "name": "before-checkpoint-main",
+        "receipt": {
+          "path": "$TASK_ROOT/before-checkpoint-main-execution.json",
+          "bytes": 1514,
+          "sha256": "8af5e078f4ffba14432bbf66c5bc6b61f7d52257a4967b5027c90bec1aeeae45"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/before-checkpoint-main.log",
+          "sha256": "9bfdbf37e40fc4e9ca646058fd8789d95ebb9e623db8a102789ea06f4949fff4"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$PRIOR_HEIGHT_ROOT/qualified/runtime/net10/PageMarginGeometrySourcenet10.dll",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/before/checkpoint-main",
+          "f014ea9b04167f0a63561bce231f37a6345e41d3"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-aot-publish",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-aot-publish-execution.json",
+          "bytes": 2520,
+          "sha256": "4412173d5606e480b4580b5538c06287acb37aca1d350bbb49eb4cd52fe6136c"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-aot-publish.log",
+          "sha256": "e24c4f01aa0f8f792dd1e99472e4985bff10d2b18d4163473f7127c7f5491a50"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "publish",
+          "$TASK_ROOT/prep/package-qualification/consumer/aot/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/box-sizing-qualified/consumer-graph/aot",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/aot",
+          "-r",
+          "osx-arm64",
+          "--self-contained",
+          "true",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-aot-run",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-aot-run-execution.json",
+          "bytes": 2018,
+          "sha256": "17e3cc8e86c12ab4ce20566a11b239d30b6abd98dc467ee4960b2cbd15290633"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-aot-run.log",
+          "sha256": "87a14cd39d96ed182e87a0db46251790e410b4f828b76d327c482d7d6f655462"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/aot/PageMarginBoxSizingPackageaot",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/packages/box-sizing-qualified/results/aot",
+          "$TASK_ROOT/prep/package-qualification/acceptance.json"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-bind-acceptance",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-bind-acceptance-execution.json",
+          "bytes": 1719,
+          "sha256": "b0fac5a731e5dc078c5df979ad4eb48250ff088aeb8bcd5533b602a4d7373a0b"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-bind-acceptance.log",
+          "sha256": "65ae943e44ac64332642579dd77136e74dc4048ccf7166fdfb904fff76b8a446"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/bind-acceptance.py"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-bind-candidate",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-bind-candidate-execution.json",
+          "bytes": 1407,
+          "sha256": "4ea0aff840488e147ce8afeabeab311beecfb2e3df42443d8f2e6acc427fd0c0"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-bind-candidate.log",
+          "sha256": "1a177d7df85dd3f5337c3694e02faab861aa04b119c0e1258f6d4b679adf45a9"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/bind-candidate.py",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "$TASK_ROOT/source-seal-fc0a55f.json"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-inspect-consumers",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-inspect-consumers-execution.json",
+          "bytes": 1732,
+          "sha256": "43e969f520793099fa88ba1c8af3080d670d804ca50dc991bda44c36b6ce5676"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-inspect-consumers.log",
+          "sha256": "efcb9b261b5742c5d4be5495d4f303e60c88dd93ad3323722e53807a0210c26c"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/inspect.py",
+          "consumers"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-inspect-packages",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-inspect-packages-execution.json",
+          "bytes": 1726,
+          "sha256": "3603277a7b6f5e830087069289c8981156dda21c410fe89fccc1a922a90b7645"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-inspect-packages.log",
+          "sha256": "646e12c9da36055292bb6c71ae957fd41cc0bb54e3723e70e562d6b5569afe42"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/inspect.py",
+          "packages"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-net10-build",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-net10-build-execution.json",
+          "bytes": 2460,
+          "sha256": "16697218108b4c026e24ae91abcc07736df0e99c8ba6b94e1619ab85be10b73f"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-net10-build.log",
+          "sha256": "179ae9ecf310d114134d6dd2eb9b2f2965cd51bf44ac9fec0824630183b087a4"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "$TASK_ROOT/prep/package-qualification/consumer/net10/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/box-sizing-qualified/consumer-graph/net10",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/net10",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-net10-run",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-net10-run-execution.json",
+          "bytes": 2076,
+          "sha256": "1e6c6f7ad52c3aab27fd57244208d5566fb8d7e76606da160fa82361742ba2db"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-net10-run.log",
+          "sha256": "87a14cd39d96ed182e87a0db46251790e410b4f828b76d327c482d7d6f655462"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/net10/PageMarginBoxSizingPackagenet10.dll",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/packages/box-sizing-qualified/results/net10",
+          "$TASK_ROOT/prep/package-qualification/acceptance.json"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-net8-build",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-net8-build-execution.json",
+          "bytes": 2462,
+          "sha256": "fd6dd8ea19b24de47739d86dd8279ff3c231495f1e542b2914be04310fe95cfb"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-net8-build.log",
+          "sha256": "a1fcaff2cc6bedefe6da33f34119790d69a3c32b8b530f3fe3d49d1c4c4eb7b4"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "$TASK_ROOT/prep/package-qualification/consumer/net8/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/box-sizing-qualified/consumer-graph/net8",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/net8",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-net8-run",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-net8-run-execution.json",
+          "bytes": 2071,
+          "sha256": "fca3f1a2579e60f71220f4408d2639fba7e1ccfd5da80041cd5f7f4f43ae6847"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-net8-run.log",
+          "sha256": "87a14cd39d96ed182e87a0db46251790e410b4f828b76d327c482d7d6f655462"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/packages/box-sizing-qualified/out/net8/PageMarginBoxSizingPackagenet8.dll",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/packages/box-sizing-qualified/results/net8",
+          "$TASK_ROOT/prep/package-qualification/acceptance.json"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-pack-officeimo-core",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-pack-officeimo-core-execution.json",
+          "bytes": 2702,
+          "sha256": "ae23a86cb34281da07da347e00012af0224f73e1cab8bab5c5f595e00b6fd5e9"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-pack-officeimo-core.log",
+          "sha256": "b22b1ea3318b801fa471960f7d69898c3a95e589be01df8c4a08ba1c11ac00e9"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "$SOURCE_ROOT/OfficeIMO.Core/OfficeIMO.Core.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/feed",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-pack-officeimo-html-anglesharp",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-pack-officeimo-html-anglesharp-execution.json",
+          "bytes": 2745,
+          "sha256": "0436fa9b53a93c7efce696a4bcc67c05c56c26164a161e9420870086f82b426d"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-pack-officeimo-html-anglesharp.log",
+          "sha256": "286833db7184ce7a1d977a72e6d7d630cfb0d539f4c3f8745db995eb105d9df4"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "$SOURCE_ROOT/OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/feed",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-pack-officeimo-html-core",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-pack-officeimo-html-core-execution.json",
+          "bytes": 2729,
+          "sha256": "cc4fbc013b7f23edfae2f4092053310ebd3ed62e7eb6ebeba372ac93e5cf3941"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-pack-officeimo-html-core.log",
+          "sha256": "a0876cc0085eed27baa8e8e07b56d8725001703b55c638ad015355df06ca3d7d"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "$SOURCE_ROOT/OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/feed",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-pack-officeimo-html",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-pack-officeimo-html-execution.json",
+          "bytes": 2709,
+          "sha256": "e2c6f9b53fa2551d13a79cfe06a0db32b678d8b4440e017b6f3a2dc5105fdf3e"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-pack-officeimo-html.log",
+          "sha256": "43796ba4bcaa3d97abb77e9f4c997b593ea6f2fe0035abd8cf6ea6a7394d32b1"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "$SOURCE_ROOT/OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/feed",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-pack-officeimo-pdf",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-pack-officeimo-pdf-execution.json",
+          "bytes": 2698,
+          "sha256": "25ac851c51fa48b031f599e0670a0d1ff7c4312a7250a23214fc63d8a9862604"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-pack-officeimo-pdf.log",
+          "sha256": "5055de2ab844b17f1a91773a70508b648ef84df3a6f76befdb15d27258e9e963"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "$SOURCE_ROOT/OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "$TASK_ROOT/packages/box-sizing-qualified/feed",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-preflight",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-preflight-execution.json",
+          "bytes": 1724,
+          "sha256": "f9c2719c55c85a94558314486039b993594a39b6fc1c472e4fdf7b525eded6b9"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-preflight.log",
+          "sha256": "ddac224582ed1fd1f10b4496eefd3c62e28deed406b87c8d7eded8c18576f45c"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/inspect.py",
+          "preflight"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-source-build",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-source-build-execution.json",
+          "bytes": 2675,
+          "sha256": "fd334dc606311cb68f91785380d6db09f0ff82f8f000e76c6957a7ce2cc9b18b"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-source-build.log",
+          "sha256": "e8fadf84b36d021dbc014924e45c8f04f8d9cc067a4e952fb32a44ad5d68f1d8"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "$SOURCE_ROOT/OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-restore",
+          "-p:UseSharedCompilation=false",
+          "-p:EnableSourceControlManagerQueries=false",
+          "-p:EnableSourceLink=false",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "box-sizing-package-source-restore",
+        "receipt": {
+          "path": "$TASK_ROOT/box-sizing-package-source-restore-execution.json",
+          "bytes": 2654,
+          "sha256": "f37b5c733ddf61faee3fad56ab04b548a988badab10732e9a9414d6e14fbb9b6"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/box-sizing-package-source-restore.log",
+          "sha256": "699be4a1b980454929b701a8ec97f507ac07cc4946a8e00628e281b04c30b119"
+        },
+        "argv": [
+          "/usr/bin/env",
+          "MSBUILDDISABLENODEREUSE=1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER=0",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "DOTNET_PROCESSOR_COUNT=3",
+          "NUGET_PACKAGES=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "NUGET_HTTP_CACHE_PATH=$NUGET_HTTP_CACHE",
+          "NUGET_SCRATCH=/Volumes/Samsung/Development/Temp/przemyslawklys/NuGetScratch",
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "restore",
+          "$SOURCE_ROOT/OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.28",
+          "-p:RepositoryCommit=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:SourceRevisionId=fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "-p:ArtifactsPath=$TASK_ROOT/packages/source-graph-box-sizing-qualified",
+          "-p:RestoreConfigFile=$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-p:RestorePackagesPath=$TASK_ROOT/packages/box-sizing-qualified/candidate-cache",
+          "-m:3",
+          "--configfile",
+          "$TASK_ROOT/prep/package-qualification/Source.NuGet.Config",
+          "-nodeReuse:false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-observer-net10-build",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-observer-net10-build-execution.json",
+          "bytes": 1824,
+          "sha256": "8860c0909c569d4223ad94b3aeeac94bfa7fc4318375f4a5fe25390141272e60"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net10-build.log",
+          "sha256": "be18a8410a731bbfc432490c58a33d18f6ad6a8b4f8de22e929269de97c51c29"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "$TASK_ROOT/prep/source-observer/net10/Observer.csproj",
+          "-f",
+          "net10.0",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false",
+          "-o",
+          "$TASK_ROOT/qualified/runtime/net10",
+          "-p:OfficeIMOCheckout=$SOURCE_ROOT"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-observer-net10-run",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-observer-net10-run-execution.json",
+          "bytes": 1515,
+          "sha256": "cf8431cfbde7591bfb3c9d1db4e920ee733c1cdf4f9e42f0b24b446e2d65b501"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net10-run.log",
+          "sha256": "9bfdbf37e40fc4e9ca646058fd8789d95ebb9e623db8a102789ea06f4949fff4"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/qualified/runtime/net10/PageMarginGeometrySourcenet10.dll",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/qualified/net10",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-observer-net8-build",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-observer-net8-build-execution.json",
+          "bytes": 1819,
+          "sha256": "6fe954afefc4ae04af5dd945335c3f72dca033281fadc7948bdc3de4442a7d35"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net8-build.log",
+          "sha256": "27113633165d36c54569997500c4cd3b5f1810af3ec885a12519a078cca50f6f"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "$TASK_ROOT/prep/source-observer/net8/Observer.csproj",
+          "-f",
+          "net8.0",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false",
+          "-o",
+          "$TASK_ROOT/qualified/runtime/net8",
+          "-p:OfficeIMOCheckout=$SOURCE_ROOT"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-observer-net8-run",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-observer-net8-run-execution.json",
+          "bytes": 1510,
+          "sha256": "d7ea518e3670f23cffd3a235a73468c30d4a2dbedba19202d6d4c1c981f18e54"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-observer-net8-run.log",
+          "sha256": "8eded7a62c37edb546e902b9ca41d074910a41a73548505a415d78f8b60f3540"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/qualified/runtime/net8/PageMarginGeometrySourcenet8.dll",
+          "$TASK_ROOT/inputs",
+          "$TASK_ROOT/qualified/net8",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-prior-controls-net10-run",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-prior-controls-net10-run-execution.json",
+          "bytes": 1556,
+          "sha256": "be3b3c04d9d8671211f2ecdc23bbae8cee82421f1bea6014fc55a9c3921d4aae"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-prior-controls-net10-run.log",
+          "sha256": "abfdebf516e108fc21b7cf2bff47f1367c25db333672812c9c78500c4d99433d"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/qualified/runtime/net10/PageMarginGeometrySourcenet10.dll",
+          "$TASK_ROOT/inputs-prior-controls",
+          "$TASK_ROOT/qualified/prior-controls-net10",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "candidate-prior-controls-net8-run",
+        "receipt": {
+          "path": "$TASK_ROOT/candidate-prior-controls-net8-run-execution.json",
+          "bytes": 1552,
+          "sha256": "29e29dda79a3e228290e5dd1363bc89c16be29b5b6187d061156a300050f2af3"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/candidate-prior-controls-net8-run.log",
+          "sha256": "70ea1003910f784c727ac97f6f6602fb9f9a32c7e23c0d451624d9286c63247f"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$TASK_ROOT/qualified/runtime/net8/PageMarginGeometrySourcenet8.dll",
+          "$TASK_ROOT/inputs-prior-controls",
+          "$TASK_ROOT/qualified/prior-controls-net8",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "focused-box-sizing-v2",
+        "receipt": {
+          "path": "$TASK_ROOT/focused-box-sizing-v2-execution.json",
+          "bytes": 1983,
+          "sha256": "522d77fa98eeea684c8bf875e2f7410723fdf5894d533b94d36d8332d3065293"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/focused-box-sizing-v2.log",
+          "sha256": "1afa0da064699becc91ef95b0011ba673cdae19c0d2bf1a233705ef72aa91ee3"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-f",
+          "net10.0",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false",
+          "--filter",
+          "FullyQualifiedName~HtmlPageMarginBoxSizing|FullyQualifiedName~HtmlPageMarginDimensions|FullyQualifiedName~HtmlPageMarginGeometry|FullyQualifiedName~HtmlPageMarginIntrinsicWidths|FullyQualifiedName~HtmlPageMarginSizing|FullyQualifiedName~HtmlPageMarginTypography",
+          "--logger",
+          "trx;LogFileName=focused-box-sizing-v2.trx",
+          "--results-directory",
+          "$TASK_ROOT/trx"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "full-html-net10",
+        "receipt": {
+          "path": "$TASK_ROOT/full-html-net10-execution.json",
+          "bytes": 1757,
+          "sha256": "867d9c9fb9ccf6004a3c0e9109a14f5ebc5fb88be4d8f46c9291e3f0f22ac0c8"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/full-html-net10.log",
+          "sha256": "e39bdf1e0d86f19bada7788cb4f5b4c44c3ef5c00542ba5258938e4b0e920c37"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-f",
+          "net10.0",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=full-html-net10.trx",
+          "--results-directory",
+          "$TASK_ROOT/trx",
+          "--no-build",
+          "--no-restore"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "full-html-net8",
+        "receipt": {
+          "path": "$TASK_ROOT/full-html-net8-execution.json",
+          "bytes": 1716,
+          "sha256": "931591ddd8bdd4559f57809343074ed668c5c8fec937801ccc56f9196fb9ca48"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/full-html-net8.log",
+          "sha256": "398baace7ce1142ea3218610baa6f3326bc635a7d766378574cdf4440c87a738"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-f",
+          "net8.0",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=full-html-net8.trx",
+          "--results-directory",
+          "$TASK_ROOT/trx"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "html-net472-compile",
+        "receipt": {
+          "path": "$TASK_ROOT/html-net472-compile-execution.json",
+          "bytes": 1542,
+          "sha256": "bec328d80c7d0290ee3203b4c5271a928eb2892e2795f459ca633104cf2dc458"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/html-net472-compile.log",
+          "sha256": "28c1087987a9deee46105b8128e5e6b2f9cdf7bea4f48ec9be4e73130b3b0c36"
+        },
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-f",
+          "net472",
+          "-p:TargetFrameworks=net472",
+          "-c",
+          "Release",
+          "-m:3",
+          "-nr:false",
+          "--artifacts-path",
+          "$TASK_ROOT/tests",
+          "-p:UseSharedCompilation=false",
+          "-p:NuGetAudit=false"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "native-analysis-v2",
+        "receipt": {
+          "path": "$TASK_ROOT/native-analysis-v2-execution.json",
+          "bytes": 1228,
+          "sha256": "6368aeb00d8cf884e5561eb8a2e321f9ada7f81caf63a9f7c4f700aea59dc652"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/native-analysis-v2.log",
+          "sha256": "2d47435a99ee41d4a7dff295d346a2cb0b50d681f7a26aecd9c295940ac1ae21"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/native-analysis-v2/analyze.py"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "native-main",
+        "receipt": {
+          "path": "$TASK_ROOT/native-main-execution.json",
+          "bytes": 1213,
+          "sha256": "dd36e87fad2277854099b6367b353ef5fbaaa6db867ea927b91edb973c3c353b"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/native-main.log",
+          "sha256": "a6eb2fe328e2391664b31c0d1089d8fadf60e80717e9dcf08bfe266039de7a16"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/capture-native.py",
+          "main"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "package-consumer-all-stages",
+        "receipt": {
+          "path": "$TASK_ROOT/package-consumer-all-stages-execution.json",
+          "bytes": 1342,
+          "sha256": "69b8c758ab94d1536a01c602c4158d5b446c173154d2015c966e8d98d79caa93"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/package-consumer-all-stages.log",
+          "sha256": "40e4dd4119d71aede15a959089d00ce64f5510b7d789ef76eea0c433ad790944"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/run-stages.py",
+          "bind-acceptance",
+          "consumer-build",
+          "consumer-run",
+          "inspect-consumers"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "package-producer-all-stages",
+        "receipt": {
+          "path": "$TASK_ROOT/package-producer-all-stages-execution.json",
+          "bytes": 1318,
+          "sha256": "60e0a8573403af8e4639d5a048f6cede8eaee5bf040558f1ac8ca0b0d17c94f4"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/package-producer-all-stages.log",
+          "sha256": "357f9aa37fce6c4530716eb11aab3b0e015823e27a453c6af9f86eefcb96efd4"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/package-qualification/run-stages.py",
+          "preflight",
+          "source",
+          "pack",
+          "inspect-packages"
+        ],
+        "exitCode": 0
+      },
+      {
+        "name": "source-inspection-v3",
+        "receipt": {
+          "path": "$TASK_ROOT/source-inspection-v3-execution.json",
+          "bytes": 1366,
+          "sha256": "ae002cbdf7ecaec8d7fef0070d040e94080c4c128cee2c26a172313f37f2077c"
+        },
+        "log": {
+          "path": "$TASK_ROOT/logs/source-inspection-v3.log",
+          "sha256": "2b1c5c5d1bb27f857d44b737884a6bfcd370f8bf1e96b6968841d97243f321d6"
+        },
+        "argv": [
+          "python3",
+          "$TASK_ROOT/prep/inspect-box-sizing-v3.py",
+          "fc0a55f9677dc6011cf844a6d0cb6444acdeee42",
+          "$TASK_ROOT/source-seal-fc0a55f.json"
+        ],
+        "exitCode": 0
+      }
+    ]
+  },
+  "reproducibility": {
+    "fixtures": [
+      {
+        "id": "01-default-content-box",
+        "input": {
+          "path": "$TASK_ROOT/inputs/01-default-content-box.html",
+          "bytes": 713,
+          "sha256": "f7d23859e7d97c32f2057b3fe7fd7c2689f309af91bbb6582074ad1b597726d2"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;width:150px;height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;width:150px;height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 01-default-content-box</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            96.0,
+            13.0,
+            168,
+            70
+          ],
+          "bottom": [
+            96.0,
+            397.0,
+            168,
+            70
+          ]
+        }
+      },
+      {
+        "id": "02-explicit-content-box",
+        "input": {
+          "path": "$TASK_ROOT/inputs/02-explicit-content-box.html",
+          "bytes": 760,
+          "sha256": "94d57b056f92a5590ea3dfa827db5e67fdf674be071eb4750c00f254bd5e16d0"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:content-box;width:150px;height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:content-box;width:150px;height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 02-explicit-content-box</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            96.0,
+            13.0,
+            168,
+            70
+          ],
+          "bottom": [
+            96.0,
+            397.0,
+            168,
+            70
+          ]
+        }
+      },
+      {
+        "id": "03-border-box-numeric",
+        "input": {
+          "path": "$TASK_ROOT/inputs/03-border-box-numeric.html",
+          "bytes": 756,
+          "sha256": "34ca648f1808a82c84a148be71e5cbced4a8ee243b57eed9dbcf3b87be5e98c1"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:150px;height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:150px;height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 03-border-box-numeric</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            20.0,
+            150,
+            56
+          ],
+          "bottom": [
+            105.0,
+            404.0,
+            150,
+            56
+          ]
+        }
+      },
+      {
+        "id": "04-border-box-minimum",
+        "input": {
+          "path": "$TASK_ROOT/inputs/04-border-box-minimum.html",
+          "bytes": 818,
+          "sha256": "21e85a0f30678c85a5cf7bcdc9b4767544e9c32a83d0c2309b71178c94c4145c"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:90px;min-width:150px;height:24px;min-height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:90px;min-width:150px;height:24px;min-height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 04-border-box-minimum</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            20.0,
+            150,
+            56
+          ],
+          "bottom": [
+            105.0,
+            404.0,
+            150,
+            56
+          ]
+        }
+      },
+      {
+        "id": "05-border-box-maximum",
+        "input": {
+          "path": "$TASK_ROOT/inputs/05-border-box-maximum.html",
+          "bytes": 820,
+          "sha256": "717ca35c82153bd2dd124af42192df1b53ae44933500888f22e713d3bc111bde"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:220px;max-width:150px;height:80px;max-height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:220px;max-width:150px;height:80px;max-height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 05-border-box-maximum</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            20.0,
+            150,
+            56
+          ],
+          "bottom": [
+            105.0,
+            404.0,
+            150,
+            56
+          ]
+        }
+      },
+      {
+        "id": "06-border-box-min-wins",
+        "input": {
+          "path": "$TASK_ROOT/inputs/06-border-box-min-wins.html",
+          "bytes": 883,
+          "sha256": "b6157df4b5ff06f057a7c8335a53b806b55738885abd20758e4d75f6537faa16"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:80px;min-width:160px;max-width:120px;height:24px;min-height:60px;max-height:40px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:80px;min-width:160px;max-width:120px;height:24px;min-height:60px;max-height:40px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 06-border-box-min-wins</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            100.0,
+            18.0,
+            160,
+            60
+          ],
+          "bottom": [
+            100.0,
+            402.0,
+            160,
+            60
+          ]
+        }
+      },
+      {
+        "id": "07-inset-floor-empty",
+        "input": {
+          "path": "$TASK_ROOT/inputs/07-inset-floor-empty.html",
+          "bytes": 771,
+          "sha256": "cc083ed9f28d0e70573df30262c1d531c5cf6d980ab737b141989532d46a6dd5"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:8px;height:6px;content:'';}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:8px;height:6px;content:'';}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 07-inset-floor-empty</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            171.0,
+            41.0,
+            18,
+            14
+          ],
+          "bottom": [
+            171.0,
+            425.0,
+            18,
+            14
+          ]
+        }
+      },
+      {
+        "id": "08-percent-border-box",
+        "input": {
+          "path": "$TASK_ROOT/inputs/08-percent-border-box.html",
+          "bytes": 750,
+          "sha256": "5f41a2be188f94804cf791eabf60887acadc662487551733f25f7e82df3ceb9b"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:50%;height:50%;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:50%;height:50%;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 08-percent-border-box</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            24.0,
+            150,
+            48
+          ],
+          "bottom": [
+            105.0,
+            408.0,
+            150,
+            48
+          ]
+        }
+      },
+      {
+        "id": "09-custom-property-cascade",
+        "input": {
+          "path": "$TASK_ROOT/inputs/09-custom-property-cascade.html",
+          "bytes": 925,
+          "sha256": "36580570ac487f5478282ec6f38baab2b17ffe90d2c99275f584329b266ae871"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{@top-center{box-sizing:content-box}@bottom-center{box-sizing:content-box}}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;--model:border-box;--width:150px;--height:56px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:var(--model);width:var(--width);height:var(--height);}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:var(--model);width:var(--width);height:var(--height);}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 09-custom-property-cascade</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            20.0,
+            150,
+            56
+          ],
+          "bottom": [
+            105.0,
+            404.0,
+            150,
+            56
+          ]
+        }
+      },
+      {
+        "id": "10-intrinsic-numeric-constraints",
+        "input": {
+          "path": "$TASK_ROOT/inputs/10-intrinsic-numeric-constraints.html",
+          "bytes": 827,
+          "sha256": "38409829aa0b7fea6ff6400290ebdacece057c5a800f0f74c46def04b4d71ebf"
+        },
+        "html": "<!doctype html><html><head><meta charset='utf-8'><style>@font-face{font-family:MetricWitness;src:url('regular.ttf')}\n@page{size:360px 480px;margin:96px 30px;font-family:MetricWitness;font-size:16px;line-height:18px;@top-center{content:'TOP BOX';border:2px solid #ff0000;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:min-content;min-width:150px;max-width:190px;height:56px;}@bottom-center{content:'BOT BOX';border:2px solid #0000ff;padding:5px 7px;margin:auto 0;box-sizing:border-box;width:max-content;max-width:190px;height:56px;}}\nhtml{font-family:MetricWitness;font-size:16px;line-height:18px}body{margin:0}p{margin:0}#body-words{margin-top:12px}</style></head><body data-probe-font='MetricWitness'><p id='body-label'>BODY 10-intrinsic-numeric-constraints</p><p id='body-words'>Alpha Beta Gamma</p></body></html>\n",
+        "authoredBorderFramesCssPx": {
+          "top": [
+            105.0,
+            20.0,
+            150,
+            56
+          ],
+          "bottom": null
+        }
+      }
+    ],
+    "sourceObserver": {
+      "path": "$TASK_ROOT/prep/source-observer/Program.cs",
+      "bytes": 14015,
+      "sha256": "07d696246ebd6b9268e4ce4acca85436017f36b1d13ff82608aa72f109cb07a3"
+    },
+    "sourceInspectionController": {
+      "path": "$TASK_ROOT/prep/inspect-box-sizing-v3.py",
+      "bytes": 17346,
+      "sha256": "73e7079187d9e9aa87b6b92eb019d754b3572698dcf323591719f4369dfbea9b"
+    },
+    "nativeAnalysisController": {
+      "path": "$TASK_ROOT/prep/native-analysis-v2/analyze.py",
+      "bytes": 10052,
+      "sha256": "33238374e1573fabbe6fe8f7d7040cca9e55edd9afe541bc059e86b7f38f09b2"
+    },
+    "packagePlan": {
+      "path": "$TASK_ROOT/prep/package-qualification/plan.json",
+      "bytes": 38179,
+      "sha256": "55a846857a261f741ee6a1229ead6d7336e037fc5f3b9b4a3f2a19e594887216"
+    },
+    "limits": "Frozen collectors retain actualfc0a55f source/runtime bindings. Retired build/no-build paths must not be reused; restore metadata and bound assets remain recoverable from verified225mapping archive."
+  },
+  "attemptLedger": [
+    {
+      "head": "4559827075210720e4d8e9b73e255df0ed706f67",
+      "role": "focused-box-sizing",
+      "exitCode": 1,
+      "disposition": "Seven new tests pinned fourborder shapes instead of the authored red2px stroke; dimension checks passed. Corrected test in qualifiedfc0a55f;189pass.",
+      "receipt": {
+        "path": "$TASK_ROOT/focused-box-sizing-execution.json",
+        "bytes": 1974,
+        "sha256": "9f96a3324c3f96aaf6c55390e965e6fe4f8dffe3202b3194ff8fba0e1a277432"
+      }
+    },
+    {
+      "role": "native-analysis",
+      "exitCode": 1,
+      "disposition": "Original all-native-equations assertion correctly exposed fixture09scope mismatch; retained explicitUNMATCHED in revised analysis.",
+      "receipt": {
+        "path": "$TASK_ROOT/native-analysis-execution.json",
+        "bytes": 1212,
+        "sha256": "f944c594c4c92a36b3c2e8de61ddd1973939551e24cc648590fc1a8e9fd02bcc"
+      }
+    },
+    {
+      "role": "source-inspection-v2",
+      "exitCode": 1,
+      "disposition": "Intrinsic width75.3828125 vs native integer76 exceeds a0.5widthcomponent allowance, while each left/right endpoint differs0.30859375CSSpx. Revised intrinsic-only endpoint check<=0.5 plus width<=1 and strictsame-beforewidth; all numeric/raster/sourcecontrols unchanged.",
+      "receipt": {
+        "path": "$TASK_ROOT/source-inspection-v2-execution.json",
+        "bytes": 1366,
+        "sha256": "01dd4b8e7dd5c8a5f87e0a2e21020e1bd861b6382dd14882b42b2cf01706a643"
+      }
+    }
+  ],
+  "storage": {
+    "removedLogicalBytes": 3503382349,
+    "cleanup": {
+      "path": "$TASK_ROOT/prep/cleanup-final/cleanup-result.json",
+      "bytes": 7363,
+      "sha256": "ba18e05b04297fa4e55cc38a1f1a20bc4b898ad10d0362eaef9dd406efc13358"
+    },
+    "metadataRetention": {
+      "path": "$TASK_ROOT/prep/cleanup-final/retention-manifest.json",
+      "bytes": 178388,
+      "sha256": "71f05e23eb3fc7b74abddd60610a18b2703f3832b23dd092c76a1d322921f0a6"
+    },
+    "archive": {
+      "path": "$TASK_ROOT/retained-build-metadata.zip",
+      "bytes": 50382103,
+      "sha256": "00d50869f94fb80504685ea3e1086fe390dcbda6279a25d7c39137fc59d92d2e"
+    },
+    "journalAppend": {
+      "allPriorRowsPreserved": true,
+      "receipt": {
+        "path": "$TASK_ROOT/prep/cleanup-final/storage-ledger-receipt.json",
+        "bytes": 3062,
+        "sha256": "19e0d82d32837c9ab6db64eff06835400efc055e3e2386e37f99363d30c8b4d2"
+      }
+    },
+    "retainedApproximateBytes": 280000000,
+    "retainedPurpose": "Exactprivatepackages/deployedruntimes/actualNativeAOT/TRX/inputs/source-nativePDF+PNG/compactreceipts and verifiedmetadataZIP; ownedworktree retained forlaterPR; sharedcaches/priorproof/nativehistory untouched.",
+    "processClosure": "All14productroles and source/nativebrowser/server closed. No shared/user/uncertainprocess stopped."
+  },
+  "delivery": {
+    "kind": "qualified_branch_checkpoint",
+    "newPullRequest": false,
+    "packagePublication": false,
+    "providerBranch": "feature/html-engine",
+    "providerHead": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "windowsProfiling": "deferred"
+  },
+  "remainingScope": [
+    "intrinsic height keywords and functional intrinsic page-margin sizes",
+    "side/corner and vertical-writing geometry",
+    "backgrounds/radii/additional painted border styles",
+    "existingminmaxpressure/percentagepadding/zeroheightoverflow and scopedvariable native differences"
+  ]
+}

@@ -182,7 +182,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ReportUnsupportedComplexTextShaping(string text, IElement? element, HtmlRenderBoxStyle style, string? source = null) {
-        if (element == null || string.IsNullOrWhiteSpace(text) || _reportedComplexTextShapingElements.Contains(element)) return;
+        if (string.IsNullOrWhiteSpace(text) || element == null && source == null
+            || element != null && _reportedComplexTextShapingElements.Contains(element)
+            || element == null && _reportedComplexTextShapingSources.Contains(source!)) return;
         bool featureShaping = !style.TextFeatureSettings.IsDefault;
         if (!featureShaping && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
         if (featureShaping && _options.TextShapingProvider != null && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
@@ -201,41 +203,50 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (allUnsupportedRunsShaped) return;
-        _reportedComplexTextShapingElements.Add(element);
+        if (!TryReportComplexTextShapingSource(element, source)) return;
         string diagnosticCode = featureShaping
             ? HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported
             : HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported;
         string message = featureShaping
             ? "A requested OpenType feature required a lookup outside the bounded managed shaping subset; scalar glyphs were used."
-            : "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.";
+            : "The selected shaping provider did not accept this complex-script run; diagnosed scalar fallback was used.";
         _diagnostics.Add(
             ComponentName,
             diagnosticCode,
             message,
             HtmlDiagnosticSeverity.Warning,
-            source ?? HtmlRenderStyleResolver.DescribeSource(element),
+            source ?? HtmlRenderStyleResolver.DescribeSource(element!),
             "provider-declined",
             OfficeConversionLossKind.Approximation);
     }
+
+    // Generated text has no DOM element. Its stable source still owns the same
+    // bounded shaping-loss report as ordinary inline text, without a fake node.
+    private bool TryReportComplexTextShapingSource(IElement? element, string? source) =>
+        element != null ? _reportedComplexTextShapingElements.Add(element)
+            : source == null || _reportedComplexTextShapingSources.Add(source);
 
     private static bool RequiresConfiguredTextShaping(string text, OfficeTextFeatureSettings featureSettings) =>
         OfficeTextElements.ContainsCombiningMark(text)
         || OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(text, featureSettings)
         || OfficeTextElements.ContainsShapingRequiredScript(text)
         || OfficeTextElements.ContainsVariationSelector(text)
-        || OfficeTextElements.ContainsJoiningScript(text)
-            && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);
+        || OfficeTextElements.ContainsJoiningScript(text);
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
-        if (provider == null && !style.TextFeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
-        if (provider == null) {
+        if (provider == null && (!style.TextFeatureSettings.IsDefault || OfficeManagedTextShaper.RequiresComplexLayout(text)))
+            provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null || provider == OfficeManagedTextShapingProvider.Instance && style.WritingMode != "horizontal-tb") {
             measured = 0D;
             return false;
         }
         ChargeIntrinsicTextMeasurement(text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
-        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, out measured)) return true;
+        // Match the exact language forwarded by ShapeConfiguredText, including the
+        // global override. Custom providers may distinguish any supplied values.
+        string? shapingLanguage = _options.TextShapingLanguage ?? style.Language;
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, style.TextFeatureSettings, shapingLanguage, out measured)) return true;
 
         IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
@@ -258,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         measured = font.MeasureShapedText(logicalText, result, effectiveFont.Size);
-        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, measured);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, style.TextFeatureSettings, shapingLanguage, measured);
         return true;
     }
 
@@ -390,14 +401,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return measurer.MeasureWidth(value, style);
     }
 
-    private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
+    private double MeasureInlineText(string value, HtmlRenderBoxStyle style, bool preserveContextualFallback = false) {
         if (style.Font.Size <= 0D) return 0D;
         _fontUsage?.Observe(value, style.Font.FamilyName, style.FontDescriptor);
-        double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
+        double measured = !preserveContextualFallback && TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
             : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
-            return Math.Max(0.01D, measured);
+            // A positive paint carrier does not imply a positive font pen.
+            // Zero-advance glyphs still paint and retain their exact shaping.
+            return Math.Max(0D, measured);
         }
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;
@@ -410,12 +423,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style, HtmlInlineRun run) =>
         run.GetPreparedShaping(value, style) is OfficePreparedTextShaping prepared
             ? MeasurePreparedInlineText(value, style, prepared)
-            : MeasureInlineText(value, style);
+            : MeasureInlineText(value, style, run.PreserveContextualFallback);
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style, IntrinsicTextRun run) =>
         run.PreparedShaping != null && string.Equals(value, run.PreparedShaping.Text, StringComparison.Ordinal)
             ? MeasurePreparedInlineText(value, style, run.PreparedShaping)
-            : MeasureInlineText(value, style);
+            : MeasureInlineText(value, style, run.PreserveContextualFallback);
 
     private double MeasurePreparedInlineText(string value, HtmlRenderBoxStyle style, OfficePreparedTextShaping prepared) {
         ChargeIntrinsicTextMeasurement(value);
@@ -610,7 +623,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string? logicalText = null,
             bool bidiResolved = false,
             int logicalEndProgress = 0,
-            OfficeTextDirection? resolvedDirection = null) {
+            OfficeTextDirection? resolvedDirection = null,
+            string? contextualFallbackPaint = null,
+            OfficePreparedTextShaping? preparedShaping = null,
+            bool prepareFromRun = true) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
@@ -618,7 +634,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             BidiResolved = bidiResolved;
             LogicalEndProgress = logicalEndProgress;
             ResolvedDirection = resolvedDirection;
-            PreparedShaping = run.GetPreparedShaping(LogicalText, run.Style);
+            ContextualFallbackPaint = contextualFallbackPaint;
+            PreparedShaping = preparedShaping ?? (prepareFromRun ? run.GetPreparedShaping(LogicalText, run.Style) : null);
         }
 
         internal string Text { get; }
@@ -630,9 +647,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal OfficeTextDirection? ResolvedDirection { get; }
-        internal OfficePreparedTextShaping? PreparedShaping { get; }
+        // Length-preserving contextual forms in logical source order. A declined
+        // provider must not discard the existing scalar joining owner's paint.
+        internal string? ContextualFallbackPaint { get; }
+        internal OfficePreparedTextShaping? PreparedShaping { get; private set; }
+        internal int[]? PreparedElementOffsets { get; private set; }
+        internal bool[]? PreparedElementDirections { get; private set; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
+        internal void RetainPreparedShaping(OfficePreparedTextShaping prepared, int[] elementOffsets, bool[] elementDirections) {
+            PreparedShaping = prepared;
+            PreparedElementOffsets = elementOffsets;
+            PreparedElementDirections = elementDirections;
+        }
     }
 
 }

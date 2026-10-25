@@ -49,6 +49,7 @@ internal static class PdfPaintedGlyphRuns {
         if (!span.IsVisible || span.Color?.A == 0 || span.Text.Length < 2 || !HasGlyphGeometry(span) ||
             !PdfTextAdvanceProjection.TryGetResolvedDirection(span, cancellationToken, out double direction)) return null;
         bool alternate = false;
+        bool completelyMapped = true;
         int characterOffset = 0;
         for (int glyphIndex = 0; glyphIndex < span.GlyphCharacterLengths!.Count; glyphIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -59,13 +60,24 @@ internal static class PdfPaintedGlyphRuns {
             if (characterLength == 1 && char.IsSurrogate((char)scalar)) return null;
             characterOffset += characterLength;
             byte[] code = span.GlyphBytes![glyphIndex];
-            if (code.Length is < 1 or > 2) continue;
+            if (code.Length is < 1 or > 2) {
+                completelyMapped = false;
+                continue;
+            }
             int painted = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
-            if ((painted > 0 || !program.IsEmptyGlyph(0)) &&
-                (!program.UnicodeGlyphs.TryGetValue(scalar, out int mapped) || mapped != painted))
+            if (painted == 0 && program.IsEmptyGlyph(0)) {
+                completelyMapped = false;
+                continue;
+            }
+            if (!program.UnicodeGlyphs.TryGetValue(scalar, out int mapped) || mapped != painted)
                 alternate = true;
         }
-        if (!alternate) return null;
+        if (!alternate) {
+            // The existing cmap names every glyph the PDF painted. Keep this proof
+            // on the whole run without expanding one drawing element per glyph.
+            if (completelyMapped) span.MarkPaintedGlyphProjection();
+            return null;
+        }
         chargeExpansion(span.GlyphCharacterLengths!.Count);
         return SplitSpan(span, direction, cancellationToken);
     }

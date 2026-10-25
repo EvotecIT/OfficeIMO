@@ -50,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool HasOrdinaryFragmentSource(HtmlRenderVisual visual) => !visual.IsOutOfFlowPaint
+        && !IsFragmentableBackgroundPaint(visual)
         && (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
             or HtmlRenderShape { IsAtomicReplacedPlaceholder: true }
             || GetGroupChildren(visual) is { } children && children.Any(HasOrdinaryFragmentSource));

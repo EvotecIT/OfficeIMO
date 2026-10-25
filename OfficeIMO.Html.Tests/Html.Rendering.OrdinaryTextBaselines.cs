@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -21,11 +20,12 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = OrdinaryBaselineOptions();
 
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        XElement text = Assert.Single(XDocument.Parse(document.ToSvg(options))
-            .Descendants(), node => node.Name.LocalName == "text");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText text = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>());
 
-        Assert.Equal(24D + expectedBaseline, HtmlSvgTestCoordinates.CssValue(text, "y"), 3);
-        Assert.Equal("Hgyp", text.Value);
+        Assert.Equal(24D + expectedBaseline, PaintBaseline(text), 3);
+        Assert.Equal("Hgyp", text.Text);
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var page = pdf.GetPage(1);
         double savedPdfBaseline = (page.Height - page.Letters.First(letter => letter.Value == "H").StartBaseLine.Y) / 0.75D;
@@ -39,14 +39,16 @@ public sealed partial class HtmlRenderingTests {
         string html = "<!doctype html><style>body{margin:0;padding:24px;font:16px/20px Pinned}</style>"
             + "<div style='width:60px;font-family:" + family + "'>Hgyp Hgyp Hgyp Hgyp</div>";
         HtmlRenderOptions options = OrdinaryBaselineOptions();
-        XElement[] text = XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg(options)).Descendants()
-            .Where(node => node.Name.LocalName == "text").ToArray();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
 
         Assert.Equal(4, text.Length);
         for (int index = 0; index < text.Length; index++) {
-            Assert.Equal(39D + index * 20D, HtmlSvgTestCoordinates.CssValue(text[index], "y"), 3);
-            Assert.Equal("Hgyp", text[index].Value.Trim());
+            Assert.Equal(39D + index * 20D, PaintBaseline(text[index]), 3);
+            Assert.Equal("Hgyp", text[index].Text.Trim());
         }
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Fact]
@@ -54,11 +56,14 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<!doctype html><style>body{margin:0;padding:24px;font:16px/20px Pinned}</style><div>"
             + "<span style='font-size:24px;line-height:30px'>H</span>"
             + "<span style='font-size:10px;line-height:12px'>gyp</span></div>";
-        XElement[] text = XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg(OrdinaryBaselineOptions()))
-            .Descendants().Where(node => node.Name.LocalName == "text").ToArray();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderOptions options = OrdinaryBaselineOptions();
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
 
         Assert.Equal(2, text.Length);
-        Assert.All(text, node => Assert.Equal(47D, HtmlSvgTestCoordinates.CssValue(node, "y"), 3));
+        Assert.All(text, node => Assert.Equal(47D, PaintBaseline(node), 3));
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Theory]
@@ -70,13 +75,15 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='font-size:24px;line-height:30px'>H</span>"
             + "<span style='font-size:10px;line-height:12px;" + (relativePaint ? "position:relative;top:7px" : "")
             + "'>gyp</span></div>";
-        XElement[] text = XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg(OrdinaryBaselineOptions()))
-            .Descendants().Where(node => node.Name.LocalName == "text").ToArray();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderOptions options = OrdinaryBaselineOptions();
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
 
         Assert.Equal(2, text.Length);
-        Assert.Equal(47D, HtmlSvgTestCoordinates.CssValue(text[0], "y"), 3);
-        Assert.Equal(relativePaint ? 54D : 47D,
-            HtmlSvgTestCoordinates.CssValue(text[1], "y"), 3);
+        Assert.Equal(47D, PaintBaseline(text[0]), 3);
+        Assert.Equal(relativePaint ? 54D : 47D, PaintBaseline(text[1]), 3);
+        AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
     }
 
     [Theory]

@@ -1,0 +1,496 @@
+{
+  "schema": "officeimo.managed-typography-qualified-evidence/v1",
+  "assemblyState": "QUALIFIED_BOUNDED_SOURCE_CHECKPOINT",
+  "preparedUtc": "2026-10-24T00:24:48.265966+00:00",
+  "pathConvention": "Artifact paths are relative to the retained evidence root; $SOURCE_ROOT denotes the source checkout. References preserve exact bytes/SHA and original source bindings. No private coordination identities are part of this receipt.",
+  "source": {
+    "productionHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "tree": "2f4a77b405c9296315753a43dd2c76bfe05ba523",
+    "masterBaseline": "d95f574413abc13b5d4acb31eba106fdbba8e075",
+    "sealedInputs": 58647,
+    "trackedContentFingerprint": "0f2e8f1215b9b593ef760a3e0d8673eb38dbbc203f47b8cc8b9c63d90748f1f6",
+    "cleanAtSeal": true,
+    "changedPaths": 119,
+    "changedPathRoles": {
+      "Pinned Unicode generator": 1,
+      "Contract documentation or roadmap": 7,
+      "Core production": 25,
+      "Tests or shared test fixtures": 53,
+      "HTML production and capability catalog": 12,
+      "PDF production": 21
+    },
+    "newProductionDependencies": [],
+    "qualificationHeadBoundary": "This is the tested production head. The subsequent tracking commit adds only this qualification receipt; it is not relabelled as the compiled source."
+  },
+  "behavior": "Managed horizontal TrueType/CFF typography carries joining, required ligatures, combining marks and complete logical source through shared Core, HTML and default PDF routes. The PDF reader uses a separate logical ActualText baseline for leading zero-advance marks while retaining public physical paint/glyph geometry.",
+  "tests": {
+    "originalSourceHead": "745e5b219fd3680e8db39e1a4451e4cacab802be",
+    "originalFullSuites": [
+      {
+        "owner": "Drawing",
+        "framework": "net10.0",
+        "passed": 6235,
+        "failed": 0,
+        "skips": 5
+      },
+      {
+        "owner": "HTML",
+        "framework": "net10.0",
+        "passed": 7828,
+        "failed": 0,
+        "skips": 0
+      },
+      {
+        "owner": "PDF",
+        "framework": "net10.0",
+        "passed": 12225,
+        "failed": 0,
+        "skips": 0
+      },
+      {
+        "owner": "Drawing",
+        "framework": "net8.0",
+        "passed": 6235,
+        "failed": 0,
+        "skips": 5
+      },
+      {
+        "owner": "HTML",
+        "framework": "net8.0",
+        "passed": 7828,
+        "failed": 0,
+        "skips": 0
+      },
+      {
+        "owner": "PDF",
+        "framework": "net8.0",
+        "passed": 12225,
+        "failed": 0,
+        "skips": 0
+      }
+    ],
+    "originalBindingBoundary": "Drawing/HTML owners remain unchanged by the reader repair. Every original full suite stays745-bound; none is relabelled as13.",
+    "finalSourceHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "finalSourceRoles": [
+      {
+        "role": "pdf-full-net100-reader-v86",
+        "passed": 12240,
+        "failed": 0,
+        "sourceBeforeAfterClean": true
+      },
+      {
+        "role": "html-typography-focused-net100-reader-v86",
+        "passed": 379,
+        "failed": 0,
+        "sourceBeforeAfterClean": true
+      },
+      {
+        "role": "pdf-full-net80-reader-v86",
+        "passed": 12240,
+        "failed": 0,
+        "sourceBeforeAfterClean": true
+      },
+      {
+        "role": "html-typography-focused-net80-reader-v86",
+        "passed": 379,
+        "failed": 0,
+        "sourceBeforeAfterClean": true
+      }
+    ],
+    "finalInputAndAssemblyBinding": "Actual source-before/after13 clean,58,647 post-run physical inputs matching thev86 seal fingerprint and generated NET8/NET10 SourceLink13; independent acceptance supersedes the unused transport field only."
+  },
+  "sourceRoutes": {
+    "sourceHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "exactHarfBuzzVectorComparisons": 50,
+    "htmlObservations": 28,
+    "htmlPages": 32,
+    "sameFrameworkOwnPngSavedReopenedPdfEncodedAndDecodedEqualPages": 32,
+    "currentTo745Identity": {
+      "pngPages": 32,
+      "pagesSceneRows": 28,
+      "retainedFontRows": 28,
+      "diagnosticRows": 28
+    },
+    "directPublicPdfControls": 8,
+    "directControlIds": [
+      "cff-marked-latin",
+      "tt-marked-latin",
+      "tt-arabic",
+      "cff-retained-control"
+    ],
+    "directControlsBoundary": "Four controls on each framework save/reopen actual PDF; raw/logical source is exact once and typography loss is false. Public Core vectors are recorded separately; public PDF glyph evidence remains unavailable where ActualText mapping is ambiguous. The source-only sameFrameworkSourceEqual field remains false because it is not a consumer comparison; the package verifier separately proves actual source/consumer equality."
+  },
+  "packages": {
+    "sourceHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "isolatedVersion": "3.5.35",
+    "packageCount": 5,
+    "frameworkAssets": 20,
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "actualConsumerLanes": [
+      {
+        "label": "net8",
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "nativeAot": false
+      },
+      {
+        "label": "net10",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "nativeAot": false
+      },
+      {
+        "label": "aot",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "nativeAot": true
+      }
+    ],
+    "coreGlyphControls": 15,
+    "htmlObservations": 12,
+    "htmlPages": 18,
+    "directPublicPdfControls": 12,
+    "successfulActualProducerAndConsumerRoles": 13,
+    "allOwnedRoleGroupsAbsent": true,
+    "allAssetsEqualFreshProducers": true,
+    "allHtmlOwnRouteAndSourceBytesPixelsScenesEqual": true,
+    "allDirectPngsEqualSameFrameworkSource": true,
+    "boundary": "Fresh isolated packages and actual macOS arm64 NativeAOT execution. No public package publication or Windows runtime proof is implied."
+  },
+  "native": {
+    "sourceHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "edgePdfs": 14,
+    "edgePages": 16,
+    "currentComparison": {
+      "rows": 28,
+      "pairedPages": 32,
+      "pageCountMismatches": 0,
+      "ownLossRows": 0,
+      "ownEncodedRouteMismatchPages": 0,
+      "rawNativePixelMismatchPages": 32
+    },
+    "originalRootViewedPairsCarriedByExactIdentity": 32,
+    "newEdgeCaptures": 0,
+    "newRootVisualInspections": 0,
+    "carriedJudgment": "The original32 paired-page visual inspections retain their original source binding and apply only through exact same-framework current-to745 PNG, decoded pixel, complete scene, font, geometry, text and diagnostic identity. Current collectors executed anew at13.",
+    "rawCurrentCollectors": {
+      "traceRows": 14,
+      "nativePages": 16,
+      "ownPages": 16,
+      "nativeGlyphs": 1534,
+      "ownGlyphs": 922,
+      "ownPaintedTextGlyphs": 814,
+      "ownInvisibleLogicalTextGlyphs": 108,
+      "nativePaths": 74,
+      "ownPaths": 242,
+      "nativeMappedNonblankTrueTypeGlyphs": 720,
+      "ownReconstructedTrueTypeOutlineGlyphs": 638,
+      "exactLiteralSequencePages": 2,
+      "pagesWithUnmatchedPaths": 10,
+      "unmatchedPathOrContourItems": 34,
+      "unpairedPages": 0
+    },
+    "rawCollectorBoundary": "Observations only; only2 literal outline-sequence pages match,10 pages retain unmatched paths and all32 raw native pixel comparisons differ. No forced glyph/native coordinate equivalence.",
+    "crossFrameworkRasterBoundary": "Original16/16 decoded RGBA pages match across NET8/NET10;0/16 encoded PNG bytes match. Final same-framework identity preserves this observation. No cross-framework encoded-byte claim.",
+    "visibleDifferences": [
+      "Edge synthetic bold differs from the managed regular-only heading face.",
+      "Small baseline/line-height differences remain.",
+      "Wrapped Arabic underline spans spaces/descenders differently.",
+      "CFF/Type3 and ambiguous/unmatched geometry remain raw."
+    ]
+  },
+  "review": {
+    "lineage": [
+      {
+        "role": "independent-managed-typography-review",
+        "fullHead": "f34b2238ed2e051c52bc9692124db075003597b7",
+        "confirmationHead": "009d0887124467730f6309bfacdd8e3e6af8ab76",
+        "targetedConfirmations": 1
+      },
+      {
+        "role": "independent-admission-and-paint-review",
+        "fullHead": "0514d0d7f94bcf0d083899a858d48b3970d21693",
+        "confirmationHead": "8850217b5dd08875312c0d2a59ad781e131600e7",
+        "targetedConfirmations": 1
+      },
+      {
+        "role": "independent-measured-context-review",
+        "fullHead": "5ab8a3b0613bd9c312f9f423a5a7ce8562409ae3",
+        "confirmationHead": "12b47cd9c7fcec3f3c7b35645fed02f0e2a62002",
+        "targetedConfirmations": 1
+      },
+      {
+        "role": "independent-default-pdf-review",
+        "fullHead": "394cf7e792d4150f2619a1c835233d767eaa4fcd",
+        "confirmationHead": "745e5b219fd3680e8db39e1a4451e4cacab802be",
+        "targetedConfirmations": 1,
+        "additionalConfirmationFindings": 0,
+        "ledger": {
+          "path": "prep/default-pdf-review-v80/review-ledger.json",
+          "bytes": 2059,
+          "sha256": "7bc5a8ca9c0f8c9e2ad05b5d2f05a86fd08e5827261765f99b97d1ed99c8adda"
+        }
+      },
+      {
+        "role": "independent-actualtext-baseline-review",
+        "fullPasses": 1,
+        "targetedConfirmations": 0,
+        "actionableFindings": 0,
+        "candidateBinding": "745e5b plus exact candidate-files-before.json dirty repair, before production commit",
+        "candidateFilesMatchProductionSeal": true,
+        "acceptance": {
+          "path": "prep/reader-baseline-remediation-v86/root-focus-acceptance.json",
+          "bytes": 1125,
+          "sha256": "1ba8ec8c3447ff924664e41bb93c3246dccc4c68740ebcaccc74c28d5dfa5ae5"
+        }
+      }
+    ],
+    "boundary": "Existing independent scope reviews and targeted confirmations retain their original boundaries. Receipt preparation adds no code-review pass or confirmation."
+  },
+  "failureAndRepair": {
+    "original745DirectSourceWitness": "Build passed; NET8 exit250 exposed a false extracted newline; NET10 was unrun. The original failed receipt remains failed.",
+    "readerCause": "Writer/operator text was exact. The reader chose the first zero-advance marked glyph baseline as the logical line baseline.",
+    "repairWitness": "The exact dirty745 candidate passed186 focused NET10 cases including15 new regressions; those candidate file hashes match committed13. Fresh13 fullPDF/affectedHTML,8 direct source controls and12 package direct controls subsequently passed.",
+    "transportMetadataError": "Original four-role packet head/argv targeted13 but an unused sourceSeal object still referenced745/v84. The controller did not consume it. Both original packet and precompletion correction remain unchanged; independent per-role source, final physical inventory and assembly SourceLink13 own acceptance. No wrong field is relabelled, hidden or treated as runtime proof.",
+    "olderFailures": "Earlier failed/interrupted/excluded evidence remains at original bindings through the immutable retained-attempt index; this receipt does not duplicate that history."
+  },
+  "currentDocumentation": {
+    "sourceHead": "13cdd89629bfa9a3c68f42fc63c527597274ec70",
+    "files": [
+      {
+        "path": "Docs/ROADMAP.md",
+        "bytes": 241622,
+        "sha256": "164635d6be1533a236d54e844ee89a11b34d32bf1a6364b5d61ee8a07f266b2e"
+      },
+      {
+        "path": "Docs/officeimo.html-support-matrix.md",
+        "bytes": 231856,
+        "sha256": "ba0bc418af3145278e5b525748ce0b4b45310d177335f195c4bbe75f3c47402e"
+      },
+      {
+        "path": "Docs/officeimo.pdf.current-state.md",
+        "bytes": 46051,
+        "sha256": "71684edb03558271cff0f4d92feb25c7afdb8894c62343290700a32f83090a46"
+      },
+      {
+        "path": "OfficeIMO.Core/README.md",
+        "bytes": 118369,
+        "sha256": "8b0b35ab309e12b473e73c2179cb3342b7d23c671ad1c88596d566c5a8d52f1d"
+      },
+      {
+        "path": "OfficeIMO.Html/PDF.md",
+        "bytes": 38870,
+        "sha256": "0e885c58947aac6c42fa07be65f10f36a3cabda6b90f2dd9d6e3680f30224d08"
+      },
+      {
+        "path": "OfficeIMO.Html/README.md",
+        "bytes": 94065,
+        "sha256": "7bc9bcb573592cee08a87fbe3b3352f2035498ba1b8bdaaee809bf4804fb166d"
+      },
+      {
+        "path": "OfficeIMO.Pdf/README.md",
+        "bytes": 193731,
+        "sha256": "fe5df76a95a3832634ef186e3249eadb3a1a5371965dc6256f0da0c8a363d600"
+      }
+    ],
+    "acceptance": "ROOT accepted the current shared Core/HTML/PDF contracts, generated capability matrix and open roadmap against the qualified behavior. No new production dependency, API or package publication is introduced."
+  },
+  "limits": [
+    "Bounded horizontal static TrueType/CFF profile and supplied fonts; no universal script/font/platform claim.",
+    "Cursive/device/variable anchors, active feature variations, Indic/Southeast Asian shaping, variation selectors and vertical shaping are outside this profile; Arabic mark ordering is not complete UAX53 AMTRA.",
+    "Retained nonpainting controls need proven blank final glyphs and complete source; Unicode noncharacters are excluded.",
+    "CSS bidi-override measurement mismatch remains diagnosed fallback/strict rejection.",
+    "Own PNG/PDF equality, native appearance, extraction, accessibility and physical printing are distinct proof tiers.",
+    "Seven authored HTML fixtures are qualification cases, not an independent held-out corpus.",
+    "No new comparative throughput, allocation, retained/peak-memory or Windows profiling acceptance.",
+    "Runtime/provider forks remain separate."
+  ],
+  "references": {
+    "sourceSeal": {
+      "path": "source-seal-managed-typography-v86.json",
+      "bytes": 969,
+      "sha256": "9fa5447855e78704883a03b193046fb37ce8073e5a548706e6e69a12775e04bc"
+    },
+    "sealedInputs": {
+      "path": "source-inventory-managed-typography-v86.json.gz",
+      "bytes": 3538925,
+      "sha256": "f10f5c3b13ff64ed97ce9e55e61a6593910874b7899b0883d8c42cc9360e2c50"
+    },
+    "sourceDelta": {
+      "path": "final-qualification-working.json",
+      "bytes": 94747,
+      "sha256": "3c5efa6a7eddaa6e9f0e389ec078bae34d62a013dd4c9027bc33aa6aa60d569d",
+      "jsonPointer": "/sourcePathInventory",
+      "boundary": "Exact119-path d95-to13 blob/byte/hash inventory retained as an evidence artifact; not copied into this compact receipt."
+    },
+    "originalSixSuites": {
+      "path": "prep/final-full-suite-v79/bound-v84/actual-six-suite-acceptance.json",
+      "bytes": 7191,
+      "sha256": "79171b96f2401ad9631374525499634bf98e9f5a37b8ecd46cd2a47813a7863d"
+    },
+    "currentPdfAndHtml": {
+      "path": "prep/reader-final-validation-v86/actual-current-source-acceptance.json",
+      "bytes": 3302,
+      "sha256": "4019bad8ae34150568be750f58e6006ba00f803e9716b11134de76a28a0d74b4"
+    },
+    "transportMetadataCorrection": {
+      "path": "prep/reader-final-validation-v86/source-binding-correction-precompletion.json",
+      "bytes": 1007,
+      "sha256": "843f74bd5930d78b8216cb2f5c6b7efd31cf36b70108907ebc29eb0583ecd29a"
+    },
+    "sourceRouteAndIdentity": {
+      "path": "final-render-v86/root-source-acceptance.json",
+      "bytes": 10351,
+      "sha256": "8c504663f6835c8e764b31266af928ab2ac6e7c99a638481148fece0e308b048"
+    },
+    "glyphOracle": {
+      "path": "shaping-oracle-final-acceptance-v86.json",
+      "bytes": 12229,
+      "sha256": "bb238ada741965e2b95b1159ed7bf21d2c70cdc4bf8198743b1e58de6216028a"
+    },
+    "currentNativeAdjudication": {
+      "path": "final-native-comparison-v86/root-current-adjudication.json",
+      "bytes": 3795,
+      "sha256": "58b597cd57865cfe2bca7a16126e469668839e67c0e17db3a9f67133cec4d0d1"
+    },
+    "originalNativeVisualJudgment": {
+      "path": "final-native-comparison-v84/root-native-adjudication.json",
+      "bytes": 25058,
+      "sha256": "165eaff15390d1d10d0e5f851f2d6aa00db293a090cf0b348bc32dba21cb5e9f"
+    },
+    "rawPdfTraces": {
+      "path": "final-native-trace-net10-v86/summary.json",
+      "bytes": 67855,
+      "sha256": "1c0a5dc95f594940dba820f9b509c49523cc93bcc9d07f7f70b3c0cd3de40563"
+    },
+    "rawTrueTypeOutlineObservations": {
+      "path": "final-native-outlines-net10-v86/outline-origins-v2.json",
+      "bytes": 1412499,
+      "sha256": "74dbf00512ebe782410c3fe12f0a8cfe59a4bd4cdf7bc0d311dd18ef2d9fa922"
+    },
+    "directPdfNet8": {
+      "path": "final-direct-pdf-v86/net8/result.json",
+      "bytes": 22911,
+      "sha256": "7e1c7fc275ff080226fa91e3ba65a518400ae5834dfe48a7c4860aef1f9ac084"
+    },
+    "directPdfNet10": {
+      "path": "final-direct-pdf-v86/net10/result.json",
+      "bytes": 22922,
+      "sha256": "6404e784d2b9e79ecda6f54719b56106500461615cc08710d103d2997ff3cdc2"
+    },
+    "packageVerification": {
+      "path": "packages/typography-qualified-direct-pdf-v86/verification-v86.json",
+      "bytes": 370250,
+      "sha256": "1b9c859a203d4839f5ab6b2dea7ae1ed5fa96541e8873110f4fb991875a3b09a"
+    },
+    "packageVersionPreflight": {
+      "path": "prep/package-direct-pdf-v70/preflight-v86/preflight.json",
+      "bytes": 6888,
+      "sha256": "69f13e1f9747e706bd2df93533ab71d0e1a68b39a2a210f7ac95fbc7dd2ece0d"
+    },
+    "readerFocusedAcceptance": {
+      "path": "prep/reader-baseline-remediation-v86/root-focus-acceptance.json",
+      "bytes": 1125,
+      "sha256": "1ba8ec8c3447ff924664e41bb93c3246dccc4c68740ebcaccc74c28d5dfa5ae5"
+    },
+    "failedOriginalDirectWitness": {
+      "path": "typography-direct-pdf-source-v84-closure.json",
+      "bytes": 1921,
+      "sha256": "33be6798f1f45a917f449587f6d08e56c1bf50293ab098bd91974384b964c509"
+    },
+    "readerCauseProbe": {
+      "path": "logs/extraction-reader-probe-run-v85.log",
+      "bytes": 694,
+      "sha256": "a0de150ed7770937de844d0d4c73c3f1d2902ee458661d844b5dd181f0e2cc0e"
+    },
+    "retainedEarlierFailureIndex": {
+      "path": "prep/final-receipt-preparation-v67/retained-attempts-skeleton.json",
+      "bytes": 9569,
+      "sha256": "b21555563ac070e30a6b2ff9870d9a8b62ec21e8e010d0b97be0b09ad79b9be4"
+    },
+    "boundedAtomicOwnerClosure": {
+      "path": "prep/full-v58-adjudication/owner-closure-committed.json",
+      "bytes": 4080,
+      "sha256": "754ecb9319a29e8a496b93dd69bd04025887d4303bb7dcfb9f26457a942530af"
+    }
+  },
+  "rootCloseout": {
+    "finalPhysicalSourceIntegrity": {
+      "path": "prep/checkpoint16/final-physical-source-integrity.json",
+      "bytes": 502,
+      "sha256": "4304fd9b7d0230bb3236ef1f5d264319ac939f6a7e8db9dd3f6320f47424398c"
+    },
+    "unchangedOwnerBinding": {
+      "path": "prep/checkpoint16/owner-preservation.json",
+      "bytes": 1060,
+      "sha256": "85ce616b3827f314083c44a1164bcedc6b44fd73b959612c1544272cf4acdb51"
+    },
+    "currentEngineProcessClosure": {
+      "path": "prep/checkpoint16/final-engine-process-closure.json",
+      "bytes": 14805,
+      "sha256": "714bf65b153f1f567194afe348ba3ab1f834381937e7bbe161cbc0c7aadebeb7"
+    },
+    "retentionAndStorage": {
+      "removedLogicalBytes": 14368111041,
+      "measuredRetainedRegularLogicalBytes": 2907198682,
+      "currentDisposableGraphsCachesTempRemoved": true,
+      "allRecordedTargetsAbsent": 19,
+      "runtimeAndMetadataArchive": {
+        "path": "prep/final-storage-v86/archives/receipt.json",
+        "bytes": 14012,
+        "sha256": "0438957d6ef511ee8d2b30ed2051713c004acfcf8558ff081119ba4cec6497a5"
+      },
+      "deployedPackagesAndConsumers": {
+        "path": "prep/final-storage-v86/retained-deployments.json",
+        "bytes": 40601,
+        "sha256": "866b1ca976f8813644094b60ddc84d26fd508961afdfbce2b4b7ac5cc822ea06"
+      },
+      "currentActualRemovals": {
+        "path": "prep/final-storage-v86/actual-removal.json",
+        "bytes": 2462,
+        "sha256": "0a6bc31dfa773b9d8ab59d53494f645417e9c06a33437d7bfe1e85688463e32b"
+      },
+      "privateTempRetention": {
+        "path": "prep/final-storage-v86/tmp-retention/receipt.json",
+        "bytes": 942,
+        "sha256": "f57c47c301d94087b347c7999eb8a196f0203938308258024da926ef222ca4c0"
+      },
+      "privateTempRemoval": {
+        "path": "prep/final-storage-v86/tmp-retention/actual-removal.json",
+        "bytes": 522,
+        "sha256": "1588d7b24c04ba8d08eb83a9005db3786b487d4207104068cdfbfaec57033156"
+      },
+      "manifest": {
+        "path": "storage-manifest.json",
+        "bytes": 104056,
+        "sha256": "7e4093e1e6072cf3ff76bcd02c8146f1881fe469ad6feaa5ee9cfdd64d228172"
+      },
+      "journalAppend": {
+        "path": "prep/final-storage-v86/storage-ledger-receipt.json",
+        "bytes": 3171,
+        "sha256": "a6bd4f7ba51dfb1d3dbb40205c71e8a79f510775734ff5682e47f892f2dc8305"
+      },
+      "journalPriorRowsPreserved": true,
+      "boundary": "Measured task-root evidence includes deliberate original-source runtime/oracle witnesses. Retired source paths in immutable results resolve through verified archive object/path maps; collectors are not rerun against retired graphs. Shared caches, history, primary edits and active worktrees are preserved."
+    },
+    "deliveryScope": {
+      "branch": "feature/html-managed-typography",
+      "masterBaseline": "d95f574413abc13b5d4acb31eba106fdbba8e075",
+      "providerBranch": "feature/html-engine",
+      "providerLocalAndRemoteHead": "72130c73a64747bc7016da6f46c4f2607e91633f",
+      "windowsProfiling": "Deferred",
+      "requestedDelivery": "Qualified branch checkpoint only. No pull request, merge, public package publication, release or deployment.",
+      "publicationBoundary": "This receipt qualifies production source. Final commit identity and actual remote push/readback are recorded independently in task continuation/publication evidence; no circular self-head or prior-head CI claim is made."
+    }
+  },
+  "qualifiedUtc": "2026-10-24T00:34:40.921132+00:00"
+}

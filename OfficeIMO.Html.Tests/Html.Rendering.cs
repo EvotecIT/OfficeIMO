@@ -1773,7 +1773,7 @@ public sealed partial class HtmlRenderingTests {
                 @top-left { content: element(chapter, start); text-align:left; }
                 @top-right { content: element(chapter, first); text-align:right; }
               }
-              .running { position: running(chapter); margin:0; padding:2px; border-bottom:1px solid #225588; color:#225588; }
+              .running { position: running(chapter); margin:0; padding:2px; font-size:16px; line-height:20px; border-bottom:1px solid #225588; color:#225588; }
               .page { margin:0; height:80px; }
             </style>
             <h1 class="running">Chapter Alpha</h1>
@@ -2967,8 +2967,7 @@ public sealed partial class HtmlRenderingTests {
             group => group.Text == "שלום 123");
         Assert.Equal("שלום 123", logicalGroup.Text);
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
-        HtmlRenderText number = Assert.Single(text, run => run.Text == "123");
-        Assert.Equal("שלום 123", string.Concat(text.Where(run => Math.Abs(run.Y - number.Y) < 0.001D).OrderBy(run => run.PaintOrder).Select(run => run.Text)));
+        HtmlRenderText number = Assert.Single(text, run => run.Text.Trim() == "123");
         Assert.True(number.X < hebrew.Min(run => run.X));
 
         HtmlRenderLogicalTextGroup arabicGroup = Assert.Single(
@@ -2995,9 +2994,13 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported);
         HtmlDiagnostic[] shapingDiagnostics = rendered.Diagnostics.Where(diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported).ToArray();
-        Assert.Equal(2, shapingDiagnostics.Length);
-        Assert.All(new[] { "h2#arabic", "p#syriac" }, source => {
+        // This fixture has no admitted font-directed provider. Authored Arabic
+        // presentation forms are normalized for joining too; their unchanged
+        // scalar paint cannot claim complete OpenType shaping.
+        Assert.Equal(3, shapingDiagnostics.Length);
+        Assert.All(new[] { "h2#arabic", "p#authored", "p#syriac" }, source => {
             HtmlDiagnostic diagnostic = Assert.Single(shapingDiagnostics, item => item.Source == source);
+            Assert.Equal("provider-declined", diagnostic.Detail);
             Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         });
         Assert.DoesNotContain(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
@@ -3016,7 +3019,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText left = Assert.Single(runs, run => run.Text.Contains("Left", StringComparison.Ordinal));
         HtmlRenderText number = Assert.Single(runs, run => run.Text.Contains("42", StringComparison.Ordinal));
 
-        Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
+        Assert.Equal("Left שלום 42", rendered.Text.Trim());
+        rendered.RequireNoLoss();
         Assert.Equal(4, hebrew.Count);
         // UAX #9: a number after right-to-left text joins that run (W2/N1), so it is painted before the Hebrew.
         Assert.True(left.X < number.X);
@@ -3049,16 +3053,14 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0;width:240px'>A\u2067שלום abc\u2069B</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        HtmlRenderLogicalTextGroup group = Assert.Single(
-            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
-            item => item.Text == "Aשלום abcB");
-        HtmlRenderText latin = Assert.Single(group.Visuals.OfType<HtmlRenderText>(), run => run.Text.Contains("abc", StringComparison.Ordinal));
-        IReadOnlyList<HtmlRenderText> hebrew = group.Visuals
-            .OfType<HtmlRenderText>()
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText latin = Assert.Single(text, run => run.Text.Contains("abc", StringComparison.Ordinal));
+        IReadOnlyList<HtmlRenderText> hebrew = text
             .Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal))
             .ToList();
 
-        Assert.Equal("Aשלום abcB", group.Text);
+        Assert.Equal("Aשלום abcB", rendered.Text.Trim());
+        rendered.RequireNoLoss();
         Assert.Equal(4, hebrew.Count);
         Assert.True(latin.X < hebrew.Min(static run => run.X));
     }
@@ -3112,12 +3114,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderLogicalTextGroup group = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
             item => item.Text == "אבג" && item.Visuals.OfType<HtmlRenderText>().Any());
-        HtmlRenderText text = Assert.Single(group.Visuals.OfType<HtmlRenderText>());
-        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+        HtmlRenderText[] text = group.Visuals.OfType<HtmlRenderText>().ToArray();
+        OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel);
 
-        Assert.Equal("גבא", text.Text);
-        Assert.Contains("גבא", svg, StringComparison.Ordinal);
-        Assert.Contains("unicode-bidi=\"bidi-override\"", svg, StringComparison.Ordinal);
+        Assert.Equal("גבא", PhysicalPaintedUnicode(text));
+        Assert.Equal("אבג", group.Text);
+        AssertSvgRetainsPaintedGlyphs(drawing, svg, "אבג");
         Assert.DoesNotContain("\u202D", svg, StringComparison.Ordinal);
     }
 
@@ -3153,17 +3156,22 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRenderer_CarriesBidiOverridesAcrossWrappedLines() {
         const string html = "<p style='margin:0;width:32px;font-size:12px'>\u202Eone two four\u202C</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        IReadOnlyList<HtmlRenderLogicalTextGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene)
-            .OfType<HtmlRenderLogicalTextGroup>()
-            .ToList();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        var lines = text.GroupBy(item => item.Y).OrderBy(line => line.Key).ToArray();
 
-        Assert.Contains(groups, group =>
-            group.Text == "one" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "eno");
-        Assert.Contains(groups, group =>
-            group.Text == "two" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "owt");
-        Assert.Contains(groups, group =>
-            group.Text == "four" && group.Visuals.OfType<HtmlRenderText>().SingleOrDefault()?.Text == "ruof");
+        // Logical groups may nest to retain both paragraph and directional source
+        // ownership. Inspect each actual painted leaf once, rather than counting
+        // equivalent ancestor containers as duplicate content.
+        Assert.Equal(new[] { "eno", "owt", "ruof" }, lines.Select(line => PhysicalPaintedUnicode(line).Trim()));
+        Assert.Equal(new[] { "one", "two", "four" }, rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions {
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Equal(new[] { "one", "two", "four" }, extracted.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     [Fact]

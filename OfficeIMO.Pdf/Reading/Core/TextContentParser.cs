@@ -802,7 +802,7 @@ internal static partial class TextContentParser {
                     // Share replacement ownership with visible Form paint, retaining its
                     // real glyph geometry when no page-level text anchor emits it first.
                     if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText) {
-                        formActualText.RejectLogicalPaintExtent();
+                        formActualText.RejectLogicalLayoutEvidence();
                         onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
                     } else if (onCompletedDrawingActualText != null && args.Count >= 1 &&
                         !HasActiveHiddenContent() && GetActiveDrawingActualTextState() is { } drawingActualText) {
@@ -819,7 +819,7 @@ internal static partial class TextContentParser {
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
                         HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null));
-                    if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalPaintExtent();
+                    if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalLayoutEvidence();
                     if (onCompletedDrawingActualText != null && markedState.HasActualText) {
                         var origin = ctm.Transform(0D, 0D);
                         markedState.BeginDrawingScope(currentContentOrderKey, GetActiveDrawingActualTextState(),
@@ -841,6 +841,7 @@ internal static partial class TextContentParser {
                     if (markedContentStack.Count > 0) {
                         MarkedContentState completed = markedContentStack.Pop();
                         completed.CompleteLogicalPaintExtent(spans);
+                        completed.CompleteLogicalBaseline(spans);
                         completed.CompleteDrawingScope(currentContentOrderKey, textOutputBudget, onCompletedDrawingActualText);
                     }
 
@@ -1167,6 +1168,11 @@ internal static partial class TextContentParser {
                 dx, dy, endX, endY, Matrix2D.Multiply(ctm, textMatrix), spanClipPath, pageHeight, paintedRun,
                 isHidden || isArtifact || hasUndecodableGlyph || characterAdvanceDirection < 0D ||
                 (!logicalAnchor && (!isVisibleText || textRenderingMode != 0 || visibleColor.A <= 3)),
+                logicalAnchor, pendingLineBreaks);
+            actualTextState?.ObserveLogicalBaselinePaint(spans, currentContentStreamObjectNumber, font, size,
+                dx, dy, endX, endY, Matrix2D.Multiply(ctm, textMatrix), spanClipPath, pageHeight, paintedRun,
+                isHidden || isArtifact || hasUndecodableGlyph || characterAdvanceDirection < 0D ||
+                !isVisibleText || textRenderingMode != 0 || visibleColor.A <= 3,
                 logicalAnchor, pendingLineBreaks);
 
             if (!isHidden) {

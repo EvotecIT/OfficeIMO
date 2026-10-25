@@ -137,14 +137,16 @@ public class PdfTextQualityTests {
 
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().Where(static span => span.Text.Trim().Length > 0).ToArray();
-        // Spans carry glyphs in paint (visual) order, as from other right-to-left producers.
-        static string Visual(string logical) => new string(logical.Reverse().ToArray());
-        var first = Assert.Single(spans, span => span.Text.Contains(Visual("مرحبا"), StringComparison.Ordinal));
-        var second = Assert.Single(spans, span => span.Text.Contains(Visual("بالعالم"), StringComparison.Ordinal));
+        // Simple reverse runs use ToUnicode in paint order. Composed clusters
+        // can instead carry their original word through logical ActualText.
+        static string Logical(PdfTextSpan span) => span.SourceActualText
+            ?? (span.HasActualText ? span.Text : new string(span.Text.Reverse().ToArray()));
+        var first = Assert.Single(spans, span => Logical(span).Trim() == "مرحبا");
+        var second = Assert.Single(spans, span => Logical(span).Trim() == "بالعالم");
         // Logical first word stays first in content order but is painted to the right.
         Assert.True(first.X > second.X);
         Assert.True(Array.IndexOf(spans, first) < Array.IndexOf(spans, second));
-        Assert.DoesNotContain("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
+        Assert.Equal(new[] { "مرحبا", "بالعالم" }, spans.Select(span => Logical(span).Trim()));
         // Joined (contextual) forms replace the isolated letters.
         var program = PdfTrueTypeFontProgram.Parse(File.ReadAllBytes(fontPath!));
         Assert.True(program.TryGetGlyphId(0x0645, out int isolatedMeem));

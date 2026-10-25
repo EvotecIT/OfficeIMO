@@ -45,4 +45,7 @@ public sealed class HtmlResourcePipelineOptions {
 
     // Generic discovery keeps document icons; rendering omits these non-visual metadata assets.
     internal bool IncludeDocumentIcons { get; set; } = true;
+
+    // Rendering discovers generated backgrounds after linked/imported sheets join the cascade.
+    internal bool DeferPageMarginBackgrounds { get; set; }
 }

@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(drawing.Y >= above.Y + above.Height - 0.01D);
         Assert.True(below.Y >= drawing.Y + drawing.Height - 0.01D);
         Assert.Contains("sqrt(x)", rendered.Text, StringComparison.Ordinal);
-        Assert.Contains(">\U0001D465</text>", svg, StringComparison.Ordinal);
+        Assert.Contains("\U0001D465", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("sqrt(x)", pdfText, StringComparison.Ordinal);
         Assert.Equal(pdfText.IndexOf("sqrt(x)", StringComparison.Ordinal), pdfText.LastIndexOf("sqrt(x)", StringComparison.Ordinal));
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));

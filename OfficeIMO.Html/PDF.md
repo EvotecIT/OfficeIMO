@@ -279,6 +279,8 @@ result.RequireNoLoss();
 result.Save("report.pdf").RequireNoLoss();
 ```
 
+`HtmlRenderResult.RequireNoLoss()` checks retained layout diagnostics. For an explicit PDF request, `HtmlPdfRenderRequestResult.Output` exposes the combined HTML/PDF report, including warnings refreshed during serialization. Use `Output.ToBytesLossless()` for strict byte export, or call `Output.RequireNoLoss()` after serialization. Encoded images carry their own `Diagnostics`; `image.CreateReport().RequireNoLoss()` checks that completed image-export stage.
+
 ## Accessibility validation
 
 HTML-to-PDF enables tagging by default. Use real headings, table headers with
@@ -397,7 +399,17 @@ options.MaxOutlinedTextCharactersPerRun = 16_384;
 options.MaxOutlinedTextPathCommands = 1_000_000;
 ```
 
-HTML uses the shared Core/PDF owners for bidirectional ordering, line breaking and bounded Arabic per-letter joining. Combining-mark attachment and required lam-alef ligatures need a complete shaping provider. The managed fallback preserves logical searchable text and reports approximation loss; strict mode rejects that fallback.
+HTML selects `OfficeManagedTextShapingProvider.Instance` when no explicit provider is supplied for a run that needs complex shaping or nondefault OpenType features. The shared Core owner handles the qualified horizontal static TrueType/CFF profile: Arabic joining and required ligatures, Arabic/Hebrew/Latin mark positioning, font-selected contextual substitutions and pair adjustments. It preserves the original Unicode string and complete logical clusters through layout, PDF and paged images. Glyph coverage is still required in the selected face; a matching family name is not proof that another font has the same layout features.
+
+The managed profile uses font-directed canonical composition and Arabic mark ordering, with ZWJ/ZWNJ joining behavior and CGJ ordering boundaries. Nonpainting controls retain their source coverage with zero advance and verified blank outlines. A supported font lookup can intentionally leave a mark at its zero-advance nominal position when no parent anchor applies; OfficeIMO does not manufacture an anchor or report that valid font-directed no-op as an unavailable provider.
+
+Font-directed Latin reversed by an explicit bidi override, cursive attachment, device-dependent or variable mark anchors, layout feature variations, Indic and Southeast Asian shaping, variation selectors and true vertical shaping remain outside this static multilingual profile. Font loading and outlining support does not imply shaping support for every loaded font. If a required operation cannot be interpreted completely, the run retains logical searchable text with `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that approximation. Arabic composition follows the native shaping profile rather than promising complete UAX #53 conformance.
+
+Shaping uses `TextShapingLanguage` when set, otherwise the computed element language. Measurement and retained painting share that effective language. Eligible horizontal LTR combining-mark runs retain accepted managed glyph positions through painting. Mixed paragraphs retain their separately resolved LTR and RTL slices with the paragraph's direction, selected font and complete source clusters. This directional paint-retention path requires zero letter spacing and word spacing, and its glyph advance must agree with the retained layout width. A CSS bidi override whose pair-positioning context changes that width keeps diagnosed fallback; it cannot claim complete retained shaping. Ineligible complex spacing and non-horizontal paint remain outside that retained-glyph subset; an approximation is reported when the complete provider result cannot be retained, and strict mode rejects it.
+
+With the default Arial family and no registered font bytes, layout-only requests can use different metrics from PDF and image output. `RequireNoLoss()` currently does not identify this difference. Register the same font bytes when comparing geometry across these routes.
+
+Register the actual bold face when bold appearance matters. If a requested bold style has only a regular face available, font matching can select that nearest regular face; it does not reproduce the browser's synthetic bold weight. Compare native appearance with the same available faces and synthesis policy.
 
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
 
@@ -411,11 +423,13 @@ var options = new HtmlToPdfOptions {
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
 
-Configured providers can retain an ordinary horizontal RTL Arabic word across eligible inline paint boundaries. Each piece must share the selected bounded monochrome font program, collection face and variation coordinates, with matching font size, language, direction and OpenType features. Letter spacing must be zero, source partitions must preserve complete logical clusters, and slice advances must add up to the complete word. Glyph IDs, offsets, advances and continuation glyphs stay with their logical source through measurement and painting. Forced breaks, bidi controls, emergency word wrapping, inline insets and differing shaping settings lie outside this retained-context subset.
+The default managed provider and configured providers can retain an ordinary horizontal RTL Arabic word across eligible inline paint boundaries. Each piece must share the selected bounded monochrome font program, collection face and variation coordinates, with matching font size, language, direction and OpenType features. Letter spacing must be zero, source partitions must preserve complete logical clusters, and slice advances must add up to the complete word. Glyph IDs, offsets, advances and continuation glyphs stay with their logical source through measurement and painting. Forced breaks, bidi controls, emergency word wrapping, inline insets and differing shaping settings lie outside this retained-context subset.
 
 Paragraph bidi also supplies the direction for neutral punctuation. With zero letter and word spacing, eligible horizontal RTL slices retain the provider result requested with that resolved direction, so later output does not infer a new direction from punctuation alone. Font, provider, color-glyph or cluster-retention failures in an otherwise eligible context report `HtmlRenderComplexTextShapingUnsupported`.
 
-HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. A positive-advance run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
+HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. An admitted run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
+
+Retained PDF outlines accept finite nonnegative total pen advances. A zero advance keeps natural glyph placement and logical text without inventing pen width or scaling the glyphs to a minimum paint frame. Negative or nonfinite totals retain diagnosed fallback.
 
 `HtmlRenderPage.CreateDrawing()` also carries admitted glyphs into Drawing output. Generic PDF export through `PdfPageCanvas.Drawing(...)` accepts retained text as unwrapped positioned monochrome slices; attached text decorations, padding, indentation, outline strokes and specialized metric geometry are outside that route and fail explicitly. Separate decoration shapes already present in the Drawing use normal shape output.
 
@@ -436,7 +450,7 @@ HtmlToPdfOptions options = fonts.CreateHtmlOptions(
 The same `options` instance can drive screen images, browser-print PDF, and
 screen-to-page PDF so layout and encoded output use the same fonts.
 
-If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
+If the effective shaping provider declines a run that requires complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output. An explicit provider remains the caller's choice; a failed request is not silently retried through a browser.
 
 Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.
 

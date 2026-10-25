@@ -56,8 +56,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static HtmlToPdfOptions LocalBidiOptions() {
-        byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
-            " LEFTאבג123١٢٣".Select(character => (int)character).Distinct().ToArray());
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
+            " LEFTאבג123١٢٣".Select(character => (int)character).Distinct()
+                .ToDictionary(scalar => scalar, _ => (ushort)500), new[] { 32 });
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),

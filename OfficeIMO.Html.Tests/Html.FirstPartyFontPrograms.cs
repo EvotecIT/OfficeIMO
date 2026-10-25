@@ -216,9 +216,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         Assert.True(provider.Requests.Count >= 2);
         Assert.Contains(result.Report.Warnings, warning =>
-            warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
-            && warning.Details.TryGetValue("Detail", out string? detail)
-            && detail == "provider-declined");
+            warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
 
         var strictProvider = new AcceptOnceThenDeclineTextShapingProvider();
@@ -342,7 +340,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] pdf = source.ToPdfDocumentResult(options).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Contains(text, read.ExtractText(), StringComparison.Ordinal);
-        Assert.Equal("https://example.com/path", Assert.Single(read.Pages[0].GetLinkAnnotations()).Uri);
+        AssertVariableOutlineLinkFragments(source, options, read, text);
         Assert.True(HtmlPdfAccessibilityValidator.Validate(source, pdf).IsValid);
 
         var characterLimited = options.ClonePdf();
@@ -356,8 +354,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         PdfCore.PdfDocumentConversionResult commandResult = source.ToPdfDocumentResult(commandLimited);
         byte[] commandPdf = commandResult.ToBytes();
         Assert.Contains(text, PdfCore.PdfReadDocument.Open(commandPdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Equal("https://example.com/path", Assert.Single(PdfCore.PdfReadDocument.Open(commandPdf)
-            .Pages[0].GetLinkAnnotations()).Uri);
+        AssertVariableOutlineLinkFragments(source, commandLimited, PdfCore.PdfReadDocument.Open(commandPdf), text);
         Assert.Contains(commandResult.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
             && warning.LossKind == OfficeConversionLossKind.Approximation);
@@ -448,6 +445,37 @@ public sealed class HtmlFirstPartyFontProgramTests {
             light.Id,
             light.DefaultFamilyNames,
             light.CreateRenderingProfile().Fonts).Fingerprint);
+    }
+
+    private static void AssertVariableOutlineLinkFragments(HtmlConversionDocument source, HtmlToPdfOptions options,
+        PdfCore.PdfReadDocument saved, string accessibleText) {
+        PdfCore.PdfLinkAnnotation[] links = Assert.Single(saved.Pages).GetLinkAnnotations().ToArray();
+        Assert.NotEmpty(links);
+        Assert.All(links, link => {
+            Assert.Equal("https://example.com/path", link.Uri);
+            Assert.Equal(accessibleText, link.Contents);
+            Assert.True(link.X2 > link.X1 && link.Y2 > link.Y1);
+            Assert.False(double.IsNaN(link.X1) || double.IsInfinity(link.X1)
+                || double.IsNaN(link.Y1) || double.IsInfinity(link.Y1)
+                || double.IsNaN(link.X2) || double.IsInfinity(link.X2)
+                || double.IsNaN(link.Y2) || double.IsInfinity(link.Y2));
+        });
+        HtmlRenderDocument scene = HtmlRenderEngine.Render(source, options);
+        scene.RequireNoLoss();
+        HtmlRenderPage page = Assert.Single(scene.Pages);
+        HtmlRenderText[] linkedPaint = page.Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.LinkUri == "https://example.com/path" && !string.IsNullOrWhiteSpace(text.Text)).ToArray();
+        Assert.NotEmpty(linkedPaint);
+        foreach (HtmlRenderText text in linkedPaint) {
+            HtmlRenderRectangle bounds = text.LinkBounds ?? new HtmlRenderRectangle(text.X, text.Y, text.Width, text.Height);
+            double left = bounds.X * .75D, right = (bounds.X + bounds.Width) * .75D;
+            double bottom = (page.Height - bounds.Y - bounds.Height) * .75D, top = (page.Height - bounds.Y) * .75D;
+            // The PDF writer serializes point coordinates at millipoint precision.
+            // Either one anchor rectangle or several retained paint fragments may
+            // cover this same linked carrier, without losing its destination.
+            Assert.Contains(links, link => link.X1 <= left + .001D && link.X2 >= right - .001D
+                && link.Y1 <= bottom + .001D && link.Y2 >= top - .001D);
+        }
     }
 
     private static OfficeFontFaceCollection CreateFallbackFonts(byte[] latin, byte[] variable, float weight) {

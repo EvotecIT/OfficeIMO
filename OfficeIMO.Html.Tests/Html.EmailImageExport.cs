@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -84,40 +83,51 @@ public sealed class HtmlEmailImageExportTests {
             options);
 
         XDocument svg = XDocument.Parse(System.Text.Encoding.UTF8.GetString(result.Bytes));
-        XElement[] text = svg.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
-        Assert.Equal(2, text.Length);
-        Assert.All(text, element => Assert.Equal("A", element.Value));
-        XElement subject = text[0];
-        Assert.True(double.Parse(subject.Attribute("y")!.Value, CultureInfo.InvariantCulture)
-            < double.Parse(text[1].Attribute("y")!.Value, CultureInfo.InvariantCulture));
-        string familyReference = subject.Attribute("font-family")!.Value;
-        Assert.NotEqual(familyReference, text[1].Attribute("font-family")!.Value);
+        XElement[] slices = svg.Descendants().Where(element => element.Name.LocalName == "text"
+            || element.Name.LocalName == "g" && element.Attribute("role")?.Value == "img"
+                && element.Attribute("aria-label") != null
+                && element.Descendants().Any(child => child.Name.LocalName == "path")).ToArray();
+        Assert.Equal(2, slices.Length);
+        Assert.Equal("AA", SvgPaintedText.Read(svg.ToString()));
+        XElement subject = slices[0], body = slices[1];
+        Assert.Equal("A", subject.Attribute("aria-label")?.Value);
+        OfficeDrawingShape subjectInk = ReadInk(subject);
 
-        string styles = string.Concat(svg.Descendants().Where(element => element.Name.LocalName == "style").Select(element => element.Value));
-        Match rule = Assert.Single(Regex.Matches(styles, """@font-face\s*\{(?<body>[^{}]+)\}""",
-            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Cast<Match>(), match =>
-            familyReference == "\"" + Field(match.Groups["body"].Value,
-                """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""") + "\"");
-        string declarations = rule.Groups["body"].Value;
-        string family = Field(declarations, """(?:^|;)\s*font-family\s*:\s*"(?<value>[^"]+)"\s*(?:;|$)""");
-        byte[] embedded = Convert.FromBase64String(Field(declarations,
-            """(?:^|;)\s*src\s*:\s*url\(data:font/ttf;base64,(?<value>[A-Za-z0-9+/=]+)\)"""));
-        int weight = int.Parse(Field(declarations, """(?:^|;)\s*font-weight\s*:\s*(?<value>\d+)"""), CultureInfo.InvariantCulture);
-        Assert.Equal(weight, int.Parse(subject.Attribute("font-weight")!.Value, CultureInfo.InvariantCulture));
-        var descriptor = new OfficeFontFaceDescriptor(weight);
-        var fonts = new OfficeFontFaceCollection();
-        Assert.True(fonts.TryAdd(family, embedded, descriptor));
-        Assert.True(fonts.TryResolveFaceForText("A", family, descriptor, out OfficeFontFace? face));
+        Assert.True(options.Fonts.TryResolveFaceForText("A", ManagedTextShapingTestAssets.FamilyName,
+            OfficeFontFaceDescriptor.Regular, out OfficeFontFace? face));
         Assert.True(face!.Program.TryGetGlyphMetrics('A', out _, out int advance));
         Assert.Equal(500, advance);
         Assert.Equal(1000, face.Program.UnitsPerEm);
-        Assert.Equal(0.5D, double.Parse(subject.Attribute("textLength")!.Value, CultureInfo.InvariantCulture)
-            / double.Parse(subject.Attribute("font-size")!.Value, CultureInfo.InvariantCulture), 6);
+        const double subjectSizePoints = 24D * 72D / HtmlRenderOptions.CssPixelsPerInch;
+        OfficePoint[] expected = face.Program.GetTextContours("A", 0D, 0D, subjectSizePoints)
+            .SelectMany(contour => contour).ToArray();
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected.Max(point => point.X) - expected.Min(point => point.X), subjectInk.Shape.Width, 3);
+        Assert.Equal(expected.Max(point => point.Y) - expected.Min(point => point.Y), subjectInk.Shape.Height, 3);
+        if (body.Name.LocalName == "text") {
+            Assert.True(subjectInk.Y < double.Parse(body.Attribute("y")!.Value, CultureInfo.InvariantCulture));
+            Assert.DoesNotContain(ManagedTextShapingTestAssets.FamilyName,
+                OfficeFontFamilyParser.Parse(body.Attribute("font-family")?.Value));
+        } else {
+            OfficeDrawingShape bodyInk = ReadInk(body);
+            Assert.True(subjectInk.Y < bodyInk.Y);
+            // The explicit Arial body must not become the supplied rectangular glyph.
+            Assert.True(bodyInk.Shape.PathCommands.Count != subjectInk.Shape.PathCommands.Count
+                || Math.Abs(bodyInk.Shape.Width / 16D - subjectInk.Shape.Width / 24D) > 0.001D
+                || Math.Abs(bodyInk.Shape.Height / 16D - subjectInk.Shape.Height / 24D) > 0.001D);
+        }
 
-        static string Field(string declarations, string pattern) {
-            Match match = Regex.Match(declarations, pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-            Assert.True(match.Success, "The exported font face must retain its declared family, embedded data and weight.");
-            return match.Groups["value"].Value;
+        OfficeDrawingShape ReadInk(XElement projection) {
+            XElement content = new XElement(projection);
+            foreach (XElement ancestor in projection.Ancestors().TakeWhile(element => element != svg.Root))
+                content = new XElement(ancestor.Name, ancestor.Attributes(), content);
+            var isolated = new XElement(svg.Root!.Name,
+                new XAttribute("width", "4096"), new XAttribute("height", "4096"),
+                new XAttribute("viewBox", "0 0 4096 4096"),
+                svg.Descendants().Where(element => element.Name.LocalName == "defs")
+                    .Select(element => new XElement(element)), content);
+            OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(System.Text.Encoding.UTF8.GetBytes(isolated.ToString()));
+            return Assert.Single(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingShape>());
         }
     }
 

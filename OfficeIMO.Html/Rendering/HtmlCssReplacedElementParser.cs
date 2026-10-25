@@ -110,8 +110,8 @@ internal static class HtmlCssReplacedElementParser {
         offsetX = 0D;
         offsetY = 0D;
         if (!TryParsePosition(value, fontSize, rootFontSize, viewportWidth, viewportHeight, out AxisPosition horizontal, out AxisPosition vertical, characterAdvance)) return false;
-        offsetX = horizontal.Resolve(areaWidth, areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
-        offsetY = vertical.Resolve(areaHeight, areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
+        offsetX = horizontal.Resolve(areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
+        offsetY = vertical.Resolve(areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
         return !double.IsNaN(offsetX) && !double.IsInfinity(offsetX)
             && !double.IsNaN(offsetY) && !double.IsInfinity(offsetY);
     }
@@ -324,7 +324,6 @@ internal static class HtmlCssReplacedElementParser {
         private bool UsesAlignment { get; }
 
         internal double Resolve(
-            double areaLength,
             double freeSpace,
             double fontSize,
             double rootFontSize,
@@ -335,8 +334,10 @@ internal static class HtmlCssReplacedElementParser {
             if (UsesAlignment) return freeSpace * Alignment;
             double offset = 0D;
             if (EdgeOffset != null) {
-                if (TryPercentage(EdgeOffset, out double percentage)) offset = areaLength * percentage;
-                else HtmlRenderCssValues.TryLength(EdgeOffset, areaLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out offset, characterAdvance);
+                // Both background-position and object-position percentage offsets
+                // use the positioning area minus the concrete image dimension.
+                if (TryPercentage(EdgeOffset, out double percentage)) offset = freeSpace * percentage;
+                else HtmlRenderCssValues.TryLength(EdgeOffset, freeSpace, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out offset, characterAdvance);
             }
             return End ? freeSpace - offset : offset;
         }

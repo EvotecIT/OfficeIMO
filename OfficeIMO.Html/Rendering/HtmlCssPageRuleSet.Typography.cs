@@ -15,19 +15,14 @@ internal sealed partial class HtmlCssPageRuleSet {
         var contexts = ResolveMarginContexts(pageNumber, pageName, root.Computed,
             styleResolver.PageComputedStyles, styleResolver.PageCancellationToken);
         if (contexts.Count == 0) return resolved;
-        HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height);
+        HtmlRenderBoxStyle page = styleResolver.ResolvePageTypography(contexts[0].Page, root.Used, width, height, "@page");
         foreach (var context in contexts) {
-            HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height);
-            if (!context.Content.IsEmpty && context.Position is (HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight
-                or HtmlCssPageMarginPosition.BottomLeft or HtmlCssPageMarginPosition.BottomCenter or HtmlCssPageMarginPosition.BottomRight)) {
-                bool top = context.Position is HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight;
+            string source = "@page @" + HtmlCssPageSettingsResolver.GetMarginBoxName(context.Position);
+            HtmlRenderBoxStyle margin = styleResolver.ResolvePageTypography(context.Margin, page, width, height, source);
+            if (!context.Content.IsEmpty) {
+                (double containingWidth, double containingHeight) = ResolveMarginContainingDimensions(context.Position, geometry);
                 styleResolver.ResolvePageMarginGeometry(context.Margin, margin, width, height,
-                    Math.Max(0D, geometry.Width - geometry.Margins.Left - geometry.Margins.Right),
-                    top ? geometry.Margins.Top : geometry.Margins.Bottom, "@page @" + (context.Position switch {
-                        HtmlCssPageMarginPosition.TopLeft => "top-left", HtmlCssPageMarginPosition.TopCenter => "top-center",
-                        HtmlCssPageMarginPosition.TopRight => "top-right", HtmlCssPageMarginPosition.BottomLeft => "bottom-left",
-                        HtmlCssPageMarginPosition.BottomCenter => "bottom-center", _ => "bottom-right"
-                    }));
+                    containingWidth, containingHeight, source);
             }
             // The paged-media UA stylesheet sets positional alignment on each
             // margin box. Explicit inherit/unset still selects the page value.
@@ -37,10 +32,42 @@ internal sealed partial class HtmlCssPageRuleSet {
                 || alignment.Length == 0 && context.Margin.IsInheritedValue("text-align") && !context.Margin.IsImplicitlyInheritedValue("text-align")
                 || alignment.Equals("start", StringComparison.OrdinalIgnoreCase)) alignment = "left";
             else if (alignment.Equals("end", StringComparison.OrdinalIgnoreCase)) alignment = "right";
+            // Unlike text-align, vertical-align is not implicitly inherited. Its
+            // positional UA default applies until this generated context has a value.
+            bool hasVerticalAlignment = context.Margin.HasCascadeState("vertical-align")
+                && !context.Margin.IsImplicitlyInheritedValue("vertical-align");
+            string verticalAlignment = context.Margin.IsOriginRevertedValue("vertical-align")
+                ? string.Empty : context.Margin.GetValue("vertical-align");
+            if (!context.Margin.IsOriginRevertedValue("vertical-align")
+                && (context.Margin.IsResetValue("vertical-align")
+                    || verticalAlignment.Length == 0 && context.Margin.IsInheritedValue("vertical-align"))) verticalAlignment = "baseline";
+            OfficeTextVerticalAlignment usedVerticalAlignment = HtmlCssPageSettingsResolver.ResolveMarginVerticalAlignment(
+                context.Position, verticalAlignment, out string unsupportedVerticalAlignment);
             resolved[context.Position] = new HtmlCssPageMarginTemplate(context.Position, context.Content, margin,
-                HtmlCssPageSettingsResolver.ResolveMarginAlignment(context.Position, alignment));
+                HtmlCssPageSettingsResolver.ResolveMarginAlignment(context.Position, alignment), usedVerticalAlignment,
+                hasVerticalAlignment, unsupportedVerticalAlignment);
         }
         return resolved;
+    }
+
+    /// <summary>Supplies percentage references from the physical page-margin rectangle without changing paper units.</summary>
+    private static (double Width, double Height) ResolveMarginContainingDimensions(
+        HtmlCssPageMarginPosition position, HtmlCssPageGeometry geometry) {
+        double contentWidth = Math.Max(0D, geometry.Width - geometry.Margins.Left - geometry.Margins.Right);
+        double contentHeight = Math.Max(0D, geometry.Height - geometry.Margins.Top - geometry.Margins.Bottom);
+        double left = Math.Max(0D, geometry.Margins.Left), right = Math.Max(0D, geometry.Margins.Right);
+        double top = Math.Max(0D, geometry.Margins.Top), bottom = Math.Max(0D, geometry.Margins.Bottom);
+        return position switch {
+            HtmlCssPageMarginPosition.TopLeft or HtmlCssPageMarginPosition.TopCenter or HtmlCssPageMarginPosition.TopRight => (contentWidth, top),
+            HtmlCssPageMarginPosition.BottomLeft or HtmlCssPageMarginPosition.BottomCenter or HtmlCssPageMarginPosition.BottomRight => (contentWidth, bottom),
+            HtmlCssPageMarginPosition.LeftTop or HtmlCssPageMarginPosition.LeftMiddle or HtmlCssPageMarginPosition.LeftBottom => (left, contentHeight),
+            HtmlCssPageMarginPosition.RightTop or HtmlCssPageMarginPosition.RightMiddle or HtmlCssPageMarginPosition.RightBottom => (right, contentHeight),
+            HtmlCssPageMarginPosition.TopLeftCorner => (left, top),
+            HtmlCssPageMarginPosition.TopRightCorner => (right, top),
+            HtmlCssPageMarginPosition.BottomLeftCorner => (left, bottom),
+            HtmlCssPageMarginPosition.BottomRightCorner => (right, bottom),
+            _ => throw new ArgumentOutOfRangeException(nameof(position))
+        };
     }
 
     /// <summary>Discovers page-only generic faces through the same cascade used for final painting.</summary>
@@ -55,6 +82,18 @@ internal sealed partial class HtmlCssPageRuleSet {
                     OfficeFontFaceDescriptor pageDescriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, context.Page, rootDescriptor);
                     yield return (HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, context.Margin, pageFamily, options.DefaultFontFamily),
                         HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, context.Margin, pageDescriptor));
+                }
+            }
+        }
+    }
+
+    /// <summary>Discovers paint resources through the effective generated cascade, including inherited custom properties.</summary>
+    internal IEnumerable<HtmlComputedStyle> EnumerateMarginBackgroundStyles(HtmlComputedStyle root,
+        HtmlComputedStyleSet styles, CancellationToken cancellationToken) {
+        foreach (string? name in _rules.Select(rule => rule.PageName).Concat(new string?[] { null }).Distinct(StringComparer.Ordinal)) {
+            for (int pageNumber = 1; pageNumber <= 3; pageNumber++) {
+                foreach (var context in ResolveMarginContexts(pageNumber, name, root, styles, cancellationToken)) {
+                    if (!context.Content.IsEmpty) yield return context.Margin;
                 }
             }
         }

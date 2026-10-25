@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,6 +7,37 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    /// <summary>Wraps outlined ink in its logical source without inventing a zero-advance spacing rectangle.</summary>
+    private static void AddOutlinedLogicalTextReplacement(PdfCore.PdfPageCanvas canvas,
+        HtmlRenderText visual, double textX, double advance, bool asSpan, ClipBounds? logicalClip,
+        Action<PdfCore.PdfPageCanvas> paint) {
+        double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
+        var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X + textX, visual.Y, advance, logicalHeight)
+            ?? (X: visual.X + textX, Y: visual.Y, Width: advance, Height: logicalHeight);
+        PdfCore.PdfCanvasTextStructureRole role = asSpan
+            ? PdfCore.PdfCanvasTextStructureRole.Span
+            : MapStructureRole(visual.SemanticRole);
+        void AddReplacement(PdfCore.PdfPageCanvas target) {
+            if (carrier.Width > 0D && carrier.Height > 0D) {
+                target.ActualText(visual.Text,
+                    carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
+                    carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel,
+                    paint, logicalOrder: visual.SemanticSourceOrder);
+            } else {
+                // Zero advance still has a position and can have visible ink.
+                target.ActualText(visual.Text, carrier.X * PointsPerCssPixel,
+                    (carrier.Y + carrier.Height) * PointsPerCssPixel,
+                    paint, logicalOrder: visual.SemanticSourceOrder);
+            }
+        }
+        if (role == PdfCore.PdfCanvasTextStructureRole.Span) {
+            AddReplacement(canvas);
+        } else {
+            canvas.Structure(MapOutlinedTextStructureRole(role), AddReplacement,
+                new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+        }
+    }
+
     private static bool TryResolveReorderedLogicalText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText) =>
         HtmlRenderLogicalText.TryResolveReorderedText(visuals, out logicalText);
     private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {

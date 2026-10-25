@@ -104,7 +104,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                     maxpLength = (int)tableLength;
                     break;
                 case "glyf":
-                    hasGlyf = tableLength > 0;
+                    hasGlyf = true;
                     glyfOffset = (int)tableOffset;
                     glyfLength = (int)tableLength;
                     break;
@@ -156,7 +156,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         int glyfLength,
         int locaOffset,
         int locaLength) {
-        if (headLength < 54 || maxpLength < 6 || glyfLength <= 0 || locaLength < 4 ||
+        if (headLength < 54 || maxpLength < 6 || glyfLength < 0 || locaLength < 4 ||
             headOffset < 0 || headOffset > data.Length - headLength ||
             maxpOffset < 0 || maxpOffset > data.Length - maxpLength ||
             glyfOffset < 0 || glyfOffset > data.Length - glyfLength ||

@@ -325,11 +325,12 @@ public sealed partial class HtmlRenderingTests {
             EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(baselineHtml).Pages[0].Scene)
                 .OfType<HtmlRenderLogicalTextGroup>(),
             item => item.Text == "abc def אבג");
-        HtmlRenderText[] text = group.Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] text = EnumerateTextOverflowVisuals(group.Visuals).OfType<HtmlRenderText>().ToArray();
         HtmlRenderText abc = Assert.Single(text, item => item.Text == "abc");
         HtmlRenderText def = Assert.Single(text, item => item.Text == "def");
-        HtmlRenderText baselineAbc = Assert.Single(baselineGroup.Visuals.OfType<HtmlRenderText>(), item => item.Text == "abc");
-        HtmlRenderText baselineDef = Assert.Single(baselineGroup.Visuals.OfType<HtmlRenderText>(), item => item.Text == "def");
+        HtmlRenderText[] baselineText = EnumerateTextOverflowVisuals(baselineGroup.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText baselineAbc = Assert.Single(baselineText, item => item.Text == "abc");
+        HtmlRenderText baselineDef = Assert.Single(baselineText, item => item.Text == "def");
 
         Assert.Contains(text, item => item.Text == " ");
         Assert.True(def.X - abc.X > baselineDef.X - baselineAbc.X + 10D);

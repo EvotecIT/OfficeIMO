@@ -400,10 +400,51 @@ internal static partial class HtmlCssPageSettingsResolver {
         if (position == HtmlCssPageMarginPosition.TopCenter || position == HtmlCssPageMarginPosition.BottomCenter) return OfficeTextAlignment.Center;
         if (position == HtmlCssPageMarginPosition.LeftTop || position == HtmlCssPageMarginPosition.LeftMiddle || position == HtmlCssPageMarginPosition.LeftBottom
             || position == HtmlCssPageMarginPosition.RightTop || position == HtmlCssPageMarginPosition.RightMiddle || position == HtmlCssPageMarginPosition.RightBottom) return OfficeTextAlignment.Center;
-        if (position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.TopRightCorner
-            || position == HtmlCssPageMarginPosition.BottomRight || position == HtmlCssPageMarginPosition.BottomRightCorner) return OfficeTextAlignment.Right;
+        if (position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.TopLeftCorner
+            || position == HtmlCssPageMarginPosition.BottomRight || position == HtmlCssPageMarginPosition.BottomLeftCorner) return OfficeTextAlignment.Right;
         return OfficeTextAlignment.Left;
     }
+
+    /// <summary>Resolves physical table-cell alignment, retaining unsupported values for the layout diagnostic owner.</summary>
+    internal static OfficeTextVerticalAlignment ResolveMarginVerticalAlignment(HtmlCssPageMarginPosition position,
+        string value, out string unsupportedValue) {
+        unsupportedValue = string.Empty;
+        switch (value.Trim().ToLowerInvariant()) {
+            // Each margin box is an independent cell with no peer baseline to displace it.
+            case "baseline":
+            case "top": return OfficeTextVerticalAlignment.Top;
+            case "middle": return OfficeTextVerticalAlignment.Center;
+            case "bottom": return OfficeTextVerticalAlignment.Bottom;
+            case "": break;
+            default: unsupportedValue = value; break;
+        }
+        return position switch {
+            HtmlCssPageMarginPosition.LeftTop or HtmlCssPageMarginPosition.RightTop => OfficeTextVerticalAlignment.Top,
+            HtmlCssPageMarginPosition.LeftBottom or HtmlCssPageMarginPosition.RightBottom => OfficeTextVerticalAlignment.Bottom,
+            _ => OfficeTextVerticalAlignment.Center
+        };
+    }
+
+    /// <summary>Returns the canonical CSS spelling shared by generated styles, layout sources and diagnostics.</summary>
+    internal static string GetMarginBoxName(HtmlCssPageMarginPosition position) => position switch {
+        HtmlCssPageMarginPosition.TopLeftCorner => "top-left-corner",
+        HtmlCssPageMarginPosition.TopLeft => "top-left",
+        HtmlCssPageMarginPosition.TopCenter => "top-center",
+        HtmlCssPageMarginPosition.TopRight => "top-right",
+        HtmlCssPageMarginPosition.TopRightCorner => "top-right-corner",
+        HtmlCssPageMarginPosition.LeftTop => "left-top",
+        HtmlCssPageMarginPosition.LeftMiddle => "left-middle",
+        HtmlCssPageMarginPosition.LeftBottom => "left-bottom",
+        HtmlCssPageMarginPosition.RightTop => "right-top",
+        HtmlCssPageMarginPosition.RightMiddle => "right-middle",
+        HtmlCssPageMarginPosition.RightBottom => "right-bottom",
+        HtmlCssPageMarginPosition.BottomLeftCorner => "bottom-left-corner",
+        HtmlCssPageMarginPosition.BottomLeft => "bottom-left",
+        HtmlCssPageMarginPosition.BottomCenter => "bottom-center",
+        HtmlCssPageMarginPosition.BottomRight => "bottom-right",
+        HtmlCssPageMarginPosition.BottomRightCorner => "bottom-right-corner",
+        _ => throw new ArgumentOutOfRangeException(nameof(position))
+    };
 
     private static bool TryMapMarginPosition(string name, out HtmlCssPageMarginPosition position) {
         switch (name) {

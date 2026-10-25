@@ -93,6 +93,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedHyphenationLanguages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<IElement> _reportedComplexTextShapingElements = new HashSet<IElement>();
+    private readonly HashSet<string> _reportedComplexTextShapingSources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HtmlShapedTextMeasurementCache _shapedTextMeasurementCache = new HtmlShapedTextMeasurementCache();
     private readonly HashSet<string> _reportedMixedRunningElementMarginBoxes = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
@@ -1005,14 +1006,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string message,
         IElement element,
         string? detail = null,
+        OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) =>
+        AddUnsupported(code, message, HtmlRenderStyleResolver.DescribeSource(element), detail, lossKind);
+
+    /// <summary>Reports paint loss for DOM and generated contexts without synthesizing an element.</summary>
+    private void AddUnsupported(string code, string message, string source, string? detail = null,
         OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
-        _diagnostics.Add(
-            ComponentName,
-            code,
-            message,
-            HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
-            detail,
-            lossKind);
+        _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, source, detail, lossKind);
     }
 }

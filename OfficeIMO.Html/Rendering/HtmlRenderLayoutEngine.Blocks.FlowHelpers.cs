@@ -228,19 +228,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
     }
 
-    private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {
-        double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(1D, availableWidth - style.HorizontalInsets));
+    /// <summary>Applies numeric width constraints with an explicit zero-area profile for generated boxes.</summary>
+    private static double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style, bool allowZeroWidth = false) {
+        double floor = allowZeroWidth ? 0D : 1D;
+        double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(floor, availableWidth - style.HorizontalInsets));
         if (!style.BorderBox) width += style.HorizontalInsets;
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
+        return Math.Max(style.HorizontalInsets, Math.Max(floor, width));
     }
 
     private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style, bool allowZeroHeight = false) {
+        return ResolveBoxHeight(contentHeight, boxWidth, style, style.ExplicitHeight, style.MinHeight, style.MaxHeight, allowZeroHeight);
+    }
+
+    /// <summary>Applies the shared height equation to numeric or resolved intrinsic constraints.</summary>
+    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style,
+        double? explicitHeight, double? minHeight, double? maxHeight, bool allowZeroHeight) {
         double height;
-        bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
-        if (style.ExplicitHeight.HasValue) {
-            height = style.ExplicitHeight.Value;
+        bool usesAspectRatio = !explicitHeight.HasValue && style.AspectRatio.HasValue;
+        if (explicitHeight.HasValue) {
+            height = explicitHeight.Value;
         } else if (style.AspectRatio.HasValue) {
             double ratioWidth = style.BorderBox
                 ? boxWidth
@@ -249,9 +257,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             height = contentHeight;
         }
-        if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
-        if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
-        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
+        if (!style.BorderBox || !explicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
+        if (maxHeight.HasValue) height = Math.Min(height, maxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
+        if (minHeight.HasValue) height = Math.Max(height, minHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         return Math.Max(style.VerticalInsets, Math.Max(allowZeroHeight ? 0D : 0.01D, height));
     }
 

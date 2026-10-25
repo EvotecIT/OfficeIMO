@@ -7,10 +7,10 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Measures existing intrinsic breaks, optionally sharing the caller's font measurement and work accounting.</summary>
     private double MeasureMinContentRuns(IReadOnlyList<IntrinsicTextRun> runs,
-        Func<string, IntrinsicTextRun, double>? measure = null) {
+        Func<string, IntrinsicTextRun, double>? measure = null, double minimumWidth = 1D) {
         double Measure(string value, IntrinsicTextRun run) => measure != null
             ? measure(value, run) : MeasureInlineText(value, run.Style, run);
-        double maximum = 1D;
+        double maximum = minimumWidth;
         double current = 0D;
         // Indentation contributes to required width without shifting the
         // content-relative tab stops used by ordinary inline layout.
@@ -116,8 +116,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return maximum;
     }
 
-    private double MeasureMaxContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
-        double maximum = 1D;
+    private double MeasureMaxContentRuns(IReadOnlyList<IntrinsicTextRun> runs, double minimumWidth = 1D) {
+        double maximum = minimumWidth;
         double current = 0D;
         double firstLineIndent = 0D;
         bool hasContent = false;
@@ -502,6 +502,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal string Text { get; }
         internal OfficePreparedTextShaping? PreparedShaping { get; set; }
+        internal bool PreserveContextualFallback { get; set; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsParagraphStart { get; }

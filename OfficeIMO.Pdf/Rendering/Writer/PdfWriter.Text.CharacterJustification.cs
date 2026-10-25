@@ -57,7 +57,13 @@ internal static partial class PdfWriter {
         }
         if (indexes.Count < 2) return new RichLineJustification(segments, 0D, naturalWidth);
         bool[] boundaries = OfficeOpenTypeTracking.GetBoundaries(text.ToString(), indexes);
-        boundaries[boundaries.Length - 1] = false;
+        // Source-only controls can follow the final visible cluster. Character
+        // distribution expands between visible clusters, never after the last.
+        for (int index = boundaries.Length - 1; index >= 0; index--) {
+            if (!boundaries[index]) continue;
+            boundaries[index] = false;
+            break;
+        }
         int opportunities = boundaries.Count(boundary => boundary);
         if (opportunities == 0) return new RichLineJustification(segments, 0D, naturalWidth);
         if (useWordJustificationSpacing)

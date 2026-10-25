@@ -63,6 +63,52 @@ public sealed class DrawingFontContainerTests {
         Assert.True(((IOfficeFontProgram)font).HasGlyphs("A"));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void OfficeTrueTypeFont_LoadsOutlineFreeSubsetWithCompleteEmptyLocations(
+        bool longLocations, bool emptyTableAtEnd) {
+        byte[] source = CreateOutlineFreeTrueTypeFont(longLocations, emptyTableAtEnd);
+
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(source));
+
+        Assert.True(((IOfficeFontProgram)font).HasGlyphs(" "));
+        Assert.True(font.Measure(" ", 12D) > 0D);
+        Assert.Empty(font.GetTextContours(" ", 0D, 0D, 12D));
+    }
+
+    [Theory]
+    [InlineData("nonzero-location")]
+    [InlineData("truncated-locations")]
+    [InlineData("invalid-location-format")]
+    public void OfficeTrueTypeFont_RejectsInvalidLocationsForOutlineFreeSubset(string mutation) {
+        byte[] source = CreateOutlineFreeTrueTypeFont(longLocations: false, emptyTableAtEnd: false);
+        int locaRecord = FindTableRecord(source, "loca");
+        if (mutation == "nonzero-location") source[FindTableOffset(source, "loca") + 1] = 1;
+        else if (mutation == "truncated-locations")
+            WriteUInt32(source, locaRecord + 12, ReadUInt32(source, locaRecord + 12) - 1);
+        else source[FindTableOffset(source, "head") + 51] = 2;
+
+        Assert.Null(OfficeTrueTypeFont.TryLoad(source));
+    }
+
+    private static byte[] CreateOutlineFreeTrueTypeFont(bool longLocations, bool emptyTableAtEnd) {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont(' ');
+        int glyphCount = (source[FindTableOffset(source, "maxp") + 4] << 8)
+            | source[FindTableOffset(source, "maxp") + 5];
+        int locaOffset = source.Length;
+        int locaLength = (glyphCount + 1) * (longLocations ? 4 : 2);
+        Array.Resize(ref source, (locaOffset + locaLength + 3) & ~3);
+        int locaRecord = FindTableRecord(source, "loca");
+        WriteUInt32(source, locaRecord + 8, (uint)locaOffset);
+        WriteUInt32(source, locaRecord + 12, (uint)locaLength);
+        source[FindTableOffset(source, "head") + 51] = longLocations ? (byte)1 : (byte)0;
+        int glyfRecord = FindTableRecord(source, "glyf");
+        if (emptyTableAtEnd) WriteUInt32(source, glyfRecord + 8, (uint)source.Length);
+        WriteUInt32(source, glyfRecord + 12, 0);
+        return source;
+    }
+
     [Fact]
     public void OfficeFontContainerDecoder_RoundTripsCompressedWoffIntoReusableOpenType() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A', 0x1F600);

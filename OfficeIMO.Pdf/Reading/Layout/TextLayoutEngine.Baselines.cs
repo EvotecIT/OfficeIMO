@@ -22,7 +22,7 @@ internal static partial class TextLayoutEngine {
         var lines = new List<TextLine>();
         foreach (IGrouping<double, PdfTextSpan> orientation in spans.GroupBy(RotationKey)) {
             cancellationCheck?.Invoke();
-            var coordinates = new PdfTextBaselineCoordinates(orientation.First().RotationDegrees);
+            var coordinates = new PdfTextBaselineCoordinates(orientation.First().RotationDegrees, useLogicalLayoutBaseline: true);
             var ordered = orientation.OrderByDescending(coordinates.Normal).ThenBy(coordinates.Along).ToList();
             var groups = new List<BaselineSpanGroup>();
             var current = new List<PdfTextSpan>();

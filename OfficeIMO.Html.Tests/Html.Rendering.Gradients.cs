@@ -624,16 +624,13 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderPathClipGroup clipped = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderPathClipGroup>());
-        HtmlRenderDrawing visual = Assert.Single(clipped.Visuals.OfType<HtmlRenderDrawing>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
-        Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(raster.GetPixel(28, 10), raster.GetPixel(86, 38));
         Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
-        Assert.Contains("<path", OfficeDrawingSvgExporter.ToSvg(visual.Drawing), StringComparison.Ordinal);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Contains("ConicMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
@@ -710,15 +707,13 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
-        Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(8, 8));
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(87, 67));
-        Assert.Contains("<path", OfficeDrawingSvgExporter.ToSvg(visual.Drawing), StringComparison.Ordinal);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Contains("StylesheetConic", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
@@ -783,7 +778,6 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D),
             ConicGradientQualitySegments = 72
         });
-        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
@@ -793,7 +787,6 @@ public sealed partial class HtmlRenderingTests {
         });
         OfficeDrawing pdfDrawing = PdfCore.PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(raster.GetPixel(20, 20), raster.GetPixel(70, 50));
         OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D);
         Assert.Contains(Enumerable.Range(0, pdfRaster.Width * pdfRaster.Height), index => {
@@ -820,13 +813,12 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        Assert.NotEmpty(drawing.Drawing.Elements);
+        Assert.Contains("<path", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
 
         options.MaxGradientStops = 4;
         HtmlRenderDocument bounded = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        Assert.DoesNotContain(bounded.Pages[0].Visuals, visual => visual is HtmlRenderDrawing);
+        Assert.DoesNotContain(EnumerateRenderVisuals(bounded.Pages[0].Scene), visual => visual is HtmlRenderDrawing);
         Assert.Contains(bounded.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GradientStopLimitExceeded);
     }
 

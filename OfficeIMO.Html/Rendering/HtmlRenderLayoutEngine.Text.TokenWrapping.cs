@@ -365,13 +365,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || style.WordBreak == "break-all"
         || style.WordBreak == "break-word";
 
-    private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
+    private IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
         var merged = new List<InlineSegment>(segments.Count);
         foreach (InlineSegment segment in segments) {
             if (segment.Run.AtomicBlock == null
                 && segment.Text.Length > 0
                 && merged.Count > 0
                 && merged[merged.Count - 1].Text.Length > 0
+                // Widths were measured before this paint coalescing pass. A
+                // marked/provider-shaped token must not introduce a different
+                // shaping scope for neighbouring independently measured words.
+                && !HasProviderMeasurementContext(segment)
+                && !HasProviderMeasurementContext(merged[merged.Count - 1])
                 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
                 merged[merged.Count - 1] = new InlineSegment(
@@ -391,6 +396,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return merged;
     }
 
+    private bool HasProviderMeasurementContext(InlineSegment segment) => segment.PreparedShaping != null
+        || !segment.Run.PreserveContextualFallback && (_options.TextShapingProvider != null
+            || !segment.Run.Style.TextFeatureSettings.IsDefault
+            || OfficeManagedTextShaper.RequiresComplexLayout(segment.LogicalText));
+
     private void AddBrokenToken(
         ICollection<InlineLine> lines,
         ref InlineLine line,
@@ -400,6 +410,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         int logicalStartProgress,
         bool completesToken = true) {
+        if (lines is InlineLineCollection { RetainPreparedTokenClusters: true }
+            && TryAddPreparedBrokenToken(lines, ref line, run, token, logicalToken, width,
+                logicalStartProgress, completesToken)) return;
         var part = new StringBuilder();
         var logicalPart = new StringBuilder();
         double partWidth = 0D;
