@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.TestAssets;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -21,7 +22,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlDiagnostic[] estimates = rendered.Diagnostics
             .Where(item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated).ToArray();
 
-        Assert.Contains(estimates, item => item.Source == "p#subject" && item.Detail!.Contains("weight=700", StringComparison.Ordinal));
+        HtmlRenderText body = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>(), item => item.Text == "VISIBLE");
+        Assert.Contains(estimates, item => item.Source == body.Source && item.Detail!.Contains("weight=700", StringComparison.Ordinal));
         Assert.Contains(estimates, item => item.Source == "@page @top-left");
         Assert.All(estimates, item => {
             Assert.Equal(HtmlDiagnosticSeverity.Warning, item.Severity);
@@ -43,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = DefaultMetricOptions(withFont: true);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderText body = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
-            .OfType<HtmlRenderText>(), item => item.Source == "p#subject");
+            .OfType<HtmlRenderText>(), item => item.Text == "VISIBLE");
         Assert.True(rendered.Fonts.TryResolveFaceForText(body.Text, body.Font.FamilyName,
             body.FontDescriptor, body.Font.Size, out OfficeFontFace? face));
 
@@ -109,7 +112,9 @@ public sealed partial class HtmlRenderingTests {
         if (expectedLoss) {
             HtmlDiagnostic estimate = Assert.Single(rendered.Diagnostics,
                 item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
-            Assert.Equal("p#nested", estimate.Source);
+            HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+                .OfType<HtmlRenderText>(), item => item.Text == "IFRAME");
+            Assert.Equal(text.Source, estimate.Source);
             Assert.Equal(OfficeConversionLossKind.Approximation, estimate.LossKind);
             Assert.Contains("IFRAME", rendered.Text, StringComparison.Ordinal);
             Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());

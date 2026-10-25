@@ -12,6 +12,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("document")]
     [InlineData("named")]
     [InlineData("standard")]
+    [InlineData("substitution")]
     public void HtmlDefaultFont_ExplicitTargetBytesRemainAvailableToRetainedDrawing(string registration) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1100, -200, 1050);
         var family = new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data);
@@ -22,11 +23,17 @@ public sealed partial class HtmlRenderingTests {
         if (registration == "document") options.FontFamily = family;
         else if (registration == "named")
             options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", data));
-        else options.PdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, family);
+        else if (registration == "standard")
+            options.PdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, family);
+        else {
+            options.PdfOptions.RegisterNamedFontFamily(family);
+            options.PdfOptions.RegisterFontFamilySubstitution("Arial", family.FamilyName);
+        }
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p style='margin:0;font:20px Arial'>AA</p>");
 
         HtmlRenderDocument raw = HtmlRenderEngine.Render(source, options);
-        HtmlPdfRenderResult converted = source.ToPdfDocumentResult(options);
+        HtmlPdfRenderRequestResult converted = source.RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
         HtmlRenderText rawText = Assert.Single(raw.Pages[0].Visuals.OfType<HtmlRenderText>());
         HtmlRenderText pdfText = Assert.Single(converted.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
 
@@ -76,5 +83,25 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
                 && diagnostic.LossKind != OfficeConversionLossKind.None);
         Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
+    public void HtmlDefaultFont_RegularOnlyStandardRegistrationKeepsSynthesizedItalicPaint() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
+        var options = new HtmlToPdfOptions {
+            AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D),
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        options.PdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
+            new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data));
+        HtmlRenderOptions referenceOptions = options.Clone();
+        referenceOptions.Fonts.Add("Arial", data);
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<p style='margin:0;font:italic 40px Arial'>AA</p>");
+
+        HtmlRenderDocument actual = HtmlRenderEngine.Render(source, options);
+        HtmlRenderDocument reference = HtmlRenderEngine.Render(source, referenceOptions);
+
+        Assert.Equal(reference.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes,
+            actual.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes);
     }
 }

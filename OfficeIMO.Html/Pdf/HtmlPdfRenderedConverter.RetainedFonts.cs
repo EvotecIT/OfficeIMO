@@ -22,7 +22,9 @@ internal static partial class HtmlPdfRenderedConverter {
         foreach (string candidate in EnumerateFamilies(options.DefaultFontFamily)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (HasRetainedFamily(fonts, candidate)) continue;
-            if (named.TryGetValue(candidate, out PdfCore.PdfEmbeddedFontFamily? selected)) {
+            if (target.PdfOptions.TryResolveNamedOfficeFontFamily(candidate, out string? registered)
+                && registered != null
+                && named.TryGetValue(registered, out PdfCore.PdfEmbeddedFontFamily? selected)) {
                 configuredFamilies.Add(candidate);
                 TryRetainDefaultFaces(candidate, FamilyFaces(selected), fonts, resources,
                     diagnostics, cancellationToken);
@@ -46,7 +48,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 PdfCore.PdfStandardFont variant = PdfCore.PdfStandardFontMapper.GetStyledFont(slot,
                     (style & OfficeFontStyle.Bold) != 0, (style & OfficeFontStyle.Italic) != 0);
                 if (target.PdfOptions.TryGetEmbeddedStandardFont(variant, out PdfCore.PdfEmbeddedFont? embedded)
-                    && embedded != null) faces.Add((style, embedded.DataSnapshot));
+                    && embedded != null && !embedded.SyntheticOblique) faces.Add((style, embedded.DataSnapshot));
             }
             if (faces.Count > 0) {
                 configuredFamilies.Add(candidate);
