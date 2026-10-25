@@ -3845,7 +3845,7 @@ class PdfPages {
     outlines;
     references = [];
     current = 0;
-    commands = [];
+    commands = "";
     commandBytes = 0;
     annotations = [];
     hyperlinks = 0;
@@ -3929,7 +3929,7 @@ class PdfPages {
     }
     add(command) {
         this.retainPageBytes(command.length);
-        this.commands.push(command);
+        this.commands += command;
     }
     retainPageBytes(length) {
         this.commandBytes += length;
@@ -4030,7 +4030,7 @@ class PdfPages {
             this.current = this.objects.reserve();
             this.references.push(this.current);
         }
-        this.commands = [];
+        this.commands = "";
         this.annotations = [];
         this.commandBytes = 0;
         this.bodyAdded = false;
@@ -4457,9 +4457,9 @@ class PdfPages {
         await this.structure?.complete(li);
     }
     takeCommands() {
-        const content = this.commands.join("");
-        // Encoding and awaited delivery need the joined value, not the original command list.
-        this.commands = [];
+        const content = this.commands;
+        // Encoding and awaited delivery own the page value; the next page starts independently.
+        this.commands = "";
         return content;
     }
     async finishPage() {

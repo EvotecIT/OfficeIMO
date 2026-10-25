@@ -40,7 +40,7 @@ interface ParagraphFrame {
 export class PdfPages {
   readonly references: number[] = [];
   private current = 0;
-  private commands: string[] = [];
+  private commands = "";
   private commandBytes = 0;
   private annotations: { readonly id: number; readonly body: string }[] = [];
   private hyperlinks = 0;
@@ -108,7 +108,7 @@ export class PdfPages {
   }
   private add(command: string): void {
     this.retainPageBytes(command.length);
-    this.commands.push(command);
+    this.commands += command;
   }
   private retainPageBytes(length: number): void {
     this.commandBytes += length;
@@ -188,7 +188,7 @@ export class PdfPages {
     const lineHeight = this.fonts.select().lineHeight(fontSize);
     if (this.pendingPage !== undefined) { this.current = this.pendingPage; this.pendingPage = undefined; }
     else { this.current = this.objects.reserve(); this.references.push(this.current); }
-    this.commands = []; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
+    this.commands = ""; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
     if (options.pageNumbers !== false) {
       this.totalPages ??= this.objects.reserve(); this.numberSettings ??= this.settings;
       if (!this.pageNumberWidth) this.pageNumberWidth = this.measurePageNumbers();
@@ -524,9 +524,9 @@ export class PdfPages {
   }
 
   private takeCommands(): string {
-    const content = this.commands.join("");
-    // Encoding and awaited delivery need the joined value, not the original command list.
-    this.commands = [];
+    const content = this.commands;
+    // Encoding and awaited delivery own the page value; the next page starts independently.
+    this.commands = "";
     return content;
   }
   private async finishPage(): Promise<void> {
