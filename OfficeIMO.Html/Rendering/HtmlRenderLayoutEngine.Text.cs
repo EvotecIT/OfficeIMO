@@ -398,7 +398,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (measured.HasValue) return measured.Value;
         }
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
-        return measurer.MeasureWidth(value, style);
+        double estimatedWidth = measurer.MeasureWidth(value, style);
+        RecordEstimatedTextMetrics(value, font, descriptor);
+        return estimatedWidth;
     }
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style, bool preserveContextualFallback = false) {

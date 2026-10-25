@@ -11,26 +11,40 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static bool TryPrepareLibraryFontMetrics(IEnumerable<HtmlRenderVisual> flow,
         IEnumerable<(string Text, OfficeFontInfo Font)> marginRequirements,
         OfficeFontFaceCollection fonts,
-        HtmlToPdfOptions options, CancellationToken cancellationToken) {
+        HtmlToPdfOptions options, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics,
+        CancellationToken cancellationToken) {
         if (options.LibrarySelectedDefaultFontFamily != null || options.FontFamily != null
+            || !options.AllowSystemFontFallback
             || !options.ResourcePolicy.AllowSystemFontEmbedding || options.ResourcePolicy.AllowDocumentFontEmbedding
             || options.PdfOptions.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Helvetica)
+            || options.PdfOptions.HasNamedFontFamily(options.DefaultFontFamily)
             || options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) return false;
 
-        var webFamilies = new HashSet<string>(fonts.Faces.Where(face => face.CanEmbedAsStaticPdfFont)
-            .Select(face => face.ResourceFamilyName), StringComparer.OrdinalIgnoreCase);
         var textRuns = EnumerateUsedText(flow).Concat(marginRequirements)
-            .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(webFamilies.Contains)).ToList();
+            .Where(text => !RetainedFacesCoverLayoutText(text.Text, text.Font, fonts, cancellationToken)).ToList();
         if (!textRuns.Any(text => RequiresUnicodeFont(text.Text))) return false;
         PdfCore.PdfEmbeddedFontFamily? family = SelectLibraryDefaultSystemFontFamily(cancellationToken);
         if (family == null) return false;
-        options.LibrarySelectedDefaultFontFamily = CreateCoverageSafeFontFamily(family, textRuns);
+        family = CreateCoverageSafeFontFamily(family, textRuns);
+        if (!TryRetainSelectedDefaultFontFamily(family, fonts, options, resources, diagnostics, cancellationToken)) return false;
+        options.LibrarySelectedDefaultFontFamily = family;
         PdfCore.PdfOptions measurement = options.PdfOptions.Clone();
         measurement.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurement.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         measurement.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.LibrarySelectedDefaultFontFamily);
         options.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurement);
         options.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurement);
+        return true;
+    }
+
+    // A retained family name alone does not prove coverage of a Unicode run.
+    // Conversely, an exact non-static program can retain paint through outlines.
+    private static bool RetainedFacesCoverLayoutText(string text, OfficeFontInfo font,
+        OfficeFontFaceCollection fonts, CancellationToken cancellationToken) {
+        foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(text, font.FamilyName, font.Style)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, font.Style, out _)) return false;
+        }
         return true;
     }
 }

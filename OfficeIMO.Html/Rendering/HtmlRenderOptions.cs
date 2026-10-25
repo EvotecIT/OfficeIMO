@@ -58,7 +58,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default font family used when CSS does not select one.</summary>
     public string DefaultFontFamily { get; set; } = "Arial";
 
-    /// <summary>Resolves installed faces in system-UI or mathematical fallback lists through the owned font
+    /// <summary>Resolves the configured default family and installed faces in system-UI or mathematical fallback lists through the owned font
     /// loader. Disable this for a portable render that uses only supplied/document fonts.</summary>
     public bool AllowSystemFontFallback { get; set; } = true;
 

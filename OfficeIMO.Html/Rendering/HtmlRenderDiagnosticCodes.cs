@@ -58,6 +58,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
     public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
+    /// <summary>Retained text used estimated widths without a selected font program.</summary>
+    public const string FontMetricsEstimated = "HtmlRenderFontMetricsEstimated";
     /// <summary>An authored overline cannot be painted in a specialized text context.</summary>
     public const string TextDecorationLineUnsupported = "HtmlRenderTextDecorationLineUnsupported";
     /// <summary>Decoration geometry retains a named approximation outside ordinary horizontal explicit-length paint.</summary>
@@ -286,6 +288,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceUnavailable,
         FontFormatUnsupported,
         FontVariantApproximated,
+        FontMetricsEstimated,
         TextDecorationThicknessApproximated,
         TextDecorationLineUnsupported,
         TextIndentValueUnsupported,
