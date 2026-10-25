@@ -35,7 +35,7 @@ public sealed class OfficeVisualDocumentStyle {
     /// <summary>Gets the chart subtitle size in points.</summary>
     public double SubtitleSizePoints { get; }
 
-    /// <summary>Creates a ChartForgeX context at the intended document size, using this typography and the shared paired palette.</summary>
+    /// <summary>Creates a ChartForgeX context at the intended document size, using this typography and the shared paired palette. Padding is at most 18 points and scales down to a quarter of the shorter side for compact charts.</summary>
     /// <param name="widthPoints">Intended document width in points.</param>
     /// <param name="heightPoints">Intended document height in points.</param>
     /// <param name="themeMode">Light or dark paired palette.</param>
@@ -49,7 +49,8 @@ public sealed class OfficeVisualDocumentStyle {
             SubtitleSizePoints / PointsPerPixel, LabelSizePoints / PointsPerPixel,
             LabelSizePoints / PointsPerPixel, LabelSizePoints / PointsPerPixel);
         return new VisualRenderContext(
-            new VisualLayoutOptions(new VisualSize(widthPoints / PointsPerPixel, heightPoints / PointsPerPixel), padding: 24D),
+            new VisualLayoutOptions(new VisualSize(widthPoints / PointsPerPixel, heightPoints / PointsPerPixel),
+                padding: Math.Min(18D, Math.Min(widthPoints, heightPoints) / 4D) / PointsPerPixel),
             (theme ?? VisualTheme.Graphite()).WithTypography(typography), themeMode, frame);
     }
 

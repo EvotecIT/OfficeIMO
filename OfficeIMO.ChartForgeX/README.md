@@ -87,6 +87,8 @@ Prepared artifacts retain their resolved viewport and accessible text. The defau
 
 Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. `OfficeVisualDocumentStyle.Default.CreateContext(widthPoints, heightPoints)` supplies readable document typography at that size; its font and point sizes are also available for surrounding headings and captions. A custom style can change that scale, while a supplied `VisualTheme` retains the shared palette and geometry. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
 
+Document contexts use 18-point padding for ordinary charts. For compact visuals such as a 64 × 18-point sparkline, padding scales down to a quarter of the shorter side so the plot retains usable space.
+
 ## SVG-producing surfaces
 
 Every CFX surface that emits SVG can use the flat Office placement path, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`:
