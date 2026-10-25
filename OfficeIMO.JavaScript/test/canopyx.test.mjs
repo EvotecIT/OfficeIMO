@@ -116,10 +116,10 @@ test("Canopy unsupported presentation rejects by default and explicit text mode 
   assert.deepEqual(received.map(d => [d.code, d.rowId, d.columnId]), [["CUSTOM_ROW", "r", undefined], ["UNMAPPED_TONE:custom", "r", undefined], ["CUSTOM_CELL", "r", "Name"]]);
   assert.ok(received.every(Object.isFrozen));
   const ordinary = capture([], [{ id: "Name", title: "Name", kind: "text" }], { presentation: "text" });
-  assert.throws(() => createCanopyExport(ordinary, "xlsx"), /TEXT_ONLY_CAPTURE/);
+  assert.equal(createCanopyExport(ordinary, "xlsx").rowCount, 0);
   assert.equal(createCanopyExport(ordinary, "xlsx", { unsupportedPresentation: "text" }).rowCount, 0);
   assert.equal(await (await exportCanopy(ordinary, "csv")).text(), "Name\r\n");
-  assert.throws(() => createCanopyExport(ordinary, "csv", { unsupportedPresentation: "reject" }), /TEXT_ONLY_CAPTURE/);
+  assert.equal(createCanopyExport(ordinary, "csv", { unsupportedPresentation: "reject" }).rowCount, 0);
   await assert.rejects(collect(createCanopyExport(input, "pdf", { unsupportedPresentation: "text", onDiagnostic: async () => { throw new Error("async notification"); } })), /synchronous/);
 });
 

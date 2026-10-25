@@ -169,67 +169,57 @@ The optional `@evotecit/officeimo/integrations/canopyx` entry consumes CanopyX's
 import { exportCanopy } from "@evotecit/officeimo/integrations/canopyx";
 
 const capture = grid.prepareExport({ scope: "filtered", values: "raw" });
-const reportOptions = {
-  tones: {
-    neutral: {},
-    success: { background: "E2F0D9" },
-    warning: { background: "FFF2CC", color: "9C6500" },
-    danger: { background: "FFC7CE", color: "9C0006", bold: true }
+const blob = await exportCanopy(capture, "xlsx", {
+  datetime: "preserve",
+  xlsx: { dateMode: "utc" },
+  about: true,
+  grouped: {
+    labelColumn: { header: "Region" },
+    subtotalLabel: group => `${group.label} total`,
+    grandTotalLabel: () => "Grand total"
   },
-  columnOptions: {
-    amount: { format: "#,##0.00", width: 18 },
-    updated: { format: "yyyy-mm-dd hh:mm:ss.000", width: 42, wrapText: true }
-  },
-  xlsx: { sheet: { title: { text: "Inventory" }, table: {} } },
+  columnOptions: { updated: { format: "yyyy-mm-dd hh:mm:ss.000" } },
   limits: { maxRows: 250_000, maxCells: 5_000_000 }
-};
-const blob = await exportCanopy(capture, "xlsx", reportOptions);
+});
 // Deliver the Blob through the host's download or storage policy.
 ```
 
-`exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits. For Unicode PDF text, supply embedding-permitted TrueType fonts through `pdf.fonts`.
-
-`createCanopyExport` retains `type: "number"` for native numeric columns in a raw capture, so grouped metrics can use its columns directly. Display captures keep their rendered strings. Datetime metadata remains unforced because the preservation profile can intentionally produce exact ISO text rather than a `Date`.
-
-`columnOptions` is keyed by captured column ID. Settings for unselected columns are ignored, so one host format map can serve different visible/selected captures. `PdfFont` is exported from this entry as well as the PDF layer for constructing caller-supplied fonts.
+`exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits.
 
 | Captured contract | Output behavior |
 | --- | --- |
-| Column IDs, titles and order | Preserved without re-reading the viewport or UI settings |
-| `values: "raw"` | Numeric, boolean and null values remain typed; CSV retains original ISO datetime strings |
-| `values: "display"` | Captured display strings become literal exported values; CSV formula protection still applies |
-| Resolved text | PDF uses it; XLSX retains raw values and uses explicit number/date formats |
-| Semantic tones | Host-supplied portable styles; cell tone overrides overlapping row tone properties |
-| Absolute HTTP(S)/mailto links | Native XLSX relationships and PDF annotations; CSV remains ordinary text |
-| Datetime columns | XLSX defaults to typed dates at exact millisecond precision and literal ISO text for finer precision |
-| CSS pixel width | Never treated as an Excel character width; `columnOptions.width` supplies explicit character widths and `pdf.columnWidths` supplies points |
-| `recordCount` | Used for progress when known and checked against the actual enumeration; unknown counts remain unknown |
+| Column IDs, titles and order | Preserved without reading the viewport or evaluating queries |
+| Raw values and resolved text | XLSX keeps typed numbers and dates; PDF keeps captured text; raw CSV retains original ISO dates |
+| Display values | Literal exported strings; CSV formula protection still applies |
+| Fitted CSS pixel widths | XLSX uses a Calibri 11 profile at 96 DPI, a seven-pixel maximum digit and five-pixel cell padding, quantized to 1/256 character; PDF converts pixels to points at 72/96 |
+| Leading left pins | XLSX freezes the contiguous leading pinned columns and any included header; the grouped label column is included in the physical pane offset |
+| Numeric format intent | Fraction digits from 0 through 10 and literal prefixes/suffixes become invariant Excel formats; text such as `Usage %` does not change a raw value of 17 into a percentage |
+| Canonical neutral tone | No override unless explicitly mapped in `tones`; cell styles override overlapping row-style properties |
+| Safe resolved links | Native XLSX relationships and PDF annotations; a hidden source URL column is not required |
+| `recordCount` | Checked against enumeration and used for detail progress, independently of dataset `total` and live `matched` |
+| Captured grouping | Validated contiguous half-open ranges, typed group identities and declared numeric aggregates feed the existing grouped XLSX/PDF writers |
+| No grouping snapshot | Flat records, even if the accepted query contains `groupBy` |
+| `about: true` | XLSX adds an `About` worksheet with captured revision, scope, UTC time, counts, selected IDs and the actual accepted export query |
 
-Excel/PDF reject unsupported presentation diagnostics and unmapped tones by default. The reporting runtime supplies semantic captures. For an ordinary grid, custom renderer or CSS-only presentation, choose `unsupportedPresentation: "text"` to accept the captured text fallback and optionally observe each diagnostic with synchronous `onDiagnostic`. That fallback uses capture data; it does not scrape custom DOM renderer output. CSV defaults to text because the format has no visual styling; choose `"reject"` explicitly when diagnostics should stop it. No unbounded diagnostic list is retained.
+The width profile provides reproducible conversion; it does not promise pixel-identical rendering in native Excel. `columnOptions[id].width` overrides the XLSX character width, and `pdf.columnWidths` overrides PDF point widths. Right and nonleading pins retain their column order and require an explicit text fallback diagnostic. `columnOptions` applies only to selected IDs; native `columnOptions[id].format` remains the explicit Excel-format override.
 
-`datetime: "typed"` requires exact millisecond precision; `"text"` keeps the original ISO value. The default `"preserve"` retains finer timestamps and dates outside Excel's 1900–9999 range as text rather than rounding or dropping them. An ISO value converted to a typed Excel date must carry an explicit time zone. XLSX defaults to the capture's UTC/local clock choice; `xlsx.dateMode` can override it. PDF displays the captured text, and CSV raw mode retains the original string and its zone.
+XLSX maps the declared rule subset to editable data bars, two/three-stop color scales and row/cell highlights. The first matching tone wins within each row or cell target, and a cell tone overrides a row tone. Native cell visuals take precedence over row tints; their own declaration order is retained. Predicates support `and`/`or`, numeric `eq`/`ne`/`gt`/`ge`/`lt`/`le`, and null tests, within four levels and 64 nodes. Numeric operands use numbers, booleans or plain invariant numeric strings. Each comparison excludes null cells. Equality and inequality with boolean or numeric operands on text columns retain the raw value's type; string comparisons on text columns and separator/culture profiles are unsupported.
 
-`createCanopyExport(capture, format, options)` exposes frozen columns, `rowCount` and fresh `rows()` enumerations for applications using the format writers directly. It retains no whole-table body. Each enumeration passes its cancellation signal into CanopyX's page requests, and destination backpressure stops reading ahead. CanopyX's source may retain identity/cursor bookkeeping for revision and duplicate detection; streamed document output does not imply constant memory for that entire source.
+Datetime rule filters require `datetime: "typed"` and the UTC XLSX clock. Operands use explicit-zone ISO timestamps at exact millisecond precision, or integer epoch milliseconds; the existing date writer converts them to native serials. Local, preserved-text and sub-millisecond predicate profiles report an unsupported diagnostic. Native numeric rules require numeric or null cells; datetime rules require ISO cells that the typed writer converts to native dates, or null. Numeric strings in numeric cells and numeric epoch values in datetime cells are unsupported native rule profiles and reject during enumeration, including text fallback. The flat source retains its raw values. Ordinary datetime output keeps its separate preservation policy below.
 
-Host export callbacks can use the already-captured enumeration:
+`stopIfTrue` masks later highlight predicates across the whole row in the original declaration order. A captured rule sequence combining this behavior with native bars or scales is unsupported. Cell-tone and data-bar rules targeting the same column are also unsupported because the cell tone's fill depends on whether the bar resolves. Explicit text fallback omits either unsupported captured sequence and reports the loss. Native rule ranges cover only details, including with omitted or multilevel headers and in grouped reports. CSS variables and resolved `cell.format` properties are not parsed. The portable default rule palette is info `4472C4`, success `70AD47`, warning `FFC000` and danger `C00000`, with matching pale fills; explicit tone mappings override it.
 
-```typescript
-import { writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
-import type { GridHostOptions } from "@evotecit/canopyx/reporting";
+PDF defaults captured fitted tables to a landscape fit profile. `pdf.wideTable` can select the existing horizontal bands and repeated identifier columns instead. Group headings, repeated column headings and continuation context use the existing grouped layout. Supply embedding-permitted TrueType fonts through `pdf.fonts` for Unicode, and a declared language through `pdf.tagged` for tagged reports. XLSX's native rule declarations do not render PDF bars or scales: PDF reports that loss and requires `unsupportedPresentation: "text"` to accept it. This option does not remove typed values, resolved text or valid links.
 
-const onExport: GridHostOptions["onExport"] = async ({ capture, format, signal, reportProgress }) => {
-  if (format !== "xlsx" && format !== "csv" && format !== "pdf") {
-    throw new Error("Unsupported export format");
-  }
-  const destination = await openDestination(format); // Host-owned delivery.
-  await writeCanopyTo(capture, format, destination, {
-    ...reportOptions, signal,
-    onProgress: progress => reportProgress?.("generating", progress.rows)
-  });
-};
-```
+Ordinary text-only grid/tree captures are accepted as flat output. Tree indentation does not create analytical groups. Genuine unsupported presentation diagnostics, unknown non-neutral tones and unsupported declarations reject by default in XLSX/PDF. Explicit `unsupportedPresentation: "text"` accepts their text fallback and reports each diagnostic through synchronous `onDiagnostic`. CSV defaults to text. No unbounded diagnostic list or whole-table body is retained.
 
-This entry exports grid records. Collapsed visual groups do not remove their records. The adapter exports records in the captured order; use the [grouped report writers](#grouped-analytical-reports) when an explicitly group-ordered capture needs summary rows and Excel outlines. Workers consume a host-owned bounded capture/row bridge; a live CanopyX grid remains on the page. Pass the writer's signal to the same capture enumeration and release the bridge when the host cancels it.
+Grouping requires a raw capture with an exact count and complete scope-specific ranges and aggregate values. Up to four levels and 1,000 groups are supported. One aggregate operation per numeric column maps `sum`, `count`, `average`, `minimum` and `maximum` to the canonical report owner; numeric `count` ignores nulls. Captured sums and averages are checked using Canopy's compensated accumulation and empty-input convention. Native formulas calculate their own caches, which can differ by floating-point rounding; an empty native sum is zero. Range and declared-total mismatches still reject the export. Grouped sheets own their summary rows and cannot also use a native table, arbitrary heading matrix or footer. Existing grouped label callbacks remain caller-owned; omitted labels use the English defaults `Group`, `<label> total` and `Grand total`. `xlsx.sheet.includeHeader: false` omits the data header and its default freeze; explicit settings remain subject to the worksheet contract.
+
+`about` metadata uses the technical capture field names with `Field` and `Value` headings. `About` is reserved when this worksheet is requested, and the data sheet must have another name. Metadata and generated summary rows consume output resource limits, but progress and result `rows` count source details only. Selected/all query metadata describes the accepted export query; the adapter does not reconstruct the original live filter from `matched`.
+
+`datetime: "typed"` requires exact millisecond precision; `"text"` retains the original ISO value. The default `"preserve"` keeps finer timestamps and dates outside Excel's 1900–9999 range as text rather than rounding or dropping them. Typed Excel dates require an explicit time zone and default to the capture's UTC/local clock; `xlsx.dateMode` overrides it.
+
+`createCanopyExport(capture, format, options)` remains the flat source API: frozen columns, `rowCount` and fresh `rows()` enumerations. Full adapter writers add captured grouping, native rules and optional metadata. Each enumeration passes its cancellation signal into CanopyX's page requests. A live grid remains page-owned; worker hosts own and release their bounded capture/row bridge. CanopyX may retain identity/cursor bookkeeping, so streamed output does not imply constant memory for the source itself.
 
 ## PDF tables
 
