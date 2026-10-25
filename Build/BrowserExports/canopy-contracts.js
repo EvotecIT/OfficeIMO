@@ -177,13 +177,16 @@ globalThis.runOrdinaryCanopyContracts = async function ({ regular, bold }) {
   const view = canopyInlineView(); delete view.reporting; delete view.highlightRules;
   for (const column of view.columns) delete column.presenter;
   const grid = await canopyMount(view);
-  const capture = grid.prepareExport({ scope: 'all', values: 'raw' });
-  canopyAssert(capture.request.presentation === 'text', 'Ordinary grid falsely claims semantic capture.');
-  const options = canopyOptions(canopyFonts(regular, bold));
-  const error = await OfficeIMO.exportCanopy(capture, 'xlsx', options).then(() => null, error => error);
-  canopyAssert(String(error).includes('TEXT_ONLY_CAPTURE'), 'Ordinary capture silently claims presentation fidelity.');
-  for (const format of ['csv', 'xlsx', 'pdf']) await canopySave('ordinary', capture, format, { ...options, unsupportedPresentation: 'text' });
-  grid.destroy(); return { ordinaryTextCapture: true, explicitVisualFallback: true };
+  try {
+    const capture = grid.prepareExport({ scope: 'all', values: 'raw' });
+    canopyAssert(capture.request.presentation === 'text', 'Ordinary grid falsely claims semantic capture.');
+    const diagnostics = [], options = canopyOptions(canopyFonts(regular, bold));
+    for (const format of ['csv', 'xlsx', 'pdf']) {
+      await canopySave('ordinary', capture, format, { ...options, onDiagnostic: notice => diagnostics.push(notice.code) });
+    }
+    canopyAssert(diagnostics.length === 0, 'Portable ordinary capture reported unsupported presentation: ' + diagnostics.join(', '));
+    return { ordinaryTextCapture: true, ordinaryFlatOutput: true };
+  } finally { grid.destroy(); }
 };
 
 // A bounded report-intent fixture through the real native capture; no package adoption is involved.
