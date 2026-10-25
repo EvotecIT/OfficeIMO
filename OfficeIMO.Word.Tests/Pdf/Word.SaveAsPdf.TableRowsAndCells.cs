@@ -1825,6 +1825,8 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 3);
             foreach (WordTableRow row in table.Rows) {
+                // Keep blank merged-cell space clear of the linked run's font metrics.
+                row.MinimumHeight = 800;
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
                     cell.WidthType = WordTableWidthUnit.Dxa;
