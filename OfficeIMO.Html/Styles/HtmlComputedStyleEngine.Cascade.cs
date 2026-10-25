@@ -9,7 +9,7 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         string? styleText,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget, DeclarationSyntaxReuseCache? syntaxReuse = null) {
         if (string.IsNullOrWhiteSpace(styleText)) {
             return;
         }
@@ -31,7 +31,7 @@ public static partial class HtmlComputedStyleEngine {
                     Specificity.Inline, int.MaxValue, layerOrder: null, declarationOrder: declarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations,
                     source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.InlineStyle,
-                    enforceResolutionLimits: budget.HasDeclarationLimit);
+                    enforceResolutionLimits: budget.HasDeclarationLimit, syntaxReuse: syntaxReuse);
             }
             declarationOrder++;
         }
@@ -45,7 +45,8 @@ public static partial class HtmlComputedStyleEngine {
         OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
         string? selector = null,
         string? layerName = null,
-        bool enforceResolutionLimits = true, string? deferredLayoutShorthand = null) {
+        bool enforceResolutionLimits = true, string? deferredLayoutShorthand = null,
+        DeclarationSyntaxReuseCache? syntaxReuse = null) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -59,7 +60,7 @@ public static partial class HtmlComputedStyleEngine {
                 ApplyDeclaration(properties, parentProperties, property, value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName,
-                    enforceResolutionLimits: enforceResolutionLimits);
+                    enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
             }
             return;
         }
@@ -71,7 +72,7 @@ public static partial class HtmlComputedStyleEngine {
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true,
                     source: source, selector: selector, layerName: layerName,
-                    enforceResolutionLimits: enforceResolutionLimits);
+                    enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
             }
         }
 
@@ -81,21 +82,21 @@ public static partial class HtmlComputedStyleEngine {
                 ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName,
-                    enforceResolutionLimits: enforceResolutionLimits, deferredLayoutShorthand: name.ToLowerInvariant());
+                    enforceResolutionLimits: enforceResolutionLimits, deferredLayoutShorthand: name.ToLowerInvariant(), syntaxReuse: syntaxReuse);
             }
         }
 
         bool expandedBackground = string.Equals(name, "background", StringComparison.OrdinalIgnoreCase)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(value);
         if (!HtmlCssCustomPropertyResolver.ContainsVarFunction(value)
-            && (valueAlreadyValidated || IsSupportedDeclarationValue(name, value))
-            && TryExpandCascadeShorthand(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands)) {
+            && (valueAlreadyValidated || IsSupportedDeclarationValueWithReuse(name, value, syntaxReuse))
+            && TryExpandCascadeShorthandWithReuse(name, value, out IReadOnlyList<KeyValuePair<string, string>> boxLonghands, syntaxReuse)) {
             expandedBackground |= string.Equals(name, "background", StringComparison.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, string> longhand in boxLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand.Key, longhand.Value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: false, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations,
                     source: source, selector: selector, layerName: layerName,
-                    enforceResolutionLimits: enforceResolutionLimits);
+                    enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
             }
         }
 
@@ -109,20 +110,20 @@ public static partial class HtmlComputedStyleEngine {
                 out shorthandValue, enforceResolutionLimits);
         }
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
-            && IsSupportedDeclarationValue(name, shorthandValue)
+            && IsSupportedDeclarationValueWithReuse(name, shorthandValue, syntaxReuse)
             && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
-            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
-            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
         }
         if (string.Equals(name, "animation", StringComparison.OrdinalIgnoreCase)
-            && IsSupportedDeclarationValue(name, value)
+            && IsSupportedDeclarationValueWithReuse(name, value, syntaxReuse)
             && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
-            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
+            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
         }
         string imageSourceProperty = GetImageSourcePropertyName(name);
         if (!expandedBackground && !string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
-            && IsSupportedDeclarationValue(name, value)) {
-            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits);
+            && IsSupportedDeclarationValueWithReuse(name, value, syntaxReuse)) {
+            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder, declarationOrder: declarationOrder, customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName, enforceResolutionLimits: enforceResolutionLimits, syntaxReuse: syntaxReuse);
         }
 
         CascadedProperty? existing;
@@ -157,7 +158,7 @@ public static partial class HtmlComputedStyleEngine {
         // An effective renderer default has no CSS token yet. Its explicit
         // inheritance still participates in the cascade without naming a face.
         bool inheritsDeferredDefault = resolved.InheritsComputedValue && resolved.Value.Length == 0;
-        if (!valueAlreadyValidated && !inheritsDeferredDefault && !IsSupportedDeclarationValue(name, resolved.Value)) {
+        if (!valueAlreadyValidated && !inheritsDeferredDefault && !IsSupportedDeclarationValueWithReuse(name, resolved.Value, syntaxReuse)) {
             return;
         }
 

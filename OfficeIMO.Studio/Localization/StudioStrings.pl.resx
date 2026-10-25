@@ -82,13 +82,85 @@
     <value>Zadania</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Ostatnie próby pozostają w pamięci podczas tej sesji. Kopie odzyskiwania przetrwają ponowne uruchomienie i pozostają dostępne do czasu ich usunięcia. Jednocześnie mogą działać dwa zadania.</value>
+    <value>Próby zapisanych zadań konwersji folderów przetrwają ponowne uruchomienie, gdy historia dokumentów jest włączona. Inne próby pozostają w tej sesji, a kopie odzyskiwania do czasu ich usunięcia. Jednocześnie mogą działać dwa zadania.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Odzyskiwanie wyników zadań</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Odzyskano z wcześniejszej próby wykonania zadania.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Zapisana konwersja folderu</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Wyniki plików</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Zapisane próby pokazują, co się wydarzyło. Uruchomienia z punktami wznowienia ponownie sprawdzają wyniki przed ich użyciem.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Przejrzyj zadanie</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Nie udało się zapisać pełnej historii uruchomienia: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} ukończono · {1} użyto ponownie · {2} nie powiodło się · {3} pominięto</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Wyświetlono wyniki {0} plików. Liczniki obejmują całą próbę.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Przerwano</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Ta próba zakończyła się bez wyniku końcowego. Przed ponownym uruchomieniem przejrzyj zapisane zadanie i pliki wynikowe.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>To zapisane zadanie działa w innej instancji Studio. Przejrzyj je po zakończeniu tej próby.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>Zapisane zadanie nie jest już dostępne. Odszukaj je przez Konwertuj → Wczytaj zadanie.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>Zapisane zadanie zmieniło się po tej próbie. Wczytaj je bezpośrednio w sekcji Konwertuj, aby przejrzeć nową definicję.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Poczekaj na zakończenie bieżącej konwersji, zanim przejrzysz inne zapisane zadanie.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>Plik wynikowy nie jest już dostępny.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Użyto ponownie</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Pominięto</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Zakończono {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Nie zapisano wyników poszczególnych plików.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Nie udało się odczytać części zapisanych raportów uruchomień: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Nie udało się usunąć części zapisanych raportów uruchomień. Aktywne próby zostają zachowane.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>Zapisany plik wynikowy nie jest już dostępny.</value>
+  </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Odśwież historię</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>Działa w innej instancji</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>Aktywne: {0:N0} · w innych instancjach: {1:N0} · zakończone: {2:N0}</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Przygotowana kopia wyniku jest dostępna. Sprawdź wybrane miejsce docelowe przed ponownym zapisem.</value>
@@ -1861,19 +1933,19 @@
     <value>Włącz historię dokumentów</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>Historia dokumentów jest wyłączona. Nowe ostatnie pliki i ustawienia czytania nie są zapisywane.</value>
+    <value>Historia dokumentów jest wyłączona. Nowe wpisy ostatnio otwieranych plików, ustawienia czytania i raporty uruchomień zapisanych zadań nie są zapisywane.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Wyczyść zapisaną historię dokumentów…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Wyczyścić ostatnie pliki, zapisane ustawienia czytania i zapisy przywracania sesji? Dokumenty, otwarte zmiany i kopie odzyskiwania pozostaną bez zmian. Najpierw wyłącz historię i przywracanie sesji, aby zapobiec powstawaniu nowych zapisów.</value>
+    <value>Wyczyścić ostatnie pliki, zapisane ustawienia czytania, zapisy przywracania sesji i raporty zakończonych zapisanych zadań? Dokumenty, otwarte zmiany, wyniki, punkty wznowienia, aktywne próby i kopie odzyskiwania pozostaną bez zmian. Najpierw wyłącz historię i przywracanie sesji, aby zapobiec powstawaniu nowych zapisów.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Wyczyść historię</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>Wyczyszczono zapisaną historię dokumentów i zapisy przywracania sesji.</value>
+    <value>Wyczyszczono zapisaną historię dokumentów, zapisy przywracania sesji i raporty zakończonych zapisanych zadań.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Nie udało się wyczyścić części zapisanej historii. Zamknij pozostałe instancje Studio lub sprawdź dostęp do folderu, a następnie ponów operację. Pomyślnie usunięte zapisy pozostają usunięte.</value>
@@ -7183,4 +7255,154 @@ Opcja 2</value>
   <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Wynik przekracza obsługiwany rozmiar dokumentu.</value></data>
   <data name="Output.DestinationChanged" xml:space="preserve"><value>Plik docelowy uległ zmianie. Wybierz inną lokalizację, aby zachować obie wersje.</value></data>
   <data name="Output.VerificationChanged" xml:space="preserve"><value>Zapisany plik zmienił się podczas weryfikacji. Sprawdź go przed ponowną próbą.</value></data>
+  <data name="Conversion.SavedJob.OpenSection" xml:space="preserve">
+    <value>Zapisane zadania folderów</value>
+  </data>
+  <data name="Conversion.SavedJob.Title" xml:space="preserve">
+    <value>Zapisz i powtórz zadanie folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.Load" xml:space="preserve">
+    <value>Wczytaj zadanie…</value>
+  </data>
+  <data name="Conversion.SavedJob.Save" xml:space="preserve">
+    <value>Zapisz zadanie…</value>
+  </data>
+  <data name="Conversion.SavedJob.Plan" xml:space="preserve">
+    <value>Przygotuj plan</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyCli" xml:space="preserve">
+    <value>Kopiuj polecenie CLI</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyPowerShell" xml:space="preserve">
+    <value>Kopiuj polecenie PowerShell</value>
+  </data>
+  <data name="Conversion.SavedJob.SettingsTitle" xml:space="preserve">
+    <value>Zachowane ustawienia zadania</value>
+  </data>
+  <data name="Conversion.SavedJob.Run" xml:space="preserve">
+    <value>Uruchom eksport folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.RunAgain" xml:space="preserve">
+    <value>Uruchom ponownie</value>
+  </data>
+  <data name="Conversion.SavedJob.SavedReady" xml:space="preserve">
+    <value>Zapisane ustawienia są gotowe do użycia w Studio, wierszu poleceń lub PowerShell. Wczytanie nie uruchamia przetwarzania.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveBeforeCopy" xml:space="preserve">
+    <value>Zapisz te ustawienia, aby skopiować polecenie. Ponowne uruchomienie sprawdza wyniki objęte punktami wznowienia przed ich ponownym użyciem.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveTitle" xml:space="preserve">
+    <value>Zapisz zadanie konwersji folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.LoadTitle" xml:space="preserve">
+    <value>Wczytaj zadanie konwersji folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.FileType" xml:space="preserve">
+    <value>Zadanie konwersji OfficeIMO</value>
+  </data>
+  <data name="Conversion.SavedJob.Saved" xml:space="preserve">
+    <value>Zadanie folderu zapisano i zweryfikowano. Nie przetworzono żadnych dokumentów.</value>
+  </data>
+  <data name="Conversion.SavedJob.Loaded" xml:space="preserve">
+    <value>Wczytano zadanie folderu. Przed uruchomieniem sprawdź ustawienia i plan. Nie przetworzono żadnych dokumentów.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanResult" xml:space="preserve">
+    <value>Znaleziono {0:N0} · Wybrano {1:N0} · Pominięto {2:N0} · Błędy {3:N0} · Konflikty zapisu {4:N0}</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanReady" xml:space="preserve">
+    <value>Plan jest gotowy. Nie zapisano wyników ani punktów wznowienia. Przed uruchomieniem sprawdź miejsca zapisu.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanBlocked" xml:space="preserve">
+    <value>Plan zawiera problemy, które trzeba rozwiązać przed uruchomieniem. Nie zapisano wyników ani punktów wznowienia.</value>
+  </data>
+  <data name="Conversion.SavedJob.FileChanged" xml:space="preserve">
+    <value>Zapisane zadanie zmieniono poza Studio. Wczytaj je ponownie lub zapisz sprawdzone ustawienia przed skopiowaniem polecenia.</value>
+  </data>
+  <data name="Conversion.SavedJob.Copied" xml:space="preserve">
+    <value>Skopiowano polecenie dla zapisanego zadania. Wykona się dopiero po jego uruchomieniu.</value>
+  </data>
+  <data name="Conversion.SavedJob.Cancelled" xml:space="preserve">
+    <value>Anulowano działanie zadania. Zachowano istniejące dokumenty i wyniki.</value>
+  </data>
+  <data name="Conversion.SavedJob.LocalFile" xml:space="preserve">
+    <value>Wybierz lokalny plik zadania. Zapisane zadania folderów wymagają ścieżek systemu plików dostępnych w Studio, CLI i PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.FolderOnly" xml:space="preserve">
+    <value>Ten obszar roboczy wczytuje zadania konwersji folderów do PDF. W przypadku jawnych list plików, innych formatów docelowych lub ustalonej ścieżki konwersji użyj CLI lub PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.Secrets" xml:space="preserve">
+    <value>Ten obszar roboczy nie obsługuje odwołań do haseł w zapisanych zadaniach. Uruchom takie zadanie przez CLI lub PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.PreserveInput" xml:space="preserve">
+    <value>Wybierz inną nazwę pliku zadania, aby zachować pliki źródłowe.</value>
+  </data>
+  <data name="Conversion.SavedJob.Protected" xml:space="preserve">
+    <value>Miejsce zapisu zadania jest używane przez otwarty dokument lub operację odzyskiwania.</value>
+  </data>
+  <data name="Conversion.SavedJob.Settings" xml:space="preserve">
+    <value>PDF · profil {0} · konflikty {1} · równolegle {2} · maksymalnie {3:N0} plików · {4:N0} MiB danych wejściowych / {5:N0} MiB danych wyjściowych · {6}.</value>
+  </data>
+  <data name="Conversion.SavedJob.Recursive" xml:space="preserve">
+    <value>z podfolderami</value>
+  </data>
+  <data name="Conversion.SavedJob.TopFolder" xml:space="preserve">
+    <value>tylko folder główny</value>
+  </data>
+  <data name="Conversion.SavedJob.AllFormats" xml:space="preserve">
+    <value>wszystkie obsługiwane formaty</value>
+  </data>
+  <data name="Conversion.SavedJob.Filters" xml:space="preserve">
+    <value>Wybór źródeł: {0}. Limit XML: {1:N0} znaków na część.</value>
+  </data>
+  <data name="Conversion.SavedJob.AdditionalOptions" xml:space="preserve">
+    <value>Dodatkowe zachowane ustawienia konwersji:</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Pages" xml:space="preserve">
+    <value>Strony: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Word" xml:space="preserve">
+    <value>PDF do Word: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Slides" xml:space="preserve">
+    <value>PDF do slajdów: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Dpi" xml:space="preserve">
+    <value>Rozdzielczość rastrowa: {0} DPI</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Worksheet" xml:space="preserve">
+    <value>Układ arkusza: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Html" xml:space="preserve">
+    <value>Układ HTML: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Compression" xml:space="preserve">
+    <value>Bezstratna kompresja PDF</value>
+  </data>
+  <data name="Conversion.SavedJob.StrictLoss" xml:space="preserve">
+    <value>Odrzuć konwersję ze zgłoszoną utratą danych</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanSample" xml:space="preserve">
+    <value>Wyświetlono pierwsze pozycje planu; liczniki obejmują cały wybór.</value>
+  </data>
+  <data name="Conversion.SavedJob.ReviewTitle" xml:space="preserve">
+    <value>Zadanie PDF dla folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.CheckpointLabel" xml:space="preserve">
+    <value>Punkty wznowienia</value>
+  </data>
+  <data name="Conversion.SavedJob.Unsaved" xml:space="preserve">
+    <value>Niezapisane zadanie folderu</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseInput" xml:space="preserve">
+    <value>Wybierz folder źródłowy po lewej stronie.</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseOutput" xml:space="preserve">
+    <value>Wybierz folder wynikowych plików PDF po lewej stronie.</value>
+  </data>
+  <data name="Conversion.SavedJob.NoCheckpoints" xml:space="preserve">
+    <value>Bez punktów wznowienia; każde uruchomienie stosuje zapisaną zasadę rozwiązywania konfliktów.</value>
+  </data>
+  <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve">
+    <value>Zatrzymano: ukończone: {0}, ponownie użyte: {1}, błędy: {2}, pominięte: {3}. Ukończone wyniki pozostają dostępne.</value>
+  </data>
 </root>

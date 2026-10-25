@@ -7,13 +7,14 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 /// <summary>UI-thread-owned, bounded session history and application workflow resource budget.</summary>
-public sealed class StudioJobHistory : ObservableObject {
+public sealed partial class StudioJobHistory : ObservableObject {
     public const int MaximumEntries = 500;
     public const int MaximumConcurrentRuns = 2;
     private readonly ObservableCollection<StudioJobRecord> _entries = new();
     private readonly SemaphoreSlim _execution = new(MaximumConcurrentRuns, MaximumConcurrentRuns);
     private readonly IStudioLocalizer _localizer;
-    internal StudioJobHistory(IStudioLocalizer localizer, OfficeWorkflowOutputRecoveryStore? recoveryStore = null) {
+    internal StudioJobHistory(IStudioLocalizer localizer, OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
+        Infrastructure.Preferences.StudioDocumentHistory? documentHistory = null) {
         _localizer = localizer;
         Entries = new ReadOnlyObservableCollection<StudioJobRecord>(_entries);
         RecoveryStore = recoveryStore;
@@ -28,23 +29,31 @@ public sealed class StudioJobHistory : ObservableObject {
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             RecoveryError = exception.Message;
         }
+        InitializeRunReports(documentHistory);
     }
     internal OfficeWorkflowOutputRecoveryStore? RecoveryStore { get; }
     public string? RecoveryError { get; }
     public ReadOnlyObservableCollection<StudioJobRecord> Entries { get; }
     public int ActiveCount => _entries.Count(entry => entry.IsActive);
+    public int ExternalRunningCount => _entries.Count(entry => entry.IsExternalRunning);
+    public int FinishedCount => _entries.Count - ActiveCount - ExternalRunningCount;
     public bool HasActive => ActiveCount > 0;
     public bool HasEntries => _entries.Count > 0;
-    public bool CanClear => _entries.Any(entry => !entry.IsActive && !entry.HasRecovery);
-    public string Summary => _localizer.FormatOrDefault("Jobs.Summary", "{0:N0} active · {1:N0} finished", ActiveCount, _entries.Count - ActiveCount);
+    public bool CanClear => _entries.Any(entry => !entry.IsActive && !entry.IsExternalRunning && !entry.HasRecovery);
+    public string Summary => ExternalRunningCount > 0
+        ? _localizer.FormatOrDefault("Jobs.SummaryWithExternal", "{0:N0} active · {1:N0} running elsewhere · {2:N0} finished", ActiveCount, ExternalRunningCount, FinishedCount)
+        : _localizer.FormatOrDefault("Jobs.Summary", "{0:N0} active · {1:N0} finished", ActiveCount, FinishedCount);
 
     internal StudioJobRecord Start(string title, string input, string? destination, Action cancel, bool batch = false) {
+        return AddEntry(new StudioJobRecord(title, input, destination, cancel, batch, _localizer));
+    }
+
+    private StudioJobRecord AddEntry(StudioJobRecord entry) {
         while (_entries.Count >= MaximumEntries) {
-            StudioJobRecord? oldest = _entries.LastOrDefault(entry => !entry.IsActive && !entry.HasRecovery);
+            StudioJobRecord? oldest = _entries.LastOrDefault(entry => !entry.IsActive && !entry.IsExternalRunning && !entry.HasRecovery);
             if (oldest is null) throw new InvalidOperationException("The active job limit has been reached. Wait for a job to finish before starting more work.");
             Remove(oldest);
         }
-        var entry = new StudioJobRecord(title, input, destination, cancel, batch, _localizer);
         entry.PropertyChanged += OnEntryChanged;
         _entries.Insert(0, entry);
         NotifyState();
@@ -57,7 +66,12 @@ public sealed class StudioJobHistory : ObservableObject {
     }
 
     internal void ClearFinished() {
-        foreach (StudioJobRecord entry in _entries.Where(entry => !entry.IsActive && !entry.HasRecovery).ToArray()) Remove(entry);
+        bool cleared = RunStore?.ClearFinished() ?? true;
+        RefreshRunReports();
+        foreach (StudioJobRecord entry in _entries.Where(entry => !entry.IsActive && !entry.IsExternalRunning && !entry.HasRecovery).ToArray()) {
+            if (entry.RunReportPath is null || !File.Exists(entry.RunReportPath)) Remove(entry);
+        }
+        RunHistoryError = cleared ? null : _localizer.GetOrDefault("Jobs.RunReport.ClearError", "Some saved run reports could not be cleared. Active attempts are retained.");
         NotifyState();
     }
     private void Remove(StudioJobRecord entry) {
@@ -65,10 +79,12 @@ public sealed class StudioJobHistory : ObservableObject {
         _entries.Remove(entry);
     }
     private void OnEntryChanged(object? sender, PropertyChangedEventArgs args) {
-        if (args.PropertyName is nameof(StudioJobRecord.IsActive) or nameof(StudioJobRecord.HasRecovery)) NotifyState();
+        if (args.PropertyName is nameof(StudioJobRecord.IsActive) or nameof(StudioJobRecord.HasRecovery) or nameof(StudioJobRecord.IsExternalRunning)) NotifyState();
     }
     private void NotifyState() {
         OnPropertyChanged(nameof(ActiveCount));
+        OnPropertyChanged(nameof(ExternalRunningCount));
+        OnPropertyChanged(nameof(FinishedCount));
         OnPropertyChanged(nameof(HasActive));
         OnPropertyChanged(nameof(HasEntries));
         OnPropertyChanged(nameof(CanClear));

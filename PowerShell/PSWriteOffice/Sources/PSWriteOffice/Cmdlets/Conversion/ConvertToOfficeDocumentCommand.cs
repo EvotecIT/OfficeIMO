@@ -128,6 +128,11 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Directory")]
     public SwitchParameter ItemResults { get; set; }
 
+    /// <summary>Allow a batch that selects no executable inputs to complete without an error.</summary>
+    [Parameter(ParameterSetName = "Files")]
+    [Parameter(ParameterSetName = "Directory")]
+    public SwitchParameter AllowEmpty { get; set; }
+
     /// <summary>Variable receiving the final batch summary or single-file result.</summary>
     [Parameter]
     public string? SummaryVariable { get; set; }
@@ -188,9 +193,9 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
             MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes, RetryFailed = RetryFailed.IsPresent
         }, new BatchProgress(this), CancelToken);
         SetSummary(batch);
-        if (batch.Failed > 0 && !ItemResults.IsPresent)
-            WriteWarning($"{batch.Failed} conversion(s) failed. Use -ItemResults for complete per-file evidence.");
         WriteProgress(new ProgressRecord(1, "Convert documents", "Finished") { RecordType = ProgressRecordType.Completed });
+        ErrorRecord? error = OfficeWorkflowCommandUtilities.GetBatchError(batch, AllowEmpty.IsPresent, "OfficeDocumentBatch");
+        if (error != null) WriteError(error);
         if (!ItemResults.IsPresent) WriteObject(batch);
 #endif
     }

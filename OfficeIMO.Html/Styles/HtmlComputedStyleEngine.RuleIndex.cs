@@ -38,6 +38,9 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         internal IReadOnlyDictionary<string, CustomPropertyRegistration> CustomPropertyRegistrations { get; }
+        internal ComputedStyleReuseCache ComputedReuse { get; } = new();
+        internal ContainerGeometryReuseCache ContainerGeometryReuse { get; } = new();
+        internal DeclarationSyntaxReuseCache DeclarationSyntaxReuse { get; } = new();
 
         internal IReadOnlyList<StyleRule> GetCandidates(IElement element) => _elements.GetCandidates(element);
 

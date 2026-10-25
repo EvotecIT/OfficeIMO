@@ -13,6 +13,7 @@ public partial class MainWindow {
             var clipboard = Clipboard ?? throw new IOException("Clipboard is unavailable.");
             await clipboard.SetTextAsync(text);
         };
+        document.ConversionWorkbench.BatchExport.CopyCommandText = document.Assistant.CopyAnswer;
         document.Assistant.ExportAnswer = (text, isCurrent, token) => ExportAssistantAnswerAsync(text, isCurrent, token);
         document.OcrWorkbench.OpenAssistantOutput = async (path, token) => {
             await TabHost.OpenDocumentAsync(path, token);

@@ -115,6 +115,77 @@ jobs support `-CheckpointDirectory` and `-RetryFailed`. Use
 reported reductions must block output. `Get-OfficeConversionRoute -Executable`
 lists file routes registered by this host, including the first-party iWork adapter.
 
+Batch conversion reports a PowerShell error when any selected item fails, including
+with `-ItemResults`. `-ErrorAction Stop` stops the calling script after the batch
+has retained its completed artifacts and assigned `-SummaryVariable`. A batch
+that selects no executable inputs also reports an error; use `-AllowEmpty` only
+when an empty selection is intentional. `Export-OfficeDocumentPdf` follows the
+same batch outcome contract.
+
+### Save, inspect and repeat a conversion job
+
+`Export-OfficeConversionJob` saves a versioned JSON definition without converting
+documents. Studio, `officeimo workflow job`, and `Invoke-OfficeConversionJob` use
+that same definition and shared executor. Paths inside the definition are relative
+to the job file's folder, so invoking it from a different working directory does
+not change the selected source or destination.
+
+```powershell
+Export-OfficeConversionJob -InputDirectory ./source -OutputDirectory ./pdf `
+    -CheckpointDirectory ./state -TargetExtension pdf -Path ./monthly.officejob.json
+
+# Plan performs no conversion and creates no output or checkpoint state.
+Invoke-OfficeConversionJob -Path ./monthly.officejob.json -Plan
+
+Invoke-OfficeConversionJob -Path ./monthly.officejob.json `
+    -ItemResults -SummaryVariable summary -ErrorAction Stop
+$summary
+
+# Reuse verified completed files and retry recorded failures explicitly.
+Invoke-OfficeConversionJob -Path ./monthly.officejob.json -RetryFailed -ErrorAction Stop
+```
+
+Both commands require PowerShell 7.4 or newer. Export supports selected `FileInfo`
+pipelines, explicit output profiles, conflict policies, limits, and the portable
+scalar settings from `New-OfficeConversionOptions`. Native renderer callbacks,
+embedded resources and other settings outside the saved-job contract are rejected
+instead of silently omitted. Existing job files require `-Force`; `-WhatIf` writes
+nothing. Loading a saved job does not grant filesystem permission or bypass input,
+output, link, source-identity, loss or checkpoint policy checks.
+
+Use `-SourcePasswordEnvironmentVariable` or `-PdfPasswordEnvironmentVariable` when
+exporting a job for protected inputs. The definition contains only those variable
+names; `Invoke-OfficeConversionJob` resolves their current process values when
+executing. Keep job files and their input/output locations under the same review
+as other automation scripts. Inspect a definition and its plan before running a
+job received from someone else.
+
+The [saved conversion job recipe](Examples/Workflows/Recipe-SavedConversionJob.ps1)
+creates two small sample documents, inspects the plan, produces and reopens PDFs,
+and verifies that a second run reuses checkpointed artifacts.
+
+Add `-ReportPath` when executing a saved job to retain a durable attempt:
+
+```powershell
+New-Item -ItemType Directory -Path ./runs -Force | Out-Null
+Invoke-OfficeConversionJob -Path ./monthly.officejob.json `
+    -ReportPath ./runs/first.json -SummaryVariable summary -ErrorAction Stop
+Get-OfficeConversionJobReport -Path ./runs/first.json
+```
+
+Choose a new filename in an existing report folder outside the input, output and
+checkpoint trees. The typed summary and `-ItemResults` stream keep their existing
+shape. Failed conversions still finalize a report before reporting the batch
+error, and the summary is assigned before `-ErrorAction Stop` stops the script.
+If final report recording fails, the completed output and conversion summary
+remain available and a separate recording error is reported.
+
+`Get-OfficeConversionJobReport` requires PowerShell 7.4 or newer. It reads bounded
+run evidence without opening referenced files or executing a conversion. An
+abandoned running attempt is shown as interrupted. A report's output links and
+counts describe that attempt; checkpoint verification determines reuse when the
+job runs again. Keep earlier reports and use another `-ReportPath` for a retry.
+
 Project, Access, EPUB and invoice workflows use ordinary PowerShell parameters:
 
 ```powershell

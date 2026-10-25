@@ -25,13 +25,13 @@ internal sealed partial class HtmlRenderStyleResolver {
             : "mixed";
     }
 
-    private static HtmlComputedStyle PhysicalizeLogicalProperties(
+    private HtmlComputedStyle PhysicalizeLogicalProperties(
         HtmlComputedStyle computed,
         string writingMode,
         string direction) {
         // Most elements only have physical properties. Preserve their computed
         // style without copying dictionaries or constructing mapping names.
-        bool hasLogicalProperty = computed.HasCascadeStateMatching(IsLogicalPropertyName);
+        bool hasLogicalProperty = GetDeclarationFacts(computed).HasLogicalProperties;
         if (!hasLogicalProperty) return computed;
 
         var properties = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);

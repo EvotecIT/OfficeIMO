@@ -164,6 +164,72 @@ Printer submission uses prepared raster sheets. The returned job identifier prov
 
 Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` changes the prepared pixels; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
 
+## Saved conversion jobs
+
+Save reviewed batch settings without executing them, inspect the plan, then run
+the same local job from any working directory:
+
+```text
+officeimo workflow batch --input-directory ./documents --output ./pdf --checkpoint ./conversion-state --save-job ./monthly.officeimojob.json
+officeimo workflow job plan ./monthly.officeimojob.json
+officeimo workflow job run ./monthly.officeimojob.json --format ndjson
+officeimo workflow job run ./monthly.officeimojob.json --retry-failed
+```
+
+Paths inside the job resolve against its file location. Saving captures portable
+settings and never reads secret values or converts files. Unknown schema versions,
+unknown fields and unsupported renderer settings are rejected. A plan reports
+selection, destinations and collisions without writing outputs or checkpoints;
+execution revalidates current inputs. Registered iWork routes use the host's
+ordinary batch registration; checkpoints still require supported built-in routes.
+
+Use `--source-password-env NAME` and `--pdf-password-env NAME` for runtime secret
+references. Saved jobs never contain password values. PowerShell runs the same
+definition with `Invoke-OfficeConversionJob -Path ./monthly.officeimojob.json`.
+Studio's local-folder workbench loads source-folder jobs that target PDF using
+automatic route selection and have no password references. Use the CLI or
+PowerShell for explicit-file lists, other targets, fixed conversion routes or
+jobs with password environment-variable references.
+
+Ordinary `workflow batch` keeps its aggregate JSON default. `--format json`
+adds a versioned per-file report, bounded to 10,000 retained items and 16 MiB of
+serialized item data, with an explicit truncation marker. `--format ndjson`
+streams each item and a final summary. Saved-job execution defaults to the
+versioned JSON report. Human diagnostics stay on stderr. A batch with no selected
+conversions fails unless `--allow-empty` explicitly accepts that outcome; partial
+failures and cancellation keep their failure/cancellation exit codes and retain
+already published outputs.
+
+If discovery or its file budget stops a run after earlier files complete, the
+final report retains those item outcomes and includes `summary.failureSummary`.
+The command fails even when no individual conversion failed; JSON and NDJSON
+still include the terminal summary.
+
+See the [complete job examples](../OfficeIMO.Workflows/Examples/ConversionJobs/README.md)
+for expected results and checkpoint retry instructions.
+
+Retain a readable attempt independently of checkpoint state by choosing a new
+report path outside the input, output and checkpoint trees:
+
+```text
+mkdir runs
+officeimo workflow job run ./monthly.officeimojob.json --report ./runs/first.json
+officeimo workflow job report ./runs/first.json
+officeimo workflow job run ./monthly.officeimojob.json --retry-failed --report ./runs/retry.json
+```
+
+The report parent folder must exist. Existing report files are preserved. Each
+attempt records the saved definition's fingerprint, timing, aggregate outcome
+and bounded per-file results. Inspection never runs the job or opens its referenced
+files. A report left by an exited writer appears as interrupted; a live writer
+remains running. Reports describe past observations. The normal source, output
+and checkpoint checks still determine whether an artifact can be reused.
+
+If report creation fails, conversion does not start. If final recording fails
+after conversions, the command reports the recording error and returns failure
+while retaining completed outputs and their conversion counts. Use a separate
+report filename for each attempt rather than replacing earlier evidence.
+
 ## Common workflows
 
 ```powershell

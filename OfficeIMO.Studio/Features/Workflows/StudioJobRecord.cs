@@ -9,11 +9,12 @@ namespace OfficeIMO.Studio.Features.Workflows;
 public sealed partial class StudioJobRecord : ObservableObject {
     private readonly IStudioLocalizer _localizer;
     private Action? _cancel;
-    internal StudioJobRecord(string title, string input, string? destination, Action cancel, bool batch, IStudioLocalizer localizer) {
+    internal StudioJobRecord(string title, string input, string? destination, Action? cancel, bool batch, IStudioLocalizer localizer) {
         Title = title;
         Input = input;
         Destination = destination;
         _cancel = cancel;
+        _isActive = cancel is not null;
         _localizer = localizer;
         CancelLabel = localizer.GetOrDefault(batch ? "Jobs.CancelBatch" : "Jobs.Cancel", batch ? "Cancel batch" : "Cancel job");
         Status = localizer.GetOrDefault("Jobs.Queued", "Queued");
@@ -29,6 +30,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
+    [NotifyPropertyChangedFor(nameof(CanCancel), nameof(CanReviewJob))]
     private bool _isActive = true;
     [ObservableProperty]
     private string _status = string.Empty;
@@ -86,8 +88,13 @@ public sealed partial class StudioJobRecord : ObservableObject {
     internal void CompleteBatch(OfficeWorkflowStatus status, string? outputPath, string summary,
         IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput, bool isDirectoryOutput) {
         if (!IsActive) return;
+        ApplyBatchCompletion(status, outputPath, summary, recoveries, hasVerifiedOutput, isDirectoryOutput);
+    }
+
+    private void ApplyBatchCompletion(OfficeWorkflowStatus status, string? outputPath, string summary,
+        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput, bool isDirectoryOutput) {
         IsDirectoryOutput = isDirectoryOutput;
-        Complete(status, outputPath, summary, recoveries.FirstOrDefault());
+        ApplyCompletion(status, outputPath, summary, recoveries.FirstOrDefault());
         Recoveries.Clear();
         foreach (var recovery in recoveries) Recoveries.Add(recovery);
         HasOutput = hasVerifiedOutput && !string.IsNullOrWhiteSpace(outputPath);
@@ -97,7 +104,9 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private bool _recoveryDiscardRequested;
 
-    [RelayCommand(CanExecute = nameof(IsActive))]
+    public bool CanCancel => IsActive && _cancel is not null;
+
+    [RelayCommand(CanExecute = nameof(CanCancel))]
     private void Cancel() {
         _cancel?.Invoke();
         if (IsActive) Status = _localizer.GetOrDefault("Jobs.Cancelling", "Cancellation requested");
@@ -113,6 +122,11 @@ public sealed partial class StudioJobRecord : ObservableObject {
     internal void Complete(OfficeWorkflowStatus status, string? outputPath, string summary, OfficeWorkflowOutputRecovery? recovery = null,
         bool hasNotes = false) {
         if (!IsActive) return;
+        ApplyCompletion(status, outputPath, summary, recovery, hasNotes);
+    }
+
+    private void ApplyCompletion(OfficeWorkflowStatus status, string? outputPath, string summary, OfficeWorkflowOutputRecovery? recovery = null,
+        bool hasNotes = false) {
         OutputPath = outputPath;
         HasOutput = status == OfficeWorkflowStatus.Completed && !string.IsNullOrWhiteSpace(outputPath);
         Summary = summary;

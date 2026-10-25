@@ -82,13 +82,85 @@
     <value>Aufträge</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Die letzten Versuche bleiben für diese Sitzung im Arbeitsspeicher. Wiederherstellungskopien bleiben nach einem Neustart erhalten, bis Sie sie verwerfen. Bis zu zwei Arbeitsabläufe können gleichzeitig laufen.</value>
+    <value>Versuche gespeicherter Ordneraufträge bleiben nach einem Neustart erhalten, wenn der Dokumentverlauf aktiviert ist. Andere Versuche bleiben in dieser Sitzung; Wiederherstellungskopien bleiben erhalten, bis Sie sie verwerfen. Bis zu zwei Arbeitsabläufe können gleichzeitig laufen.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Ausgabe eines Arbeitsablaufs wiederherstellen</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Aus einem früheren Ausführungsversuch wiederhergestellt.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Gespeicherte Ordnerkonvertierung</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Dateiergebnisse</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Gespeicherte Versuche zeigen, was passiert ist. Ausführungen mit Wiederaufnahmepunkten prüfen Ausgaben vor der erneuten Verwendung noch einmal.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Auftrag prüfen</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Der Ausführungsverlauf konnte nicht vollständig gespeichert werden: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} abgeschlossen · {1} wiederverwendet · {2} fehlgeschlagen · {3} übersprungen</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Ergebnisse für {0} Dateien werden angezeigt. Die Zähler beziehen sich auf den gesamten Versuch.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Unterbrochen</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Dieser Versuch endete ohne abschließendes Ergebnis. Prüfen Sie den gespeicherten Auftrag und die Ausgaben vor einer erneuten Ausführung.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Dieser gespeicherte Auftrag wird in einer anderen Studio-Instanz ausgeführt. Prüfen Sie ihn nach Abschluss dieses Versuchs.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>Der gespeicherte Auftrag ist nicht mehr verfügbar. Suchen Sie ihn über Konvertieren → Auftrag laden.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>Der gespeicherte Auftrag wurde nach diesem Versuch geändert. Laden Sie ihn ausdrücklich unter Konvertieren, um die neue Definition zu prüfen.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Warten Sie auf das Ende der aktuellen Konvertierung, bevor Sie einen anderen gespeicherten Auftrag prüfen.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>Die Ausgabe ist nicht mehr verfügbar.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Wiederverwendet</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Übersprungen</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Beendet {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Es wurden keine Dateiergebnisse aufgezeichnet.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Einige gespeicherte Ausführungsberichte konnten nicht gelesen werden: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Einige gespeicherte Ausführungsberichte konnten nicht gelöscht werden. Aktive Versuche bleiben erhalten.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>Die aufgezeichnete Ausgabe ist nicht mehr verfügbar.</value>
+  </data>
+  <data name="Jobs.RefreshHistory" xml:space="preserve">
+    <value>Verlauf aktualisieren</value>
+  </data>
+  <data name="Jobs.RunReport.RunningElsewhere" xml:space="preserve">
+    <value>Wird anderswo ausgeführt</value>
+  </data>
+  <data name="Jobs.SummaryWithExternal" xml:space="preserve">
+    <value>{0:N0} aktiv · {1:N0} anderswo in Ausführung · {2:N0} abgeschlossen</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Eine vorbereitete Ausgabekopie ist verfügbar. Prüfen Sie das ausgewählte Ziel, bevor Sie erneut schreiben.</value>
@@ -1861,19 +1933,19 @@
     <value>Dokumentverlauf aktivieren</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>Der Dokumentverlauf ist deaktiviert. Neue zuletzt verwendete Dateien und Leseeinstellungen werden nicht gespeichert.</value>
+    <value>Der Dokumentverlauf ist deaktiviert. Neue zuletzt verwendete Dateien, Leseeinstellungen und Ausführungsberichte gespeicherter Aufträge werden nicht gespeichert.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Gespeicherten Dokumentverlauf löschen…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Zuletzt verwendete Dateien, gespeicherte Leseeinstellungen und Neustartdatensätze löschen? Dokumente, offene Bearbeitungen und Wiederherstellungskopien bleiben erhalten. Deaktivieren Sie zuerst Verlauf und Neustartsitzungen, um neue Datensätze zu verhindern.</value>
+    <value>Zuletzt verwendete Dateien, gespeicherte Leseeinstellungen, Neustartdatensätze und Berichte abgeschlossener gespeicherter Aufträge löschen? Dokumente, offene Bearbeitungen, Ausgaben, Wiederaufnahmepunkte, aktive Versuche und Wiederherstellungskopien bleiben erhalten. Deaktivieren Sie zuerst Verlauf und Neustartsitzungen, um neue Datensätze zu verhindern.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Verlauf löschen</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>Der gespeicherte Dokumentverlauf und die Neustartdatensätze wurden gelöscht.</value>
+    <value>Der gespeicherte Dokumentverlauf, die Neustartdatensätze und die Berichte abgeschlossener gespeicherter Aufträge wurden gelöscht.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Ein Teil des gespeicherten Verlaufs konnte nicht gelöscht werden. Schließen Sie andere Studio-Instanzen oder prüfen Sie den Ordnerzugriff und versuchen Sie es erneut. Bereits entfernte Datensätze bleiben gelöscht.</value>
@@ -7183,4 +7255,154 @@ Option 2</value>
   <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Die Ausgabe überschreitet die unterstützte Dokumentgröße.</value></data>
   <data name="Output.DestinationChanged" xml:space="preserve"><value>Die Zieldatei wurde geändert. Wählen Sie einen anderen Speicherort, um beide Versionen zu erhalten.</value></data>
   <data name="Output.VerificationChanged" xml:space="preserve"><value>Die gespeicherte Datei wurde während der Überprüfung geändert. Prüfen Sie sie, bevor Sie es erneut versuchen.</value></data>
+  <data name="Conversion.SavedJob.OpenSection" xml:space="preserve">
+    <value>Gespeicherte Ordneraufträge</value>
+  </data>
+  <data name="Conversion.SavedJob.Title" xml:space="preserve">
+    <value>Ordnerauftrag speichern und wiederholen</value>
+  </data>
+  <data name="Conversion.SavedJob.Load" xml:space="preserve">
+    <value>Auftrag laden…</value>
+  </data>
+  <data name="Conversion.SavedJob.Save" xml:space="preserve">
+    <value>Auftrag speichern…</value>
+  </data>
+  <data name="Conversion.SavedJob.Plan" xml:space="preserve">
+    <value>Plan erstellen</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyCli" xml:space="preserve">
+    <value>CLI-Befehl kopieren</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyPowerShell" xml:space="preserve">
+    <value>PowerShell-Befehl kopieren</value>
+  </data>
+  <data name="Conversion.SavedJob.SettingsTitle" xml:space="preserve">
+    <value>Beibehaltene Auftragseinstellungen</value>
+  </data>
+  <data name="Conversion.SavedJob.Run" xml:space="preserve">
+    <value>Ordner exportieren</value>
+  </data>
+  <data name="Conversion.SavedJob.RunAgain" xml:space="preserve">
+    <value>Erneut ausführen</value>
+  </data>
+  <data name="Conversion.SavedJob.SavedReady" xml:space="preserve">
+    <value>Die gespeicherten Einstellungen können in Studio, über die Befehlszeile oder in PowerShell verwendet werden. Laden startet keine Verarbeitung.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveBeforeCopy" xml:space="preserve">
+    <value>Speichern Sie diese Einstellungen, um einen Befehl zu kopieren. Beim erneuten Ausführen werden Ausgaben mit Wiederaufnahmepunkten vor der Wiederverwendung überprüft.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveTitle" xml:space="preserve">
+    <value>Konvertierungsauftrag für einen Ordner speichern</value>
+  </data>
+  <data name="Conversion.SavedJob.LoadTitle" xml:space="preserve">
+    <value>Konvertierungsauftrag für einen Ordner laden</value>
+  </data>
+  <data name="Conversion.SavedJob.FileType" xml:space="preserve">
+    <value>OfficeIMO-Konvertierungsauftrag</value>
+  </data>
+  <data name="Conversion.SavedJob.Saved" xml:space="preserve">
+    <value>Ordnerauftrag gespeichert und überprüft. Es wurden keine Dokumente verarbeitet.</value>
+  </data>
+  <data name="Conversion.SavedJob.Loaded" xml:space="preserve">
+    <value>Ordnerauftrag geladen. Prüfen Sie vor dem Ausführen die Einstellungen und den Plan. Es wurden keine Dokumente verarbeitet.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanResult" xml:space="preserve">
+    <value>Gefunden {0:N0} · Ausgewählt {1:N0} · Übersprungen {2:N0} · Fehlgeschlagen {3:N0} · Ausgabekonflikte {4:N0}</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanReady" xml:space="preserve">
+    <value>Plan bereit. Es wurden weder Ausgaben noch Wiederaufnahmepunkte geschrieben. Prüfen Sie vor dem Ausführen die Ziele.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanBlocked" xml:space="preserve">
+    <value>Der Plan enthält Probleme, die vor dem Ausführen behoben werden müssen. Es wurden weder Ausgaben noch Wiederaufnahmepunkte geschrieben.</value>
+  </data>
+  <data name="Conversion.SavedJob.FileChanged" xml:space="preserve">
+    <value>Der gespeicherte Auftrag wurde außerhalb von Studio geändert. Laden Sie ihn erneut oder speichern Sie die geprüften Einstellungen, bevor Sie einen Befehl kopieren.</value>
+  </data>
+  <data name="Conversion.SavedJob.Copied" xml:space="preserve">
+    <value>Befehl für den gespeicherten Auftrag kopiert. Er wird erst ausgeführt, wenn Sie ihn starten.</value>
+  </data>
+  <data name="Conversion.SavedJob.Cancelled" xml:space="preserve">
+    <value>Auftragsaktion abgebrochen. Vorhandene Dokumente und Ausgaben bleiben erhalten.</value>
+  </data>
+  <data name="Conversion.SavedJob.LocalFile" xml:space="preserve">
+    <value>Wählen Sie eine lokale Auftragsdatei. Gespeicherte Ordneraufträge benötigen Dateisystempfade, die Studio, die CLI und PowerShell verwenden können.</value>
+  </data>
+  <data name="Conversion.SavedJob.FolderOnly" xml:space="preserve">
+    <value>Dieser Arbeitsbereich lädt Aufträge zur Konvertierung ganzer Ordner in PDF. Verwenden Sie für explizite Dateilisten, andere Ziele oder einen festen Konvertierungsweg die CLI oder PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.Secrets" xml:space="preserve">
+    <value>Dieser Arbeitsbereich kann Kennwortverweise gespeicherter Aufträge nicht abfragen. Führen Sie diesen Auftrag über die CLI oder PowerShell aus.</value>
+  </data>
+  <data name="Conversion.SavedJob.PreserveInput" xml:space="preserve">
+    <value>Wählen Sie einen anderen Dateinamen für den Auftrag, um seine Quelldateien zu erhalten.</value>
+  </data>
+  <data name="Conversion.SavedJob.Protected" xml:space="preserve">
+    <value>Das Auftragsziel wird von einem geöffneten Dokument oder einem Wiederherstellungsvorgang verwendet.</value>
+  </data>
+  <data name="Conversion.SavedJob.Settings" xml:space="preserve">
+    <value>PDF · Profil {0} · Konflikte {1} · {2} gleichzeitig · höchstens {3:N0} Dateien · {4:N0} MiB Eingabe / {5:N0} MiB Ausgabe · {6}.</value>
+  </data>
+  <data name="Conversion.SavedJob.Recursive" xml:space="preserve">
+    <value>mit Unterordnern</value>
+  </data>
+  <data name="Conversion.SavedJob.TopFolder" xml:space="preserve">
+    <value>nur oberster Ordner</value>
+  </data>
+  <data name="Conversion.SavedJob.AllFormats" xml:space="preserve">
+    <value>alle unterstützten Formate</value>
+  </data>
+  <data name="Conversion.SavedJob.Filters" xml:space="preserve">
+    <value>Quellauswahl: {0}. XML-Grenze: {1:N0} Zeichen pro Teil.</value>
+  </data>
+  <data name="Conversion.SavedJob.AdditionalOptions" xml:space="preserve">
+    <value>Weitere beibehaltene Konvertierungseinstellungen:</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Pages" xml:space="preserve">
+    <value>Seiten: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Word" xml:space="preserve">
+    <value>PDF in Word: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Slides" xml:space="preserve">
+    <value>PDF in Folien: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Dpi" xml:space="preserve">
+    <value>Rasterauflösung: {0} DPI</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Worksheet" xml:space="preserve">
+    <value>Arbeitsblattlayout: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Html" xml:space="preserve">
+    <value>HTML-Layout: {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Compression" xml:space="preserve">
+    <value>Verlustfreie PDF-Komprimierung</value>
+  </data>
+  <data name="Conversion.SavedJob.StrictLoss" xml:space="preserve">
+    <value>Gemeldeten Konvertierungsverlust ablehnen</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanSample" xml:space="preserve">
+    <value>Die ersten Planeinträge werden angezeigt; die Zähler beziehen sich auf die gesamte Auswahl.</value>
+  </data>
+  <data name="Conversion.SavedJob.ReviewTitle" xml:space="preserve">
+    <value>PDF-Ordnerauftrag</value>
+  </data>
+  <data name="Conversion.SavedJob.CheckpointLabel" xml:space="preserve">
+    <value>Wiederaufnahmepunkte</value>
+  </data>
+  <data name="Conversion.SavedJob.Unsaved" xml:space="preserve">
+    <value>Ungespeicherter Ordnerauftrag</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseInput" xml:space="preserve">
+    <value>Wählen Sie links den Quellordner.</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseOutput" xml:space="preserve">
+    <value>Wählen Sie links den PDF-Ausgabeordner.</value>
+  </data>
+  <data name="Conversion.SavedJob.NoCheckpoints" xml:space="preserve">
+    <value>Keine Wiederaufnahmepunkte; jeder Durchlauf folgt der gespeicherten Konfliktregel.</value>
+  </data>
+  <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve">
+    <value>Gestoppt: {0} abgeschlossen, {1} wiederverwendet, {2} fehlgeschlagen, {3} übersprungen. Abgeschlossene Ausgaben bleiben verfügbar.</value>
+  </data>
 </root>

@@ -22,6 +22,7 @@ Saved DSL constructors are quiet by default. Add `-PassThru` only when the next 
 
 | When you need to | Use | Start here |
 | --- | --- | --- |
+| Save a conversion job and repeat it through Studio, CLI or PowerShell | Shared saved job | [Plan, run and resume](Workflows/Recipe-SavedConversionJob.ps1) |
 | Export rows or query results | Pipeline | [Excel quick export](Excel/Recipe-Excel-QuickExport.ps1) |
 | Add content from loops and conditions | Document objects | [Word](Word/Recipe-Word-ObjectComposition.ps1), [Excel](Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), [Markdown](Markdown/Recipe-Markdown-ObjectComposition.ps1) |
 | Author the complete artifact in one block | DSL | [Project status report](Word/Recipe-Word-ProjectStatus.ps1), [service invoice](Pdf/Recipe-Pdf-ServiceInvoice.ps1) |
