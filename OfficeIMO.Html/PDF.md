@@ -279,6 +279,8 @@ result.RequireNoLoss();
 result.Save("report.pdf").RequireNoLoss();
 ```
 
+`HtmlRenderResult.RequireNoLoss()` checks retained layout diagnostics. For an explicit PDF request, `HtmlPdfRenderRequestResult.Output` exposes the combined HTML/PDF report, including warnings refreshed during serialization. Use `Output.ToBytesLossless()` for strict byte export, or call `Output.RequireNoLoss()` after serialization. Encoded images carry their own `Diagnostics`; `image.CreateReport().RequireNoLoss()` checks that completed image-export stage.
+
 ## Accessibility validation
 
 HTML-to-PDF enables tagging by default. Use real headings, table headers with
@@ -423,9 +425,9 @@ The default managed provider and configured providers can retain an ordinary hor
 
 Paragraph bidi also supplies the direction for neutral punctuation. With zero letter and word spacing, eligible horizontal RTL slices retain the provider result requested with that resolved direction, so later output does not infer a new direction from punctuation alone. Font, provider, color-glyph or cluster-retention failures in an otherwise eligible context report `HtmlRenderComplexTextShapingUnsupported`.
 
-HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. A positive-advance run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
+HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. An admitted run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
 
-Retained PDF outlines require a positive total pen advance. Zero or negative totals keep diagnosed fallback; a positive paint frame does not make their font advance positive. Layout can retain a valid zero advance independently of that PDF boundary.
+Retained PDF outlines accept finite nonnegative total pen advances. A zero advance keeps natural glyph placement and logical text without inventing pen width or scaling the glyphs to a minimum paint frame. Negative or nonfinite totals retain diagnosed fallback.
 
 `HtmlRenderPage.CreateDrawing()` also carries admitted glyphs into Drawing output. Generic PDF export through `PdfPageCanvas.Drawing(...)` accepts retained text as unwrapped positioned monochrome slices; attached text decorations, padding, indentation, outline strokes and specialized metric geometry are outside that route and fail explicitly. Separate decoration shapes already present in the Drawing use normal shape output.
 

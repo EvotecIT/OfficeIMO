@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Xml.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using Xunit;
@@ -45,11 +43,12 @@ public sealed partial class HtmlRenderingTests {
         // local SVG y plus a group transform, which is not its global baseline.
         var document = HtmlConversionDocument.Parse("<body style='margin:0;padding:24px'><div style='" + containerStyle
             + ";width:600px;font:40px/48px Pinned'>" + content + "</div></body>");
-        string svg = document.ToSvg(options);
-        XElement[] text = XDocument.Parse(svg).Descendants().Where(node => node.Name.LocalName == "text").ToArray();
-        XElement large = Assert.Single(text, node => node.Value.Trim() == "AAAA");
-        XElement small = Assert.Single(text, node => node.Value.Trim() == "BBBB");
-        Assert.Equal(ParseY(large), ParseY(small), 3);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText large = Assert.Single(text, node => node.Text.Trim() == "AAAA");
+        HtmlRenderText small = Assert.Single(text, node => node.Text.Trim() == "BBBB");
+        Assert.Equal(PaintBaseline(large), PaintBaseline(small), 3);
+        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
         var letters = pdf.GetPage(1).Letters;
@@ -57,6 +56,5 @@ public sealed partial class HtmlRenderingTests {
         double smallBaseline = letters.First(letter => letter.Value == "B").StartBaseLine.Y;
         Assert.Equal(largeBaseline, smallBaseline, 3);
 
-        static double ParseY(XElement node) => double.Parse(node.Attribute("y")!.Value, CultureInfo.InvariantCulture);
     }
 }

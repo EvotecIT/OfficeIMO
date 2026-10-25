@@ -45,9 +45,7 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<OfficeDrawingText> textElements = drawing.Elements.OfType<OfficeDrawingText>().ToList();
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
-        XNamespace ns = "http://www.w3.org/2000/svg";
         XDocument svgDocument = XDocument.Parse(svg);
-        IReadOnlyList<XElement> svgText = svgDocument.Descendants(ns + "text").ToList();
 
         Assert.NotEmpty(textElements);
         Assert.Equal(renderedText.Count, textElements.Count);
@@ -70,12 +68,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, bounds[1]);
         Assert.Equal(320D / 100D, bounds[2] / bounds[3], 6);
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
-        Assert.All(svgText, text => {
-            Assert.NotNull(text.Attribute("textLength"));
-            Assert.Equal("spacingAndGlyphs", text.Attribute("lengthAdjust")?.Value);
-        });
-        Assert.Contains(svgText, text => text.Value == "One model.");
-        Assert.Contains(svgText, text => text.Value.Contains("Shared output.", StringComparison.Ordinal));
+        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], svg);
+        Assert.Contains("One model.", SvgPaintedText.Read(svg), StringComparison.Ordinal);
+        Assert.Contains("Shared output.", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());
     }
 

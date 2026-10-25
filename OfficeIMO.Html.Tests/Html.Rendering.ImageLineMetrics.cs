@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -60,9 +59,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(74.125D, tail.LayoutY, 6);
         Assert.Equal(93.3125D, NormalLineFollowingVisual(rendered).Y, 6);
 
-        XElement savedText = Assert.Single(XDocument.Parse(document.ToSvg(options)).Descendants()
-            .Where(node => node.Name.LocalName == "text"), node => node.Value == "Hgyp");
-        double savedBaseline = HtmlSvgTestCoordinates.CssValue(savedText, "y");
+        HtmlRenderText lineText = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>(), node => node.Text == "Hgyp");
+        double savedBaseline = PaintBaseline(lineText);
+        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], document.ToSvg(options));
         double sceneBaseline = image.Y + image.Height + 16D;
         Assert.InRange(Math.Abs(savedBaseline - sceneBaseline), 0D, 0.0005D / 0.75D);
 

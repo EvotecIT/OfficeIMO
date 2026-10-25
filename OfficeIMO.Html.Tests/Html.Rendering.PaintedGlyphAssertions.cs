@@ -49,6 +49,89 @@ public sealed partial class HtmlRenderingTests {
         text.OrderBy(item => item.Y).ThenBy(item => item.X).Select(item => item.PreparedShaping == null
             ? item.Text : string.Concat(item.PreparedShaping.Result.Glyphs.Select(glyph => glyph.UnicodeText))));
 
+    private static double PaintBaseline(HtmlRenderText text) => text.Y + text.Font.Size + text.BaselineOffset;
+
+    // These baseline/advance fixtures have ordinary horizontal monochrome slices.
+    // Compare each source slice with its actual PDF-backed SVG ink at the exact
+    // selected-font pen; a contour label alone does not establish placement.
+    internal static void AssertPdfBackedSvgRetainsPaintedGlyphs(HtmlRenderPage page, string svg) {
+        OfficeDrawing drawing = page.CreateDrawing();
+        OfficeDrawingText[] painted = DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>()
+            .Where(text => text.Text.Length > 0).ToArray();
+        Assert.NotEmpty(painted);
+        XElement saved = XElement.Parse(svg);
+        static string? Label(XElement element) => element.AncestorsAndSelf()
+            .Select(ancestor => ancestor.Attribute("aria-label")?.Value).FirstOrDefault(value => value != null);
+        XElement[] paths = saved.Descendants().Where(element => element.Name.LocalName == "path"
+            && Label(element) != null).ToArray();
+        XElement[] textNodes = saved.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
+        var matched = new HashSet<XElement>();
+        double pointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
+        foreach (OfficeDrawingText text in painted) {
+            Assert.Equal(OfficeTextAlignment.Left, text.Alignment);
+            Assert.Equal(1D, text.BaselineScale);
+            Assert.False(text.GlyphTransform.HasValue);
+            Assert.False(text.HasFrameTransform);
+            string X(double value) => OfficeSvgFormatting.FormatNumber(value * pointsPerCssPixel);
+            OfficePreparedTextShaping? prepared = text.PreparedShaping;
+            if (prepared == null) {
+                XElement[] scalar = textNodes.Where(element => !matched.Contains(element)
+                    && element.Value == text.RasterText && element.Attribute("x")?.Value == X(text.X)
+                    && element.Attribute("y")?.Value == X(text.Y + text.Font.Size + text.BaselineOffset)).ToArray();
+                if (scalar.Length > 0) {
+                    XElement encoded = Assert.Single(scalar);
+                    Assert.True(text.PreservesPaintedGlyphs);
+                    Assert.Equal(text.Text, encoded.Attribute("aria-label")?.Value ?? encoded.Value);
+                    Assert.Equal("ltr", encoded.Attribute("direction")?.Value);
+                    Assert.Equal("bidi-override", encoded.Attribute("unicode-bidi")?.Value);
+                    Assert.Equal(X(text.Font.Size), encoded.Attribute("font-size")?.Value);
+                    Assert.True(OfficeFontFamilyParser.Parse(encoded.Attribute("font-family")?.Value)
+                        .Contains(text.Font.FamilyName!));
+                    Assert.True(text.TextAdvanceWidth.HasValue);
+                    Assert.Equal(X(text.TextAdvanceWidth!.Value), encoded.Attribute("textLength")?.Value);
+                    Assert.Equal("spacingAndGlyphs", encoded.Attribute("lengthAdjust")?.Value);
+                    Assert.True(matched.Add(encoded));
+                    continue;
+                }
+            }
+            IOfficeFontProgram? program = prepared?.Program ?? drawing.Fonts.ResolveForText(
+                text.RasterText, text.Font.FamilyName, text.Font.Face, text.Font.Size, out _);
+            IOfficeBoundedFontProgram bounded = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(program);
+            if (prepared == null) Assert.True(text.PreservesPaintedGlyphs);
+            double size = text.Font.Size;
+            double baseline = program is IOfficeFontBaselineMetrics metrics
+                ? metrics.BaselineOffset(size) : program!.LineHeight(size) * .8D;
+            double advance = prepared?.Measure(size) ?? program!.Measure(text.RasterText, size);
+            Assert.True(!double.IsNaN(advance) && !double.IsInfinity(advance) && advance >= 0D);
+            double scaleX = text.TextAdvanceWidth.HasValue && advance > 0D
+                ? text.TextAdvanceWidth.Value / advance : 1D;
+            var contours = prepared != null
+                ? prepared.GetContours(0D, -baseline, size, 1_000_000, CancellationToken.None)
+                : bounded.GetTextContoursBounded(text.RasterText, 0D, -baseline, size, 1_000_000, CancellationToken.None);
+            var expected = new StringBuilder();
+            foreach (List<OfficePoint> contour in contours) {
+                if (contour.Count < 3) continue;
+                for (int index = 0; index < contour.Count; index++) {
+                    OfficePoint point = contour[index];
+                    expected.Append(index == 0 ? 'M' : 'L').Append(X(text.X + point.X * scaleX)).Append(' ')
+                        .Append(X(text.Y + size + text.BaselineOffset + point.Y)).Append(' ');
+                }
+                expected.Append('Z');
+            }
+            if (expected.Length == 0) Assert.True(string.IsNullOrWhiteSpace(text.Text),
+                "Only source whitespace may have no contour ink in these fixtures.");
+            XElement path = Assert.Single(paths.Where(element => !matched.Contains(element)
+                && Label(element) == text.Text && element.Attribute("d")?.Value == expected.ToString()));
+            Assert.True(matched.Add(path));
+        }
+        Assert.Equal(paths.Length + textNodes.Length, matched.Count);
+        string logical = string.Concat(saved.Descendants().Where(element => element.Name.LocalName == "text"
+            || element.Name.LocalName == "path" && Label(element) != null)
+            .Select(element => element.Name.LocalName == "text"
+                ? element.Attribute("aria-label")?.Value ?? element.Value : Label(element)));
+        Assert.Equal(string.Concat(painted.Select(text => text.Text)), logical);
+    }
+
     private static void AssertSvgRetainsPaintedGlyphs(OfficeDrawing drawing, string svg, string logicalText) {
         static IEnumerable<OfficeDrawingText> TextLeaves(OfficeDrawing source) {
             foreach (OfficeDrawingElement element in source.Elements) {

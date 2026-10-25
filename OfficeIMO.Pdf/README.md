@@ -918,6 +918,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
+When the PDF reader can prove a text span's code-to-glyph mapping, SVG export preserves its painted glyph contours and keeps the logical source in accessibility labels. Admitted finite zero-advance spans retain the same treatment. That text uses contours instead of relying on the PDF subset as a browser font; the outlines are not selectable SVG text. Unproven mappings and specialized text layouts keep the existing text-fallback limits. `SvgTextAsPaths` remains the opt-in for eligible caller-authored Drawing text.
+
 PDF text rendering retains affine text geometry, including shear combined with rotation or nonuniform scaling. Source clipping stays in page coordinates, and positioned character and word spacing retain their PDF origins.
 Glyph outlines transform before text strokes, so the text matrix does not distort stroke widths or dash spacing. Drawings read from PDF pages retain this geometry for raster and SVG export. PDF canvas authoring rejects imported affine glyph text explicitly; writing that drawing into a new PDF needs a qualified glyph-transform writer path.
 Dashed outline joins can still differ from native PDF renderers at closed-path seams or when a dash starts exactly at a corner.
