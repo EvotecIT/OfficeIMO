@@ -312,16 +312,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool ordered = parent != null && string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
         string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
         int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
-        if (markerContent == null && _counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
-            if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            markerContent = customMarker.Length == 0 ? null : customMarker;
-        }
         if (markerContent == null) {
-            if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
-                marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
-            }
+            markerContent = _counterStyles.FormatListMarker(ordinal, listStyle, ordered, out bool markerLimited);
             if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            if (marker.Length > 0) markerContent = marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
         }
         if (string.IsNullOrEmpty(markerContent)) return null;
         return new HtmlListMarker(markerContent!, hasPseudoStyle ? markerStyle : style, style.ListStylePosition);

@@ -27,6 +27,7 @@ internal static partial class HtmlRenderSystemFontLoader {
         var visibleText = new HashSet<IElement>();
         var defaults = new List<(IElement Element, string Families, OfficeFontFaceDescriptor Descriptor, bool NeedsText, bool DirectText)>();
         var disclosures = new HtmlDisclosureState();
+        var counterStyles = new Lazy<HtmlCounterStyleRegistry>(() => HtmlCounterStyleRegistry.Parse(document, options));
         IElement[] elements = document.QuerySelectorAll("*").ToArray();
         bool limitReported = false;
         foreach (IElement element in elements) {
@@ -74,7 +75,7 @@ internal static partial class HtmlRenderSystemFontLoader {
             cancellationToken.ThrowIfCancellationRequested();
             if ((!request.NeedsText || visibleText.Contains(request.Element))
                 && (!request.DirectText || !ScopedFacesCoverDirectText(request.Element, request.Families, request.Descriptor,
-                    fonts, supplied, disclosures, cancellationToken)))
+                    fonts, supplied, disclosures, styles.Elements[request.Element], counterStyles, cancellationToken)))
                 LoadDefaults(request.Families, request.Descriptor);
         }
 

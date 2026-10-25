@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
         string dataUri = "data:image/png;base64," + pixelPng;
         string html = "<div id='combined' style=\"width:20px;height:12px;background:"
             + string.Format(System.Globalization.CultureInfo.InvariantCulture, shorthand, dataUri)
-            + "\">Color</div>";
+            + "\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,

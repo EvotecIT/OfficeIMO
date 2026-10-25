@@ -85,11 +85,14 @@ public sealed partial class HtmlRenderingTests {
         html.Append("<span>LinearLeaf</span>");
         for (int index = 0; index < 24; index++) html.Append("</div>");
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             MaxLayoutOperations = 100
-        });
+        };
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            "LinearLeaf".Select(character => (int)character).Distinct().ToArray()));
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), options);
 
         Assert.Contains("LinearLeaf", rendered.Text, StringComparison.Ordinal);
     }

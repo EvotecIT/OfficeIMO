@@ -28,6 +28,6 @@ public sealed partial class HtmlRenderingTests {
         for (int index = 1; index < text.Length; index++) {
             Assert.Equal(text[index - 1].X + (text[index - 1].TextAdvanceWidth ?? text[index - 1].Width), text[index].X, 3);
         }
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 }

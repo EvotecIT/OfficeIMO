@@ -55,7 +55,7 @@ internal static partial class HtmlRenderSystemFontLoader {
     /// <summary>Keeps a covered caller-owned CSS prefix from causing unused default host discovery.</summary>
     private static bool ScopedFacesCoverDirectText(IElement element, string families,
         OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
-        HtmlDisclosureState disclosures,
+        HtmlDisclosureState disclosures, HtmlComputedStyle computed, Lazy<HtmlCounterStyleRegistry> counterStyles,
         CancellationToken cancellationToken) {
         bool found = false;
         foreach (IText text in element.ChildNodes.OfType<IText>()) {
@@ -70,6 +70,20 @@ internal static partial class HtmlRenderSystemFontLoader {
             if (!string.IsNullOrEmpty(value)) {
                 found = true;
                 if (!Covers(value!)) return false;
+            }
+        }
+        if (element.LocalName == "li") {
+            string style = computed.GetValue("list-style-type").Trim();
+            if (!style.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                bool ordered = element.ParentElement?.LocalName == "ol";
+                if (style.Length == 0) style = ordered ? "decimal" : "disc";
+                int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolved) ? resolved : 1;
+                cancellationToken.ThrowIfCancellationRequested();
+                string marker = counterStyles.Value.FormatListMarker(ordinal, style, ordered, out _);
+                if (marker.Length > 0) {
+                    found = true;
+                    if (!Covers(marker)) return false;
+                }
             }
         }
         return found;

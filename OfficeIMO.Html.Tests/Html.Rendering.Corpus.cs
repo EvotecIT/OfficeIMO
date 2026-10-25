@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRenderingRepresentativeCorpus_DashboardHeadingAndIncidentRemainFullyVisible() {
         HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "dashboard-print");
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(scenario.Html), scenario.CreateOptions());
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>()
             .ToArray();
@@ -334,7 +334,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRenderingRepresentativeCorpus_StaticStandardsGridUsesTwoAuthoredColumns() {
         HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "static-standards-showcase");
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(scenario.Html), scenario.CreateOptions());
         HtmlRenderText firstRow = Assert.Single(
             rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).OfType<HtmlRenderText>(),
             text => text.Text == "Inherited row A");
@@ -352,7 +352,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRenderingRepresentativeCorpus_StaticStandardsRunningHeaderPaintsOnEveryRasterPage() {
         HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == "static-standards-showcase");
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(scenario.Html), scenario.CreateOptions());
 
         Assert.Equal(2, rendered.Pages.Count);
         foreach (HtmlRenderPage page in rendered.Pages) {
@@ -383,7 +383,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderingCorpusCase scenario = HtmlRenderingRepresentativeCorpus.All.Single(item => item.Id == scenarioId);
         HtmlRenderOptions options = scenario.CreateOptions();
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, options);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(scenario.Html), options);
 
         Assert.Equal(scenario.Mode, rendered.Mode);
         Assert.Equal(scenario.ExpectedPageCount, rendered.Pages.Count);

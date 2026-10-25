@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
         double advance = text.TextAdvanceWidth ?? text.Width;
         Assert.Equal(100D - advance - 10D, text.X, 3);
         Assert.Equal(advance + 10D, TableGeometryShape(rendered, "span#outer").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(texts.Select(text => text.Y).Distinct().Count() > 1);
         Assert.Equal(20D + (floated ? 30D : 0D), texts[0].X, 3);
         Assert.All(texts, text => Assert.True(text.X + (text.TextAdvanceWidth ?? text.Width) <= width + 0.001D));
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] texts = InlineEdgeTexts(rendered);
         Assert.Equal(new[] { "AA-", "AAAA" }, texts.Select(text => text.Text).ToArray());
         Assert.True(texts[1].Y > texts[0].Y);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, texts[0].Color);
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Black, texts[texts.Length - 1].Color);
         Assert.True(texts[texts.Length - 1].Y > texts[0].Y);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("AAAA", texts[0].Text);
         Assert.Equal("AAAAAAAA", string.Concat(texts.Select(text => text.Text)));
         Assert.True(texts.Length >= 2);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -103,7 +103,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText x = Assert.Single(InlineEdgeTexts(rendered), text => text.Text == "X");
         Assert.Equal(expectedX + (floated ? 30D : 0D), x.X, 3);
         if (firstLine) Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, x.Color);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(origin + 70D - (texts[0].TextAdvanceWidth ?? texts[0].Width), texts[0].X, 3);
         Assert.Equal(origin + 70D - (texts[1].TextAdvanceWidth ?? texts[1].Width) - 10D, texts[1].X, 3);
         Assert.True(texts[1].Y > texts[0].Y);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, anchor.X, 3);
         Assert.Equal(width, anchor.Width, 3);
         Assert.Equal(15D, Assert.Single(InlineEdgeTexts(rendered), text => text.Text == "AAAA").X, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]

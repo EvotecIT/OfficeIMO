@@ -38,6 +38,8 @@ public sealed partial class HtmlRenderingTests {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument clean = await HtmlRenderTestDriver.RenderAsync("<h1>Lossless static output</h1>", options);
         Assert.False(clean.HasLoss);
         Assert.Same(clean, clean.RequireNoLoss());
@@ -1131,6 +1133,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(16D)
         };
 
+        renderOptions.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), renderOptions);
         string renderedText = string.Join(" ", rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
 
@@ -1216,6 +1220,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(16D)
         };
 
+        renderOptions.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), renderOptions);
         string renderedText = string.Join(" ", rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
 

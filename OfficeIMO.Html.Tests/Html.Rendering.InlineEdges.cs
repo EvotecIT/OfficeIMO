@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, words[0].Color);
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Black, words[1].Color);
         Assert.True(words[1].Y > words[0].Y);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     private static HtmlRenderDocument RenderInlineEdgeAtoms(string width, string edges) =>

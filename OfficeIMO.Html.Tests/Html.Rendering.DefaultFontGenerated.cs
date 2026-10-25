@@ -9,6 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("<ol><li></li></ol>")]
+    [InlineData("<ol style='font-family:Supplied,Arial'><li>A</li></ol>")]
     [InlineData("<ol><li><span style='font-family:Supplied'>A</span></li></ol>")]
     public void HtmlDefaultFont_GeneratedNumericMarkerRetainsItsPermittedDefaultFace(string body) {
         if (OfficeTrueTypeFont.TryLoadFontFamilyForText("Arial", OfficeFontFaceDescriptor.Regular, "1.", out _) == null) return;
@@ -24,6 +25,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(face!.Program.Measure(marker.Text, marker.Font.Size), marker.TextAdvanceWidth!.Value, 6);
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
             && item.Source == marker.Source);
+    }
+
+    [Fact]
+    public void HtmlDefaultFont_CoveredListBodyAndMarkerDoNotDiscoverAnUnusedHostFace() {
+        var options = new HtmlRenderOptions();
+        options.Fonts.Add("Supplied", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', '1', '.', ' '));
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
+            "<ol style='font-family:Supplied,Arial'><li>A</li></ol>"), options);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == "InstalledFontResolved");
+        Assert.DoesNotContain(rendered.Fonts.Faces, face => face.FamilyName == "Arial");
+        rendered.RequireNoLoss();
     }
 
     [Fact]

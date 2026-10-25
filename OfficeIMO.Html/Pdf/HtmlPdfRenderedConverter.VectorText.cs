@@ -37,7 +37,11 @@ internal static partial class HtmlPdfRenderedConverter {
         if (planned.Count == 0) return false;
 
         var resolvedRuns = new List<OutlinedFontRun>(planned.Count);
-        bool requiresOutlines = false;
+        // A resolved bidi group owns one logical replacement. Keep all of its
+        // selected glyph paint as contours, so a reopened PDF can retain that
+        // replacement with the complete paint rather than lose path-only slices
+        // inside a mixed glyph/text scope.
+        bool requiresOutlines = logicalTextOwned && visual.BidiVisualOrderResolved;
         foreach (OfficeFontFallbackRun run in planned) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!webFonts.Faces.TryResolveFaceForText(

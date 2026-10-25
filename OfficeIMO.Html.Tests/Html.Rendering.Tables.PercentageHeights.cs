@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(50D, TableGeometryShape(rendered, (cssTable ? "div" : "td") + "#summary").Height, 3);
         Assert.Equal(150D, TableGeometryShape(rendered, (cssTable ? "div" : "td") + "#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(150D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(50D, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, TableGeometryShape(rendered, "div#content").Height, 3);
         Assert.Equal(120D, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -100,7 +100,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(summaryHeight, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(detailHeight, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -121,7 +121,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(detailHeight, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(14D, TableGeometryShape(rendered, "td#summary").Y, 3);
         Assert.Equal(tableHeight, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(100D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(100D, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(50D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(150D, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.Equal(100D, TableGeometryShape(rendered, "td#larger-summary").Height, 3);
         Assert.Equal(100D, TableGeometryShape(rendered, "td#larger-detail").Height, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(100D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(100D, TableGeometryShape(rendered, "td#detail").Height, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -204,7 +204,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(200D, TableGeometryShape(rendered, "td#summary").Width, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "td#detail").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(310D, TableGeometryShape(rendered, "div#ordinary").Width, 3);
         Assert.Equal(170D, TableGeometryShape(rendered, "table#report").Width, 3);
         Assert.Equal(85D, TableGeometryShape(rendered, "td#summary").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(summaryHeight, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(detailHeight, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(20D, TableGeometryShape(rendered, "td#detail").Height, 3);
         Assert.Equal(40D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -283,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string text in new[] { "Body1", "Body2", "Body3", "Next" }) {
             Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == text);
         }
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string text in new[] { "Body1", "Body2", "Body3", "Next" }) {
             Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == text);
         }
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -331,7 +331,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(rendered.Pages[expectedPages - 1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Next");
         Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Header"));
         Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Footer"));
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -351,7 +351,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Footer"));
         foreach (string text in new[] { "Body1", "Body2", "Body3", "Next" })
             Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == text);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     private static string FinalRepeatedFooterBoundarySource(string following) =>

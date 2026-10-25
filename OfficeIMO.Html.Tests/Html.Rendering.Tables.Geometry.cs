@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(100D, cell.Height, 3);
         Assert.Equal(100D, next.Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]

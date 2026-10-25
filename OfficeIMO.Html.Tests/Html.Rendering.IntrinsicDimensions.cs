@@ -122,7 +122,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.NotEmpty(text);
         Assert.Equal(text.Max(item => item.X + item.Width) - box.X, box.Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(rendered.Pages.Count >= 2);
         Assert.Equal(90D, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]

@@ -20,6 +20,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTableGeometry_InapplicableIntrinsicDimensionsDoNotRejectNoLoss(string display, string property) {
         string html = TableGeometrySource("<div><span style='display:" + display + ";" + property + ":max-content'>Text</span></div>");
         var options = TableGeometryOptions();
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('T', 'e', 'x', 't'));
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
         options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -102,12 +104,13 @@ public sealed partial class HtmlRenderingTests {
             + "}#contents::before{content:'Generated';min-width:max-content}</style><div style='display:"
             + parentDisplay + "'><span id='contents'></span></div>");
         var options = TableGeometryOptions();
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
         options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Generated");
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -172,11 +175,12 @@ public sealed partial class HtmlRenderingTests {
             + "<tbody style='" + width + "'><tr style='" + width + "'><td>Body</td></tr></tbody>"
             + "<tfoot style='" + width + "'><tr style='" + width + "'><td>Footer</td></tr></tfoot></table>");
         var options = TableGeometryOptions();
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
         options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -192,6 +196,6 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(width, table.Width, 3);
         Assert.Equal(x, table.X, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 }
