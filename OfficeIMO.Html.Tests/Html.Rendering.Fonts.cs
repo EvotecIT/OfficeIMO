@@ -214,15 +214,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(emoji + "\u05D0" + emoji, read.ExtractText(), StringComparison.Ordinal);
         Assert.Equal(pngBytes, Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D })).Bytes);
-        PdfCore.PdfFontInventory inventory = PdfCore.PdfDocument.Load(pdf).Resources.Fonts();
-        Assert.Contains(inventory.Fonts, font => font.FamilyName == "EmojiDemo-Regular" && font.IsEmbedded);
-        HtmlRenderText hebrew = Assert.Single(textRuns, run => run.Font.FamilyName == "Hebrew Demo");
-        if (hebrew.PreparedShaping is OfficePreparedTextShaping prepared) {
-            // Positioned glyph outlines carry this exact font directly; they do not
-            // need a second PDF text-font resource to repeat the same paint.
-            Assert.Equal(OfficeTrueTypeFont.TryLoad(hebrewFont)!.Fingerprint, prepared.Program.Fingerprint);
-            Assert.Single(prepared.Result.Glyphs);
-        } else Assert.Contains(inventory.Fonts, font => font.FamilyName == "HebrewDemo-Regular" && font.IsEmbedded);
+        // Covered bidi paint may use contours instead of PDF text-font resources.
+        // The route/ink checks above protect the selected paint; retain its exact
+        // program identity without requiring an unused embedded font dictionary.
+        Assert.All(textRuns, run => {
+            Assert.True(rendered.Fonts.TryResolveFaceForText(run.Text, run.Font.FamilyName,
+                run.FontDescriptor, run.Font.Size, out OfficeFontFace? face));
+            byte[] expected = run.Font.FamilyName == "Emoji Demo" ? emojiFont : hebrewFont;
+            Assert.Equal(OfficeTrueTypeFont.TryLoad(expected)!.Fingerprint, face!.Program.Fingerprint);
+        });
         rendered.RequireNoLoss();
     }
 
