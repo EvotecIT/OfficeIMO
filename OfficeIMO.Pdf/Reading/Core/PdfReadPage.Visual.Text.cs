@@ -297,10 +297,11 @@ public sealed partial class PdfReadPage {
     }
 
     // PDF glyph runs are already shaped and in painted order. Re-shaping or bidi reordering would
-    // replace joining forms or reverse right-to-left runs, so complex-script runs keep their painted
-    // glyphs. Simple text keeps the configured shaping profile, which cannot change its glyphs.
+    // replace joining forms or reverse right-to-left runs. The projection marker
+    // proves the code-to-glyph mapping for simple text too; SVG must not replace
+    // those glyphs by asking a browser to load a PDF-only subset as a webfont.
     private static bool PreservesPaintedGlyphs(PdfTextSpan span) =>
-        span.IsPaintedGlyphProjection && OfficeManagedTextShaper.RequiresComplexLayout(span.Text);
+        span.IsPaintedGlyphProjection;
 
     private static void MarkPaintedGlyphs(OfficeDrawing drawing, PdfTextSpan span) {
         if (span.OutlineStroke is { } stroke && span.TextRenderingMode is 1 or 2 or 5 or 6) {

@@ -220,6 +220,7 @@ public sealed class PdfPaintedGlyphRenderingTests {
         Assert.Equal(2, Assert.IsType<List<PdfTextSpan>>(
             PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, inked, _ => { })).Count);
         Assert.Null(PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, empty, _ => { }));
+        Assert.False(span.IsPaintedGlyphProjection);
     }
 
     [Fact]
