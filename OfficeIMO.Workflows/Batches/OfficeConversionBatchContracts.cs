@@ -47,7 +47,11 @@ public sealed record OfficeConversionBatchItemResult(string InputPath, string? O
     bool Reused, string Summary, IReadOnlyList<OfficeWorkflowDiagnostic> Diagnostics, bool Skipped = false);
 
 /// <summary>Bounded summary. Completed outputs survive cancellation and item failures.</summary>
-public sealed record OfficeConversionBatchResult(long Selected, long Completed, long Reused, long Failed, bool Cancelled, long Skipped = 0);
+public sealed record OfficeConversionBatchResult(long Selected, long Completed, long Reused, long Failed, bool Cancelled, long Skipped = 0) {
+    /// <summary>Bounded terminal discovery or execution-budget failure. Completed artifacts remain available; this is not a fabricated failed-file outcome.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FailureSummary { get; init; }
+}
 
 internal sealed record OfficeConversionBatchPlan(string Schema, string ConfigurationSha256);
 internal sealed record OfficeConversionBatchReceipt(string Schema, string ConfigurationSha256, string InputSha256,

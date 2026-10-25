@@ -16,12 +16,12 @@ ConvertTo-OfficeDocument [-InputPath] <Object[]> [-OutputPath] <string> [-Conver
 
 ### Files
 ```powershell
-ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
 ```powershell
-ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -48,6 +48,22 @@ ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -Target
 
 
 ## PARAMETERS
+
+### -AllowEmpty
+Allow a batch that selects no executable inputs to complete without an error.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Files, Directory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -CheckpointDirectory
 Separate durable state directory. Completed artifacts are verified and reused.

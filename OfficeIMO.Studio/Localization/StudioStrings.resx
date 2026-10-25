@@ -3573,4 +3573,54 @@ Option 2</value>
   <data name="Output.PublicationTooLarge" xml:space="preserve"><value>The output exceeds the supported document size.</value></data>
   <data name="Output.DestinationChanged" xml:space="preserve"><value>The destination file changed. Choose another location to preserve both versions.</value></data>
   <data name="Output.VerificationChanged" xml:space="preserve"><value>The saved file changed during verification. Check it before trying again.</value></data>
+  <data name="Conversion.SavedJob.OpenSection" xml:space="preserve"><value>Saved folder jobs</value></data>
+  <data name="Conversion.SavedJob.Title" xml:space="preserve"><value>Save and repeat a folder job</value></data>
+  <data name="Conversion.SavedJob.Load" xml:space="preserve"><value>Load job…</value></data>
+  <data name="Conversion.SavedJob.Save" xml:space="preserve"><value>Save job…</value></data>
+  <data name="Conversion.SavedJob.Plan" xml:space="preserve"><value>Plan</value></data>
+  <data name="Conversion.SavedJob.CopyCli" xml:space="preserve"><value>Copy CLI</value></data>
+  <data name="Conversion.SavedJob.CopyPowerShell" xml:space="preserve"><value>Copy PowerShell</value></data>
+  <data name="Conversion.SavedJob.SettingsTitle" xml:space="preserve"><value>Retained job settings</value></data>
+  <data name="Conversion.SavedJob.Run" xml:space="preserve"><value>Run folder export</value></data>
+  <data name="Conversion.SavedJob.RunAgain" xml:space="preserve"><value>Run again</value></data>
+  <data name="Conversion.SavedJob.SavedReady" xml:space="preserve"><value>Saved settings are ready to use in Studio, the command line or PowerShell. Loading never starts work.</value></data>
+  <data name="Conversion.SavedJob.SaveBeforeCopy" xml:space="preserve"><value>Save these settings to copy a command. Running again verifies checkpointed outputs before reusing them.</value></data>
+  <data name="Conversion.SavedJob.SaveTitle" xml:space="preserve"><value>Save folder conversion job</value></data>
+  <data name="Conversion.SavedJob.LoadTitle" xml:space="preserve"><value>Load folder conversion job</value></data>
+  <data name="Conversion.SavedJob.FileType" xml:space="preserve"><value>OfficeIMO conversion job</value></data>
+  <data name="Conversion.SavedJob.Saved" xml:space="preserve"><value>Folder job saved and verified. No documents were processed.</value></data>
+  <data name="Conversion.SavedJob.Loaded" xml:space="preserve"><value>Folder job loaded. Review its settings and plan before running; no documents were processed.</value></data>
+  <data name="Conversion.SavedJob.PlanResult" xml:space="preserve"><value>Found {0:N0} · Selected {1:N0} · Skipped {2:N0} · Failed {3:N0} · Output conflicts {4:N0}</value></data>
+  <data name="Conversion.SavedJob.PlanReady" xml:space="preserve"><value>Plan ready. No output or checkpoints were written. Review the destinations before running.</value></data>
+  <data name="Conversion.SavedJob.PlanBlocked" xml:space="preserve"><value>The plan has findings to resolve before running. No output or checkpoints were written.</value></data>
+  <data name="Conversion.SavedJob.FileChanged" xml:space="preserve"><value>The saved job changed outside Studio. Load it again or save the reviewed settings before copying a command.</value></data>
+  <data name="Conversion.SavedJob.Copied" xml:space="preserve"><value>Command copied for the saved job. It runs only when you execute it.</value></data>
+  <data name="Conversion.SavedJob.Cancelled" xml:space="preserve"><value>Job action cancelled. Existing documents and outputs were retained.</value></data>
+  <data name="Conversion.SavedJob.LocalFile" xml:space="preserve"><value>Choose a local job file. Saved folder jobs need filesystem paths that Studio, the CLI and PowerShell can all use.</value></data>
+  <data name="Conversion.SavedJob.FolderOnly" xml:space="preserve"><value>This workbench loads folder-to-PDF jobs. Use the CLI or PowerShell for explicit-file lists, other targets or a fixed conversion route.</value></data>
+  <data name="Conversion.SavedJob.Secrets" xml:space="preserve"><value>This workbench cannot request saved-job password references. Run that job through the CLI or PowerShell.</value></data>
+  <data name="Conversion.SavedJob.PreserveInput" xml:space="preserve"><value>Choose a separate job filename to preserve its inputs.</value></data>
+  <data name="Conversion.SavedJob.Protected" xml:space="preserve"><value>The job destination is used by an open document or recovery operation.</value></data>
+  <data name="Conversion.SavedJob.Settings" xml:space="preserve"><value>PDF · {0} profile · {1} conflicts · {2} concurrent · {3:N0} files maximum · {4:N0} MiB input / {5:N0} MiB output · {6}.</value></data>
+  <data name="Conversion.SavedJob.Recursive" xml:space="preserve"><value>includes subfolders</value></data>
+  <data name="Conversion.SavedJob.TopFolder" xml:space="preserve"><value>top folder only</value></data>
+  <data name="Conversion.SavedJob.AllFormats" xml:space="preserve"><value>all supported formats</value></data>
+  <data name="Conversion.SavedJob.Filters" xml:space="preserve"><value>Source selection: {0}. XML limit: {1:N0} characters per part.</value></data>
+  <data name="Conversion.SavedJob.AdditionalOptions" xml:space="preserve"><value>Additional retained conversion settings:</value></data>
+  <data name="Conversion.SavedJob.Option.Pages" xml:space="preserve"><value>Pages: {0}</value></data>
+  <data name="Conversion.SavedJob.Option.Word" xml:space="preserve"><value>PDF to Word: {0}</value></data>
+  <data name="Conversion.SavedJob.Option.Slides" xml:space="preserve"><value>PDF to slides: {0}</value></data>
+  <data name="Conversion.SavedJob.Option.Dpi" xml:space="preserve"><value>Raster resolution: {0} DPI</value></data>
+  <data name="Conversion.SavedJob.Option.Worksheet" xml:space="preserve"><value>Worksheet layout: {0}</value></data>
+  <data name="Conversion.SavedJob.Option.Html" xml:space="preserve"><value>HTML layout: {0}</value></data>
+  <data name="Conversion.SavedJob.Compression" xml:space="preserve"><value>Lossless PDF compression</value></data>
+  <data name="Conversion.SavedJob.StrictLoss" xml:space="preserve"><value>Reject reported conversion loss</value></data>
+  <data name="Conversion.SavedJob.PlanSample" xml:space="preserve"><value>Showing the first plan items; the counts cover the whole selection.</value></data>
+  <data name="Conversion.SavedJob.ReviewTitle" xml:space="preserve"><value>Folder PDF job</value></data>
+  <data name="Conversion.SavedJob.CheckpointLabel" xml:space="preserve"><value>Checkpoints</value></data>
+  <data name="Conversion.SavedJob.Unsaved" xml:space="preserve"><value>Unsaved folder job</value></data>
+  <data name="Conversion.SavedJob.ChooseInput" xml:space="preserve"><value>Choose the source folder on the left.</value></data>
+  <data name="Conversion.SavedJob.ChooseOutput" xml:space="preserve"><value>Choose the PDF output folder on the left.</value></data>
+  <data name="Conversion.SavedJob.NoCheckpoints" xml:space="preserve"><value>No checkpoints; each run follows the saved conflict policy.</value></data>
+  <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve"><value>Stopped: {0} completed, {1} reused, {2} failed, {3} skipped. Completed outputs remain available.</value></data>
 </root>

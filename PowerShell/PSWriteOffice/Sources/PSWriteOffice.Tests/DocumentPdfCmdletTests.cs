@@ -130,7 +130,8 @@ public sealed class DocumentPdfCmdletTests {
                 shell.AddParameter("InputDirectory", input);
             }
             var output = shell.Invoke();
-            Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
+            Assert.True(shell.HadErrors);
+            Assert.StartsWith("OfficeDocumentPdfBatchFailed", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
             var summary = Assert.IsType<OfficeIMO.Workflows.OfficeConversionBatchResult>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(103, summary.Selected); Assert.Equal(103, summary.Failed); Assert.Equal(0, summary.Completed);
             if (itemResults) {

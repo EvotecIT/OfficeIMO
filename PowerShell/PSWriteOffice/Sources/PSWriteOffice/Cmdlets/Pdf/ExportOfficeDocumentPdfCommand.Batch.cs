@@ -54,6 +54,9 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
     /// <summary>Stream every structured per-file outcome instead of the final summary. Summary mode reports at most 100 detailed failure warnings and one suppressed-count warning.</summary>
     [Parameter(ParameterSetName = ParameterSetDirectory)] [Parameter(ParameterSetName = ParameterSetFiles)]
     public SwitchParameter ItemResults { get; set; }
+    /// <summary>Allow a batch that selects no executable inputs to complete without an error.</summary>
+    [Parameter(ParameterSetName = ParameterSetDirectory)] [Parameter(ParameterSetName = ParameterSetFiles)]
+    public SwitchParameter AllowEmpty { get; set; }
     /// <summary>Variable receiving the bounded batch summary, including when ItemResults is selected.</summary>
     [Parameter(ParameterSetName = ParameterSetDirectory)] [Parameter(ParameterSetName = ParameterSetFiles)]
     public string? SummaryVariable { get; set; }
@@ -88,6 +91,8 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
         }
         // Session variables are accessed on the captured pipeline context after the await.
         PdfCommandUtilities.SetVariable(this, SummaryVariable, result);
+        ErrorRecord? error = PSWriteOffice.Services.OfficeWorkflowCommandUtilities.GetBatchError(result, AllowEmpty.IsPresent, "OfficeDocumentPdfBatch");
+        if (error != null) WriteError(error);
         if (!ItemResults.IsPresent) WriteObject(result);
 #endif
     }

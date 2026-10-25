@@ -30,6 +30,7 @@ internal static partial class OfficeConversionBatchExecutor {
         }
         long discovered = 0, selected = 0, completed = 0, reused = 0, failed = 0, skipped = 0;
         bool cancelled = false;
+        string? failureSummary = null;
         try {
             await Parallel.ForEachAsync(SelectInputs(settings, cancellationToken),
                 new ParallelOptions { MaxDegreeOfParallelism = settings.MaximumConcurrency, CancellationToken = cancellationToken }, async (input, token) => {
@@ -73,7 +74,10 @@ internal static partial class OfficeConversionBatchExecutor {
                     progress?.Report(item);
                 }).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { cancelled = true; }
-        return new OfficeConversionBatchResult(selected, completed, reused, failed, cancelled, skipped);
+        catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException) {
+            failureSummary = BoundMessage(error.Message);
+        }
+        return new OfficeConversionBatchResult(selected, completed, reused, failed, cancelled, skipped) { FailureSummary = failureSummary };
     }
 
     private sealed class DirectBatchPublicationGuard(string outputPhysicalRoot, IOfficeWorkflowPublicationGuard? hostGuard)

@@ -7183,4 +7183,154 @@ Option 2</value>
   <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Le résultat dépasse la taille de document prise en charge.</value></data>
   <data name="Output.DestinationChanged" xml:space="preserve"><value>Le fichier de destination a changé. Choisissez un autre emplacement pour conserver les deux versions.</value></data>
   <data name="Output.VerificationChanged" xml:space="preserve"><value>Le fichier enregistré a changé pendant la vérification. Vérifiez-le avant de réessayer.</value></data>
+  <data name="Conversion.SavedJob.OpenSection" xml:space="preserve">
+    <value>Tâches de dossier enregistrées</value>
+  </data>
+  <data name="Conversion.SavedJob.Title" xml:space="preserve">
+    <value>Enregistrer et répéter une tâche de dossier</value>
+  </data>
+  <data name="Conversion.SavedJob.Load" xml:space="preserve">
+    <value>Charger une tâche…</value>
+  </data>
+  <data name="Conversion.SavedJob.Save" xml:space="preserve">
+    <value>Enregistrer la tâche…</value>
+  </data>
+  <data name="Conversion.SavedJob.Plan" xml:space="preserve">
+    <value>Préparer le plan</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyCli" xml:space="preserve">
+    <value>Copier CLI</value>
+  </data>
+  <data name="Conversion.SavedJob.CopyPowerShell" xml:space="preserve">
+    <value>Copier PowerShell</value>
+  </data>
+  <data name="Conversion.SavedJob.SettingsTitle" xml:space="preserve">
+    <value>Paramètres de tâche conservés</value>
+  </data>
+  <data name="Conversion.SavedJob.Run" xml:space="preserve">
+    <value>Exporter le dossier</value>
+  </data>
+  <data name="Conversion.SavedJob.RunAgain" xml:space="preserve">
+    <value>Exécuter à nouveau</value>
+  </data>
+  <data name="Conversion.SavedJob.SavedReady" xml:space="preserve">
+    <value>Les paramètres enregistrés sont prêts à être utilisés dans Studio, en ligne de commande ou dans PowerShell. Le chargement ne lance aucun traitement.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveBeforeCopy" xml:space="preserve">
+    <value>Enregistrez ces paramètres pour copier une commande. Une nouvelle exécution vérifie les fichiers associés aux points de reprise avant de les réutiliser.</value>
+  </data>
+  <data name="Conversion.SavedJob.SaveTitle" xml:space="preserve">
+    <value>Enregistrer une tâche de conversion de dossier</value>
+  </data>
+  <data name="Conversion.SavedJob.LoadTitle" xml:space="preserve">
+    <value>Charger une tâche de conversion de dossier</value>
+  </data>
+  <data name="Conversion.SavedJob.FileType" xml:space="preserve">
+    <value>Tâche de conversion OfficeIMO</value>
+  </data>
+  <data name="Conversion.SavedJob.Saved" xml:space="preserve">
+    <value>Tâche de dossier enregistrée et vérifiée. Aucun document n’a été traité.</value>
+  </data>
+  <data name="Conversion.SavedJob.Loaded" xml:space="preserve">
+    <value>Tâche de dossier chargée. Vérifiez ses paramètres et son plan avant de l’exécuter ; aucun document n’a été traité.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanResult" xml:space="preserve">
+    <value>Trouvés {0:N0} · Sélectionnés {1:N0} · Ignorés {2:N0} · Échoués {3:N0} · Conflits de sortie {4:N0}</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanReady" xml:space="preserve">
+    <value>Plan prêt. Aucun fichier de sortie ni point de reprise n’a été écrit. Vérifiez les destinations avant l’exécution.</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanBlocked" xml:space="preserve">
+    <value>Le plan présente des problèmes à résoudre avant l’exécution. Aucun fichier de sortie ni point de reprise n’a été écrit.</value>
+  </data>
+  <data name="Conversion.SavedJob.FileChanged" xml:space="preserve">
+    <value>La tâche enregistrée a été modifiée en dehors de Studio. Rechargez-la ou enregistrez les paramètres vérifiés avant de copier une commande.</value>
+  </data>
+  <data name="Conversion.SavedJob.Copied" xml:space="preserve">
+    <value>Commande copiée pour la tâche enregistrée. Elle ne s’exécute que lorsque vous la lancez.</value>
+  </data>
+  <data name="Conversion.SavedJob.Cancelled" xml:space="preserve">
+    <value>Action annulée. Les documents et fichiers de sortie existants ont été conservés.</value>
+  </data>
+  <data name="Conversion.SavedJob.LocalFile" xml:space="preserve">
+    <value>Choisissez un fichier de tâche local. Les tâches de dossier enregistrées nécessitent des chemins du système de fichiers utilisables par Studio, la CLI et PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.FolderOnly" xml:space="preserve">
+    <value>Cet espace de travail charge les tâches de conversion de dossiers en PDF. Utilisez la CLI ou PowerShell pour les listes de fichiers explicites, les autres formats cibles ou un parcours de conversion fixe.</value>
+  </data>
+  <data name="Conversion.SavedJob.Secrets" xml:space="preserve">
+    <value>Cet espace de travail ne peut pas demander les références de mots de passe d’une tâche enregistrée. Exécutez cette tâche avec la CLI ou PowerShell.</value>
+  </data>
+  <data name="Conversion.SavedJob.PreserveInput" xml:space="preserve">
+    <value>Choisissez un nom de fichier distinct pour la tâche afin de préserver ses fichiers sources.</value>
+  </data>
+  <data name="Conversion.SavedJob.Protected" xml:space="preserve">
+    <value>La destination de la tâche est utilisée par un document ouvert ou une opération de récupération.</value>
+  </data>
+  <data name="Conversion.SavedJob.Settings" xml:space="preserve">
+    <value>PDF · Profil {0} · Conflits : {1} · {2} en parallèle · {3:N0} fichiers maximum · {4:N0} MiB en entrée / {5:N0} MiB en sortie · {6}.</value>
+  </data>
+  <data name="Conversion.SavedJob.Recursive" xml:space="preserve">
+    <value>sous-dossiers inclus</value>
+  </data>
+  <data name="Conversion.SavedJob.TopFolder" xml:space="preserve">
+    <value>dossier principal uniquement</value>
+  </data>
+  <data name="Conversion.SavedJob.AllFormats" xml:space="preserve">
+    <value>tous les formats pris en charge</value>
+  </data>
+  <data name="Conversion.SavedJob.Filters" xml:space="preserve">
+    <value>Sélection des sources : {0}. Limite XML : {1:N0} caractères par partie.</value>
+  </data>
+  <data name="Conversion.SavedJob.AdditionalOptions" xml:space="preserve">
+    <value>Autres paramètres de conversion conservés :</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Pages" xml:space="preserve">
+    <value>Pages : {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Word" xml:space="preserve">
+    <value>PDF vers Word : {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Slides" xml:space="preserve">
+    <value>PDF vers diapositives : {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Dpi" xml:space="preserve">
+    <value>Résolution de rastérisation : {0} DPI</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Worksheet" xml:space="preserve">
+    <value>Mise en page de la feuille de calcul : {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Option.Html" xml:space="preserve">
+    <value>Mise en page HTML : {0}</value>
+  </data>
+  <data name="Conversion.SavedJob.Compression" xml:space="preserve">
+    <value>Compression PDF sans perte</value>
+  </data>
+  <data name="Conversion.SavedJob.StrictLoss" xml:space="preserve">
+    <value>Refuser les pertes de conversion signalées</value>
+  </data>
+  <data name="Conversion.SavedJob.PlanSample" xml:space="preserve">
+    <value>Affichage des premiers éléments du plan ; les totaux couvrent toute la sélection.</value>
+  </data>
+  <data name="Conversion.SavedJob.ReviewTitle" xml:space="preserve">
+    <value>Tâche PDF de dossier</value>
+  </data>
+  <data name="Conversion.SavedJob.CheckpointLabel" xml:space="preserve">
+    <value>Points de reprise</value>
+  </data>
+  <data name="Conversion.SavedJob.Unsaved" xml:space="preserve">
+    <value>Tâche de dossier non enregistrée</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseInput" xml:space="preserve">
+    <value>Choisissez le dossier source à gauche.</value>
+  </data>
+  <data name="Conversion.SavedJob.ChooseOutput" xml:space="preserve">
+    <value>Choisissez le dossier de sortie PDF à gauche.</value>
+  </data>
+  <data name="Conversion.SavedJob.NoCheckpoints" xml:space="preserve">
+    <value>Aucun point de reprise ; chaque exécution suit la règle enregistrée pour les conflits.</value>
+  </data>
+  <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve">
+    <value>Arrêté : réussis : {0}, réutilisés : {1}, échoués : {2}, ignorés : {3}. Les fichiers terminés restent disponibles.</value>
+  </data>
 </root>

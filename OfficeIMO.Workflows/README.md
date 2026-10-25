@@ -12,6 +12,66 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` with a registered directory-package converter. The shared runner preserves member layout in bounded private staging and verifies original provider membership and content before publication. The host supplies permission-aware root identity and output-separation checks through `OfficeWorkflowDirectoryPackageInput.SourcePublicationGuard`. The selected filename determines routing; an explicit output is required.
 
+## Saved conversion jobs
+
+`OfficeConversionJob` stores a local conversion batch as strict, versioned JSON.
+The same definition runs in Studio's local-folder workbench, `OfficeIMO.Tool`,
+and PSWriteOffice. Relative paths resolve against the job file's directory.
+Loading or planning a job does not start a conversion.
+
+```csharp
+using OfficeIMO.Workflows;
+
+var job = new OfficeConversionJob {
+    InputDirectory = "documents",
+    OutputDirectory = "pdf",
+    CheckpointDirectory = "conversion-state",
+    SourceExtensions = [".txt", ".docx", ".html"],
+    Options = new OfficeConversionJobOptions { TextEncoding = "utf-8", TabSize = 4 }
+};
+OfficeConversionJobSerializer.SaveFile(job, "monthly.officeimojob.json");
+string jobDirectory = Path.GetDirectoryName(Path.GetFullPath("monthly.officeimojob.json"))!;
+var runner = new OfficeWorkflowRunner();
+var plan = await OfficeConversionJobRunner.PlanAsync(job, jobDirectory, runner);
+if (plan.CanRun) {
+    var result = await OfficeConversionJobRunner.RunAsync(job, jobDirectory, runner);
+    Console.WriteLine($"Completed {result.Completed}; failed {result.Failed}; skipped {result.Skipped}");
+}
+```
+
+Planning uses the batch executor's route selection, path policy and limits. It
+reports selected and skipped inputs, proposed destinations, collisions and
+configuration problems without creating output or checkpoint folders. Its item
+sample is bounded; totals cover the discovery. A plan does not reserve paths,
+verify visual fidelity or establish reusable checkpoint hashes. Execution checks
+current sources and destinations again. Rename destinations are tentative.
+
+A terminal discovery or file-budget error returns retained per-file counts and
+`FailureSummary`. Check that field as well as `Cancelled` and `Failed`: an aborted
+run can retain a completed PDF without having an individually failed conversion.
+Hosts report the terminal failure while keeping the completed artifacts available.
+
+The `officeimo.conversion.job.v1` contract covers source selection, output and
+checkpoint folders, route, profile, conflicts, budgets and portable conversion
+choices: page ranges, PDF import modes, raster density, worksheet/HTML layout,
+PDF compression, legacy import loss, supported strict-loss checks, and literal
+text encoding/tab size. Capturing unsupported native renderer settings fails
+explicitly. Provider handles, callbacks, custom font data and credentials are
+outside this saved format. Direct typed workflow APIs retain their advanced
+settings. Registered routes remain subject to the existing checkpoint limits.
+
+`Secrets.SourcePasswordEnvironmentVariable` and
+`Secrets.PdfPasswordEnvironmentVariable` contain names only. An executing host
+supplies `OfficeConversionJobRuntimeOptions.ResolveEnvironmentVariable`; planning
+does not resolve secret values. Saving a request containing literal passwords
+is rejected. Treat a job as an executable instruction: review its inputs,
+destinations, replacement policy and referenced variables before running it.
+
+Job files stay outside source, output and checkpoint trees. Saving requires an
+existing parent directory and preserves an existing file unless replacement is
+explicit. See the [three runnable job examples](Examples/ConversionJobs/README.md)
+for folder conversion, a delivery document, and recovery from partial failure.
+
 ## Single conversions and file batches
 
 `OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.

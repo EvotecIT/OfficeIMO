@@ -6,6 +6,13 @@ public sealed partial class ConversionWorkbenchView : UserControl {
     private ConversionWorkbenchViewModel? _workbench;
     private bool _phoneLayout;
 
+    private void OnOpenSavedFolderJobs(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
+        if (_phoneLayout) CompactTabs.SelectedItem = SetupTab;
+        BatchExportPanel.IsExpanded = true;
+        BatchExportPanel.BringIntoView();
+        BatchExportPanel.Focus();
+    }
+
     public ConversionWorkbenchView() {
         InitializeComponent();
         SizeChanged += OnSizeChanged;
@@ -18,13 +25,13 @@ public sealed partial class ConversionWorkbenchView : UserControl {
     }
 
     private void OnWorkbenchChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
-        if (e.PropertyName != nameof(ConversionWorkbenchViewModel.HasJobs)) return;
+        if (e.PropertyName is not nameof(ConversionWorkbenchViewModel.HasJobs) and not nameof(ConversionWorkbenchViewModel.IsFolderJobReviewVisible)) return;
         if (Bounds.Width > 0) ApplyResponsiveLayout(Bounds.Width);
         else UpdateDetailsVisibility();
     }
 
     // Details only appear once there is a job to describe, so an empty queue gets the full width.
-    private void UpdateDetailsVisibility() => DetailsPanel.IsVisible = _phoneLayout || _workbench?.HasJobs == true;
+    private void UpdateDetailsVisibility() => DetailsPanel.IsVisible = _workbench?.IsFolderJobReviewVisible != true && (_phoneLayout || _workbench?.HasJobs == true);
 
     internal bool IsCompactLayout { get; private set; }
 
@@ -36,23 +43,23 @@ public sealed partial class ConversionWorkbenchView : UserControl {
             _phoneLayout = phone;
             if (phone) {
                 WorkspaceGrid.Children.Remove(SetupPanel);
-                WorkspaceGrid.Children.Remove(QueuePanel);
+                WorkspaceGrid.Children.Remove(MainReviewPanel);
                 WorkspaceGrid.Children.Remove(DetailsPanel);
                 SetupTab.Content = SetupPanel;
-                QueueTab.Content = QueuePanel;
+                QueueTab.Content = MainReviewPanel;
                 DetailsTab.Content = DetailsPanel;
                 CompactTabs.SelectedItem = _workbench?.HasJobs == true ? QueueTab : SetupTab;
             } else {
                 SetupTab.Content = QueueTab.Content = DetailsTab.Content = null;
                 WorkspaceGrid.Children.Add(SetupPanel);
-                WorkspaceGrid.Children.Add(QueuePanel);
+                WorkspaceGrid.Children.Add(MainReviewPanel);
                 WorkspaceGrid.Children.Add(DetailsPanel);
             }
         }
         CompactTabs.IsVisible = phone;
         IsCompactLayout = width < 1100D;
         WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(phone ? 0 : IsCompactLayout ? 238D : Math.Clamp(width * .2D, 270D, 360D));
-        bool showDetailsColumn = !IsCompactLayout && _workbench?.HasJobs == true;
+        bool showDetailsColumn = !IsCompactLayout && _workbench?.HasJobs == true && !_workbench.IsFolderJobReviewVisible;
         WorkspaceGrid.ColumnDefinitions[2].Width = new GridLength(showDetailsColumn ? Math.Clamp(width * .25D, 320D, 480D) : 0D);
         Grid.SetRow(DetailsPanel, IsCompactLayout ? 1 : 0);
         Grid.SetColumn(DetailsPanel, IsCompactLayout ? 1 : 2);

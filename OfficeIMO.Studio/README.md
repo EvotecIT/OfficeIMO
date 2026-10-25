@@ -74,6 +74,28 @@ OfficeIMO Studio is a cross-platform desktop and mobile application for OfficeIM
 - In **OCR → Images and multiple files**, add PDFs or raster images and choose an output folder. The queue shows proposed filenames before recognition and adds numeric suffixes when selected files share a name. PDFs produce searchable copies; images produce UTF-8 text files whose text can be corrected alongside the source preview. Enlarge an image or select another image/page when the source container provides several. Review each file before saving. Completed outputs are available immediately in Jobs and from **Open output** in the session. Cancelling retains earlier outputs; **Retry failed or cancelled** excludes completed and uncertain attempts and protects retained outputs from replacement. An uncertain output stops the remaining files for inspection. OCR sessions use local output folders. Recognition uses one engine sequentially within the session and shares the application's workflow execution budget.
 - Closing a tab or Studio while work is active offers **Wait and close**, **Cancel work and close**, and **Keep open**. Waiting or cancelling keeps the affected document alive until operations finish; cancelling one tab leaves other tabs' jobs running. Whole-window close also waits for session restoration. Cancelling restoration retains unopened entries for a later restart choice. Already saved outputs are preserved, and unsaved-edit choices follow once active work has stopped. An unexpected process exit does not resume workflow execution.
 
+## Saved local conversion jobs
+
+In Convert, expand the local-folder batch workbench to save or load a conversion
+job. Review the source, output, checkpoint and conversion settings, then choose
+**Plan** before running. Loading changes the reviewed setup and never starts
+execution. A failed or cancelled load keeps the previous setup.
+
+Saved jobs use the shared `officeimo.conversion.job.v1` contract. **Copy CLI** and
+**Copy PowerShell** provide commands for the saved definition; save changed
+settings before copying a command. Relative paths resolve against the saved job's
+folder. Secrets remain runtime references, and advanced settings outside the
+portable contract are rejected rather than silently omitted.
+
+Checkpointed runs verify completed artifacts before reuse. Retry failed inputs
+explicitly after correcting them; completed files are retained. An ordinary run
+still follows its selected destination conflict policy. Planning does not reserve
+destinations or establish output fidelity, and execution checks the current files
+again. This local-path workflow remains unavailable in editions that require
+picked-file access; their existing selected-file conversion queue stays available.
+See the [job examples](../OfficeIMO.Workflows/Examples/ConversionJobs/README.md)
+for the equivalent terminal and PowerShell journeys.
+
 ## Book publishing
 
 Choose **Publish book** to create a reflowable book or open a DOCX, Markdown, HTML,

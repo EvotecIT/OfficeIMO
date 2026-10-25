@@ -22,6 +22,10 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Executable routes for this configured runner, including opt-in registrations.</summary>
     public IReadOnlyList<OfficeWorkflowRoute> ConversionRoutes { get; }
 
+    /// <summary>Reports an actual configured route's directory-package owner without reading or capturing that package.</summary>
+    internal bool SupportsDirectoryPackageInput(string routeId) =>
+        _conversions.TryGetValue(routeId, out OfficeWorkflowConversionRegistration? registration) && registration.DirectoryPackageInput is not null;
+
     private static OperationArtifact ConvertRegistered(ValidatedRequest request, byte[] input,
         List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         using var source = new MemoryStream(input, writable: false);

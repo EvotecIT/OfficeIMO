@@ -13,13 +13,15 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="16" Spacing="{StaticResource StudioSpaceM}">
+          <StackPanel x:Name="OrdinaryQueueSetup" Spacing="{StaticResource StudioSpaceM}"
+                      IsVisible="{Binding !ConversionWorkbench.IsFolderJobReviewVisible}">
           <StackPanel Spacing="{StaticResource StudioSpaceXXS}">
             <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ChooseTheResult}" />
             <TextBlock Classes="muted" Text="{loc:Loc Conversion.DefaultsHint}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
           </StackPanel>
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.Route}" FontWeight="SemiBold" Margin="0,6,0,0" />
-          <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}" HorizontalAlignment="Stretch"
+          <ComboBox x:Name="OrdinaryQueueRoute" ItemsSource="{Binding ConversionWorkbench.Routes}" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding ConversionWorkbench.SelectedRoute, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:ConversionRouteChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
@@ -54,10 +56,22 @@
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.ChooseFolder}" Content="{loc:Loc ConversionWorkbench.ChooseFolder}"
                   Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
                   HorizontalAlignment="Left" />
-          <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch">
+          </StackPanel>
+          <Button Classes="link" Content="{loc:Loc Conversion.SavedJob.OpenSection}" Click="OnOpenSavedFolderJobs"
+                  AutomationProperties.Name="{loc:Loc Conversion.SavedJob.OpenSection}" HorizontalAlignment="Left" />
+          <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch"
+                    IsExpanded="{Binding ConversionWorkbench.IsFolderJobReviewVisible, Mode=TwoWay}">
             <StackPanel Spacing="{StaticResource StudioSpaceS}">
               <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" TextWrapping="Wrap" />
               <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
+                <TextBlock Text="{loc:Loc Conversion.SavedJob.Title}" Classes="sectionTitle" />
+                <TextBlock Text="{Binding ConversionWorkbench.BatchExport.SavedJobHint}" Classes="muted" TextWrapping="Wrap" />
+                <WrapPanel>
+                  <Button Classes="tool" Content="{loc:Loc Conversion.SavedJob.Load}" Command="{Binding ConversionWorkbench.BatchExport.LoadJobCommand}" Margin="0,0,6,6" />
+                  <Button Classes="tool" Content="{loc:Loc Conversion.SavedJob.Save}" Command="{Binding ConversionWorkbench.BatchExport.SaveJobCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+                <TextBlock Text="{Binding ConversionWorkbench.BatchExport.SavedJobName}" IsVisible="{Binding ConversionWorkbench.BatchExport.HasSavedJob}"
+                           Classes="muted" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ConversionWorkbench.BatchExport.SavedJobPath}" />
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" FontWeight="SemiBold" />
                 <TextBox Classes="path" Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseSource}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="input" />
@@ -73,19 +87,20 @@
                 <NumericUpDown Minimum="1" Maximum="32" Increment="1" Value="{Binding ConversionWorkbench.BatchExport.TabSize, Mode=TwoWay}" />
                 <CheckBox Content="{loc:Loc Conversion.BatchExport.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.BatchExport.AllowLegacyImportLoss, Mode=TwoWay}" />
                 <CheckBox Content="{loc:Loc Conversion.BatchExport.Retry}" IsChecked="{Binding ConversionWorkbench.BatchExport.RetryFailed, Mode=TwoWay}" />
+                <Expander Header="{loc:Loc Conversion.SavedJob.SettingsTitle}" IsVisible="{Binding ConversionWorkbench.BatchExport.HasJobSettingsSummary}">
+                  <TextBlock Text="{Binding ConversionWorkbench.BatchExport.JobSettingsSummary}" TextWrapping="Wrap" Classes="muted" />
+                </Expander>
               </StackPanel>
-              <WrapPanel>
-                <Button Classes="primary" Content="{loc:Loc Conversion.BatchExport.Run}" Command="{Binding ConversionWorkbench.BatchExport.RunCommand}" Margin="0,0,6,6" />
-                <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.Cancel}" Command="{Binding ConversionWorkbench.BatchExport.CancelCommand}" Margin="0,0,0,6" />
-              </WrapPanel>
-              <TextBlock Text="{Binding ConversionWorkbench.BatchExport.Status}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+              <TextBlock Text="{Binding ConversionWorkbench.BatchExport.UnavailableReason}" IsVisible="{Binding !ConversionWorkbench.BatchExport.IsAvailable}"
+                         TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
             </StackPanel>
           </Expander>
         </StackPanel>
       </ScrollViewer>
     </Border>
 
-    <Grid x:Name="QueuePanel" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,0">
+    <Grid x:Name="MainReviewPanel" Grid.Column="1">
+    <Grid x:Name="QueuePanel" RowDefinitions="Auto,Auto,*" Margin="16,0" IsVisible="{Binding !ConversionWorkbench.IsFolderJobReviewVisible}">
       <StackPanel Grid.Row="0" Spacing="{StaticResource StudioSpaceM}" Margin="0,16,0,12">
         <!-- Lossy outputs are named once, with a way to their details, rather than only marked in the Status column. -->
         <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding ConversionWorkbench.HasLossNotice}" Message="{Binding ConversionWorkbench.LossNotice}"
@@ -174,6 +189,55 @@
           </Grid>
         </Border>
       </Panel>
+    </Grid>
+
+    <Grid x:Name="FolderJobReviewPanel" IsVisible="{Binding ConversionWorkbench.IsFolderJobReviewVisible}"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Margin="24,20" RowSpacing="12">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{loc:Loc Conversion.SavedJob.ReviewTitle}" Classes="pageTitle" />
+        <TextBlock Text="{Binding ConversionWorkbench.BatchExport.SavedJobName}" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ConversionWorkbench.BatchExport.SavedJobPath}" />
+        <TextBlock Text="{Binding ConversionWorkbench.BatchExport.SavedJobHint}" Classes="muted" TextWrapping="Wrap" />
+      </StackPanel>
+      <Border Grid.Row="1" Classes="card" Padding="12">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="7">
+          <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" Classes="muted" />
+          <TextBlock Grid.Column="1" Text="{Binding ConversionWorkbench.BatchExport.InputSummary}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ConversionWorkbench.BatchExport.InputSummary}" />
+          <TextBlock Grid.Row="1" Text="{loc:Loc Conversion.BatchExport.Output}" Classes="muted" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ConversionWorkbench.BatchExport.OutputSummary}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ConversionWorkbench.BatchExport.OutputSummary}" />
+          <TextBlock Grid.Row="2" Text="{loc:Loc Conversion.SavedJob.CheckpointLabel}" Classes="muted" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ConversionWorkbench.BatchExport.CheckpointSummary}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ConversionWorkbench.BatchExport.CheckpointSummary}" />
+        </Grid>
+      </Border>
+      <WrapPanel Grid.Row="2" ItemSpacing="8" LineSpacing="8">
+        <Button Classes="tool" Content="{loc:Loc Conversion.SavedJob.Plan}" Command="{Binding ConversionWorkbench.BatchExport.PlanJobCommand}" />
+        <Button Classes="primary" Content="{Binding ConversionWorkbench.BatchExport.RunLabel}" Command="{Binding ConversionWorkbench.BatchExport.RunCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.Cancel}" Command="{Binding ConversionWorkbench.BatchExport.CancelCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Conversion.SavedJob.CopyCli}" Command="{Binding ConversionWorkbench.BatchExport.CopyCliCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Conversion.SavedJob.CopyPowerShell}" Command="{Binding ConversionWorkbench.BatchExport.CopyPowerShellCommand}" />
+      </WrapPanel>
+      <TextBlock x:Name="FolderJobStatus" Grid.Row="3" Text="{Binding ConversionWorkbench.BatchExport.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      <TextBlock x:Name="FolderJobPlanCounts" Grid.Row="4" Text="{Binding ConversionWorkbench.BatchExport.PlanCountSummary}"
+                 IsVisible="{Binding ConversionWorkbench.BatchExport.HasPlanSummary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{Binding ConversionWorkbench.BatchExport.PlanFindings}" IsVisible="{Binding ConversionWorkbench.BatchExport.HasPlanFindings}" TextWrapping="Wrap" Classes="muted" />
+          <ItemsControl x:Name="FolderJobPlanItems" ItemsSource="{Binding ConversionWorkbench.BatchExport.PlanItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="workflow:SavedFolderJobPlanItem">
+                <Border Classes="card" Padding="12" Margin="0,0,0,10">
+                  <StackPanel Spacing="5">
+                    <TextBlock Text="{Binding InputName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding InputPath}" />
+                    <TextBlock Text="{Binding OutputPath}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OutputPath}" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
     </Grid>
 
     <Border x:Name="DetailsPanel" Grid.Column="2" Background="{DynamicResource StudioPanelBrush}"

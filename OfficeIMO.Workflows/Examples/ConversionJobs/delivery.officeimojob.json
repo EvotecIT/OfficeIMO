@@ -1,0 +1,9 @@
+{
+  "schema": "officeimo.conversion.job.v1",
+  "name": "Client delivery document",
+  "inputPaths": ["Inputs/delivery.html"],
+  "outputDirectory": "Outputs/Delivery",
+  "checkpointDirectory": "Checkpoints/Delivery",
+  "targetExtension": ".pdf",
+  "outputProfile": "Faithful"
+}
