@@ -78,8 +78,8 @@ internal static partial class PdfWriter {
 
         /// <summary>Fits ordinary unit ranges and composite table fragments through one legal-cut dispatcher.</summary>
         private NoteFlowFragment? FitNoteFlowUnits(IReadOnlyList<FootnoteUnit> units, int start, TableFlowCursor? tableCursor,
-            double available, bool clipTrailingSpacing, bool minimumOnly = false) {
-            int minimum = GetMinimumFootnoteUnits(units, start);
+            double available, bool clipTrailingSpacing, bool minimumOnly = false, bool relaxOversizedParagraphKeeps = false) {
+            int minimum = GetMinimumFootnoteUnits(units, start, relaxOversizedParagraphKeeps: relaxOversizedParagraphKeeps);
             var tables = new Dictionary<int, TableFragmentPlan>();
             NoteFlowFragment? best = null;
             double maximum = clipTrailingSpacing ? available : double.PositiveInfinity;
@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
                     if (partial || intrinsic - clippable > available + .001D) break;
                     continue;
                 }
-                if (count >= minimum && IsLegalFootnoteCut(units, start, count) &&
+                if (count >= minimum && IsLegalFootnoteCut(units, start, count, relaxOversizedParagraphKeeps) &&
                     (!partial || CanCutFootnoteTable(units, start, end))) {
                     best = new NoteFlowFragment(start, count, height,
                         new Dictionary<int, TableFragmentPlan>(tables), tableCursor);

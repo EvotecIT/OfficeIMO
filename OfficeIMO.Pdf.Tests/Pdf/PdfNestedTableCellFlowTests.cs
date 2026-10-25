@@ -125,6 +125,52 @@ public class PdfNestedTableCellFlowTests {
         Assert.True(text.IndexOf("Captured", StringComparison.Ordinal) < text.IndexOf("Last", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OversizedKeptParagraphInAnOrderedRowContinuesWithoutLosingItsPeers(bool noteTable) {
+        var document = PdfDocument.Create(Options(190D));
+        var expected = Enumerable.Range(0, 40).Select(index => "KeptLine" + index.ToString("00")).ToArray();
+        var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: PdfLineSpacing.Exactly(10D),
+            widowControl: false, keepTogether: true);
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("NestedPeer") } }, PdfAlign.Left, Style());
+        var rows = new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested), new PdfTableCell("ShortPeer") } };
+        if (noteTable) {
+            var note = document.Content.DefineFootnote(body => body.Table(rows, style: Style()));
+            document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: ParagraphStyle());
+        } else document.Content.Table(rows, style: Style());
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.True(pdf.NumberOfPages > 1);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        Assert.Equal(expected, words.Where(word => word.Text.StartsWith("KeptLine", StringComparison.Ordinal)).Select(word => word.Text));
+        Assert.Single(words, word => word.Text == "NestedPeer");
+        Assert.Single(words, word => word.Text == "ShortPeer");
+        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.BoundingBox.Bottom >= 19.99D));
+    }
+
+    [Fact]
+    public void FittingKeptParagraphInAnOrderedRowMovesTogetherWhenTheCurrentFrameIsShort() {
+        var document = PdfDocument.Create(Options(190D));
+        document.Content.Text("Prefix", style: ParagraphStyle());
+        document.Content.Spacer(80D);
+        var expected = Enumerable.Range(0, 6).Select(index => "FittingLine" + index.ToString("00")).ToArray();
+        var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: PdfLineSpacing.Exactly(10D),
+            widowControl: false, keepTogether: true);
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("FittingPeer") } }, PdfAlign.Left, Style());
+        document.Content.Table(new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested) } }, style: Style());
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain("FittingLine", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("FittingPeer", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        var words = pdf.GetPage(2).GetWords().ToArray();
+        Assert.Equal(expected, words.Where(word => word.Text.StartsWith("FittingLine", StringComparison.Ordinal)).Select(word => word.Text));
+        Assert.Single(words, word => word.Text == "FittingPeer");
+    }
+
     [Fact]
     public void UnsupportedOrderedCellReferencesAreRejectedBeforeTheirNotesCanBeLost() {
         var document = PdfDocument.Create(Options());

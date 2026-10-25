@@ -31,7 +31,7 @@ public static partial class WordPdfConverterExtensions {
             ignoreFallbackTableStyle: options?.PdfOptions?.HasExplicitDefaultTableStyle == true);
         PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, layout.Rows.Count, options, null,
             defaults, tableDefaults, layout, fonts);
-        if (style.Position != null || !style.ConsumesVerticalFlow || style.Caption != null ||
+        if (style.Position != null || !style.ConsumesVerticalFlow || style.Caption != null || style.ShrinkTextToFit ||
             style.FixedRowHeights?.Any(height => height.HasValue) == true)
             return false;
         foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {

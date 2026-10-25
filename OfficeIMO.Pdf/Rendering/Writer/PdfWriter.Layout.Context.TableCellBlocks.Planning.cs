@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
                 }
                 foreach (FootnoteUnit unit in cell.Units) unit.MaximumKeepHeight = Math.Max(0D, fullHeight - pad);
                 NoteFlowFragment? fragment = FitNoteFlowUnits(cell.Units, cursor.Unit, cursor.Table,
-                    Math.Max(0D, available - pad), clipTrailingSpacing: false, minimumOnly);
+                    Math.Max(0D, available - pad), clipTrailingSpacing: false, minimumOnly, relaxOversizedParagraphKeeps: true);
                 if (fragment == null) return null;
                 bool cellComplete = fragment.NextStart >= cell.Units.Count;
                 if (!cellComplete && (!GetTableRowAllowBreakAcrossPages(geometry.Style, row) ||

@@ -245,6 +245,39 @@ public partial class Word {
             main.DocumentSettingsPart.Settings.OuterXml);
     }
 
+    [Fact]
+    public void SaveAsPdf_NestedTable_OversizedKeptPeerParagraphContinuesWithoutRepeatingCompletedCells() {
+        using WordDocument document = WordDocument.Create();
+        WordTable outer = document.AddTable(1, 3, WordTableStyle.TableGrid);
+        ConfigureNestedLayoutTable(outer, 6000, 3200, 1800, 1000);
+        WordParagraph kept = outer.Rows[0].Cells[0].Paragraphs[0];
+        string[] expected = Enumerable.Range(0, 40).Select(index => $"KeepPeer{index:000}").ToArray();
+        ConfigureNestedLayoutParagraph(kept, expected[0]);
+        foreach (string token in expected.Skip(1)) kept.AddBreak(WordBreakType.TextWrapping).AddText(token);
+        kept.KeepLinesTogetherOverride = true;
+        WordTableCell nestedHost = outer.Rows[0].Cells[1];
+        ConfigureNestedLayoutParagraph(nestedHost.Paragraphs[0], "NestedBefore");
+        WordTable nested = nestedHost.AddTable(1, 1, WordTableStyle.TableGrid);
+        ConfigureNestedLayoutTable(nested, 1600, 1600);
+        ConfigureNestedLayoutParagraph(nested.Rows[0].Cells[0].Paragraphs[0], "NestedPeer");
+        ConfigureNestedLayoutParagraph(nestedHost.AddParagraph(), "NestedAfter");
+        ConfigureNestedLayoutParagraph(outer.Rows[0].Cells[2].Paragraphs[0], "ShortPeer");
+        string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+            IncludePageNumbers = false, PageSize = new PageSize(400D, 200D), Margins = PageMargins.Uniform(30D),
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.True(pdf.NumberOfPages > 1);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        Assert.Equal(expected, words.Where(word => word.Text.StartsWith("KeepPeer", StringComparison.Ordinal)).Select(word => word.Text));
+        foreach (string token in new[] { "NestedBefore", "NestedPeer", "NestedAfter", "ShortPeer" })
+            Assert.Single(words, word => word.Text == token);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
+
     private static (double BeforeX, double InnerX, double ColumnDistance) MeasureNestedTableFrame(
         short parentPaddingTwips, int innerWidthPercentage) {
         using WordDocument document = WordDocument.Create();
