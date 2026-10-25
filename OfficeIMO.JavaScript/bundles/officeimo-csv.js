@@ -1110,7 +1110,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("aff3e6eb49b1c118b5e78b3e2312a769b3b70303730999dca3e12e291095be17") ?? (() => {
+const _m0 = _modules.get("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1135,9 +1135,7 @@ const { captureCsvOptions } = _m15;
 
 
 
-function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
-    if (value == null && nullValue !== undefined)
-        value = nullValue;
+function csvField(value, delimiter, protect, quote, booleanText) {
     const kind = typeof value;
     let text;
     if (value == null)
@@ -1214,7 +1212,7 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -1262,7 +1260,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("aff3e6eb49b1c118b5e78b3e2312a769b3b70303730999dca3e12e291095be17", _exports);
+_modules.set("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });

@@ -1111,9 +1111,7 @@ const { captureCsvOptions } = _m15;
 
 
 
-function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
-    if (value == null && nullValue !== undefined)
-        value = nullValue;
+function csvField(value, delimiter, protect, quote, booleanText) {
     const kind = typeof value;
     let text;
     if (value == null)
@@ -1190,7 +1188,7 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));

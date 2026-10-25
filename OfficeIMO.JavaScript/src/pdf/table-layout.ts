@@ -125,8 +125,11 @@ export class PdfTableLayout {
       lines };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
-    const lines = Math.max(1, ...cells.map(c => c.lines.length));
-    const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
+    let lines = 1, lineHeight = this.lineHeight;
+    for (let index = 0; index < cells.length; index++) {
+      const cell = cells[index]!;
+      lines = Math.max(lines, cell.lines.length); lineHeight = Math.max(lineHeight, cell.lineHeight);
+    }
     return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
   }
   async headers(): Promise<readonly PdfLayoutRow[]> {

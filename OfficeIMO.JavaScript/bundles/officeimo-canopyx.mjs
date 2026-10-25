@@ -5736,9 +5736,7 @@ const { captureCsvOptions } = _m16;
 
 
 
-function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
-    if (value == null && nullValue !== undefined)
-        value = nullValue;
+function csvField(value, delimiter, protect, quote, booleanText) {
     const kind = typeof value;
     let text;
     if (value == null)
@@ -5815,7 +5813,7 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -8146,8 +8144,12 @@ class PdfTableLayout {
             lines };
     }
     row(cells) {
-        const lines = Math.max(1, ...cells.map(c => c.lines.length));
-        const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
+        let lines = 1, lineHeight = this.lineHeight;
+        for (let index = 0; index < cells.length; index++) {
+            const cell = cells[index];
+            lines = Math.max(lines, cell.lines.length);
+            lineHeight = Math.max(lineHeight, cell.lineHeight);
+        }
         return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
     }
     async headers() {
@@ -8680,6 +8682,8 @@ class PdfPages {
     textSize = 0;
     textColor = "";
     textPrefix = "";
+    rectangleLefts;
+    rectangleColumns = [];
     externalObjects = new Map();
     bandFlow;
     bandCellBudget = false;
@@ -8939,19 +8943,29 @@ class PdfPages {
         if (!this.layout)
             throw new Error("A table layout is required before drawing rows.");
         this.bodyAdded = true;
-        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
+        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2, lefts = this.layout.lefts;
+        // One geometry token per active physical column; table/band changes release the old tokens.
+        if (this.rectangleLefts !== lefts) {
+            this.rectangleLefts = lefts;
+            this.rectangleColumns = [];
+        }
         let rectangleHeight, rectangleBottom = "", rectangleHeightText = "";
         for (const [index, cell] of row.cells.entries()) {
             if (this.bandCellBudget)
                 this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
                     (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
-            const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
+            const x = lefts[cell.first], cellHeight = cell.height ?? height;
             if (cellHeight !== rectangleHeight) {
                 rectangleBottom = n(this.y - cellHeight);
                 rectangleHeightText = n(cellHeight);
                 rectangleHeight = cellHeight;
             }
-            const rectangle = n(x) + " " + rectangleBottom + " " + n(cell.width) + " " + rectangleHeightText;
+            let horizontal = this.rectangleColumns[cell.first];
+            if (!horizontal || horizontal.x !== x || horizontal.width !== cell.width) {
+                horizontal = { x, width: cell.width, left: n(x), widthText: n(cell.width) };
+                this.rectangleColumns[cell.first] = horizontal;
+            }
+            const rectangle = horizontal.left + " " + rectangleBottom + " " + horizontal.widthText + " " + rectangleHeightText;
             if (cell.style.background)
                 this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + rectangle + " re f Q\n"));
             this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + rectangle + " re S Q\n"));

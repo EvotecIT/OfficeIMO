@@ -48,8 +48,7 @@ export interface CsvOptions<T = never> extends StreamOptions {
   /** Display policy only; defaults to the explicit compatibility strings True and False. */
   readonly booleanText?: BooleanText;
 }
-function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText, nullValue?: string): string {
-  if (value == null && nullValue !== undefined) value = nullValue;
+function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText): string {
   const kind = typeof value;
   let text: string;
   if (value == null) text = "";
@@ -113,7 +112,7 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
       if (value == null && options.nullValue !== undefined) value = options.nullValue;
       budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
       checkAbort(signal);
-      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
       if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
         if (buffer.append(text)) return buffer.flush().then(() => record(values, header, i + 1, snapshot));
         text = "";

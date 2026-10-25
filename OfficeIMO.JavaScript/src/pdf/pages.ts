@@ -63,6 +63,8 @@ export class PdfPages {
   private textSize = 0;
   private textColor = "";
   private textPrefix = "";
+  private rectangleLefts: readonly number[] | undefined;
+  private rectangleColumns: { readonly x: number; readonly width: number; readonly left: string; readonly widthText: string }[] = [];
   private readonly externalObjects = new Map<string, number>();
   private bandFlow: PdfTableBandFlow | undefined;
   private bandCellBudget = false;
@@ -268,16 +270,23 @@ export class PdfPages {
   private draw(row: PdfLayoutRow, firstLine: number, lineCount: number, elements?: readonly (number | undefined)[], repeated: readonly boolean[] = []): void {
     if (!this.layout) throw new Error("A table layout is required before drawing rows.");
     this.bodyAdded = true;
-    const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
+    const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2, lefts = this.layout.lefts;
+    // One geometry token per active physical column; table/band changes release the old tokens.
+    if (this.rectangleLefts !== lefts) { this.rectangleLefts = lefts; this.rectangleColumns = []; }
     let rectangleHeight: number | undefined, rectangleBottom = "", rectangleHeightText = "";
     for (const [index, cell] of row.cells.entries()) {
       if (this.bandCellBudget) this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
         (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
-      const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
+      const x = lefts[cell.first]!, cellHeight = cell.height ?? height;
       if (cellHeight !== rectangleHeight) {
         rectangleBottom = n(this.y - cellHeight); rectangleHeightText = n(cellHeight); rectangleHeight = cellHeight;
       }
-      const rectangle = n(x) + " " + rectangleBottom + " " + n(cell.width) + " " + rectangleHeightText;
+      let horizontal = this.rectangleColumns[cell.first];
+      if (!horizontal || horizontal.x !== x || horizontal.width !== cell.width) {
+        horizontal = { x, width: cell.width, left: n(x), widthText: n(cell.width) };
+        this.rectangleColumns[cell.first] = horizontal;
+      }
+      const rectangle = horizontal.left + " " + rectangleBottom + " " + horizontal.widthText + " " + rectangleHeightText;
       if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + rectangle + " re f Q\n"));
       this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + rectangle + " re S Q\n"));
       const element = elements?.[index], artifact = cell.semanticArtifact || repeated[index],
