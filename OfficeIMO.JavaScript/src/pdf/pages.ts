@@ -41,6 +41,7 @@ export class PdfPages {
   readonly references: number[] = [];
   private current = 0;
   private commands = "";
+  private commandParts: string[] = [];
   private commandBytes = 0;
   private annotations: { readonly id: number; readonly body: string }[] = [];
   private hyperlinks = 0;
@@ -188,7 +189,7 @@ export class PdfPages {
     const lineHeight = this.fonts.select().lineHeight(fontSize);
     if (this.pendingPage !== undefined) { this.current = this.pendingPage; this.pendingPage = undefined; }
     else { this.current = this.objects.reserve(); this.references.push(this.current); }
-    this.commands = ""; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
+    this.commands = ""; this.commandParts = []; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
     if (options.pageNumbers !== false) {
       this.totalPages ??= this.objects.reserve(); this.numberSettings ??= this.settings;
       if (!this.pageNumberWidth) this.pageNumberWidth = this.measurePageNumbers();
@@ -273,6 +274,7 @@ export class PdfPages {
       if (cell.link) this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
     }
     this.y -= row.structured ? row.height : height;
+    this.sealCommands();
   }
   async block(rows: readonly PdfLayoutRow[]): Promise<void> {
     if (this.bandFlow) return this.bandFlow.block(rows);
@@ -523,10 +525,14 @@ export class PdfPages {
     await this.structure?.complete(li);
   }
 
+  private sealCommands(): void {
+    if (this.commands) { this.commandParts.push(this.commands); this.commands = ""; }
+  }
   private takeCommands(): string {
-    const content = this.commands;
+    this.sealCommands();
+    const content = this.commandParts.join("");
     // Encoding and awaited delivery own the page value; the next page starts independently.
-    this.commands = "";
+    this.commandParts = [];
     return content;
   }
   private async finishPage(): Promise<void> {

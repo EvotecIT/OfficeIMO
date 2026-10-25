@@ -3846,6 +3846,7 @@ class PdfPages {
     references = [];
     current = 0;
     commands = "";
+    commandParts = [];
     commandBytes = 0;
     annotations = [];
     hyperlinks = 0;
@@ -4031,6 +4032,7 @@ class PdfPages {
             this.references.push(this.current);
         }
         this.commands = "";
+        this.commandParts = [];
         this.annotations = [];
         this.commandBytes = 0;
         this.bodyAdded = false;
@@ -4131,6 +4133,7 @@ class PdfPages {
                 this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
         }
         this.y -= row.structured ? row.height : height;
+        this.sealCommands();
     }
     async block(rows) {
         if (this.bandFlow)
@@ -4456,10 +4459,17 @@ class PdfPages {
             marker: { line: item.marker, gap: item.markerGap, ...(label === undefined ? {} : { owner: label }) } });
         await this.structure?.complete(li);
     }
+    sealCommands() {
+        if (this.commands) {
+            this.commandParts.push(this.commands);
+            this.commands = "";
+        }
+    }
     takeCommands() {
-        const content = this.commands;
+        this.sealCommands();
+        const content = this.commandParts.join("");
         // Encoding and awaited delivery own the page value; the next page starts independently.
-        this.commands = "";
+        this.commandParts = [];
         return content;
     }
     async finishPage() {

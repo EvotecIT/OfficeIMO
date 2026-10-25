@@ -10,13 +10,15 @@ not satisfy memory or latency criteria.
 The [23 October comparison](#bounded-pdf-and-xlsx-comparison) meets its selected
 M8 wide-PDF time and narrow/wide peak-RSS targets for the runtime measured
 there. It retains material M9 latency losses, including a higher XLSX median.
-Three M10 comparisons are recorded: [two on 24 October](#m10-comparisons-on-24-october-2026)
-and the [25 October page-command comparison](#page-command-and-complete-fragment-lifetime).
-The first and third complete all 120 independent validations; the second is
-interrupted. None meets all five unchanged M10 criteria. The third preserves
-M8 memory gains but still fails selected time and public-baseline RSS criteria.
-Each result remains bound to its own source; earlier passes and partial results
-do not replace failed measurements.
+Four M10 comparisons are recorded: [two on 24 October](#m10-comparisons-on-24-october-2026),
+the [25 October page-command comparison](#page-command-and-complete-fragment-lifetime)
+and the [page-local string comparison](#page-local-string-accumulation).
+The first, third and fourth complete all 120 independent validations; the second
+is interrupted. None meets all five unchanged M10 criteria. The fourth preserves
+both memory criteria and exact changed output bytes, but wide-PDF time remains
+above public 0.1.2. The third still fails its own time and public-baseline RSS
+criteria. Each result remains bound to its own source; earlier passes and
+partial results do not replace failed measurements.
 
 Run the maintained PowerForge suite from the repository root:
 
@@ -913,10 +915,102 @@ and output; they do not isolate the export timer or establish the cause of the
 failed cohort statistics. Their perturbed time and memory observations are
 not acceptance measurements and do not waive either unmet criterion.
 
-A separate source experiment appends drawing commands to one page-local string
-instead of retaining a command list and joining it at page completion. It adds
-no public API, dependency or font cache, and keeps the existing page-byte,
-stream-delivery, semantic and resource-limit contracts. This changed source is
-unqualified: the measured third runtime and diagnostic outputs do not qualify
-its correctness, time or peak RSS. Codec, arena, member and delivery-buffer
-policies remain unchanged.
+The page-local string experiment is measured separately below. Its result does
+not reinterpret the third cohort or waive either of that cohort's unmet criteria.
+
+## Page-local string accumulation
+
+Measured 25 October 2026 UTC. Source
+`49c3f24dca8f5c4c653fcd28bc634d54a7a4f611`, runtime SHA-256
+`299913df8b2bfd8367299304acac6b91e4077053fb0d1869418afe5c8ec3bd6f`.
+
+The fourth M10 candidate appends drawing commands to one ordered page-local
+string instead of retaining a command list and joining it at page completion.
+It adds no public API, dependency or font cache. Page-byte accounting, stream
+delivery, semantic ownership and resource limits retain their existing
+contracts. Codec, arena, member and delivery-buffer policies are unchanged.
+The measured runtime and all 19 measured inputs are retained with their original
+hashes; subsequent source or documentation edits do not reinterpret this cohort.
+
+### Fourth M10 cohort: complete, time criterion unmet
+
+All **120 outputs** pass independent validation: **20 warmups and 100 measured
+exports**, with one warmup and five measured samples per selected case/runtime.
+Every changed PDF/CSV output is byte-identical to public 0.1.2. Public 0.1.2,
+M8 and M9 use the same frozen compiled controls recorded above. The normal
+shared-host, rotated-order policy and all five M10 criteria are unchanged;
+no outliers are removed or samples pooled across candidates. Values below are
+**mean / median**, with arrows showing **public 0.1.2 → fourth candidate**.
+Times are milliseconds and RSS is MiB; changes use unrounded measurements.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 982.87 / 992.06 → 884.71 / 927.27 | 131.81 / 132.23 → 111.33 / 110.95 | -9.99% / -6.53% | -15.53% / -16.09% |
+| Helvetica tagged PDF, 10,000 × 20 | 2,083.73 / 1,973.73 → 3,407.71 / 3,376.80 | 239.91 / 238.95 → 228.67 / 229.11 | +63.54% / +71.09% | -4.69% / -4.12% |
+| Carlito tagged PDF, 10,000 × 6 | 1,374.16 / 1,343.82 → 1,264.68 / 1,333.76 | 135.87 / 135.97 → 113.45 / 112.44 | -7.97% / -0.75% | -16.50% / -17.31% |
+| Carlito tagged PDF, 10,000 × 20 | 3,752.72 / 4,033.08 → 4,012.76 / 4,100.15 | 230.41 / 231.02 → 230.39 / 227.81 | +6.93% / +1.66% | -0.01% / -1.39% |
+| Minimal CSV, 100,000 × 6 | 582.31 / 610.01 → 572.59 / 544.89 | 74.03 / 74.11 → 74.46 / 74.61 | -1.67% / -10.68% | +0.58% / +0.67% |
+| Quote-all CSV, 100,000 × 6 | 540.02 / 564.22 → 532.26 / 502.45 | 74.66 / 74.67 → 74.64 / 74.73 | -1.44% / -10.95% | -0.02% / +0.08% |
+| Quote-all CSV, 100,000 × 20 | 1,695.90 / 1,873.66 → 1,437.37 / 1,246.67 | 76.91 / 75.31 → 75.09 / 74.94 | -15.24% / -33.46% | -2.36% / -0.50% |
+| Typed XLSX, 100,000 × 6 | 2,908.11 / 2,805.76 → 2,800.10 / 2,874.30 | 78.75 / 78.67 → 78.88 / 78.47 | -3.71% / +2.44% | +0.16% / -0.26% |
+
+Only the selected time criterion remains unmet in this cohort. Narrow Helvetica
+time is 9.99% / 6.53% lower and narrow Carlito is 7.97% / 0.75% lower than
+public 0.1.2. Both quote-all CSV time statistics also improve. Wide Helvetica,
+however, is **63.54% / 71.09% slower**, and wide Carlito is **6.93% / 1.66%
+slower**. These increases are retained without a waiver.
+
+All four PDF RSS means and medians are no higher than public 0.1.2. Wide
+Carlito's mean reduction is only 0.00678%, or 16,384 bytes; this is not evidence
+of a material memory improvement. Both original M8 Helvetica memory criteria
+also pass: narrow RSS mean/median is 16.65% / 16.89% lower and wide is
+11.26% / 7.85% lower. Same-cohort wide Helvetica time is 27.74% / 27.06% lower
+than M8 but **18.56% / 23.44% higher than M9**. These different baselines do not
+replace the failed public-baseline time criterion.
+
+Guard losses remain visible. Minimal-CSV RSS increases 0.58% / 0.67%; narrow
+quote-all CSV has a 0.08% higher RSS median. Typed XLSX has a 3.71% lower time
+mean but a **2.44% higher median**, with RSS mean 0.16% higher and median 0.26%
+lower. Typed-value and schema readbacks pass; timestamp-dependent XLSX ZIP
+identity is not a byte-equality requirement. Earlier minimal-CSV, XLSX and PDF
+losses remain bound to their earlier cohorts.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-085228-00492158` | 8 / 40 |
+| CSV/XLSX | `20261025-091820-e592eaac` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-092132-685bc621` | 4 / 20 |
+
+All raw samples, warmups, output hashes and canonical summaries/comparisons are
+retained, including the failed and interrupted prior cohorts. Normal shared-host
+activity remains part of this observation; no quiet-host, priority, affinity or
+forced-GC treatment is inferred. This five-sample result provides no universal
+speed, memory or performance-no-regression guarantee.
+
+### Wide-PDF diagnosis and separate row-string experiment
+
+Four additional CPU-profiled exports cover wide Helvetica and Carlito under
+public 0.1.2 and the measured fourth runtime. All four preserve their cohort
+bytes and pass qpdf. Samples move between page completion and encoding work;
+whole-process self-sample counts include imports, setup, layout and output.
+They neither isolate a causal regression nor substitute for the failed time
+criterion. Instrumented timing and RSS are not acceptance measurements.
+
+The next single source experiment accumulates drawing commands in a string
+tail and seals that tail into ordered parts at existing physical-row boundaries.
+Page completion joins those parts with any trailing commands. It changes no
+font cache, byte codec, API or dependency. Whole-page byte accounting and
+command order must remain intact, without an intermediate sink write or a
+change to cancellation, backpressure or resource limits. This experiment is
+unqualified: the fourth cohort and CPU profiles establish no correctness, speed
+or memory result for it.
