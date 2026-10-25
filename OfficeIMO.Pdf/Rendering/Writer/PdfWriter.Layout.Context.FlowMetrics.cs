@@ -128,7 +128,10 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+            var wrap = HasParagraphPictures(paragraphStyle) || HasPictureExclusions
+                ? WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize,
+                    y - (suppressSpacingBefore ? 0D : ResolveTopLevelSpacingBefore(spacingBefore)))
+                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -195,6 +198,7 @@ internal static partial class PdfWriter {
         private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize, double precedingHeight) {
             double savedY = y;
             var savedFloats = floatingTables.ToArray();
+            var savedPictures = pictureAnchors.Working.ToArray();
             try {
                 y -= precedingHeight;
                 double startY = y;
@@ -228,7 +232,8 @@ internal static partial class PdfWriter {
                         blockHeight = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
                     }
 
-                    if (floatingTables.Count > savedFloats.Length) {
+                    if (floatingTables.Count > savedFloats.Length || HasPictureExclusions ||
+                        block is RichParagraphBlock pictureParagraph && HasParagraphPictures(EffectiveParagraphStyle(pictureParagraph))) {
                         if (block is RichParagraphBlock paragraph)
                             blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
@@ -257,6 +262,8 @@ internal static partial class PdfWriter {
             } finally {
                 y = savedY;
                 floatingTables.Clear(); floatingTables.AddRange(savedFloats);
+                pictureAnchors.Working.Clear();
+                foreach (var entry in savedPictures) pictureAnchors.Working.Add(entry.Key, entry.Value);
             }
         }
 
@@ -265,7 +272,7 @@ internal static partial class PdfWriter {
 
         private double MeasureKeepWithNextBlockHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize) {
             if (block is HeadingBlock heading) {
-                return MeasureHeadingBlockHeight(heading, frameWidth);
+                return MeasureHeadingBlockHeight(heading, frameX, frameWidth);
             }
 
             if (block is RichParagraphBlock paragraph) {
@@ -305,7 +312,7 @@ internal static partial class PdfWriter {
             return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
         }
 
-        private double MeasureHeadingBlockHeight(HeadingBlock heading, double frameWidth) {
+        private double MeasureHeadingBlockHeight(HeadingBlock heading, double frameX, double frameWidth) {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(heading, currentOpts);
             double headingSize = GetHeadingFontSize(heading, headingStyle);
             double headingLeading = GetHeadingLeading(headingStyle, headingSize);
@@ -315,12 +322,15 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
-            var wrap = WrapRichHeadingRuns(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
+            var wrap = WrapHeadingForFrame(heading, headingRuns, headingStyle, frameX, frameWidth,
+                headingSize, headingLeading, y - spacingBefore);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }
 
         private double MeasureParagraphBlockHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
+            if (HasParagraphPictures(paragraphStyle) || HasPictureExclusions)
+                return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
@@ -447,10 +457,11 @@ internal static partial class PdfWriter {
                 double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
                     ? headingStyle?.SpacingBefore ?? 0D
                     : 0D;
-                if (headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
-                    var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle.Color);
-                    var wrap = WrapRichHeadingRuns(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
-                        headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, heading.Align);
+                if (HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions ||
+                    headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
+                    var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle?.Color);
+                    var wrap = WrapHeadingForFrame(heading, runs, headingStyle, frameX, frameWidth,
+                        headingSize, headingLeading, y - spacingBefore);
                     return spacingBefore + (wrap.Lines.Count == 0 ? 0D : GetRichLineFrameFitHeight(wrap.Lines[0], wrap.LineHeights[0]));
                 }
                 return spacingBefore + headingLeading;
@@ -626,6 +637,17 @@ internal static partial class PdfWriter {
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly, bool allowTableFragments = false) {
             PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            if (HasContainedCellBlocks(table)) {
+                PreparedTableGeometry geometry = PrepareTableGeometry(table, PreparePairedTableBorders(table, style), frameWidth);
+                if (firstVisualOnly && allowTableFragments) {
+                    TableFragmentPlan? fragment = PlanTableFragment(geometry, null, double.PositiveInfinity,
+                        GetFullPageContentHeight(), minimumOnly: true);
+                    return fragment?.Height ?? 0D;
+                }
+                int count = firstVisualOnly ? Math.Min(1, geometry.Rows.Heights.Length) : geometry.Rows.Heights.Length;
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + GetTableRowsHeight(geometry.Rows.Heights, 0, count, geometry.Gap) +
+                    (firstVisualOnly ? 0D : style.SpacingAfter);
+            }
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) {
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + (firstVisualOnly ? 0D : style.SpacingAfter);

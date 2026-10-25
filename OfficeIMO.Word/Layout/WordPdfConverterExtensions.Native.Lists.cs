@@ -114,7 +114,7 @@ namespace OfficeIMO.Word.Pdf {
             // Numbering tabs may place the first line before or after the
             // continuation indent. Paragraphs preserve both positions;
             // list blocks expose one shared text column.
-            if (IgnoresNativeNumberingIndentStop(paragraph) ||
+            if (HasNativeParagraphBarTabs(paragraph) || IgnoresNativeNumberingIndentStop(paragraph) ||
                 HasNativeIndependentListTabAdvance(paragraph, marker.Marker, nativeDefaults, nativeFontMap)) return false;
 
             // The inline paragraph path carries marker run typography. List blocks
@@ -338,6 +338,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? -hangingIndent
                 : paragraph.IndentationFirstLinePoints ??
                     (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+            // Rebase against the resolved continuation frame, after numbering
+            // indentation has replaced the paragraph style's provisional value.
+            RefreshNativeParagraphTabStops(paragraph, style);
         }
 
         private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) =>

@@ -31,12 +31,12 @@ internal static partial class PdfWriter {
             return prepared.Style?.KeepWithNext == true;
         }
 
-        private void PaintFootnoteListMarker(FootnoteUnit unit, double top) {
+        private void PaintFootnoteListMarker(FootnoteUnit unit, double top, double? originX = null) {
             PreparedListLayout prepared = unit.List!;
             PreparedListItem item = unit.ListItem!;
             if (!string.IsNullOrEmpty(item.Item.BookmarkName)) AddNamedDestinationName(item.Item.BookmarkName!, top);
             var placement = GetListMarkerPlacement(prepared, item);
-            double markerX = currentOpts.MarginLeft + unit.FrameX + placement.X;
+            double markerX = (originX ?? currentOpts.MarginLeft) + unit.FrameX + placement.X;
             double baseline = AdjustRichLineBaseline(FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), unit.Size, top),
                 unit.Line!, currentOpts, unit.Size);
             PdfColor? color = prepared.Style?.MarkerColor ?? prepared.Block.Color ?? prepared.Style?.Color;

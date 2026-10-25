@@ -8,6 +8,28 @@ import { inspectPdf } from "./pdf-reader.mjs";
 
 const source = new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", import.meta.url)));
 
+test("standard PDF faces preserve every supported WinAnsi byte in emitted text", async () => {
+  // Controls, undefined Windows-1252 slots and the rejected format character soft hyphen are excluded.
+  const extra = [0x80, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8e,
+    0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9e, 0x9f];
+  const extraCodePoints = [0x20ac, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030,
+    0x0160, 0x2039, 0x0152, 0x017d, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
+    0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0x017e, 0x0178];
+  const ascii = Array.from({ length: 95 }, (_, index) => index + 32);
+  const latin1 = Array.from({ length: 96 }, (_, index) => index + 160).filter(value => value !== 0xad);
+  const bytes = Uint8Array.from([...ascii, ...extra, ...latin1]);
+  const text = String.fromCodePoint(...ascii, ...extraCodePoints, ...latin1), expected = Buffer.from(bytes).toString("hex");
+  const faces = [{}, { bold: true }, { italic: true }, { bold: true, italic: true }];
+  const pdf = await inspectPdf(await writePdfDocument(faces.map(presentation => ({ kind: "paragraph", text, presentation })), {
+    pageNumbers: false, compression: false, pageSize: { width: 4000, height: 300 }, orientation: "landscape", margins: 24, fontSize: 8
+  }));
+  const operands = pdf.pages.flatMap(page => [...page.content.matchAll(/<([a-f0-9]+)> Tj/g)].map(match => match[1]));
+  assert.deepEqual(operands, faces.map(() => expected), "Text bytes remain exact independently of extraction");
+  assert.deepEqual([...pdf.objects.values()].filter(object => /\/Subtype \/Type1\b/.test(object.body))
+    .map(object => /\/BaseFont \/([^ ]+)/.exec(object.body)[1]).sort(),
+  ["Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique"].sort());
+});
+
 // A sparse synthetic Unicode cmap over the existing licensed fixture's original glyphs.
 function withCharacters(characters) {
   const bytes = new Uint8Array(source.length + 28 + characters.length * 12); bytes.set(source);

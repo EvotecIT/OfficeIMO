@@ -6,7 +6,7 @@
   <PropertyGroup>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <VersionPrefix>3.0.9</VersionPrefix>
+    <VersionPrefix>3.5.2</VersionPrefix>
     <TargetFrameworks>net8.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net472;net8.0</TargetFrameworks>
     <AssemblyName>PSWriteOffice</AssemblyName>

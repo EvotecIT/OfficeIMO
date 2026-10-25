@@ -1,13 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, writePdfTo, Workbook, ExportCell, Cell } from "../dist/index.js";
+import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, writePdf, writePdfTo, Workbook, ExportCell, Cell, FormulaCell } from "../dist/index.js";
 import { BlobByteSink } from "../dist/core/index.js";
 import { readZip } from "./zip-reader.mjs";
+import { inspectPdf } from "./pdf-reader.mjs";
 
 const rows = [{ person: { name: "Łódź 🧪" }, amount: 12.5, seen: new Date("2026-10-07T00:00:00Z") }];
 const columns = [{ header: "Name", key: "name", value: row => row.person.name },
   { header: "Amount", key: "amount", type: "number", format: "0.00" },
   { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }];
+
+test("positional cells are captured once before portable validation and format encoding", async () => {
+  for (const [format, write] of [["csv", writeCsv], ["xlsx", writeXlsx], ["pdf", writePdf]]) {
+    let reads = 0;
+    const row = [];
+    Object.defineProperty(row, 0, { get() { return ++reads === 1 ? 7 : new FormulaCell("1+1", 2); } });
+    const blob = await write([row], { columns: [{ header: "Value" }], ...(format === "pdf" ? { compression: false, pageNumbers: false } : {}) });
+    assert.equal(reads, 1, format + " must not reread a validated array accessor");
+    if (format === "csv") assert.equal(await blob.text(), "Value\r\n7\r\n");
+    else if (format === "xlsx") {
+      const xml = (await readZip(blob)).get("xl/worksheets/sheet1.xml").content;
+      assert.match(xml, /r="A2"[^>]*><v>7<\/v>/); assert.doesNotMatch(xml, /<f>/);
+    } else assert.ok((await inspectPdf(blob)).text.includes("7"));
+  }
+});
 
 for (const [format, writeTo] of [["csv", writeCsvTo], ["xlsx", writeXlsxTo], ["pdf", writePdfTo]])
   test(format + " preserves consumer failures and releases the destination while producer cleanup fails or waits", { timeout: 2000 }, async () => {

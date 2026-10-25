@@ -42,7 +42,7 @@ public sealed class PdfInlineRuleFontResourceTests {
         PdfTextRun sourceStyle = PdfTextRun.Normal(string.Empty, fontFamily: Family);
         PdfTextRun[] runs = trailingSeparator
             ? new[] { PdfTextRun.Normal("A"), Rule(sourceStyle, maximumWidth: null), PdfTextRun.Normal(" B") }
-            : new[] { PdfTextRun.Normal("A"), PdfTextRun.Tab(leader), Rule(sourceStyle), PdfTextRun.Normal("B") };
+            : new[] { PdfTextRun.Normal("A"), new PdfTextRun("\t", fontFamily: Family, tabLeader: leader), Rule(sourceStyle), PdfTextRun.Normal("B") };
         var document = PdfDocument.Create(options);
         if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, 20D, 20D, 100D, 100D)));
         else document.Paragraph(p => p.Runs(runs));
@@ -54,6 +54,8 @@ public sealed class PdfInlineRuleFontResourceTests {
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("A", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.Contains("B", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        if (leader == PdfTabLeaderStyle.Dots)
+            Assert.Contains(".", pdf.GetPage(1).Text, StringComparison.Ordinal);
     }
 
     [Fact]

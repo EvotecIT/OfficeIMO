@@ -48,10 +48,12 @@ test("portable presentation captures only declared scalars and budgets their tex
 });
 
 test("worker setup accepts plain records and byte arrays from another realm, rejecting instances", { timeout: 5000 }, async () => {
-  const input = runInNewContext('({report:{title:"iframe",constructor:"label"},font:new Uint8Array([3,7]),date:new Date("2026-10-20T00:00:00Z"),empty:Object.create(null)})');
+  const input = runInNewContext('({report:{title:"iframe",constructor:"label"},columns:[{header:"Usluga",key:"0",rowHeader:true}],wideTable:{mode:"bands",repeatColumns:[0,"0"]},font:new Uint8Array([3,7]),date:new Date("2026-10-20T00:00:00Z"),empty:Object.create(null)})');
   await session(async ({ input }) => {
     assert.equal(input.report.title, "iframe");
     assert.equal(input.report.constructor, "label");
+    assert.deepEqual(input.columns, [{ header: "Usluga", key: "0", rowHeader: true }]);
+    assert.deepEqual(input.wideTable.repeatColumns, [0, "0"]);
     assert.deepEqual([...input.font], [3, 7]);
     assert.equal(input.date.toISOString(), "2026-10-20T00:00:00.000Z");
     assert.deepEqual(Object.keys(input.empty), []);

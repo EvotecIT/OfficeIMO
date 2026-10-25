@@ -135,7 +135,20 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
+        List<List<RichSeg>> logicalRows = lines;
+        RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
+            xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
+            firstLineXOverride, firstLineWidthOverride, lineXOffsets, lineWidths, lineTopGaps);
+        if (paintRows != null) {
+            lines = paintRows.Lines;
+            lineHeights = paintRows.Heights;
+            lineXOffsets = paintRows.Offsets;
+            lineWidths = paintRows.Widths;
+            lineTopGaps = paintRows.Gaps;
+            firstLineXOverride = null;
+            firstLineWidthOverride = null;
+        }
         // Canvas artifacts can suppress accessibility structure while still
         // owning page glyphs and their font resources.
         fontPage ??= structurePage;
@@ -270,7 +283,7 @@ internal static partial class PdfWriter {
         }
         // The logical replacement encloses all paragraph/link marked-content
         // transitions, so a hyperlink cannot close the identifier span early.
-        bool optionalBreakText = TryBeginOptionalBreakText(sb, block, lines, suppressActualText, opts, xOrigin, startY, widthUsed, fontSize);
+        bool optionalBreakText = TryBeginOptionalBreakText(sb, block, logicalRows, suppressActualText, opts, xOrigin, startY, widthUsed, fontSize);
         if (optionalBreakText) suppressActualText = true;
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         bool textMarkedContentOpen = markedContentId.HasValue;
@@ -381,6 +394,10 @@ internal static partial class PdfWriter {
                                 .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText);
                             ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                         }
+                        xCursor += gap;
+                        content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
+                    } else if (s.LeadingIsTab) {
+                        // A plain tab is geometry; its source font may give SPACE visible ink.
                         xCursor += gap;
                         content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
@@ -578,7 +595,7 @@ internal static partial class PdfWriter {
         if (textMarkedContentOpen) {
             AppendMarkedContentEnd(sb, markedContentId);
         }
-        if (optionalBreakText) EndOptionalBreakText(sb, block, lines, opts, xOrigin, startY, widthUsed, fontSize);
+        if (optionalBreakText) EndOptionalBreakText(sb, block, logicalRows, opts, xOrigin, startY, widthUsed, fontSize);
         if (foregroundGraphicsState != null) {
             new ContentStreamBuilder(sb).RestoreState();
         }
@@ -605,6 +622,10 @@ internal static partial class PdfWriter {
         if (hasDecorationState) {
             new ContentStreamBuilder(sb).RestoreState();
         }
+
+        AppendRichBarTabDecorations(sb, lines, lineHeights, opts, startY, fontSize, defaultLeading,
+            xOrigin, firstLineXOverride, lineXOffsets, lineTopGaps, baselineFont,
+            paragraphSpacingAfter, paragraphSpacingBefore, markedContentId.HasValue, decorationGraphicsState, barClipFrame);
 
         // A picture can overlap later text after the cell turns its text axes.
         // Preserve its logical structure position while painting the upright image above that text.

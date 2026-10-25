@@ -3,7 +3,7 @@ BeforeAll {
     $recipe = Join-Path $repoRoot 'Examples/Workflows/Example-MixedFormat-ConversionReview.ps1'
     $sampleRoot = Join-Path $repoRoot 'Examples/Samples/ConversionReview'
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $repoRoot 'PSWriteOffice.psd1' }
-    Import-Module $moduleManifest -Global -ErrorAction Stop
+    $loadedModule = Import-Module $moduleManifest -Global -PassThru -ErrorAction Stop
 }
 
 Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEdition -ne 'Core') {
@@ -16,14 +16,16 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $hashes = @(Get-ChildItem $first.PdfDirectory -File | Sort-Object Name | Get-FileHash | Select-Object -ExpandProperty Hash)
         $firstReview = Join-Path $first.ReviewDirectory 'review.json'
         $reviewHash = (Get-FileHash $firstReview).Hash
-        $second = & $recipe -OutputDirectory $destination -ModulePath $moduleManifest
+        $firstReviewDocument = Get-Content $firstReview -Raw | ConvertFrom-Json
+        $firstReviewDocument.ModuleVersion | Should -Be ([string] $loadedModule.Version)
+        $second = & $recipe -OutputDirectory $destination -ModulePath $moduleManifest -ModuleVersion $loadedModule.Version
         $second.Completed | Should -Be 3
         $second.Reused | Should -Be 3
         $second.ReviewDirectory | Should -Not -Be $first.ReviewDirectory
         @(Get-ChildItem $second.PdfDirectory -File | Sort-Object Name | Get-FileHash | Select-Object -ExpandProperty Hash) | Should -Be $hashes
         (Get-FileHash $firstReview).Hash | Should -Be $reviewHash
         $review = Get-Content (Join-Path $second.ReviewDirectory 'review.json') -Raw | ConvertFrom-Json
-        $review.ModuleVersion | Should -Be '3.0.9'
+        $review.ModuleVersion | Should -Be ([string] $loadedModule.Version)
         @($review.Outcomes).Count | Should -Be 3
         @($review.Outcomes | Where-Object { -not $_.Reused }).Count | Should -Be 0
         @($review.AvailablePdfRoutes | Where-Object Id -EQ 'markdown-pdf').Count | Should -Be 1

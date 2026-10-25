@@ -238,6 +238,10 @@ public static partial class WordPdfConverterExtensions {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(new WordParagraph(section._document, source), defaults, fonts);
             if (style.AnchoredCanvas != null) return false;
         }
+        // Definitions can be painted after the operation report is captured.
+        // Record admitted note decoration now, after all profile checks pass.
+        foreach (W.Paragraph source in note.Descendants<W.Paragraph>())
+            RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, source), options, "note paragraph");
         return true;
     }
 

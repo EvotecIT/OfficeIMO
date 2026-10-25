@@ -4,7 +4,7 @@
     <Description>Managed Rich Text Format (RTF) reader, writer, lossless syntax tree, bounded parser, and editable document model for .NET.</Description>
     <AssemblyName>OfficeIMO.Rtf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Rtf</AssemblyTitle>
-    <VersionPrefix>3.5.1</VersionPrefix>
+    <VersionPrefix>3.5.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'" />
   </ItemGroup>
 
   <ItemGroup>

@@ -19,7 +19,9 @@ public class RtfAutomaticNoteReferenceTests {
                 Assert.Equal(RtfGeneratedTextKind.NoteReference, reference.Kind);
                 Assert.NotNull(reference.Note);
                 Assert.Equal(RtfNoteKind.Footnote, reference.Note!.Kind);
-                Assert.Equal("Footnote text", reference.Note.ToPlainText());
+                Assert.Equal("Footnote text" + Environment.NewLine, reference.Note.ToPlainText());
+                Assert.Equal(2, reference.Note.Paragraphs.Count);
+                Assert.Empty(reference.Note.Paragraphs[1].Inlines);
                 Assert.Contains(reference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Italic);
             },
             inline => Assert.Equal(" after", Assert.IsType<RtfRun>(inline).Text));

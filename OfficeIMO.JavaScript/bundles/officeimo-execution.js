@@ -5,10 +5,10 @@ const officeimo = root.OfficeIMO || (root.OfficeIMO = {});
 const cacheKey = Symbol.for("@evotecit/officeimo/modules");
 const _modules = officeimo[cacheKey] || new Map();
 if (!officeimo[cacheKey]) Object.defineProperty(officeimo, cacheKey, { value: _modules });
-const _m2 = _modules.get("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e") ?? (() => {
+const _m2 = _modules.get("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3") ?? (() => {
 function checkAbort(signal) {
     if (signal?.aborted)
-        throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
+        throw signal.reason;
 }
 /** Race a pending producer or sink operation without leaving abort listeners behind. */
 function withAbort(promise, signal) {
@@ -16,7 +16,7 @@ function withAbort(promise, signal) {
         return Promise.resolve(promise);
     return new Promise((resolve, reject) => {
         const cleanup = () => signal.removeEventListener("abort", abort);
-        const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
+        const abort = () => { cleanup(); reject(signal.reason); };
         signal.addEventListener("abort", abort, { once: true });
         Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
         if (signal.aborted)
@@ -156,7 +156,7 @@ function pause() {
     });
 }
 const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
-_modules.set("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e", _exports);
+_modules.set("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3", _exports);
 return _exports;
 })();
 
@@ -197,7 +197,7 @@ _modules.set("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea",
 return _exports;
 })();
 
-const _m3 = _modules.get("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc") ?? (() => {
+const _m3 = _modules.get("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -207,8 +207,9 @@ async function withDestination(destination, operation) {
     // Native streams can belong to another browser realm; constructor identity is not portable.
     if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
+        // Native streams may retain accepted chunks after write resolves.
         try {
-            return await operation({ write: bytes => writer.write(bytes) });
+            return await operation({ write: bytes => writer.write(new Uint8Array(bytes)) });
         }
         finally {
             writer.releaseLock();
@@ -302,7 +303,7 @@ async function writeBytes(source, sink, signal) {
     });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc", _exports);
+_modules.set("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b", _exports);
 return _exports;
 })();
 
@@ -515,7 +516,7 @@ _modules.set("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671",
 return _exports;
 })();
 
-const _m14 = _modules.get("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd") ?? (() => {
+const _m14 = _modules.get("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc") ?? (() => {
 const { assertExportValue } = _m8;
 
 const { checkAbort } = _m2;
@@ -528,11 +529,18 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
-            if (row.length > columns.length)
+            const length = row.length;
+            if (length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
-            for (const value of row)
+            // Resolve each positional value once, just like key/value projections. Returning the
+            // source array would let an accessor change a value after the portable-value check.
+            const values = new Array(length);
+            for (let index = 0; index < length; index++) {
+                const value = row[index];
                 validate(value);
-            return row;
+                values[index] = value;
+            }
+            return values;
         }
         if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
@@ -561,7 +569,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
     };
 }
 /** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
-const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "rowHeader", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
@@ -577,6 +585,8 @@ function copyColumns(columns, workbookStyles = false) {
             throw new TypeError("Each column needs a string header and an optional string key.");
         if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
+        if (captured.rowHeader !== undefined && typeof captured.rowHeader !== "boolean")
+            throw new TypeError("Column rowHeader must be boolean.");
         if (captured.groups !== undefined) {
             if (!Array.isArray(captured.groups))
                 throw new TypeError("Column groups must be an array of strings.");
@@ -589,7 +599,7 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
-_modules.set("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd", _exports);
+_modules.set("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc", _exports);
 return _exports;
 })();
 
@@ -663,7 +673,7 @@ _modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2",
 return _exports;
 })();
 
-const _m11 = _modules.get("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e") ?? (() => {
+const _m11 = _modules.get("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0") ?? (() => {
 const { ExportCell, assertScalar } = _m8;
 
 const { isDate } = _m9;
@@ -925,11 +935,11 @@ function createGroupedReport(rows, options) {
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("18d120e0ba2b5d6d4a098d72a6f558dec1c936c1f1a0e4996c6d240a928c931e", _exports);
+_modules.set("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6") ?? (() => {
+const _m7 = _modules.get("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00") ?? (() => {
 
 
 
@@ -974,11 +984,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m8.ExportCell, createGroupedReport: _m11.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("4af46fa949e848316dc59f9073630c7949316a763a7c9a753335d276c580b8e6", _exports);
+_modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("6d481dd3d70bfda0bc812bba50af41f04eaf6c41adb484d5bacc98b406d59826") ?? (() => {
+const _m6 = _modules.get("3aeb365cb54a2f47af0ef0db0c06b8eab1c49f3bb740e70535ee0115d45ce698") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
 const { assertExportValue, assertScalar, copyCellPresentation } = _m8;
@@ -1157,11 +1167,11 @@ function result(value) {
     return { rows: value.rows, columns: value.columns, bytes: value.bytes };
 }
 const _exports = Object.freeze({ protocol: protocol, message: message, bounds: bounds, captureInput: captureInput, captureRow: captureRow, restoreRows: restoreRows, captureProgress: captureProgress, wireError: wireError, restoreError: restoreError, result: result });
-_modules.set("6d481dd3d70bfda0bc812bba50af41f04eaf6c41adb484d5bacc98b406d59826", _exports);
+_modules.set("3aeb365cb54a2f47af0ef0db0c06b8eab1c49f3bb740e70535ee0115d45ce698", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("3982f4ced65ad40847f192f43453fc5f4efd742a2f6038e1bfa5776b526035b1") ?? (() => {
+const _m1 = _modules.get("5eb1b2f44c2625f90d0da30bfaacdba77d42da043ff12996de9c650d4ea249fe") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -1333,11 +1343,11 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("3982f4ced65ad40847f192f43453fc5f4efd742a2f6038e1bfa5776b526035b1", _exports);
+_modules.set("5eb1b2f44c2625f90d0da30bfaacdba77d42da043ff12996de9c650d4ea249fe", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("d50c522b4616149acd587dc6b3efcaf84d54c48f7eb06adfa2af77dc19205723") ?? (() => {
+const _m17 = _modules.get("1debadc47480abb9b6d830fe7108967a2b45877aa9ce0e2ae81914f343463ede") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -1489,14 +1499,14 @@ function handleWorkerExports(endpoint, operation) {
         } };
 }
 const _exports = Object.freeze({ handleWorkerExports: handleWorkerExports });
-_modules.set("d50c522b4616149acd587dc6b3efcaf84d54c48f7eb06adfa2af77dc19205723", _exports);
+_modules.set("1debadc47480abb9b6d830fe7108967a2b45877aa9ce0e2ae81914f343463ede", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("b83ca2173ec8f6c1c0464096af160fa79bedbf627dc0e2901277928a9eb87994") ?? (() => {
+const _m0 = _modules.get("85e009dee350af7c8594b36740a1100f30104a08ab6b887240ef3113714be29e") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m17.handleWorkerExports });
-_modules.set("b83ca2173ec8f6c1c0464096af160fa79bedbf627dc0e2901277928a9eb87994", _exports);
+_modules.set("85e009dee350af7c8594b36740a1100f30104a08ab6b887240ef3113714be29e", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

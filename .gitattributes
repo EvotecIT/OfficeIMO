@@ -76,6 +76,7 @@ OfficeIMO.TestAssets/Documents/Html/Qualification/** -text
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.
 OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff
+OfficeIMO.Rtf.Tests/Documents/RtfTableGapNative/*.rtf -text -diff
 
 # Native email exports are hash-bound producer evidence, including their line endings.
 OfficeIMO.Email.Tests/Corpora/native-apple-20261003/** -text -diff

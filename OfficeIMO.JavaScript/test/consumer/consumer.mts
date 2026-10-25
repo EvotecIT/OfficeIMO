@@ -51,8 +51,9 @@ void optionalTextProvider;
 async function workerExport(worker: Worker, capture: CanopyCapture, bytes: Uint8Array, signal: AbortSignal) {
   const options: WorkerExportOptions = { signal, batchRows: 64, maxBatchCells: 1024, maxBatchCharacters: 100000, maxChunkBytes: 65536,
     maxSetupBytes: 16000000, maxSetupNodes: 100000 };
-  const source = createCanopyExport(capture, "xlsx", { signal });
-  await executeWorkerExport(worker, source.rows(), new WritableStream<Uint8Array>(), { ...options, input: { columns: source.columns } });
+  const source = createCanopyExport(capture, "xlsx", { signal, columnOptions: { service: { rowHeader: true } } });
+  const wideTable: PdfTableBands = { mode: "bands", repeatColumns: [0, "service"] };
+  await executeWorkerExport(worker, source.rows(), new WritableStream<Uint8Array>(), { ...options, input: { columns: source.columns, wideTable } });
   const preparation: PdfFontPreparationOptions = { signal, maxBytes: 16000000 };
   const regular = await PdfFont.create(bytes, preparation);
   await writePdfDocument([{ kind: "paragraph", text: "Report" }], { fonts: { regular }, limits: { maxImageWorkingBytes: 64000000 } });
@@ -63,7 +64,7 @@ async function workerExport(worker: Worker, capture: CanopyCapture, bytes: Uint8
 }
 void workerExport;
 async function exportCanopyGrid(capture: CanopyCapture) {
-  const source = createCanopyExport(capture, "xlsx", { tones: { warning: { background: "FFF2CC" } } });
+  const source = createCanopyExport(capture, "xlsx", { tones: { warning: { background: "FFF2CC" } }, columnOptions: { service: { rowHeader: true } } });
   await writeXlsx(source.rows(), { columns: source.columns });
   await exportCanopy(capture, "xlsx", { xlsx: { sheet: { table: {} } }, datetime: "preserve" });
   await writeCanopyTo(capture, "pdf", new WritableStream<Uint8Array>(), { pdf: { orientation: "landscape" } });
@@ -100,7 +101,8 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
   await exportDataTable(host, table, 'xlsx', { xlsx: { cellValueWriters: { custom: v => new Cell(v, 0) } } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
-  await exportDataTable(host, table, 'pdf', { pdf: { orientation: 'landscape', title: 'Report' } });
+  await exportDataTable(host, table, 'pdf', { columnOptions: { 0: { key: 'service', rowHeader: true } },
+    pdf: { orientation: 'landscape', title: 'Report', wideTable: { mode: 'bands', repeatColumns: ['service'] } } });
 }
 void exportGrid;
 async function exportPdf() {
@@ -174,11 +176,11 @@ void exportPdfDocument;
 async function exportWidePdfReports() {
   const rows = [{ service: "WEB-000001", owner: "Operations", latency: 4.9 }];
   const columns = [
-    { header: "Service", key: "service" },
+    { header: "Service", key: "service", rowHeader: true },
     { header: "Owner", key: "owner" },
     { header: "Latency", key: "latency", type: "number" }
   ] as const;
-  const wideTable: PdfTableBands = { mode: "bands", minimumColumnWidth: 250, repeatColumns: [0] };
+  const wideTable: PdfTableBands = { mode: "bands", minimumColumnWidth: 250, repeatColumns: [0, "owner"] };
   const rootPolicy: RootPdfTableBands = wideTable;
   void rootPolicy;
   const limits = { maxRows: 100, maxPages: 20, maxTableBands: 4, maxTableWindowRows: 8 };
@@ -190,8 +192,10 @@ async function exportWidePdfReports() {
   ], { limits });
   // @ts-expect-error horizontal pagination has one explicit band policy
   pdfTable(rows, { columns, wideTable: { mode: "shrink", repeatColumns: [0] } });
-  // @ts-expect-error repeated columns are zero-based indices, not displayed labels
-  pdfTable(rows, { columns, wideTable: { mode: "bands", repeatColumns: ["Service"] } });
+  // @ts-expect-error row-heading intent is an explicit boolean
+  pdfTable(rows, { columns: [{ header: "Service", key: "service", rowHeader: "yes" }] });
+  // @ts-expect-error repeated columns are positions or stable keys
+  pdfTable(rows, { columns, wideTable: { mode: "bands", repeatColumns: [true] } });
 }
 void exportWidePdfReports;
 

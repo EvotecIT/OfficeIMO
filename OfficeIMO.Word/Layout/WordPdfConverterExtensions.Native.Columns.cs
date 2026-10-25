@@ -64,6 +64,7 @@ public static partial class WordPdfConverterExtensions {
                     options, tableOfContentsEntries, headingDestinations, firstColumnWidth, nativeDefaults, nativeFontMap,
                     nextElement: GetNextNativeRenderableElement(elements, index));
             }
+            RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
         }, columnOptions));
         return true;
     }

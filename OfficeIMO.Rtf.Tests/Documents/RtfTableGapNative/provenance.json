@@ -1,0 +1,77 @@
+{
+  "schema": "officeimo-rtf-table-gap-native-fixtures-v1",
+  "purpose": "Synthetic RTF source and independently imported Microsoft Word DOCX controls for zero and positive row gap",
+  "rtfInputProducer": "OfficeIMO task-authored synthetic control; native DOCX is not an OfficeIMO round trip",
+  "nativeProducer": "Microsoft Word",
+  "qualifiedProfile": {
+    "sourceFont": "Arial",
+    "sourceFontPoints": [
+      12,
+      24
+    ],
+    "paperTwips": [
+      12240,
+      15840
+    ],
+    "marginTwips": [
+      1440,
+      1440,
+      1440,
+      1440
+    ],
+    "cellBoundaryTwips": 9360,
+    "rowIndentTwips": 0,
+    "explicitGapTwips": [
+      0,
+      300
+    ]
+  },
+  "fixtures": [
+    {
+      "file": "table-cell-minimum-exact-gap0.rtf",
+      "gapTwips": 0,
+      "bytes": 558,
+      "sha256": "a3a7440187d98250bf9a674b3e4c7ec7ef038a5ea9490ba591fa0947f39cf0d0"
+    },
+    {
+      "file": "table-cell-minimum-exact-gap0.native.docx",
+      "gapTwips": 0,
+      "bytes": 13272,
+      "sha256": "0daaca2ce7e0d6ec24e67ade1cff587ab56980c8dc68ed8c8774580f4e2d65c2"
+    },
+    {
+      "file": "table-cell-minimum-exact-gap300.rtf",
+      "gapTwips": 300,
+      "bytes": 560,
+      "sha256": "e269b9dc2b4b928ac281d2cc5a1967d4eb59bfc81a5ffa2c2e6078ee2b1e64d8"
+    },
+    {
+      "file": "table-cell-minimum-exact-gap300.native.docx",
+      "gapTwips": 300,
+      "bytes": 13280,
+      "sha256": "707e0e3f1babd55f38f21b34265ce21e79be3045c9ffcafbd875919372586794"
+    }
+  ],
+  "observedStoredContract": {
+    "gap0": {
+      "tableLeftRightMarginsTwips": 0,
+      "tableIndentation": "absent",
+      "tableCellSpacing": "absent"
+    },
+    "gap300": {
+      "tableLeftRightMarginsTwips": 300,
+      "tableIndentationTwips": 300,
+      "tableCellSpacing": "absent"
+    }
+  },
+  "nativePdfObservation": {
+    "positiveTextXDeltaPoints": 15,
+    "followingParagraphYDeltaPoints": 18,
+    "positiveExactParagraphWrapsBefore": "END-TABLE-EXACT"
+  },
+  "limits": [
+    "No mixed-row, absent-gap, asymmetric-margin or nonzero row-indent native profile",
+    "Initial native RTF-to-PDF export and saved native DOCX are separate stages",
+    "The separate clpadl120 control is observation only and is not admitted as a padding-side oracle"
+  ]
+}

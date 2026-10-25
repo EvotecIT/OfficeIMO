@@ -105,7 +105,7 @@ public static partial class WordPdfConverterExtensions {
         NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
         W.Paragraph source = paragraph._paragraph;
         if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null ||
-            getMarker(paragraph) != null || GetHeadingLevel(paragraph) > 0 ||
+            getMarker(paragraph) != null || GetHeadingLevel(paragraph) > 0 || HasNativeParagraphBarTabs(paragraph) ||
             source.ParagraphProperties?.GetFirstChild<W.ParagraphBorders>() != null ||
             source.ParagraphProperties?.GetFirstChild<W.Shading>() != null ||
             source.Descendants<W.Drawing>().Any() || source.Descendants<W.Picture>().Any() ||

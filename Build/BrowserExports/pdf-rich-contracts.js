@@ -113,8 +113,6 @@ async function runRichPdfContracts({ moduleBase, fixtures, drawingFont, classic 
   checks.push('tagged-structure-and-figures');
   await save('tagged-png-report',report,['Browser PNG report','Independent RGB samples and straight alpha.','Item','Amount','Services','Support','Total','150']);
   await rejected([{ ...graphic(rgb) }], { ...configuration, tagged }, error => String(error).includes('alternativeText'), 'tagged-image-description');
-  await rejected([pdfTable([], { columns, headerRows: [[{ value: 'Group', columnSpan: 2 },null]] })], { ...configuration, tagged },
-    error => String(error).includes('Tagged PDF supports leaf'), 'tagged-spanned-heading');
   await rejected([{ kind: 'paragraph', text: 'Limited' }], { ...configuration, tagged, limits: { maxStructureElements: 1 } },
     error => error.code === 'RESOURCE_LIMIT', 'tagged-structure-limit');
   const drawing = { version: 1, width: 220, height: 120, elements: [

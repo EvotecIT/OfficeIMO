@@ -28,6 +28,10 @@ public static partial class WordRtfConverterExtensions {
         List<DocumentFormat.OpenXml.Wordprocessing.Run> runs = source._paragraph
             .Elements<DocumentFormat.OpenXml.Wordprocessing.Run>()
             .ToList();
+        if (runs.Any(run => run.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Any() ||
+                            run.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Any())) {
+            return false;
+        }
         if (runs.Any(run => !string.IsNullOrEmpty(
                 new WordParagraph(source._document, source._paragraph, run).Text))) {
             return false;

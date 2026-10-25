@@ -208,7 +208,9 @@ public partial class RtfDocumentReadWriteTests {
         RtfRun referenceRun = body.Runs.Single(run => run.Text == "1");
         Assert.NotNull(referenceRun.Note);
         Assert.Equal(RtfNoteKind.Footnote, referenceRun.Note!.Kind);
-        Assert.Equal("Footnote text", referenceRun.Note.ToPlainText());
+        Assert.Equal("Footnote text" + Environment.NewLine, referenceRun.Note.ToPlainText());
+        Assert.Equal(2, referenceRun.Note.Paragraphs.Count);
+        Assert.Empty(referenceRun.Note.Paragraphs[1].Inlines);
         Assert.Contains(referenceRun.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Italic);
         Assert.Same(referenceRun.Note, Assert.Single(result.Document.Notes));
     }
@@ -226,7 +228,9 @@ public partial class RtfDocumentReadWriteTests {
         RtfRun referenceRun = body.Runs.Single(run => run.Text == "i");
         Assert.NotNull(referenceRun.Note);
         Assert.Equal(RtfNoteKind.Endnote, referenceRun.Note!.Kind);
-        Assert.Equal("Endnote text", referenceRun.Note.ToPlainText());
+        Assert.Equal("Endnote text" + Environment.NewLine, referenceRun.Note.ToPlainText());
+        Assert.Equal(2, referenceRun.Note.Paragraphs.Count);
+        Assert.Empty(referenceRun.Note.Paragraphs[1].Inlines);
         Assert.Contains(referenceRun.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Bold);
         Assert.Same(referenceRun.Note, Assert.Single(result.Document.Notes));
     }

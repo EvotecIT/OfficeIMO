@@ -3,7 +3,7 @@
   "name": "io.github.EvotecIT/officeimo",
   "title": "OfficeIMO Document Tools",
   "description": "Inspect, search, fetch, and convert local documents and mail stores with bounded access.",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "repository": {
     "url": "https://github.com/EvotecIT/OfficeIMO",
     "source": "github",
@@ -15,7 +15,7 @@
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "OfficeIMO.Tool",
-      "version": "3.5.1",
+      "version": "3.5.2",
       "runtimeHint": "dnx",
       "runtimeArguments": [
         { "type": "positional", "value": "--yes" }

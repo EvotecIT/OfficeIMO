@@ -49,7 +49,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Preserves_Wide_HeaderFooter_Zones_With_Diagnostics() {
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Wide_HeaderFooter_Paragraphs_Without_Backup_Zone_Diagnostics() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.pdf");
 
@@ -79,33 +79,48 @@ public partial class Word {
             });
             result.Save(pdfPath);
 
-            Assert.Contains(result.Warnings, warning =>
-                warning.Code == "HeaderFooterContentOverflow" &&
-                warning.Source == "Header" &&
-                warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
-                warning.Converter == "OfficeIMO.Word.Pdf");
-            Assert.Contains(result.Warnings, warning =>
-                warning.Code == "HeaderFooterZoneOverlap" &&
-                warning.Source == "Footer" &&
-                warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
-                warning.Converter == "OfficeIMO.Word.Pdf");
+            // Rich stories retain these source paragraphs on distinct baselines;
+            // their unpainted backup zones must not report same-line overlap.
             Assert.DoesNotContain(result.Warnings, warning =>
-                (warning.Code == "HeaderFooterContentOverflow" || warning.Code == "HeaderFooterZoneOverlap") &&
-                warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
+                warning.Code == "HeaderFooterContentOverflow" || warning.Code == "HeaderFooterZoneOverlap");
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
-        string text = pdf.GetPage(1).Text;
-        Assert.Contains("LeftHeaderOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("CenterHeaderOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("RightHeaderOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("LeftFooterOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("CenterFooterOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("RightFooterOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Equal(new[] { "Wide", "header", "footer", "body" }, pdf.GetPages()
+        var pages = pdf.GetPages().ToArray();
+        string[] bodyWords = { "Wide", "header", "footer", "body" };
+        Assert.NotEmpty(pages);
+        foreach (var page in pages) {
+            Assert.All(page.Letters, letter => {
+                Assert.InRange(letter.BoundingBox.Left, 0D, page.Width);
+                Assert.InRange(letter.BoundingBox.Right, 0D, page.Width);
+                Assert.InRange(letter.BoundingBox.Bottom, 0D, page.Height);
+                Assert.InRange(letter.BoundingBox.Top, 0D, page.Height);
+            });
+            var words = page.GetWords().ToArray();
+            foreach (string[] paragraphStarts in new[] {
+                new[] { "LeftHeader", "CenterHeader", "RightHeader" },
+                new[] { "LeftFooter", "CenterFooter", "RightFooter" }
+            }) {
+                double[] baselines = paragraphStarts.Select(prefix =>
+                    Assert.Single(words, word => word.Text.StartsWith(prefix, StringComparison.Ordinal))
+                        .Letters[0].StartBaseLine.Y).ToArray();
+                Assert.True(baselines[0] > baselines[1] && baselines[1] > baselines[2]);
+            }
+            string text = page.Text;
+            Assert.Contains("LeftHeaderOverflowMarker", text, StringComparison.Ordinal);
+            Assert.Contains("CenterHeaderOverflowMarker", text, StringComparison.Ordinal);
+            Assert.Contains("RightHeaderOverflowMarker", text, StringComparison.Ordinal);
+            Assert.Contains("LeftFooterOverflowMarker", text, StringComparison.Ordinal);
+            Assert.Contains("CenterFooterOverflowMarker", text, StringComparison.Ordinal);
+            Assert.Contains("RightFooterOverflowMarker", text, StringComparison.Ordinal);
+            // Available fonts can change wrapping, but must not produce a page
+            // containing only repeated running content.
+            Assert.Contains(words, word => bodyWords.Contains(word.Text, StringComparer.Ordinal));
+        }
+        Assert.Equal(bodyWords, pages
             .SelectMany(page => page.GetWords()).Select(word => word.Text)
-            .Where(word => word is "Wide" or "header" or "footer" or "body").ToArray());
+            .Where(word => bodyWords.Contains(word, StringComparer.Ordinal)).ToArray());
     }
 
     [Fact]

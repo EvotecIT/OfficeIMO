@@ -1,5 +1,5 @@
 export function checkAbort(signal?: AbortSignal): void {
-  if (signal?.aborted) throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
+  if (signal?.aborted) throw signal.reason;
 }
 
 /** Race a pending producer or sink operation without leaving abort listeners behind. */
@@ -7,7 +7,7 @@ export function withAbort<T>(promise: PromiseLike<T>, signal?: AbortSignal): Pro
   if (!signal) return Promise.resolve(promise);
   return new Promise<T>((resolve, reject) => {
     const cleanup = () => signal.removeEventListener("abort", abort);
-    const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
+    const abort = () => { cleanup(); reject(signal.reason); };
     signal.addEventListener("abort", abort, { once: true });
     Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
     if (signal.aborted) abort();

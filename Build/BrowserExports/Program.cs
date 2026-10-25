@@ -3,6 +3,10 @@ using HtmlTinkerX;
 using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
+if (args.Length > 0 && args[0] == "--validate-table-engine") {
+    Console.WriteLine(JsonSerializer.Serialize(TableEngineComparisonVerifier.Verify(args)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate-wide") {
     string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.pdf", SearchOption.AllDirectories);
     if (files.Length == 0) throw new InvalidDataException("No wide report fixtures to validate.");
@@ -87,6 +91,7 @@ if (exampleOnly is not null) {
     return;
 }
 if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, evidence, args); return; }
+if (args.Any(value => value.StartsWith("--hfx-operational=", StringComparison.Ordinal))) { await HfxOperationalInterop.RunAsync(evidence, args); return; }
 if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--editable-analysis")) { await EditableAnalysisInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--grouped-report")) { await GroupedReportInterop.RunAsync(repository, evidence, args); return; }

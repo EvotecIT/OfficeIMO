@@ -172,8 +172,7 @@ namespace OfficeIMO.Word {
                 ConvertHorizontalMergesToGridSpan();
                 RefreshGrid();
 
-                // Normalize host cell vertical margins to 0 for consistency (Word Online tends
-                // to honor default bottom margin more aggressively than desktop).
+                // Supply missing host cell margins without replacing direct authoring values.
                 if (IsNestedTable) EnsureHostCellVerticalMargins(72);
 
                 // Desktop Word may suppress top border when style-only; make sure
@@ -183,16 +182,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Ensures the parent cell of a nested table has at least the provided top/bottom
-        /// padding (cell margins) so the inner table does not touch the borders vertically.
-        /// No effect for non-nested tables. Applied conservatively (only when current value is null or 0).
+        /// Supplies fallback first-row top borders when no direct table or cell top border is declared.
         /// </summary>
         private void EnsureFirstRowTopBorder() {
-            if (Rows.Count == 0) return;
+            if (Rows.Count == 0 || _tableProperties?.TableBorders?.TopBorder != null) return;
             var first = Rows[0];
             foreach (var cell in first.Cells) {
                 // Do not overwrite if user already set something
-                if (cell.Borders.TopStyle == null) {
+                if (cell._tableCell.TableCellProperties?.TableCellBorders?.TopBorder == null) {
                     cell.Borders.TopStyle = WordBorderStyle.Single;
                     cell.Borders.TopSize = 4;
                     // Let Word/consumers choose the default color; do not emit "auto" as an explicit hex.
@@ -201,6 +198,7 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Supplies missing host cell margins while preserving direct values, including zero.</summary>
         private void EnsureHostCellVerticalMargins(int twips) {
             if (!IsNestedTable) return;
             if (_table.Parent is not TableCell parentCell) return;
@@ -208,12 +206,8 @@ namespace OfficeIMO.Word {
             var tcPr = parentCell.TableCellProperties!;
             tcPr.TableCellMargin ??= new TableCellMargin();
             var mar = tcPr.TableCellMargin!;
-            mar.TopMargin ??= new TopMargin();
-            mar.TopMargin.Width = twips.ToString();
-            mar.TopMargin.Type = TableWidthUnitValues.Dxa;
-            mar.BottomMargin ??= new BottomMargin();
-            mar.BottomMargin.Width = twips.ToString();
-            mar.BottomMargin.Type = TableWidthUnitValues.Dxa;
+            mar.TopMargin ??= new TopMargin { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa };
+            mar.BottomMargin ??= new BottomMargin { Width = twips.ToString(), Type = TableWidthUnitValues.Dxa };
         }
 
         /// <summary>

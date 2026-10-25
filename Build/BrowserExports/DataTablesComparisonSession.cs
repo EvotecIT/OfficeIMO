@@ -115,10 +115,17 @@ internal static class DataTablesComparisonSession {
                         if (format == "xlsx" && schemaErrors.Length == 0 && spec.GetProperty("rows").GetInt32() <= 10000)
                             WorkbookVerifier.Verify(path, 128L * 1024 * 1024);
                         string hash; using (Stream file = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(file)).ToLowerInvariant();
-                        result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = JavaScriptAssets.DataTablesScript.HashedFileName };
-                        if (format == "pdf" && command.TryGetProperty("keep", out var keep) && keep.GetBoolean())
-                            File.Move(path, Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}-{hash}.pdf"), true);
-                        else File.Delete(path);
+                        string? artifactPath = null;
+                        if (format == "pdf" && command.TryGetProperty("keep", out var keep) && keep.GetBoolean()) {
+                            artifactPath = Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}-{hash}.pdf");
+                            File.Move(path, artifactPath, true);
+                        } else if (schemaErrors.Length != 0 && new FileInfo(path).Length <= 64L * 1024 * 1024
+                            && !File.Exists(Path.Combine(evidence, "first-style-failed-output.xlsx"))) {
+                            artifactPath = Path.Combine(evidence, "first-style-failed-output.xlsx");
+                            File.Move(path, artifactPath);
+                        } else File.Delete(path);
+                        result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, artifactPath,
+                            browserVersion = session.Browser?.Version, asset = JavaScriptAssets.DataTablesScript.HashedFileName };
                     } else throw new ArgumentException("Unknown comparison command.");
                     Console.WriteLine(JsonSerializer.Serialize(new { ok = true, result }));
                 } catch (Exception error) {

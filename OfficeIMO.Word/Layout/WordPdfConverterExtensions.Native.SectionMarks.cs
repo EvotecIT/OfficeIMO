@@ -7,7 +7,8 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     /// <summary>Retains the paragraph line of an otherwise empty authored section.</summary>
     private static bool TryRenderNativeEmptySectionMark(INativePdfFlow flow, WordSection section,
-        IReadOnlyList<WordElement> elements, NativeDocumentDefaults defaults, NativeFontMap fonts) {
+        IReadOnlyList<WordElement> elements, NativeDocumentDefaults defaults, NativeFontMap fonts,
+        WordToPdfOptions? options = null) {
         if (elements.Any(element => element is not WordParagraph paragraph ||
                 !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) ||
             section._sectionProperties.Parent is not W.ParagraphProperties properties ||
@@ -20,6 +21,7 @@ public static partial class WordPdfConverterExtensions {
         foreach (W.BookmarkStart bookmark in source.Elements<W.BookmarkStart>()) {
             if (!string.IsNullOrEmpty(bookmark.Name?.Value)) flow.Bookmark(bookmark.Name!.Value!);
         }
+        RecordNativeParagraphBarTabDiagnostics(mark, options, "empty section paragraph");
         RenderNativeEmptyParagraph(flow, mark, CreateNativeParagraphStyle(mark, defaults, fonts), defaults, fonts);
         return true;
     }

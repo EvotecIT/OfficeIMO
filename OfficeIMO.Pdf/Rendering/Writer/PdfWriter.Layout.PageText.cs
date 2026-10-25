@@ -485,6 +485,10 @@ internal static partial class PdfWriter {
         int documentPages,
         PdfAlign align,
         bool isHeader) {
+        // A rich story can retain a backup projection without painting that text.
+        // Match the serializer's active-text decision before measuring zone bounds.
+        if (!(isHeader ? opts.HasHeaderTextContentForPage(variantPage) : opts.HasFooterTextContentForPage(variantPage)))
+            return 0D;
         PdfStandardFont font = isHeader ? opts.HeaderFont : opts.FooterFont;
         double fontSize = isHeader ? opts.HeaderFontSize : opts.FooterFontSize;
         var zones = isHeader ? opts.GetHeaderZonesForPage(variantPage) : opts.GetFooterZonesForPage(variantPage);

@@ -98,8 +98,11 @@ export class OpcPackage {
     return uri;
   }
   addPart(part: PackagePart): void {
-    const uri = this.reserve(part.uri, part.contentType);
-    this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? new Uint8Array(part.data) : part.data });
+    const { uri: requestedUri, contentType, data } = part;
+    // Structural accessors and byte ownership are captured before reserving metadata.
+    const capturedData = data instanceof Uint8Array ? new Uint8Array(data) : data;
+    const uri = this.reserve(requestedUri, contentType);
+    this.parts.set(uri.toLowerCase(), { uri, contentType, data: capturedData });
   }
   /** @internal */
   addPrepared(uri: string, type: string, prepared: PreparedEntry): void {
@@ -115,13 +118,15 @@ export class OpcPackage {
   addRelationship(source: string, relationship: Relationship): void {
     checkAbort(this.options.signal);
     this.open(); source = source === "/" ? source : partUri(source);
-    if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id)) throw new TypeError("Relationship id must be an XML ID.");
-    if (!/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"']+$/.test(relationship.type)) throw new TypeError("Relationship type must be an absolute URI.");
-    const target = relationship.external ? relationship.target : partUri(relationship.target);
-    if (relationship.external && (!target || /[\u0000-\u0020]/.test(target))) throw new TypeError("Invalid external relationship target.");
+    const { id, type, target: requestedTarget, external } = relationship;
+    this.open();
+    if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(id)) throw new TypeError("Relationship id must be an XML ID.");
+    if (!/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"']+$/.test(type)) throw new TypeError("Relationship type must be an absolute URI.");
+    const target = external ? requestedTarget : partUri(requestedTarget);
+    if (external && (!target || /[\u0000-\u0020]/.test(target))) throw new TypeError("Invalid external relationship target.");
     const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map<string, Relationship>();
-    if (list.has(relationship.id)) throw new TypeError("Duplicate relationship id: " + relationship.id);
-    list.set(relationship.id, { ...relationship, target }); this.relationships.set(key, list);
+    if (list.has(id)) throw new TypeError("Duplicate relationship id: " + id);
+    list.set(id, { id, type, target, ...(external === undefined ? {} : { external }) }); this.relationships.set(key, list);
   }
   setProperties(core: CoreProperties = {}, app: AppProperties = {}): void {
     // Build and validate both documents before reserving any parts.

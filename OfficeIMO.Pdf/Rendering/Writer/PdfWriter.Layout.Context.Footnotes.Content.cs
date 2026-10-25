@@ -59,6 +59,12 @@ internal static partial class PdfWriter {
                     case PdfListBlock list:
                         keepWithNext = AppendFootnoteList(list, frameX, frameWidth, panels, units);
                         break;
+                    case TableBlock { Style.BorderFrame: not null } framedTable:
+                        PdfTableStyle framedStyle = ResolveContainedTableWidth(framedTable.Style!, frameWidth);
+                        var capturedTable = new TableBlock(framedTable.Cells.Select(row => row.ToArray()), framedTable.Align, framedStyle);
+                        foreach (var link in framedTable.Links) capturedTable.AddLink(link.Key, link.Value);
+                        keepWithNext = AppendFootnotePanel(new ContainerBlock(capturedTable), frameX, frameWidth, panels, units);
+                        break;
                     case TableBlock table:
                         if (GetTableColumnCount(table) == 0) break;
                         PdfTableStyle tableStyle = PreparePairedTableBorders(table,
@@ -105,13 +111,13 @@ internal static partial class PdfWriter {
             AddFootnoteKeepChains(units, spans);
         }
 
-        private void PaintFootnoteUnit(FootnoteUnit unit, ref double top) {
+        private void PaintFootnoteUnit(FootnoteUnit unit, ref double top, double? originX = null) {
             cancellationToken.ThrowIfCancellationRequested();
             top -= unit.Before;
             if (unit.Block is BookmarkBlock bookmark) AddNamedDestination(bookmark, top);
             if (unit.Block is ImageBlock image) {
                 PdfImageStyle style = ResolveImageStyle(image, currentOpts);
-                double left = GetAlignedObjectX(currentOpts.MarginLeft + unit.FrameX, unit.FrameWidth, unit.Width, style.Align);
+                double left = GetAlignedObjectX((originX ?? currentOpts.MarginLeft) + unit.FrameX, unit.FrameWidth, unit.Width, style.Align);
                 PageImage placed = CreatePageImage(image, style, left, top - unit.Advance, unit.Width, unit.Advance);
                 currentPage!.Images.Add(placed);
                 AddImageLinkAnnotation(image, style, placed, left, top - unit.Advance, unit.Width, unit.Advance);
@@ -122,8 +128,8 @@ internal static partial class PdfWriter {
                 }
             } else if (unit.Block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                DrawHLine(sb, style.Color, style.Thickness, currentOpts.MarginLeft + unit.X,
-                    currentOpts.MarginLeft + unit.X + unit.Width, top - style.Thickness / 2D, emitGeneratedStructure);
+                DrawHLine(sb, style.Color, style.Thickness, (originX ?? currentOpts.MarginLeft) + unit.X,
+                    (originX ?? currentOpts.MarginLeft) + unit.X + unit.Width, top - style.Thickness / 2D, emitGeneratedStructure);
             }
             pageDirty = true;
             top -= unit.Advance + unit.After;

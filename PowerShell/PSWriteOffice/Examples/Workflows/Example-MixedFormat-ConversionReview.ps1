@@ -2,10 +2,15 @@
 .SYNOPSIS
 Converts a folder to PDF and records the files that need a review or retry.
 .DESCRIPTION
-Requires PSWriteOffice 3.0.9 and PowerShell 7.4 or newer. The checked-in Markdown,
+Requires PSWriteOffice 3.0.9 or newer and PowerShell 7.4 or newer. The checked-in Markdown,
 RTF and text inputs are synthetic service handover material. Conversion, resource
 limits and hash-verified checkpoints belong to OfficeIMO.Workflows. Completed
 conversion does not establish visual fidelity or archival compliance.
+.PARAMETER ModuleVersion
+Optional exact PSWriteOffice version. When omitted, loads an installed version
+that satisfies the minimum 3.0.9 requirement and records its actual version.
+.PARAMETER ModulePath
+Module name or manifest path to import.
 .EXAMPLE
 ./Example-MixedFormat-ConversionReview.ps1 -OutputDirectory ./ConversionReview
 .EXAMPLE
@@ -21,12 +26,22 @@ param(
     [ValidateRange(1, [long]::MaxValue)][long] $MaximumInputBytes = 16MB,
     [ValidateRange(1, [long]::MaxValue)][long] $MaximumOutputBytes = 32MB,
     [switch] $RetryFailed,
-    [string] $ModuleVersion = '3.0.9',
+    [version] $ModuleVersion,
     [string] $ModulePath = 'PSWriteOffice'
 )
 
 $ErrorActionPreference = 'Stop'
-Import-Module $ModulePath -RequiredVersion $ModuleVersion -ErrorAction Stop
+$moduleImport = @{
+    Name = $ModulePath
+    MinimumVersion = '3.0.9'
+    ErrorAction = 'Stop'
+    PassThru = $true
+}
+if ($PSBoundParameters.ContainsKey('ModuleVersion')) {
+    $moduleImport.Remove('MinimumVersion')
+    $moduleImport.RequiredVersion = $ModuleVersion
+}
+$module = Import-Module @moduleImport
 $sourceRoot = (Resolve-Path -LiteralPath $InputDirectory -ErrorAction Stop).ProviderPath
 $outputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
 $pdfRoot = Join-Path $outputRoot 'Pdf'
@@ -93,7 +108,6 @@ if ($diagnosticRows.Count) {
     $diagnosticRows | Export-Csv -LiteralPath (Join-Path $reportRoot 'diagnostics.csv') -NoTypeInformation -Encoding utf8
 }
 $reviewCount = @($outcomes | Where-Object ReviewRequired).Count
-$module = Get-Module PSWriteOffice | Where-Object Version -EQ ([version]$ModuleVersion) | Select-Object -First 1
 $assemblyPath = (Get-Command Export-OfficeDocumentPdf).ImplementingType.Assembly.Location
 [ordered]@{
     SchemaVersion = 1; RunId = $runId; ModuleVersion = [string]$module.Version

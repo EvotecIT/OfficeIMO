@@ -104,6 +104,8 @@ internal static partial class RtfPdfConverter {
 
         if (declarations.Count == 0) return;
 
+        RecordHeaderFooterFrameDiagnostics(document, setup, declarations, saveOptions);
+
         string? defaultHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader)
             ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
         if (defaultHeader != null) {
@@ -146,6 +148,7 @@ internal static partial class RtfPdfConverter {
         if (!options.IncludeHeaderFooters) return;
         IReadOnlyList<RtfHeaderFooter> declarations = document.GetEffectiveHeaderFooters(section);
         if (declarations.Count == 0) return;
+        RecordHeaderFooterFrameDiagnostics(document, document.GetPageSetup(section), declarations, options);
         string? header = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
         string? footer = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightFooter) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Footer);
         string? firstHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstHeader);

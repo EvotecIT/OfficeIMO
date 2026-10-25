@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
             if (source == null) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)),
+                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(paragraph => WordParagraph.ReadVisibleText(paragraph, ' '))),
                 ReferenceId = referenceId, Source = source
             });
         }
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Pdf {
             if (source == null) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)),
+                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(paragraph => WordParagraph.ReadVisibleText(paragraph, ' '))),
                 IsEndnote = true, ReferenceId = referenceId, Source = source
             });
         }
@@ -226,9 +226,14 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
                     if (footnote.Source != null && options != null)
-                        foreach (W.Paragraph paragraph in footnote.Source.Descendants<W.Paragraph>())
+                        foreach (W.Paragraph paragraph in footnote.Source.Descendants<W.Paragraph>()) {
                             RecordNativeFieldResultDiagnostics(new WordParagraph(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote", runningStory: false);
+                            RecordNativeParagraphFrameDiagnostics(new WordParagraph(section._document, paragraph), options,
+                                footnote.IsEndnote ? "endnote" : "footnote");
+                            RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, paragraph), options,
+                                footnote.IsEndnote ? "endnote" : "footnote", omitted: true);
+                        }
                     if (footnote.Source != null && footnote.IsEndnote && options != null)
                         AddNativeExportWarning(options, "NativeEndnoteContentApproximated", "endnote",
                             "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
@@ -258,7 +263,8 @@ namespace OfficeIMO.Word.Pdf {
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
                     anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection)) return false;
-            if (image._Image?.Anchor != null && options != null)
+            if (image._Image?.Anchor != null && options != null &&
+                !options.DiagnosedImageWrapElements.Contains(image._Image))
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
             RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align,

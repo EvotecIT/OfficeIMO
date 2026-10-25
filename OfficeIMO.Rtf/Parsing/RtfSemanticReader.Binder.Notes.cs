@@ -57,7 +57,9 @@ internal static partial class RtfSemanticReader {
                 }
             }
 
-            FlushParagraphIfNeeded(force: paragraphsAtLastStart == note.Paragraphs.Count, childState);
+            bool preserveParagraphAfterBreak =
+                (kind == RtfNoteKind.Footnote || kind == RtfNoteKind.Endnote) && note.Paragraphs.Count > 0;
+            FlushParagraphIfNeeded(force: paragraphsAtLastStart == note.Paragraphs.Count || preserveParagraphAfterBreak, childState);
             _document.AddParsedNote(note);
 
             _currentParagraph = savedParagraph;

@@ -85,17 +85,22 @@ test("empty workbook, one cell, unique names and stored fallback", async () => {
 
 test("OOXML attributes preserve literal escapes and validate the decoded worksheet names", async () => {
   const book = new Workbook({ compression: "store" });
-  const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_"];
-  const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_"];
+  const clipped = "x".repeat(30);
+  const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_",
+    clipped + "'Q4'", clipped, "History" + "'".repeat(24) + "Q4", "History_",
+    "'' 'Name", "Name' ''", " ' 'History' ' ", "' ' '", "O'Brien"];
+  const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_",
+    clipped, "x".repeat(27) + " (2)", "History_", "History_ (2)",
+    "Name", "Name (2)", "History_ (3)", "Sheet", "O'Brien"];
   for (const name of requests) book.addWorksheet(name);
   book.styles.add({ font: { name: "Font_x0041_" }, numberFormat: '"_x003A_"0' });
   const zip = await readZip(await book.toBlob());
-  const decode = text => text.replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const decode = text => text.replace(/&apos;/g, "'").replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   const names = [...zip.get("xl/workbook.xml").content.matchAll(/<sheet name="([^"]+)"/g)].map(match => decode(match[1]));
   assert.deepEqual(names, expected);
   assert.deepEqual(book.worksheets.map(sheet => sheet.name), expected);
   assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
-  assert.ok(names.every(name => name.length <= 31 && !/[\[\]:*?/\\]/.test(name)));
+  assert.ok(names.every(name => name.length <= 31 && !/[\[\]:*?/\\]/.test(name) && !name.startsWith("'") && !name.endsWith("'") && name.toLowerCase() !== "history"));
   const styles = zip.get("xl/styles.xml").content;
   assert.match(styles, /name val="Font_x005F_x0041_"/);
   assert.match(styles, /formatCode="&quot;_x005F_x003A_&quot;0"/);
@@ -115,6 +120,24 @@ test("XLSX enforces string, width, column, date and declared-type boundaries", a
   await assert.rejects(typed.addRows([["2"]]), TypeError);
   const dates = new Workbook().addWorksheet("Dates", { columns: [{ header: "V" }] });
   await assert.rejects(dates.addRows([[new Date("1800-01-01T00:00:00Z")]]), RangeError);
+});
+
+test("XLSX applies the cell boundary after cleaning without reducing the raw text budget", async () => {
+  const boundary = "x".repeat(32767), dirty = boundary + "\u0001";
+  for (const value of [boundary, dirty]) {
+    const book = new Workbook({ compression: "store", oversizedText: "preserve",
+      limits: { maxOverflowCharacters: 0, maxTextCharacters: value.length } });
+    await book.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[value]]);
+    const zip = await readZip(await book.toBlob());
+    const sheet = zip.get("xl/worksheets/sheet1.xml").content;
+    assert.ok(sheet.includes('<t xml:space="preserve">' + boundary + '</t>'));
+    assert.doesNotMatch(sheet, /<hyperlinks>/);
+    assert.equal(book.worksheets.length, 1, "Cleaning to the boundary needs no preservation sheet");
+  }
+  const rejected = new Workbook({ invalidCharacterPolicy: "reject" });
+  await assert.rejects(rejected.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[dirty]]), { code: "INVALID_XML" });
+  const limited = new Workbook({ limits: { maxTextCharacters: boundary.length } });
+  await assert.rejects(limited.addWorksheet("Text", { columns: [{ header: "V" }], includeHeader: false }).addRows([[dirty]]), { code: "RESOURCE_LIMIT" });
 });
 
 test("maximum column projects the last cell to XFD", async () => {

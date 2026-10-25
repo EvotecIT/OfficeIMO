@@ -217,7 +217,8 @@ export class Worksheet<T = never> {
     });
     const originalCharacters = typeof value === "string" ? value.length : 0;
     let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
-    if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
+    // Cleaning removes characters; ordinary strings cannot cross Excel's limit.
+    if (type === "string" && originalCharacters > 32767 && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
       const cell = col.letter + row;
       if (link || this.linkedCells.has(cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
       checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);

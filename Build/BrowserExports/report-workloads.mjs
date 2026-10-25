@@ -67,7 +67,7 @@ async function manifest() {
 }
 async function run() {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case")), engine = required("engine");
-  if (!fixture || !input.engines[engine]) throw Error("Unknown workload or engine.");
+  if (!fixture || !Object.hasOwn(input.engines, engine)) throw Error("Unknown workload or engine.");
   if (fixture.currentOnly && engine !== "current") throw Error("Analytical reports are current-only diagnostics; the snapshot baseline is not equivalent work.");
   const source = input.engines[engine];
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Measured runtime changed after preparation.");
@@ -116,11 +116,13 @@ async function run() {
     inputScope: composed ? "Canonical lazy analyticalRows and writeAnalyticalReport included: three hidden grouping dimensions, typed values/nulls/UTC dates, ancestor/grand aggregates, composed sections and native XLSX editing rules/chart. No retained source matrix. Imports/font intake excluded; current-only diagnostics, no baseline ranking."
       : fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
-      : fixture.kind === "wide" ? "Lazy 20-column deterministic inventory with two repeated identifiers and 100-point widths. Complete horizontal-band output; current-only diagnostics, no baseline ranking. No retained source matrix."
+      : fixture.kind === "wide" ? "Lazy 20-column deterministic inventory with two repeated identifiers and 100-point widths. Complete horizontal-band output; " +
+        (fixture.equivalentBaselineContract ? "operator-declared matching baseline, independently validated in both lanes. " : "current-only diagnostics, no baseline ranking. ") + "No retained source matrix."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
     ...(analytical ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
       acknowledgementOverlapWrites, maxRowsAdvancedDuringAcknowledgement, nativeCompressionMayReadAhead: true } } : {}),
     outputScope: fixture.delivery === "sink" ? "Complete export through awaited regular-file writes; OS page cache applies; first byte is first sink acceptance." : "Complete Blob generation; later Blob read and file copy excluded; first-byte metric unavailable.",
+    executionScope: "Fresh Node process for this sample; module import precedes EngineMs, but JIT state is fresh. PowerForge warmup exports ran in different processes; this is not steady-state warmed export latency.",
     memoryScope: "Fresh Node process lifetime peakRSS through operation end includes import/native memory; sampled JS heap/external are separate and not additive. Sampling can miss synchronous peaks.",
     runtime: source, host: { node: process.version, platform: process.platform, arch: process.arch, release: os.release(), cpus: os.cpus().length, model: os.cpus()[0]?.model,
       loadBefore, loadAfter: os.loadavg(), priority: os.getPriority(), affinity: "not pinned; platform scheduler", pid: process.pid } };
@@ -147,6 +149,13 @@ async function validate(output = required("output")) {
   } else if (fixture.format === "pdf") {
     const checked = spawnSync(required("qpdf"), ["--check", output], { encoding: "utf8", maxBuffer: 1024 * 1024 });
     if (checked.status !== 0) throw Error("qpdf failed: " + checked.stdout + checked.stderr);
+    let structure;
+    if (fixture.tagged) {
+      const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-pdf-workload-structure.py"),
+        output, String(fixture.rows), String(fixture.kind === "wide" ? wideTitles.length : titles.length)], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+      if (checked.status !== 0) throw Error("Independent tagged PDF structure readback failed: " + checked.stdout + checked.stderr);
+      structure = JSON.parse(checked.stdout);
+    }
     if (fixture.kind === "grouped-analysis") {
       const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"), output, String(fixture.rows), "grouped-pdf", String(fixture.groupRows), required("pdftotext")], { encoding: "utf8", maxBuffer: 1024 * 1024 });
       if (checked.status !== 0) throw Error("Independent grouped PDF validation failed: " + checked.stdout + checked.stderr);
@@ -177,18 +186,14 @@ async function validate(output = required("output")) {
       }
       if (orders.some(order => order.length !== fixture.rows || order.some((value, index) => value !== index)) || [...windows.values()].some(covered => covered.size !== bands.length))
         throw Error("Wide PDF omitted a row/identifier or misaligned its horizontal windows.");
-      const dataCells = (bytes.toString("latin1").match(/\/S \/TD\b/g) ?? []).length;
-      if (fixture.tagged && dataCells !== fixture.rows * wideTitles.length) throw Error("Tagged wide PDF logical cells differ from source cells: " + dataCells);
       return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { rows: fixture.rows, columns: wideTitles.length, bands: bands.length,
         windows: windows.size, everyCell: true, repeatedIdentifiers: true, alignedWindows: true, qpdf: true, poppler: true,
-        ...(fixture.tagged ? { dataCells, singleLogicalCellPerSourceValue: true } : {}) } };
+        ...(structure ? { ...structure, singleLogicalCellPerSourceValue: true } : {}) } };
     }
     const lines = extracted.stdout.split(/[\r\n\f]+/).map(line => line.trim()).filter(line => /^N\d{6}\s/.test(line));
     if (lines.length !== fixture.rows) throw Error("PDF row count differs: " + lines.length);
     for (let index = 0; index < lines.length; index++) if (lines[index].split(/\s+/).join("|") !== row(index).map(value => value instanceof Date ? value.toISOString().slice(0, 10) : value).join("|")) throw Error("PDF cell/order mismatch at row " + index + ": " + lines[index]);
-    const text = bytes.toString("latin1"), dataCells = (text.match(/\/S \/TD\b/g) ?? []).length;
-    if (fixture.tagged && dataCells !== fixture.rows * titles.length) throw Error("Tagged PDF cell structure count differs: " + dataCells);
-    proof = { rows: fixture.rows, columns: titles.length, everyCell: true, qpdf: true, ...(fixture.tagged ? { dataCells } : {}) };
+    proof = { rows: fixture.rows, columns: titles.length, everyCell: true, qpdf: true, ...(structure ?? {}) };
   } else {
     const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"), output, String(fixture.rows),
       ...(fixture.kind === "editable-analysis" ? ["service-analysis"] : fixture.kind === "grouped-analysis" ? ["grouped-analysis", String(fixture.groupRows)] : [])], { encoding: "utf8", maxBuffer: 1024 * 1024 });
@@ -280,20 +285,37 @@ try {
   let result;
   if (command === "prepare") {
     const evidence = path.resolve(required("evidence")); await mkdir(evidence, { recursive: true });
-    const engines = {};
-    for (const engine of ["baseline", "current"]) { const file = path.resolve(required(engine)); engines[engine] = { path: file, sha256: sha(await readFile(file)) }; }
-    const names = opts.cases?.split(","), cases = names ? names.map(name => { const item = fixtures.find(item => item.name === name); if (!item) throw Error("Unknown case " + name); return item; }) : fixtures.filter(item => !item.currentOnly);
+    if (opts.baseline && opts.baselines !== undefined) throw Error("Choose --baseline or --baselines, not both.");
+    const baselines = opts.baselines === undefined ? { baseline: required("baseline") } : JSON.parse(await readFile(path.resolve(opts.baselines), "utf8"));
+    if (!baselines || typeof baselines !== "object" || Array.isArray(baselines) || !Object.keys(baselines).length)
+      throw Error("Named baselines must be a nonempty object mapping labels to bundle paths.");
+    const engines = Object.create(null), baselineNames = Object.keys(baselines).sort();
+    for (const engine of baselineNames) {
+      if (!/^[a-z][a-z0-9-]*$/.test(engine) || engine === "current") throw Error("Baseline labels must be lowercase names other than current.");
+      if (typeof baselines[engine] !== "string" || !baselines[engine].trim()) throw Error("A named baseline must provide a bundle path.");
+      const file = path.resolve(baselines[engine]); engines[engine] = { path: file, sha256: sha(await readFile(file)) };
+    }
+    const current = path.resolve(required("current")); engines.current = { path: current, sha256: sha(await readFile(current)) };
+    const names = opts.cases?.split(","), selected = names ? names.map(name => { const item = fixtures.find(item => item.name === name); if (!item) throw Error("Unknown case " + name); return item; }) : fixtures.filter(item => !item.currentOnly);
+    const equivalentBaselineCases = opts["equivalent-baseline-cases"]?.split(",") ?? [];
+    if (new Set(equivalentBaselineCases).size !== equivalentBaselineCases.length) throw Error("Equivalent baseline cases must be unique.");
+    for (const name of equivalentBaselineCases) if (!selected.some(item => item.name === name && item.kind === "wide" && item.currentOnly))
+      throw Error("Equivalent baseline declarations apply only to explicitly selected current-only wide inventory cases: " + name);
+    const cases = selected.map(item => equivalentBaselineCases.includes(item.name) ? { ...item, currentOnly: false,
+      equivalentBaselineContract: "Operator declares that the selected baseline implements the same complete horizontal bands, repeated identifiers, logical cells and sink workload; both artifacts require independent readback." } : item);
     const examplePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs");
     const additionalPaths = cases.some(item => item.kind === "analytical") ? ["report-workloads-analytical.mjs", "verify-analytical-workload.py",
       "../../OfficeIMO.JavaScript.Examples/analytical-report-job.mjs", "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs",
       "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf"] : [];
+    if (cases.some(item => item.tagged)) additionalPaths.push("verify-pdf-workload-structure.py", "verify-semantic-report.py");
     const additionalSources = await Promise.all(additionalPaths.map(async name => {
       const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), name); return { path: file, sha256: sha(await readFile(file)) };
     }));
     result = { schema: 1, created: new Date().toISOString(), helperSha256: sha(await readFile(fileURLToPath(import.meta.url))),
       groupedHelperSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))),
       additionalSources,
-      verifierSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))), engines, cases,
+      verifierSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))), engines, cases, equivalentBaselineCases,
+      comparisonBaselines: baselineNames, executionMode: "fresh-process-module-preloaded-jit-fresh",
       ...(cases.some(item => item.kind === "editable-analysis") ? { example: { path: examplePath, sha256: sha(await readFile(examplePath)) } } : {}) };
     await writeFile(path.join(evidence, "workloads.json"), JSON.stringify(result, null, 2) + "\n");
   } else if (command === "run") result = await run();
