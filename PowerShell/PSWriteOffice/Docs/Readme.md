@@ -760,6 +760,9 @@ Lists or downloads Confluence page attachments.
 ### [Get-OfficeConfluencePage](Get-OfficeConfluencePage.md)
 Reads one page or streams a filtered Confluence Cloud page listing.
 
+### [Get-OfficeConversionJobReport](Get-OfficeConversionJobReport.md)
+Reads a bounded saved conversion run report without executing its job or changing outputs.
+
 ### [Get-OfficeConversionRoute](Get-OfficeConversionRoute.md)
 Lists conversion contracts from the installed OfficeIMO catalog and their availability for PSWriteOffice batch PDF export.
 

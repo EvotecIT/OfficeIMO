@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.0.9",
+  "moduleVersion": "3.5.2",
   "commands": [
     {
       "name": "Add-OfficeAccessColumn",
@@ -2084,6 +2084,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/EditOfficeExcelRowCommand.cs#L17"
     },
     {
+      "name": "Export-OfficeConversionJob",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeConversionJobCommand.cs",
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeConversionJobCommand.cs#L26"
+    },
+    {
       "name": "Export-OfficeCsv",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2344,6 +2352,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs",
       "sourceLine": 19,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs#L19"
+    },
+    {
+      "name": "Get-OfficeConversionJobReport",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionJobReportCommand.cs",
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionJobReportCommand.cs#L21"
     },
     {
       "name": "Get-OfficeConversionRoute",
@@ -3500,6 +3516,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ImportOfficeVisioStencilCommand.cs",
       "sourceLine": 20,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Visio/ImportOfficeVisioStencilCommand.cs#L20"
+    },
+    {
+      "name": "Invoke-OfficeConversionJob",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/InvokeOfficeConversionJobCommand.cs",
+      "sourceLine": 27,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/InvokeOfficeConversionJobCommand.cs#L27"
     },
     {
       "name": "Invoke-OfficeExcelAutoFit",

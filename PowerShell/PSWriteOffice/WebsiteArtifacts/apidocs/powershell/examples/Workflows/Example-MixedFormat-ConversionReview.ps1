@@ -62,7 +62,15 @@ $batch = @{
     SummaryVariable = 'batchSummary'
     MarkdownOptions = (New-OfficeMarkdownPdfOptions -ApplyWordLikeTheme -UseFirstHeadingAsTitle)
 }
-$items = @(Export-OfficeDocumentPdf @batch)
+# Retain streamed outcomes before reporting the batch's terminal failure.
+$batchErrors = @()
+$items = @(Export-OfficeDocumentPdf @batch -ErrorAction SilentlyContinue -ErrorVariable batchErrors)
+if ($null -eq $batchSummary) {
+    if ($batchErrors.Count -gt 0) {
+        throw $batchErrors[0]
+    }
+    throw 'The conversion did not return a batch summary.'
+}
 
 # Keep each run's review separate. The engine owns and verifies Pdf and State.
 $runId = [datetime]::UtcNow.ToString('yyyyMMddTHHmmssfffffffZ')
@@ -149,6 +157,6 @@ reported limitations. These distribution PDFs do not establish PDF/A or archival
     Failed = $batchSummary.Failed; Skipped = $batchSummary.Skipped; Cancelled = $batchSummary.Cancelled
     ReviewRequired = $reviewCount; PdfDirectory = $pdfRoot; ReviewDirectory = $reportRoot
 }
-if ($batchSummary.Cancelled -or $batchSummary.Failed -gt 0 -or $batchSummary.Completed -eq 0) {
+if ($batchSummary.FailureSummary -or $batchSummary.Cancelled -or $batchSummary.Failed -gt 0 -or $batchSummary.Completed -eq 0) {
     throw "Conversion needs attention. Review $reportRoot before retrying."
 }

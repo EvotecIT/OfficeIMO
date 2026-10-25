@@ -11,7 +11,7 @@ Plans or runs a saved conversion job through the same runner as Studio and the C
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Invoke-OfficeConversionJob [-Path] <string> [-Plan] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-AllowEmpty] [-WhatIf] [-Confirm] [<CommonParameters>]
+Invoke-OfficeConversionJob [-Path] <string> [-Plan] [-RetryFailed] [-ItemResults] [-SummaryVariable <string>] [-AllowEmpty] [-ReportPath <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -87,6 +87,22 @@ Inspect the job without converting files or creating output/checkpoint state.
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ReportPath
+New run-report JSON path outside the job's source, output and checkpoint trees. Existing files are preserved.
+
+```yaml
+Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
