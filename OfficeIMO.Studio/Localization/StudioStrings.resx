@@ -79,9 +79,30 @@
     <value>Route</value>
   </data>
   <data name="Jobs.Title" xml:space="preserve"><value>Jobs</value></data>
-  <data name="Jobs.SessionNote" xml:space="preserve"><value>Recent attempts stay in memory for this session. Recovery copies survive restart and remain until you discard them. Up to two workflows run at once.</value></data>
+  <data name="Jobs.SessionNote" xml:space="preserve"><value>Saved folder-job attempts survive restart when document history is on. Other attempts stay in this session; recovery copies remain until discarded. Up to two workflows run at once.</value></data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve"><value>Workflow output recovery</value></data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve"><value>Recovered from an earlier workflow attempt.</value></data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve"><value>Saved folder conversion</value></data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve"><value>File results</value></data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve"><value>Saved attempts describe what happened. Checkpointed runs verify outputs again before reuse.</value></data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve"><value>Review job</value></data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve"><value>Run history could not be fully saved: {0}</value></data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve"><value>{0} completed · {1} reused · {2} failed · {3} skipped</value></data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve"><value>Showing {0} file results. The counts describe the whole attempt.</value></data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve"><value>Interrupted</value></data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve"><value>This attempt ended without a final result. Review the saved job and outputs before running again.</value></data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve"><value>This saved job is running in another Studio instance. Review it after that attempt finishes.</value></data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve"><value>The saved job is no longer available. Locate it through Convert → Load job.</value></data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve"><value>The saved job changed after this attempt. Load it explicitly in Convert to review the new definition.</value></data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve"><value>Wait for the current conversion before reviewing another saved job.</value></data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve"><value>The output is no longer available.</value></data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve"><value>Reused</value></data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve"><value>Skipped</value></data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve"><value>Finished {0}</value></data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve"><value>No file results were recorded.</value></data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve"><value>Some saved run reports could not be read: {0}</value></data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve"><value>Some saved run reports could not be cleared. Active attempts are retained.</value></data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve"><value>Recorded output is no longer available.</value></data>
   <data name="Jobs.RecoveryNote" xml:space="preserve"><value>A prepared output copy is available. Check the selected destination before writing again.</value></data>
   <data name="Jobs.OpenRecovery" xml:space="preserve"><value>Open recovery copy</value></data>
   <data name="Jobs.DiscardRecovery" xml:space="preserve"><value>Discard copy…</value></data>
@@ -1444,11 +1465,11 @@
   <data name="Settings.HistoryPrivacyHelp" xml:space="preserve"><value>Remember recently opened files and reading preferences between visits. Turning this off stops new history and saved reading preferences in this instance and future launches. Existing records remain until cleared below. Restart sessions can also retain paths and reading positions.</value></data>
   <data name="Settings.DisableHistory" xml:space="preserve"><value>Turn off document history</value></data>
   <data name="Settings.EnableHistory" xml:space="preserve"><value>Turn on document history</value></data>
-  <data name="Settings.HistoryDisabled" xml:space="preserve"><value>Document history is off. New recent files and reading preferences are not stored.</value></data>
+  <data name="Settings.HistoryDisabled" xml:space="preserve"><value>Document history is off. New recent files, reading preferences and saved-job run reports are not stored.</value></data>
   <data name="Settings.ClearHistory" xml:space="preserve"><value>Clear stored document history…</value></data>
-  <data name="Settings.HistoryClearWarning" xml:space="preserve"><value>Clear recent files, saved reading preferences, and restart records? Documents, open edits, and recovery copies stay intact. Turn off history and restart sessions first to prevent new records.</value></data>
+  <data name="Settings.HistoryClearWarning" xml:space="preserve"><value>Clear recent files, saved reading preferences, restart records and finished saved-job reports? Documents, open edits, outputs, checkpoints, active attempts and recovery copies stay intact. Turn off history and restart sessions first to prevent new records.</value></data>
   <data name="Settings.DeleteHistory" xml:space="preserve"><value>Clear history</value></data>
-  <data name="Settings.HistoryCleared" xml:space="preserve"><value>Stored document history and restart records were cleared.</value></data>
+  <data name="Settings.HistoryCleared" xml:space="preserve"><value>Stored document history, restart records and finished saved-job reports were cleared.</value></data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve"><value>Some stored history could not be cleared. Close other Studio instances or check folder access, then retry. Records that were successfully removed stay cleared.</value></data>
   <data name="Settings.HistoryPreferenceFailed" xml:space="preserve"><value>The privacy setting could not be saved. The previous setting remains in effect. Check folder access and retry.</value></data>
   <data name="Settings.SessionCleanupFailed" xml:space="preserve"><value>Restart sessions are off, but the previous session record could not be deleted. Close other Studio instances or check folder access, then use Clear stored document history to retry.</value></data>

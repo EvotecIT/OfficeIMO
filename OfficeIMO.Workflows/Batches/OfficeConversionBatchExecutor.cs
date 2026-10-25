@@ -77,6 +77,9 @@ internal static partial class OfficeConversionBatchExecutor {
         catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException) {
             failureSummary = BoundMessage(error.Message);
         }
+        // A terminal loop failure cancels sibling work through its internal token.
+        // Report that as caller cancellation only when the caller also cancelled.
+        cancelled &= failureSummary == null || cancellationToken.IsCancellationRequested;
         return new OfficeConversionBatchResult(selected, completed, reused, failed, cancelled, skipped) { FailureSummary = failureSummary };
     }
 

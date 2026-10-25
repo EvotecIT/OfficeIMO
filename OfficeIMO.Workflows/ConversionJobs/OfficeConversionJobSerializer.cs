@@ -53,7 +53,10 @@ public static class OfficeConversionJobSerializer {
     /// <summary>Reads a bounded regular local file. The job must be outside its source, output and checkpoint trees.</summary>
     public static OfficeConversionJob ReadFile(string path) => ReadSnapshot(path, out _);
 
-    private static OfficeConversionJob ReadSnapshot(string path, out string sha256) {
+    /// <summary>Reads the job and SHA-256 of its exact bytes from the same bounded, link-checked file snapshot.</summary>
+    public static OfficeConversionJob ReadFile(string path, out string sha256) => ReadSnapshot(path, out sha256);
+
+    internal static OfficeConversionJob ReadSnapshot(string path, out string sha256) {
         string fullPath = Path.GetFullPath(path);
         OfficeConversionBatchExecutor.EnsureNoLinks(fullPath);
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -136,7 +139,7 @@ public static class OfficeConversionJobSerializer {
             name.Any(character => !(char.IsAsciiLetterOrDigit(character) || character == '_')))
             throw new InvalidDataException("Secret references must be environment-variable names.");
     }
-    private static void RejectDuplicates(JsonElement element) {
+    internal static void RejectDuplicates(JsonElement element) {
         if (element.ValueKind == JsonValueKind.Object) {
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (JsonProperty property in element.EnumerateObject()) {

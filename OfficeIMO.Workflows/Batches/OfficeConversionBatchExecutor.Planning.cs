@@ -58,7 +58,7 @@ internal static partial class OfficeConversionBatchExecutor {
                 if (items.Count < 250) items.Add(item); else result.ItemsTruncated = true;
                 progress?.Report(item);
             }
-            if (result.Selected == 0) { result.Failed++; notes.Add("No input files match an executable conversion route."); }
+            if (result.Selected == 0) notes.Add("No input files match an executable conversion route.");
         } catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
             result.Failed++; notes.Add(error.Message);
         }

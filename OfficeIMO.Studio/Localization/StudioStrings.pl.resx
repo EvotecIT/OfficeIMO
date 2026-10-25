@@ -82,13 +82,76 @@
     <value>Zadania</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Ostatnie próby pozostają w pamięci podczas tej sesji. Kopie odzyskiwania przetrwają ponowne uruchomienie i pozostają dostępne do czasu ich usunięcia. Jednocześnie mogą działać dwa zadania.</value>
+    <value>Próby zapisanych zadań konwersji folderów przetrwają ponowne uruchomienie, gdy historia dokumentów jest włączona. Inne próby pozostają w tej sesji, a kopie odzyskiwania do czasu ich usunięcia. Jednocześnie mogą działać dwa zadania.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Odzyskiwanie wyników zadań</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Odzyskano z wcześniejszej próby wykonania zadania.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Zapisana konwersja folderu</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Wyniki plików</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Zapisane próby pokazują, co się wydarzyło. Uruchomienia z punktami wznowienia ponownie sprawdzają wyniki przed ich użyciem.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Przejrzyj zadanie</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Nie udało się zapisać pełnej historii uruchomienia: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} ukończono · {1} użyto ponownie · {2} nie powiodło się · {3} pominięto</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Wyświetlono wyniki {0} plików. Liczniki obejmują całą próbę.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Przerwano</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Ta próba zakończyła się bez wyniku końcowego. Przed ponownym uruchomieniem przejrzyj zapisane zadanie i pliki wynikowe.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>To zapisane zadanie działa w innej instancji Studio. Przejrzyj je po zakończeniu tej próby.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>Zapisane zadanie nie jest już dostępne. Odszukaj je przez Konwertuj → Wczytaj zadanie.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>Zapisane zadanie zmieniło się po tej próbie. Wczytaj je bezpośrednio w sekcji Konwertuj, aby przejrzeć nową definicję.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Poczekaj na zakończenie bieżącej konwersji, zanim przejrzysz inne zapisane zadanie.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>Plik wynikowy nie jest już dostępny.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Użyto ponownie</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Pominięto</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Zakończono {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Nie zapisano wyników poszczególnych plików.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Nie udało się odczytać części zapisanych raportów uruchomień: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Nie udało się usunąć części zapisanych raportów uruchomień. Aktywne próby zostają zachowane.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>Zapisany plik wynikowy nie jest już dostępny.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Przygotowana kopia wyniku jest dostępna. Sprawdź wybrane miejsce docelowe przed ponownym zapisem.</value>
@@ -1861,19 +1924,19 @@
     <value>Włącz historię dokumentów</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>Historia dokumentów jest wyłączona. Nowe ostatnie pliki i ustawienia czytania nie są zapisywane.</value>
+    <value>Historia dokumentów jest wyłączona. Nowe wpisy ostatnio otwieranych plików, ustawienia czytania i raporty uruchomień zapisanych zadań nie są zapisywane.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Wyczyść zapisaną historię dokumentów…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Wyczyścić ostatnie pliki, zapisane ustawienia czytania i zapisy przywracania sesji? Dokumenty, otwarte zmiany i kopie odzyskiwania pozostaną bez zmian. Najpierw wyłącz historię i przywracanie sesji, aby zapobiec powstawaniu nowych zapisów.</value>
+    <value>Wyczyścić ostatnie pliki, zapisane ustawienia czytania, zapisy przywracania sesji i raporty zakończonych zapisanych zadań? Dokumenty, otwarte zmiany, wyniki, punkty wznowienia, aktywne próby i kopie odzyskiwania pozostaną bez zmian. Najpierw wyłącz historię i przywracanie sesji, aby zapobiec powstawaniu nowych zapisów.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Wyczyść historię</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>Wyczyszczono zapisaną historię dokumentów i zapisy przywracania sesji.</value>
+    <value>Wyczyszczono zapisaną historię dokumentów, zapisy przywracania sesji i raporty zakończonych zapisanych zadań.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Nie udało się wyczyścić części zapisanej historii. Zamknij pozostałe instancje Studio lub sprawdź dostęp do folderu, a następnie ponów operację. Pomyślnie usunięte zapisy pozostają usunięte.</value>

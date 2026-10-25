@@ -82,13 +82,76 @@
     <value>Tâches</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Les tentatives récentes restent en mémoire pendant cette session. Les copies de récupération sont conservées après un redémarrage jusqu'à leur suppression. Deux traitements peuvent s'exécuter simultanément.</value>
+    <value>Les tentatives des tâches de dossier enregistrées sont conservées au redémarrage si l’historique des documents est activé. Les autres tentatives restent dans cette session ; les copies de récupération sont conservées jusqu’à leur suppression. Deux traitements peuvent s’exécuter simultanément.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Récupération des résultats de traitement</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Récupéré depuis une tentative de traitement antérieure.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Conversion de dossier enregistrée</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Résultats des fichiers</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Les tentatives enregistrées indiquent ce qui s’est passé. Les exécutions avec points de reprise vérifient à nouveau les sorties avant de les réutiliser.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Examiner la tâche</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>L’historique d’exécution n’a pas pu être entièrement enregistré : {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} terminés · {1} réutilisés · {2} en échec · {3} ignorés</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Affichage des résultats de {0} fichiers. Les compteurs couvrent toute la tentative.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Interrompue</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Cette tentative s’est arrêtée sans résultat final. Examinez la tâche enregistrée et les sorties avant de la relancer.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Cette tâche enregistrée s’exécute dans une autre instance de Studio. Examinez-la une fois cette tentative terminée.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>La tâche enregistrée n’est plus disponible. Retrouvez-la via Convertir → Charger une tâche.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>La tâche enregistrée a été modifiée après cette tentative. Chargez-la explicitement dans Convertir pour examiner sa nouvelle définition.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Attendez la fin de la conversion en cours avant d’examiner une autre tâche enregistrée.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>La sortie n’est plus disponible.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Réutilisé</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Ignoré</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Terminée {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Aucun résultat de fichier n’a été enregistré.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Certains rapports d’exécution enregistrés n’ont pas pu être lus : {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Certains rapports d’exécution enregistrés n’ont pas pu être effacés. Les tentatives actives sont conservées.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>La sortie consignée n’est plus disponible.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Une copie du résultat préparé est disponible. Vérifiez la destination choisie avant toute nouvelle écriture.</value>
@@ -1861,19 +1924,19 @@
     <value>Activer l'historique des documents</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>L'historique des documents est désactivé. Aucun nouveau fichier récent ni préférence de lecture n'est enregistré.</value>
+    <value>L’historique des documents est désactivé. Les nouveaux fichiers récents, préférences de lecture et rapports d’exécution des tâches enregistrées ne sont pas conservés.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Effacer l'historique des documents stocké…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Effacer les fichiers récents, les préférences de lecture et les enregistrements de redémarrage ? Les documents, modifications ouvertes et copies de récupération restent intacts. Désactivez d'abord l'historique et les sessions de redémarrage pour éviter de nouveaux enregistrements.</value>
+    <value>Effacer les fichiers récents, les préférences de lecture enregistrées, les données de redémarrage et les rapports des tâches enregistrées terminées ? Les documents, modifications ouvertes, sorties, points de reprise, tentatives actives et copies de récupération restent intacts. Désactivez d’abord l’historique et les sessions au redémarrage pour éviter de nouveaux enregistrements.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Effacer l'historique</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>L'historique des documents et les enregistrements de redémarrage ont été effacés.</value>
+    <value>L’historique des documents, les données de redémarrage et les rapports des tâches enregistrées terminées ont été effacés.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Certains éléments de l'historique n'ont pas pu être effacés. Fermez les autres instances de Studio ou vérifiez l'accès au dossier, puis réessayez. Les enregistrements supprimés restent effacés.</value>

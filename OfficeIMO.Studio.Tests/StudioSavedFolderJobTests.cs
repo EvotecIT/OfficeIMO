@@ -171,6 +171,30 @@ public sealed class StudioSavedFolderJobTests {
     }
 
     [Fact]
+    public async Task InvalidFolderJobSettingsReportTheErrorWithoutStartingExecution() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            string root = services.Paths.Root, source = Path.Combine(root, "source"), output = Path.Combine(root, "output"), state = Path.Combine(root, "state");
+            Directory.CreateDirectory(source);
+            string input = Path.Combine(source, "one.txt");
+            File.WriteAllText(input, "Keep the source document");
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var batch = model.ConversionWorkbench.BatchExport;
+            batch.InputDirectory = source; batch.OutputDirectory = output; batch.CheckpointDirectory = state;
+            // The text box accepts pasted values; the shared saved-job contract bounds encoding names.
+            batch.TextEncoding = new string('x', 129);
+            await batch.RunCommand.ExecuteAsync(null);
+            Assert.Contains("Text encoding", batch.Status);
+            Assert.False(batch.IsBusy); Assert.True(batch.RunCommand.CanExecute(null));
+            Assert.Empty(model.Jobs.History.Entries);
+            Assert.False(Directory.Exists(output)); Assert.False(Directory.Exists(state));
+            Assert.Equal("Keep the source document", File.ReadAllText(input));
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ExternalSavedJobChangeBlocksCopyAndUnrelatedSaveDestinationIsPreserved() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

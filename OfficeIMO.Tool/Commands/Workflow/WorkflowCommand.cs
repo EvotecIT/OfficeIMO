@@ -34,7 +34,8 @@ Usage:
              [--source-password-env <name>] [--pdf-password-env <name>] [--allow-empty]
              [--format json|ndjson] [--save-job <new-job.json>]
   officeimo workflow job plan <job.json>
-  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson]
+  officeimo workflow job run <job.json> [--retry-failed] [--allow-empty] [--format json|ndjson] [--report <new-report.json>]
+  officeimo workflow job report <run-report.json>
   officeimo workflow printers [--paper-sources <queue>]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
@@ -47,6 +48,7 @@ Batch output defaults to the existing aggregate JSON. --format json adds per-fil
 (up to 10,000 or 16 MiB of items with an explicit truncation marker); ndjson streams every item and a final summary.
 Batch and saved jobs fail when no inputs are selected unless --allow-empty is supplied.
 --save-job writes a definition without converting files. Saved jobs contain secret references only.
+--report records an attempt independently of checkpoint receipts; job report inspects it without executing work.
 """;
 
     internal static async Task<int> RunAsync(

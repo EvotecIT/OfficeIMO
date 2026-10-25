@@ -82,13 +82,76 @@
     <value>Aufträge</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Die letzten Versuche bleiben für diese Sitzung im Arbeitsspeicher. Wiederherstellungskopien bleiben nach einem Neustart erhalten, bis Sie sie verwerfen. Bis zu zwei Arbeitsabläufe können gleichzeitig laufen.</value>
+    <value>Versuche gespeicherter Ordneraufträge bleiben nach einem Neustart erhalten, wenn der Dokumentverlauf aktiviert ist. Andere Versuche bleiben in dieser Sitzung; Wiederherstellungskopien bleiben erhalten, bis Sie sie verwerfen. Bis zu zwei Arbeitsabläufe können gleichzeitig laufen.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Ausgabe eines Arbeitsablaufs wiederherstellen</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Aus einem früheren Ausführungsversuch wiederhergestellt.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Gespeicherte Ordnerkonvertierung</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Dateiergebnisse</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Gespeicherte Versuche zeigen, was passiert ist. Ausführungen mit Wiederaufnahmepunkten prüfen Ausgaben vor der erneuten Verwendung noch einmal.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Auftrag prüfen</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Der Ausführungsverlauf konnte nicht vollständig gespeichert werden: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} abgeschlossen · {1} wiederverwendet · {2} fehlgeschlagen · {3} übersprungen</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Ergebnisse für {0} Dateien werden angezeigt. Die Zähler beziehen sich auf den gesamten Versuch.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Unterbrochen</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Dieser Versuch endete ohne abschließendes Ergebnis. Prüfen Sie den gespeicherten Auftrag und die Ausgaben vor einer erneuten Ausführung.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Dieser gespeicherte Auftrag wird in einer anderen Studio-Instanz ausgeführt. Prüfen Sie ihn nach Abschluss dieses Versuchs.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>Der gespeicherte Auftrag ist nicht mehr verfügbar. Suchen Sie ihn über Konvertieren → Auftrag laden.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>Der gespeicherte Auftrag wurde nach diesem Versuch geändert. Laden Sie ihn ausdrücklich unter Konvertieren, um die neue Definition zu prüfen.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Warten Sie auf das Ende der aktuellen Konvertierung, bevor Sie einen anderen gespeicherten Auftrag prüfen.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>Die Ausgabe ist nicht mehr verfügbar.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Wiederverwendet</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Übersprungen</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Beendet {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Es wurden keine Dateiergebnisse aufgezeichnet.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Einige gespeicherte Ausführungsberichte konnten nicht gelesen werden: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Einige gespeicherte Ausführungsberichte konnten nicht gelöscht werden. Aktive Versuche bleiben erhalten.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>Die aufgezeichnete Ausgabe ist nicht mehr verfügbar.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Eine vorbereitete Ausgabekopie ist verfügbar. Prüfen Sie das ausgewählte Ziel, bevor Sie erneut schreiben.</value>
@@ -1861,19 +1924,19 @@
     <value>Dokumentverlauf aktivieren</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>Der Dokumentverlauf ist deaktiviert. Neue zuletzt verwendete Dateien und Leseeinstellungen werden nicht gespeichert.</value>
+    <value>Der Dokumentverlauf ist deaktiviert. Neue zuletzt verwendete Dateien, Leseeinstellungen und Ausführungsberichte gespeicherter Aufträge werden nicht gespeichert.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Gespeicherten Dokumentverlauf löschen…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Zuletzt verwendete Dateien, gespeicherte Leseeinstellungen und Neustartdatensätze löschen? Dokumente, offene Bearbeitungen und Wiederherstellungskopien bleiben erhalten. Deaktivieren Sie zuerst Verlauf und Neustartsitzungen, um neue Datensätze zu verhindern.</value>
+    <value>Zuletzt verwendete Dateien, gespeicherte Leseeinstellungen, Neustartdatensätze und Berichte abgeschlossener gespeicherter Aufträge löschen? Dokumente, offene Bearbeitungen, Ausgaben, Wiederaufnahmepunkte, aktive Versuche und Wiederherstellungskopien bleiben erhalten. Deaktivieren Sie zuerst Verlauf und Neustartsitzungen, um neue Datensätze zu verhindern.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Verlauf löschen</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>Der gespeicherte Dokumentverlauf und die Neustartdatensätze wurden gelöscht.</value>
+    <value>Der gespeicherte Dokumentverlauf, die Neustartdatensätze und die Berichte abgeschlossener gespeicherter Aufträge wurden gelöscht.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Ein Teil des gespeicherten Verlaufs konnte nicht gelöscht werden. Schließen Sie andere Studio-Instanzen oder prüfen Sie den Ordnerzugriff und versuchen Sie es erneut. Bereits entfernte Datensätze bleiben gelöscht.</value>

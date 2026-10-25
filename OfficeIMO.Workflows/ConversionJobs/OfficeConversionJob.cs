@@ -84,7 +84,10 @@ public sealed class OfficeConversionJob {
         ArgumentNullException.ThrowIfNull(request.ConversionOptions);
         if (request.PdfPassword != null || request.ConversionOptions.SourcePassword != null)
             throw new NotSupportedException("Saved jobs require password environment-variable references, never password values.");
-        string Relative(string path) => Path.GetRelativePath(baseDirectory, Path.GetFullPath(path, baseDirectory));
+        string Relative(string path) {
+            string relative = Path.GetRelativePath(baseDirectory, Path.GetFullPath(path, baseDirectory));
+            return Path.DirectorySeparatorChar == '\\' ? relative.Replace('\\', '/') : relative;
+        }
         var job = new OfficeConversionJob {
             InputDirectory = request.InputDirectory == null ? null : Relative(request.InputDirectory),
             InputPaths = request.InputPaths?.Select(Relative).ToArray(), OutputDirectory = Relative(request.OutputDirectory),

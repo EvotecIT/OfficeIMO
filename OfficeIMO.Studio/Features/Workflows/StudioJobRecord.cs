@@ -29,6 +29,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
+    [NotifyPropertyChangedFor(nameof(CanCancel), nameof(CanReviewJob))]
     private bool _isActive = true;
     [ObservableProperty]
     private string _status = string.Empty;
@@ -97,7 +98,9 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private bool _recoveryDiscardRequested;
 
-    [RelayCommand(CanExecute = nameof(IsActive))]
+    public bool CanCancel => IsActive && _cancel is not null;
+
+    [RelayCommand(CanExecute = nameof(CanCancel))]
     private void Cancel() {
         _cancel?.Invoke();
         if (IsActive) Status = _localizer.GetOrDefault("Jobs.Cancelling", "Cancellation requested");

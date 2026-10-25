@@ -82,13 +82,76 @@
     <value>Attività</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>I tentativi recenti restano in memoria per questa sessione. Le copie di recupero restano disponibili dopo il riavvio finché non le elimini. Possono essere eseguiti due flussi di lavoro contemporaneamente.</value>
+    <value>I tentativi delle attività su cartelle salvate vengono conservati al riavvio se la cronologia dei documenti è attiva. Gli altri tentativi restano in questa sessione; le copie di recupero vengono conservate finché non le elimini. Possono essere eseguiti fino a due flussi di lavoro contemporaneamente.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Recupero dei risultati dei flussi di lavoro</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Recuperato da un precedente tentativo del flusso di lavoro.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Conversione cartella salvata</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Risultati dei file</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>I tentativi salvati descrivono quanto accaduto. Le esecuzioni con punti di ripresa verificano nuovamente gli output prima di riutilizzarli.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Esamina attività</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Impossibile salvare l’intera cronologia di esecuzione: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} completati · {1} riutilizzati · {2} non riusciti · {3} ignorati</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Sono mostrati i risultati di {0} file. I conteggi riguardano l’intero tentativo.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Interrotto</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Questo tentativo è terminato senza un risultato finale. Esamina l’attività salvata e gli output prima di eseguirla di nuovo.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Questa attività salvata è in esecuzione in un’altra istanza di Studio. Esaminala al termine del tentativo.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>L’attività salvata non è più disponibile. Cercala in Converti → Carica attività.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>L’attività salvata è cambiata dopo questo tentativo. Caricala esplicitamente in Converti per esaminare la nuova definizione.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Attendi il termine della conversione in corso prima di esaminare un’altra attività salvata.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>L’output non è più disponibile.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Riutilizzato</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Ignorato</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Terminato {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Non sono stati registrati risultati dei file.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Impossibile leggere alcuni rapporti di esecuzione salvati: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Impossibile cancellare alcuni rapporti di esecuzione salvati. I tentativi attivi vengono conservati.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>L’output registrato non è più disponibile.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>È disponibile una copia del risultato. Controlla la destinazione selezionata prima di scrivere di nuovo.</value>
@@ -1861,19 +1924,19 @@
     <value>Attiva cronologia documenti</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>La cronologia documenti è disattivata. I nuovi file recenti e le preferenze di lettura non vengono memorizzati.</value>
+    <value>La cronologia dei documenti è disattivata. Non vengono salvati nuovi file recenti, preferenze di lettura o rapporti di esecuzione delle attività salvate.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Cancella cronologia documenti salvata…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Cancellare file recenti, preferenze di lettura e registri di riavvio? Documenti, modifiche aperte e copie di recupero rimangono intatti. Disattiva prima cronologia e sessioni di riavvio per evitare nuove registrazioni.</value>
+    <value>Cancellare i file recenti, le preferenze di lettura salvate, i dati di riavvio e i rapporti delle attività salvate terminate? Documenti, modifiche aperte, output, punti di ripresa, tentativi attivi e copie di recupero restano intatti. Disattiva prima la cronologia e le sessioni al riavvio per impedire nuovi salvataggi.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Cancella cronologia</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>La cronologia documenti e i registri di riavvio sono stati cancellati.</value>
+    <value>La cronologia dei documenti, i dati di riavvio e i rapporti delle attività salvate terminate sono stati cancellati.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Non è stato possibile cancellare parte della cronologia. Chiudi le altre istanze di Studio o verifica l'accesso alla cartella, poi riprova. I dati rimossi correttamente restano cancellati.</value>

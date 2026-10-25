@@ -164,6 +164,27 @@ The [saved conversion job recipe](Examples/Workflows/Recipe-SavedConversionJob.p
 creates two small sample documents, inspects the plan, produces and reopens PDFs,
 and verifies that a second run reuses checkpointed artifacts.
 
+Add `-ReportPath` when executing a saved job to retain a durable attempt:
+
+```powershell
+Invoke-OfficeConversionJob -Path ./monthly.officejob.json `
+    -ReportPath ./runs/first.json -SummaryVariable summary -ErrorAction Stop
+Get-OfficeConversionJobReport -Path ./runs/first.json
+```
+
+Choose a new filename in an existing report folder outside the input, output and
+checkpoint trees. The typed summary and `-ItemResults` stream keep their existing
+shape. Failed conversions still finalize a report before reporting the batch
+error, and the summary is assigned before `-ErrorAction Stop` stops the script.
+If final report recording fails, the completed output and conversion summary
+remain available and a separate recording error is reported.
+
+`Get-OfficeConversionJobReport` requires PowerShell 7.4 or newer. It reads bounded
+run evidence without opening referenced files or executing a conversion. An
+abandoned running attempt is shown as interrupted. A report's output links and
+counts describe that attempt; checkpoint verification determines reuse when the
+job runs again. Keep earlier reports and use another `-ReportPath` for a retry.
+
 Project, Access, EPUB and invoice workflows use ordinary PowerShell parameters:
 
 ```powershell

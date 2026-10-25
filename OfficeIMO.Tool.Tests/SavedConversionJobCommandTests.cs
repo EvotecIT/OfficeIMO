@@ -127,6 +127,62 @@ public sealed class SavedConversionJobCommandTests {
         Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
     }
 
+    [Fact]
+    public async Task Recorded_runs_can_be_inspected_and_retried_without_replacing_prior_evidence() {
+        using var files = new Files();
+        File.WriteAllText(Path.Combine(files.Input, "good.txt"), "Retained completed document");
+        string failedSource = Path.Combine(files.Input, "repair.docx");
+        File.WriteAllText(failedSource, "Invalid package for the first attempt");
+        var saved = await Run("workflow", "batch", "--input-directory", files.Input, "--output", files.Output,
+            "--checkpoint", files.State, "--concurrency", "1", "--save-job", files.Job);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, saved.Code);
+        string firstPath = Path.Combine(Path.GetDirectoryName(files.Job)!, "first-run.json");
+        var first = await Run("workflow", "job", "run", files.Job, "--report", firstPath);
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, first.Code);
+        var report = OfficeConversionJobRunReportSerializer.ReadFile(firstPath);
+        Assert.Equal(1, report.Batch!.Summary.Completed);
+        Assert.Equal(1, report.Batch.Summary.Failed);
+        Assert.Equal(2, report.Batch.Items.Count);
+        byte[] retainedReport = File.ReadAllBytes(firstPath);
+        string goodOutput = Path.Combine(files.Output, "good.txt.pdf");
+        byte[] retainedPdf = File.ReadAllBytes(goodOutput);
+        var inspected = await Run("workflow", "job", "report", firstPath);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, inspected.Code);
+        Assert.Equal(report.RunId, OfficeConversionJobRunReportSerializer.Deserialize(inspected.Output).RunId);
+        File.Delete(failedSource);
+        using (var repaired = OfficeIMO.Word.WordDocument.Create()) {
+            repaired.AddParagraph("The failed document is repaired.");
+            repaired.Save(failedSource);
+        }
+        string secondPath = Path.Combine(Path.GetDirectoryName(files.Job)!, "second-run.json");
+        var retry = await Run("workflow", "job", "run", files.Job, "--retry-failed", "--report", secondPath);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, retry.Code);
+        var retried = OfficeConversionJobRunReportSerializer.ReadFile(secondPath);
+        Assert.True(retried.RetryFailed);
+        Assert.Equal(2, retried.Batch!.Summary.Completed);
+        Assert.Equal(1, retried.Batch.Summary.Reused);
+        Assert.NotEqual(report.RunId, retried.RunId);
+        Assert.Equal(retainedReport, File.ReadAllBytes(firstPath));
+        Assert.Equal(retainedPdf, File.ReadAllBytes(goodOutput));
+    }
+
+    [Fact]
+    public async Task Recording_preserves_an_occupied_destination_and_plan_remains_read_only() {
+        using var files = new Files();
+        File.WriteAllText(Path.Combine(files.Input, "one.txt"), "No execution before recording admission");
+        var saved = await Run("workflow", "batch", "--input-directory", files.Input, "--output", files.Output, "--save-job", files.Job);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, saved.Code);
+        string report = Path.Combine(Path.GetDirectoryName(files.Job)!, "occupied.json");
+        File.WriteAllText(report, "Unrelated user file");
+        var rejected = await Run("workflow", "job", "run", files.Job, "--report", report);
+        Assert.NotEqual((int)OfficeImoToolExitCode.Success, rejected.Code);
+        Assert.Equal("Unrelated user file", File.ReadAllText(report));
+        Assert.False(Directory.Exists(files.Output));
+        var plan = await Run("workflow", "job", "plan", files.Job, "--report", report);
+        Assert.NotEqual((int)OfficeImoToolExitCode.Success, plan.Code);
+        Assert.False(Directory.Exists(files.Output));
+    }
+
     private static async Task<(int Code, string Output, string Error)> Run(params string[] args) {
         using var output = new MemoryStream();
         using var error = new StringWriter();

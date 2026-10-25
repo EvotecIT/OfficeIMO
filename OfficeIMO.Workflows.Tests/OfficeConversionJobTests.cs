@@ -40,6 +40,31 @@ public sealed class OfficeConversionJobTests {
         Assert.Equal(4, restored.ConversionOptions.PlainText.TabSize);
     }
 
+    [Fact]
+    public void CapturedJobUsesPortableSeparatorsWhenRebasedToAnotherDirectory() {
+        using var scope = new JobDirectory();
+        string source = Path.Combine(scope.Input, "nested");
+        var request = new OfficeConversionBatchRequest {
+            InputDirectory = source, InputPaths = [Path.Combine(source, "notes.txt")],
+            OutputDirectory = Path.Combine(scope.Output, "pdf"), CheckpointDirectory = Path.Combine(scope.State, "checkpoints")
+        };
+        string jobDirectory = Path.Combine(scope.Root, "jobs", "saved");
+        string json = OfficeConversionJobSerializer.Serialize(OfficeConversionJob.FromRequest(request, jobDirectory));
+        using (var document = JsonDocument.Parse(json)) {
+            Assert.Equal("../../input/nested", document.RootElement.GetProperty("inputDirectory").GetString());
+            Assert.Equal("../../input/nested/notes.txt", document.RootElement.GetProperty("inputPaths")[0].GetString());
+            Assert.Equal("../../output/pdf", document.RootElement.GetProperty("outputDirectory").GetString());
+            Assert.Equal("../../state/checkpoints", document.RootElement.GetProperty("checkpointDirectory").GetString());
+        }
+        string relocatedRoot = Path.Combine(scope.Root, "relocated");
+        OfficeConversionBatchRequest restored = OfficeConversionJobSerializer.Deserialize(json)
+            .CreateRequest(Path.Combine(relocatedRoot, "jobs", "saved"));
+        Assert.Equal(Path.Combine(relocatedRoot, "input", "nested"), restored.InputDirectory);
+        Assert.Equal(Path.Combine(restored.InputDirectory!, "notes.txt"), Assert.Single(restored.InputPaths!));
+        Assert.Equal(Path.Combine(relocatedRoot, "output", "pdf"), restored.OutputDirectory);
+        Assert.Equal(Path.Combine(relocatedRoot, "state", "checkpoints"), restored.CheckpointDirectory);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -118,6 +143,8 @@ public sealed class OfficeConversionJobTests {
         for (int index = 0; index < 260; index++) File.WriteAllText(Path.Combine(scope.Input, index + ".bin"), "ignored");
         OfficeConversionJobPlan plan = await OfficeConversionJobRunner.PlanAsync(scope.Job(), scope.Root, new OfficeWorkflowRunner());
         Assert.False(plan.CanRun);
+        Assert.Equal(0, plan.Selected);
+        Assert.Equal(0, plan.Failed);
         Assert.Equal(260, plan.Skipped);
         Assert.Equal(250, plan.Items.Count);
         Assert.True(plan.ItemsTruncated);
@@ -128,6 +155,21 @@ public sealed class OfficeConversionJobTests {
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => OfficeConversionJobRunner.PlanAsync(scope.Job(), scope.Root,
             new OfficeWorkflowRunner(), cancellationToken: cancelled.Token));
+    }
+
+    [Fact]
+    public async Task EmptyInputPlanReportsNoFailuresWithoutCreatingOutputOrCheckpointState() {
+        using var scope = new JobDirectory();
+        var job = scope.Job(); job.CheckpointDirectory = "state";
+        OfficeConversionJobPlan plan = await OfficeConversionJobRunner.PlanAsync(job, scope.Root, new OfficeWorkflowRunner());
+        Assert.False(plan.CanRun);
+        Assert.Equal(0, plan.Discovered);
+        Assert.Equal(0, plan.Selected);
+        Assert.Equal(0, plan.Failed);
+        Assert.Empty(plan.Items);
+        Assert.Contains(plan.Diagnostics, note => note.Contains("No input files"));
+        Assert.False(Directory.Exists(scope.Output));
+        Assert.False(Directory.Exists(scope.State));
     }
 
     [Fact]
@@ -210,8 +252,34 @@ public sealed class OfficeConversionJobTests {
         Assert.False(completedReport.RootElement.TryGetProperty("FailureSummary", out _));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DiscoveryFailureDoesNotReportSiblingCancellationAsCallerCancellation(bool checkpointed) {
+        using var scope = new JobDirectory();
+        File.WriteAllText(Path.Combine(scope.Input, "first.txt"), "First source");
+        File.WriteAllText(Path.Combine(scope.Input, "second.txt"), "Second source");
+        var job = scope.Job();
+        job.CheckpointDirectory = checkpointed ? "state" : null;
+        job.MaximumConcurrency = 2;
+        job.MaximumFiles = 1;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var observed = new CapturedBatchItems();
+        OfficeConversionBatchResult result = await OfficeConversionJobRunner.RunAsync(job, scope.Root, new WaitForCancellationRunner(),
+            progress: observed, cancellationToken: timeout.Token);
+        Assert.False(timeout.IsCancellationRequested);
+        Assert.NotNull(result.FailureSummary);
+        Assert.Contains("file limit", result.FailureSummary);
+        Assert.False(result.Cancelled);
+        Assert.Equal(1, result.Selected);
+        Assert.Equal(0, result.Completed);
+        Assert.Equal(0, result.Failed);
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, Assert.Single(observed.Items).Status);
+        Assert.Empty(Directory.GetFiles(scope.Output, "*.pdf"));
+    }
+
     [Fact]
-    public void SavingProtectsInputsAndJobDefinitionsAndCopiedCommandsQuoteLiteralPaths() {
+    public void SavingProtectsInputsAndJobDefinitions() {
         using var scope = new JobDirectory();
         string source = Path.Combine(scope.Input, "notes.txt"); File.WriteAllText(source, "Keep original");
         var job = scope.Job();
@@ -225,9 +293,22 @@ public sealed class OfficeConversionJobTests {
         Assert.Equal(before, File.ReadAllText(path));
         OfficeConversionJobSerializer.SaveFile(job, path, overwrite: true);
         Assert.Equal("Changed", OfficeConversionJobSerializer.ReadFile(path).Name);
-        Assert.Equal(OperatingSystem.IsWindows() ? "officeimo workflow job run 'O''Brien $report.json'" : "officeimo workflow job run 'O'\\''Brien $report.json'",
-            OfficeConversionJobCommands.GetCliCommand("O'Brien $report.json"));
-        Assert.Equal("Invoke-OfficeConversionJob -Path 'O''Brien $report.json'", OfficeConversionJobCommands.GetPowerShellCommand("O'Brien $report.json"));
+    }
+
+    [Theory]
+    [InlineData(0x27)]
+    [InlineData(0x2018)]
+    [InlineData(0x2019)]
+    [InlineData(0x201A)]
+    [InlineData(0x201B)]
+    public void CopiedCommandsKeepEveryPowerShellApostropheInsideTheLiteralPath(int apostropheCode) {
+        char apostrophe = (char)apostropheCode;
+        string path = "O" + apostrophe + "Brien $report; & value.json";
+        string powerShellLiteral = "'O" + apostrophe + apostrophe + "Brien $report; & value.json'";
+        Assert.Equal("Invoke-OfficeConversionJob -Path " + powerShellLiteral, OfficeConversionJobCommands.GetPowerShellCommand(path));
+        string cliLiteral = OperatingSystem.IsWindows() ? powerShellLiteral : apostrophe == '\''
+            ? "'O'\\''Brien $report; & value.json'" : "'" + path + "'";
+        Assert.Equal("officeimo workflow job run " + cliLiteral, OfficeConversionJobCommands.GetCliCommand(path));
     }
 
     private sealed class JobDirectory : IDisposable {
@@ -247,5 +328,27 @@ public sealed class OfficeConversionJobTests {
             OutputPath = item.OutputPath;
             cancellation.Cancel();
         }
+    }
+
+    private sealed class CapturedBatchItems : IProgress<OfficeConversionBatchItemResult> {
+        internal System.Collections.Concurrent.ConcurrentQueue<OfficeConversionBatchItemResult> Items { get; } = new();
+        public void Report(OfficeConversionBatchItemResult item) => Items.Enqueue(item);
+    }
+
+    private sealed class WaitForCancellationRunner : IOfficeWorkflowRunner {
+        private readonly OfficeWorkflowRunner _inner = new();
+        public async Task<OfficeWorkflowResult> RunAsync(OfficeWorkflowRequest request,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
+            try {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                return await _inner.RunAsync(request, progress, cancellationToken);
+            }
+            throw new InvalidOperationException("The batch must cancel the waiting sibling after discovery fails.");
+        }
+
+        public Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(IEnumerable<OfficeWorkflowRequest> requests,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) =>
+            _inner.RunBatchAsync(requests, progress, cancellationToken);
     }
 }

@@ -50,7 +50,8 @@ if ((Test-Path -LiteralPath $pdf) -or (Test-Path -LiteralPath $state)) {
     throw 'Planning created output or checkpoint state.'
 }
 
-$first = Invoke-OfficeConversionJob -Path $job
+$firstReportPath = Join-Path $root 'first-run.json'
+$first = Invoke-OfficeConversionJob -Path $job -ReportPath $firstReportPath
 if ($first.Completed -ne 2 -or $first.Failed -ne 0) {
     throw 'The first run did not complete both sample documents.'
 }
@@ -61,10 +62,18 @@ foreach ($name in 'notes.txt.pdf', 'brief.html.pdf') {
         throw "The completed PDF could not be reopened: $path"
     }
 }
+$recorded = Get-OfficeConversionJobReport -Path $firstReportPath
+if ($recorded.Batch.Summary.Completed -ne 2 -or $recorded.Batch.Items.Count -ne 2) {
+    throw 'The first attempt did not retain both file outcomes.'
+}
+$firstReportHash = (Get-FileHash -LiteralPath $firstReportPath -Algorithm SHA256).Hash
 
-$resumed = Invoke-OfficeConversionJob -Path $job
+$resumed = Invoke-OfficeConversionJob -Path $job -ReportPath (Join-Path $root 'resumed-run.json')
 if ($resumed.Completed -ne 2 -or $resumed.Reused -ne 2 -or $resumed.Failed -ne 0) {
     throw 'The second run did not reuse both verified artifacts.'
+}
+if ((Get-FileHash -LiteralPath $firstReportPath -Algorithm SHA256).Hash -ne $firstReportHash) {
+    throw 'The second attempt changed the earlier run report.'
 }
 $first
 $resumed

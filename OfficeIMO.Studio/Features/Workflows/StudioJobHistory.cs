@@ -7,13 +7,14 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 /// <summary>UI-thread-owned, bounded session history and application workflow resource budget.</summary>
-public sealed class StudioJobHistory : ObservableObject {
+public sealed partial class StudioJobHistory : ObservableObject {
     public const int MaximumEntries = 500;
     public const int MaximumConcurrentRuns = 2;
     private readonly ObservableCollection<StudioJobRecord> _entries = new();
     private readonly SemaphoreSlim _execution = new(MaximumConcurrentRuns, MaximumConcurrentRuns);
     private readonly IStudioLocalizer _localizer;
-    internal StudioJobHistory(IStudioLocalizer localizer, OfficeWorkflowOutputRecoveryStore? recoveryStore = null) {
+    internal StudioJobHistory(IStudioLocalizer localizer, OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
+        Infrastructure.Preferences.StudioDocumentHistory? documentHistory = null) {
         _localizer = localizer;
         Entries = new ReadOnlyObservableCollection<StudioJobRecord>(_entries);
         RecoveryStore = recoveryStore;
@@ -28,6 +29,7 @@ public sealed class StudioJobHistory : ObservableObject {
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             RecoveryError = exception.Message;
         }
+        InitializeRunReports(documentHistory);
     }
     internal OfficeWorkflowOutputRecoveryStore? RecoveryStore { get; }
     public string? RecoveryError { get; }
@@ -57,7 +59,11 @@ public sealed class StudioJobHistory : ObservableObject {
     }
 
     internal void ClearFinished() {
-        foreach (StudioJobRecord entry in _entries.Where(entry => !entry.IsActive && !entry.HasRecovery).ToArray()) Remove(entry);
+        bool cleared = RunStore?.ClearFinished() ?? true;
+        foreach (StudioJobRecord entry in _entries.Where(entry => !entry.IsActive && !entry.HasRecovery).ToArray()) {
+            if (entry.RunReportPath is null || !File.Exists(entry.RunReportPath)) Remove(entry);
+        }
+        RunHistoryError = cleared ? null : _localizer.GetOrDefault("Jobs.RunReport.ClearError", "Some saved run reports could not be cleared. Active attempts are retained.");
         NotifyState();
     }
     private void Remove(StudioJobRecord entry) {

@@ -16,7 +16,7 @@ Describe 'PSWriteOffice public API consistency' {
         $inputPathCommands = @($script:OfficeCommands | Where-Object { $_.Parameters.ContainsKey('InputPath') })
 
         $filePathCommands.Name | Should -BeNullOrEmpty
-        @($inputPathCommands.Name | Sort-Object) | Should -Be @('ConvertTo-OfficeDocument', 'Export-OfficeDocumentPdf')
+        @($inputPathCommands.Name | Sort-Object) | Should -Be @('ConvertTo-OfficeDocument', 'Export-OfficeConversionJob', 'Export-OfficeDocumentPdf')
     }
 
     It 'reserves Show for semantic visibility choices' {

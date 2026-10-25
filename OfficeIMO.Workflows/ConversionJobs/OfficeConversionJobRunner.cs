@@ -26,7 +26,7 @@ public sealed class OfficeConversionJobPlan {
 }
 
 /// <summary>Plans and runs saved jobs through the same configured workflow runner as interactive hosts.</summary>
-public static class OfficeConversionJobRunner {
+public static partial class OfficeConversionJobRunner {
     /// <summary>Discovers inputs without output/checkpoint writes or secret resolution. Execute revalidates all source and output policy.</summary>
     public static Task<OfficeConversionJobPlan> PlanAsync(OfficeConversionJob job, string baseDirectory, IOfficeWorkflowRunner runner,
         IProgress<OfficeConversionJobPlanItem>? progress = null, CancellationToken cancellationToken = default) {

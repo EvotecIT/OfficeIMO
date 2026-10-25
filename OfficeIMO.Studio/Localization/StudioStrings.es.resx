@@ -82,13 +82,76 @@
     <value>Tareas</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>Los intentos recientes se conservan en memoria durante esta sesión. Las copias de recuperación se conservan tras reiniciar hasta que las descarte. Pueden ejecutarse hasta dos flujos de trabajo a la vez.</value>
+    <value>Los intentos de tareas de carpeta guardadas se conservan tras reiniciar si el historial de documentos está activado. Los demás intentos permanecen en esta sesión; las copias de recuperación se conservan hasta que las descarte. Pueden ejecutarse hasta dos flujos de trabajo a la vez.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Recuperación de resultados de flujos de trabajo</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Recuperado de un intento anterior del flujo de trabajo.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Conversión de carpeta guardada</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Resultados de archivos</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>Los intentos guardados muestran lo ocurrido. Las ejecuciones con puntos de control vuelven a verificar las salidas antes de reutilizarlas.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Revisar tarea</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>No se pudo guardar todo el historial de ejecución: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} completados · {1} reutilizados · {2} con errores · {3} omitidos</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Se muestran los resultados de {0} archivos. Los recuentos abarcan todo el intento.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Interrumpido</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Este intento terminó sin un resultado final. Revise la tarea guardada y las salidas antes de volver a ejecutarla.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Esta tarea guardada se está ejecutando en otra instancia de Studio. Revísela cuando termine ese intento.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>La tarea guardada ya no está disponible. Búsquela en Convertir → Cargar tarea.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>La tarea guardada cambió después de este intento. Cárguela explícitamente en Convertir para revisar la nueva definición.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Espere a que termine la conversión actual antes de revisar otra tarea guardada.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>La salida ya no está disponible.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Reutilizado</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Omitido</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Finalizado {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>No se registraron resultados de archivos.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>No se pudieron leer algunos informes de ejecución guardados: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>No se pudieron borrar algunos informes de ejecución guardados. Se conservan los intentos activos.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>La salida registrada ya no está disponible.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Hay una copia del resultado preparada. Compruebe el destino seleccionado antes de volver a escribir.</value>
@@ -1861,19 +1924,19 @@
     <value>Activar historial de documentos</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>El historial de documentos está desactivado. No se guardan nuevos archivos recientes ni preferencias de lectura.</value>
+    <value>El historial de documentos está desactivado. No se guardan nuevos archivos recientes, preferencias de lectura ni informes de ejecución de tareas guardadas.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Borrar historial de documentos guardado…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>¿Borrar archivos recientes, preferencias de lectura y registros de reinicio? Se conservan los documentos, los cambios abiertos y las copias de recuperación. Desactive primero el historial y las sesiones de reinicio para evitar nuevos registros.</value>
+    <value>¿Borrar los archivos recientes, las preferencias de lectura guardadas, los registros de reinicio y los informes de tareas guardadas finalizadas? Los documentos, las ediciones abiertas, las salidas, los puntos de control, los intentos activos y las copias de recuperación se conservan. Desactive primero el historial y las sesiones de reinicio para evitar nuevos registros.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Borrar historial</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>Se han borrado el historial de documentos y los registros de reinicio guardados.</value>
+    <value>Se borraron el historial de documentos, los registros de reinicio y los informes de tareas guardadas finalizadas.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>No se pudo borrar parte del historial. Cierre otras instancias de Studio o compruebe el acceso a la carpeta e inténtelo de nuevo. Los registros eliminados no se restauran.</value>

@@ -10,8 +10,9 @@ the installed public entry points.
 
 ```text
 officeimo workflow job plan ./folder.officeimojob.json
-officeimo workflow job run ./folder.officeimojob.json --format ndjson
-officeimo workflow job run ./folder.officeimojob.json
+officeimo workflow job run ./folder.officeimojob.json --format ndjson --report ./folder-first-run.json
+officeimo workflow job report ./folder-first-run.json
+officeimo workflow job run ./folder.officeimojob.json --report ./folder-second-run.json
 ```
 
 The plan selects the two TXT files and reports the other inputs as skipped. It
@@ -19,6 +20,8 @@ creates no output or checkpoint folders. The first run writes
 `Outputs/Folder/brief.txt.pdf` and `actions.txt.pdf`. Reopen both PDFs and check
 their text. The second run reports two reused artifacts after verifying the
 sources, rendering settings and saved output hashes. It does not overwrite them.
+The two report files retain distinct attempts. Inspecting a report never runs
+the job; its observations do not replace checkpoint verification.
 
 In Studio's Convert workbench, expand the local-folder batch section, choose
 **Load job**, select `folder.officeimojob.json`, inspect **Plan**, then run it.
@@ -53,7 +56,7 @@ invoked from another working directory using its absolute filename.
 
 ```text
 officeimo workflow job plan ./retry.officeimojob.json
-officeimo workflow job run ./retry.officeimojob.json --format ndjson
+officeimo workflow job run ./retry.officeimojob.json --format ndjson --report ./retry-first-run.json
 ```
 
 `Inputs/repair.docx` deliberately contains invalid document bytes. Planning
@@ -68,7 +71,7 @@ Remove-Item -LiteralPath ./Inputs/repair.docx
 New-OfficeWord -Path ./Inputs/repair.docx {
     WordParagraph 'The failed input has been repaired.'
 }
-Invoke-OfficeConversionJob -Path ./retry.officeimojob.json -RetryFailed -ItemResults -SummaryVariable run
+Invoke-OfficeConversionJob -Path ./retry.officeimojob.json -RetryFailed -ReportPath ./retry-second-run.json -ItemResults -SummaryVariable run
 $run
 ```
 

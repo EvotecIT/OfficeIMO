@@ -184,9 +184,12 @@ execution revalidates current inputs. Registered iWork routes use the host's
 ordinary batch registration; checkpoints still require supported built-in routes.
 
 Use `--source-password-env NAME` and `--pdf-password-env NAME` for runtime secret
-references. Saved jobs never contain password values. Studio can load the same
-definition in its local-folder workbench, and PowerShell runs it with
-`Invoke-OfficeConversionJob -Path ./monthly.officeimojob.json`.
+references. Saved jobs never contain password values. PowerShell runs the same
+definition with `Invoke-OfficeConversionJob -Path ./monthly.officeimojob.json`.
+Studio's local-folder workbench loads source-folder jobs that target PDF using
+automatic route selection and have no password references. Use the CLI or
+PowerShell for explicit-file lists, other targets, fixed conversion routes or
+jobs with password environment-variable references.
 
 Ordinary `workflow batch` keeps its aggregate JSON default. `--format json`
 adds a versioned per-file report, bounded to 10,000 retained items and 16 MiB of
@@ -204,6 +207,27 @@ still include the terminal summary.
 
 See the [complete job examples](../OfficeIMO.Workflows/Examples/ConversionJobs/README.md)
 for expected results and checkpoint retry instructions.
+
+Retain a readable attempt independently of checkpoint state by choosing a new
+report path outside the input, output and checkpoint trees:
+
+```text
+officeimo workflow job run ./monthly.officeimojob.json --report ./runs/first.json
+officeimo workflow job report ./runs/first.json
+officeimo workflow job run ./monthly.officeimojob.json --retry-failed --report ./runs/retry.json
+```
+
+The report parent folder must exist. Existing report files are preserved. Each
+attempt records the saved definition's fingerprint, timing, aggregate outcome
+and bounded per-file results. Inspection never runs the job or opens its referenced
+files. A report left by an exited writer appears as interrupted; a live writer
+remains running. Reports describe past observations. The normal source, output
+and checkpoint checks still determine whether an artifact can be reused.
+
+If report creation fails, conversion does not start. If final recording fails
+after conversions, the command reports the recording error and returns failure
+while retaining completed outputs and their conversion counts. Use a separate
+report filename for each attempt rather than replacing earlier evidence.
 
 ## Common workflows
 

@@ -9,6 +9,12 @@ public static class OfficeConversionJobCommands {
     private static string Quote(string path, bool posix = false) {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (path.Any(char.IsControl)) throw new ArgumentException("A copied job path cannot contain control characters.", nameof(path));
-        return "'" + path.Replace("'", posix ? "'\\''" : "''") + "'";
+        if (posix) return "'" + path.Replace("'", "'\\''") + "'";
+        var quoted = new System.Text.StringBuilder("'");
+        foreach (char character in path) {
+            quoted.Append(character);
+            if (character is '\'' or '\u2018' or '\u2019' or '\u201A' or '\u201B') quoted.Append(character);
+        }
+        return quoted.Append('\'').ToString();
     }
 }

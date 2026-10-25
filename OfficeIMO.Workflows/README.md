@@ -72,6 +72,36 @@ existing parent directory and preserves an existing file unless replacement is
 explicit. See the [three runnable job examples](Examples/ConversionJobs/README.md)
 for folder conversion, a delivery document, and recovery from partial failure.
 
+### Durable run reports
+
+`OfficeConversionJobRunner.RunRecordedAsync` records a saved job's attempt before
+execution and finalizes it after the batch returns. It accepts the loaded job,
+its filename, a new report filename and the configured runner. The report parent
+must exist, and reports stay outside source, output and checkpoint trees.
+
+```csharp
+string jobPath = Path.GetFullPath("monthly.officeimojob.json");
+var saved = OfficeConversionJobSerializer.ReadFile(jobPath);
+var recorded = await OfficeConversionJobRunner.RunRecordedAsync(
+    saved, jobPath, Path.GetFullPath("runs/first.json"), runner);
+Console.WriteLine(recorded.Batch?.Summary.Completed);
+var inspected = OfficeConversionJobRunReportSerializer.ReadFile("runs/first.json");
+```
+
+The separate `officeimo.conversion.job.run.v1` contract records run identity,
+UTC timing, the admitted job file's SHA-256, output/checkpoint locations and a
+bounded `OfficeConversionBatchReport`. The batch report is shared with CLI JSON
+and NDJSON presentation; item truncation is explicit. Runtime passwords,
+resolvers and callbacks are excluded. An explicit retry is recorded separately
+from the saved definition's fingerprint.
+
+Readers distinguish a live writer from an abandoned attempt using its local
+lease, never its age. Inspection does not open referenced files or grant reuse
+authority. Checkpoints retain the source/output hash and publication contracts.
+Initial recording failure prevents conversion; final recording failure is
+returned through `RecordingError` alongside the retained batch result. Hosts
+must report that failure without discarding completed output counts.
+
 ## Single conversions and file batches
 
 `OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.

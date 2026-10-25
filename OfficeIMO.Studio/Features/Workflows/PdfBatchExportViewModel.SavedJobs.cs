@@ -128,6 +128,35 @@ public sealed partial class PdfBatchExportViewModel {
         if (location is null) return;
         string path = RequireLocalJobPath(location);
         OfficeConversionJob definition = await Task.Run(() => OfficeConversionJobSerializer.ReadFile(path), cancellation);
+        ApplyLoadedJob(definition, path);
+    }, token);
+
+    /// <summary>Loads only the exact saved definition referenced by a historical attempt, without executing it.</summary>
+    internal async Task<bool> ReviewSavedJobAsync(string path, string expectedSha256, CancellationToken token) {
+        if (!CanEdit) {
+            Status = UnavailableReason ?? _localizer.GetOrDefault("Jobs.RunReport.Busy", "Wait for the current conversion before reviewing another saved job.");
+            return false;
+        }
+        bool loaded = false;
+        await WithJobOperationAsync(async cancellation => {
+            if (!File.Exists(path)) throw new FileNotFoundException(_localizer.GetOrDefault("Jobs.RunReport.MissingJob", "The saved job is no longer available. Locate it through Convert → Load job."));
+            var snapshot = await Task.Run(() => {
+                try {
+                    OfficeConversionJob definition = OfficeConversionJobSerializer.ReadFile(path, out string fingerprint);
+                    return (Definition: definition, Fingerprint: fingerprint);
+                } catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException or NotSupportedException) {
+                    throw new IOException(_localizer.GetOrDefault("Jobs.RunReport.ChangedJob", "The saved job changed after this attempt. Load it explicitly in Convert to review the new definition."), error);
+                }
+            }, cancellation);
+            if (!string.Equals(snapshot.Fingerprint, expectedSha256, StringComparison.OrdinalIgnoreCase))
+                throw new IOException(_localizer.GetOrDefault("Jobs.RunReport.ChangedJob", "The saved job changed after this attempt. Load it explicitly in Convert to review the new definition."));
+            ApplyLoadedJob(snapshot.Definition, path);
+            loaded = true;
+        }, token);
+        return loaded;
+    }
+
+    private void ApplyLoadedJob(OfficeConversionJob definition, string path) {
         if (definition.Secrets.SourcePasswordEnvironmentVariable is not null || definition.Secrets.PdfPasswordEnvironmentVariable is not null)
             throw new NotSupportedException(T("Secrets", "This workbench cannot request saved-job password references. Run that job through the CLI or PowerShell."));
         string baseDirectory = Path.GetDirectoryName(path)!;
@@ -147,7 +176,7 @@ public sealed partial class PdfBatchExportViewModel {
             _savedMatchesFields = true; _hasRun = false; OnPropertyChanged(nameof(RunLabel));
         } finally { _applyingJob = false; }
         Status = T("Loaded", "Folder job loaded. Review its settings and plan before running; no documents were processed.");
-    }, token);
+    }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task PlanJobAsync(CancellationToken token) => WithJobOperationAsync(async cancellation => {

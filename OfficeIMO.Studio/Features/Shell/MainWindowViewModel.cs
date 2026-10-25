@@ -199,6 +199,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 openOutput: openWorkflowOutput,
                 pickPackage: token => FileDialogs.PickFolderAsync(_localizer.GetOrDefault("Conversion.Package.Picker", "Choose an Apple document package"), token),
                 fileDialogs: () => FileDialogs);
+            InitializeSavedJobReview();
             InvoiceWorkbench = new InvoiceWorkbenchViewModel(
                 token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
                     new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),

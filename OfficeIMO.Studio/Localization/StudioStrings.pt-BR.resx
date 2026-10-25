@@ -82,13 +82,76 @@
     <value>Tarefas</value>
   </data>
   <data name="Jobs.SessionNote" xml:space="preserve">
-    <value>As tentativas recentes ficam na memória durante esta sessão. As cópias de recuperação permanecem após reiniciar, até serem descartadas. Até dois fluxos de trabalho podem ser executados ao mesmo tempo.</value>
+    <value>As tentativas de tarefas de pasta salvas são mantidas após reiniciar quando o histórico de documentos está ativado. As outras tentativas permanecem nesta sessão; as cópias de recuperação são mantidas até serem descartadas. Até dois fluxos de trabalho podem ser executados ao mesmo tempo.</value>
   </data>
   <data name="Jobs.RecoveredTitle" xml:space="preserve">
     <value>Recuperação da saída do fluxo de trabalho</value>
   </data>
   <data name="Jobs.RecoveredSummary" xml:space="preserve">
     <value>Recuperado de uma tentativa anterior do fluxo de trabalho.</value>
+  </data>
+  <data name="Jobs.RunReport.Title" xml:space="preserve">
+    <value>Conversão de pasta salva</value>
+  </data>
+  <data name="Jobs.RunReport.Details" xml:space="preserve">
+    <value>Resultados dos arquivos</value>
+  </data>
+  <data name="Jobs.RunReport.Note" xml:space="preserve">
+    <value>As tentativas salvas mostram o que aconteceu. As execuções com pontos de controle validam as saídas novamente antes de reutilizá-las.</value>
+  </data>
+  <data name="Jobs.RunReport.Review" xml:space="preserve">
+    <value>Revisar tarefa</value>
+  </data>
+  <data name="Jobs.RunReport.RecordingError" xml:space="preserve">
+    <value>Não foi possível salvar todo o histórico de execução: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.Summary" xml:space="preserve">
+    <value>{0} concluídos · {1} reutilizados · {2} com falha · {3} ignorados</value>
+  </data>
+  <data name="Jobs.RunReport.Sample" xml:space="preserve">
+    <value>Exibindo resultados de {0} arquivos. As contagens abrangem toda a tentativa.</value>
+  </data>
+  <data name="Jobs.RunReport.Interrupted" xml:space="preserve">
+    <value>Interrompida</value>
+  </data>
+  <data name="Jobs.RunReport.InterruptedNote" xml:space="preserve">
+    <value>Esta tentativa terminou sem um resultado final. Revise a tarefa salva e as saídas antes de executá-la novamente.</value>
+  </data>
+  <data name="Jobs.RunReport.RunningNote" xml:space="preserve">
+    <value>Esta tarefa salva está em execução em outra instância do Studio. Revise-a quando essa tentativa terminar.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingJob" xml:space="preserve">
+    <value>A tarefa salva não está mais disponível. Localize-a em Converter → Carregar tarefa.</value>
+  </data>
+  <data name="Jobs.RunReport.ChangedJob" xml:space="preserve">
+    <value>A tarefa salva foi alterada após esta tentativa. Carregue-a explicitamente em Converter para revisar a nova definição.</value>
+  </data>
+  <data name="Jobs.RunReport.Busy" xml:space="preserve">
+    <value>Aguarde o fim da conversão atual antes de revisar outra tarefa salva.</value>
+  </data>
+  <data name="Jobs.RunReport.MissingOutput" xml:space="preserve">
+    <value>A saída não está mais disponível.</value>
+  </data>
+  <data name="Jobs.RunReport.Reused" xml:space="preserve">
+    <value>Reutilizado</value>
+  </data>
+  <data name="Jobs.RunReport.Skipped" xml:space="preserve">
+    <value>Ignorado</value>
+  </data>
+  <data name="Jobs.RunReport.Finished" xml:space="preserve">
+    <value>Concluída {0}</value>
+  </data>
+  <data name="Jobs.RunReport.NoFileResults" xml:space="preserve">
+    <value>Nenhum resultado de arquivo foi registrado.</value>
+  </data>
+  <data name="Jobs.RunReport.LoadError" xml:space="preserve">
+    <value>Não foi possível ler alguns relatórios de execução salvos: {0}</value>
+  </data>
+  <data name="Jobs.RunReport.ClearError" xml:space="preserve">
+    <value>Não foi possível limpar alguns relatórios de execução salvos. As tentativas ativas são mantidas.</value>
+  </data>
+  <data name="Jobs.RunReport.OutputUnavailable" xml:space="preserve">
+    <value>A saída registrada não está mais disponível.</value>
   </data>
   <data name="Jobs.RecoveryNote" xml:space="preserve">
     <value>Uma cópia da saída preparada está disponível. Confira o destino selecionado antes de gravar novamente.</value>
@@ -1861,19 +1924,19 @@
     <value>Ativar histórico de documentos</value>
   </data>
   <data name="Settings.HistoryDisabled" xml:space="preserve">
-    <value>O histórico de documentos está desativado. Novos arquivos recentes e preferências de leitura não são armazenados.</value>
+    <value>O histórico de documentos está desativado. Novos arquivos recentes, preferências de leitura e relatórios de execução de tarefas salvas não são armazenados.</value>
   </data>
   <data name="Settings.ClearHistory" xml:space="preserve">
     <value>Limpar histórico de documentos armazenado…</value>
   </data>
   <data name="Settings.HistoryClearWarning" xml:space="preserve">
-    <value>Limpar arquivos recentes, preferências de leitura salvas e registros de reinício? Documentos, edições abertas e cópias de recuperação serão mantidos. Desative primeiro o histórico e as sessões de reinício para impedir novos registros.</value>
+    <value>Limpar os arquivos recentes, as preferências de leitura salvas, os registros de reinicialização e os relatórios de tarefas salvas concluídas? Documentos, edições abertas, saídas, pontos de controle, tentativas ativas e cópias de recuperação permanecem intactos. Desative primeiro o histórico e as sessões de reinicialização para impedir novos registros.</value>
   </data>
   <data name="Settings.DeleteHistory" xml:space="preserve">
     <value>Limpar histórico</value>
   </data>
   <data name="Settings.HistoryCleared" xml:space="preserve">
-    <value>O histórico de documentos armazenado e os registros de reinício foram limpos.</value>
+    <value>O histórico de documentos, os registros de reinicialização e os relatórios de tarefas salvas concluídas foram limpos.</value>
   </data>
   <data name="Settings.HistoryClearFailed" xml:space="preserve">
     <value>Não foi possível limpar parte do histórico armazenado. Feche outras instâncias do Studio ou confira o acesso à pasta e tente novamente. Os registros já removidos continuam apagados.</value>

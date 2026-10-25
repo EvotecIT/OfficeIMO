@@ -409,8 +409,8 @@
           "detail": "Convert, combine, extract and make searchable without opening a document",
           "support": { "windows": "partial", "linux": "partial", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "windows": "Folder batch conversion and jobs; the OfficeIMO command-line tool covers scripted workflows.",
-            "linux": "Folder batch conversion and jobs; the OfficeIMO command-line tool covers scripted workflows.",
+            "windows": "Saved local-folder PDF jobs with planning, checkpoint reuse and bounded run history. CLI and PowerShell execute the shared portable definitions.",
+            "linux": "Saved local-folder PDF jobs with planning, checkpoint reuse and bounded run history. CLI and PowerShell execute the shared portable definitions.",
             "mac": "Shortcuts actions with Siri and Spotlight phrases.",
             "ipad": "Shortcuts actions with Siri and Spotlight phrases.",
             "iphone": "Shortcuts actions with Siri and Spotlight phrases."

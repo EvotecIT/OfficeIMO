@@ -50,18 +50,26 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
     [Parameter]
     public SwitchParameter AllowEmpty { get; set; }
 
+    /// <summary>New run-report JSON path outside the job's source, output and checkpoint trees. Existing files are preserved.</summary>
+    [Parameter]
+    public string? ReportPath { get; set; }
+
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
 #if FRAMEWORK
         await Task.CompletedTask;
         throw new PlatformNotSupportedException("Saved conversion jobs require PowerShell 7.4 or newer.");
 #else
+        if (ReportPath is not null && string.IsNullOrWhiteSpace(ReportPath))
+            throw new ArgumentException("Specify a non-empty run-report path.", nameof(ReportPath));
         string jobPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         string baseDirectory = System.IO.Path.GetDirectoryName(jobPath)!;
         OfficeConversionJob job = OfficeConversionJobSerializer.ReadFile(jobPath);
         if (RetryFailed.IsPresent) job.RetryFailed = true;
         var runner = OfficeWorkflowCommandUtilities.CreateRunner();
         if (Plan.IsPresent) {
+            if (!string.IsNullOrWhiteSpace(ReportPath))
+                throw new ArgumentException("Plan does not write a run report. Use ReportPath when executing the job.");
             var plan = await OfficeConversionJobRunner.PlanAsync(job, baseDirectory, runner, cancellationToken: CancelToken);
             SetSummary(plan);
             WriteObject(plan);
@@ -72,13 +80,24 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
         }
         string outputDirectory = System.IO.Path.GetFullPath(job.OutputDirectory, baseDirectory);
         if (!ShouldProcess(outputDirectory, "Run saved conversion job")) return;
-        var result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner,
-            new OfficeConversionJobRuntimeOptions { ResolveEnvironmentVariable = Environment.GetEnvironmentVariable },
-            new BatchProgress(this), CancelToken);
+        var runtime = new OfficeConversionJobRuntimeOptions { ResolveEnvironmentVariable = Environment.GetEnvironmentVariable };
+        OfficeConversionJobRunReport? report = null;
+        OfficeConversionBatchResult result;
+        if (string.IsNullOrWhiteSpace(ReportPath)) {
+            result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner, runtime, new BatchProgress(this), CancelToken);
+        } else {
+            string reportPath = OfficeFileCommandUtilities.ResolvePath(this, ReportPath);
+            report = await OfficeConversionJobRunner.RunRecordedAsync(job, jobPath, reportPath, runner,
+                runtime, new BatchProgress(this), CancelToken, allowEmpty: AllowEmpty.IsPresent);
+            result = report.Batch?.Summary ?? throw new InvalidOperationException("The run report has no conversion result.");
+        }
         SetSummary(result);
         WriteProgress(new ProgressRecord(1, "Run conversion job", "Finished") { RecordType = ProgressRecordType.Completed });
         ErrorRecord? error = OfficeWorkflowCommandUtilities.GetBatchError(result, AllowEmpty.IsPresent, "OfficeConversionJob");
         if (error != null) WriteError(error);
+        if (report?.RecordingError is { } recordingError)
+            WriteError(new ErrorRecord(new IOException("The conversions finished, but their run report could not be finalized: " + recordingError),
+                "OfficeConversionJobReportFailed", ErrorCategory.WriteError, report));
         if (!ItemResults.IsPresent) WriteObject(result);
 #endif
     }

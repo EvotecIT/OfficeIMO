@@ -12,9 +12,9 @@ internal static class WorkflowJobCommand {
             await output.WriteLineAsync(WorkflowCommand.Usage).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
         }
-        if (args[0] is not "plan" and not "run") throw new WorkflowUsageException("Choose job plan or job run.");
+        if (args[0] is not "plan" and not "run" and not "report") throw new WorkflowUsageException("Choose job plan, job run or job report.");
         string command = args[0];
-        string? path = null, format = null;
+        string? path = null, format = null, reportPath = null;
         bool retryFailed = false, allowEmpty = false;
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 1; index < args.Length; index++) {
@@ -25,10 +25,15 @@ internal static class WorkflowJobCommand {
                 continue;
             }
             if (!seen.Add(option)) throw new WorkflowUsageException("Duplicate job option: " + option);
-            if (command != "run") throw new WorkflowUsageException("Job plan accepts only the saved job path.");
+            if (command != "run") throw new WorkflowUsageException("Job plan and report inspection accept only their file path.");
             switch (option) {
                 case "--retry-failed": retryFailed = true; break;
                 case "--allow-empty": allowEmpty = true; break;
+                case "--report":
+                    if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal))
+                        throw new WorkflowUsageException("Specify a new run-report path.");
+                    reportPath = args[index];
+                    break;
                 case "--format":
                     if (++index >= args.Length || args[index] is not "json" and not "ndjson")
                         throw new WorkflowUsageException("Choose job result format: json or ndjson.");
@@ -39,6 +44,11 @@ internal static class WorkflowJobCommand {
         }
         if (string.IsNullOrWhiteSpace(path)) throw new WorkflowUsageException("Specify a saved job file.");
         string fullPath = Path.GetFullPath(path);
+        if (command == "report") {
+            var report = OfficeConversionJobRunReportSerializer.ReadFile(fullPath);
+            await output.WriteLineAsync(OfficeConversionJobRunReportSerializer.Serialize(report)).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Success;
+        }
         string baseDirectory = Path.GetDirectoryName(fullPath)!;
         OfficeConversionJob job = OfficeConversionJobSerializer.ReadFile(fullPath);
         var runner = IWorkWorkflow.CreateRunner();
@@ -51,10 +61,17 @@ internal static class WorkflowJobCommand {
         if (retryFailed) job.RetryFailed = true;
         var progress = new WorkflowBatchOutput(output, error, format ?? "json");
         var runtime = new OfficeConversionJobRuntimeOptions { ResolveEnvironmentVariable = Environment.GetEnvironmentVariable };
-        OfficeConversionBatchResult result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner,
-            runtime, progress, token).ConfigureAwait(false);
-        progress.Complete(result, allowEmpty);
-        return WorkflowBatchCommand.ExitCode(result, allowEmpty);
+        OfficeConversionJobRunReport? recorded = null;
+        OfficeConversionBatchResult result;
+        if (reportPath == null) {
+            result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner, runtime, progress, token).ConfigureAwait(false);
+        } else {
+            recorded = await OfficeConversionJobRunner.RunRecordedAsync(job, fullPath, Path.GetFullPath(reportPath), runner,
+                runtime, progress, token, allowEmpty: allowEmpty).ConfigureAwait(false);
+            result = recorded.Batch?.Summary ?? throw new InvalidOperationException("The run report has no conversion result.");
+        }
+        progress.Complete(result, allowEmpty, recorded?.RecordingError);
+        return recorded?.RecordingError == null ? WorkflowBatchCommand.ExitCode(result, allowEmpty) : (int)OfficeImoToolExitCode.OperationFailed;
     }
 }
 

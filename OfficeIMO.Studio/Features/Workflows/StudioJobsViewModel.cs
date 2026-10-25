@@ -24,6 +24,30 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private string? _actionError;
     /// <summary>Whether the host exposes desktop folder navigation.</summary>
     public bool SupportsFolderNavigation => _revealFolder is not null;
+    internal Func<string, string, CancellationToken, Task>? ReviewSavedJob { get; set; }
+    private bool CanReview(StudioJobRecord? job) => job?.CanReviewJob == true && ReviewSavedJob is not null;
+    private bool CanOpenReportOutput(StudioConversionRunItem? item) => item?.HasOutput == true;
+
+    /// <summary>Returns to the exact saved definition for review; it never starts execution.</summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private async Task ReviewJobAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
+        if (!CanReview(job) || job?.RunReport is not { } report) return;
+        try {
+            ActionError = null;
+            await ReviewSavedJob!(report.JobPath, report.JobSha256, cancellationToken);
+        } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { ActionError = error.Message; }
+    }
+
+    /// <summary>Opens an individual recorded result only if that local output still exists.</summary>
+    [RelayCommand(CanExecute = nameof(CanOpenReportOutput))]
+    private async Task OpenReportOutputAsync(StudioConversionRunItem? item, CancellationToken cancellationToken) {
+        if (!CanOpenReportOutput(item) || item?.OutputPath is not { } path) return;
+        try {
+            ActionError = null;
+            if (!File.Exists(path)) throw new FileNotFoundException(History.MissingOutputMessage, path);
+            await _openOutput(path, cancellationToken);
+        } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { ActionError = error.Message; }
+    }
     private bool CanOpen(StudioJobRecord? job) => job?.CanOpenOutput == true && (!job.IsDirectoryOutput || SupportsFolderNavigation);
 
     private bool CanReveal(StudioJobRecord? job) => _revealFolder is not null && job?.HasOutput == true &&
@@ -34,7 +58,10 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private async Task RevealOutputAsync(StudioJobRecord? job) {
         if (!CanReveal(job) || OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(job!.OutputPath!) is not { } local) return;
         string folder = Directory.Exists(local) ? local : Path.GetDirectoryName(local) ?? local;
-        try { await _revealFolder!(folder).ConfigureAwait(true); ActionError = null; }
+        try {
+            if (!File.Exists(local) && !Directory.Exists(local)) throw new FileNotFoundException(History.MissingOutputMessage, local);
+            await _revealFolder!(folder).ConfigureAwait(true); ActionError = null;
+        }
         catch (Exception error) { ActionError = error.Message; }
     }
     public bool CanClear => History.CanClear;
@@ -45,6 +72,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         ActionError = null;
         OpenOutputCommand.NotifyCanExecuteChanged();
         RevealOutputCommand.NotifyCanExecuteChanged();
+        ReviewJobCommand.NotifyCanExecuteChanged();
     }
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task OpenOutputAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
@@ -96,11 +124,13 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         ClearFinishedCommand.NotifyCanExecuteChanged();
         OpenOutputCommand.NotifyCanExecuteChanged();
         RevealOutputCommand.NotifyCanExecuteChanged();
+        ReviewJobCommand.NotifyCanExecuteChanged();
         if (SelectedJob is not null && !History.Entries.Contains(SelectedJob)) SelectedJob = null;
     }
     private void OnSelectedChanged(object? sender, PropertyChangedEventArgs args) {
         OpenOutputCommand.NotifyCanExecuteChanged();
         RevealOutputCommand.NotifyCanExecuteChanged();
+        ReviewJobCommand.NotifyCanExecuteChanged();
     }
     public void Dispose() {
         History.PropertyChanged -= OnHistoryChanged;
