@@ -2,6 +2,7 @@ using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -43,8 +44,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
         IReadOnlyList<HtmlRenderText> renderedText = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
         IReadOnlyList<OfficeDrawingText> textElements = drawing.Elements.OfType<OfficeDrawingText>().ToList();
-        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        string svg = document.ToSvg(options);
+        byte[] png = document.ToPng(options);
         XDocument svgDocument = XDocument.Parse(svg);
 
         Assert.NotEmpty(textElements);
@@ -68,7 +70,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, bounds[1]);
         Assert.Equal(320D / 100D, bounds[2] / bounds[3], 6);
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
-        AssertPdfBackedSvgRetainsPaintedGlyphs(rendered.Pages[0], svg);
+        // No caller font is registered for this default-font workflow. The
+        // serialized PDF owns its selected fallback program and glyphs.
+        byte[] savedPdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        var savedPage = OfficeIMO.Pdf.PdfReadDocument.Open(savedPdf).Pages[0];
+        OfficeImageExportResult savedSvg = savedPage.ExportImage(OfficeImageExportFormat.Svg,
+            new OfficeIMO.Pdf.PdfImageExportOptions {
+                Scale = options.Scale * HtmlRenderOptions.CssPixelsPerInch / 72D,
+                BackgroundColor = options.BackgroundColor
+            });
+        Assert.Equal(savedSvg.Bytes, Encoding.UTF8.GetBytes(svg));
+        string inkSource = string.Concat(svgDocument.Descendants()
+            .Where(element => element.Name.LocalName == "path"
+                && !string.IsNullOrWhiteSpace(element.Attribute("d")?.Value))
+            .Select(element => element.AncestorsAndSelf()
+                .Select(ancestor => ancestor.Attribute("aria-label")?.Value)
+                .FirstOrDefault(label => label != null)));
+        Assert.Contains("One model.", inkSource, StringComparison.Ordinal);
+        Assert.Contains("Shared output.", inkSource, StringComparison.Ordinal);
+
+        using var independentPdf = UglyToad.PdfPig.PdfDocument.Open(savedPdf);
+        var saved = independentPdf.GetPage(1);
+        HtmlRenderText[] firstLineSource = renderedText.Where(text => text.Text.Any(IsLatinLetter)).ToArray();
+        Assert.NotEmpty(firstLineSource);
+        var latinLetters = saved.Letters.Where(letter => letter.Value.Any(IsLatinLetter)).ToArray();
+        Assert.NotEmpty(latinLetters);
+        double expectedBaseline = PaintBaseline(firstLineSource[0]);
+        Assert.All(firstLineSource, text => Assert.Equal(expectedBaseline, PaintBaseline(text), 6));
+        Assert.All(latinLetters, letter => Assert.InRange(
+            Math.Abs((saved.Height - letter.StartBaseLine.Y) / 0.75D - expectedBaseline), 0D, 0.02D));
+        double savedBaseline = latinLetters[0].StartBaseLine.Y;
+        var firstLineLetters = saved.Letters.Where(letter =>
+            Math.Abs(letter.StartBaseLine.Y - savedBaseline) < 0.001D).ToArray();
+        Assert.InRange(Math.Abs(firstLineLetters.Min(letter => letter.StartBaseLine.X) / 0.75D
+            - firstLineSource.Min(text => text.X)), 0D, 0.02D);
+        Assert.InRange(Math.Abs(firstLineLetters.Max(letter => letter.EndBaseLine.X) / 0.75D
+            - firstLineSource.Max(text => text.X + text.TextAdvanceWidth!.Value)), 0D, 0.02D);
+
+        static bool IsLatinLetter(char scalar) => scalar is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
         Assert.Contains("One model.", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("Shared output.", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());

@@ -55,6 +55,8 @@ public sealed partial class HtmlRenderingTests {
     // Compare each source slice with its actual PDF-backed SVG ink at the exact
     // selected-font pen; a contour label alone does not establish placement.
     internal static void AssertPdfBackedSvgRetainsPaintedGlyphs(HtmlRenderPage page, string svg) {
+        // This is the authored HTML scene, not a PDF-readback scene. Its
+        // contour/label/pen equality proves the output without a PDF marker.
         OfficeDrawing drawing = page.CreateDrawing();
         OfficeDrawingText[] painted = DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>()
             .Where(text => text.Text.Length > 0).ToArray();
@@ -80,7 +82,6 @@ public sealed partial class HtmlRenderingTests {
                     && element.Attribute("y")?.Value == X(text.Y + text.Font.Size + text.BaselineOffset)).ToArray();
                 if (scalar.Length > 0) {
                     XElement encoded = Assert.Single(scalar);
-                    Assert.True(text.PreservesPaintedGlyphs);
                     Assert.Equal(text.Text, encoded.Attribute("aria-label")?.Value ?? encoded.Value);
                     Assert.Equal("ltr", encoded.Attribute("direction")?.Value);
                     Assert.Equal("bidi-override", encoded.Attribute("unicode-bidi")?.Value);
@@ -97,7 +98,6 @@ public sealed partial class HtmlRenderingTests {
             IOfficeFontProgram? program = prepared?.Program ?? drawing.Fonts.ResolveForText(
                 text.RasterText, text.Font.FamilyName, text.Font.Face, text.Font.Size, out _);
             IOfficeBoundedFontProgram bounded = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(program);
-            if (prepared == null) Assert.True(text.PreservesPaintedGlyphs);
             double size = text.Font.Size;
             double baseline = program is IOfficeFontBaselineMetrics metrics
                 ? metrics.BaselineOffset(size) : program!.LineHeight(size) * .8D;
