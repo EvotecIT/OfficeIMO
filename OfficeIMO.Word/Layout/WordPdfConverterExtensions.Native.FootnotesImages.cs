@@ -263,7 +263,8 @@ namespace OfficeIMO.Word.Pdf {
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
                     anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection)) return false;
-            if (image._Image?.Anchor != null && options != null)
+            if (image._Image?.Anchor != null && options != null &&
+                !options.DiagnosedImageWrapElements.Contains(image._Image))
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
             RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align,

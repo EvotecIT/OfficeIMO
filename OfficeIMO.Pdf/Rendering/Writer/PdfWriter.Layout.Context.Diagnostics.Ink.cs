@@ -33,6 +33,17 @@ internal static partial class PdfWriter {
             double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null,
             bool hasFollowingParagraphLines = false) {
             if (!currentOpts.HasDiagnosticsReport || _diagnosticPaintHidden) return;
+            RichPaintRows? paintRows = ExpandRichPaintRows(lines, heights, leading, textX, textWidth,
+                firstLineX, firstLineWidth, offsets, widths, topGaps);
+            if (paintRows != null) {
+                lines = paintRows.Lines;
+                heights = paintRows.Heights;
+                offsets = paintRows.Offsets;
+                widths = paintRows.Widths;
+                topGaps = paintRows.Gaps;
+                firstLineX = null;
+                firstLineWidth = null;
+            }
             OfficeTransform transform = (localTransform ?? OfficeTransform.Identity).Then(_canvasEffectToPage);
             if (!transform.TryInvert(out _)) return; // Singular paint has no filled area.
             var sourceClips = new List<OfficeTextInkClip>();

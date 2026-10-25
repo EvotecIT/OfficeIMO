@@ -11,14 +11,14 @@ internal static partial class PdfWriter {
                 NewPageAfterFootnoteContinuations();
             }
 
-            void CaptureSectionPlacement() {
+            void CaptureSectionPlacement(double top) {
                 EnsurePage();
-                AddNamedDestinationName(section.DestinationName, y);
+                AddNamedDestinationName(section.DestinationName, top);
                 currentPage!.Sections.Add(new PageSection {
                     DestinationName = section.DestinationName,
                     Title = section.Title,
                     Level = section.Options.Level,
-                    Y = y,
+                    Y = top,
                     Reference = section.Options.Reference
                 });
             }
@@ -32,9 +32,9 @@ internal static partial class PdfWriter {
                             PdfAlign.Left,
                             color: null,
                             style: section.Options.HeadingStyle);
-                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, width)));
+                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, currentOpts.MarginLeft, width)));
                     RenderHeadingFlowBlock(heading, null, new IPdfBlock[] { heading }, 0, CaptureSectionPlacement);
-                } else CaptureSectionPlacement();
+                } else CaptureSectionPlacement(y);
 
                 ProcessBlocks(section.Blocks, section);
             } finally {

@@ -79,6 +79,19 @@ internal static partial class PdfWriter {
                 return;
             }
 
+            List<double>? offsets = null, widths = null, gaps = null;
+            if (lines.Any(line => line is RichLine { Fragments: not null })) {
+                RichPaintRows? paintRows = ExpandRichPaintRows(lines.ToList(),
+                    lineHeights ?? Enumerable.Repeat(lineHeight, lines.Count).ToList(), lineHeight,
+                    x, widthUsed, null, null, null, null, null);
+                if (paintRows != null) {
+                    lines = paintRows.Lines;
+                    lineHeights = paintRows.Heights;
+                    offsets = paintRows.Offsets;
+                    widths = paintRows.Widths;
+                    gaps = paintRows.Gaps;
+                }
+            }
             double offset = 0D;
             for (int i = 0; i < lines.Count; i++) {
                 if (i > 0) offset += lineHeights != null && i - 1 < lineHeights.Count ? lineHeights[i - 1] : lineHeight;
@@ -87,13 +100,14 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                double frameWidth = widths?[i] ?? widthUsed;
                 double dx = 0D;
-                if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWidth) / 2);
-                else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWidth);
-                double baselineY = AdjustRichLineBaseline(startBaselineY - offset, lines[i], currentOpts, fontSize, font);
+                if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (frameWidth - lineWidth) / 2);
+                else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, frameWidth - lineWidth);
+                double baselineY = AdjustRichLineBaseline(startBaselineY - offset - (gaps?[i] ?? 0D), lines[i], currentOpts, fontSize, font);
                 GetRichLineInkMetrics(lines[i], currentOpts, out double asc, out double desc);
-                double x1 = x + dx;
-                double x2 = x1 + Math.Min(widthUsed, lineWidth);
+                double x1 = x + (offsets?[i] ?? 0D) + dx;
+                double x2 = x1 + Math.Min(frameWidth, lineWidth);
                 double y1 = baselineY - desc;
                 double y2 = baselineY + asc;
                 currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = heading.LinkUri, DestinationName = heading.LinkDestinationName, Contents = heading.LinkContents, StructElementIndex = structElementIndex });

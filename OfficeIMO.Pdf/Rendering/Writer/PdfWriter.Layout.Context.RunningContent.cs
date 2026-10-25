@@ -256,11 +256,12 @@ internal static partial class PdfWriter {
             PdfOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
-                drawingPatternAnnotations: drawingPatternAnnotations);
+                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
             measure.currentPage = currentPage;
             measure.width = width;
             measure.yStart = start;
             measure.y = start;
+            measure.SetPictureStory(isHeader ? "Header" : "Footer", PicturePage, start);
             double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft, width, frame.DefaultFontSize);
             hasNonFlowTablePaint = measure.measuredNonFlowTablePaint;
             if (!height.HasValue) {
@@ -290,11 +291,12 @@ internal static partial class PdfWriter {
                 hasNonFlowTablePaint ? 0D : Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
-                drawingPatternAnnotations: drawingPatternAnnotations);
+                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
             story.currentPage = currentPage;
             story.width = width;
             story.yStart = start;
             story.y = start;
+            story.SetPictureStory(isHeader ? "Header" : "Footer", PicturePage, start);
             story.currentVisiblePageNumber = currentVisiblePageNumber;
             story.currentPageGroupId = currentPageGroupId;
             int firstImage = currentPage!.Images.Count;

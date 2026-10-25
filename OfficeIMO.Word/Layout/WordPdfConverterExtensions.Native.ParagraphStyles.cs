@@ -370,7 +370,9 @@ namespace OfficeIMO.Word.Pdf {
                 return explicitColor;
             }
 
-            return PdfCore.PdfColor.FromRgb(47, 84, 150);
+            // Imported headings with no source color use ordinary automatic text color.
+            // Declared run, style and document-default colors remain owned by run resolution.
+            return PdfCore.PdfColor.Black;
         }
 
 

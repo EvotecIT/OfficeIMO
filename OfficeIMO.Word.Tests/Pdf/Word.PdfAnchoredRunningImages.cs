@@ -2,7 +2,6 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
@@ -88,29 +87,20 @@ public partial class Word {
         Assert.Equal(source, File.ReadAllBytes(path));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SaveAsPdf_UnqualifiedRunningPictureKeepsBoundedImageAndTextProjection(bool columnDependent) {
+    [Fact]
+    public void SaveAsPdf_UnqualifiedRunningPictureKeepsBoundedImageAndTextProjection() {
         using WordDocument source = WordDocument.Load(Path.Combine(AppContext.BaseDirectory,
             "WordLayoutFixtures", "header-anchor-explicit-defaults.docx"));
-        DW.Anchor anchor = source._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single()
-            .Header.Descendants<DW.Anchor>().Single();
-        if (columnDependent) {
-            source.Sections[0].ColumnCount = 2;
-        } else {
-            anchor.RemoveAllChildren<DW.WrapNone>();
-            anchor.AddChild(new DW.WrapSquare { WrapText = DW.WrapTextValues.BothSides }, true);
-        }
+        source.Sections[0].ColumnCount = 2;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
         string sourceXml = AnchoredRunningImageSourceXml(document);
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
         var page = Assert.Single(pdf.GetPages());
         var picture = Assert.Single(page.GetImages());
-        // Wrapping and a not-yet-selected text column are outside the fixed
-        // running-picture contract. Preserve the existing readable projection
-        // instead of claiming the qualified left-margin position for them.
+        // A not-yet-selected text column is outside the qualified anchor
+        // contract. Preserve its readable projection rather than claim the
+        // fixed left-margin placement before pagination selects a column.
         Assert.InRange(picture.BoundingBox.Left, 160D, page.Width - picture.BoundingBox.Width);
         foreach (string token in new[] { "PROJECT", "INITIATIVE", "BODY", "ANCHOR" })
             Assert.Single(page.GetWords(), word => word.Text == token);
