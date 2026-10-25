@@ -25,9 +25,7 @@ public static class OfficeConversionBatchReportSerializer {
 
     /// <summary>Reads strict report JSON, rejecting unknown fields, duplicate properties, invalid enums and excess observations.</summary>
     public static OfficeConversionBatchReport Deserialize(string json) {
-        CheckJson(json);
-        OfficeConversionBatchReport report = JsonSerializer.Deserialize(json, Context.OfficeConversionBatchReport)
-            ?? throw new InvalidDataException("The batch report is empty.");
+        OfficeConversionBatchReport report = DeserializeBounded(json, Context.OfficeConversionBatchReport);
         Validate(report);
         return report;
     }
@@ -77,6 +75,15 @@ public static class OfficeConversionBatchReportSerializer {
         if (Encoding.UTF8.GetByteCount(json) > MaximumReportBytes) throw new InvalidDataException("The report exceeds its 20 MiB limit.");
         using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
         OfficeConversionJobSerializer.RejectDuplicates(document.RootElement);
+    }
+
+    internal static T DeserializeBounded<T>(string json, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type) where T : class {
+        CheckJson(json);
+        try {
+            return JsonSerializer.Deserialize(json, type) ?? throw new InvalidDataException("The report is empty.");
+        } catch (ArgumentException error) {
+            throw new InvalidDataException("The report contains invalid object values.", error);
+        }
     }
 
     internal static string SerializeBounded<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type) {

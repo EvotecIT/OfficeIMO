@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace OfficeIMO.Workflows.Tests;
@@ -46,6 +47,71 @@ public sealed class OfficeConversionJobRunReportTests {
         Assert.False(File.Exists(scope.ReportPath));
         Assert.False(File.Exists(scope.ReportPath + ".lease"));
         Assert.True(OfficeConversionJobRunReportSerializer.TryDeleteFinished(scope.ReportPath));
+    }
+
+    [Fact]
+    public void ReaderPreservesTerminalReportPublishedBeforeLeaseReleaseObservation() {
+        using var scope = new RunDirectory();
+        var running = scope.Report();
+        var terminal = running with {
+            State = OfficeConversionJobRunState.Completed, FinishedUtc = DateTimeOffset.UtcNow,
+            Batch = new OfficeConversionBatchReport { Summary = new(1, 1, 0, 0, false), Succeeded = true }
+        };
+        File.WriteAllText(scope.ReportPath, OfficeConversionJobRunReportSerializer.Serialize(running));
+        using var lease = new FileStream(scope.ReportPath + ".lease", FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+        bool probed = false;
+        OfficeConversionJobRunReport observed = OfficeConversionJobRunReportSerializer.ReadFile(scope.ReportPath, path => {
+            Assert.True(OfficeConversionJobRunReportSerializer.IsActive(path));
+            probed = true;
+            string staged = Path.Combine(scope.Root, "terminal.json");
+            File.WriteAllText(staged, OfficeConversionJobRunReportSerializer.Serialize(terminal));
+            File.Move(staged, scope.ReportPath, overwrite: true);
+            lease.Dispose();
+            return OfficeConversionJobRunReportSerializer.IsActive(path);
+        });
+        Assert.True(probed);
+        Assert.Equal(OfficeConversionJobRunState.Completed, observed.State);
+        Assert.Equal(running.RunId, observed.RunId);
+        Assert.Equal(1, observed.Batch!.Summary.Completed);
+        Assert.Equal(terminal.FinishedUtc, observed.FinishedUtc);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void MalformedNestedDiagnosticsAreRejectedWithoutBreakingSnapshotProtection(int invalidCase) {
+        using var scope = new RunDirectory();
+        var collector = new OfficeConversionBatchReportCollector();
+        collector.Report(scope.Item() with { Diagnostics = [new OfficeWorkflowDiagnostic("LayoutChanged", "A layout warning")] });
+        var report = scope.Report() with { State = OfficeConversionJobRunState.Completed, FinishedUtc = DateTimeOffset.UtcNow,
+            Batch = collector.Complete(new(1, 1, 0, 0, false)) };
+        string json = OfficeConversionJobRunReportSerializer.Serialize(report);
+        string expectedHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(json)));
+        JsonNode data = JsonNode.Parse(json)!;
+        JsonObject diagnostic = data["batch"]!["items"]![0]!["diagnostics"]![0]!.AsObject();
+        diagnostic[invalidCase % 2 == 0 ? "code" : "message"] = invalidCase < 2 ? null : " ";
+        string malformed = data.ToJsonString();
+        var error = Assert.Throws<InvalidDataException>(() => OfficeConversionJobRunReportSerializer.Deserialize(malformed));
+        Assert.IsAssignableFrom<ArgumentException>(error.InnerException);
+        File.WriteAllText(scope.ReportPath, malformed);
+        Assert.Throws<InvalidDataException>(() => OfficeConversionJobRunReportSerializer.ReadFile(scope.ReportPath));
+        Assert.False(OfficeConversionJobRunReportSerializer.MatchesSnapshot(scope.ReportPath, expectedHash));
+        Assert.Throws<IOException>(() => OfficeConversionJobRunReportSerializer.DeleteOwned(scope.ReportPath, expectedHash));
+        Assert.Equal(malformed, File.ReadAllText(scope.ReportPath));
+        Assert.Equal(2, Directory.GetFiles(scope.Root).Length);
+    }
+
+    [Fact]
+    public void InvalidUtf8ReportIsRejectedWithoutBreakingSnapshotProtection() {
+        using var scope = new RunDirectory();
+        byte[] malformed = [0xff];
+        File.WriteAllBytes(scope.ReportPath, malformed);
+        Assert.Throws<InvalidDataException>(() => OfficeConversionJobRunReportSerializer.ReadFile(scope.ReportPath));
+        Assert.False(OfficeConversionJobRunReportSerializer.MatchesSnapshot(scope.ReportPath, new string('0', 64)));
+        Assert.Throws<IOException>(() => OfficeConversionJobRunReportSerializer.DeleteOwned(scope.ReportPath, new string('0', 64)));
+        Assert.Equal(malformed, File.ReadAllBytes(scope.ReportPath));
     }
 
     [Fact]

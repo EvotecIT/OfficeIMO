@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace OfficeIMO.Workflows.Tests;
@@ -79,6 +80,28 @@ public sealed class OfficeConversionBatchReportTests {
             return;
         }
         Assert.Throws<JsonException>(() => OfficeConversionBatchReportSerializer.Deserialize(json));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void MalformedDiagnosticConstructorValuesAreRejectedAsInvalidReportData(int invalidCase) {
+        var collector = new OfficeConversionBatchReportCollector();
+        collector.Report(Item("Observed outcome") with { Diagnostics = [new OfficeWorkflowDiagnostic("LayoutChanged", "A layout warning")] });
+        string json = OfficeConversionBatchReportSerializer.Serialize(collector.Complete(new(1, 1, 0, 0, false)));
+        JsonNode data = JsonNode.Parse(json)!;
+        JsonObject diagnostic = data["items"]![0]!["diagnostics"]![0]!.AsObject();
+        diagnostic[invalidCase % 2 == 0 ? "code" : "message"] = invalidCase < 2 ? null : " ";
+        var error = Assert.Throws<InvalidDataException>(() => OfficeConversionBatchReportSerializer.Deserialize(data.ToJsonString()));
+        Assert.IsAssignableFrom<ArgumentException>(error.InnerException);
+    }
+
+    [Fact]
+    public void ReportReadersPreserveNullCallerArgumentErrors() {
+        Assert.Throws<ArgumentNullException>(() => OfficeConversionBatchReportSerializer.Deserialize(null!));
+        Assert.Throws<ArgumentNullException>(() => OfficeConversionJobRunReportSerializer.Deserialize(null!));
     }
 
     private static OfficeConversionBatchItemResult Item(string message) => new("source.txt", "output.pdf", OfficeWorkflowStatus.Completed, false, message, []);

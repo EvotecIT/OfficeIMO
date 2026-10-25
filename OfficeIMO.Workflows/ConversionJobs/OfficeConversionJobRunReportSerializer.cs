@@ -20,17 +20,25 @@ public static class OfficeConversionJobRunReportSerializer {
 
     /// <summary>Reads strict JSON. Lease interpretation is performed only by ReadFile.</summary>
     public static OfficeConversionJobRunReport Deserialize(string json) {
-        OfficeConversionBatchReportSerializer.CheckJson(json);
-        var report = JsonSerializer.Deserialize(json, OfficeConversionBatchReportSerializer.Context.OfficeConversionJobRunReport)
-            ?? throw new InvalidDataException("The saved-job run report is empty.");
+        var report = OfficeConversionBatchReportSerializer.DeserializeBounded(json,
+            OfficeConversionBatchReportSerializer.Context.OfficeConversionJobRunReport);
         Validate(report);
         return report;
     }
 
     /// <summary>Reads a bounded regular file. An unfinished record without a live local lease is returned as Interrupted.</summary>
-    public static OfficeConversionJobRunReport ReadFile(string path) {
+    public static OfficeConversionJobRunReport ReadFile(string path) => ReadFile(path, IsActive);
+
+    // The lease probe is the single filesystem scheduling boundary needed to exercise
+    // final publication between the first snapshot and the activity observation.
+    internal static OfficeConversionJobRunReport ReadFile(string path, Func<string, bool> leaseIsActive) {
+        ArgumentNullException.ThrowIfNull(leaseIsActive);
         var report = ReadSnapshot(path, out _);
-        return report.State == OfficeConversionJobRunState.Running && !IsActive(path)
+        if (report.State != OfficeConversionJobRunState.Running || leaseIsActive(path)) return report;
+        // Final publication precedes lease release. Re-read after observing a free
+        // lease so a newly published terminal result is never relabelled Interrupted.
+        report = ReadSnapshot(path, out _);
+        return report.State == OfficeConversionJobRunState.Running
             ? report with { State = OfficeConversionJobRunState.Interrupted } : report;
     }
 
@@ -85,7 +93,10 @@ public static class OfficeConversionJobRunReportSerializer {
         stream.CopyTo(bytes);
         byte[] content = bytes.ToArray();
         sha256 = Convert.ToHexString(SHA256.HashData(content));
-        return Deserialize(new UTF8Encoding(false, true).GetString(content).TrimStart('\uFEFF'));
+        string json;
+        try { json = new UTF8Encoding(false, true).GetString(content).TrimStart('\uFEFF'); }
+        catch (DecoderFallbackException error) { throw new InvalidDataException("The run report does not contain valid UTF-8.", error); }
+        return Deserialize(json);
     }
 
     internal static bool MatchesSnapshot(string path, string expectedHash) {
