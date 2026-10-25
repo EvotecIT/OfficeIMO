@@ -136,13 +136,27 @@ internal static partial class PdfWriter {
             return height <= units[remainingStart].MaximumKeepHeight + .001D;
         }
 
-        private int GetMinimumFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, bool checkCapacity = true) {
+        // A contained table cell follows the ordinary cell owner's paragraph
+        // policy: retain a fitting paragraph, but allow an oversized paragraph
+        // to make progress. Other note/story callers keep their existing policy.
+        private static bool EnforceContainedParagraphKeep(IReadOnlyList<FootnoteUnit> units, int index,
+            bool relaxOversizedParagraphKeeps) {
+            FootnoteUnit unit = units[index];
+            if (!unit.KeepParagraphTogether) return false;
+            if (!relaxOversizedParagraphKeeps) return true;
+            int first = index - unit.ParagraphLine;
+            double height = MeasureFootnoteFragmentHeight(units, first, unit.ParagraphLines);
+            return height <= unit.MaximumKeepHeight + .001D;
+        }
+
+        private int GetMinimumFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, bool checkCapacity = true,
+            bool relaxOversizedParagraphKeeps = false) {
             int end = start;
             while (end < units.Count) {
                 FootnoteUnit unit = units[end++];
                 if (unit.Line != null) {
                     int remaining = unit.ParagraphLines - unit.ParagraphLine;
-                    int required = unit.KeepParagraphTogether ? remaining : unit.MinimumOrphanLines;
+                    int required = EnforceContainedParagraphKeep(units, end - 1, relaxOversizedParagraphKeeps && checkCapacity) ? remaining : unit.MinimumOrphanLines;
                     if (remaining < required + unit.MinimumWidowLines) required = remaining;
                     end += Math.Max(0, Math.Min(required, remaining) - 1);
                     break;
@@ -155,11 +169,12 @@ internal static partial class PdfWriter {
             return end - start;
         }
 
-        private bool IsLegalFootnoteCut(IReadOnlyList<FootnoteUnit> units, int start, int count) {
+        private bool IsLegalFootnoteCut(IReadOnlyList<FootnoteUnit> units, int start, int count, bool relaxOversizedParagraphKeeps = false) {
             int end = start + count;
             FootnoteUnit last = units[end - 1];
             if (last.Line != null && last.ParagraphLine < last.ParagraphLines - 1) {
-                if (last.KeepParagraphTogether || last.ParagraphLines - last.ParagraphLine - 1 < last.MinimumWidowLines) return false;
+                if (EnforceContainedParagraphKeep(units, end - 1, relaxOversizedParagraphKeeps) ||
+                    last.ParagraphLines - last.ParagraphLine - 1 < last.MinimumWidowLines) return false;
                 int first = Math.Max(start, end - last.ParagraphLine - 1);
                 if (end - first < units[first].MinimumOrphanLines) return false;
             }

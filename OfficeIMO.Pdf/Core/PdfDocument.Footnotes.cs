@@ -74,6 +74,7 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException("Footnote tables require inline flow without floating placement or captions.");
         for (int row = 0; row < table.Cells.Count; row++) {
             foreach (PdfTableCell cell in table.Cells[row]) {
+                if (cell.Blocks.Count > 0) ValidateFootnoteBlocks(cell.Blocks, options);
                 if (cell.Runs.Any(run => run.FootnoteReference != null || run.FormField != null) ||
                     cell.Paragraphs.SelectMany(paragraph => paragraph.Runs).Any(run => run.FootnoteReference != null || run.FormField != null) ||
                     cell.FormFields.Count > 0 || cell.CheckBoxes.Count > 0 || cell.Viewport != null || cell.TextRotation != 0)

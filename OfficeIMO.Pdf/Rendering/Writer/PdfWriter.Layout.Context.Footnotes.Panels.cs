@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
         // painted fragment boxes; child callbacks and captured styles stay inert.
         private void PaintFootnoteUnits(IReadOnlyList<FootnoteUnit> units, int start, int count, ref double top,
             double measuredHeight = double.PositiveInfinity, IReadOnlyDictionary<int, TableFragmentPlan>? tables = null,
-            bool continuedTable = false) {
+            bool continuedTable = false, double? originX = null, int? structureParent = null, string structureType = "Note") {
             if (count == 0) return;
             int end = start + count;
             bool partialTable = tables != null && tables.TryGetValue(end - 1, out var lastTable) && lastTable.Continues;
@@ -78,14 +78,14 @@ internal static partial class PdfWriter {
                     while (next < end && ReferenceEquals(units[next].Block, unit.Block) &&
                         ReferenceEquals(units[next].Panels, unit.Panels) && units[next].Line != null &&
                         units[next].ParagraphLine == unit.ParagraphLine + next - index) next++;
-                    PaintFootnoteParagraphFragment(units, index, next - index, ref top);
+                    PaintFootnoteParagraphFragment(units, index, next - index, ref top, originX, structureParent, structureType);
                 } else if (unit.Table != null && tables != null && tables.TryGetValue(index, out var table)) {
-                    PaintTableFragment(table, unit.FrameX, unit.FrameWidth, ref top);
+                    PaintTableFragment(table, unit.FrameX, unit.FrameWidth, ref top, originX, structureParent);
                     foreach (FootnotePanelPaint paint in active) {
                         if (ReferenceEquals(paint.Panel.Container.FrameTable, unit.Block))
                             paint.TableContentBottom = top + table.After + table.Slices[table.Slices.Count - 1].GapAfter;
                     }
-                } else PaintFootnoteUnit(unit, ref top);
+                } else PaintFootnoteUnit(unit, ref top, originX);
                 while (active.Count > 0 && (active[active.Count - 1].Panel.End == next || next == end)) {
                     FootnotePanelPaint paint = active[active.Count - 1];
                     active.RemoveAt(active.Count - 1);
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
                     bool continues = panel.End > end || partialTable && panel.End == end;
                     double bottom = panel.Style.GetFragmentBottomPadding(continues);
                     top -= bottom;
-                    PaintFootnotePanel(paint, top, continues);
+                    PaintFootnotePanel(paint, top, continues, originX);
                     if (next == end) inset += Math.Max(0D, panel.Style.FragmentBottomInset - bottom);
                     if (!continues) {
                         double spacing = panel.Style.SpacingAfter;
@@ -110,7 +110,7 @@ internal static partial class PdfWriter {
             top -= inset;
         }
 
-        private void PaintFootnotePanel(FootnotePanelPaint paint, double bottom, bool continues) {
+        private void PaintFootnotePanel(FootnotePanelPaint paint, double bottom, bool continues, double? originX = null) {
             bottom = ResolveContainerTableFrameBottom(paint.Panel.Container, paint.TableContentBottom, bottom, continues);
             double height = paint.Top - bottom;
             if (height <= .001D) return;
@@ -119,11 +119,11 @@ internal static partial class PdfWriter {
             bool final = panel.Style.RepeatFragmentDecoration || !continues;
             var decoration = new StringBuilder();
             if (panel.Style.Background is { } background)
-                DrawRoundedRowFill(decoration, background, currentOpts.MarginLeft + panel.X, bottom, panel.Width,
+                DrawRoundedRowFill(decoration, background, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width,
                     height, panel.Style.CornerRadius, first, first, final, final, emitGeneratedStructure);
-            DrawPanelBorder(decoration, panel.Style, currentOpts.MarginLeft + panel.X, bottom, panel.Width, height,
+            DrawPanelBorder(decoration, panel.Style, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width, height,
                 emitGeneratedStructure, first, final);
-            DrawContainerTableFrame(decoration, panel.Container, currentOpts.MarginLeft + panel.X, panel.Width,
+            DrawContainerTableFrame(decoration, panel.Container, (originX ?? currentOpts.MarginLeft) + panel.X, panel.Width,
                 bottom, height, first, final);
             if (decoration.Length > 0) sb.Insert(paint.Insertion, decoration.ToString());
         }

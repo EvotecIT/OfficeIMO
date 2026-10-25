@@ -1360,8 +1360,7 @@ internal static partial class PdfWriter {
                 }
 
                 double candidateWidth = MeasurePlannedChunk(candidate);
-                if (candidateWidth <= maxWidthForChunk ||
-                    CanKeepDelimitedWordSegmentOverSoftLimit(candidate, candidateWidth, maxWidthForChunk, allowBoundaryDelimiters: true)) {
+                if (candidateWidth <= maxWidthForChunk) {
                     selectedText = candidate;
                     selectedWidth = candidateWidth;
                     return true;
@@ -1382,8 +1381,7 @@ internal static partial class PdfWriter {
                     string textWithoutTrailingDelimiter = token.Substring(position, segmentEnd - position - 1);
                     if (textWithoutTrailingDelimiter.Length > 0) {
                         double widthWithoutTrailingDelimiter = MeasurePlannedChunk(textWithoutTrailingDelimiter);
-                        if (widthWithoutTrailingDelimiter <= maxWidthForChunk ||
-                            CanKeepDelimitedWordSegmentOverSoftLimit(textWithoutTrailingDelimiter, widthWithoutTrailingDelimiter, maxWidthForChunk, allowBoundaryDelimiters: false)) {
+                        if (widthWithoutTrailingDelimiter <= maxWidthForChunk) {
                             selectedText = textWithoutTrailingDelimiter;
                             selectedWidth = widthWithoutTrailingDelimiter;
                             return true;
@@ -1438,44 +1436,6 @@ internal static partial class PdfWriter {
                     selectedText = extendedText;
                     selectedWidth = extendedWidth;
                 }
-            }
-
-            bool CanKeepDelimitedWordSegmentOverSoftLimit(string text, double width, double maxWidth, bool allowBoundaryDelimiters) {
-                if (maxWidth <= 0D || width <= maxWidth) {
-                    return false;
-                }
-
-                bool validSegment = allowBoundaryDelimiters
-                    ? IsDelimiterBoundedWordGroup(text)
-                    : IsDelimitedWordSegment(text);
-                if (!validSegment) {
-                    return false;
-                }
-
-                double widestScalar = 0D;
-                for (int offset = 0; offset < text.Length;) {
-                    int scalarLength = GetScalarUtf16Length(text, offset);
-                    string scalar = text.Substring(offset, scalarLength);
-                    widestScalar = Math.Max(widestScalar, MeasureRichText(scalar, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing));
-                    offset += scalarLength;
-                }
-
-                double overflow = width - maxWidth;
-                return widestScalar > 0D && overflow <= widestScalar + 0.25D;
-            }
-
-            static bool IsDelimitedWordSegment(string text) {
-                if (text.Length < 5) {
-                    return false;
-                }
-
-                for (int index = 0; index < text.Length; index++) {
-                    if (!char.IsLetter(text[index])) {
-                        return false;
-                    }
-                }
-
-                return true;
             }
 
             static bool IsDelimiterBoundedWordGroup(string text) {

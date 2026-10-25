@@ -30,14 +30,17 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool CanProjectNativeNoteTable(W.Table table, WordSection section, WordToPdfOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts) {
-        if (table.Descendants<W.Table>().Any() || table.Descendants<W.TablePositionProperties>().Any()) return false;
+        if (table.Descendants<W.TablePositionProperties>().Any()) return false;
+        if (table.Descendants<W.Table>().Any() &&
+            !CanProjectNativeContainedTable(new WordTable(section._document, table, initializeChildren: false, readOnly: true),
+                options, defaults, fonts, 0)) return false;
         if (table.Descendants<W.TextDirection>().Any(direction =>
             direction.Val?.InnerText is { } value && value != "lrTb")) return false;
         // Block controls and custom row/cell carriers have their own projection
         // rules. A note table currently admits the directly represented grid.
         if (table.ChildElements.Any(child => child is not W.TableProperties and not W.TableGrid and not W.TableRow) ||
             table.Elements<W.TableRow>().Any(row => row.ChildElements.Any(child => child is not W.TableRowProperties and not W.TableCell)) ||
-            table.Descendants<W.TableCell>().Any(cell => cell.ChildElements.Any(child => child is not W.TableCellProperties and not W.Paragraph)))
+            table.Descendants<W.TableCell>().Any(cell => cell.ChildElements.Any(child => child is not W.TableCellProperties and not W.Paragraph and not W.Table)))
             return false;
         var view = new WordTable(section._document, table, initializeChildren: false, readOnly: true);
         TableLayout layout = TableLayoutCache.GetLayout(view);

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void SaveAsPdf_NestedTable_PreservesDocumentOrderAndReportsFlattenedLayout() {
+    public void SaveAsPdf_NestedTable_PreservesDocumentOrderWithoutLayoutLoss() {
         using WordDocument document = WordDocument.Create();
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordTableCell outerCell = outer.Rows[0].Cells[0];
@@ -32,7 +32,7 @@ public partial class Word {
         Assert.True(beforeIndex >= 0, "Expected text before the nested table.");
         Assert.True(nestedIndex > beforeIndex, "Expected nested table text after the preceding paragraph.");
         Assert.True(afterIndex > nestedIndex, "Expected the following paragraph after the nested table text.");
-        Assert.Contains(
+        Assert.DoesNotContain(
             result.Warnings,
             static warning => warning.Code == "NativeNestedTableLayoutApproximated");
     }

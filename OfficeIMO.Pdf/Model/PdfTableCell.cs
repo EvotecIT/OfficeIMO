@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Represents a table cell with optional Word-like column and row spanning.
 /// </summary>
-public sealed class PdfTableCell {
+public sealed partial class PdfTableCell {
     /// <summary>Creates a table cell with text content, optional column/row spans, optional link metadata, images, and form fields.</summary>
     public PdfTableCell(string? text, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
@@ -50,7 +50,7 @@ public sealed class PdfTableCell {
         Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
-    internal PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false, PdfTableCellViewport? viewport = null, int textRotation = 0, bool shrinkTextToFit = false) {
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false, PdfTableCellViewport? viewport = null, int textRotation = 0, bool shrinkTextToFit = false, System.Collections.Generic.IEnumerable<IPdfBlock>? blocks = null) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
         var snapshot = new System.Collections.Generic.List<PdfTextRun>();
@@ -76,6 +76,8 @@ public sealed class PdfTableCell {
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
         Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
+        Blocks = SnapshotBlocks(blocks);
+        BlockDepth = Blocks.OfType<TableBlock>().Select(table => table.CellBlockDepth + 1).DefaultIfEmpty(0).Max();
         if (textRotation != 0 && textRotation != 90 && textRotation != -90)
             throw new ArgumentOutOfRangeException(nameof(textRotation), "Cell text orientation must be horizontal or a quarter turn.");
         TextRotation = textRotation;
@@ -180,24 +182,24 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap, Viewport, TextRotation, ShrinkTextToFit) { OrientedRowTextHeight = OrientedRowTextHeight };
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap, Viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     /// <summary>
     /// Returns a copy that keeps each cell paragraph on one visual line. When the containing
     /// table enables text shrinking, the renderer reduces the font before clipping.
     /// </summary>
-    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport, TextRotation, ShrinkTextToFit) { OrientedRowTextHeight = OrientedRowTextHeight };
+    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     /// <summary>
     /// Returns a copy that fits source text lines to this cell's width without shrinking its neighbors.
     /// The table's <see cref="PdfTableStyle.MinimumShrinkFontSize"/> limits the reduction.
     /// </summary>
-    public PdfTableCell WithShrinkTextToFit(bool shrinkTextToFit = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation, shrinkTextToFit) { OrientedRowTextHeight = OrientedRowTextHeight };
+    public PdfTableCell WithShrinkTextToFit(bool shrinkTextToFit = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation, shrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     /// <summary>Returns a copy that renders the given portion of the full cell, including images. Cells containing check boxes or form fields cannot use a viewport.</summary>
-    public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport, TextRotation, ShrinkTextToFit) { OrientedRowTextHeight = OrientedRowTextHeight };
+    public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation, ShrinkTextToFit) { OrientedRowTextHeight = OrientedRowTextHeight };
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation, ShrinkTextToFit, Blocks) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {
@@ -416,6 +418,21 @@ internal sealed class PdfTableCellParagraph {
     public double? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
+
+    /// <summary>Projects the same captured cell paragraph into the shared contained-flow planner.</summary>
+    internal RichParagraphBlock ToBlock() {
+        var style = new PdfParagraphStyle {
+            FontSize = FontSize, LineSpacing = LineSpacing, LineHeight = LineHeight,
+            SpacingBefore = SpacingBefore, SpacingAfter = SpacingAfter,
+            LeftIndent = LeftIndent, RightIndent = RightIndent, FirstLineIndent = FirstLineIndent,
+            DefaultTabStopWidth = DefaultTabStopWidth, WidowControl = WidowControl ?? false,
+            KeepTogether = KeepTogether, KeepWithNext = KeepWithNext,
+            JustificationMode = JustificationMode, JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
+            JustifyLastLine = JustifyLastLine, UseWordJustificationSpacing = UseWordJustificationSpacing
+        };
+        foreach (PdfTabStop stop in TabStops) style.TabStops.Add(stop.Clone());
+        return new RichParagraphBlock(Runs, Align ?? PdfAlign.Left, null, style);
+    }
 
     internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing);
 }

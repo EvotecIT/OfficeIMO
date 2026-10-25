@@ -38,6 +38,12 @@ internal static partial class PdfWriter {
 
         private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true, PdfTableStyle? preparedPairedStyle = null, StringBuilder? deferredPairedBorders = null) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            if (HasContainedCellBlocks(tb)) {
+                if (skipInitialHeaderRows || bodyRowOffset != 0 || !logicalTopBoundary || !logicalBottomBoundary || !restoreVerticalFlow)
+                    throw new NotSupportedException("Ordered cell content requires an eager inline table.");
+                RenderContainedCellTable(tb, style, blockList, blockIndex, nextBlock);
+                return;
+            }
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             double flowYBeforeTable = y;
             LayoutResult.Page? pageBeforeTable = currentPage;

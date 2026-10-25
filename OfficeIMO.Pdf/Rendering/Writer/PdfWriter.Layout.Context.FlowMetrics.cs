@@ -637,6 +637,17 @@ internal static partial class PdfWriter {
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly, bool allowTableFragments = false) {
             PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            if (HasContainedCellBlocks(table)) {
+                PreparedTableGeometry geometry = PrepareTableGeometry(table, PreparePairedTableBorders(table, style), frameWidth);
+                if (firstVisualOnly && allowTableFragments) {
+                    TableFragmentPlan? fragment = PlanTableFragment(geometry, null, double.PositiveInfinity,
+                        GetFullPageContentHeight(), minimumOnly: true);
+                    return fragment?.Height ?? 0D;
+                }
+                int count = firstVisualOnly ? Math.Min(1, geometry.Rows.Heights.Length) : geometry.Rows.Heights.Length;
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + GetTableRowsHeight(geometry.Rows.Heights, 0, count, geometry.Gap) +
+                    (firstVisualOnly ? 0D : style.SpacingAfter);
+            }
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) {
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + (firstVisualOnly ? 0D : style.SpacingAfter);

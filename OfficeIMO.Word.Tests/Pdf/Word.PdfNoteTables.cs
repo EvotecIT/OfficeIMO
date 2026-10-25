@@ -193,25 +193,17 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData("nested")]
     [InlineData("positioned")]
     [InlineData("rotated")]
     public void SaveAsPdf_UnsupportedFootnoteTableProfileRetainsTextAndLossDiagnostic(string profile) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
         OpenXmlCompositeElement note = AddRichNoteFixture(source, endnote: false);
         W.Table table = CreateNoteTable(new[] { new[] { "UNSUPPORTEDTABLETEXT", "OTHERCONTENT" } }, repeatHeader: false);
-        if (profile == "nested") {
-            W.TableCell outer = table.Descendants<W.TableCell>().First();
-            outer.InsertBefore(CreateNoteTable(new[] { new[] { "INNERTABLETEXT", "INNEROTHER" } }, repeatHeader: false),
-                outer.Elements<W.Paragraph>().First());
-        }
-        else if (profile == "positioned") table.GetFirstChild<W.TableProperties>()!.AddChild(new W.TablePositionProperties {
+        if (profile == "positioned") table.GetFirstChild<W.TableProperties>()!.AddChild(new W.TablePositionProperties {
             HorizontalAnchor = W.HorizontalAnchorValues.Margin, VerticalAnchor = W.VerticalAnchorValues.Text,
             TablePositionX = 0, TablePositionY = 0 }, true);
         else table.Descendants<W.TableCell>().First().TableCellProperties!.Append(new W.TextDirection { Val = W.TextDirectionValues.TopToBottomRightToLeft });
         note.Append(table);
-        if (profile == "nested")
-            foreach (W.TableCell cell in table.Descendants<W.TableCell>()) cell.TableCellProperties?.Remove();
         Assert.Empty(source.ValidateDocument());
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var notes = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!;
@@ -220,7 +212,6 @@ public partial class Word {
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("UNSUPPORTEDTABLETEXT", text, StringComparison.Ordinal);
-        if (profile == "nested") Assert.Contains("INNERTABLETEXT", text, StringComparison.Ordinal);
         Assert.Single(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
         Assert.True(result.HasLoss);
         Assert.Equal(original, notes.OuterXml);
