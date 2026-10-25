@@ -136,9 +136,21 @@ public sealed partial class HtmlRenderingTests {
             }
             if (expected.Length == 0) Assert.True(string.IsNullOrWhiteSpace(text.Text),
                 "Only source whitespace may have no contour ink in these fixtures.");
-            XElement path = Assert.Single(paths.Where(element => !matched.Contains(element)
-                && Label(element) == text.Text && element.Attribute("d")?.Value == expected.ToString()));
-            Assert.True(matched.Add(path));
+            IReadOnlyList<OfficePathCommand> expectedCommands = Array.Empty<OfficePathCommand>();
+            if (expected.Length > 0) Assert.True(OfficeSvgPathDataParser.TryParse(expected.ToString(), 1_000_000,
+                out expectedCommands, out bool expectedLimit) && !expectedLimit,
+                "The bounded expected glyph path must parse without changing its command sequence.");
+            var comparisons = paths.Where(element => !matched.Contains(element) && Label(element) == text.Text)
+                .Select(element => new { Path = element, Mismatch = PathMismatch(element.Attribute("d")?.Value, expectedCommands) })
+                .ToArray();
+            var matches = comparisons.Where(item => item.Mismatch == null).ToArray();
+            Assert.True(matches.Length == 1,
+                "Source '" + text.Text + "' requires one glyph path with " + expectedCommands.Count
+                + " exact commands and coordinates within 0.001pt; found " + matches.Length
+                + " geometry matches among " + comparisons.Length + " same-label candidates.\n"
+                + string.Join("\n", comparisons.Take(8).Select((item, index) =>
+                    "Candidate " + index + ": " + (item.Mismatch ?? "geometry matches"))));
+            Assert.True(matched.Add(matches[0].Path));
         }
         Assert.Equal(paths.Length + textNodes.Length, matched.Count);
         string logical = string.Concat(saved.Descendants().Where(element => element.Name.LocalName == "text"
@@ -146,6 +158,41 @@ public sealed partial class HtmlRenderingTests {
             .Select(element => element.Name.LocalName == "text"
                 ? element.Attribute("aria-label")?.Value ?? element.Value : Label(element)));
         Assert.Equal(string.Concat(painted.Select(text => text.Text)), logical);
+
+        string? PathMismatch(string? actualData, IReadOnlyList<OfficePathCommand> reference) {
+            if (reference.Count == 0) return actualData == string.Empty ? null
+                : "Expected an empty whitespace path, actual path data is nonempty or missing.";
+            if (!OfficeSvgPathDataParser.TryParse(actualData, 1_000_000,
+                    out IReadOnlyList<OfficePathCommand> actual, out bool limit) || limit)
+                return "Actual path is invalid or exceeds the bounded command limit.";
+            if (reference.Count != actual.Count)
+                return "Command count: expected " + reference.Count + ", actual " + actual.Count + ".";
+            // PDF text pens/widths and SVG coordinates are serialized separately.
+            // One 0.001pt serialization quantum can flip a decimal midpoint;
+            // command kinds, point count, labels and source occurrences stay exact.
+            const double coordinateTolerance = 0.001D;
+            const double floatingPointSlack = 0.000000001D;
+            for (int index = 0; index < reference.Count; index++) {
+                OfficePathCommand expectedCommand = reference[index], actualCommand = actual[index];
+                if (expectedCommand.Kind != actualCommand.Kind)
+                    return "Command " + index + ": expected " + expectedCommand.Kind + ", actual " + actualCommand.Kind + ".";
+                if (expectedCommand.Kind == OfficePathCommandKind.Close) continue;
+                if (expectedCommand.Kind is not (OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo))
+                    return "Expected glyph command " + index + " is outside this polyline contour fixture.";
+                OfficePoint expectedPoint = expectedCommand.Point, actualPoint = actualCommand.Point;
+                double dx = actualPoint.X - expectedPoint.X, dy = actualPoint.Y - expectedPoint.Y;
+                if (double.IsNaN(dx) || double.IsInfinity(dx) || double.IsNaN(dy) || double.IsInfinity(dy)
+                    || Math.Abs(dx) > coordinateTolerance + floatingPointSlack
+                    || Math.Abs(dy) > coordinateTolerance + floatingPointSlack)
+                    return "First coordinate mismatch at command " + index + " (" + expectedCommand.Kind + "): expected ("
+                        + Number(expectedPoint.X) + ", " + Number(expectedPoint.Y) + "), actual ("
+                        + Number(actualPoint.X) + ", " + Number(actualPoint.Y) + "), delta ("
+                        + Number(dx) + ", " + Number(dy) + ")pt; tolerance " + Number(coordinateTolerance) + "pt.";
+            }
+            return null;
+        }
+
+        static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
     }
 
     private static void AssertSvgRetainsPaintedGlyphs(OfficeDrawing drawing, string svg, string logicalText) {
