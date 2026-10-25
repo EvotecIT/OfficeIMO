@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Uses the selected PDF glyphs and PDF-unit positioning, never a separately shaped text approximation.</summary>
+        /// <remarks>Consume each glyph before advancing: embedded outlines use the writer's borrowed placement workspace.</remarks>
         private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> DiagnosticGlyphContours(RichSeg segment, string text, double x, double baseline) {
             if (string.IsNullOrWhiteSpace(text)) yield break;
             foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,

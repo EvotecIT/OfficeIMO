@@ -525,17 +525,10 @@ public class PdfTextShapingProviderTests {
 
     [Fact]
     public void TextShapingProvider_DoesNotSuppressWarningsWhenProviderDeclinesRun() {
-        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
-        if (fontPath == null) {
-            return;
-        }
-
         const string text = "\u0633\u0644\u0627\u0645";
-        byte[] fontData = File.ReadAllBytes(fontPath);
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x0633, 0x0644, 0x0627, 0x0645);
         PdfTrueTypeFontProgram fontProgram = PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMO Provider Font");
-        if (PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram).Count > 0) {
-            return;
-        }
+        Assert.Empty(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
 
         var provider = new DecliningTextShapingProvider();
         var report = new PdfConversionReport();
@@ -551,13 +544,13 @@ public class PdfTextShapingProviderTests {
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
-        string raw = Encoding.ASCII.GetString(bytes);
-
         Assert.True(provider.CallCount >= 1);
-        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
-        Assert.Contains(text, extracted, StringComparison.Ordinal);
+        // Pure RTL glyphs can retain logical extraction through ToUnicode without
+        // an ActualText span. The provider contract is text preservation and loss reporting.
+        Assert.Equal(text, extracted.Trim());
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
     [Fact]

@@ -76,7 +76,7 @@ jobs:
       - name: Compare report content and geometry
         run: dotnet $env:TOOL run --suite Build/ConversionConsistency/suite.json --output "$env:EVIDENCE/reports"
       - name: Check rejection of incomplete or changed evidence
-        run: ./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$env:EVIDENCE/native" -OutputPath "$env:EVIDENCE/negative"
+        run: ./Build/ConversionConsistency/Test-BundleContract.ps1 -BundlePath "$env:EVIDENCE/native" -PositionBundlePath "$env:EVIDENCE/reports" -OutputPath "$env:EVIDENCE/negative"
       - name: Upload comparison evidence
         if: always()
         uses: actions/upload-artifact@v7

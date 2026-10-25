@@ -92,8 +92,8 @@ internal static class BundleVerifier {
                         File.WriteAllBytes(svgPdf, capture.PdfBytes);
                         using var svgParsed = PdfPigDocument.Open(capture.PdfBytes);
                         if (svgParsed.NumberOfPages != 1) pageErrors.Add("Independent SVG rendering produced extra pages.");
-                        CheckTextPositions("SVG", svgParsed.GetPage(1), expected, bundle.Dpi, pageErrors);
-                        CheckTextPositions("SVG", svgParsed.GetPage(1), expected with { TextPositions = expected.SvgTextPositions }, bundle.Dpi, pageErrors);
+                        List<TextPositionExpectation> selectable = SvgTextPositions.CheckOutlines(svg, pdfPage, expected, bundle.Dpi, pageErrors);
+                        CheckTextPositions("SVG", svgParsed.GetPage(1), expected with { TextPositions = selectable }, bundle.Dpi, pageErrors);
                         string svgPng = ArtifactPaths.Resolve(output, prefix + "-svg.png");
                         await RasterizeAsync(rasterizer, svgPdf, 1, bundle.Dpi, svgPng, cancellationToken);
                         raster = Decode(File.ReadAllBytes(svgPng), "Png");

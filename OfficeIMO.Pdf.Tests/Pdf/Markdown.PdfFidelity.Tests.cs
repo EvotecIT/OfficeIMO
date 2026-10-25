@@ -13,15 +13,35 @@ public sealed class MarkdownPdfFidelityTests {
     [Theory]
     [InlineData("日本語のテキスト。 中文文本。")]
     [InlineData("العربية עברית")]
-    public void DefaultExportSupportsMultilingualTextAndReportsActualShaping(string text) {
+    public void DefaultExportUsesMultilingualFallbacksAndPreservesCoveredLogicalText(string text) {
         Assert.True((new MarkdownToPdfOptions().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
+        // Installed candidates establish available scalar coverage. Complete shaping
+        // is verified separately with a pinned font rather than inferred from coverage.
         var fallback = new PdfOptions().UseTextFallbacks().EmbeddedFontFallbacks;
         if (fallback == null || !fallback.PlanText(text).IsFullyCovered) return;
         var conversion = MarkdownReader.Parse(text).ToPdfDocumentResult();
         byte[] bytes = conversion.ToBytes();
         Assert.NotEmpty(bytes);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout" || warning.Code == "unsupported-complex-script-shaping");
         Assert.Contains(text, PdfReadDocument.Open(bytes).ExtractText());
+    }
+
+    [Fact]
+    public void ExplicitNotoArabicFontPreservesLogicalTextWithoutUnsupportedShapingWarnings() {
+        const string text = "مرحبا بالعالم";
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "NotoSansArabic-Regular.ttf"));
+        var options = new MarkdownToPdfOptions {
+            PdfOptions = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Noto Arabic"),
+            TextFallbacks = PdfTextFallbackFeatures.None,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        };
+
+        PdfDocumentConversionResult conversion = MarkdownReader.Parse(text).ToPdfDocumentResult(options);
+        byte[] bytes = conversion.ToBytes();
+
+        Assert.Equal(text, PdfReadDocument.Open(bytes).ExtractText().Trim());
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code is
+            "unsupported-bidirectional-text-layout" or "unsupported-complex-script-shaping");
+        conversion.RequireNoLoss();
     }
 
     [Fact]

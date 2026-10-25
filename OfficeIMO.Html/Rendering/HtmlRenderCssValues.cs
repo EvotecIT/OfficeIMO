@@ -140,10 +140,16 @@ internal static class HtmlRenderCssValues {
 
     internal static bool IsTableInternalAutoMath(string value, double fontSize, double rootFontSize,
         double viewportWidth, double viewportHeight, double? containerWidth, double? containerHeight,
-        double characterAdvance, bool uprightVerticalText) {
+        double characterAdvance, bool uprightVerticalText, HtmlRenderLengthExpressionCache? expressionCache = null) {
+        if (string.IsNullOrWhiteSpace(value)
+            || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return false;
         try {
-            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
-            if (!parsed.IsParsed) return false;
+            HtmlCssMathParseResult parsed = expressionCache?.Parse(value) ?? HtmlCssMathParser.ParseLengthPercentage(value);
+            if (!parsed.IsParsed || !parsed.Expression!.IsCalculated) return false;
+            // Cache only the immutable syntax. Font, viewport and container units
+            // must be evaluated again for this table box's own numeric context.
             return HtmlCssMathResolver.MixesPercentageAndNonZeroLength(parsed.Expression!, new HtmlCssLengthResolutionContext {
                 FontSize = fontSize, RootFontSize = rootFontSize, ViewportWidth = viewportWidth, ViewportHeight = viewportHeight,
                 ContainerWidth = containerWidth, ContainerHeight = containerHeight,

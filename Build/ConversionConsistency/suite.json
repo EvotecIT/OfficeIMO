@@ -9,7 +9,7 @@
       "id": "text-geometry",
       "format": "html",
       "source": "Build/ConversionConsistency/Fixtures/text-geometry.html",
-      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. The pinned face, inherited 32px line height and explicit sub/sup offsets give the script line a 41px advance, independently confirmed in Chromium. Rounded selected-face ascent/descent and half-leading place PAGE-ONE at 39px and Water at 92px. At 96 dpi this dense 20px text fixture allows 3 percent changed pixels for Chromium font hinting; mean channel error remains capped at 3. Saved PDF and Chromium SVG text baselines are checked independently.",
+      "evidence": "Authored labels, baseline positions within 0.25px, and a color region validate content and placement. The pinned face, inherited 32px line height and explicit sub/sup offsets give the script line a 41px advance, independently confirmed in Chromium. Rounded selected-face ascent/descent and half-leading place PAGE-ONE at 39px and Water at 92px. At 96 dpi this dense 20px text fixture allows 3 percent changed pixels for Chromium font hinting; mean channel error remains capped at 3. Saved PDF baselines anchor SVG outline geometry through the matching visible glyph boxes; Chromium renders SVG independently for pixel and region checks.",
       "visualTolerance": {
         "channel": 32,
         "differentRatio": 0.03,

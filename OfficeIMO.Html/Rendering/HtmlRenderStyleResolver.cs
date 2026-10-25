@@ -197,7 +197,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string textTransform = ResolveTextTransform(element, computed, parent?.TextTransform ?? "none");
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
-        _activeCharacterAdvance = computed.Properties.Values.Any(ContainsCharacterUnit)
+        _activeCharacterAdvance = GetDeclarationFacts(computed).HasCharacterUnits
             ? _measureCharacterAdvance(new HtmlRenderBoxStyle {
                 Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
                 FontDescriptor = fontDescriptor,
