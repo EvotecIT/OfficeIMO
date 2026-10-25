@@ -133,6 +133,17 @@ public sealed partial class PdfDocument {
     }
 
     internal static ShapeBlock CreateShapeBlock(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+        ValidateShapeDescriptor(shape, linkUri);
+        PdfDrawingStyle? drawingStyle = CreateDrawingStyle(align, spacingBefore, spacingAfter, style, "Shape");
+        if (drawingStyle != null) {
+            ValidateDrawingStyle(drawingStyle, "Shape");
+        }
+
+        return new ShapeBlock(shape, drawingStyle, linkUri, linkContents);
+    }
+
+    /// <summary>Validates the shared shape descriptor without creating a snapshot that the caller will discard.</summary>
+    private static void ValidateShapeDescriptor(OfficeShape shape, string? linkUri = null) {
         Guard.NotNull(shape, nameof(shape));
         if (shape.Kind == OfficeShapeKind.Line) {
             Guard.NonNegative(shape.Width, nameof(shape.Width));
@@ -214,12 +225,6 @@ public sealed partial class PdfDocument {
 
         }
 
-        PdfDrawingStyle? drawingStyle = CreateDrawingStyle(align, spacingBefore, spacingAfter, style, "Shape");
-        if (drawingStyle != null) {
-            ValidateDrawingStyle(drawingStyle, "Shape");
-        }
-
-        return new ShapeBlock(shape, drawingStyle, linkUri, linkContents);
     }
 
     internal static PdfHorizontalRuleStyle? CreateHorizontalRuleStyle(double? thickness, PdfColor? color, double? spacingBefore, double? spacingAfter, PdfHorizontalRuleStyle? style) {
@@ -327,7 +332,7 @@ public sealed partial class PdfDocument {
                 Guard.NonNegative(item.X, nameof(drawing.Shapes));
                 Guard.NonNegative(item.Y, nameof(drawing.Shapes));
             }
-            CreateShapeBlock(item.Shape, PdfAlign.Left, 0, 0);
+            ValidateShapeDescriptor(item.Shape);
 
             if (!allowClippedOverflow
                 && (item.X + item.Shape.Width > drawing.Width || item.Y + item.Shape.Height > drawing.Height)) {

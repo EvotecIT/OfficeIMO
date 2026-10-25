@@ -4,6 +4,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private bool? _mayHaveFloatingElements;
+
     private void AddFloatingRun(
         IElement element,
         double containingWidth,
@@ -35,8 +37,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             element));
     }
 
+    /// <summary>Rejects a used-style walk only when the immutable element snapshot proves floats absent.</summary>
+    private bool MayHaveFloatingElements() {
+        if (_mayHaveFloatingElements.HasValue) return _mayHaveFloatingElements.Value;
+        foreach (HtmlComputedStyle style in _computedStyles.Elements.Values) {
+            CheckCancellation();
+            string value = style.GetValue("float").Trim();
+            if (value.Length != 0 && !value.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                _mayHaveFloatingElements = true;
+                return true;
+            }
+        }
+        _mayHaveFloatingElements = false;
+        return false;
+    }
+
     private bool ContainsFloatingDescendant(IElement element, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
+        if (!MayHaveFloatingElements()) return false;
         if (_containsInFlowFloatCache.TryGetValue(element, out bool cached)) return cached;
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;

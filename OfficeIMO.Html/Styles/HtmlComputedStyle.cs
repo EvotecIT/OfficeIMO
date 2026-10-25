@@ -66,6 +66,18 @@ public sealed class HtmlComputedStyle {
         new HtmlComputedStyle(properties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);
 
+    /// <summary>Shares immutable declarations while keeping each element's resolved font context independent.</summary>
+    internal HtmlComputedStyle CreateElementSnapshot() {
+        var snapshot = (HtmlComputedStyle)MemberwiseClone();
+        snapshot.ResolvedFontSizePoints = null;
+        snapshot.FontSizeContext = null;
+        return snapshot;
+    }
+
+    /// <summary>Identifies the complete immutable declaration payload shared by per-element snapshots.</summary>
+    /// <remarks>Every owned construction creates a new property map; only element snapshots share it and the accompanying cascade metadata.</remarks>
+    internal object DeclarationIdentity => _readOnlyProperties;
+
     /// <summary>All computed properties known to the lightweight style engine.</summary>
     public IReadOnlyDictionary<string, string> Properties => _readOnlyProperties;
 
@@ -211,7 +223,7 @@ public sealed class HtmlComputedStyle {
         _cascadePriorities.TryGetValue(propertyName, out priority);
 }
 
-internal readonly struct HtmlCssCascadePriority {
+internal readonly struct HtmlCssCascadePriority : IEquatable<HtmlCssCascadePriority> {
     internal HtmlCssCascadePriority(
         bool inherited,
         bool important,
@@ -245,6 +257,30 @@ internal readonly struct HtmlCssCascadePriority {
     internal bool IsImplicitInheritance =>
         Inherited && !Important && !Inline && LayerOrder == null
         && Ids < 0 && Classes < 0 && Elements < 0 && RuleOrder < 0 && DeclarationOrder < 0;
+
+    /// <summary>Compares the complete cascade provenance without reflective value-type equality.</summary>
+    public bool Equals(HtmlCssCascadePriority other) =>
+        Inherited == other.Inherited && Important == other.Important && Inline == other.Inline
+        && Equals(LayerOrder, other.LayerOrder) && Ids == other.Ids && Classes == other.Classes
+        && Elements == other.Elements && RuleOrder == other.RuleOrder
+        && DeclarationOrder == other.DeclarationOrder;
+
+    public override bool Equals(object? obj) => obj is HtmlCssCascadePriority other && Equals(other);
+
+    public override int GetHashCode() {
+        unchecked {
+            int hash = 17;
+            hash = hash * 31 + Inherited.GetHashCode();
+            hash = hash * 31 + Important.GetHashCode();
+            hash = hash * 31 + Inline.GetHashCode();
+            hash = hash * 31 + (LayerOrder?.GetHashCode() ?? 0);
+            hash = hash * 31 + Ids;
+            hash = hash * 31 + Classes;
+            hash = hash * 31 + Elements;
+            hash = hash * 31 + RuleOrder;
+            return hash * 31 + DeclarationOrder;
+        }
+    }
 
     internal bool OutranksOrEquals(HtmlCssCascadePriority existing) {
         if (existing.Inherited != Inherited) return !Inherited;

@@ -783,7 +783,8 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken,
         bool suppressLink) {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
-        drawing.AddShape(visual.Shape.Clone(), 0D, 0D);
+        // AddShape snapshots the immutable private descriptor through OfficeDrawingShape.
+        drawing.AddShape(visual.InnerShape, 0D, 0D);
         if (TryAddTranslucentGradient(canvas, visual, drawing, imageResources, conversionReport, cancellationToken, suppressLink)) return;
         double x = visual.X * PointsPerCssPixel;
         double y = visual.Y * PointsPerCssPixel;

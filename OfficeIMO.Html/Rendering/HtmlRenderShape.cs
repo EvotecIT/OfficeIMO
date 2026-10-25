@@ -19,6 +19,22 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
         CanExtendFragmentColumnRule = canExtendFragmentColumnRule;
     }
 
+    // A visual's private geometry is immutable: public Shape reads return detached
+    // copies, and internal readers clone before editing. Position-only projections
+    // can therefore share this snapshot without another shape/effect graph copy.
+    private HtmlRenderShape(HtmlRenderShape source, double x, double y, int paintOrder,
+        double layoutY, double? collapsedBorderBoundaryY)
+        : base(HtmlRenderVisualKind.Shape, x, y, source.Width, source.Height, paintOrder,
+            source.LinkUri, source.Source, layoutY, source.LayoutHeight) {
+        _shape = source._shape;
+        IsAtomicReplacedPlaceholder = source.IsAtomicReplacedPlaceholder;
+        CanExtendFragmentBackground = source.CanExtendFragmentBackground;
+        FragmentSideBorders = source.FragmentSideBorders;
+        IsCollapsedTableBorder = source.IsCollapsedTableBorder;
+        CollapsedBorderBoundaryY = collapsedBorderBoundaryY;
+        CanExtendFragmentColumnRule = source.CanExtendFragmentColumnRule;
+    }
+
     internal bool IsAtomicReplacedPlaceholder { get; }
 
     /// <summary>Plain auto-height box paint that may cover unused space in a continuing page fragment.</summary>
@@ -39,11 +55,12 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     /// <summary>Independent snapshot of the shared dependency-free vector shape.</summary>
     public OfficeShape Shape => _shape.Clone();
 
+    /// <summary>Owned immutable geometry for internal readers; clone it before editing.</summary>
     internal OfficeShape InnerShape => _shape;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY + offsetY, FragmentSideBorders, CanExtendFragmentColumnRule);
+        new HtmlRenderShape(this, X + offsetX, Y + offsetY, paintOrder, LayoutY + offsetY, CollapsedBorderBoundaryY + offsetY);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY, FragmentSideBorders, CanExtendFragmentColumnRule);
+        new HtmlRenderShape(this, X + offsetX, Y + offsetY, paintOrder, LayoutY, CollapsedBorderBoundaryY);
 }

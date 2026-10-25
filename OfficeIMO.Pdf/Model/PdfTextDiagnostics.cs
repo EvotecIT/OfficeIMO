@@ -857,7 +857,10 @@ internal static partial class PdfTextDiagnostics {
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+        bool scalarCoverage = shapingMode == PdfTextShapingMode.UnicodeScalar;
+        if (scalarCoverage && font.HasVerifiedScalarCoverage(text)) return new List<PdfTextEncodingDiagnostic>();
         PdfGlyphRun glyphRun = font.ShapeText(text, PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode));
+        if (scalarCoverage && glyphRun.Diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
         return glyphRun.Diagnostics.Count == 0
             ? new List<PdfTextEncodingDiagnostic>()
             : glyphRun.Diagnostics.ToList();

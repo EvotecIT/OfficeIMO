@@ -16,9 +16,10 @@ internal static partial class PdfWriter {
         private void ClearDiagnosticGlyphCache() {
             _diagnosticGlyphContours.Clear();
             _diagnosticGlyphPointCount = 0;
+            ClearDiagnosticGlyphWorkspace();
         }
 
-        /// <summary>Reuses exact bounded outlines only within this writer and returns private points for placement.</summary>
+        /// <summary>Reuses exact bounded outlines and writer-private placement storage for synchronous paint inspection.</summary>
         private List<List<OfficePoint>> DiagnosticGlyphOutline(IOfficeBoundedFontProgram font, int glyphId, double size) {
             cancellationToken.ThrowIfCancellationRequested();
             var key = (font, glyphId, size);
@@ -36,12 +37,7 @@ internal static partial class PdfWriter {
                 _diagnosticGlyphContours.Add(key, contours);
                 _diagnosticGlyphPointCount += points;
             }
-            var result = new List<List<OfficePoint>>(contours.Count);
-            foreach (List<OfficePoint> contour in contours) {
-                cancellationToken.ThrowIfCancellationRequested();
-                result.Add(new List<OfficePoint>(contour));
-            }
-            return result;
+            return CopyDiagnosticGlyphForPlacement(contours);
         }
     }
 }
