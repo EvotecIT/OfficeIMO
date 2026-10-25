@@ -67,7 +67,8 @@ public class RtfFrameLossDiagnosticTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, directWarning.LossKind);
         Assert.True(direct.HasLoss);
         Assert.Throws<InvalidOperationException>(() => direct.RequireNoLoss());
-        Assert.Contains("FRAMEDMARKER", PdfCore.PdfReadDocument.Open(direct.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("FRAMEDMARKER", PdfCore.PdfReadDocument.Open(direct.ToBytes(),
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
 
         RtfConversionResult<WordDocument> bridge = source.ToWordDocumentResult();
         using WordDocument word = bridge.Value;

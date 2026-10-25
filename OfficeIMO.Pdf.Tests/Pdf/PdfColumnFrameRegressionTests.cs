@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfColumnFrameRegressionTests {
     [Fact]
-    public void Columns_KeptPanelIsValidatedAgainAfterItsKeepNextMoveChangesWidth() {
+    public void Columns_KeptPanelAndCaptionStayTogetherAfterWidthDrivenReadmission() {
         var options = new PdfOptions { PageWidth = 612, PageHeight = 792,
             MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72, MaxGeneratedPages = 3 };
         var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
@@ -25,8 +25,48 @@ public sealed class PdfColumnFrameRegressionTests {
                     SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true, KeepWithNext = true });
             content.Paragraph(p => p.Text("Caption"), style: line);
         }, columns);
-        var error = Assert.Throws<ArgumentException>(() => document.ToBytes());
-        Assert.Contains("Container height exceeds", error.Message, StringComparison.Ordinal);
+        byte[] bytes = document.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal(new[] { "Lead", "Caption" }, pdf.GetPages()
+            .SelectMany(page => page.GetWords()).Select(word => word.Text));
+        Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Lead");
+        var caption = Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "Caption");
+
+        // The wider destination cannot contain the two authored images as a
+        // kept group. A later narrow frame can: neither image may be dropped,
+        // split from its peer, clipped or separated from the following caption.
+        var images = PdfImageExtractor.ExtractImagePlacements(bytes)
+            .OrderByDescending(placement => placement.Y).ToArray();
+        Assert.Equal(2, images.Length);
+        double imageWidth = 100D;
+        double imageHeight = 400D * imageWidth / 332D;
+        Assert.All(images, placement => {
+            Assert.Equal(2, placement.PageNumber);
+            Assert.Equal(options.MarginLeft, placement.X, 3);
+            Assert.Equal(imageWidth, placement.Width, 3);
+            Assert.Equal(imageHeight, placement.Height, 3);
+            Assert.InRange(placement.Y, options.MarginBottom,
+                options.PageHeight - options.MarginTop - placement.Height + .001D);
+            Assert.True(placement.X + placement.Width <= options.PageWidth - options.MarginRight + .001D);
+            if (placement.Clip is { } clip) {
+                Assert.True(clip.IsRectangle && clip.IsExact);
+                double top = options.PageHeight - placement.Y - placement.Height;
+                double visibleWidth = Math.Max(0D, Math.Min(placement.X + placement.Width, clip.X + clip.Width) -
+                    Math.Max(placement.X, clip.X));
+                double visibleHeight = Math.Max(0D, Math.Min(top + placement.Height, clip.Y + clip.Height) -
+                    Math.Max(top, clip.Y));
+                Assert.Equal(placement.Width, visibleWidth, 3);
+                Assert.Equal(placement.Height, visibleHeight, 3);
+            }
+        });
+        Assert.Equal(options.PageHeight - options.MarginTop, images[0].Y + images[0].Height, 3);
+        Assert.Equal(images[0].Y, images[1].Y + images[1].Height, 3);
+        Assert.Empty(pdf.GetPage(1).GetImages());
+        Assert.Equal(2, pdf.GetPage(2).GetImages().Count());
+        Assert.InRange(caption.BoundingBox.Left, options.MarginLeft - .001D, options.MarginLeft + imageWidth);
+        Assert.InRange(caption.BoundingBox.Top, images[1].Y - 20D, images[1].Y + .001D);
+        Assert.True(caption.BoundingBox.Bottom >= options.MarginBottom);
     }
 
     [Fact]
