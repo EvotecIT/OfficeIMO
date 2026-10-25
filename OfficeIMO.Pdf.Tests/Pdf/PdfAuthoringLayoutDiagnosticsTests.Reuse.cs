@@ -8,6 +8,46 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void AlternatingGlyphContoursMatchIndependentPaintDiagnostics(bool transformed) {
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf"));
+        var items = new[] {
+            (Text: "B8ig. AQ", X: 28D, Y: 28D, Size: 9D),
+            (Text: "Q.Ag 8Bi", X: 120D, Y: 48D, Size: 18D),
+            (Text: "B8ig. AQ", X: 28D, Y: 78D, Size: 9D)
+        };
+        (byte[] Bytes, string[] Warnings) Render(int first, int count, bool diagnose) {
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260, PageHeight = 180, MarginLeft = 24, MarginRight = 24,
+                MarginTop = 24, MarginBottom = 24, DefaultFontSize = 9,
+                CompressEmbeddedFonts = false, CompressContentStreams = false
+            }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Alternating contour probe");
+            if (diagnose) options.ReportDiagnosticsTo(report, "AlternatingGlyphProbe");
+            byte[] bytes = PdfDocument.Create(options).Canvas(canvas => canvas.Effect(
+                transformed ? OfficeTransform.RotateDegrees(15, 24, 24) : OfficeTransform.Identity, 1D,
+                effect => effect.Clip(24, 24, 100, 100, child => {
+                    for (int i = first; i < first + count; i++) {
+                        var item = items[i];
+                        child.Text(item.Text, item.X, item.Y, 90, 28, fontSize: item.Size);
+                    }
+                }))).ToBytes();
+            return (bytes, report.Warnings.Select(warning => System.Text.Json.JsonSerializer.Serialize(warning)).ToArray());
+        }
+
+        var combined = Render(0, items.Length, true);
+        Assert.Equal(Render(0, items.Length, false).Bytes, combined.Bytes);
+        // Separate documents each emit their own document-wide notices. A single
+        // document deduplicates those notices; keep every distinct occurrence,
+        // including its exact source bounds, rather than multiplying setup notices.
+        string[] independent = Enumerable.Range(0, items.Length).SelectMany(i => Render(i, 1, true).Warnings)
+            .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        Assert.NotEmpty(independent);
+        Assert.Equal(independent, combined.Warnings.OrderBy(value => value, StringComparer.Ordinal).ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RepeatedEmbeddedGlyphsRetainIndependentPlacementAndClipDiagnostics(bool transformed) {
         byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf"));
         byte[] bold = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Bold.ttf"));

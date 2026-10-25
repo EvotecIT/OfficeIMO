@@ -4,22 +4,13 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
     private void ApplyBorderAndOutlinePaint(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        style.BorderDeclared = HtmlCssBoxStrokeParser.HasBorderDeclaration(computed);
-        if (HtmlCssBoxStrokeParser.TryParseBorder(
-                computed,
-                reference,
-                fontSize,
-                _rootFontSize,
-                _viewportWidth,
-                _viewportHeight,
-                style.Color,
-                out HtmlRenderBorderEdges borders,
-                out string borderDetail,
-                _activeCharacterAdvance, _activeUprightVerticalText)) {
-            style.Borders = borders;
+        ResolvedBoxStroke stroke = ResolveBoxStroke(computed, reference, fontSize, style.Color);
+        style.BorderDeclared = stroke.BorderDeclared;
+        if (stroke.BorderSupported) {
+            style.Borders = stroke.Borders;
         } else {
             style.Borders = HtmlRenderBorderEdges.Uniform(0D, "none", style.Color);
-            style.UnsupportedBorderPaint = borderDetail;
+            style.UnsupportedBorderPaint = stroke.BorderDetail;
         }
 
         style.BorderRadius = NormalizeCssValue(computed.GetValue("border-radius"), "0");
@@ -28,30 +19,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.BorderBottomRightRadius = computed.GetValue("border-bottom-right-radius").Trim();
         style.BorderBottomLeftRadius = computed.GetValue("border-bottom-left-radius").Trim();
 
-        if (HtmlCssBoxStrokeParser.TryParseOutline(
-                computed,
-                reference,
-                fontSize,
-                _rootFontSize,
-                _viewportWidth,
-                _viewportHeight,
-                style.Color,
-                out double outlineWidth,
-                out string outlineStyle,
-                out OfficeColor outlineColor,
-                out bool outlineColorInvert,
-                out double outlineOffset,
-                out string outlineDetail,
-                _activeCharacterAdvance, _activeUprightVerticalText)) {
-            style.OutlineWidth = outlineWidth;
-            style.OutlineStyle = outlineStyle;
-            style.OutlineColor = outlineColor;
-            style.OutlineColorInvert = outlineColorInvert;
-            style.OutlineOffset = outlineOffset;
+        if (stroke.OutlineSupported) {
+            style.OutlineWidth = stroke.OutlineWidth;
+            style.OutlineStyle = stroke.OutlineStyle;
+            style.OutlineColor = stroke.OutlineColor;
+            style.OutlineColorInvert = stroke.OutlineColorInvert;
+            style.OutlineOffset = stroke.OutlineOffset;
         } else {
             style.OutlineWidth = 0D;
             style.OutlineStyle = "none";
-            style.UnsupportedOutlinePaint = outlineDetail;
+            style.UnsupportedOutlinePaint = stroke.OutlineDetail;
         }
     }
 }
