@@ -62,7 +62,7 @@ public static partial class WordPdfConverterExtensions {
                 var paragraph = new WordParagraph(story.Document, source);
                 hasParagraph = true;
                 // Inline pictures retain their measured line height; supported
-                // non-wrapping anchors retain paragraph/page placement without
+                // qualified anchors retain paragraph/page placement without
                 // reserving their paint frame as flowing header/footer content.
                 ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
                     .All(drawing => IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
@@ -110,9 +110,12 @@ public static partial class WordPdfConverterExtensions {
             graphicData.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1 ||
             drawing.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) return false;
         if (drawing.Inline != null) return drawing.Anchor == null;
-        return WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutSnapshot layout) &&
-            TryResolveNativeAnchoredImagePlacement(layout, section, GetNativePageSize(section, options), margins,
+        if (!WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutSnapshot layout)) return false;
+        if (layout.Wrap == WordDrawingWrapKind.None)
+            return TryResolveNativeAnchoredImagePlacement(layout, section, GetNativePageSize(section, options), margins,
                 layout.WidthPoints, layout.HeightPoints, out _);
+        return TryResolveNativeAnchoredImageSource(drawing, section, GetNativePageSize(section, options), margins,
+            layout.WidthPoints, layout.HeightPoints, out _, out _, out _, out _);
     }
 
     /// <summary>

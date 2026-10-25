@@ -5,6 +5,10 @@ internal static partial class PdfWriter {
     // placement on the line preserves it when tables and columns slice lines,
     // including paragraphs whose fallback size differs from the cell size.
     private sealed class RichLine : List<RichSeg> {
+        // Fragment plans survive ordinary row slicing, but never a segment-copy transformation.
+        internal IReadOnlyList<RichLineFragment>? Fragments { get; set; }
+        internal double FragmentTopGap { get; set; }
+        internal bool IsFragmentContext { get; set; }
         internal double BaselineOffset { get; set; }
         internal double? FrameFitHeight { get; set; }
         internal double MinimumContentHeight { get; set; }
@@ -18,7 +22,7 @@ internal static partial class PdfWriter {
 
         /// <summary>Creates an empty line retaining placement and paragraph decorations independently of its text.</summary>
         internal RichLine CopyPlacement() => new RichLine {
-            BaselineOffset = BaselineOffset, FrameFitHeight = FrameFitHeight, MinimumContentHeight = MinimumContentHeight,
+            IsFragmentContext = IsFragmentContext, BaselineOffset = BaselineOffset, FrameFitHeight = FrameFitHeight, MinimumContentHeight = MinimumContentHeight,
             BarTabStops = BarTabStops, BarOriginOffset = BarOriginOffset, BarLineHeight = BarLineHeight,
             BarSpacingBefore = BarSpacingBefore, BarSpacingAfter = BarSpacingAfter,
             IsFirstParagraphLine = IsFirstParagraphLine, IsLastParagraphLine = IsLastParagraphLine

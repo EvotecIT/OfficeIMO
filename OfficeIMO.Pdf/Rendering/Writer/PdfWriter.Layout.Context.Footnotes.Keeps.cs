@@ -56,9 +56,17 @@ internal static partial class PdfWriter {
             if (block is HeadingBlock heading) {
                 PdfHeadingStyle? style = ResolveHeadingStyle(heading, currentOpts);
                 double size = GetHeadingFontSize(heading, style);
-                var wrap = WrapRichHeadingRuns(CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color), frameWidth, size,
-                    ChooseNormal(currentOpts.DefaultFont), GetHeadingLeading(style, size), null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align);
-                return wrap.Lines.Take(1).SelectMany(line => line);
+                double before = y < GetCurrentFramePageStartY() - .001D || style?.ApplySpacingBeforeAtTop == true
+                    ? style?.SpacingBefore ?? 0D : 0D;
+                var savedPictures = pictureAnchors.Working.ToArray();
+                try {
+                    var wrap = WrapHeadingForFrame(heading, CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color),
+                        style, frameX, frameWidth, size, GetHeadingLeading(style, size), y - before);
+                    return wrap.Lines.Take(1).SelectMany(line => line).ToArray();
+                } finally {
+                    pictureAnchors.Working.Clear();
+                    foreach (var entry in savedPictures) pictureAnchors.Working.Add(entry.Key, entry.Value);
+                }
             }
             if (block is PdfListBlock list) {
                 PreparedListLayout prepared = PrepareListLayout(list, frameWidth, currentOpts.DefaultFontSize, topLevelSpacing: true);

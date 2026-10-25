@@ -10,6 +10,9 @@ internal static partial class PdfWriter {
             for (int itemIndex = 0; itemIndex < canvas.Items.Count; itemIndex++) {
                 PdfCanvasItem item = canvas.Items[itemIndex];
                 switch (item) {
+                    case PdfCanvasAnchoredImageItem anchoredPicture:
+                        RenderAnchoredPicture(anchoredPicture);
+                        break;
                     case PdfCanvasBehindTextItem behindText:
                         RenderBehindTextCanvas(behindText);
                         break;

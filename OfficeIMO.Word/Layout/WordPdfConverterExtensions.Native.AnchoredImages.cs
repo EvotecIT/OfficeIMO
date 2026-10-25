@@ -12,7 +12,17 @@ public static partial class WordPdfConverterExtensions {
         WordSection? section, PdfCore.PageSize pageSize, PdfCore.PageMargins margins, double width, double height,
         out NativeAnchoredImagePlacement placement) {
         placement = default;
-        if (layout.Placement != WordDrawingPlacementKind.Anchored || layout.Wrap != WordDrawingWrapKind.None ||
+        if (layout.Wrap != WordDrawingWrapKind.None) return false;
+        return TryResolveNativeAnchoredImageGeometry(layout, section, pageSize, margins, width, height,
+            out placement);
+    }
+
+    /// <summary>Resolves source anchor geometry independently of the wrapping admission policy.</summary>
+    private static bool TryResolveNativeAnchoredImageGeometry(WordDrawingLayoutSnapshot layout,
+        WordSection? section, PdfCore.PageSize pageSize, PdfCore.PageMargins margins, double width, double height,
+        out NativeAnchoredImagePlacement placement) {
+        placement = default;
+        if (layout.Placement != WordDrawingPlacementKind.Anchored ||
             width <= 0D || height <= 0D || double.IsNaN(width) || double.IsInfinity(width) ||
             double.IsNaN(height) || double.IsInfinity(height)) return false;
         bool marginX = layout.HorizontalRelativeFrom is "margin" or "column";
@@ -33,7 +43,7 @@ public static partial class WordPdfConverterExtensions {
         return true;
     }
 
-    /// <summary>Retains non-wrapping image anchors on the page that contains their paragraph.</summary>
+    /// <summary>Retains picture anchors and supported rectangular wrapping on their source paragraph.</summary>
     private static bool TryAddNativeAnchoredImage(INativePdfFlow pdf, WordImage image, byte[] bytes,
         double width, double height, PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas? target,
         WordParagraph? paragraph, WordToPdfOptions? options, string source, WordSection? anchorSection = null) {
@@ -42,7 +52,29 @@ public static partial class WordPdfConverterExtensions {
             return false;
 
         WordSection? section = paragraph?.GetBodySection() ?? anchorSection;
-        PdfCore.PageMargins margins = section == null ? PdfCore.PageMargins.Uniform(0D) : GetNativeMargins(section, options);
+        PdfCore.PageMargins margins = section == null ? PdfCore.PageMargins.Uniform(0D)
+            : layout.Wrap == WordDrawingWrapKind.None ? GetNativeMargins(section, options)
+            : GetNativeMargins(section, options, (0D, 0D));
+        if (layout.Wrap != WordDrawingWrapKind.None) {
+            // Visible run views retain their original source children, so the
+            // drawing identity is stable across deferred story materializations.
+            if (!TryPrepareNativeAnchoredImageItem(image._Image, image, bytes, width, height, section,
+                    pdf.PageSize, margins, options, source, out PdfCore.PdfCanvasAnchoredImageItem? wrapped,
+                    out string? unsupportedReason)) {
+                RecordNativeImageWrapApproximation(options, image._Image, source,
+                    "The wrapped picture was placed in document flow. " + unsupportedReason);
+                return false;
+            }
+            PdfCore.PdfPageCanvas wrappedCanvas = target ?? new PdfCore.PdfPageCanvas();
+            if (target == null && style.AnchoredCanvas != null) wrappedCanvas.AddItems(style.AnchoredCanvas.Items);
+            wrappedCanvas.AddItems(new PdfCore.PdfCanvasItem[] { wrapped! });
+            if (target == null) style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(wrappedCanvas.Items);
+            PdfCore.PdfAnchoredImagePosition position = wrapped!.Position;
+            RecordNativeWrappedImagePageClipping(options, image._Image, source, pdf.PageSize,
+                width, height, position);
+            return true;
+        }
+
         if (!TryResolveNativeAnchoredImagePlacement(layout, section, pdf.PageSize, margins, width, height,
                 out NativeAnchoredImagePlacement placement)) return false;
 

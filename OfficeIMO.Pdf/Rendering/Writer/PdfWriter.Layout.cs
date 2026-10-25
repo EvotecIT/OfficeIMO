@@ -145,27 +145,34 @@ internal static partial class PdfWriter {
         var drawingPatternAnnotations = new DrawingPatternAnnotationBudget();
         IReadOnlyList<PageNumberInfo>? previousRunningPages = null;
         int previousDocumentPages = 1;
+        IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement>? previousPictures = null;
         LayoutResult result = null!;
+        bool picturesStable = true;
         for (int pass = 0; pass < 5; pass++) {
             cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
+            using var layoutDiagnostics = opts.BeginLayoutDiagnosticBuffer();
+            var pictures = new PictureAnchorState(previousPictures);
             using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations,
                 runningAssets: runningAssets, previousRunningPages: previousRunningPages,
                 previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken,
-                drawingPatternAnnotations: drawingPatternAnnotations);
+                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictures);
             result = context.Layout(blockList);
             IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);
             bool runningStable = RunningContentContextsMatch(result, runningPages);
+            picturesStable = PictureAnchorsEqual(previousPictures, pictures.Observed);
+            previousPictures = pictures.Observed;
             previousRunningPages = runningPages;
             previousDocumentPages = result.Pages.Count;
-            if (!result.HasTableOfContents && runningStable) {
+            if (!result.HasTableOfContents && runningStable && picturesStable) {
                 ApplySectionReferences(result);
+                layoutDiagnostics.Commit();
                 return result;
             }
 
             IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
             IReadOnlyList<SectionBlock> resolvedSections = result.SectionDefinitions;
-            if (pageNumbers != null && runningStable &&
+            if (pageNumbers != null && runningStable && picturesStable &&
                 SectionPageNumbersEqual(pageNumbers, resolved) &&
                 SectionDefinitionsEqual(sections, resolvedSections)) {
                 try {
@@ -175,6 +182,7 @@ internal static partial class PdfWriter {
                     throw;
                 }
                 ApplySectionReferences(result);
+                layoutDiagnostics.Commit();
                 return result;
             }
 
@@ -184,6 +192,8 @@ internal static partial class PdfWriter {
 
         bool hasDynamicRunningContent = result?.Pages.Any(page => page.HasDynamicRunningContent) == true;
         result?.Dispose();
+        if (!picturesStable)
+            throw new InvalidOperationException("Anchored picture layout did not stabilize within five layout passes.");
         throw new InvalidOperationException(hasDynamicRunningContent
             ? "Running PDF content did not stabilize within five layout passes."
             : "Generated table of contents did not stabilize within five layout passes.");

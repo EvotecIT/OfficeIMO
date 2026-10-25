@@ -33,9 +33,9 @@ internal static partial class PdfWriter {
         return Math.Max(0D, line.BaselineOffset + descent);
     }
 
-    private static double GetRichLineFrameFitHeight(IReadOnlyList<RichSeg> line, double advance, double topGap = 0D) =>
+    private static double GetRichLineFrameFitHeight(IReadOnlyList<RichSeg> line, double advance, double? topGap = null) =>
         line is RichLine { FrameFitHeight: double required }
-            ? Math.Min(advance, Math.Max(0D, topGap) + required) : advance;
+            ? Math.Min(advance, Math.Max(0D, topGap ?? ((RichLine)line).FragmentTopGap) + required) : advance;
 
     private static double MeasureRichLinesFrameFitHeight(IReadOnlyList<List<RichSeg>> lines,
         IReadOnlyList<double> heights, double fallbackLeading, IReadOnlyList<double>? topGaps = null) {
@@ -43,6 +43,6 @@ internal static partial class PdfWriter {
         if (lines.Count == 0) return height;
         int last = lines.Count - 1;
         double advance = GetRichLineHeight(heights, last, fallbackLeading);
-        return height - advance + GetRichLineFrameFitHeight(lines[last], advance, topGaps?[last] ?? 0D);
+        return height - advance + GetRichLineFrameFitHeight(lines[last], advance, topGaps?[last]);
     }
 }
