@@ -1114,25 +1114,26 @@ const { captureCsvOptions } = _m15;
 function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (value == null && nullValue !== undefined)
         value = nullValue;
+    const kind = typeof value;
     let text;
     if (value == null)
         text = "";
+    else if (kind === "string")
+        text = value;
+    else if (kind === "number")
+        text = Number.isFinite(value) ? String(value) : "";
+    else if (kind === "boolean")
+        text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-    else if (typeof value === "boolean")
-        text = booleanText[value ? "true" : "false"];
-    else if (typeof value === "number")
-        text = Number.isFinite(value) ? String(value) : "";
-    else if (typeof value === "string")
-        text = value;
     else {
         if (typeof value.then === "function")
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+    return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {

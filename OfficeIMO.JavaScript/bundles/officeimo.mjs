@@ -5377,25 +5377,26 @@ const { captureCsvOptions } = _m52;
 function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (value == null && nullValue !== undefined)
         value = nullValue;
+    const kind = typeof value;
     let text;
     if (value == null)
         text = "";
+    else if (kind === "string")
+        text = value;
+    else if (kind === "number")
+        text = Number.isFinite(value) ? String(value) : "";
+    else if (kind === "boolean")
+        text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-    else if (typeof value === "boolean")
-        text = booleanText[value ? "true" : "false"];
-    else if (typeof value === "number")
-        text = Number.isFinite(value) ? String(value) : "";
-    else if (typeof value === "string")
-        text = value;
     else {
         if (typeof value.then === "function")
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+    return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
@@ -7195,7 +7196,8 @@ class PdfFontResource {
         }
         if (this.mappings.size >= 65535)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
+        const cid = this.mappings.size + 1;
+        const mapping = { cid, hex: cidHex(cid), glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
         this.mappings.set(scalar, mapping);
         return mapping.width;
     }
@@ -7215,7 +7217,7 @@ class PdfFontResource {
                     this.width(cp);
                     mapping = this.mappings.get(cp);
                 }
-                hex += cidHex(mapping.cid);
+                hex += mapping.hex;
             }
             else {
                 if (!this.standardWidths.has(cp))
@@ -7236,10 +7238,11 @@ class PdfFontResource {
         if (!mapping) {
             if (this.mappings.size >= 65535)
                 throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
-            mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph], text };
+            const cid = this.mappings.size + 1;
+            mapping = { cid, hex: cidHex(cid), glyph, width: this.program.widths[glyph], text };
             this.mappings.set(key, mapping);
         }
-        return "<" + cidHex(mapping.cid) + ">";
+        return "<" + mapping.hex + ">";
     }
     async write(objects, compression) {
         checkAbort(this.signal);
@@ -7288,7 +7291,7 @@ class PdfFontResource {
             const batch = mapped.slice(i, i + 100);
             cmap += batch.length + " beginbfchar\n";
             for (const [, m] of batch)
-                cmap += "<" + cidHex(m.cid) + "> <" + unicodeHex(m.text) + ">\n";
+                cmap += "<" + m.hex + "> <" + unicodeHex(m.text) + ">\n";
             cmap += "endbfchar\n";
             if (taskYieldDue())
                 await pause();

@@ -50,18 +50,19 @@ export interface CsvOptions<T = never> extends StreamOptions {
 }
 function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText, nullValue?: string): string {
   if (value == null && nullValue !== undefined) value = nullValue;
+  const kind = typeof value;
   let text: string;
   if (value == null) text = "";
+  else if (kind === "string") text = value as string;
+  else if (kind === "number") text = Number.isFinite(value) ? String(value) : "";
+  else if (kind === "boolean") text = booleanText[value ? "true" : "false"];
   else if (isDate(value)) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-  else if (typeof value === "boolean") text = booleanText[value ? "true" : "false"];
-  else if (typeof value === "number") text = Number.isFinite(value) ? String(value) : "";
-  else if (typeof value === "string") text = value;
   else {
     if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
     throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
   }
-  if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
-  return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+  if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
+  return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
     ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 

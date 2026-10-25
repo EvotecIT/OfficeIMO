@@ -5406,7 +5406,7 @@ _modules.set("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208",
 return _exports;
 })();
 
-const _m49 = _modules.get("cd3caf8af163ac8bd46d7eafeea03652b0738ca24942f7af01affb2891a287af") ?? (() => {
+const _m49 = _modules.get("119a4414593636e06ab82e0590b51d32882abae3e29c8adce6a0efb922ae80f7") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -5434,25 +5434,26 @@ const { captureCsvOptions } = _m52;
 function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (value == null && nullValue !== undefined)
         value = nullValue;
+    const kind = typeof value;
     let text;
     if (value == null)
         text = "";
+    else if (kind === "string")
+        text = value;
+    else if (kind === "number")
+        text = Number.isFinite(value) ? String(value) : "";
+    else if (kind === "boolean")
+        text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-    else if (typeof value === "boolean")
-        text = booleanText[value ? "true" : "false"];
-    else if (typeof value === "number")
-        text = Number.isFinite(value) ? String(value) : "";
-    else if (typeof value === "string")
-        text = value;
     else {
         if (typeof value.then === "function")
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+    return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
@@ -5553,7 +5554,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("cd3caf8af163ac8bd46d7eafeea03652b0738ca24942f7af01affb2891a287af", _exports);
+_modules.set("119a4414593636e06ab82e0590b51d32882abae3e29c8adce6a0efb922ae80f7", _exports);
 return _exports;
 })();
 
@@ -7199,7 +7200,7 @@ _modules.set("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070",
 return _exports;
 })();
 
-const _m61 = _modules.get("60344d75c290a35f454f18f9668b1bf5d2e218cc1e7c2f60d1555874211b8fa9") ?? (() => {
+const _m61 = _modules.get("a3839473bbd6a8f222d373df6397f1330ceeb4d8487a1a3db30b1e251eacf403") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { fontProgram } = _m62;
@@ -7264,7 +7265,8 @@ class PdfFontResource {
         }
         if (this.mappings.size >= 65535)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
+        const cid = this.mappings.size + 1;
+        const mapping = { cid, hex: cidHex(cid), glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
         this.mappings.set(scalar, mapping);
         return mapping.width;
     }
@@ -7284,7 +7286,7 @@ class PdfFontResource {
                     this.width(cp);
                     mapping = this.mappings.get(cp);
                 }
-                hex += cidHex(mapping.cid);
+                hex += mapping.hex;
             }
             else {
                 if (!this.standardWidths.has(cp))
@@ -7305,10 +7307,11 @@ class PdfFontResource {
         if (!mapping) {
             if (this.mappings.size >= 65535)
                 throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
-            mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph], text };
+            const cid = this.mappings.size + 1;
+            mapping = { cid, hex: cidHex(cid), glyph, width: this.program.widths[glyph], text };
             this.mappings.set(key, mapping);
         }
-        return "<" + cidHex(mapping.cid) + ">";
+        return "<" + mapping.hex + ">";
     }
     async write(objects, compression) {
         checkAbort(this.signal);
@@ -7357,7 +7360,7 @@ class PdfFontResource {
             const batch = mapped.slice(i, i + 100);
             cmap += batch.length + " beginbfchar\n";
             for (const [, m] of batch)
-                cmap += "<" + cidHex(m.cid) + "> <" + unicodeHex(m.text) + ">\n";
+                cmap += "<" + m.hex + "> <" + unicodeHex(m.text) + ">\n";
             cmap += "endbfchar\n";
             if (taskYieldDue())
                 await pause();
@@ -7425,7 +7428,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("60344d75c290a35f454f18f9668b1bf5d2e218cc1e7c2f60d1555874211b8fa9", _exports);
+_modules.set("a3839473bbd6a8f222d373df6397f1330ceeb4d8487a1a3db30b1e251eacf403", _exports);
 return _exports;
 })();
 
@@ -9801,7 +9804,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m58 = _modules.get("177e77ab2c2317a859f0df7ee9413760b480e931ad9f173b1d95d5516e2439a6") ?? (() => {
+const _m58 = _modules.get("e8330801502eabc5b9f55e908bad4bcf1b62df534b73e4e6c02cd30523c8f6f7") ?? (() => {
 const { PdfObjects, unicodeHex } = _m59;
 
 const { PdfFontResources } = _m61;
@@ -9864,11 +9867,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("177e77ab2c2317a859f0df7ee9413760b480e931ad9f173b1d95d5516e2439a6", _exports);
+_modules.set("e8330801502eabc5b9f55e908bad4bcf1b62df534b73e4e6c02cd30523c8f6f7", _exports);
 return _exports;
 })();
 
-const _m54 = _modules.get("d1a0fd0e05240ba8b702672f87c774a7533d2ea9e66a8b85acb84ed3695eb508") ?? (() => {
+const _m54 = _modules.get("f42a1abff1b587f0be82e427a761e1771f2100621de0e9edf8c58539eadc74a2") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9933,7 +9936,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("d1a0fd0e05240ba8b702672f87c774a7533d2ea9e66a8b85acb84ed3695eb508", _exports);
+_modules.set("f42a1abff1b587f0be82e427a761e1771f2100621de0e9edf8c58539eadc74a2", _exports);
 return _exports;
 })();
 
@@ -11123,7 +11126,7 @@ _modules.set("f889a9ddf94dd13d085da49f792259f2eeefa7e9fe946616d6849817cd3ec9c7",
 return _exports;
 })();
 
-const _m83 = _modules.get("ef08831869787c7f234379fb926ae02701991e2ce13f6ee10438a1972bd344fe") ?? (() => {
+const _m83 = _modules.get("8b1243ba07f9d452d7151227a60910705bfb53d73dc31fbcf63a7836e3c42a07") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11413,11 +11416,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("ef08831869787c7f234379fb926ae02701991e2ce13f6ee10438a1972bd344fe", _exports);
+_modules.set("8b1243ba07f9d452d7151227a60910705bfb53d73dc31fbcf63a7836e3c42a07", _exports);
 return _exports;
 })();
 
-const _m82 = _modules.get("bfff521c6da530f260b7ea8400a017581b49667432013a4d2e285eeb5198fa09") ?? (() => {
+const _m82 = _modules.get("337996e6f1b326ab8c66ee9025c9a7a9b7814fc2fc18f8d164fc2c91f34245cc") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11463,7 +11466,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("bfff521c6da530f260b7ea8400a017581b49667432013a4d2e285eeb5198fa09", _exports);
+_modules.set("337996e6f1b326ab8c66ee9025c9a7a9b7814fc2fc18f8d164fc2c91f34245cc", _exports);
 return _exports;
 })();
 
@@ -11507,17 +11510,17 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m53 = _modules.get("80a469e909f0f154a5ec87b5c33d48db1eff2e520a84b4b3dceded3fae4b4471") ?? (() => {
+const _m53 = _modules.get("7dbde2348fae725012859f700b4b7b7d9e77eb659c80c0f067e0853ec4b6b7de") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("80a469e909f0f154a5ec87b5c33d48db1eff2e520a84b4b3dceded3fae4b4471", _exports);
+_modules.set("7dbde2348fae725012859f700b4b7b7d9e77eb659c80c0f067e0853ec4b6b7de", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("19a6ee60379d7c0aebedb141a5921064e91c3f55be55ad4f935c10f049899d46") ?? (() => {
+const _m0 = _modules.get("baac06376102c06642dbae8e05d498505e220b09366b87f05b5ca867fcba23bc") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("19a6ee60379d7c0aebedb141a5921064e91c3f55be55ad4f935c10f049899d46", _exports);
+_modules.set("baac06376102c06642dbae8e05d498505e220b09366b87f05b5ca867fcba23bc", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

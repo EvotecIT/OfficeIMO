@@ -18,7 +18,7 @@ export class PdfFontResource {
   readonly program: TrueTypeFont | undefined;
   readonly syntheticBold: boolean;
   readonly syntheticItalic: boolean;
-  private readonly mappings = new Map<number | string, { cid: number; glyph: number; width: number; text: string }>();
+  private readonly mappings = new Map<number | string, { cid: number; hex: string; glyph: number; width: number; text: string }>();
   private readonly standardWidths = new Map<number, number>();
   constructor(readonly index: number, readonly bold: boolean, readonly italic: boolean, readonly font: PdfFont | undefined,
     objects: PdfObjects, syntheticBold: boolean, syntheticItalic: boolean, private readonly shared?: PdfFontResource, private readonly signal?: AbortSignal) {
@@ -41,7 +41,8 @@ export class PdfFontResource {
     }
     if (!this.program) { this.standardWidths.set(scalar, resolved.width); return resolved.width; }
     if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-    const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph!, width: resolved.width, text: String.fromCodePoint(scalar) };
+    const cid = this.mappings.size + 1;
+    const mapping = { cid, hex: cidHex(cid), glyph: resolved.glyph!, width: resolved.width, text: String.fromCodePoint(scalar) };
     this.mappings.set(scalar, mapping); return mapping.width;
   }
   lineHeight(size: number): number {
@@ -56,7 +57,7 @@ export class PdfFontResource {
         let mapping = this.mappings.get(cp);
         // Layout normally registered the scalar already; validate only a newly painted scalar.
         if (!mapping) { this.width(cp); mapping = this.mappings.get(cp)!; }
-        hex += cidHex(mapping.cid);
+        hex += mapping.hex;
       } else {
         if (!this.standardWidths.has(cp)) this.width(cp);
         hex += hexBytes[standardCode(cp)!]!;
@@ -71,9 +72,10 @@ export class PdfFontResource {
     const key = glyph + ":" + text; let mapping = this.mappings.get(key);
     if (!mapping) {
       if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
-      mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph]!, text }; this.mappings.set(key, mapping);
+      const cid = this.mappings.size + 1;
+      mapping = { cid, hex: cidHex(cid), glyph, width: this.program.widths[glyph]!, text }; this.mappings.set(key, mapping);
     }
-    return "<" + cidHex(mapping.cid) + ">";
+    return "<" + mapping.hex + ">";
   }
   async write(objects: PdfObjects, compression: boolean): Promise<void> {
     checkAbort(this.signal);
@@ -106,7 +108,7 @@ export class PdfFontResource {
     const mapped = entries.filter(([, mapping]) => mapping.text.length);
     for (let i = 0; i < mapped.length; i += 100) {
       const batch = mapped.slice(i, i + 100); cmap += batch.length + " beginbfchar\n";
-      for (const [, m] of batch) cmap += "<" + cidHex(m.cid) + "> <" + unicodeHex(m.text) + ">\n";
+      for (const [, m] of batch) cmap += "<" + m.hex + "> <" + unicodeHex(m.text) + ">\n";
       cmap += "endbfchar\n";
       if (taskYieldDue()) await pause(); checkAbort(this.signal);
     }
