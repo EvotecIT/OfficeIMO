@@ -16,6 +16,42 @@ public sealed class PdfAnchoredPictureWrappingTests {
         .Concat(new[] { "END" }).ToArray();
 
     [Theory]
+    [InlineData(PdfTextWhitespaceMode.Collapse)]
+    [InlineData(PdfTextWhitespaceMode.Preserve)]
+    public void SourceLeaderReResolvesParagraphStopWhenItsFontMovesThePictureFrame(PdfTextWhitespaceMode whitespace) {
+        var style = TextStyle();
+        style.LineSpacing = null;
+        style.LineHeight = 1.2D;
+        style.TextWhitespaceMode = whitespace;
+        style.AddTabStop(90D, leader: PdfTabLeaderStyle.Dots);
+        var content = new PdfPageCanvas();
+        content.Image(PdfPngTestImages.CreateRgbPng(2, 2), 0D, 0D, 96D, 48D);
+        style.AnchoredCanvas = new PdfCanvasBlock(new PdfCanvasItem[] {
+            new PdfCanvasAnchoredImageItem(new object(), new PdfCanvasBlock(content.Items), 96, 48,
+                new PdfAnchoredImagePosition(120, 18, false, 30, true),
+                new PdfImageTextExclusion(PdfImageTextWrapKind.Square, PdfImageTextWrapSide.BothSides, 0, 0, 0, 0))
+        });
+        var document = PdfDocument.Create(Options()).Paragraph(p => p.Runs(new[] {
+            new PdfTextRun("\t", fontSize: 36D, font: PdfStandardFont.Courier,
+                tabLeader: PdfTabLeaderStyle.Dots),
+            PdfTextRun.Normal("X", fontSize: 12D)
+        }), style: style);
+        using var pdf = ReadEvidence("source-leader-picture-frame-" + whitespace, document);
+        var page = Assert.Single(pdf.GetPages());
+        var following = Assert.Single(page.Letters, letter => letter.Value == "X");
+        Assert.Equal(120D, following.StartBaseLine.X, 3);
+        var leaders = page.Letters.Where(letter => letter.Value == ".").ToArray();
+        Assert.NotEmpty(leaders);
+        Assert.All(leaders, letter => {
+            Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal);
+            Assert.Equal(36D, letter.FontSize, 3);
+            Assert.InRange(letter.StartBaseLine.X, 30D, following.StartBaseLine.X);
+            Assert.Equal(following.StartBaseLine.Y, letter.StartBaseLine.Y, 3);
+        });
+        Assert.Equal("X", string.Concat(page.Letters.Where(letter => letter.Value != ".").Select(letter => letter.Value)));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SquarePictureUsesBothIntervalsOnOneBaselineAndPaintsEveryTokenOnce(bool behind) {
@@ -262,6 +298,55 @@ public sealed class PdfAnchoredPictureWrappingTests {
             row => row.Any(link => link.X1 < image.Left - 6D) && row.Any(link => link.X1 >= image.Right + 6D));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void NonConvergingRunningContentReportsOnlyUnstablePicturePlacement(bool withPicture, bool movingPicture) {
+        const double headerDistance = 18D;
+        double tallHeader = Options().PageHeight - Options().MarginBottom - headerDistance - 2D * 15D;
+        PdfDocument Document(Func<PdfRunningContentContext, double> headerHeight) => PdfDocument.Create(pdf => {
+            pdf.Section(page => page.Content(content => content.Paragraph(p => p.Text("ANCHOR"),
+                style: withPicture && !movingPicture
+                    ? PictureStyle(PdfImageTextWrapKind.Square, paragraphY: false) : TextStyle())));
+            pdf.Section(page => {
+                page.Header(header => header.Content(context =>
+                    content => content.Spacer(headerHeight(context)), headerDistance));
+                page.Content(content => {
+                    for (int row = 1; row <= 7; row++)
+                        content.Paragraph(p => p.Text("ROW" + row), style: withPicture && movingPicture && row == 1
+                            ? PictureStyle(PdfImageTextWrapKind.Square) : TextStyle());
+                });
+            });
+        }, Options());
+
+        string profile = !withPicture ? "none" : movingPicture ? "moving" : "stable";
+        using var small = ReadEvidence("nonconvergence-small-" + profile, Document(_ => 0D));
+        using var large = ReadEvidence("nonconvergence-large-" + profile, Document(_ => tallHeader));
+        Assert.Equal(2, small.NumberOfPages);
+        Assert.True(large.NumberOfPages > small.NumberOfPages);
+        string[] expected = new[] { "ANCHOR" }.Concat(Enumerable.Range(1, 7).Select(row => "ROW" + row)).ToArray();
+        AssertTokensOnce(small.GetPages().SelectMany(page => page.GetWords()), expected);
+        AssertTokensOnce(large.GetPages().SelectMany(page => page.GetWords()), expected);
+        if (withPicture) {
+            var first = Assert.Single(small.GetPages().SelectMany(page => page.GetImages())).BoundingBox;
+            var second = Assert.Single(large.GetPages().SelectMany(page => page.GetImages())).BoundingBox;
+            Assert.Equal(first.Left, second.Left, 3);
+            Assert.Equal(first.Width, second.Width, 3);
+            Assert.Equal(first.Height, second.Height, 3);
+            if (movingPicture) Assert.NotEqual(Math.Round(first.Top, 3), Math.Round(second.Top, 3));
+            else Assert.Equal(first.Top, second.Top, 3);
+        } else {
+            Assert.Empty(small.GetPages().SelectMany(page => page.GetImages()));
+            Assert.Empty(large.GetPages().SelectMany(page => page.GetImages()));
+        }
+        // A pure function of the advertised document page count alternates the two
+        // proven endpoint layouts; no call counter, randomness or timing is used.
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Document(context =>
+            context.DocumentPages <= small.NumberOfPages ? tallHeader : 0D).ToBytes());
+        Assert.StartsWith(movingPicture ? "Anchored picture layout" : "Running PDF content", error.Message);
+    }
+
     private static PdfOptions Options(double height = 400D) => new PdfOptions {
         PageWidth = 360D, PageHeight = height, MarginLeft = 30D, MarginRight = 30D,
         MarginTop = 30D, MarginBottom = 30D, DefaultFont = PdfStandardFont.Helvetica,
@@ -273,7 +358,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         SpacingBefore = 0D, SpacingAfter = 0D, WidowControl = false
     };
 
-    private static PdfParagraphStyle PictureStyle(PdfImageTextWrapKind? kind, bool behind = false) {
+    private static PdfParagraphStyle PictureStyle(PdfImageTextWrapKind? kind, bool behind = false, bool paragraphY = true) {
         PdfParagraphStyle style = TextStyle();
         var content = new PdfPageCanvas();
         if (behind) content.Image(PdfPngTestImages.CreateRgbPng(2, 2), 0D, 0D, 96D, 48D);
@@ -283,7 +368,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         var exclusion = kind.HasValue ? new PdfImageTextExclusion(kind.Value,
             PdfImageTextWrapSide.BothSides, 6D, 6D, 6D, 6D) : null;
         var picture = new PdfCanvasAnchoredImageItem(new object(), new PdfCanvasBlock(paint),
-            96D, 48D, new PdfAnchoredImagePosition(120D, 0D, false, 30D, true), exclusion);
+            96D, 48D, new PdfAnchoredImagePosition(120D, paragraphY ? 0D : 30D, false, 30D, paragraphY), exclusion);
         style.AnchoredCanvas = new PdfCanvasBlock(new PdfCanvasItem[] { picture });
         return style;
     }

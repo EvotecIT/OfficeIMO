@@ -212,7 +212,7 @@ internal static partial class PdfWriter {
                     includeCurrentRun: followingContentHeight > 0D, sourceTab: tab);
             }
             PrepareSourceFrame(PaintableAdvance(tab) + followingSpaces + followingWidth);
-            if (lineLayout == null || originalLine == lines.Count - 1 &&
+            if ((lineLayout == null && rowComposition == null) || originalLine == lines.Count - 1 &&
                 Math.Abs(originalWidth - CurrentMaxWidth()) <= 0.001D &&
                 Math.Abs(originalOrigin - CurrentLineOriginOffset()) <= 0.001D)
                 return maximumAdvance.HasValue ? tab.WithLeadingAdvance(PaintableAdvance(tab)) : tab;

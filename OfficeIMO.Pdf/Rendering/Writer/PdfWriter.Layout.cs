@@ -147,6 +147,7 @@ internal static partial class PdfWriter {
         int previousDocumentPages = 1;
         IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement>? previousPictures = null;
         LayoutResult result = null!;
+        bool picturesStable = true;
         for (int pass = 0; pass < 5; pass++) {
             cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
@@ -159,7 +160,7 @@ internal static partial class PdfWriter {
             result = context.Layout(blockList);
             IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);
             bool runningStable = RunningContentContextsMatch(result, runningPages);
-            bool picturesStable = PictureAnchorsEqual(previousPictures, pictures.Observed);
+            picturesStable = PictureAnchorsEqual(previousPictures, pictures.Observed);
             previousPictures = pictures.Observed;
             previousRunningPages = runningPages;
             previousDocumentPages = result.Pages.Count;
@@ -191,7 +192,7 @@ internal static partial class PdfWriter {
 
         bool hasDynamicRunningContent = result?.Pages.Any(page => page.HasDynamicRunningContent) == true;
         result?.Dispose();
-        if (previousPictures?.Count > 0)
+        if (!picturesStable)
             throw new InvalidOperationException("Anchored picture layout did not stabilize within five layout passes.");
         throw new InvalidOperationException(hasDynamicRunningContent
             ? "Running PDF content did not stabilize within five layout passes."
