@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
