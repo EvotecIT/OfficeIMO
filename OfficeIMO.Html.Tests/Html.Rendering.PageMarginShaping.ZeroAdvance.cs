@@ -66,7 +66,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
         PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
         pdf.RequireNoLoss();
-        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(pdf.ToBytes(),
+        byte[] bytes = pdf.ToBytes();
+        pdf.RequireNoLoss();
+        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
         Assert.Equal("\u0301", saved.ExtractText().Trim());
 
@@ -75,6 +77,7 @@ public sealed partial class HtmlRenderingTests {
             OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, image.Bytes);
         Assert.DoesNotContain(image.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
+        Assert.DoesNotContain(replay.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
     }
 
     private static HtmlConversionDocument PageMarginZeroAdvanceDocument(string keyword, string extra = "") =>
