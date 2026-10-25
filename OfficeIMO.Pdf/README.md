@@ -298,6 +298,17 @@ PdfDocument.Create()
 
 The negative stop is eighteen points before the continuation text origin. Following lines retain that origin and their default tab interval. NaN and infinite positions are rejected.
 
+Bar stops draw stationary vertical rules alongside the paragraph's lines:
+
+```csharp
+var style = new PdfParagraphStyle();
+PdfTabStop rule = style.AddTabStop(72, PdfTabAlignment.Bar);
+rule.BarWidth = 0.5;
+rule.BarColor = PdfColor.Black;
+```
+
+Each rule spans its line's resolved height, including applied paragraph space before on the first line and space after on the last. Bars keep their paragraph origin through hanging indents, alignment and continuation. They leave glyph positions and positional tab selection unchanged. Paragraph and heading styles capture the rule's position, width and color; bar alignment is available on style declarations, while `PdfTextRun.Tab` accepts text alignments.
+
 ## Decimal tab alignment
 
 An explicit decimal tab can select its decimal separator independently of grouping punctuation:

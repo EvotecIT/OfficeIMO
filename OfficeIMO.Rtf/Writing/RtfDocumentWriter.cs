@@ -20,7 +20,12 @@ internal static partial class RtfDocumentWriter {
         builder.Append(@"\deff");
         builder.Append((document.Settings.DefaultFontId ?? 0).ToString(CultureInfo.InvariantCulture));
         HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
-        if (referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) builder.Append(@"\fet2");
+        if (!document.Settings.HasParsedNoteDefaults ||
+            document.Settings.NoteMode.HasValue ||
+            referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) {
+            builder.Append(@"\fet");
+            builder.Append(((int)document.Settings.EffectiveNoteMode).ToString(CultureInfo.InvariantCulture));
+        }
         RtfPageSetup rootPageSetup = document.PageSetup;
         if (document.PageSetup.Landscape && document.Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
             rootPageSetup = new RtfCloneContext().Clone(document.PageSetup)!;

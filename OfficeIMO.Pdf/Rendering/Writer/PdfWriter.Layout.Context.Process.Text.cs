@@ -19,6 +19,7 @@ internal static partial class PdfWriter {
             double wrappedWidth = width;
             int lineIndex = 0;
             bool firstLogicalLine = true;
+            double appliedSpacingBefore = 0D;
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
             void NewHeadingFrame() {
                 if (firstLogicalLine) QueueColumnBalanceRemainder(hb, blockList, blockIndex);
@@ -26,6 +27,7 @@ internal static partial class PdfWriter {
                     new(lineHeights.Skip(lineIndex).Sum() + spacingAfter)
                 }, hb, blockList, blockIndex);
                 NewPage();
+                appliedSpacingBefore = 0D;
                 frameStart = GetCurrentFramePageStartY();
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
                     var remainingRuns = firstLogicalLine ? headingRuns : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
@@ -64,6 +66,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
             if (spacingBefore > 0) {
                 y -= spacingBefore;
+                appliedSpacingBefore = spacingBefore;
             }
 
             PageStructElement? logicalHeading = null;
@@ -124,7 +127,9 @@ internal static partial class PdfWriter {
                 if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings && currentPage!.Bookmarks.Count > 0)
                     currentPage.Bookmarks[currentPage.Bookmarks.Count - 1].StructureElement = logicalHeading ?? ResolveMarkedStructure(markedContentId);
                 AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex, sliceHeights);
-                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
+                    paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
+                    paragraphSpacingBefore: firstLogicalLine ? appliedSpacingBefore : 0D);
                 MarkRichFonts(headingRuns);
                 if (GetHeadingBold(headingStyle)) {
                     currentPage!.UsedBold = true;
@@ -325,30 +330,51 @@ internal static partial class PdfWriter {
                 // Widow/orphan control can carry a previously simulated float-side line forward.
                 // Keep its line break, but remove the old page's exclusion offset and clearance.
                 if (floatingLineGaps != null) {
+                    PdfTabStop[]? destinationStops = NormalizeExplicitTabStops(paragraphStyle?.TabStops.ToArray(), textFrame.Width);
                     for (int index = lineIndex; index < lineHeights.Count; index++) {
                         lineHeights[index] -= floatingLineGaps[index];
+                        if (lines[index] is RichLine barLine) barLine.BarOriginOffset = 0D;
+                        bool changedLeaderInk = false;
                         double lineWidth = 0;
+                        int nextDestinationStop = 0;
                         for (int segmentIndex = 0; segmentIndex < lines[index].Count; segmentIndex++) {
                             var segment = lines[index][segmentIndex];
                             var adjusted = segment;
-                            if (segment.LeadingTabStop != null) {
-                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
-                                RichTabFieldMeasurement? field = AlignsCompleteTabField(segment.LeadingTabStop.Alignment)
+                            if (segment.LeadingIsTab || segment.LeadingTabStop != null) {
+                                PdfTextRun? sourceTab = segment.SourceTabRun;
+                                PdfTabStop? stop = sourceTab?.RelativeTabStop is { } relative
+                                    ? new PdfTabStop(Math.Max(.001D, textFrame.Width * relative.Fraction + relative.Offset),
+                                        sourceTab.TabAlignment, sourceTab.TabLeader)
+                                    : TakeNextParagraphTabStop(destinationStops, lineWidth, ref nextDestinationStop);
+                                // Older positioned segments may have no source-run
+                                // provenance. Preserve their existing selected stop.
+                                if (sourceTab == null) stop ??= segment.LeadingTabStop;
+                                PdfTabAlignment alignment = stop?.Alignment ?? sourceTab?.TabAlignment ?? segment.LeadingTabAlignment;
+                                PdfTabLeaderStyle leader = stop?.Leader ?? sourceTab?.TabLeader ?? segment.LeadingTabLeader;
+                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                                    currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing,
+                                    segment.TextDirection, segment.FontMetricScale);
+                                RichTabFieldMeasurement? field = AlignsCompleteTabField(alignment)
                                     ? MeasureWrappedTabField(lines[index], segmentIndex) : null;
                                 double fieldWidth = field?.Width ?? GetRichSegmentWidth(segment);
-                                adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, fieldWidth, spaceWidth,
-                                    segment.LeadingTabStop.Alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
-                                    segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, segment.LeadingTabStop,
+                                double advance = CalculateTabAdvance(lineWidth, fieldWidth, spaceWidth,
+                                    alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
+                                    segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, stop,
                                     followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings,
                                     horizontalTextScaling: segment.HorizontalTextScaling, characterSpacing: segment.CharacterSpacing,
-                                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, segment.LeadingTabStop.Alignment,
-                                        segment.LeadingTabStop, currentOpts)));
+                                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, currentOpts));
+                                adjusted = segment.WithTabPlacement(advance, stop, alignment, leader);
+                                changedLeaderInk |= HasPaintedRichTabLeader(segment, currentOpts) !=
+                                    HasPaintedRichTabLeader(adjusted, currentOpts);
                                 lines[index][segmentIndex] = adjusted;
                             }
                             lineWidth += GetRichSegmentWidth(adjusted) + adjusted.LeadingAdvance;
                         }
                         if (paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify)
                             BindWordCompressionPlan(lines[index], textFrame.Width);
+                        if (changedLeaderInk && lines[index] is RichLine richLine)
+                            lineHeights[index] = RefreshRichLineMetrics(richLine, ChooseNormal(currentOpts.DefaultFont),
+                                size, leading, currentOpts, paragraphStyle?.LineSpacing);
                     }
                 }
                 floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
@@ -481,7 +507,9 @@ internal static partial class PdfWriter {
                     hasFollowingParagraphLines: lineIndex + take < lines.Count);
                 WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage,
                     lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
-                    hasFollowingParagraphLines: lineIndex + take < lines.Count);
+                    hasFollowingParagraphLines: lineIndex + take < lines.Count,
+                    paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
+                    paragraphSpacingBefore: segmentSpacingBefore);
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;

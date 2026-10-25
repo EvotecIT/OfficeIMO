@@ -21,7 +21,6 @@ public static partial class WordRtfConverterExtensions {
                 }
 
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, destination);
                 AppendFormattedRuns(wordParagraph, paragraph, destination, revisionAuthorIndexes);
             } else if (element is WordTable table) {
@@ -43,7 +42,6 @@ public static partial class WordRtfConverterExtensions {
                 }
 
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
             } else if (element is WordTable table) {
@@ -54,8 +52,13 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopyTable(WordTable source, RtfTable destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes, int tableDepth) {
         RtfTableTraversalGuard.EnsureDepth(tableDepth);
-        int? cellGap = GetWordTableCellSpacing(source);
+        int? cellGap = GetWordTableCellGap(source);
         int? tableLeftIndent = GetWordTableLeftIndent(source);
+        if (cellGap.HasValue) {
+            tableLeftIndent = (tableLeftIndent ?? 0) - GetWordTableGapIndentAdjustment(source, cellGap.Value);
+        }
+        int? tableLeftPadding = cellGap.HasValue ? null : GetWordTableLeftPadding(source);
+        int? tableRightPadding = cellGap.HasValue ? null : GetWordTableRightPadding(source);
         RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment.ToOpenXml());
         RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(source.WidthType.ToOpenXml());
         int? tableWidth = source.Width;
@@ -66,6 +69,8 @@ public static partial class WordRtfConverterExtensions {
             row.HeightTwips = wordRow.Height;
             row.CellGapTwips = cellGap;
             row.LeftIndentTwips = tableLeftIndent;
+            row.PaddingLeftTwips = tableLeftPadding;
+            row.PaddingRightTwips = tableRightPadding;
             row.Alignment = tableAlignment;
             row.PreferredWidthUnit = tableWidthUnit;
             row.PreferredWidth = tableWidth;
@@ -156,7 +161,6 @@ public static partial class WordRtfConverterExtensions {
             if (child is Paragraph wordParagraphElement) {
                 var wordParagraph = new WordParagraph(source.Document, wordParagraphElement);
                 RtfParagraph paragraph = destination.AddParagraph();
-                CopyTabStops(wordParagraph, paragraph);
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
             } else if (child is Table nestedTableElement) {
@@ -187,8 +191,13 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyTable(RtfTable source, WordTable destination, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
-        ApplyUniformTableCellSpacing(source, destination);
-        ApplyUniformTableLeftIndent(source, destination);
+        destination.Style = WordTableStyle.TableNormal;
+        destination.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil, bottomStyle: WordBorderStyle.Nil,
+            leftStyle: WordBorderStyle.Nil, rightStyle: WordBorderStyle.Nil,
+            insideHStyle: WordBorderStyle.Nil, insideVStyle: WordBorderStyle.Nil);
+        int? cellGap = GetUniformTableCellGap(source);
+        ApplyTableCellGap(destination, cellGap);
+        ApplyUniformTableLeftIndent(source, destination, cellGap);
         ApplyUniformTableAlignment(source, destination);
         ApplyUniformTablePreferredWidth(source, destination);
         for (int rowIndex = 0; rowIndex < source.Rows.Count; rowIndex++) {
@@ -202,19 +211,10 @@ public static partial class WordRtfConverterExtensions {
                 RtfTableCell sourceCell = sourceRow.Cells[cellIndex];
                 WordTableCell destinationCell = destinationRow.Cells[cellIndex];
                 ApplyCellWidth(sourceCell, destinationCell, ref previousBoundary);
-                ApplyCellProperties(sourceCell, destinationCell, rtfDocument);
+                ApplyCellProperties(sourceCell, sourceRow, destinationCell, rtfDocument);
                 ApplyCellParagraphs(sourceCell, destinationCell, rtfDocument, numbering);
             }
         }
-    }
-
-    private static int? GetWordTableCellSpacing(WordTable table) {
-        string? width = table._tableProperties?.TableCellSpacing?.Width?.Value;
-        if (int.TryParse(width, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)) {
-            return value;
-        }
-
-        return null;
     }
 
     private static int? GetWordTableLeftIndent(WordTable table) {
@@ -226,36 +226,82 @@ public static partial class WordRtfConverterExtensions {
         return indentation.Width?.Value;
     }
 
-    private static void ApplyUniformTableCellSpacing(RtfTable source, WordTable destination) {
-        if (source.Rows.Count == 0 || source.Rows.Any(row => !row.CellGapTwips.HasValue)) {
-            return;
+    /// <summary>Recovers an RTF half-gap only from symmetric direct dxa margins and a reversible indent.</summary>
+    private static int? GetWordTableCellGap(WordTable table) {
+        int? left = GetWordTableLeftPadding(table);
+        int? right = GetWordTableRightPadding(table);
+        if (!left.HasValue || left.Value < 0 || left != right) {
+            return null;
         }
 
-        int firstGap = source.Rows[0].CellGapTwips!.Value;
-        if (source.Rows.Any(row => row.CellGapTwips!.Value != firstGap)) {
-            return;
+        TableIndentation? indentation = table._tableProperties?.TableIndentation;
+        if (indentation != null &&
+            (indentation.Type?.Value != TableWidthUnitValues.Dxa || indentation.Width == null)) {
+            return null;
         }
-
-        destination.CheckTableProperties();
-        destination._tableProperties!.TableCellSpacing = new TableCellSpacing {
-            Width = firstGap.ToString(CultureInfo.InvariantCulture),
-            Type = TableWidthUnitValues.Dxa
-        };
+        long sourceIndent = (long)(indentation?.Width?.Value ?? 0) - GetWordTableGapIndentAdjustment(table, left.Value);
+        return sourceIndent >= int.MinValue && sourceIndent <= int.MaxValue ? left : null;
     }
 
-    private static void ApplyUniformTableLeftIndent(RtfTable source, WordTable destination) {
-        if (source.Rows.Count == 0 || source.Rows.Any(row => !row.LeftIndentTwips.HasValue)) {
+    /// <summary>Legacy Word placement offsets the inline grid by its leading cell margin; modern placement does not.</summary>
+    private static int GetWordTableGapIndentAdjustment(WordTable table, int gap) =>
+        table.Document.SourceFormat == WordFileFormat.Doc ||
+        (int)table.Document.CompatibilitySettings.CompatibilityMode < (int)WordCompatibilityMode.Word2013
+            ? gap : 0;
+
+    private static int? GetWordTableLeftPadding(WordTable table) {
+        TableCellLeftMargin? margin = table._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin;
+        return margin?.Type?.Value == TableWidthValues.Dxa ? margin.Width?.Value : null;
+    }
+
+    private static int? GetWordTableRightPadding(WordTable table) {
+        TableCellRightMargin? margin = table._tableProperties?.TableCellMarginDefault?.TableCellRightMargin;
+        return margin?.Type?.Value == TableWidthValues.Dxa ? margin.Width?.Value : null;
+    }
+
+    /// <summary>Only an explicit uniform nonnegative gap can become a shared Word table margin.</summary>
+    private static int? GetUniformTableCellGap(RtfTable source) {
+        if (source.Rows.Count == 0 || source.Rows.Any(row => !row.CellGapTwips.HasValue)) {
+            return null;
+        }
+        int gap = source.Rows[0].CellGapTwips!.Value;
+        if (gap < 0 || !TryToInt16(gap, out _) || source.Rows.Any(row => row.CellGapTwips != gap)) {
+            return null;
+        }
+        return gap;
+    }
+
+    /// <summary>RTF row gaps are cell margins, not Word spacing between separated cells.</summary>
+    private static void ApplyTableCellGap(WordTable destination, int? gap) {
+        destination.CheckTableProperties();
+        destination._tableProperties!.TableCellSpacing?.Remove();
+        TableCellMarginDefault margins = destination._tableProperties.TableCellMarginDefault ??= new TableCellMarginDefault();
+        short width = (short)(gap ?? 0);
+        margins.TableCellLeftMargin = new TableCellLeftMargin { Width = width, Type = TableWidthValues.Dxa };
+        margins.TableCellRightMargin = new TableCellRightMargin { Width = width, Type = TableWidthValues.Dxa };
+    }
+
+    private static void ApplyUniformTableLeftIndent(RtfTable source, WordTable destination, int? gap) {
+        if (source.Rows.Count == 0) {
             return;
         }
-
-        int firstIndent = source.Rows[0].LeftIndentTwips!.Value;
-        if (source.Rows.Any(row => row.LeftIndentTwips!.Value != firstIndent)) {
+        int? sourceIndent = source.Rows[0].LeftIndentTwips;
+        if (source.Rows.Any(row => row.LeftIndentTwips != sourceIndent) ||
+            (!sourceIndent.HasValue && !gap.HasValue)) {
+            return;
+        }
+        long indent = (long)(sourceIndent ?? 0) + GetWordTableGapIndentAdjustment(destination, gap ?? 0);
+        if (indent < int.MinValue || indent > int.MaxValue) {
             return;
         }
 
         destination.CheckTableProperties();
+        if (indent == 0) {
+            destination._tableProperties!.TableIndentation?.Remove();
+            return;
+        }
         destination._tableProperties!.TableIndentation = new TableIndentation {
-            Width = firstIndent,
+            Width = (int)indent,
             Type = TableWidthUnitValues.Dxa
         };
     }
@@ -309,7 +355,7 @@ public static partial class WordRtfConverterExtensions {
         destination.Width = width;
     }
 
-    private static void ApplyCellProperties(RtfTableCell source, WordTableCell destination, RtfDocument document) {
+    private static void ApplyCellProperties(RtfTableCell source, RtfTableRow row, WordTableCell destination, RtfDocument document) {
         destination.HorizontalMerge = ToWordMergedCellValue(source.HorizontalMerge).ToOfficeEnum();
         destination.VerticalMerge = ToWordMergedCellValue(source.VerticalMerge).ToOfficeEnum();
         destination.VerticalAlignment = ToWordCellVerticalAlignment(source.VerticalAlignment).ToOfficeEnum();
@@ -339,7 +385,7 @@ public static partial class WordRtfConverterExtensions {
             shading.Val = pattern.Value;
         }
 
-        ApplyCellPadding(source, destination);
+        ApplyCellPadding(source, row, destination);
         ApplyCellBorders(source, destination, document);
     }
 
@@ -360,22 +406,19 @@ public static partial class WordRtfConverterExtensions {
         return cell._tableCellProperties.Shading;
     }
 
-    private static void ApplyCellPadding(RtfTableCell source, WordTableCell destination) {
-        if (TryToInt16(source.PaddingTopTwips, out short top)) {
+    private static void ApplyCellPadding(RtfTableCell source, RtfTableRow row, WordTableCell destination) {
+        if (TryToInt16(source.PaddingTopTwips ?? row.PaddingTopTwips ?? 0, out short top)) {
             destination.MarginTopWidth = top;
         }
-
-        if (TryToInt16(source.PaddingLeftTwips, out short left)) {
-            destination.MarginLeftWidth = left;
-        }
-
-        if (TryToInt16(source.PaddingBottomTwips, out short bottom)) {
+        if (TryToInt16(source.PaddingBottomTwips ?? row.PaddingBottomTwips ?? 0, out short bottom)) {
             destination.MarginBottomWidth = bottom;
         }
 
-        if (TryToInt16(source.PaddingRightTwips, out short right)) {
-            destination.MarginRightWidth = right;
-        }
+        // Omitted horizontal padding inherits the table gap; explicit cell values, including zero, override row values.
+        destination.MarginLeftWidth = TryToInt16(source.PaddingLeftTwips ?? row.PaddingLeftTwips, out short left)
+            ? left : (short?)null;
+        destination.MarginRightWidth = TryToInt16(source.PaddingRightTwips ?? row.PaddingRightTwips, out short right)
+            ? right : (short?)null;
     }
 
     private static void ApplyCellBorders(RtfTableCell source, WordTableCell destination, RtfDocument document) {
@@ -415,7 +458,6 @@ public static partial class WordRtfConverterExtensions {
         foreach (IRtfBlock block in source.Blocks) {
             if (block is RtfParagraph sourceParagraph) {
                 WordParagraph paragraph = destination.AddParagraph(removeExistingParagraphs: first);
-                ApplyTabStops(paragraph, sourceParagraph);
                 ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument, numbering);
                 AppendRuns(paragraph, sourceParagraph, rtfDocument, numbering);
                 first = false;

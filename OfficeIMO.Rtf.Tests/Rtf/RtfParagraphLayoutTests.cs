@@ -191,7 +191,7 @@ public class RtfParagraphLayoutTests {
         Assert.Equal(240, rtfParagraph.SpaceAfterTwips);
         Assert.True(rtfParagraph.SpaceBeforeAuto);
         Assert.False(rtfParagraph.SpaceAfterAuto);
-        Assert.Equal(360, rtfParagraph.LineSpacingTwips);
+        Assert.Equal(-360, rtfParagraph.LineSpacingTwips);
         Assert.False(rtfParagraph.LineSpacingMultiple);
         Assert.Contains(@"\pagebb", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\keepn", rtf, StringComparison.Ordinal);
@@ -207,7 +207,7 @@ public class RtfParagraphLayoutTests {
         Assert.Contains(@"\sa240", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\sbauto1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\saauto0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\sl360", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\sl-360", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\slmult0", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);

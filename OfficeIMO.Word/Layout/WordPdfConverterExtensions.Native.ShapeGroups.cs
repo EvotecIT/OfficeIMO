@@ -18,7 +18,27 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static bool RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) {
+            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) =>
+            ProjectNativeParagraphShapeGroups(pdf.PageSize, paragraph, runs, options, style,
+                scene => RenderNativeFlowObject(pdf, paragraphSpacing,
+                    flow => flow.Drawing(scene, align, spacingAfter: 0D)), ref imageCount);
+
+        private static bool HasNativeParagraphShapeGroupAnchor(PdfCore.PageSize pageSize, WordParagraph paragraph,
+            IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options) {
+            var style = new PdfCore.PdfParagraphStyle();
+            int imageCount = 0;
+            // Keep cancellation, image limits and resource policy, while keeping
+            // this read-only preparation's warnings out of the real operation.
+            ProjectNativeParagraphShapeGroups(pageSize, paragraph, runs, options?.CloneForConversion(), style,
+                null, ref imageCount);
+            return style.AnchoredCanvas != null;
+        }
+
+        // Both the renderer and the pre-report classification prepare the same
+        // supported canvas. Only the renderer supplies a flow-object callback.
+        private static bool ProjectNativeParagraphShapeGroups(PdfCore.PageSize pageSize, WordParagraph paragraph,
+            IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style,
+            Action<OfficeDrawing>? renderFlowObject, ref int imageCount) {
             bool renderedFlowObject = false;
             foreach (WordParagraph run in runs) {
                 foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
@@ -36,19 +56,17 @@ namespace OfficeIMO.Word.Pdf {
                     bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
                     if (layout.Placement == WordDrawingPlacementKind.Inline) {
                         if (native) {
-                            RenderNativeFlowObject(pdf, paragraphSpacing,
-                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
+                            renderFlowObject?.Invoke(scene);
                             renderedFlowObject = true;
                         }
                         else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The inline shape group contains unsupported geometry or transforms.");
                         continue;
                     }
 
-                    if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y,
+                    if (!TryGetNativeGroupPosition(pageSize, paragraph, layout, options, out double x, out double y,
                             out bool paragraphRelative, out double? horizontalMarginOrigin)) {
                         if (native) {
-                            RenderNativeFlowObject(pdf, paragraphSpacing,
-                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
+                            renderFlowObject?.Invoke(scene);
                             renderedFlowObject = true;
                             WarnNativeGroup(options, "NativeShapeGroupFlowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
                         } else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group's geometry and anchor could not be mapped.");
@@ -71,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
                         bool rendered = false;
                         canvas.Effect(OfficeTransform.Translate(x, y), 1D, target =>
                             rendered = RenderNativeVmlCoverChildren(target, paragraph._document, fallback.ChildElements,
-                                frame, pdf.PageSize.Width, pdf.PageSize.Height, options?.CancellationToken ?? default));
+                                frame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default));
                         if (!rendered) {
                             WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group's VML fallback produced no visible content.");
                             continue;
@@ -82,7 +100,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 foreach (V.Group legacy in run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
                     .OfType<V.Group>().Where(group => !group.Ancestors<V.Group>().Any())) {
-                    RenderNativeLegacyBodyGroup(pdf, paragraph, legacy, options, style, ref imageCount);
+                    RenderNativeLegacyBodyGroup(pageSize, paragraph, legacy, options, style, ref imageCount);
                 }
             }
             return renderedFlowObject;
@@ -101,7 +119,7 @@ namespace OfficeIMO.Word.Pdf {
             style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(combined.Items);
         }
 
-        private static void RenderNativeLegacyBodyGroup(INativePdfFlow pdf, WordParagraph paragraph, V.Group group,
+        private static void RenderNativeLegacyBodyGroup(PdfCore.PageSize pageSize, WordParagraph paragraph, V.Group group,
             WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount) {
             Dictionary<string, string> vmlStyle = ParseNativeVmlStyle(group.Style?.Value);
             if (IsNativeVmlHidden(group)) return;
@@ -115,10 +133,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
             CountNativeVmlGroupImages(group, options, ref imageCount);
-            var frame = new NativeVmlFrame(0D, 0D, pdf.PageSize.Width, pdf.PageSize.Height,
-                pdf.PageSize.Width, pdf.PageSize.Height, 0D, 0D);
+            var frame = new NativeVmlFrame(0D, 0D, pageSize.Width, pageSize.Height,
+                pageSize.Width, pageSize.Height, 0D, 0D);
             var canvas = new PdfCore.PdfPageCanvas();
-            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pdf.PageSize.Width, pdf.PageSize.Height, options?.CancellationToken ?? default))
+            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default))
                 AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY, zOrder: zIndex);
             else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The legacy shape group produced no visible content.");
         }
@@ -138,7 +156,7 @@ namespace OfficeIMO.Word.Pdf {
             if (options != null) AddNativeExportWarning(options, code, "body paragraph shape group", message);
         }
 
-        private static bool TryGetNativeGroupPosition(INativePdfFlow pdf, WordParagraph paragraph,
+        private static bool TryGetNativeGroupPosition(PdfCore.PageSize pageSize, WordParagraph paragraph,
             WordDrawingLayoutSnapshot layout, WordToPdfOptions? options, out double x, out double y,
             out bool paragraphRelative, out double? horizontalMarginOrigin) {
             x = y = 0D;
@@ -152,11 +170,11 @@ namespace OfficeIMO.Word.Pdf {
             }
             if (layout.HorizontalRelativeFrom == "margin") horizontalMarginOrigin = margins.Left;
             if (!TryGetNativeGroupAxis(layout.HorizontalRelativeFrom, layout.HorizontalOffsetPoints,
-                    layout.HorizontalAlignment, pdf.PageSize.Width, margins.Left, margins.Right, layout.WidthPoints, false, out x) ||
+                    layout.HorizontalAlignment, pageSize.Width, margins.Left, margins.Right, layout.WidthPoints, false, out x) ||
                 !TryGetNativeGroupAxis(layout.VerticalRelativeFrom, layout.VerticalOffsetPoints,
-                    layout.VerticalAlignment, pdf.PageSize.Height, margins.Top, margins.Bottom, layout.HeightPoints, true, out y)) return false;
-            return x >= 0D && y >= 0D && x + layout.WidthPoints <= pdf.PageSize.Width + 0.001D &&
-                (paragraphRelative || y + layout.HeightPoints <= pdf.PageSize.Height + 0.001D);
+                    layout.VerticalAlignment, pageSize.Height, margins.Top, margins.Bottom, layout.HeightPoints, true, out y)) return false;
+            return x >= 0D && y >= 0D && x + layout.WidthPoints <= pageSize.Width + 0.001D &&
+                (paragraphRelative || y + layout.HeightPoints <= pageSize.Height + 0.001D);
         }
 
         private static bool TryGetNativeGroupAxis(string? reference, double? offset, string? alignment,

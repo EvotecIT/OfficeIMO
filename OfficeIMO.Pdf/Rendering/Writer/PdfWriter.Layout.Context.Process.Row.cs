@@ -267,7 +267,9 @@ internal static partial class PdfWriter {
                                 firstLineX: start == 0 ? xCol + par.FirstLineXOffset : null, firstLineWidth: start == 0 ? par.FirstLineTextWidth : null,
                                 hasFollowingParagraphLines: start + take < lines.Count);
                             WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage,
-                                hasFollowingParagraphLines: start + take < lines.Count);
+                                hasFollowingParagraphLines: start + take < lines.Count,
+                                paragraphSpacingAfter: start + take == lines.Count && spacingAfter <= remain - hsum ? spacingAfter : 0D,
+                                paragraphSpacingBefore: spacingBefore);
                             MarkRichFonts(pblock.Runs);
                             yCol -= hsum; remain -= hsum; consumed += hsum; line += take;
                             if (line >= lines.Count) { double space = spacingAfter; if (space <= remain) { yCol -= space; remain -= space; consumed += space; } idx++; line = 0; }
@@ -328,7 +330,8 @@ internal static partial class PdfWriter {
                             AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex, heights);
                             RecordFlowPlacement(yCol);
                             pageDirty = true;
-                            WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont);
+                            WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont, paragraphSpacingAfter: ch.SpacingAfter,
+                                paragraphSpacingBefore: spacingBefore);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;

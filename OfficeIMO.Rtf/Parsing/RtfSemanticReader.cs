@@ -387,6 +387,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void ApplyParagraphState(RtfParagraph paragraph, CharacterState state) {
+            paragraph.UseParsedParagraphDefaults = true;
             paragraph.DirectAlignment = state.DirectAlignment;
             paragraph.Direction = state.ParagraphDirection;
             paragraph.StyleId = state.ParagraphStyleId;

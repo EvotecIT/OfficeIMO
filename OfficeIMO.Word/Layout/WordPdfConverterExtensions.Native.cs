@@ -276,7 +276,7 @@ namespace OfficeIMO.Word.Pdf {
                         CollectNativeRunningFootnoteFallback(section, footnotes, footnoteNumbersById, options);
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
-                        if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {
+                        if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap, options)) {
                             RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
@@ -338,6 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                                 nextElement: GetNextNativeRenderableElement(elements, i));
                         }
 
+                        RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
                         RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                     }
                 });

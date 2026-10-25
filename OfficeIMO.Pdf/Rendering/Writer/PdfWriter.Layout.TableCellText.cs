@@ -157,6 +157,10 @@ internal static partial class PdfWriter {
                 }
             }
 
+            if (wrap.Lines.Count > 0 && wrap.Lines[0] is RichLine firstBarLine)
+                firstBarLine.BarSpacingBefore = paragraph.SpacingBefore;
+            if (wrap.Lines.Count > 0 && wrap.Lines[wrap.Lines.Count - 1] is RichLine lastBarLine)
+                lastBarLine.BarSpacingAfter = paragraph.SpacingAfter;
             lines.AddRange(wrap.Lines);
             paragraphRanges.Add(new TableCellParagraphRange(paragraph, firstNewLineIndex, wrap.Lines.Count));
             lineHeights.AddRange(wrap.LineHeights);

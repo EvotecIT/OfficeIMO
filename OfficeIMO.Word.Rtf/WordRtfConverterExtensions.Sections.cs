@@ -151,7 +151,7 @@ public static partial class WordRtfConverterExtensions {
         destination.RtlGutter = pageSetup.RtlGutter;
         ApplyPageNumbering(pageSetup, destination);
         ApplyPageBorders(pageSetup.PageBorders, destination, rtfDocument);
-        ApplyNoteSettings(source.NoteSettings, destination);
+        ApplyNoteSettings(RtfNoteProjection.Resolve(rtfDocument, source).Settings, destination);
         ApplyLineNumbering(source.LineNumbering, destination);
         ApplySectionVerticalAlignment(source.VerticalAlignment, destination);
         destination.ColumnCount = source.ColumnCount;
@@ -223,7 +223,6 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AppendParagraph(WordSection section, RtfParagraph paragraph, RtfDocument rtfDocument, RtfWordNumberingPlan numbering) {
         WordParagraph wordParagraph = section.AddParagraph();
-        ApplyTabStops(wordParagraph, paragraph);
         ApplyParagraphFormatting(wordParagraph, paragraph, rtfDocument, numbering);
         AppendRuns(wordParagraph, paragraph, rtfDocument, numbering);
     }

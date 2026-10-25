@@ -66,6 +66,8 @@ namespace OfficeIMO.Word.Pdf {
             // approximation diagnostics do not describe admitted running flow.
             WordToPdfOptions? headerTextDiagnostics = UsesNativeRunningHeader(section, options) ? null : options;
             WordToPdfOptions? footerTextDiagnostics = UsesNativeRunningFooter(section, options) ? null : options;
+            RecordNativeRunningBarTabDiagnostics(section, options,
+                headerTextDiagnostics == null, footerTextDiagnostics == null);
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.ResolveDefaultHeader(), listMarkers, nativeFontMap, headerTextDiagnostics);
             NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
             NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
@@ -373,6 +375,7 @@ namespace OfficeIMO.Word.Pdf {
             if (paragraph._paragraph != null && !diagnosedParagraphs.Add(paragraph._paragraph)) return;
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: true);
+            RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
 
             if (HasNativeUnsupportedHeaderFooterTextBox(paragraph)) {
                 AddNativeExportWarning(
@@ -461,6 +464,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: false);
+            RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
+            if (paragraph._paragraph.Ancestors<W.TableCell>().Any())
+                RecordNativeCellBarTabDiagnostics(paragraph, options, source);
 
             if (!mapsSmartArt && GetNativeRuns(paragraph).Any(run => run.IsSmartArt)) {
                 AddNativeExportWarning(

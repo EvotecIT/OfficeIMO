@@ -15,15 +15,11 @@ internal static partial class RtfPdfConverter {
                     continue;
                 }
 
-                List<PdfCore.PdfTextRun> runs = BuildCellRuns(document, cell, options, state);
+                List<PdfCore.PdfTableCellParagraph> paragraphs = BuildCellParagraphs(document, cell, options, state, out List<PdfCore.PdfTextRun> runs);
                 List<PdfCore.PdfTableCellImage> images = BuildCellImages(cell, options);
                 int columnSpan = GetHorizontalMergeSpan(row, cellIndex);
                 int rowSpan = GetVerticalMergeSpan(table, rowIndex, cellIndex);
-                if (images.Count > 0) {
-                    cells.Add(PdfCore.PdfTableCell.WithImages(runs, images, columnSpan: columnSpan, rowSpan: rowSpan));
-                } else {
-                    cells.Add(PdfCore.PdfTableCell.Merge(runs, columnSpan: columnSpan, rowSpan: rowSpan));
-                }
+                cells.Add(new PdfCore.PdfTableCell(runs, paragraphs, columnSpan: columnSpan, rowSpan: rowSpan, images: images));
             }
 
             if (cells.Count > 0) {
@@ -81,18 +77,21 @@ internal static partial class RtfPdfConverter {
         pdf.Image(imageBytes, layout.VisibleWidthTwips!.Value / 20d, layout.VisibleHeightTwips!.Value / 20d, style: GetImageStyle(image, layout));
     }
 
-    private static List<PdfCore.PdfTextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state) {
-        List<PdfCore.PdfTextRun> runs = new List<PdfCore.PdfTextRun>();
-        int blockIndex = 0;
+    /// <summary>Retains each cell paragraph's layout while collecting its runs and note references only once.</summary>
+    private static List<PdfCore.PdfTableCellParagraph> BuildCellParagraphs(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state, out List<PdfCore.PdfTextRun> runs) {
+        runs = new List<PdfCore.PdfTextRun>();
+        var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
         foreach (IRtfBlock block in cell.Blocks) {
-            if (blockIndex > 0) {
-                runs.Add(PdfCore.PdfTextRun.LineBreak());
-            }
-
+            var paragraphRuns = new List<PdfCore.PdfTextRun>();
+            PdfCore.PdfTableCellParagraph? cellParagraph = null;
             if (block is RtfParagraph paragraph) {
-                AppendParagraphRuns(document, paragraph, runs, options, state);
+                RecordParagraphBarTabDiagnostic(document, paragraph, options);
+                AppendParagraphRuns(document, paragraph, paragraphRuns, options, state);
+                EnsureParagraphLineBoxStrut(document, paragraph, paragraphRuns, state);
+                cellParagraph = ToCellParagraph(document, paragraph, paragraphRuns, state.FontOptions);
             } else if (block is RtfTable nestedTable) {
-                runs.Add(PdfCore.PdfTextRun.Normal(FlattenNestedTableText(nestedTable)));
+                paragraphRuns.Add(PdfCore.PdfTextRun.Normal(FlattenNestedTableText(document, nestedTable, options)));
+                cellParagraph = new PdfCore.PdfTableCellParagraph(paragraphRuns);
                 AddConversionWarning(
                     options,
                     "NestedTableFlattened",
@@ -101,22 +100,55 @@ internal static partial class RtfPdfConverter {
                     RtfConversionAction.Flattened);
             }
 
-            blockIndex++;
+            if (cellParagraph != null) {
+                if (paragraphs.Count > 0) runs.Add(PdfCore.PdfTextRun.LineBreak());
+                runs.AddRange(paragraphRuns);
+                paragraphs.Add(cellParagraph);
+            }
         }
 
-        if (runs.Count == 0) {
+        if (paragraphs.Count == 0) {
             runs.Add(PdfCore.PdfTextRun.Normal(string.Empty));
+            paragraphs.Add(new PdfCore.PdfTableCellParagraph(runs));
         }
 
-        return runs;
+        return paragraphs;
     }
 
-    private static string FlattenNestedTableText(RtfTable table) {
+    /// <summary>Projects the common resolved paragraph style into the PDF table paragraph contract.</summary>
+    private static PdfCore.PdfTableCellParagraph ToCellParagraph(RtfDocument document, RtfParagraph paragraph,
+        List<PdfCore.PdfTextRun> runs, PdfCore.PdfOptions options) {
+        RtfParagraph formatting = document.GetParagraphFormatting(paragraph);
+        PdfCore.PdfParagraphStyle style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, options);
+        return new PdfCore.PdfTableCellParagraph(
+            runs,
+            spacingAfter: style?.SpacingAfter ?? 0D,
+            align: RtfPdfMapping.ToPdfAlign(formatting.Alignment),
+            spacingBefore: style?.SpacingBefore ?? 0D,
+            leftIndent: style?.LeftIndent ?? 0D,
+            rightIndent: style?.RightIndent ?? 0D,
+            firstLineIndent: style?.FirstLineIndent ?? 0D,
+            lineHeight: style?.LineHeight,
+            defaultTabStopWidth: style?.DefaultTabStopWidth,
+            tabStops: style?.TabStops,
+            fontSize: style?.FontSize,
+            lineSpacing: style?.LineSpacing,
+            widowControl: style?.WidowControl,
+            keepTogether: style?.KeepTogether ?? false,
+            keepWithNext: style?.KeepWithNext ?? false);
+    }
+
+    private static string FlattenNestedTableText(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
         return string.Join(" / ", table.Rows.Select(row =>
             string.Join(" | ", row.Cells.Select(cell =>
-                string.Join(" ", cell.Blocks.Select(block => block is RtfParagraph paragraph
-                    ? paragraph.ToPlainText()
-                    : block is RtfTable nested ? FlattenNestedTableText(nested) : string.Empty)
+                string.Join(" ", cell.Blocks.Select(block => {
+                    if (block is RtfParagraph paragraph) {
+                        RecordParagraphBarTabDiagnostic(document, paragraph, options,
+                            omittedSource: "TableCell/NestedTable/Paragraph/Tabs");
+                        return paragraph.ToPlainText();
+                    }
+                    return block is RtfTable nested ? FlattenNestedTableText(document, nested, options) : string.Empty;
+                })
                     .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 

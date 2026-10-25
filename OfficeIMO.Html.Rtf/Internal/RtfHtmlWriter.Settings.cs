@@ -15,6 +15,8 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AddDocumentSettings(Dictionary<string, string> values, RtfDocumentSettings settings) {
+        AddEnum(values, "noteMode", settings.NoteMode);
+        AddNullableBool(values, "noteDefaultsParsed", settings.HasParsedNoteDefaults);
         AddEnum(values, "characterSet", settings.CharacterSet);
         AddNullableInt(values, "ansiCodePage", settings.AnsiCodePage);
         AddNullableInt(values, "unicodeSkipCount", settings.UnicodeSkipCount);
