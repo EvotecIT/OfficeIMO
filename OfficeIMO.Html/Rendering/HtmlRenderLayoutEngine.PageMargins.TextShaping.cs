@@ -67,7 +67,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool HasOnlyZeroAdvancePageMarginText(HtmlInlineLayout? layout) {
         if (layout == null) return false;
         bool hasGlyphs = false;
-        foreach (HtmlRenderText run in layout.Visuals.OfType<HtmlRenderText>()) {
+        // Inline shaping retains logical source ownership in a group around
+        // positioned glyphs. Inspect its paint children with the shared walker.
+        foreach (HtmlRenderText run in EnumeratePageFloatVisuals(layout.Visuals).OfType<HtmlRenderText>()) {
             if (run.PreparedShaping == null || run.TextAdvanceWidth != 0D) return false;
             hasGlyphs |= run.PreparedShaping.Result.Glyphs.Count > 0;
         }
