@@ -838,7 +838,10 @@ internal static partial class PdfTextDiagnostics {
         // The exact descriptor belongs only to the admitted complete-managed
         // proof above. Raw coverage keeps the original scalar diagnostic owner
         // and must not execute an arbitrary provider or apply its features.
+        bool scalarCoverage = shapingMode == PdfTextShapingMode.UnicodeScalar;
+        if (scalarCoverage && font.HasVerifiedScalarCoverage(text)) return new List<PdfTextEncodingDiagnostic>();
         PdfGlyphRun glyphRun = font.ShapeText(text, PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode));
+        if (scalarCoverage && glyphRun.Diagnostics.Count == 0) font.RememberVerifiedScalarCoverage(text);
         return glyphRun.Diagnostics.Count == 0
             ? new List<PdfTextEncodingDiagnostic>()
             : glyphRun.Diagnostics.ToList();
