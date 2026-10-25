@@ -4,13 +4,16 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Logical row and independently consumed merged-cell content at a physical frame boundary.</summary>
         private sealed class TableFlowCursor {
-            public TableFlowCursor(int row, int line, TableSpanFlow spans, bool spanTail = false) {
+            public TableFlowCursor(int row, int line, TableSpanFlow spans, bool spanTail = false,
+                IReadOnlyDictionary<int, CellFlowCursor>? cells = null) {
                 Row = row; Line = line; Spans = spans; SpanTail = spanTail;
+                Cells = cells;
             }
             public int Row { get; }
             public int Line { get; }
             public TableSpanFlow Spans { get; }
             public bool SpanTail { get; }
+            public IReadOnlyDictionary<int, CellFlowCursor>? Cells { get; }
         }
 
         /// <summary>Accepted geometry and span cuts. Painting consumes this plan without repeating admission.</summary>
@@ -45,10 +48,17 @@ internal static partial class PdfWriter {
             PreparedFlowTableRows rows = ReferenceEquals(style, prepared.Style) ? prepared.Rows.WithIndependentHeights()
                 : PrepareFlowTableRows(table, style, columns, prepared.Widths, prepared.Gap, prepared.Gap,
                     style.HeaderRowCount, footerStart, prepared.Rows, start.Row, start.Line, spanFlow: spans);
-            var geometry = new PreparedTableGeometry(table, style, rows, prepared.Widths, prepared.Width, prepared.CornerRadius);
+            // Ordered cells retain the original width-bound contained layouts. Border
+            // continuation changes neither their source cursors nor paragraph measures.
+            foreach (int cellRow in prepared.CellFlows.Keys) {
+                rows.Heights[cellRow] = prepared.Rows.Heights[cellRow];
+                rows.IntrinsicHeights[cellRow] = prepared.Rows.IntrinsicHeights[cellRow];
+            }
+            var geometry = new PreparedTableGeometry(table, style, rows, prepared.Widths, prepared.Width, prepared.CornerRadius, prepared.CellFlows);
             var slices = new List<TableRowSlice>();
             int row = start.Row, line = start.Line;
             bool tail = start.SpanTail, initial = position == null;
+            IReadOnlyDictionary<int, CellFlowCursor>? cellsPosition = start.Cells;
             double before = initial ? style.SpacingBefore : 0D, used = before;
             double gap = prepared.Gap;
             bool keepWhole = style.KeepTogether && style.SpacingBefore +
@@ -60,7 +70,9 @@ internal static partial class PdfWriter {
                 repeatedHeight += rows.Heights[header] + GetTableRowGapAfter(header, table.Rows.Count, gap);
             double textFrameHeight = Math.Max(0D, fullHeight - repeatedHeight);
             if (!initial && style.PageContinuationSpacingBefore > 0D) {
-                double required = tail ? MeasureTableSpanRemainderHeight(spans, style, rows, prepared.Widths, gap, row,
+                double required = geometry.CellFlows.ContainsKey(row)
+                    ? PlanContainedCellRow(geometry, row, cellsPosition, double.PositiveInfinity, textFrameHeight, true, out _)?.Height ?? 0D
+                    : tail ? MeasureTableSpanRemainderHeight(spans, style, rows, prepared.Widths, gap, row,
                     minimumFragmentFrameHeight: textFrameHeight) : MeasurePreparedTableRowSegmentHeight(table, style, rows,
                     columns, prepared.Widths, gap, row, line, 1, false);
                 before = Math.Min(style.PageContinuationSpacingBefore, Math.Max(0D, available - repeatedHeight - required));
@@ -68,7 +80,13 @@ internal static partial class PdfWriter {
             }
             for (int header = 0; header < repeated; header++) {
                 double headerGap = GetTableRowGapAfter(header, table.Rows.Count, gap);
-                slices.Add(new TableRowSlice(header, 0, rows.LineCounts[header], rows.Heights[header], true, true) { GapAfter = headerGap });
+                TableRowSlice headerSlice;
+                if (geometry.CellFlows.ContainsKey(header)) {
+                    headerSlice = PlanContainedCellRow(geometry, header, null, rows.Heights[header], textFrameHeight,
+                        false, out _) ?? throw new ArgumentException("A repeating nested-table header exceeds its measured frame.");
+                } else headerSlice = new TableRowSlice(header, 0, rows.LineCounts[header], rows.Heights[header], true, true);
+                headerSlice.GapAfter = headerGap;
+                slices.Add(headerSlice);
                 used += rows.Heights[header] + headerGap;
             }
             int contentStart = slices.Count;
@@ -77,6 +95,28 @@ internal static partial class PdfWriter {
                 if (slices.Count >= MaximumTextLayoutLines) throw new InvalidDataException("Table flow exceeded the 100,000-fragment limit.");
                 double room = available - used;
                 if (room <= .001D) break;
+                if (geometry.CellFlows.ContainsKey(row)) {
+                    int firstRows = initial && row == 0 ? Math.Min(table.Rows.Count, style.HeaderRowCount + style.MinimumBodyRowsOnFirstPage) : 0;
+                    double firstHeight = GetTableRowsHeight(rows.Heights, row, firstRows, gap);
+                    if (firstRows > 0 && firstHeight <= textFrameHeight + .001D && firstHeight > room + .001D) break;
+                    int lastRows = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStart - style.HeaderRowCount));
+                    if (cellsPosition == null && lastRows > 0 && footerStart - row == lastRows) {
+                        double lastHeight = GetTableRowsHeight(rows.Heights, row, table.Rows.Count - row, gap) + style.SpacingAfter;
+                        if (lastHeight <= textFrameHeight + .001D && lastHeight > room + .001D) break;
+                    }
+                    if (row == table.Rows.Count - 1) room = Math.Max(0D, room - style.SpacingAfter - finalOutset);
+                    TableRowSlice? contained = PlanContainedCellRow(geometry, row, cellsPosition, room, textFrameHeight,
+                        minimumOnly, out var nextCells);
+                    if (contained == null) break;
+                    slices.Add(contained);
+                    used += contained.Height;
+                    if (!contained.CompletesCellRow) { cellsPosition = nextCells; line = 1; break; }
+                    contained.GapAfter = GetTableRowGapAfter(row, table.Rows.Count, gap);
+                    used += contained.GapAfter;
+                    row++; line = 0; cellsPosition = null;
+                    if (minimumOnly) break;
+                    continue;
+                }
                 ReserveTableSpanRemainder(spans, style, rows, prepared.Widths, gap, row, textFrameHeight);
                 int remaining = rows.LineCounts[row] - line;
                 double height;
@@ -159,7 +199,7 @@ internal static partial class PdfWriter {
             double after = row == table.Rows.Count ? style.SpacingAfter : 0D;
             if (used + after + (row == table.Rows.Count ? finalOutset : 0D) > available + .001D) return null;
             if (keepWhole && row < table.Rows.Count) return null;
-            return new TableFragmentPlan(geometry, start, new TableFlowCursor(row, line, spans, tail), slices,
+            return new TableFragmentPlan(geometry, start, new TableFlowCursor(row, line, spans, tail, cellsPosition), slices,
                 before, after, used + after, finalSpans, textFrameHeight);
         }
 
@@ -179,14 +219,15 @@ internal static partial class PdfWriter {
             return cuts;
         }
 
-        private void PaintTableFragment(TableFragmentPlan plan, double frameX, double frameWidth, ref double top) {
+        private void PaintTableFragment(TableFragmentPlan plan, double frameX, double frameWidth, ref double top,
+            double? originX = null, int? structureParent = null, bool noteContext = true) {
             PreparedTableGeometry geometry = plan.Geometry;
             TableBlock table = geometry.Table;
             PdfTableStyle style = geometry.Style;
             TableSpanFlow spans = plan.Start.Spans.CloneCursor();
-            double left = ResolveTableX(table.Align, style, currentOpts.MarginLeft + frameX, frameWidth, geometry.Width);
-            int? noteStructure = RegisterStructureContainer("Note");
-            int? structure = RegisterStructureContainer("Table", noteStructure, alternativeText: style.AlternativeText);
+            double left = ResolveTableX(table.Align, style, (originX ?? currentOpts.MarginLeft) + frameX, frameWidth, geometry.Width);
+            int? parent = structureParent ?? (noteContext ? RegisterStructureContainer("Note") : null);
+            int? structure = RegisterStructureContainer("Table", parent, alternativeText: style.AlternativeText);
             StringBuilder? paired = null;
             top -= plan.Before;
             foreach (TableRowSlice slice in plan.Slices) {

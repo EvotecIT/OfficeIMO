@@ -5,8 +5,9 @@ internal static partial class PdfWriter {
         /// <summary>Width-bound table geometry shared by ordinary flow and retained note fragments.</summary>
         private sealed class PreparedTableGeometry {
             public PreparedTableGeometry(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
-                double[] widths, double width, double cornerRadius) {
+                double[] widths, double width, double cornerRadius, Dictionary<int, PreparedCellFlow[]>? cellFlows = null) {
                 Table = table; Style = style; Rows = rows; Widths = widths; Width = width; CornerRadius = cornerRadius;
+                CellFlows = cellFlows ?? new();
             }
             public TableBlock Table { get; }
             public PdfTableStyle Style { get; }
@@ -16,6 +17,7 @@ internal static partial class PdfWriter {
             public double Width { get; }
             public double CornerRadius { get; }
             public double Gap => GetTableCellSpacing(Style);
+            public Dictionary<int, PreparedCellFlow[]> CellFlows { get; }
         }
 
         /// <summary>An accepted physical row slice, including its measured box rather than an additive line estimate.</summary>
@@ -31,11 +33,14 @@ internal static partial class PdfWriter {
             public bool IsRepeatedHeader { get; }
             public double GapAfter { get; set; }
             public Dictionary<(int Row, int Column), int>? CompletedSpans { get; set; }
+            public Dictionary<int, NoteFlowFragment?>? CellFragments { get; set; }
+            public bool CompletesCellRow { get; set; }
         }
 
         private PreparedTableGeometry PrepareTableGeometry(TableBlock table, PdfTableStyle style,
             double frameWidth, bool logicalTopBoundary = true, bool logicalBottomBoundary = true) {
             cancellationToken.ThrowIfCancellationRequested();
+            style = ResolveContainedTableWidth(style, frameWidth);
             int columns = GetTableColumnCount(table);
             ValidateFlowTable(table, style, columns);
             var columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth,
@@ -44,11 +49,12 @@ internal static partial class PdfWriter {
             double gap = GetTableCellSpacing(style);
             var rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths, gap, gap,
                 style.HeaderRowCount, table.Rows.Count - style.FooterRowCount);
+            var cellFlows = PrepareContainedTableCells(table, style, rows, columnLayout.Widths, gap);
             double radius = ResolveTableCornerRadius(style.CornerRadius, columnLayout.Width,
                 logicalTopBoundary ? rows.Heights[0] : double.PositiveInfinity,
                 logicalBottomBoundary ? rows.Heights[rows.Heights.Length - 1] : double.PositiveInfinity,
                 columnLayout.Widths[0], columnLayout.Widths[columnLayout.Widths.Length - 1]);
-            return new PreparedTableGeometry(table, style, rows, columnLayout.Widths, columnLayout.Width, radius);
+            return new PreparedTableGeometry(table, style, rows, columnLayout.Widths, columnLayout.Width, radius, cellFlows);
         }
     }
 }

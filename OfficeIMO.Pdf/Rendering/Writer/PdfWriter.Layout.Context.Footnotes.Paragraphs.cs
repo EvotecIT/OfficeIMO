@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
         // Paint one actual page fragment through the ordinary paragraph owner.
         // Its start remains the clip boundary for later exact-height picture
         // lines, and a continued fragment receives a fresh start on its page.
-        private void PaintFootnoteParagraphFragment(IReadOnlyList<FootnoteUnit> units, int start, int count, ref double top) {
+        private void PaintFootnoteParagraphFragment(IReadOnlyList<FootnoteUnit> units, int start, int count, ref double top, double? originX = null, int? structureParent = null, string structureType = "Note") {
             FootnoteUnit first = units[start];
             FootnoteUnit last = units[start + count - 1];
             var paragraph = (RichParagraphBlock)first.Block!;
@@ -47,17 +47,17 @@ internal static partial class PdfWriter {
                 advance += units[index].Advance;
             }
             top -= first.Before;
-            int? markedContentId = RegisterTextStructureElement("Note");
-            if (first.List != null && first.ListItem != null && first.ParagraphLine == 0) PaintFootnoteListMarker(first, top);
+            int? markedContentId = RegisterTextStructureElement(structureType, structureParent);
+            if (first.List != null && first.ListItem != null && first.ParagraphLine == 0) PaintFootnoteListMarker(first, top, originX);
             MarkRichFonts(paragraph.Runs);
             bool firstLineFrame = first.ParagraphLine == 0 && count > 1;
             FootnoteUnit normalFrame = firstLineFrame ? units[start + 1] : first;
             WriteRichParagraph(sb, paragraph, lines, heights, currentOpts,
                 FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), first.Size, top), first.Size, first.Leading,
-                currentPage!.Annotations, currentOpts.MarginLeft + normalFrame.X, normalFrame.Width,
-                firstLineXOverride: firstLineFrame ? currentOpts.MarginLeft + first.X : null,
+                currentPage!.Annotations, (originX ?? currentOpts.MarginLeft) + normalFrame.X, normalFrame.Width,
+                firstLineXOverride: firstLineFrame ? (originX ?? currentOpts.MarginLeft) + first.X : null,
                 firstLineWidthOverride: firstLineFrame ? first.Width : null,
-                structureType: "Note", markedContentId: markedContentId, structurePage: currentPage,
+                structureType: structureType, markedContentId: markedContentId, structurePage: currentPage,
                 hasFollowingParagraphLines: last.ParagraphLine + 1 < last.ParagraphLines, paragraphSpacingAfter: last.After,
                 paragraphSpacingBefore: first.Before);
             pageDirty = true;

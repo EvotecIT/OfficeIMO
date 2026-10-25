@@ -47,9 +47,10 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }
 
-        /// <summary>Fixed cells retain a one-point text frame after effective margins and border paint.</summary>
-        private static void ApplyNativeFixedTableMinimumWidths(TableLayout layout, PdfCore.PdfTableStyle style) {
-            if (style.AutoFitColumns) return;
+        /// <summary>Source-constrained cells retain a one-point text frame after effective margins and border paint.</summary>
+        private static void ApplyNativeFixedTableMinimumWidths(TableLayout layout, PdfCore.PdfTableStyle style,
+            bool includeConstrainedAutoFit = false) {
+            if (style.AutoFitColumns && !includeConstrainedAutoFit) return;
             var minimums = style.ColumnMinWidthPoints == null
                 ? new List<double?>() : new List<double?>(style.ColumnMinWidthPoints);
             while (minimums.Count < layout.ColumnWidths.Length) minimums.Add(null);

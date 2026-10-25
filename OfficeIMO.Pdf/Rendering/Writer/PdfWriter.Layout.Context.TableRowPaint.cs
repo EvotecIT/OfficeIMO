@@ -34,7 +34,7 @@ internal static partial class PdfWriter {
             }
 
             var cells = GetTableCellLayouts(tb, rowIndex, cols);
-            bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
+            bool wholeRowSegment = slice.CellFragments != null || startLine == 0 && lineCount == rowLineCounts[rowIndex];
             double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
             double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
             double rowHeight = slice.Height;
@@ -46,7 +46,8 @@ internal static partial class PdfWriter {
             bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tb, rowIndex, cols);
             double cornerRadius = tableCornerRadius;
             bool roundTop = cornerRadius > 0D && logicalTopBoundary && rowIndex == 0 && startLine == 0;
-            bool roundBottom = cornerRadius > 0D && logicalBottomBoundary && rowIndex == tb.Rows.Count - 1 && startLine + lineCount >= rowLineCounts[rowIndex];
+            bool roundBottom = cornerRadius > 0D && logicalBottomBoundary && rowIndex == tb.Rows.Count - 1 &&
+                (slice.CellFragments != null ? slice.CompletesCellRow : startLine + lineCount >= rowLineCounts[rowIndex]);
             bool roundedRow = roundTop || roundBottom;
             if (roundedRow) { BeginRoundedClip(sb, xOrigin, rowBottom, tableWidth, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom); }
             if (style?.HeaderFill is not null && renderAsHeader) { pageDirty = true; DrawTableRowFill(sb, style.HeaderFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (style?.FooterFill is not null && renderAsFooter) { pageDirty = true; DrawTableRowFill(sb, style.FooterFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (!renderAsHeader && !renderAsFooter && style?.RowStripeFill is not null && stripeBodyRow) { pageDirty = true; DrawTableRowFill(sb, style.RowStripeFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
@@ -197,6 +198,10 @@ internal static partial class PdfWriter {
 
                 double cellWidth = GetTableCellWidth(colPixel, c, cell.ColumnSpan, colGapPx);
                 double cellHeight = wholeRowSegment && cell.RowSpan > 1 ? GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGapPx) : rowHeight;
+                if (slice.CellFragments != null) {
+                    PaintContainedCell(geometry, slice, cell, xi, y, cellWidth, cellHeight, rowStructureElementIndex, renderAsHeader);
+                    continue;
+                }
                 TableCellTextLayout lines = rowLines[rowIndex][c];
                 int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                 int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;

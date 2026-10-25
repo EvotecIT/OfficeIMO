@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static double MeasureImportedTableTextWidth(TableCellLayout cell,
         PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
-        bool wholeLine = false) {
+        bool wholeLine = false, bool objectsOnly = false) {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
         TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
@@ -27,6 +27,15 @@ internal static partial class PdfWriter {
                 // A hanging first line has extra room, but any word may need
                 // the narrower continuation frame at the full body indent.
                 indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent + paragraph.RightIndent));
+            }
+            if (objectsOnly) {
+                // A constrained source grid can wrap text below its word
+                // preference, but paragraph indents and inline frames remain.
+                minimum = Math.Max(minimum, indents);
+                foreach (RichSeg segment in line)
+                    if (segment.InlineElement != null)
+                        minimum = Math.Max(minimum, GetRichSegmentWidth(segment) + indents);
+                continue;
             }
             var word = new System.Collections.Generic.List<RichSeg>();
             foreach (RichSeg segment in line) {
