@@ -500,7 +500,7 @@ internal static partial class PdfWriter {
                 int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
                 var runs = ProjectTableCellInlineImages(cell.Runs, cell.TextRotation);
                 var paragraphs = ProjectTableCellInlineImageParagraphs(cell.Paragraphs, cell.TextRotation);
-                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, runs, paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation) { OrientedRowTextHeight = cell.OrientedRowTextHeight, ShrinkTextToFit = cell.ShrinkTextToFit });
+                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, runs, paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation) { OrientedRowTextHeight = cell.OrientedRowTextHeight, ShrinkTextToFit = cell.ShrinkTextToFit, Blocks = cell.Blocks });
                 for (int c = column; c < column + columnSpan; c++) {
                     activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
                 }

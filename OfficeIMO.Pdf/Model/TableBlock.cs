@@ -9,6 +9,7 @@ internal sealed class TableBlock : IPdfBlock {
     public int ColumnCount { get; }
     public PdfAlign Align { get; }
     public PdfTableStyle? Style { get; }
+    internal int CellBlockDepth { get; }
     // Optional per-cell link URIs: key = (rowIndex, colIndex)
     public System.Collections.Generic.IReadOnlyDictionary<(int Row, int Col), string> Links => _linksView;
 
@@ -29,6 +30,7 @@ internal sealed class TableBlock : IPdfBlock {
         }
 
         Cells = cellSnapshot.AsReadOnly();
+        CellBlockDepth = Cells.SelectMany(row => row).Select(cell => cell.BlockDepth).DefaultIfEmpty(0).Max();
         ValidateMergedCellGrid(Cells);
         ValidateCellNamedDestinationNames(Cells);
         Rows = CreateTextRows(Cells);
@@ -48,13 +50,14 @@ internal sealed class TableBlock : IPdfBlock {
                 if (r[i] is null) throw new System.ArgumentException("Table cells cannot contain null entries.", nameof(rows));
                 // Text-only cells are immutable. Image cells expose a mutable PdfImageStyle through
                 // PdfTableCellImage.Style, so snapshot those before the caller can change the table.
-                cells[i] = r[i].Images.Count == 0 ? r[i] : r[i].Clone();
+                cells[i] = r[i].Images.Count == 0 && r[i].Blocks.Count == 0 ? r[i] : r[i].Clone();
             }
 
             cellSnapshot.Add(System.Array.AsReadOnly(cells));
         }
 
         Cells = cellSnapshot.AsReadOnly();
+        CellBlockDepth = Cells.SelectMany(row => row).Select(cell => cell.BlockDepth).DefaultIfEmpty(0).Max();
         ValidateMergedCellGrid(Cells);
         ValidateCellNamedDestinationNames(Cells);
         Rows = CreateTextRows(Cells);
@@ -63,6 +66,12 @@ internal sealed class TableBlock : IPdfBlock {
 
     internal void AddLink((int Row, int Col) cell, string uri) {
         _links[cell] = uri;
+    }
+
+    internal TableBlock Clone() {
+        var clone = new TableBlock(Cells.Select(row => row.ToArray()), Align, Style);
+        foreach (var link in Links) clone.AddLink(link.Key, link.Value);
+        return clone;
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string[]> CreateTextRows(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<PdfTableCell>> rows) {

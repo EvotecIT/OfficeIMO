@@ -160,7 +160,8 @@ public sealed partial class PdfDocument {
                 cancellationToken.ThrowIfCancellationRequested();
                 PdfTableCell cell = row[cellIndex];
                 string cellLocation = AppendLocation(locationPrefix, source + "[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");
-                AddRuns(diagnostics, cell.Runs, options, defaultFont, source, cellLocation, rowIndex, cellIndex);
+                if (cell.Blocks.Count == 0) AddRuns(diagnostics, cell.Runs, options, defaultFont, source, cellLocation, rowIndex, cellIndex);
+                else AnalyzeBlocks(cell.Blocks, options, diagnostics, cellLocation, cancellationToken);
                 foreach (PdfTableCellFormField field in cell.FormFields) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex, cancellationToken);

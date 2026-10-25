@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using System.Text;
 using OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -241,7 +243,15 @@ public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void GeneratedTableText_CarriesDelimitedWordSegmentBeforeCharacterFallback() {
         var style = TableStyles.Minimal();
-        style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { 42, 70 };
+        using var metric = PdfPigDocument.Open(PdfDocument.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
+            }).Paragraph(paragraph => paragraph.Text("RECORD")).ToBytes());
+        var measured = metric.GetPage(1).Letters;
+        double wordAdvance = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;
+        // Keep the delimiter-carry case within a real cell frame. The former
+        // 42-point column left only 34 points for a roughly 39-point word.
+        double columnWidth = wordAdvance + style.CellPaddingX * 2D;
+        style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { columnWidth, 70 };
 
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 160,
@@ -267,6 +277,10 @@ public class RichParagraphWrappingHyphenationTests {
         Assert.Contains("RECORD", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(lines, line => string.Equals(line, "RECOR", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => string.Equals(line, "D-", StringComparison.Ordinal));
+        using var rendered = PdfPigDocument.Open(bytes);
+        var codeColumn = rendered.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X < 18D + columnWidth).ToArray();
+        Assert.Equal("CodeDNS-RECORD-STATIC-001", string.Concat(codeColumn.Select(letter => letter.Value)));
+        Assert.All(codeColumn, letter => Assert.True(letter.EndBaseLine.X <= 18D + columnWidth - style.CellPaddingX + .001D));
     }
 
     private static int CountOccurrences(string text, string value) {

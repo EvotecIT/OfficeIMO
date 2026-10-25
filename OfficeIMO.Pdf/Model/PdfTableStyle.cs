@@ -85,6 +85,12 @@ public partial class PdfTableStyle {
     internal bool AutoFitWidthUsesContentMinimum { get; set; }
     /// <summary>Document adapters can size an explicit automatic grid that has no positive authored width from its content minimum.</summary>
     internal bool AutoFitUnspecifiedWidthToContent { get; set; }
+
+    // Source-relative constraints are resolved only after the containing cell's
+    // actual inner frame has been selected by the shared column owner.
+    internal double? PreferredWidthFraction { get; set; }
+    internal double? MaxWidthFraction { get; set; }
+    internal double FrameWidthAdjustment { get; set; }
     /// <summary>Authored automatic-column preferences remain distinct from their measured content minimums.</summary>
     internal System.Collections.Generic.List<double?>? AutoFitColumnPreferredWidthPoints { get; set; }
     /// <summary>Source cells whose own absolute preference permits wrapped content instead of an unwrapped span preference.</summary>
@@ -726,6 +732,9 @@ public partial class PdfTableStyle {
             RowBaselineOffset = RowBaselineOffset,
             PreferredWidth = PreferredWidth,
             MaxWidth = MaxWidth,
+            PreferredWidthFraction = PreferredWidthFraction,
+            MaxWidthFraction = MaxWidthFraction,
+            FrameWidthAdjustment = FrameWidthAdjustment,
             PreserveWidth = PreserveWidth,
             AllowWidthBeyondFrame = AllowWidthBeyondFrame,
             ShrinkTextToFit = ShrinkTextToFit,
