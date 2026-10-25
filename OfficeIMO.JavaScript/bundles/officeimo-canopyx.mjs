@@ -11582,7 +11582,7 @@ function canopyNumberFormat(input, report, id) {
     if (!Number.isInteger(minimum) || !Number.isInteger(maximum) || minimum < 0 || maximum < minimum || maximum > 10 ||
         typeof prefix !== "string" || typeof suffix !== "string" || prefix.length > 16 || suffix.length > 16)
         throw new TypeError("Canopy numeric fraction bounds must be ordered integers from zero through ten, with literal affixes of at most sixteen characters.");
-    const literal = (value) => value ? '"' + value.replace(/["\\]/g, character => "\\" + character) + '"' : "";
+    const literal = (value) => value ? '"' + value.replace(/"/g, '"\\""') + '"' : "";
     return literal(prefix) + "0" + (maximum ? "." + "0".repeat(minimum) + "#".repeat(maximum - minimum) : "") + literal(suffix);
 }
 /** Only a contiguous leading left pin can be represented by an Excel freeze pane. */
@@ -12243,8 +12243,12 @@ return _exports;
 })();
 
 const _m101 = (() => {
+const { cellText } = _m35;
+
+const { cleanXml } = _m28;
+
 /** Snapshot optional About metadata before enumeration. The accepted query is serialized, never evaluated. */
-function canopyAbout(request) {
+function canopyAbout(request, options) {
     const result = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
     if (request.scope !== undefined) {
         if (!["filtered", "selected", "all"].includes(request.scope))
@@ -12282,6 +12286,14 @@ function canopyAbout(request) {
     }
     if (result.reduce((sum, row) => sum + row[0].length + String(row[1]).length, 0) > 65536)
         throw new RangeError("Canopy About metadata exceeds 65,536 captured characters.");
+    // Validate known cell text before consuming details; overflow preservation and XML policy stay workbook-owned.
+    for (const [field, value] of result) {
+        cellText(field, options.invalidCharacterPolicy);
+        if (options.oversizedText === "preserve")
+            cleanXml(value, options.invalidCharacterPolicy);
+        else
+            cellText(value, options.invalidCharacterPolicy);
+    }
     return Object.freeze(result.map(row => Object.freeze(row)));
 }
 const _exports = Object.freeze({ canopyAbout: canopyAbout });
@@ -12393,7 +12405,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         throw new TypeError("Canopy about must be boolean.");
     const labels = selected.grouped === undefined ? undefined : captureFields(selected.grouped, ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"]);
     const capturedLabels = labels && { ...labels, ...(labels.labelColumn === undefined ? {} : { labelColumn: Object.freeze({ header: labels.labelColumn.header }) }) };
-    const about = format === "xlsx" && selected.about ? canopyAbout(request) : undefined;
+    const about = format === "xlsx" && selected.about ? canopyAbout(request, xlsx) : undefined;
     const ruleCellTypes = new Map();
     let consumed = 0;
     const source = Object.freeze({ ...prepared.source, async *rows() {

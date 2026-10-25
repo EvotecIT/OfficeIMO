@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createCanopyExport, exportCanopy } from "../dist/integrations/canopyx/index.js";
+import { createCanopyExport, exportCanopy, writeCanopyTo } from "../dist/integrations/canopyx/index.js";
 import { readZip } from "./zip-reader.mjs";
 
 const column = (id, kind = "number") => ({ id, title: id, kind, width: { unit: "css-px", preferred: 160, minimum: 40 }, wrap: false, alignment: kind === "number" ? "right" : "left" });
@@ -20,6 +20,19 @@ function nativeRules(xml) {
   return [...xml.matchAll(/<conditionalFormatting\b[^>]*sqref="([^"]+)"[^>]*>([\s\S]*?)<\/conditionalFormatting>/g)].flatMap(block =>
     [...block[2].matchAll(/<cfRule\b([^>]*)>([\s\S]*?)<\/cfRule>/g)].map(rule => ({ range: block[1], attributes: rule[1],
       formula: decode(/<formula>([\s\S]*?)<\/formula>/.exec(rule[2])?.[1] ?? "") })));
+}
+function largeAboutCases() {
+  const ids = Array.from({ length: 2000 }, (_, index) => "selected-" + String(index).padStart(8, "0"));
+  const query = { filters: [{ column: "name", operator: "in", values: ids }] }, revision = "r".repeat(32768);
+  return [
+    { name: "selection", ids, request: { scope: "selected", selection: ids }, text: JSON.stringify(ids) },
+    { name: "query", ids, request: { scope: "filtered", query }, text: JSON.stringify(query) },
+    { name: "revision", ids: ["one"], request: { revision }, text: revision }
+  ];
+}
+function textCells(xml) {
+  return [...xml.matchAll(/<c\b[^>]*\br="([^"]+)"[^>]*>([\s\S]*?)<\/c>/g)].map(cell => ({ ref: cell[1],
+    text: [...cell[2].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(part => decode(part[1])).join("") }));
 }
 
 test("native predicates preserve null guards, numeric operand kinds and typed UTC date serials", async () => {
@@ -195,6 +208,61 @@ test("a data sheet named About retains its detail progress while actual metadata
   assert.ok(aboutRows.length > 0); assert.ok(aboutRows.every(value => value.sheetRows === 0));
   assert.equal(metadata.at(-1).rows, 1); assert.equal(metadata.at(-1).totalRows, 1);
   assert.ok(metadata.filter(value => value.sheetName === "Data").some(value => value.sheetRows === 1));
+});
+
+test("Canopy About rejects invalid XLSX cells before source enumeration or sink writes", async () => {
+  async function rejectUpfront(request, ids, xlsx, expected, label) {
+    const original = capture([column("name", "text")], ids.map(id => record(id, { name: id })), request);
+    const observed = { enumerations: 0, rows: 0, writes: 0, bytes: 0 };
+    const input = { request: original.request, async *rows(options) {
+      observed.enumerations++;
+      for await (const row of original.rows(options)) { observed.rows++; yield row; }
+    } };
+    const sink = { write(bytes) { observed.writes++; observed.bytes += bytes.length; } };
+    await assert.rejects(writeCanopyTo(input, "xlsx", sink, { about: true, xlsx: { compression: "store", ...xlsx } }), expected, label);
+    assert.deepEqual(observed, { enumerations: 0, rows: 0, writes: 0, bytes: 0 }, label);
+  }
+  for (const scenario of largeAboutCases()) for (const oversizedText of [undefined, "reject"]) {
+    await rejectUpfront(scenario.request, scenario.ids, { oversizedText }, /Excel cell text exceeds 32,767/,
+      scenario.name + " with " + (oversizedText ?? "default") + " text policy");
+  }
+  await rejectUpfront({ revision: "r" + "\u0001".repeat(33000) }, ["one"], { invalidCharacterPolicy: "reject" },
+    { code: "INVALID_XML" }, "Invalid XML in known About metadata must reject upfront");
+  const selected = Array.from({ length: 4000 }, (_, index) => "selected-" + String(index).padStart(8, "0"));
+  await rejectUpfront({ scope: "selected", selection: selected }, selected, { oversizedText: "preserve" },
+    /Canopy About metadata exceeds 65,536/, "Preserve does not waive the aggregate captured metadata cap");
+});
+
+test("Canopy About preserves long text through canonical cleaning, overflow and resource budgets", async () => {
+  const scenarios = largeAboutCases();
+  for (const scenario of scenarios) {
+    const input = capture([column("name", "text")], scenario.ids.map(id => record(id, { name: id })), scenario.request);
+    const parts = await readZip(await exportCanopy(input, "xlsx", { about: true,
+      xlsx: { compression: "store", oversizedText: "preserve" } }));
+    assert.match(parts.get("xl/worksheets/sheet2.xml").content, /Full text: Text overflow!/);
+    const overflow = parts.get("xl/worksheets/sheet3.xml").content;
+    const restored = textCells(overflow).filter(cell => /^D\d+$/.test(cell.ref) && cell.ref !== "D1").map(cell => cell.text).join("");
+    assert.equal(restored, scenario.text, scenario.name + " must retain every captured character");
+  }
+  const dirty = "r" + "\u0001".repeat(33000);
+  for (const oversizedText of [undefined, "preserve"]) {
+    const input = capture([column("name", "text")], [record("one", { name: "one" })], { revision: dirty });
+    const parts = await readZip(await exportCanopy(input, "xlsx", { about: true,
+      xlsx: { compression: "store", oversizedText, limits: { maxOverflowCharacters: 0 } } }));
+    assert.ok(textCells(parts.get("xl/worksheets/sheet2.xml").content).some(cell => /^B\d+$/.test(cell.ref) && cell.text === "r"));
+    assert.equal(parts.has("xl/worksheets/sheet3.xml"), false, "Cleaning below the cell boundary requires no overflow sheet");
+  }
+  const selection = scenarios[0];
+  for (const [limit, maximum] of [["maxOverflowCharacters", selection.text.length - 1], ["maxTextCharacters", 60000]]) {
+    const input = capture([column("name", "text")], selection.ids.map(id => record(id, { name: id })), selection.request);
+    await assert.rejects(exportCanopy(input, "xlsx", { about: true,
+      xlsx: { compression: "store", oversizedText: "preserve", limits: { [limit]: maximum } } }),
+    { code: "RESOURCE_LIMIT", message: new RegExp(limit) });
+  }
+  const rawBudget = capture([column("name", "text")], [record("one", { name: "one" })], { revision: dirty });
+  await assert.rejects(exportCanopy(rawBudget, "xlsx", { about: true,
+    xlsx: { compression: "store", oversizedText: "preserve", limits: { maxOverflowCharacters: 0, maxTextCharacters: dirty.length - 1 } } }),
+  { code: "RESOURCE_LIMIT", message: /maxTextCharacters/ });
 });
 
 test("native tone targets preserve cell precedence, first tone and declaration-order stops", async () => {

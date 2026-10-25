@@ -11662,7 +11662,7 @@ _modules.set("3d1862d8ab32171bca4b3ba5fe0bdcc073f67ce940aaff0ee735635893f86ee8",
 return _exports;
 })();
 
-const _m97 = _modules.get("897f9c9291118e87b3bbc722d4ace66bbaa76d43731166b6165038e278b5858e") ?? (() => {
+const _m97 = _modules.get("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d") ?? (() => {
 /** Calibri 11, 96-DPI CSS pixels, seven-pixel maximum digit and five-pixel cell padding.
  * Quantize to native 1/256-character units; this is a reproducible profile, not pixel-identical rendering. */
 function canopyXlsxWidth(pixels) {
@@ -11683,7 +11683,7 @@ function canopyNumberFormat(input, report, id) {
     if (!Number.isInteger(minimum) || !Number.isInteger(maximum) || minimum < 0 || maximum < minimum || maximum > 10 ||
         typeof prefix !== "string" || typeof suffix !== "string" || prefix.length > 16 || suffix.length > 16)
         throw new TypeError("Canopy numeric fraction bounds must be ordered integers from zero through ten, with literal affixes of at most sixteen characters.");
-    const literal = (value) => value ? '"' + value.replace(/["\\]/g, character => "\\" + character) + '"' : "";
+    const literal = (value) => value ? '"' + value.replace(/"/g, '"\\""') + '"' : "";
     return literal(prefix) + "0" + (maximum ? "." + "0".repeat(minimum) + "#".repeat(maximum - minimum) : "") + literal(suffix);
 }
 /** Only a contiguous leading left pin can be represented by an Excel freeze pane. */
@@ -11704,11 +11704,11 @@ function canopyPins(columns, report) {
     return leading;
 }
 const _exports = Object.freeze({ canopyXlsxWidth: canopyXlsxWidth, canopyNumberFormat: canopyNumberFormat, canopyPins: canopyPins });
-_modules.set("897f9c9291118e87b3bbc722d4ace66bbaa76d43731166b6165038e278b5858e", _exports);
+_modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d", _exports);
 return _exports;
 })();
 
-const _m94 = _modules.get("1b983e491f2a576aec5eaa3f3ca599eec65dd4120a1d12eee282a6f763777494") ?? (() => {
+const _m94 = _modules.get("a92d57114c08988b60d7dc46d24aeea3096cb6c695c12a7ea26761010692ef43") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { datetime } = _m95;
@@ -11841,7 +11841,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones });
 }
 const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("1b983e491f2a576aec5eaa3f3ca599eec65dd4120a1d12eee282a6f763777494", _exports);
+_modules.set("a92d57114c08988b60d7dc46d24aeea3096cb6c695c12a7ea26761010692ef43", _exports);
 return _exports;
 })();
 
@@ -12348,9 +12348,13 @@ _modules.set("0f2b50bd606bf0a3273e7a3bec7ed6255f23cfee522a7cfeb2cb676c062ad40e",
 return _exports;
 })();
 
-const _m101 = _modules.get("77ff9c69fb011b84ee5ac3ab25c8a1543990d033295fd05dfa2bee0d81ca64b0") ?? (() => {
+const _m101 = _modules.get("c3e14cc7c7a8367d216ab1ca0b2a41751cc8775866d730cb941d062509dd4886") ?? (() => {
+const { cellText } = _m35;
+
+const { cleanXml } = _m28;
+
 /** Snapshot optional About metadata before enumeration. The accepted query is serialized, never evaluated. */
-function canopyAbout(request) {
+function canopyAbout(request, options) {
     const result = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
     if (request.scope !== undefined) {
         if (!["filtered", "selected", "all"].includes(request.scope))
@@ -12388,10 +12392,18 @@ function canopyAbout(request) {
     }
     if (result.reduce((sum, row) => sum + row[0].length + String(row[1]).length, 0) > 65536)
         throw new RangeError("Canopy About metadata exceeds 65,536 captured characters.");
+    // Validate known cell text before consuming details; overflow preservation and XML policy stay workbook-owned.
+    for (const [field, value] of result) {
+        cellText(field, options.invalidCharacterPolicy);
+        if (options.oversizedText === "preserve")
+            cleanXml(value, options.invalidCharacterPolicy);
+        else
+            cellText(value, options.invalidCharacterPolicy);
+    }
     return Object.freeze(result.map(row => Object.freeze(row)));
 }
 const _exports = Object.freeze({ canopyAbout: canopyAbout });
-_modules.set("77ff9c69fb011b84ee5ac3ab25c8a1543990d033295fd05dfa2bee0d81ca64b0", _exports);
+_modules.set("c3e14cc7c7a8367d216ab1ca0b2a41751cc8775866d730cb941d062509dd4886", _exports);
 return _exports;
 })();
 
@@ -12456,7 +12468,7 @@ _modules.set("e9bef8c7399cd0b119a8802014687efc2004572db8fa3045f2dbfe3c37ab6fb9",
 return _exports;
 })();
 
-const _m0 = _modules.get("18654bc73a7e03c09b7f3d6c2e057a335be86af05bde4c453c061acef787e69b") ?? (() => {
+const _m0 = _modules.get("06222f91ea59fdd2aff673ab351a19c8b3372e05c612adf6136ffa05ee8bf037") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12501,7 +12513,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         throw new TypeError("Canopy about must be boolean.");
     const labels = selected.grouped === undefined ? undefined : captureFields(selected.grouped, ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"]);
     const capturedLabels = labels && { ...labels, ...(labels.labelColumn === undefined ? {} : { labelColumn: Object.freeze({ header: labels.labelColumn.header }) }) };
-    const about = format === "xlsx" && selected.about ? canopyAbout(request) : undefined;
+    const about = format === "xlsx" && selected.about ? canopyAbout(request, xlsx) : undefined;
     const ruleCellTypes = new Map();
     let consumed = 0;
     const source = Object.freeze({ ...prepared.source, async *rows() {
@@ -12576,7 +12588,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m94.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("18654bc73a7e03c09b7f3d6c2e057a335be86af05bde4c453c061acef787e69b", _exports);
+_modules.set("06222f91ea59fdd2aff673ab351a19c8b3372e05c612adf6136ffa05ee8bf037", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

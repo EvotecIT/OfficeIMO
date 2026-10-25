@@ -30,7 +30,7 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
   if (selected.about !== undefined && typeof selected.about !== "boolean") throw new TypeError("Canopy about must be boolean.");
   const labels = selected.grouped === undefined ? undefined : captureFields(selected.grouped, ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"]);
   const capturedLabels = labels && { ...labels, ...(labels.labelColumn === undefined ? {} : { labelColumn: Object.freeze({ header: labels.labelColumn.header }) }) };
-  const about = format === "xlsx" && selected.about ? canopyAbout(request) : undefined;
+  const about = format === "xlsx" && selected.about ? canopyAbout(request, xlsx) : undefined;
   const ruleCellTypes = new Map<number, "number" | "date">();
   let consumed = 0;
   const source: CanopyExport = Object.freeze({ ...prepared.source, async *rows() {

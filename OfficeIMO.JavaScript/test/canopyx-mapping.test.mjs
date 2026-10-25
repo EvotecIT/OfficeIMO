@@ -85,6 +85,41 @@ test("captured scopes produce all 92 synthetic details, typed values, widths, pi
   assert.equal(exported, 92);
 });
 
+test("captured numeric affixes preserve literal quotes and single backslashes in XLSX formats", async () => {
+  const cases = [
+    { id: "quotePrefix", address: "A2", prefix: "a\"b", suffix: "", format: "\"a\"\\\"\"b\"0.00" },
+    { id: "quoteSuffix", address: "B2", prefix: "", suffix: "a\"b", format: "0.00\"a\"\\\"\"b\"" },
+    { id: "slashPrefix", address: "C2", prefix: "a\\b", suffix: "", format: "\"a\\b\"0.00" },
+    { id: "slashSuffix", address: "D2", prefix: "", suffix: "a\\b", format: "0.00\"a\\b\"" },
+    { id: "mixed", address: "E2", prefix: "a\"\\b", suffix: "\\z\"", format: "\"a\"\\\"\"\\b\"0.00\"\\z\"\\\"\"\"" },
+    { id: "plain", address: "F2", prefix: "$ ", suffix: " USD", format: "\"$ \"0.00\" USD\"" }
+  ];
+  const capturedColumns = cases.map(({ id, prefix, suffix }) => ({
+    id, title: id, kind: "number", width: { unit: "css-px", preferred: 138, minimum: 40 }, wrap: false, alignment: "right",
+    format: { minimumFractionDigits: 2, maximumFractionDigits: 2, prefix, suffix }
+  }));
+  const input = {
+    request: { columns: capturedColumns, recordCount: 1, values: "raw", presentation: "semantic", timeZone: "utc", revision: "literal-affixes" },
+    async *rows() {
+      yield { id: "affixes", cells: Object.fromEntries(cases.map(item => [item.id, cell(12.5, item.prefix + "12.50" + item.suffix)])) };
+    }
+  };
+  const parts = await readZip(await exportCanopy(input, "xlsx", { xlsx: { compression: "store" } }));
+  const styles = parts.get("xl/styles.xml").content;
+  const formats = new Map([...styles.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]+)"\/>/g)]
+    .map(match => [Number(match[1]), match[2].replace(/&quot;/g, '"')]));
+  const xfs = [...styles.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)[1].matchAll(/<xf\b[^>]*numFmtId="(\d+)"[^>]*>/g)]
+    .map(match => Number(match[1]));
+  const detail = rowXml(parts.get("xl/worksheets/sheet1.xml").content).find(row => row.row === 2).xml;
+  const actual = [...detail.matchAll(/<c r="([^"]+)"([^>]*)>([\s\S]*?)<\/c>/g)].map(match => ({
+    address: match[1],
+    type: /\bt="([^"]+)"/.exec(match[2])?.[1] ?? "n",
+    value: Number(/<v>([^<]+)<\/v>/.exec(match[3])?.[1]),
+    format: formats.get(xfs[Number(/\bs="(\d+)"/.exec(match[2])?.[1])])
+  }));
+  assert.deepEqual(actual, cases.map(({ address, format }) => ({ address, type: "n", value: 12.5, format })));
+});
+
 test("PDF keeps every synthetic detail and group context while diagnosing native XLSX-only effects", async () => {
   for (const scope of ["filtered", "selected", "all"]) {
     const input = capture(scope), diagnostics = [];

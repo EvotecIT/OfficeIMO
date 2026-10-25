@@ -1,7 +1,10 @@
 import type { CanopyCapture } from "./types.js";
+import type { XlsxOptions } from "../../xlsx/index.js";
+import { cellText } from "../../xlsx/values.js";
+import { cleanXml } from "../../xml/index.js";
 
 /** Snapshot optional About metadata before enumeration. The accepted query is serialized, never evaluated. */
-export function canopyAbout(request: CanopyCapture["request"]): readonly (readonly [string, string | number])[] {
+export function canopyAbout(request: CanopyCapture["request"], options: Pick<XlsxOptions, "oversizedText" | "invalidCharacterPolicy">): readonly (readonly [string, string | number])[] {
   const result: [string, string | number][] = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
   if (request.scope !== undefined) {
     if (!["filtered", "selected", "all"].includes(request.scope)) throw new TypeError("Invalid Canopy export scope.");
@@ -30,5 +33,11 @@ export function canopyAbout(request: CanopyCapture["request"]): readonly (readon
   }
   if (result.reduce((sum, row) => sum + row[0].length + String(row[1]).length, 0) > 65536)
     throw new RangeError("Canopy About metadata exceeds 65,536 captured characters.");
+  // Validate known cell text before consuming details; overflow preservation and XML policy stay workbook-owned.
+  for (const [field, value] of result) {
+    cellText(field, options.invalidCharacterPolicy);
+    if (options.oversizedText === "preserve") cleanXml(value, options.invalidCharacterPolicy);
+    else cellText(value, options.invalidCharacterPolicy);
+  }
   return Object.freeze(result.map(row => Object.freeze(row)));
 }

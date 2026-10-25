@@ -18,7 +18,7 @@ export function canopyNumberFormat(input: CanopyNumberFormat, report: (diagnosti
   if (!Number.isInteger(minimum) || !Number.isInteger(maximum) || minimum < 0 || maximum < minimum || maximum > 10 ||
       typeof prefix !== "string" || typeof suffix !== "string" || prefix.length > 16 || suffix.length > 16)
     throw new TypeError("Canopy numeric fraction bounds must be ordered integers from zero through ten, with literal affixes of at most sixteen characters.");
-  const literal = (value: string) => value ? '"' + value.replace(/["\\]/g, character => "\\" + character) + '"' : "";
+  const literal = (value: string) => value ? '"' + value.replace(/"/g, '"\\""') + '"' : "";
   return literal(prefix) + "0" + (maximum ? "." + "0".repeat(minimum) + "#".repeat(maximum - minimum) : "") + literal(suffix);
 }
 
