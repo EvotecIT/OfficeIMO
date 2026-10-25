@@ -65,7 +65,8 @@ function csvField(value: unknown, delimiter: string, protect: boolean, quote: No
     if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
     throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
   }
-  if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
+  // Only ASCII spaces, controls and markers through @ can begin the protected prefix.
+  if (protect && (kind === "string" || kind === "boolean") && text.charCodeAt(0) <= 64 && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
   return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
     ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }

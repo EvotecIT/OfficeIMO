@@ -42,6 +42,21 @@ test("CSV preserves numeric text and non-finite empty cells in every quoting mod
   }
 });
 
+test("CSV formula prefixes preserve exact text across quoting and captured display policies", async () => {
+  const strings = ["", "@x", "Ax", "=x", "+x", "-x", "\tx", "\rx", "\nx", "  =x", " /x", "\u00a0=x", "Łódź", "東京", "'quoted", '"a"'];
+  const protectedStrings = ["", "'@x", "Ax", "'=x", "'+x", "'-x", "'\tx", "'\rx", "'\nx", "'  =x", " /x", "\u00a0=x", "Łódź", "東京", "'quoted", '"a"'];
+  const values = [...strings, true, false, null, "raw"];
+  const columns = values.map((_, index) => ({ header: "Value", ...(index === values.length - 1 ? { valueFormatter: () => "  +formatted" } : {}) }));
+  for (const protect of [true, false]) for (const quote of ["minimal", "all", "strings"]) {
+    const text = protect ? [...protectedStrings, "'@true", "Afalse", "'=null", "'  +formatted"] : [...strings, "@true", "Afalse", "=null", "  +formatted"];
+    const expected = text.map((value, index) => quote === "all" || quote === "strings" && index !== strings.length && index !== strings.length + 1 || /[",\r\n]/.test(value)
+      ? '"' + value.replaceAll('"', '""') + '"' : value).join(",") + "\r\n";
+    const blob = await writeCsv([values], { columns, includeHeader: false, quote, formulaInjectionProtection: protect,
+      booleanText: { true: "@true", false: "Afalse" }, nullValue: "=null" });
+    assert.equal(await blob.text(), expected, `${quote}, protection ${protect}`);
+  }
+});
+
 test("CSV cancels pending producer input promptly and returns its iterator", async () => {
   const controller = new AbortController();
   let returned = false;

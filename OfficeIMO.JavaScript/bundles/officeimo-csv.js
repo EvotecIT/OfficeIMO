@@ -1110,7 +1110,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("936afeebe2c160e65fae2d208ab920122ff9ac2134fee8995f27911fdff2d389") ?? (() => {
+const _m0 = _modules.get("aff3e6eb49b1c118b5e78b3e2312a769b3b70303730999dca3e12e291095be17") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1158,7 +1158,8 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (kind === "string" || kind === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    // Only ASCII spaces, controls and markers through @ can begin the protected prefix.
+    if (protect && (kind === "string" || kind === "boolean") && text.charCodeAt(0) <= 64 && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
     return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
@@ -1261,7 +1262,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("936afeebe2c160e65fae2d208ab920122ff9ac2134fee8995f27911fdff2d389", _exports);
+_modules.set("aff3e6eb49b1c118b5e78b3e2312a769b3b70303730999dca3e12e291095be17", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });
