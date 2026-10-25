@@ -1825,8 +1825,6 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 3);
             foreach (WordTableRow row in table.Rows) {
-                // Keep blank merged-cell space clear of the linked run's font metrics.
-                row.MinimumHeight = 800;
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
                     cell.WidthType = WordTableWidthUnit.Dxa;
@@ -1896,10 +1894,10 @@ public partial class Word {
                 word.BoundingBox.Centroid.X, word.BoundingBox.Centroid.Y)));
         Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
             tall.BoundingBox.Right, across.BoundingBox.Centroid.Y));
+        // Probe the blank gap beside the linked run, not another row's font metrics.
+        Assert.True(tall.BoundingBox.Right < upper.BoundingBox.Left);
         Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
-            tall.BoundingBox.Centroid.X, upper.BoundingBox.Centroid.Y));
-        Assert.DoesNotContain(info.LinkAnnotations, link => Contains(link,
-            tall.BoundingBox.Centroid.X, lower.BoundingBox.Centroid.Y));
+            (tall.BoundingBox.Right + upper.BoundingBox.Left) / 2, tall.BoundingBox.Centroid.Y));
 
         static bool Contains(PdfCore.PdfLinkAnnotation link, double x, double y) =>
             x >= link.X1 && x <= link.X2 && y >= link.Y1 && y <= link.Y2;
