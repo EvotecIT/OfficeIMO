@@ -30,9 +30,27 @@ internal static partial class PdfWriter {
             double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
             double firstContentHeight = minimumStartHeight - spacingBefore;
-            if (firstContentHeight > GetMaximumBlockContinuationHeight() + .001D &&
+            RunningFrameAdmissionAttempt? runningAdmission = null;
+            void RemeasureContainerStart() {
+                style = ResolveContainerStyle(container);
+                spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                parentLeft = currentOpts.MarginLeft; parentWidth = width;
+                frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
+                outerWidth = frame.Width; outerX = frame.X; contentWidth = frame.ContentWidth;
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerPadding());
+                firstVisualHeight = firstVisual.Height;
+                minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+                firstContentHeight = minimumStartHeight - spacingBefore;
+            }
+            bool AdvanceContainerAdmission(double requiredHeight) =>
+                TryAdvanceForRunningContent(ref runningAdmission, requiredHeight, preserve => {
+                    NewBlockFrame(preserveEmptyPage: preserve);
+                    RemeasureContainerStart();
+                });
+            while (firstContentHeight > GetMaximumBlockContinuationHeight() + .001D &&
                 !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: false)) {
-                throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
+                if (!AdvanceContainerAdmission(firstContentHeight))
+                    throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
             // Move an oversized kept paragraph before opening its decoration,
             // so an unused panel is not mistaken for an already painted fragment.
@@ -42,17 +60,12 @@ internal static partial class PdfWriter {
                 (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())) {
                 NewBlockFrame(forcePhysicalPage: firstVisual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     (firstVisual.Overflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages || IsPartialPhysicalColumnFrame()));
-                style = ResolveContainerStyle(container);
-                spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                parentLeft = currentOpts.MarginLeft; parentWidth = width;
-                frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
-                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerPadding());
-                firstVisualHeight = firstVisual.Height;
-                minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
-                firstContentHeight = minimumStartHeight - spacingBefore;
-                if (firstContentHeight > GetMaximumBlockContinuationHeight() + .001D &&
-                    !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: false))
-                    throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
+                RemeasureContainerStart();
+                while (firstContentHeight > GetMaximumBlockContinuationHeight() + .001D &&
+                    !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: false)) {
+                    if (!AdvanceContainerAdmission(firstContentHeight))
+                        throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
+                }
             }
 
             if (style.KeepTogether) {
@@ -62,6 +75,14 @@ internal static partial class PdfWriter {
                     throw new NotSupportedException("KeepTogether requires element content whose height can be determined before rendering. Remove KeepTogether or move dynamic, multi-column, deferred-table, table-of-contents, or explicit page-boundary content outside the element.");
                 }
 
+                while (fullPageKeepHeight.Value > GetMaximumBlockContinuationHeight() + .001D &&
+                    !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: true) &&
+                    AdvanceContainerAdmission(fullPageKeepHeight.Value)) {
+                    keepHeight = MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                    fullPageKeepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                    if (!keepHeight.HasValue || !fullPageKeepHeight.HasValue)
+                        throw new NotSupportedException("KeepTogether requires measurable element content after a page transition.");
+                }
                 double fullPageHeight = GetMaximumBlockContinuationHeight();
                 // Preserve the initial width search through partial columns until the whole group can be placed.
                 bool widthAdaptiveKeep = fullPageKeepHeight.Value > fullPageHeight + .001D;
@@ -76,9 +97,16 @@ internal static partial class PdfWriter {
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                     parentLeft = currentOpts.MarginLeft; parentWidth = width;
                     keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
-                    if (!keepHeight.HasValue || keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D &&
-                        (!widthAdaptiveKeep || !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: true)))
+                    if (!keepHeight.HasValue)
                         throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
+                    while (keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D &&
+                        (!widthAdaptiveKeep || !CanContainerFitAnotherFlowWidth(container, style, parentWidth, wholeContainer: true))) {
+                        if (!AdvanceContainerAdmission(keepHeight.Value))
+                            throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
+                        keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                        if (!keepHeight.HasValue)
+                            throw new NotSupportedException("KeepTogether requires measurable element content after a page transition.");
+                    }
                 }
             }
             if (style.KeepWithNext && nextBlock != null) {

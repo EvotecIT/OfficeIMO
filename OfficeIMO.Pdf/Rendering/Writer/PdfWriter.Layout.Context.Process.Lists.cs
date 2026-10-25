@@ -14,8 +14,8 @@ internal static partial class PdfWriter {
                 topLevelSpacing: true);
             double preparedWidth = width;
             double listHeight = MeasurePreparedListHeight(prepared);
-            void NewListStartFrame(bool forcePhysicalPage = false) {
-                NewBlockFrame(forcePhysicalPage);
+            void NewListStartFrame(bool forcePhysicalPage = false, bool preserveEmptyPage = false) {
+                NewBlockFrame(forcePhysicalPage, preserveEmptyPage);
                 if (Math.Abs(preparedWidth - width) > .001D) {
                     prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
                     preparedWidth = width;
@@ -24,11 +24,15 @@ internal static partial class PdfWriter {
                 listHeight = MeasurePreparedListHeight(prepared);
             }
             if (prepared.Style?.KeepTogether == true) {
+                RunningFrameAdmissionAttempt? runningAdmission = null;
                 while (true) {
                     double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
                     if (fitHeight > GetMaximumBlockContinuationHeight() + .001D) {
-                        if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject)
+                        if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject) {
+                            if (TryAdvanceForRunningContent(ref runningAdmission, fitHeight,
+                                preserve => NewListStartFrame(preserveEmptyPage: preserve))) continue;
                             throw new ArgumentException("List height exceeds the available page content height.");
+                        }
                         if (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())
                             NewListStartFrame(IsPartialPhysicalColumnFrame() ||
                                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages);

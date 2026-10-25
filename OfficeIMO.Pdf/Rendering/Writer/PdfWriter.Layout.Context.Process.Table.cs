@@ -149,10 +149,11 @@ internal static partial class PdfWriter {
                 y = PositionTableY(verticalPosition, Math.Min(maxContentHeight, tableContentHeight));
                 AvoidFloatingTable(verticalPosition, xOrigin, tableWidth, tableContentHeight);
             }
-            void NewInitialTablePage() {
+            void NewInitialTablePage() => AdvanceInitialTablePage(preserveEmptyPage: false);
+            void AdvanceInitialTablePage(bool preserveEmptyPage) {
                 FlushPairedBorders();
                 QueueColumnBalanceRemainder(tb, blockList, blockIndex);
-                NewPage();
+                NewPage(preserveEmptyPage: preserveEmptyPage);
                 tableFrameHasBodyContent = false;
                 ReflowTableForCurrentFrame();
                 xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
@@ -189,7 +190,11 @@ internal static partial class PdfWriter {
                     MaximumContinuationHeight() > maxContentHeight + 0.001D) advance();
             }
             if (style.KeepTogether) {
+                RunningFrameAdmissionAttempt? runningAdmission = null;
                 double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
+                while (style.Position == null && KeepHeight() > MaximumContinuationHeight() + .001D &&
+                    TryAdvanceForRunningContent(ref runningAdmission, KeepHeight(), AdvanceInitialTablePage, MaximumContinuationHeight()))
+                    tableSpacingBefore = 0D;
                 MovePastShortTableFrames(KeepHeight, () => { NewInitialTablePage(); tableSpacingBefore = 0D; });
                 double keepHeight = KeepHeight();
                 if (keepHeight > maxContentHeight + 0.001) {

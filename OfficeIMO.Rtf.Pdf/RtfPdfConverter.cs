@@ -39,6 +39,9 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document, fontSlots, pdf.Options);
+        ApplyHeaderFooterContent(document, firstPageSetup, pdf, pdf.Options, normalized, state,
+            document.Sections.Count == 0 ? document.HeaderFooters : document.GetEffectiveHeaderFooters(document.Sections[0]),
+            build => pdf.Header(build), build => pdf.Footer(build));
 
         RenderDocumentBlocks(document, pdf, normalized, state, documentDefaults);
 
@@ -53,6 +56,7 @@ internal static partial class RtfPdfConverter {
         }
 
         PdfCore.PdfOptions currentPageOptions = pdf.Options.Clone();
+        RtfSection currentPageSection = document.Sections[0];
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index == 0) {
@@ -61,7 +65,7 @@ internal static partial class RtfPdfConverter {
             }
 
             if (!StartsNewPdfPage(section.BreakKind)) {
-                ReportContinuousSectionSettings(document, section, currentPageOptions, pdfOptions, options);
+                ReportContinuousSectionSettings(document, section, currentPageSection, currentPageOptions, pdfOptions, options);
                 RenderSectionBlocks(document, section, pdf, options, state);
                 continue;
             }
@@ -76,15 +80,16 @@ internal static partial class RtfPdfConverter {
 
             pdf.Section(page => {
                 ApplyPageSetup(document, section, page, pdfOptions);
-                ApplySectionHeaderFooters(document, section, page, options);
+                ApplySectionHeaderFooters(document, section, page, pdf, options, state);
                 currentPageOptions = page.Options.Clone();
+                currentPageSection = section;
                 PdfCore.PdfOptions previousFontOptions = state.FontOptions;
                 state.FontOptions = page.Options;
                 try {
                     RenderSectionBlocks(document, section, pdf, options, state);
                     while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
                         index++;
-                        ReportContinuousSectionSettings(document, document.Sections[index], currentPageOptions, pdfOptions, options);
+                        ReportContinuousSectionSettings(document, document.Sections[index], currentPageSection, currentPageOptions, pdfOptions, options);
                         RenderSectionBlocks(document, document.Sections[index], pdf, options, state);
                     }
                 } finally {

@@ -52,6 +52,20 @@ internal static partial class PdfWriter {
             double? fullPageMeasuredHeight = measuredHeight.HasValue
                 ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)
                 : null;
+            RunningFrameAdmissionAttempt? runningAdmission = null;
+            while (flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue &&
+                fullPageMeasuredHeight.Value > GetMaximumBlockContinuationHeight() + .001D &&
+                TryAdvanceForRunningContent(ref runningAdmission, fullPageMeasuredHeight.Value,
+                    preserve => NewBlockFrame(preserveEmptyPage: preserve), contextualBody: flow.IsReplayable)) {
+                context = CreateFlowContext();
+                if (flow.IsReplayable) blocks = MaterializeFlow(flow, context);
+                measuredHeight = MeasureFlowBlocks(blocks);
+                fullPageMeasuredHeight = measuredHeight.HasValue
+                    ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) : null;
+                available = y - FootnoteBodyBottom;
+                beforeFloatClearanceY = y;
+                cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + .001D;
+            }
             bool fitsFullPage = fullPageMeasuredHeight.HasValue &&
                                 fullPageMeasuredHeight.Value <= GetMaximumBlockContinuationHeight() + 0.001D;
             // A fit against full-page capacity in an unused partial column does not finish the width search.

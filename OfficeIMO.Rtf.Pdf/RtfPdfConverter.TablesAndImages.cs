@@ -77,6 +77,19 @@ internal static partial class RtfPdfConverter {
         pdf.Image(imageBytes, layout.VisibleWidthTwips!.Value / 20d, layout.VisibleHeightTwips!.Value / 20d, style: GetImageStyle(image, layout));
     }
 
+    /// <summary>Uses the common payload/crop owner while keeping an RTF picture in its source paragraph's inline order.</summary>
+    private static void AppendInlineImage(RtfImage image, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, string source) {
+        if (!TryGetRenderableImage(image, options, source, out byte[] imageBytes)) return;
+        RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
+        // Native RTF pictures retain their complete authored frame on exact
+        // lines. The DrawingML paragraph-fragment crop is a different carrier.
+        var inline = new PdfCore.PdfInlineImage(imageBytes, layout.VisibleWidthTwips!.Value / 20d,
+            layout.VisibleHeightTwips!.Value / 20d, GetImageStyle(image, layout), baselineOffset: 0D) {
+            ClipToParagraphFragment = false
+        };
+        runs.Add(PdfCore.PdfTextRun.Inline(inline));
+    }
+
     /// <summary>Retains each cell paragraph's layout while collecting its runs and note references only once.</summary>
     private static List<PdfCore.PdfTableCellParagraph> BuildCellParagraphs(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state, out List<PdfCore.PdfTextRun> runs) {
         runs = new List<PdfCore.PdfTextRun>();

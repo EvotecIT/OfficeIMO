@@ -61,6 +61,10 @@ namespace OfficeIMO.Word {
         internal V.Shape? _vmlShape;
         internal V.ImageData? _vmlImageData;
 
+        /// <summary>Returns the source occurrence that owns the image's run position and visibility.</summary>
+        /// <remarks>VML images retain a detached DrawingML wrapper for model compatibility; it is not their source node.</remarks>
+        internal OpenXmlElement OccurrenceElement => _vmlShape ?? (OpenXmlElement)_Image;
+
 
         /// <summary>
         /// Get or set the Image's horizontal position.

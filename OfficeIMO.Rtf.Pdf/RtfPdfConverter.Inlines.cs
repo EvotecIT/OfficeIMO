@@ -134,7 +134,9 @@ internal static partial class RtfPdfConverter {
         runs.Add(strut);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
+    private enum PdfInlineProjectionContext { Text, RunningStory }
+
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
         AppendListMarker(paragraph, runs, state, options);
         foreach (IRtfInline inline in paragraph.Inlines) {
@@ -158,10 +160,14 @@ internal static partial class RtfPdfConverter {
                         collectNotes,
                         fieldLinkUri ?? inheritedLinkUri,
                         fieldLinkUri == null ? GetFieldLinkDestinationName(field) ?? inheritedLinkDestinationName : null,
-                        field.HyperlinkField?.ScreenTip ?? inheritedLinkContents);
+                        field.HyperlinkField?.ScreenTip ?? inheritedLinkContents,
+                        context);
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(generatedText, runs, state, collectNotes);
+                    break;
+                case RtfImage image when context == PdfInlineProjectionContext.RunningStory:
+                    AppendInlineImage(image, runs, options, "HeaderFooter/Paragraph/Image");
                     break;
                 case RtfObject rtfObject:
                     AddConversionWarning(options, "ObjectFlattened", "Inline/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);

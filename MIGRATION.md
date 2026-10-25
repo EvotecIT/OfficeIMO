@@ -1,5 +1,21 @@
 # Upgrading OfficeIMO
 
+## Reading running text from RTF-generated PDFs
+
+RTF PDF headers and footers use rich running content and are marked as PDF
+pagination artifacts. To inspect their text with the logical reader, enable
+`PdfLoadOptions.IncludeArtifactText`:
+
+```csharp
+var read = PdfReadDocument.Open(bytes,
+    new PdfLoadOptions { IncludeArtifactText = true });
+```
+
+The default reader continues to exclude artifact text. Explicit header/footer
+presentation overrides retain the plain-text projection. Ordinary uncropped
+running pictures written through the RTF-to-Word bridge use VML; callers that
+inspect raw Word XML should handle `w:pict` as well as DrawingML `w:drawing`.
+
 ## Removed obsolete image and HTML capability aliases
 
 Replace `WordImage.BlackWiteMode` with `WordImage.BlackWhiteMode`. The enum and

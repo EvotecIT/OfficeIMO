@@ -5,8 +5,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static bool IsNativeHiddenImageContent(WordImage image, WordParagraph paragraph) {
-            OpenXmlElement? element = (OpenXmlElement?)image._Image ?? image._vmlShape;
-            W.Run? sourceRun = element?.Ancestors<W.Run>().FirstOrDefault();
+            W.Run? sourceRun = image.OccurrenceElement.Ancestors<W.Run>().FirstOrDefault();
             return IsNativeHiddenTextRun(sourceRun == null ? paragraph :
                 new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun), paragraph);
         }

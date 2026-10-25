@@ -135,7 +135,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static string? GetHeaderFooterText(IReadOnlyList<RtfHeaderFooter> declarations, RtfHeaderFooterKind kind) {
-        RtfHeaderFooter? headerFooter = declarations.LastOrDefault(item => item.Kind == kind);
+        RtfHeaderFooter? headerFooter = GetHeaderFooter(declarations, kind);
         if (headerFooter == null) {
             return null;
         }
@@ -144,35 +144,15 @@ internal static partial class RtfPdfConverter {
         return text;
     }
 
-    private static void ApplySectionHeaderFooters(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, RtfToPdfOptions options) {
+    private static void ApplySectionHeaderFooters(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page,
+        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         if (!options.IncludeHeaderFooters) return;
         IReadOnlyList<RtfHeaderFooter> declarations = document.GetEffectiveHeaderFooters(section);
         if (declarations.Count == 0) return;
-        RecordHeaderFooterFrameDiagnostics(document, document.GetPageSetup(section), declarations, options);
-        string? header = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
-        string? footer = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightFooter) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Footer);
-        string? firstHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstHeader);
-        string? firstFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstFooter);
-        string? evenHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftHeader);
-        string? evenFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftFooter);
-        page.Header(builder => {
-            if (header != null) builder.Text(header);
-            if (firstHeader != null) builder.FirstPageText(firstHeader);
-            if (evenHeader != null) builder.EvenPagesText(evenHeader);
-        });
-        page.Footer(builder => {
-            if (footer != null) builder.Text(footer);
-            if (firstFooter != null) builder.FirstPageText(firstFooter);
-            if (evenFooter != null) builder.EvenPagesText(evenFooter);
-        });
-        PdfCore.PdfOptions settings = page.Options;
-        settings.DifferentFirstPageHeaderFooter = document.GetPageSetup(section).DifferentFirstPageHeaderFooter;
-        settings.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
-        settings.UsePageNumberParityForHeaderFooter = true;
-        settings.FirstPageHeaderFormat = firstHeader ?? string.Empty;
-        settings.FirstPageFooterFormat = firstFooter ?? string.Empty;
-        settings.EvenPageHeaderFormat = evenHeader ?? string.Empty;
-        settings.EvenPageFooterFormat = evenFooter ?? string.Empty;
+        RtfPageSetup setup = document.GetPageSetup(section);
+        ApplyHeaderFooters(document, setup, page.Options, options, declarations);
+        ApplyHeaderFooterContent(document, setup, pdf, page.Options, options, state, declarations,
+            build => page.Header(build), build => page.Footer(build));
     }
 
     private static string NormalizeHeaderFooterText(string text) {

@@ -12,8 +12,7 @@ public partial class WordParagraph {
         if (contentRun == null) return result;
         var images = new Dictionary<OpenXmlElement, WordImage>();
         foreach (WordImage image in EnumerateImages()) {
-            OpenXmlElement? element = (OpenXmlElement?)image._Image ?? image._vmlShape;
-            if (element != null) images[element] = image;
+            images[image.OccurrenceElement] = image;
         }
         if (images.Count == 0) return result;
         if (_visibleRun != null && _visibleRunSourceChildren != null) {

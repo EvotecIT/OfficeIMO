@@ -11,13 +11,23 @@ internal static partial class PdfWriter {
     /// </summary>
     private static bool BeginImportedPictureClip(StringBuilder output, PdfInlineElement element,
         PdfLineSpacing? spacing, double x, double baseline, double paragraphTop, double pageWidth) {
-        if (element is not PdfInlineImage { AllowFrameOverflow: true } || spacing?.IsExact != true) return false;
-        double bottom = baseline + element.BaselineOffset;
-        double left = Math.Max(0D, x), right = Math.Min(pageWidth, x + element.Width);
+        if (GetImportedPictureClip(element, spacing, x, baseline, paragraphTop, pageWidth) is not { } clip)
+            return false;
         new ContentStreamBuilder(output).SaveState()
-            .Rectangle(left, bottom, Math.Max(0D, right - left), Math.Max(0D, paragraphTop - bottom))
+            .Rectangle(clip.X, clip.Bottom, clip.Width, clip.Height)
             .ClipPath().EndPath();
         return true;
+    }
+
+    /// <summary>Shares the authored picture-only paragraph clip with visible-paint diagnostics.</summary>
+    private static (double X, double Bottom, double Width, double Height)? GetImportedPictureClip(
+        PdfInlineElement element, PdfLineSpacing? spacing, double x, double baseline,
+        double paragraphTop, double pageWidth) {
+        if (element is not PdfInlineImage image || !(image.AllowFrameOverflow || image.ClipToParagraphFragment) ||
+            spacing?.IsExact != true) return null;
+        double bottom = baseline + element.BaselineOffset;
+        double left = Math.Max(0D, x), right = Math.Min(pageWidth, x + element.Width);
+        return (left, bottom, Math.Max(0D, right - left), Math.Max(0D, paragraphTop - bottom));
     }
 
     private sealed partial class LayoutContext {

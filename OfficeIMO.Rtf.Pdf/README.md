@@ -4,7 +4,7 @@ First-party semantic RTF/PDF conversion for OfficeIMO.
 
 This package converts between the semantic `OfficeIMO.Rtf` document model and the first-party `OfficeIMO.Pdf` document model. The RTF engine remains the lossless parse/edit/write layer; PDF export is a visual/content conversion to a fixed-layout format, while PDF import uses the first-party logical PDF reader to recover parser-supported metadata, pages, headings, grouped paragraphs, and list markers into an editable RTF document.
 
-Supported export coverage includes semantic paragraphs, paragraph indentation/spacing/line-height/pagination controls, paragraph/style tab stops with supported alignment and leader mapping, section-owned blocks, section page breaks, page-starting section page setup, document and section page-border visual export, rich runs, list markers, document page setup, metadata, tables with horizontal and vertical merged-cell spans, repeating header rows, solid row/cell fills, cell padding, vertical alignment, side and diagonal cell borders, PNG/JPEG images, bookmarks, field result text, hidden text control, footnote/endnote/annotation bodies, and running header/footer text including first-page and even-page variants. RTF can model separate borders per page side; PDF export maps the first styled RTF page border to the first-party PDF engine's uniform page border decoration.
+Supported export coverage includes semantic paragraphs, paragraph indentation/spacing/line-height/pagination controls, paragraph/style tab stops with supported alignment and leader mapping, section-owned blocks, section page breaks, page-starting section page setup, document and section page-border visual export, rich runs, list markers, document page setup, metadata, tables with horizontal and vertical merged-cell spans, repeating header rows, solid row/cell fills, cell padding, vertical alignment, side and diagonal cell borders, PNG/JPEG images, bookmarks, field result text, hidden text control, footnote/endnote/annotation bodies, and rich running header/footer paragraphs including first-page and even-page variants. RTF can model separate borders per page side; PDF export maps the first styled RTF page border to the first-party PDF engine's uniform page border decoration.
 
 Supported import coverage includes PDF Info metadata, first-page paper size, logical headings, logical list items, grouped paragraphs, basic paragraph spacing, and page transitions as RTF page-break-before paragraphs. PDF is a fixed-layout format, so import is semantic text extraction rather than lossless visual reconstruction of arbitrary PDFs.
 
@@ -18,7 +18,7 @@ Pair kerning is disabled unless a run supplies a positive `KerningHalfPoints` th
 
 PDF export distinguishes minimum, exact, and multiple line spacing using the [RTF sign and unit rules](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). Body paragraphs, individual table-cell paragraphs, and appended note paragraphs retain supported alignment, indents, before/after spacing, line spacing, and tab stops. An ordinary RTF paragraph without after-spacing does not acquire the PDF builder's convenience gap.
 
-Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in headers, footers and nested tables projected as plain text are omitted and reported as `BarTabOmitted` with `Omission` loss. `RequireNoLoss()` rejects both diagnostics.
+Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `RequireNoLoss()` rejects both diagnostics.
 
 RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
 
@@ -29,6 +29,18 @@ When the selected font programs and resolved run sizes provide usable line metri
 Footnotes, endnotes, and annotations are appended after the body with a label on each note's first paragraph. Their paragraph formatting is retained within that flow; this route does not place footnotes beside their reference pages or reproduce native endnote continuation. Nested tables remain delimited text with `NestedTableFlattened` diagnostics.
 
 Paragraph-frame positioning, dimensions, and wrapping are flattened to ordinary flow and reported as `ParagraphFrameFlattened`. The warning applies to projected body, cell, note, and selected running-story paragraphs. `RequireNoLoss()` rejects this approximation; the lossless RTF API remains available when source frame syntax must survive.
+
+## Running headers and footers
+
+Selected running stories retain paragraph alignment, line spacing, tabs, supported run formatting and inline images in source order. Header and footer distances are measured from the page edge; an absent distance uses the RTF half-inch default. Running-story fonts share the document's existing font policy and resolution budget. Missing declarations inherit, while an explicitly empty declaration clears its selected story.
+
+Ordinary inline RTF pictures retain their full authored frame on exact-height running lines. The shared PDF engine measures the story and reserves its body space. First-page and even-page selection, numbering restarts and intentional facing-page blanks retain their section semantics; a blank physical page is not automatically an error.
+
+Explicit header/footer font, alignment, color or offset presentation settings select the existing plain-text projection for that side. Images omitted by this projection report `ImageSkipped`. `IncludeHeaderFooters = false` skips source stories. `IncludeImages = false` uses the existing image omission policy within supported rich stories.
+
+Rich running stories are PDF pagination artifacts. Read them with `PdfReadDocument.Open(bytes, new PdfLoadOptions { IncludeArtifactText = true })` when inspecting header/footer text. The logical reader otherwise excludes artifact text by default.
+
+Running content is bounded: page and column controls cannot create new pages, note bodies are not appended from a running story, and fields use cached result text rather than per-page evaluation. Unsupported controls and source formatting retain operation diagnostics. Changing rich stories inside a continuous section remains a reported approximation.
 
 ## Import PDF with diagnostics
 

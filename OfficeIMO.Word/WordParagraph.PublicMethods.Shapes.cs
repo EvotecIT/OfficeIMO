@@ -7,47 +7,11 @@ using System.Linq;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
-using V = DocumentFormat.OpenXml.Vml;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
     // Contains public methods for editing paragraphs.
     public partial class WordParagraph {
-        /// <summary>
-        /// Adds a legacy VML image to the paragraph.
-        /// </summary>
-        public WordParagraph AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var run = this.VerifyRun();
-            using var fs = File.OpenRead(filePathImage);
-            WordImageLocation imageLocation = WordImage.AddImageToLocation(
-                _document,
-                this,
-                fs,
-                Path.GetFileName(filePathImage),
-                width,
-                height);
-            string relId = imageLocation.RelationshipId;
-
-            string style = "mso-wrap-style:square";
-            if (width.HasValue) style = $"width:{width}pt;" + style;
-            if (height.HasValue) style = $"height:{height}pt;" + style;
-
-            var shape = new V.Shape() {
-                Id = "Image" + Guid.NewGuid().ToString("N"),
-                Style = style,
-                Type = "#_x0000_t75"
-            };
-            var imageData = new V.ImageData() {
-                RelationshipId = relId,
-                Title = Path.GetFileName(filePathImage)
-            };
-            shape.Append(imageData);
-            Picture pict = new Picture();
-            pict.Append(shape);
-            run.Append(pict);
-            return this;
-        }
-
         /// <summary>
         /// Add a rectangle shape to the paragraph.
         /// </summary>
