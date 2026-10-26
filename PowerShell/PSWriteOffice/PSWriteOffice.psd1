@@ -20,6 +20,7 @@
             ExternalModuleDependencies = @()
         }
     }
+    FormatsToProcess       = @('PSWriteOffice.Format.ps1xml')
     RootModule             = 'PSWriteOffice.psm1'
     RequiredModules        = @()
 }

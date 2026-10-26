@@ -99,4 +99,13 @@
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <OfficeCommandMap Include="$(OfficeIMORoot)Build/ApiMap/powershell/*.json" />
+    <EmbeddedResource Include="$(IntermediateOutputPath)OfficeCommandHints.json" LogicalName="PSWriteOffice.CommandHints.json" />
+  </ItemGroup>
+  <Target Name="GenerateOfficeCommandHints" BeforeTargets="PrepareResources"
+          Inputs="@(OfficeCommandMap);$(MSBuildProjectDirectory)/../../Build/New-CommandHintResource.ps1"
+          Outputs="$(IntermediateOutputPath)OfficeCommandHints.json">
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)/../../Build/New-CommandHintResource.ps1&quot; -MapDirectory &quot;$(OfficeIMORoot)Build/ApiMap/powershell&quot; -OutputPath &quot;$(IntermediateOutputPath)OfficeCommandHints.json&quot;" />
+  </Target>
 </Project>
