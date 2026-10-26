@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>3.5.2</VersionPrefix>
+    <VersionPrefix>3.5.3</VersionPrefix>
     <PackageId>OfficeIMO.JavaScript.Assets</PackageId>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
