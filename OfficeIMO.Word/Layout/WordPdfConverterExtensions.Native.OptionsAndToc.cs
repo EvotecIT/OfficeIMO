@@ -509,7 +509,8 @@ namespace OfficeIMO.Word.Pdf {
                     pdfOptions,
                     trimmedFamilyName,
                     fallbackSlot: null,
-                    substitution.TargetFontFamily);
+                    substitution.TargetFontFamily,
+                    sourceFontFamilyRequest: literalFamily);
                 return;
             }
 

@@ -250,17 +250,9 @@ internal static partial class RtfPdfConverter {
                 ? PdfCore.PdfStandardFontMapper.GetFontFamily(mapped) : pdfOptions.DefaultFont;
             binding = new PdfFontBinding(fallback, namedFamily);
             if (pdfOptions.TryResolveFontFamilySubstitution(literalFamily, out _)) {
-                string diagnosticFamily = pdfOptions.TryResolveFontFamilySubstitution(familyName, out _) ? familyName : literalFamily;
-                PdfCore.PdfConversionWarning warning = pdfOptions.CreateFontFamilySubstitutionWarning(
+                options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                     "OfficeIMO.Rtf.Pdf", "FontFamilySubstituted", "Font/" + familyName,
-                    diagnosticFamily, fallback, namedFamily);
-                if (diagnosticFamily != familyName) {
-                    var details = warning.Details.ToDictionary(detail => detail.Key, detail => detail.Value);
-                    details["fontFamily"] = familyName;
-                    warning = new PdfCore.PdfConversionWarning(warning.Converter, warning.Code, warning.Source,
-                        warning.Message, warning.Severity, warning.LossKind, warning.LayoutDiagnostic, details);
-                }
-                options.Report.Add(warning);
+                    familyName, fallback, namedFamily, sourceFontFamilyRequest: literalFamily));
             }
             return true;
         }

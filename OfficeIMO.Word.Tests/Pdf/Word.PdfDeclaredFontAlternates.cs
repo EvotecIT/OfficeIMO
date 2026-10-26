@@ -297,6 +297,59 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         Assert.Equal(callerBefore, CallerFontState(fonts));
     }
 
+    [Theory]
+    [InlineData("comma")]
+    [InlineData("semicolon")]
+    [InlineData("backslash")]
+    [InlineData("plain-control")]
+    public void ConfiguredLiteralSourceReportsPreserveRawFamilyAndCompatibilityIntent(string scenario) {
+        string sourceFamily = scenario switch {
+            "comma" => "OfficeIMO Report, Source",
+            "semicolon" => "OfficeIMO Report; Source",
+            "backslash" => @"OfficeIMO Report\Source",
+            "plain-control" => "OfficeIMO Report Source",
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+        };
+        const string targetFamily = "OfficeIMO Report Target";
+        using WordDocument document = CreateDocument(FirstAlternate, sourceFamily);
+        AddFontOwner(document, "body", sourceFamily);
+        var caller = new PdfOptions().RegisterNamedFontFamily(Family(targetFamily, 300))
+            .RegisterFontFamilySubstitution(sourceFamily, targetFamily, PdfFontFamilySubstitutionImpact.Compatible);
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(caller);
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(caller));
+        byte[] bytes = result.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(1, pdf.NumberOfPages);
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(4, letters.Count);
+        Assert.Equal("AAAA", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.All(letters, letter => Assert.EndsWith("OfficeIMOReportTarget-Regular", letter.FontName,
+            StringComparison.OrdinalIgnoreCase));
+        var glyphs = new List<PdfTextGlyph>();
+        foreach (PdfTextSpan span in Assert.Single(PdfReadDocument.Open(bytes).Pages).GetTextSpans()) {
+            Assert.True(span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> actual));
+            glyphs.AddRange(actual);
+        }
+        Assert.Equal(4, glyphs.Count);
+        Assert.All(glyphs, glyph => Assert.Equal(3.6D, glyph.PaintedAdvance, 3));
+        var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFontFamilySubstituted");
+        Assert.Equal("OfficeIMO.Word.Pdf", warning.Converter);
+        Assert.Equal("word:font[" + sourceFamily + "]", warning.Source);
+        Assert.Equal(sourceFamily, warning.Details["fontFamily"]);
+        Assert.Equal(targetFamily, warning.Details["resolvedFontFamily"]);
+        Assert.Equal(bool.TrueString, warning.Details["plannedSubstitution"]);
+        Assert.Equal(PdfFontFamilySubstitutionImpact.Compatible.ToString(), warning.Details["substitutionImpact"]);
+        Assert.Equal("NotPerformed", warning.Details["fontMetricsVerification"]);
+        Assert.False(warning.Details.ContainsKey("fallbackSlot"));
+        Assert.Equal(PdfConversionWarningSeverity.Information, warning.Severity);
+        Assert.Equal(OfficeIMO.OfficeConversionLossKind.None, warning.LossKind);
+        Assert.False(result.HasLoss);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(caller));
+    }
+
     private static WordDocument CreateDocument(string alternateNames, string primaryFamily = MissingFamily) {
         WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Helvetica";

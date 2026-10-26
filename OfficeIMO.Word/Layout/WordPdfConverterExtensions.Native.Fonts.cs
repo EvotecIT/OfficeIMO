@@ -240,7 +240,8 @@ namespace OfficeIMO.Word.Pdf {
                 string familyName,
                 PdfCore.PdfStandardFont? fallbackSlot,
                 string? resolvedFontFamily = null,
-                bool sourceFontEmbeddingAllowed = true) {
+                bool sourceFontEmbeddingAllowed = true,
+                string? sourceFontFamilyRequest = null) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
@@ -253,7 +254,8 @@ namespace OfficeIMO.Word.Pdf {
                     familyName,
                     fallbackSlot,
                     resolvedFontFamily,
-                    sourceFontEmbeddingAllowed: sourceFontEmbeddingAllowed));
+                    sourceFontEmbeddingAllowed: sourceFontEmbeddingAllowed,
+                    sourceFontFamilyRequest: sourceFontFamilyRequest));
             }
         }
 
