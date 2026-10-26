@@ -15,24 +15,23 @@ internal static partial class RtfPdfConverter {
     private static void RecordHeaderFooterFrameDiagnostics(RtfDocument document, RtfPageSetup setup,
         IReadOnlyList<RtfHeaderFooter> declarations, RtfToPdfOptions options) {
         if (!options.IncludeHeaderFooters) return;
-        Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.RightHeader)
-            ?? declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.Header));
-        Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.RightFooter)
-            ?? declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.Footer));
+        Record(GetDefaultHeaderFooter(declarations, isFooter: false), isFooter: false);
+        Record(GetDefaultHeaderFooter(declarations, isFooter: true), isFooter: true);
         if (setup.DifferentFirstPageHeaderFooter) {
-            Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.FirstHeader));
-            Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.FirstFooter));
+            Record(GetHeaderFooter(declarations, RtfHeaderFooterKind.FirstHeader), isFooter: false);
+            Record(GetHeaderFooter(declarations, RtfHeaderFooterKind.FirstFooter), isFooter: true);
         }
         if (document.Settings.FacingPages == true) {
-            Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.LeftHeader));
-            Record(declarations.LastOrDefault(story => story.Kind == RtfHeaderFooterKind.LeftFooter));
+            Record(GetHeaderFooter(declarations, RtfHeaderFooterKind.LeftHeader), isFooter: false);
+            Record(GetHeaderFooter(declarations, RtfHeaderFooterKind.LeftFooter), isFooter: true);
         }
-        void Record(RtfHeaderFooter? story) {
+        void Record(RtfHeaderFooter? story, bool isFooter) {
             if (story == null) return;
             foreach (RtfParagraph paragraph in story.Paragraphs)
             {
                 RecordParagraphFrameDiagnostic(document, paragraph, options, "HeaderFooter/Paragraph/Frame");
-                RecordParagraphBarTabDiagnostic(document, paragraph, options, omittedSource: "HeaderFooter/Paragraph/Tabs");
+                RecordParagraphBarTabDiagnostic(document, paragraph, options,
+                    omittedSource: HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter) ? "HeaderFooter/Paragraph/Tabs" : null);
             }
         }
     }

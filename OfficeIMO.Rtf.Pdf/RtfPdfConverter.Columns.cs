@@ -3,7 +3,8 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void ReportContinuousSectionSettings(RtfDocument document, RtfSection section, PdfCore.PdfOptions current, PdfCore.PdfOptions defaults, RtfToPdfOptions options) {
+    private static void ReportContinuousSectionSettings(RtfDocument document, RtfSection section, RtfSection currentPageSection,
+        PdfCore.PdfOptions current, PdfCore.PdfOptions defaults, RtfToPdfOptions options) {
         PdfCore.PdfOptions requested = defaults.Clone();
         RtfPageSetup setup = document.GetPageSetup(section);
         ApplyPageSetup(document, setup, requested);
@@ -16,9 +17,11 @@ internal static partial class RtfPdfConverter {
         if (requested.MarginLeft != current.MarginLeft || requested.MarginRight != current.MarginRight ||
             requested.MarginTop != current.MarginTop || requested.MarginBottom != current.MarginBottom) differences.Add("Margins");
         if (requested.HeaderFormat != current.HeaderFormat || requested.FirstPageHeaderFormat != current.FirstPageHeaderFormat ||
-            requested.EvenPageHeaderFormat != current.EvenPageHeaderFormat || requested.ShowHeader != current.ShowHeader) differences.Add("Headers");
+            requested.EvenPageHeaderFormat != current.EvenPageHeaderFormat || requested.ShowHeader != current.ShowHeader ||
+            RunningStoriesDiffer(document, currentPageSection, section, options, isFooter: false)) differences.Add("Headers");
         if (requested.FooterFormat != current.FooterFormat || requested.FirstPageFooterFormat != current.FirstPageFooterFormat ||
-            requested.EvenPageFooterFormat != current.EvenPageFooterFormat || requested.ShowPageNumbers != current.ShowPageNumbers) differences.Add("Footers");
+            requested.EvenPageFooterFormat != current.EvenPageFooterFormat || requested.ShowPageNumbers != current.ShowPageNumbers ||
+            RunningStoriesDiffer(document, currentPageSection, section, options, isFooter: true)) differences.Add("Footers");
         if (requested.DifferentFirstPageHeaderFooter != current.DifferentFirstPageHeaderFooter ||
             requested.DifferentOddAndEvenPagesHeaderFooter != current.DifferentOddAndEvenPagesHeaderFooter) differences.Add("StorySelection");
         if (requested.PageNumberStyle != current.PageNumberStyle || section.PageSetup.PageNumberRestart == true ||

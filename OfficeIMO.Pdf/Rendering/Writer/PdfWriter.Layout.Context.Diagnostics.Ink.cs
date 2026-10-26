@@ -33,6 +33,11 @@ internal static partial class PdfWriter {
             double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null,
             bool hasFollowingParagraphLines = false) {
             if (!currentOpts.HasDiagnosticsReport || _diagnosticPaintHidden) return;
+            // Match WriteRichParagraph's fragment top before expanding rows or
+            // applying any later line's gap, baseline or orientation placement.
+            double paragraphStartTop = firstBaseline + GetAscenderForOptions(
+                baselineFont ?? ChooseNormal(currentOpts.DefaultFont), fontSize, currentOpts);
+            PdfLineSpacing? paragraphLineSpacing = (block.Style ?? currentOpts.DefaultParagraphStyleSnapshot)?.LineSpacing;
             RichPaintRows? paintRows = ExpandRichPaintRows(lines, heights, leading, textX, textWidth,
                 firstLineX, firstLineWidth, offsets, widths, topGaps);
             if (paintRows != null) {
@@ -125,7 +130,19 @@ internal static partial class PdfWriter {
                             }
                         } else if (segment.InlineElement is PdfInlineImage image) {
                             double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width : x;
-                            foreach (var paint in DiagnosticInlineImagePaint(image, imageX, lineY)) Paint(paint.Contours, paint.Clips);
+                            var pictureClip = GetImportedPictureClip(image, paragraphLineSpacing,
+                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth);
+                            OfficeTextInkClip? intrinsicParagraphClip = pictureClip is { } clip
+                                ? DiagnosticRectangleClip(new TableCellContentFrame(clip.X, clip.Bottom + clip.Height,
+                                    clip.Width, clip.Height), OfficeTransform.Identity) : null;
+                            foreach (var paint in DiagnosticInlineImagePaint(image, imageX, lineY)) {
+                                // This clip defines the intended source picture paint.
+                                // Only additional frame, canvas or page clipping is loss.
+                                List<OfficeTextInkClip> imageClips = paint.Clips;
+                                if (intrinsicParagraphClip is { } sourceClip)
+                                    imageClips = new List<OfficeTextInkClip>(imageClips) { sourceClip };
+                                Paint(paint.Contours, imageClips);
+                            }
                         } else if (segment.InlineElement == null && !segment.IsLineBoxStrut) {
                             foreach (var glyph in DiagnosticGlyphContours(segment, segment.Text, x, runY)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                             if (segment.Underline) {

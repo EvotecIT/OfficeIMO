@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -10,6 +11,53 @@ using Path = System.IO.Path;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void VmlImageExplicitPointDimensionsAndHeaderStreamRoundTripUnderCommaDecimalCulture() {
+            CultureInfo originalCulture = CultureInfo.CurrentCulture;
+            try {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
+                string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+                byte[] expected = File.ReadAllBytes(source);
+                using var document = WordDocument.Create();
+                document.AddParagraph().AddImageVml(source, 24.5D, 12.25D);
+                document.AddParagraph().AddImageVml(source);
+                var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+                WordImage image;
+                using (var input = new MemoryStream(expected, writable: false)) {
+                    input.Position = 3;
+                    image = header.AddParagraph().InsertImageVml(input, "stream.png", 24.5D, 12.25D, "Stream image");
+                    Assert.True(input.CanRead);
+                    Assert.Equal(3L, input.Position);
+                }
+                Assert.Equal(expected, image.ToBytes());
+
+                using var serialized = new MemoryStream(document.ToBytes());
+                using var reopened = WordDocument.Load(serialized);
+                var main = reopened._wordprocessingDocument.MainDocumentPart!;
+                V.Shape[] bodyImages = main.Document.Body!.Descendants<V.Shape>().ToArray();
+                Assert.Equal(2, bodyImages.Length);
+                Assert.Contains("width:24.5pt", bodyImages[0].Style!.Value);
+                Assert.Contains("height:12.25pt", bodyImages[0].Style!.Value);
+                Assert.DoesNotContain("width:", bodyImages[1].Style!.Value);
+                Assert.DoesNotContain("height:", bodyImages[1].Style!.Value);
+                Assert.Equal(2, main.ImageParts.Count());
+                HeaderPart headerPart = Assert.Single(main.HeaderParts);
+                V.ImageData headerImage = Assert.Single(headerPart.Header.Descendants<V.ImageData>());
+                var ownedPart = Assert.IsType<ImagePart>(headerPart.GetPartById(headerImage.RelationshipId!.Value!));
+                Assert.Same(ownedPart, Assert.Single(headerPart.ImageParts));
+                using var payload = new MemoryStream();
+                using (Stream input = ownedPart.GetStream()) input.CopyTo(payload);
+                Assert.Equal(expected, payload.ToArray());
+                WordImage persisted = reopened.Sections[0].Header.Default!.Paragraphs.Single(paragraph => paragraph.IsImage).Image!;
+                Assert.Equal(expected, persisted.ToBytes());
+                Assert.Equal("Stream image", persisted.Description);
+                Assert.Contains("width:24.5pt", persisted._vmlShape!.Style!.Value);
+                Assert.Contains("height:12.25pt", persisted._vmlShape.Style.Value);
+            } finally {
+                CultureInfo.CurrentCulture = originalCulture;
+            }
+        }
+
         [Fact]
         public void VmlImageFileNameFallsBackToEmbeddedPartWhenTitleIsAbsent() {
             string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");

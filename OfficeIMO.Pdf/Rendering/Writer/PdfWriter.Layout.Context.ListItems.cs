@@ -53,12 +53,12 @@ internal static partial class PdfWriter {
                 MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
             double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter,
                 closesContainer: itemIndex == prepared.Items.Count - 1);
-            void NewListFrame() {
+            void NewListFrame(bool preserveEmptyPage = false) {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
                         includeSpacingBefore: false), prepared.Block, blockList, blockIndex);
                 }
-                NewPage(forcePhysicalPage: splitKeptItemAcrossPages);
+                NewPage(preserveEmptyPage: preserveEmptyPage, forcePhysicalPage: splitKeptItemAcrossPages);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
@@ -80,21 +80,23 @@ internal static partial class PdfWriter {
             }
 
             while (lineIndex < lines.Count) {
-                double available = y - FootnoteBodyBottom;
-                double closingPadding = ClosingPadding();
-                double firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
-                if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D)
-                    throw new ArgumentException("List line height exceeds the available page content height.");
-                while (available + .001D < firstLineHeight) {
-                    if (!ShouldAdvanceForBlockHeight(firstLineHeight))
-                        throw new ArgumentException("List line height exceeds the available page content height.");
-                    NewListFrame();
+                RunningFrameAdmissionAttempt? runningAdmission = null;
+                double available;
+                double closingPadding;
+                double firstLineHeight;
+                while (true) {
                     available = y - FootnoteBodyBottom;
                     closingPadding = ClosingPadding();
                     firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
+                        if (TryAdvanceForRunningContent(ref runningAdmission, firstLineHeight,
+                            preserve => NewListFrame(preserveEmptyPage: preserve))) continue;
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     }
+                    if (available + .001D >= firstLineHeight) break;
+                    if (!ShouldAdvanceForBlockHeight(firstLineHeight))
+                        throw new ArgumentException("List line height exceeds the available page content height.");
+                    NewListFrame();
                 }
 
                 int take = 0;

@@ -508,7 +508,7 @@ namespace OfficeIMO.Word.Pdf {
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool hasInlineImages = inlineImages != null && runs.Any(run =>
                 !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>
-                    image._Image != null && inlineImages.ContainsKey(image._Image)));
+                    inlineImages.ContainsKey(image.OccurrenceElement)));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
                 .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
@@ -529,7 +529,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (run.IsImage && run.Image != null) {
                         if (inlineImages != null) {
                             foreach (WordImage image in run.EnumerateImages())
-                                if (image._Image != null && inlineImages.TryGetValue(image._Image, out PdfCore.PdfTextRun? inline))
+                                if (inlineImages.TryGetValue(image.OccurrenceElement, out PdfCore.PdfTextRun? inline))
                                     result.Add(inline);
                         }
                         continue;

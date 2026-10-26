@@ -22,13 +22,14 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstLogicalLine = true;
             double appliedSpacingBefore = 0D;
+            RunningFrameAdmissionAttempt? runningAdmission = null;
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
-            void NewHeadingFrame() {
+            void NewHeadingFrame(bool preserveEmptyPage = false) {
                 if (firstLogicalLine) QueueColumnBalanceRemainder(hb, blockList, blockIndex);
                 else QueueColumnBalanceRemainder(new List<ColumnBalanceUnit> {
                     new(lineHeights.Skip(lineIndex).Sum() + spacingAfter)
                 }, hb, blockList, blockIndex);
-                NewPage();
+                NewPage(preserveEmptyPage: preserveEmptyPage);
                 appliedSpacingBefore = 0D;
                 frameStart = GetCurrentFramePageStartY();
                 pictureWrapping |= HasPictureExclusions;
@@ -77,8 +78,13 @@ internal static partial class PdfWriter {
                 NewHeadingFrame();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
             }
-            if (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]) > frameStart - FootnoteBodyBottom + 0.001)
-                throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
+            while (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]) > frameStart - FootnoteBodyBottom + 0.001) {
+                if (!TryAdvanceForRunningContent(ref runningAdmission,
+                    spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]),
+                    preserve => NewHeadingFrame(preserve)))
+                    throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+            }
             if (spacingBefore > 0) {
                 y -= spacingBefore;
                 appliedSpacingBefore = spacingBefore;
@@ -101,8 +107,13 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("The heading reference and first footnote fragment exceed the available page body height.");
                 if (!noteSliceFits) { NewHeadingFrame(); continue; }
                 if (take == 0) {
-                    if (!ShouldAdvanceForBlockHeight(GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], lineGaps[lineIndex]) + (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D)))
+                    double minimumHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], lineGaps[lineIndex]) +
+                        (lineIndex == lines.Count - 1 ? GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter) : 0D);
+                    if (!ShouldAdvanceForBlockHeight(minimumHeight)) {
+                        if (TryAdvanceForRunningContent(ref runningAdmission, minimumHeight,
+                            preserve => NewHeadingFrame(preserve))) continue;
                         throw new ArgumentException("Heading line height exceeds the available page content height.");
+                    }
                     NewHeadingFrame();
                     continue;
                 }
@@ -155,6 +166,7 @@ internal static partial class PdfWriter {
                 }
                 y -= heightSum;
                 lineIndex += take;
+                runningAdmission = null;
                 firstLogicalLine = false;
                 if (lineIndex < lines.Count && (!admittedNewFootnote || y - GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], lineGaps[lineIndex]) < FootnoteBodyBottom - .001D)) NewHeadingFrame();
             }

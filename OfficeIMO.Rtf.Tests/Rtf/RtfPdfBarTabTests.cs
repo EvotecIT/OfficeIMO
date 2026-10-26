@@ -53,22 +53,33 @@ public class RtfPdfBarTabTests {
         Assert.Equal(before, Snapshot(source));
     }
 
-    [Fact]
-    public void FlattenedRunningTextReportsAnOmittedBarWithoutClaimingPaintedAppearance() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RunningStoryBarPaintsUnlessExplicitPlainPresentationOmitsIt(bool plainPresentation) {
         RtfDocument source = Source("BODY", bar: false, positionTab: false, parsed: false);
         source.AddHeader().AddParagraph("HEADER").AddTabStop(720, RtfTabAlignment.Bar);
         string before = Snapshot(source);
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
-
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "BarTabOmitted");
-        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Equal("Omitted", warning.Details["RtfAction"]);
-        Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabAppearanceApproximated");
+        RtfToPdfOptions options = Options();
+        if (plainPresentation) options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Right;
+        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+        using var actual = PdfPigDocument.Open(result.ToBytes());
+        if (plainPresentation) {
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "BarTabOmitted");
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            Assert.Equal("Omitted", warning.Details["RtfAction"]);
+            Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabAppearanceApproximated");
+            Assert.Empty(VerticalRules(actual.GetPage(1)));
+        } else {
+            AssertApproximation(result);
+            Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabOmitted");
+            var rule = Assert.Single(VerticalRules(actual.GetPage(1)));
+            var header = Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "HEADER");
+            Assert.Equal(header.Letters[0].StartBaseLine.X + 36D, rule.Left, 3);
+        }
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
-        using var actual = PdfPigDocument.Open(result.ToBytes());
-        Assert.Empty(VerticalRules(actual.GetPage(1)));
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes(),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("BODY", text, StringComparison.Ordinal);

@@ -19,6 +19,10 @@ internal static partial class RtfPdfConverter {
 
         public bool InColumns { get; set; }
 
+        /// <summary>Shares operation font slots while isolating running-story numbering and note references from body flow.</summary>
+        public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfOptions fontOptions) =>
+            new PdfRenderState(document, _fontSlots, fontOptions);
+
         public OfficeIMO.Pdf.PdfStandardFont? ResolveFont(int? fontId, bool bold, bool italic) {
             if (!fontId.HasValue || !_fontSlots.TryGetValue(fontId.Value, out OfficeIMO.Pdf.PdfStandardFont font)) {
                 return null;

@@ -15,7 +15,7 @@ internal static partial class RtfPdfConverter {
         var familySlots = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
         var unresolvedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var systemFontFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<int> referencedFontIds = CollectReferencedFontIds(document);
+        HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
         if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
         if (pdfOptions.HasExplicitHeaderFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.HeaderFont);
@@ -114,7 +114,7 @@ internal static partial class RtfPdfConverter {
         return false;
     }
 
-    private static HashSet<int> CollectReferencedFontIds(RtfDocument document) {
+    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options) {
         var fontIds = new HashSet<int>();
         if (document.Settings.DefaultFontId.HasValue) {
             fontIds.Add(document.Settings.DefaultFontId.Value);
@@ -134,7 +134,44 @@ internal static partial class RtfPdfConverter {
             }
         }
 
+        if (options.IncludeHeaderFooters) {
+            var stories = new HashSet<RtfHeaderFooter>();
+            if (document.Sections.Count == 0) {
+                CollectStories(document.PageSetup, document.HeaderFooters);
+            } else {
+                for (int index = 0; index < document.Sections.Count; index++) {
+                    RtfSection section = document.Sections[index];
+                    if (index == 0 || StartsNewPdfPage(section.BreakKind)) {
+                        CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
+                    }
+                }
+            }
+            foreach (RtfHeaderFooter story in stories)
+                foreach (RtfParagraph paragraph in story.Paragraphs) CollectRunningFontIds(paragraph);
+
+            void CollectStories(RtfPageSetup setup, IReadOnlyList<RtfHeaderFooter> declarations) {
+                foreach (bool isFooter in new[] { false, true }) {
+                    if (HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter)) continue;
+                    foreach (RtfHeaderFooter story in GetSelectedHeaderFooters(document, setup, declarations, isFooter)) stories.Add(story);
+                }
+            }
+        }
+
         return fontIds;
+
+        void CollectRunningFontIds(RtfParagraph paragraph) {
+            foreach (RtfRun run in paragraph.Runs) {
+                int? fontId = document.GetRunFormatting(paragraph, run).FontId;
+                if (fontId.HasValue) fontIds.Add(fontId.Value);
+            }
+            // Empty/control-only paragraphs can obtain their line box from a
+            // paragraph style without carrying a visible source run.
+            int? paragraphFontId = document.GetRunFormatting(paragraph, new RtfRun(string.Empty) {
+                UseDefaultCharacterFormatting = paragraph.UseParsedParagraphDefaults
+            }).FontId;
+            if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
+            foreach (RtfField field in paragraph.Inlines.OfType<RtfField>()) CollectRunningFontIds(field.Result);
+        }
     }
 
     private static void CollectReferencedFontIds(IEnumerable<IRtfBlock> blocks, HashSet<int> fontIds) {

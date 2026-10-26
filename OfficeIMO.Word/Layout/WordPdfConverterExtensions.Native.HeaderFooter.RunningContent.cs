@@ -66,7 +66,7 @@ public static partial class WordPdfConverterExtensions {
                 // reserving their paint frame as flowing header/footer content.
                 ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
                     .All(drawing => IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
-                    !source.Descendants<W.Picture>().Any() && !source.Descendants<W.EmbeddedObject>().Any() &&
+                    source.Descendants<W.Picture>().All(IsNativeRunningVmlPicture) && !source.Descendants<W.EmbeddedObject>().Any() &&
                     !source.Descendants<AlternateContent>().Any() && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
                         item.Type?.Value == W.BreakValues.Column);

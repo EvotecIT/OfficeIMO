@@ -14,8 +14,8 @@ internal static partial class PdfWriter {
                 topLevelSpacing: true);
             double preparedWidth = width;
             double listHeight = MeasurePreparedListHeight(prepared);
-            void NewListStartFrame(bool forcePhysicalPage = false) {
-                NewBlockFrame(forcePhysicalPage);
+            void NewListStartFrame(bool forcePhysicalPage = false, bool preserveEmptyPage = false) {
+                NewBlockFrame(forcePhysicalPage, preserveEmptyPage);
                 if (Math.Abs(preparedWidth - width) > .001D) {
                     prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
                     preparedWidth = width;
@@ -23,12 +23,17 @@ internal static partial class PdfWriter {
                 prepared.SpacingBefore = 0D;
                 listHeight = MeasurePreparedListHeight(prepared);
             }
-            if (prepared.Style?.KeepTogether == true) {
+            RunningFrameAdmissionAttempt? runningAdmission = null;
+            void AdmitKeptListFrame() {
+                if (prepared.Style?.KeepTogether != true) return;
                 while (true) {
                     double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
                     if (fitHeight > GetMaximumBlockContinuationHeight() + .001D) {
-                        if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject)
+                        if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject) {
+                            if (TryAdvanceForRunningContent(ref runningAdmission, fitHeight,
+                                preserve => NewListStartFrame(preserveEmptyPage: preserve))) continue;
                             throw new ArgumentException("List height exceeds the available page content height.");
+                        }
                         if (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())
                             NewListStartFrame(IsPartialPhysicalColumnFrame() ||
                                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages);
@@ -38,6 +43,7 @@ internal static partial class PdfWriter {
                     NewListStartFrame();
                 }
             }
+            AdmitKeptListFrame();
 
             if (prepared.Style?.KeepWithNext == true && nextBlock != null && prepared.Items.Count > 0) {
                 double nextHeight = MeasureKeepWithNextChainHeight(
@@ -52,13 +58,8 @@ internal static partial class PdfWriter {
                 while (ReservesWholeKeepGroup() && nextHeight > 0.001D &&
                     keepHeight <= availableHeight + 0.001D &&
                     ShouldAdvanceForBlockHeight(keepHeight)) {
-                    NewBlockFrame();
-                    if (Math.Abs(preparedWidth - width) > .001D) {
-                        prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
-                        preparedWidth = width;
-                    }
-                    prepared.SpacingBefore = 0D;
-                    listHeight = MeasurePreparedListHeight(prepared);
+                    NewListStartFrame();
+                    AdmitKeptListFrame();
                     nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, prepared.Size, listHeight);
                     keepHeight = listHeight + nextHeight;
                     availableHeight = GetMaximumBlockContinuationHeight();
@@ -67,7 +68,8 @@ internal static partial class PdfWriter {
 
             int? listStructureElementIndex = null;
             if (prepared.Style?.KeepTogether == true && listHeight <= GetMaximumBlockContinuationHeight() + .001D)
-                ReserveAtomicFootnoteGroup(new[] { list }, () => MeasurePreparedListHeight(prepared), () => NewListStartFrame());
+                ReserveAtomicFootnoteGroup(new[] { list }, () => MeasurePreparedListHeight(prepared),
+                    () => { NewListStartFrame(); AdmitKeptListFrame(); });
             LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 if (activeColumnFlow != null && Math.Abs(preparedWidth - width) > 0.001D) {

@@ -778,7 +778,8 @@ public class RtfPdfConverterTests {
         document.AddParagraph("Body");
 
         byte[] pdf = document.ToPdfBytes();
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
 
         Assert.Contains("Default header", text, StringComparison.Ordinal);
         Assert.Contains("Default footer", text, StringComparison.Ordinal);
@@ -804,7 +805,8 @@ public class RtfPdfConverterTests {
         document.AddParagraph("Third page");
 
         byte[] pdf = document.ToPdfBytes();
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
 
         Assert.Equal(3, read.Pages.Count);
         Assert.Contains("First header", read.Pages[0].ExtractText(), StringComparison.Ordinal);
@@ -825,7 +827,8 @@ public class RtfPdfConverterTests {
         byte[] pdf = document.ToPdfBytes(new RtfToPdfOptions {
             IncludeHeaderFooters = false
         });
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(pdf,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
 
         Assert.Contains("Visible body", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden header", text, StringComparison.Ordinal);

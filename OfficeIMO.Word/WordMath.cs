@@ -51,6 +51,13 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            // Wrappers can contain OMML, but similarly named drawing elements
+            // such as VML's geometry formula v:f are not math fractions.
+            if (element.NamespaceUri != MathNamespace) {
+                foreach (OpenXmlElement child in element.ChildElements) AppendText(builder, child);
+                return;
+            }
+
             switch (element.LocalName) {
                 case "f":
                     AppendFractionText(builder, element);

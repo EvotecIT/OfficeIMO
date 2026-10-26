@@ -143,6 +143,8 @@ document.Save("report.pdf");
 
 The page-context overload supplies visible and physical page numbers, section-relative page position, section and document page counts, and the current content width. `SectionPages` counts physical pages in the current page group independently of numbering restarts. `TotalPages` retains the existing `{pages}` meaning: the last visible number in the current numbering sequence. `FormatPageNumber` follows the configured number style or an explicit override. The factory must be deterministic because page totals can require pagination to stabilize. Running content cannot create pages: page breaks, page canvases, deferred content and other unbounded flow are rejected. The measured stories must leave positive space for the document body.
 
+A kept block or indivisible fragment can advance to a later first/even/default running-story frame that has room for it. Each actual frame is measured through normal page and column transitions; future factories are not evaluated eagerly. Static frame cycles end with the normal fitting error. Searching arbitrary page-context factories requires a finite `MaxGeneratedPages` budget, and cancellation and page limits continue to apply.
+
 Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
 
 ## Page-associated footnotes
