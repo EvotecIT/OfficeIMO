@@ -5406,7 +5406,7 @@ _modules.set("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208",
 return _exports;
 })();
 
-const _m49 = _modules.get("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1") ?? (() => {
+const _m49 = _modules.get("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -5431,29 +5431,32 @@ const { captureCsvOptions } = _m52;
 
 
 
-function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
-    if (value == null && nullValue !== undefined)
-        value = nullValue;
+function csvField(value, delimiter, protect, quote, booleanText) {
+    const kind = typeof value;
     let text;
     if (value == null)
         text = "";
+    else if (kind === "string")
+        text = value;
+    else if (kind === "number") {
+        text = Number.isFinite(value) ? String(value) : "";
+        // Numeric text has no CSV delimiter, quote or line break to escape.
+        return quote === "all" ? '"' + text + '"' : text;
+    }
+    else if (kind === "boolean")
+        text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-    else if (typeof value === "boolean")
-        text = booleanText[value ? "true" : "false"];
-    else if (typeof value === "number")
-        text = Number.isFinite(value) ? String(value) : "";
-    else if (typeof value === "string")
-        text = value;
     else {
         if (typeof value.then === "function")
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    // Only ASCII spaces, controls and markers through @ can begin the protected prefix.
+    if (protect && (kind === "string" || kind === "boolean") && text.charCodeAt(0) <= 64 && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-        ? '"' + text.replace(/"/g, '""') + '"' : text;
+    return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+        ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
     const options = captureCsvOptions(configuration);
@@ -5505,7 +5508,7 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -5553,7 +5556,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1", _exports);
+_modules.set("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4", _exports);
 return _exports;
 })();
 
@@ -7199,7 +7202,7 @@ _modules.set("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070",
 return _exports;
 })();
 
-const _m61 = _modules.get("7da602b40c346a3838e75963f9a3f10c95ac5ce08a7b0a23b9d96f8898a01db7") ?? (() => {
+const _m61 = _modules.get("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { fontProgram } = _m62;
@@ -7210,7 +7213,8 @@ const { pdfNumber, unicodeHex } = _m59;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+const hexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+function cidHex(cid) { return hexBytes[cid >>> 8] + hexBytes[cid & 255]; }
 class PdfFontResource {
     index;
     bold;
@@ -7241,12 +7245,16 @@ class PdfFontResource {
     width(scalar) {
         if (this.shared)
             return this.shared.width(scalar);
-        const existing = this.mappings.get(scalar);
-        if (existing)
-            return existing.width;
-        const standard = this.standardWidths.get(scalar);
-        if (standard !== undefined)
-            return standard;
+        if (this.program) {
+            const existing = this.mappings.get(scalar);
+            if (existing)
+                return existing.width;
+        }
+        else {
+            const standard = this.standardWidths.get(scalar);
+            if (standard !== undefined)
+                return standard;
+        }
         const resolved = resolveScalar(scalar, this.program, this.bold);
         if (!resolved.supported) {
             if (resolved.code === "unpaired-surrogate")
@@ -7259,7 +7267,8 @@ class PdfFontResource {
         }
         if (this.mappings.size >= 65535)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
+        const cid = this.mappings.size + 1;
+        const mapping = { cid, hex: cidHex(cid), glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
         this.mappings.set(scalar, mapping);
         return mapping.width;
     }
@@ -7272,8 +7281,20 @@ class PdfFontResource {
         let hex = "";
         for (const char of text) {
             const cp = char.codePointAt(0);
-            this.width(cp);
-            hex += this.program ? this.mappings.get(cp).cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)];
+            if (this.program) {
+                let mapping = this.mappings.get(cp);
+                // Layout normally registered the scalar already; validate only a newly painted scalar.
+                if (!mapping) {
+                    this.width(cp);
+                    mapping = this.mappings.get(cp);
+                }
+                hex += mapping.hex;
+            }
+            else {
+                if (!this.standardWidths.has(cp))
+                    this.width(cp);
+                hex += hexBytes[standardCode(cp)];
+            }
         }
         return "<" + hex + ">";
     }
@@ -7288,10 +7309,11 @@ class PdfFontResource {
         if (!mapping) {
             if (this.mappings.size >= 65535)
                 throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
-            mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph], text };
+            const cid = this.mappings.size + 1;
+            mapping = { cid, hex: cidHex(cid), glyph, width: this.program.widths[glyph], text };
             this.mappings.set(key, mapping);
         }
-        return "<" + mapping.cid.toString(16).padStart(4, "0") + ">";
+        return "<" + mapping.hex + ">";
     }
     async write(objects, compression) {
         checkAbort(this.signal);
@@ -7340,7 +7362,7 @@ class PdfFontResource {
             const batch = mapped.slice(i, i + 100);
             cmap += batch.length + " beginbfchar\n";
             for (const [, m] of batch)
-                cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(m.text) + ">\n";
+                cmap += "<" + m.hex + "> <" + unicodeHex(m.text) + ">\n";
             cmap += "endbfchar\n";
             if (taskYieldDue())
                 await pause();
@@ -7391,7 +7413,7 @@ class PdfFontResources {
             if (!found)
                 this.explicitSelections.set(explicit, selections);
         }
-        const key = String(bold) + String(italic), existing = selections.get(key);
+        const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
         if (existing)
             return existing;
         const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
@@ -7408,7 +7430,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("7da602b40c346a3838e75963f9a3f10c95ac5ce08a7b0a23b9d96f8898a01db7", _exports);
+_modules.set("4d4736e6b8e2aaecc6f6c1b124b7e6bc0a5e141dcc725edf0ad4847d87fca1b3", _exports);
 return _exports;
 })();
 
@@ -7933,7 +7955,7 @@ _modules.set("0a1c79b51ac9a164b86197239117df6497f45ca2892b423b1ec77a663ccc1c47",
 return _exports;
 })();
 
-const _m72 = _modules.get("9a88773878eacc51df9f05bb5ee90cc2b683b083ebea8fb54375092301388e96") ?? (() => {
+const _m72 = _modules.get("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { wrapPdfText } = _m70;
@@ -7981,6 +8003,14 @@ async function projectBandRows(rows, band, widths, settings, fonts) {
     for (const row of rows) {
         const cells = [];
         for (const cell of row.cells) {
+            // Ordinary data and leaf headings keep their captured width and lines in every band.
+            // Look up their physical position without allocating another per-row column index.
+            if (cell.span === 1) {
+                const first = band.columns.indexOf(cell.first);
+                if (first >= 0)
+                    cells.push({ ...cell, source: cell.source ?? cell, first });
+                continue;
+            }
             for (let first = 0; first < band.columns.length;) {
                 const source = band.columns[first];
                 if (source < cell.first || source >= cell.first + cell.span) {
@@ -7991,7 +8021,7 @@ async function projectBandRows(rows, band, widths, settings, fonts) {
                 while (end < band.columns.length && band.columns[end] === band.columns[end - 1] + 1 && band.columns[end] < cell.first + cell.span)
                     end++;
                 const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index], 0);
-                const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
+                const lines = await wrapPdfText(cell.captured, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
                 cells.push({ ...cell, source: cell.source ?? cell, first, span: end - first, width, lines,
                     lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
                 first = end;
@@ -8020,11 +8050,11 @@ function alignBandBlocks(bands, settings) {
         cells: row.cells.map(cell => ({ ...cell, height: heights.slice(index, index + (cell.rowSpan ?? 1)).reduce((sum, value) => sum + value, 0) })) })));
 }
 const _exports = Object.freeze({ planTableBands: planTableBands, projectBandRows: projectBandRows, alignBandBlocks: alignBandBlocks });
-_modules.set("9a88773878eacc51df9f05bb5ee90cc2b683b083ebea8fb54375092301388e96", _exports);
+_modules.set("2f40af05ba09102fe440c1d46385b64cecdd233371771796c9ae4e8d523f2cea", _exports);
 return _exports;
 })();
 
-const _m68 = _modules.get("07d2da8d8b93f12f172a48b97c1807e485555cf608e2eaa5b7610aa91d4a5305") ?? (() => {
+const _m68 = _modules.get("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -8144,8 +8174,12 @@ class PdfTableLayout {
             lines };
     }
     row(cells) {
-        const lines = Math.max(1, ...cells.map(c => c.lines.length));
-        const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
+        let lines = 1, lineHeight = this.lineHeight;
+        for (let index = 0; index < cells.length; index++) {
+            const cell = cells[index];
+            lines = Math.max(lines, cell.lines.length);
+            lineHeight = Math.max(lineHeight, cell.lineHeight);
+        }
         return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
     }
     async headers() {
@@ -8251,11 +8285,11 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("07d2da8d8b93f12f172a48b97c1807e485555cf608e2eaa5b7610aa91d4a5305", _exports);
+_modules.set("ad81357e627d3100e1068a8ce521aa1c1cd65de5c6c6ab36f807a3e5da50d874", _exports);
 return _exports;
 })();
 
-const _m74 = _modules.get("67ad5f4adbd6bc0dddafe5cf82638d46d150237f4ff0bee15c0ace652d5095f4") ?? (() => {
+const _m74 = _modules.get("9ea74d93c18250e809a7be745444b886bcd5ec924a78e6ab004d649789db1f72") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8299,7 +8333,7 @@ class PdfTableBandFlow {
             await this.flush();
     }
     async row(row, allowFirstFragment = false) {
-        const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+        const { padding, fontSize, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = minimumLines * row.lineHeight + padding * 2;
         if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
             throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
         // Keep ordinary rows intact when they fit fresh. A kept heading/caption can deliberately
@@ -8333,9 +8367,14 @@ class PdfTableBandFlow {
                 let remaining = false;
                 const cells = rows[0].cells.map(cell => {
                     const source = this.layout.bands[index].columns[cell.first];
-                    const repeated = this.layout.repeatedColumn(source), visible = repeated ? cell.lines : cell.lines.slice(first, first + lines);
+                    const repeated = this.layout.repeatedColumn(source), reusable = cell.span === 1 && (cell.source?.span ?? 1) === 1 && (cell.rowSpan ?? 1) === 1 &&
+                        cell.height === undefined && first === 0 && (repeated || lines >= cell.lines.length);
+                    const visible = repeated || reusable ? cell.lines : cell.lines.slice(first, first + lines);
                     if (!repeated && (visible.length > 0 || cell.link !== undefined))
                         remaining = true;
+                    // A complete first fragment already owns these lines and their maximum font metrics.
+                    if (reusable)
+                        return cell;
                     const { height: _height, ...plain } = cell;
                     return { ...plain, lines: visible,
                         lineHeight: visible.reduce((value, line) => Math.max(value, line.lineHeight), cell.font.lineHeight(fontSize)),
@@ -8388,11 +8427,11 @@ class PdfTableBandFlow {
     }
 }
 const _exports = Object.freeze({ PdfTableBandFlow: PdfTableBandFlow });
-_modules.set("67ad5f4adbd6bc0dddafe5cf82638d46d150237f4ff0bee15c0ace652d5095f4", _exports);
+_modules.set("9ea74d93c18250e809a7be745444b886bcd5ec924a78e6ab004d649789db1f72", _exports);
 return _exports;
 })();
 
-const _m75 = _modules.get("b52424ed74721dce3a2621456888fe1c6af0490627063e56f690df9abcb1dfff") ?? (() => {
+const _m75 = _modules.get("9deed79565a5da5009f7a01579df8d6a3f019b78eb7b17d831c7964840e9a6bf") ?? (() => {
 /** @internal Source-cell identities survive page fragments and horizontal band projections.
  * Only column headers and still-owned row objects remain reachable from this table owner. */
 class PdfTableStructure {
@@ -8444,30 +8483,31 @@ class PdfTableStructure {
             return row.cells.map(cell => this.cells.get(cell));
         const rowId = this.structure.element("TR", parent);
         this.rows.set(row, rowId);
-        const headers = row.cells.map((cell, index) => rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex);
         // Allocate in source order, then resolve every row header before associating even earlier data cells.
         // Generated summary labels override detail roles so numeric subtotal cells never become row headers.
         const ids = row.cells.map((cell, index) => {
-            const id = this.structure.element(headers[index] ? "TH" : "TD", rowId);
+            const header = rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex;
+            const id = this.structure.element(header ? "TH" : "TD", rowId);
             this.cells.set(cell, id);
             return id;
         });
-        const rowHeaders = [];
+        let rowHeaders;
         for (let index = 0; index < ids.length; index++)
-            if (headers[index])
-                rowHeaders.push(await this.structure.identifier(ids[index]));
+            if (rowHeaderIndex === undefined ? row.cells[index].rowHeader === true : index === rowHeaderIndex)
+                (rowHeaders ??= []).push(await this.structure.identifier(ids[index]));
         for (let index = 0; index < row.cells.length; index++) {
             const cell = row.cells[index];
-            if (!rowHeaders.length && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
+            if (!rowHeaders && cell.span === 1 && (cell.rowSpan ?? 1) === 1) {
                 const attributes = this.ordinaryAttributes[cell.first] ??=
                     await this.structure.attributeReference(this.attributeDictionary(cell, this.associations(cell)));
                 this.structure.setAttributes(ids[index], attributes);
                 continue;
             }
             const associations = this.associations(cell);
-            if (!headers[index])
+            const header = rowHeaderIndex === undefined ? cell.rowHeader === true : index === rowHeaderIndex;
+            if (!header && rowHeaders)
                 associations.push(...rowHeaders);
-            this.structure.setAttributes(ids[index], this.attributes(cell, associations, headers[index] ? "Row" : undefined));
+            this.structure.setAttributes(ids[index], this.attributes(cell, associations, header ? "Row" : undefined));
         }
         return ids;
     }
@@ -8502,7 +8542,7 @@ class PdfTableStructure {
     }
 }
 const _exports = Object.freeze({ PdfTableStructure: PdfTableStructure });
-_modules.set("b52424ed74721dce3a2621456888fe1c6af0490627063e56f690df9abcb1dfff", _exports);
+_modules.set("9deed79565a5da5009f7a01579df8d6a3f019b78eb7b17d831c7964840e9a6bf", _exports);
 return _exports;
 })();
 
@@ -8620,7 +8660,7 @@ _modules.set("a66257a32f03d958aa57be4de9da7f80b708cebca26b5cc6404de0ee11bfe052",
 return _exports;
 })();
 
-const _m73 = _modules.get("a7fca40cb8c75af206111c90db36839b4648982beeb4179efda0ddd1ee366210") ?? (() => {
+const _m73 = _modules.get("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -8655,7 +8695,8 @@ class PdfPages {
     outlines;
     references = [];
     current = 0;
-    commands = [];
+    commands = "";
+    commandParts = [];
     commandBytes = 0;
     annotations = [];
     hyperlinks = 0;
@@ -8673,6 +8714,12 @@ class PdfPages {
     pendingBookmarks = [];
     pageNumberWidth = 0;
     colors = new Map();
+    textFont;
+    textSize = 0;
+    textColor = "";
+    textPrefix = "";
+    rectangleLefts;
+    rectangleColumns = [];
     externalObjects = new Map();
     bandFlow;
     bandCellBudget = false;
@@ -8739,7 +8786,7 @@ class PdfPages {
     }
     add(command) {
         this.retainPageBytes(command.length);
-        this.commands.push(command);
+        this.commands += command;
     }
     retainPageBytes(length) {
         this.commandBytes += length;
@@ -8759,9 +8806,17 @@ class PdfPages {
         return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
     }
     text(text, font, size, x, baseline, foreground = "111827", element) {
-        const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
-        const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+        const n = pdfNumber;
+        if (font !== this.textFont || size !== this.textSize || foreground !== this.textColor) {
+            const shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
+            // Keep one prefix, independent of report size. Resource identity includes synthetic styling.
+            this.textPrefix = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+                (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 ";
+            this.textFont = font;
+            this.textSize = size;
+            this.textColor = foreground;
+        }
+        const command = this.textPrefix + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
         this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
     }
     link(link, x, bottom, width, height, element) {
@@ -8791,8 +8846,8 @@ class PdfPages {
         for (const segment of line.segments) {
             const registered = marks?.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
             if (segment.glyphs) {
-                const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
-                let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+                const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(segment.color ?? "111827");
+                let cursor = x, command = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
                     (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ");
                 for (const glyph of segment.glyphs) {
                     command += "1 0 " + n(shear) + " 1 " + n(cursor + (glyph.xOffset + shear * glyph.yOffset) * size / 1000) + " " + n(baseline + glyph.yOffset * size / 1000) + " Tm " + font.encodeGlyph(glyph.id, glyph.logicalText) + " Tj\n";
@@ -8840,7 +8895,8 @@ class PdfPages {
             this.current = this.objects.reserve();
             this.references.push(this.current);
         }
-        this.commands = [];
+        this.commands = "";
+        this.commandParts = [];
         this.annotations = [];
         this.commandBytes = 0;
         this.bodyAdded = false;
@@ -8923,15 +8979,32 @@ class PdfPages {
         if (!this.layout)
             throw new Error("A table layout is required before drawing rows.");
         this.bodyAdded = true;
-        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
+        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2, lefts = this.layout.lefts;
+        // One geometry token per active physical column; table/band changes release the old tokens.
+        if (this.rectangleLefts !== lefts) {
+            this.rectangleLefts = lefts;
+            this.rectangleColumns = [];
+        }
+        let rectangleHeight, rectangleBottom = "", rectangleHeightText = "";
         for (const [index, cell] of row.cells.entries()) {
             if (this.bandCellBudget)
                 this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
                     (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
-            const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
+            const x = lefts[cell.first], cellHeight = cell.height ?? height;
+            if (cellHeight !== rectangleHeight) {
+                rectangleBottom = n(this.y - cellHeight);
+                rectangleHeightText = n(cellHeight);
+                rectangleHeight = cellHeight;
+            }
+            let horizontal = this.rectangleColumns[cell.first];
+            if (!horizontal || horizontal.x !== x || horizontal.width !== cell.width) {
+                horizontal = { x, width: cell.width, left: n(x), widthText: n(cell.width) };
+                this.rectangleColumns[cell.first] = horizontal;
+            }
+            const rectangle = horizontal.left + " " + rectangleBottom + " " + horizontal.widthText + " " + rectangleHeightText;
             if (cell.style.background)
-                this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
-            this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
+                this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + rectangle + " re f Q\n"));
+            this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + rectangle + " re S Q\n"));
             const element = elements?.[index], artifact = cell.semanticArtifact || repeated[index], owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
@@ -8941,6 +9014,7 @@ class PdfPages {
                 this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
         }
         this.y -= row.structured ? row.height : height;
+        this.sealCommands();
     }
     async block(rows) {
         if (this.bandFlow)
@@ -9266,9 +9340,22 @@ class PdfPages {
             marker: { line: item.marker, gap: item.markerGap, ...(label === undefined ? {} : { owner: label }) } });
         await this.structure?.complete(li);
     }
+    sealCommands() {
+        if (this.commands) {
+            this.commandParts.push(this.commands);
+            this.commands = "";
+        }
+    }
+    takeCommands() {
+        this.sealCommands();
+        const content = this.commandParts.join("");
+        // Encoding and awaited delivery own the page value; the next page starts independently.
+        this.commandParts = [];
+        return content;
+    }
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
-        await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+        await this.objects.stream(contents, this.takeCommands(), "", options.compression !== false);
         const annotations = [];
         for (const annotation of this.annotations) {
             annotations.push(annotation.id);
@@ -9280,7 +9367,6 @@ class PdfPages {
             (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
         if (this.structure)
             await this.structure.finishPage();
-        this.commands = [];
         this.annotations = [];
         this.commandBytes = 0;
         this.current = 0;
@@ -9312,7 +9398,7 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("a7fca40cb8c75af206111c90db36839b4648982beeb4179efda0ddd1ee366210", _exports);
+_modules.set("3ed7114181be5a3066742336da574fef7f2fc04ee6dfc5e64211f3bedad4cab9", _exports);
 return _exports;
 })();
 
@@ -9755,7 +9841,7 @@ _modules.set("52c78ca6833cee7e5a96b657e2c00172d550176daf2c95e742692f8416977bea",
 return _exports;
 })();
 
-const _m58 = _modules.get("eb2c981b4568b33deca2137956ace31ea621b6a6287755ec234336d0a7c23cfc") ?? (() => {
+const _m58 = _modules.get("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273") ?? (() => {
 const { PdfObjects, unicodeHex } = _m59;
 
 const { PdfFontResources } = _m61;
@@ -9818,11 +9904,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("eb2c981b4568b33deca2137956ace31ea621b6a6287755ec234336d0a7c23cfc", _exports);
+_modules.set("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273", _exports);
 return _exports;
 })();
 
-const _m54 = _modules.get("98eb735e985f873ed0ffc628449a20d1f3bb729a87b6d6b3099b6f308438fcb5") ?? (() => {
+const _m54 = _modules.get("45cf9fd6b6293c1a83bc8554e1bcb5cf119f44701fbad7849f39a712cab5074b") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -9887,7 +9973,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("98eb735e985f873ed0ffc628449a20d1f3bb729a87b6d6b3099b6f308438fcb5", _exports);
+_modules.set("45cf9fd6b6293c1a83bc8554e1bcb5cf119f44701fbad7849f39a712cab5074b", _exports);
 return _exports;
 })();
 
@@ -10819,7 +10905,7 @@ _modules.set("d04686d2c067355dfd215333b83eb5f79f96e9e4be49f942e050f21ac0795343",
 return _exports;
 })();
 
-const _m90 = _modules.get("d43e573fd5bad18a7ec2d71752168c422c4f8fabbc51f1cef8e3ba389f298715") ?? (() => {
+const _m90 = _modules.get("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0") ?? (() => {
 const { assertGroupedReportSource, groupedReportOperation } = _m8;
 
 const { consumeRows } = _m4;
@@ -11073,11 +11159,11 @@ async function renderGroupedPdfTable(block, context) {
     }
 }
 const _exports = Object.freeze({ renderGroupedPdfTable: renderGroupedPdfTable });
-_modules.set("d43e573fd5bad18a7ec2d71752168c422c4f8fabbc51f1cef8e3ba389f298715", _exports);
+_modules.set("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0", _exports);
 return _exports;
 })();
 
-const _m83 = _modules.get("f6c70e9a0bed09b5a1c61a662ad7d3faf731c911f574e2df285f669bd643b947") ?? (() => {
+const _m83 = _modules.get("9051bf9fc3168e24b53b16c123a42816198456846003fb49191c03a18cdab904") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -11367,11 +11453,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("f6c70e9a0bed09b5a1c61a662ad7d3faf731c911f574e2df285f669bd643b947", _exports);
+_modules.set("9051bf9fc3168e24b53b16c123a42816198456846003fb49191c03a18cdab904", _exports);
 return _exports;
 })();
 
-const _m82 = _modules.get("879a0adeb3c62918085a071cbc37f221eb89a0fd73d56ebb5e9cfe0d49db8ee9") ?? (() => {
+const _m82 = _modules.get("abe76e52ffeed11ab42477c83ddde1d1d7de28b803096436b5b23cb153af58ba") ?? (() => {
 const { assertGroupedReportSource } = _m8;
 
 const { BlobByteSink } = _m3;
@@ -11417,7 +11503,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m91.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("879a0adeb3c62918085a071cbc37f221eb89a0fd73d56ebb5e9cfe0d49db8ee9", _exports);
+_modules.set("abe76e52ffeed11ab42477c83ddde1d1d7de28b803096436b5b23cb153af58ba", _exports);
 return _exports;
 })();
 
@@ -11461,17 +11547,17 @@ _modules.set("3d777096288d1be55a05a80bc015d4674212e587703f25a7e7cf99a8065feb86",
 return _exports;
 })();
 
-const _m53 = _modules.get("2deab7b4ccb08bed297341ddb563d8fcf74277aff38c1dfc3d9edd61c0d98481") ?? (() => {
+const _m53 = _modules.get("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, createGroupedReport: _m8.createGroupedReport, writePdfDocument: _m83.writePdfDocument, writePdfDocumentTo: _m83.writePdfDocumentTo, pdfTable: _m83.pdfTable, PdfFont: _m62.PdfFont, preflightPdfText: _m92.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("2deab7b4ccb08bed297341ddb563d8fcf74277aff38c1dfc3d9edd61c0d98481", _exports);
+_modules.set("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("e049e8f0ed9efd8026af14762e37ef9389261e00ca3976ee034cc412d35ba908") ?? (() => {
+const _m0 = _modules.get("35bc55b225e3877fa9dcfb53e6200bd8637a4df890d7feaa3def46ac188fce8f") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m49, pdf: _m53, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m49.writeCsv, writeCsvTo: _m49.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m47.writeGroupedXlsx, writeGroupedXlsxTo: _m47.writeGroupedXlsxTo, addGroupedXlsx: _m47.addGroupedXlsx, writeGroupedPdf: _m82.writeGroupedPdf, writeGroupedPdfTo: _m82.writeGroupedPdfTo, pdfGroupedTable: _m82.pdfGroupedTable, writePdf: _m53.writePdf, writePdfTo: _m53.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m53.PdfFont, preflightPdfText: _m53.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("e049e8f0ed9efd8026af14762e37ef9389261e00ca3976ee034cc412d35ba908", _exports);
+_modules.set("35bc55b225e3877fa9dcfb53e6200bd8637a4df890d7feaa3def46ac188fce8f", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

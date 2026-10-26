@@ -14,6 +14,9 @@ const required = name => { if (!opts[name]) throw Error("Missing --" + name); re
 const sha = value => createHash("sha256").update(value).digest("hex");
 const fixtures = [
   { name: "inventory-csv-100000-sink", format: "csv", rows: 100000, delivery: "sink", styled: false },
+  { name: "wide-inventory-csv-100000-sink", format: "csv", rows: 100000, delivery: "sink", kind: "wide", styled: false },
+  { name: "quoted-inventory-csv-100000-sink", format: "csv", rows: 100000, delivery: "sink", styled: false, quote: "all" },
+  { name: "quoted-wide-inventory-csv-100000-sink", format: "csv", rows: 100000, delivery: "sink", kind: "wide", styled: false, quote: "all" },
   { name: "inventory-xlsx-10000-sink", format: "xlsx", rows: 10000, delivery: "sink", styled: false },
   { name: "inventory-xlsx-100000-sink", format: "xlsx", rows: 100000, delivery: "sink", styled: false },
   { name: "editable-analysis-xlsx-100000-sink", format: "xlsx", rows: 100000, delivery: "sink", kind: "editable-analysis", currentOnly: true },
@@ -24,6 +27,8 @@ const fixtures = [
   { name: "tagged-wide-inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", kind: "wide", tagged: true, currentOnly: true },
   { name: "assessment-pdf-10000-blob", format: "pdf", rows: 10000, delivery: "blob", styled: true },
   { name: "tagged-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true },
+  { name: "tagged-carlito-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true, embeddedFonts: true },
+  { name: "tagged-carlito-wide-inventory-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", kind: "wide", tagged: true, embeddedFonts: true, currentOnly: true },
   { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true },
   ...groupedFixtures, ...analyticalFixtures
 ];
@@ -42,19 +47,20 @@ function* rows(api, fixture) {
   }
 }
 function settings(fixture) {
-  if (fixture.kind === "wide") return { columns: wideTitles.map(header => ({ header })), pageSize: "A3", orientation: "landscape",
+  if (fixture.kind === "wide" && fixture.format === "pdf") return { columns: wideTitles.map(header => ({ header })), pageSize: "A3", orientation: "landscape",
     fontSize: 8, padding: 2, pageNumbers: false, compression: true, columnWidths: wideTitles.map(() => 100),
     ...(fixture.tagged ? { tagged: { language: "en-US" } } : {}),
     wideTable: { mode: "bands", repeatColumns: [0, 1], minimumColumnWidth: 100 },
     limits: { maxTableBands: 4, maxTableWindowRows: 64, maxRows: fixture.rows, maxPages: 2000, maxCells: 1000000, maxOutputBytes: 128000000 },
     formatValue: value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? "") };
   const columns = titles.map((header, index) => ({ header, width: [14, 20, 12, 15, 14, 18][index], ...(index === 4 ? { type: "number", format: "0.0" } : index === 5 ? { type: "date", format: "yyyy-mm-dd" } : {}) }));
+  if (fixture.kind === "wide") columns.push(...wideTitles.slice(titles.length).map(header => ({ header })));
   if (fixture.format === "pdf") return { columns, pageSize: "A3", orientation: "landscape", fontSize: 8, padding: 2,
     pageNumbers: false, compression: true, formatValue: value => value instanceof Date ? value.toISOString().slice(0, 10) : String(value ?? ""), ...(fixture.tagged ? { tagged: { language: "en-US" } } : {}),
     ...(fixture.styled ? { alternateRowColor: "F3F6F9", headerPresentation: { bold: true, background: "D9E2F3" } } : {}) };
   if (fixture.format === "xlsx") return { columns, dateMode: "utc", sheet: { name: "Inventory", autoSize: { sampleRows: 100 },
     ...(fixture.styled ? { table: { name: "Assessment", style: "TableStyleMedium2" } } : {}) } };
-  return { columns };
+  return { columns, ...(fixture.quote ? { quote: fixture.quote } : {}) };
 }
 async function manifest() {
   const value = JSON.parse(await readFile(required("manifest"), "utf8"));
@@ -73,7 +79,8 @@ async function run() {
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Measured runtime changed after preparation.");
   const api = await import(pathToFileURL(source.path).href), config = settings(fixture), output = path.resolve(required("output"));
   const example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
-  const composed = fixture.kind === "analytical", setup = composed ? await analyticalSetup(fixture) : {};
+  const composed = fixture.kind === "analytical", setup = composed || fixture.embeddedFonts ? await analyticalSetup(fixture) : {};
+  if (fixture.embeddedFonts) config.fonts = { regular: await api.PdfFont.create(setup.fonts.regular), bold: await api.PdfFont.create(setup.fonts.bold) };
   const analytical = example || fixture.kind === "grouped-analysis" || composed;
   const file = await open(output, "w"), memoryBefore = process.memoryUsage(), loadBefore = os.loadavg(), cpuStart = process.cpuUsage();
   let outputBytes = 0, firstByteMs = null, last = performance.now(), maxTimerGapMs = 0, timerTicks = 0;
@@ -113,9 +120,11 @@ async function run() {
   const bytes = await readFile(output);
   return { case: fixture.name, engine, engineMs, firstByteMs, outputBytes, outputSha256: sha(bytes), rows: fixture.rows, columns,
     peakRssBytes, maxSampledHeapBytes, maxSampledExternalBytes, memoryBefore, memoryAfter, maxTimerGapMs, timerTicks, cpuMicroseconds: cpu,
+    ...(fixture.embeddedFonts ? { fontProfile: "embedded-carlito-regular-bold", fontSetupScope: "Font file intake and PdfFont.create run before EngineMs and NodeCpuMs; process-lifetime peak RSS includes font preparation." } : {}),
     inputScope: composed ? "Canonical lazy analyticalRows and writeAnalyticalReport included: three hidden grouping dimensions, typed values/nulls/UTC dates, ancestor/grand aggregates, composed sections and native XLSX editing rules/chart. No retained source matrix. Imports/font intake excluded; current-only diagnostics, no baseline ranking."
       : fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
+      : fixture.kind === "wide" && fixture.format === "csv" ? "Lazy 20-column deterministic inventory with typed numeric and UTC-date values. One CSV record contains all selected fields; no retained source matrix. Imports/setup excluded."
       : fixture.kind === "wide" ? "Lazy 20-column deterministic inventory with two repeated identifiers and 100-point widths. Complete horizontal-band output; " +
         (fixture.equivalentBaselineContract ? "operator-declared matching baseline, independently validated in both lanes. " : "current-only diagnostics, no baseline ranking. ") + "No retained source matrix."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
@@ -143,16 +152,22 @@ async function validate(output = required("output")) {
     return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { ...JSON.parse(checked.stdout), ...(fixture.format === "pdf" ? { qpdf: true } : {}) } };
   }
   if (fixture.format === "csv") {
-    const expected = [titles.join(","), ...Array.from({ length: fixture.rows }, (_, index) => row(index).map(value => value instanceof Date ? value.toISOString() : value).join(","))].join("\r\n") + "\r\n";
+    const csvTitles = fixture.kind === "wide" ? wideTitles : titles, sourceRow = fixture.kind === "wide" ? wideRow : row;
+    const expectedField = value => {
+      const text = String(value instanceof Date ? value.toISOString() : value);
+      return fixture.quote === "all" ? '"' + text.replace(/"/g, '""') + '"' : text;
+    };
+    const expected = [csvTitles.map(expectedField).join(","), ...Array.from({ length: fixture.rows }, (_, index) => sourceRow(index).map(expectedField).join(","))].join("\r\n") + "\r\n";
     if (!bytes.equals(Buffer.from(expected))) throw Error("CSV differs from every expected value.");
-    proof = { rows: fixture.rows, columns: titles.length, everyCell: true };
+    proof = { rows: fixture.rows, columns: csvTitles.length, everyCell: true };
   } else if (fixture.format === "pdf") {
     const checked = spawnSync(required("qpdf"), ["--check", output], { encoding: "utf8", maxBuffer: 1024 * 1024 });
     if (checked.status !== 0) throw Error("qpdf failed: " + checked.stdout + checked.stderr);
     let structure;
     if (fixture.tagged) {
       const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-pdf-workload-structure.py"),
-        output, String(fixture.rows), String(fixture.kind === "wide" ? wideTitles.length : titles.length)], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+        output, String(fixture.rows), String(fixture.kind === "wide" ? wideTitles.length : titles.length),
+        ...(fixture.embeddedFonts ? ["--embedded-fonts"] : [])], { encoding: "utf8", maxBuffer: 1024 * 1024 });
       if (checked.status !== 0) throw Error("Independent tagged PDF structure readback failed: " + checked.stdout + checked.stderr);
       structure = JSON.parse(checked.stdout);
     }
@@ -307,8 +322,10 @@ try {
     const additionalPaths = cases.some(item => item.kind === "analytical") ? ["report-workloads-analytical.mjs", "verify-analytical-workload.py",
       "../../OfficeIMO.JavaScript.Examples/analytical-report-job.mjs", "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs",
       "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf"] : [];
+    if (cases.some(item => item.embeddedFonts)) additionalPaths.push("report-workloads-analytical.mjs",
+      "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", "../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf");
     if (cases.some(item => item.tagged)) additionalPaths.push("verify-pdf-workload-structure.py", "verify-semantic-report.py");
-    const additionalSources = await Promise.all(additionalPaths.map(async name => {
+    const additionalSources = await Promise.all([...new Set(additionalPaths)].map(async name => {
       const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), name); return { path: file, sha256: sha(await readFile(file)) };
     }));
     result = { schema: 1, created: new Date().toISOString(), helperSha256: sha(await readFile(fileURLToPath(import.meta.url))),

@@ -48,21 +48,26 @@ export interface CsvOptions<T = never> extends StreamOptions {
   /** Display policy only; defaults to the explicit compatibility strings True and False. */
   readonly booleanText?: BooleanText;
 }
-function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText, nullValue?: string): string {
-  if (value == null && nullValue !== undefined) value = nullValue;
+function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText): string {
+  const kind = typeof value;
   let text: string;
   if (value == null) text = "";
+  else if (kind === "string") text = value as string;
+  else if (kind === "number") {
+    text = Number.isFinite(value) ? String(value) : "";
+    // Numeric text has no CSV delimiter, quote or line break to escape.
+    return quote === "all" ? '"' + text + '"' : text;
+  }
+  else if (kind === "boolean") text = booleanText[value ? "true" : "false"];
   else if (isDate(value)) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-  else if (typeof value === "boolean") text = booleanText[value ? "true" : "false"];
-  else if (typeof value === "number") text = Number.isFinite(value) ? String(value) : "";
-  else if (typeof value === "string") text = value;
   else {
     if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
     throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
   }
-  if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
-  return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-    ? '"' + text.replace(/"/g, '""') + '"' : text;
+  // Only ASCII spaces, controls and markers through @ can begin the protected prefix.
+  if (protect && (kind === "string" || kind === "boolean") && text.charCodeAt(0) <= 64 && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
+  return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+    ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 
 /** Stream UTF-8 to a caller-owned sink; a failing/cancelled destination owns partial-byte disposal. */
@@ -107,7 +112,7 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
       if (value == null && options.nullValue !== undefined) value = options.nullValue;
       budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
       checkAbort(signal);
-      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
       if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
         if (buffer.append(text)) return buffer.flush().then(() => record(values, header, i + 1, snapshot));
         text = "";

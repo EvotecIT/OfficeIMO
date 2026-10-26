@@ -8,7 +8,9 @@ import type { PdfFonts } from "./types.js";
 import type { TrueTypeFont } from "./truetype.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 
-const standardHexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+const hexBytes = Object.freeze(Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0")));
+
+function cidHex(cid: number): string { return hexBytes[cid >>> 8]! + hexBytes[cid & 255]!; }
 
 export class PdfFontResource {
   readonly name: string;
@@ -16,7 +18,7 @@ export class PdfFontResource {
   readonly program: TrueTypeFont | undefined;
   readonly syntheticBold: boolean;
   readonly syntheticItalic: boolean;
-  private readonly mappings = new Map<number | string, { cid: number; glyph: number; width: number; text: string }>();
+  private readonly mappings = new Map<number | string, { cid: number; hex: string; glyph: number; width: number; text: string }>();
   private readonly standardWidths = new Map<number, number>();
   constructor(readonly index: number, readonly bold: boolean, readonly italic: boolean, readonly font: PdfFont | undefined,
     objects: PdfObjects, syntheticBold: boolean, syntheticItalic: boolean, private readonly shared?: PdfFontResource, private readonly signal?: AbortSignal) {
@@ -25,10 +27,13 @@ export class PdfFontResource {
   }
   width(scalar: number): number {
     if (this.shared) return this.shared.width(scalar);
-    const existing = this.mappings.get(scalar);
-    if (existing) return existing.width;
-    const standard = this.standardWidths.get(scalar);
-    if (standard !== undefined) return standard;
+    if (this.program) {
+      const existing = this.mappings.get(scalar);
+      if (existing) return existing.width;
+    } else {
+      const standard = this.standardWidths.get(scalar);
+      if (standard !== undefined) return standard;
+    }
     const resolved = resolveScalar(scalar, this.program, this.bold);
     if (!resolved.supported) {
       if (resolved.code === "unpaired-surrogate") throw new TypeError(resolved.message);
@@ -36,7 +41,8 @@ export class PdfFontResource {
     }
     if (!this.program) { this.standardWidths.set(scalar, resolved.width); return resolved.width; }
     if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-    const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph!, width: resolved.width, text: String.fromCodePoint(scalar) };
+    const cid = this.mappings.size + 1;
+    const mapping = { cid, hex: cidHex(cid), glyph: resolved.glyph!, width: resolved.width, text: String.fromCodePoint(scalar) };
     this.mappings.set(scalar, mapping); return mapping.width;
   }
   lineHeight(size: number): number {
@@ -46,8 +52,16 @@ export class PdfFontResource {
     if (this.shared) return this.shared.encode(text);
     let hex = "";
     for (const char of text) {
-      const cp = char.codePointAt(0)!; this.width(cp);
-      hex += this.program ? this.mappings.get(cp)!.cid.toString(16).padStart(4, "0") : standardHexBytes[standardCode(cp)!]!;
+      const cp = char.codePointAt(0)!;
+      if (this.program) {
+        let mapping = this.mappings.get(cp);
+        // Layout normally registered the scalar already; validate only a newly painted scalar.
+        if (!mapping) { this.width(cp); mapping = this.mappings.get(cp)!; }
+        hex += mapping.hex;
+      } else {
+        if (!this.standardWidths.has(cp)) this.width(cp);
+        hex += hexBytes[standardCode(cp)!]!;
+      }
     }
     return "<" + hex + ">";
   }
@@ -58,9 +72,10 @@ export class PdfFontResource {
     const key = glyph + ":" + text; let mapping = this.mappings.get(key);
     if (!mapping) {
       if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
-      mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph]!, text }; this.mappings.set(key, mapping);
+      const cid = this.mappings.size + 1;
+      mapping = { cid, hex: cidHex(cid), glyph, width: this.program.widths[glyph]!, text }; this.mappings.set(key, mapping);
     }
-    return "<" + mapping.cid.toString(16).padStart(4, "0") + ">";
+    return "<" + mapping.hex + ">";
   }
   async write(objects: PdfObjects, compression: boolean): Promise<void> {
     checkAbort(this.signal);
@@ -93,7 +108,7 @@ export class PdfFontResource {
     const mapped = entries.filter(([, mapping]) => mapping.text.length);
     for (let i = 0; i < mapped.length; i += 100) {
       const batch = mapped.slice(i, i + 100); cmap += batch.length + " beginbfchar\n";
-      for (const [, m] of batch) cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(m.text) + ">\n";
+      for (const [, m] of batch) cmap += "<" + m.hex + "> <" + unicodeHex(m.text) + ">\n";
       cmap += "endbfchar\n";
       if (taskYieldDue()) await pause(); checkAbort(this.signal);
     }
@@ -104,9 +119,9 @@ export class PdfFontResource {
 }
 export class PdfFontResources {
   readonly resources: PdfFontResource[] = [];
-  private readonly selections = new Map<string, PdfFontResource>();
+  private readonly selections = new Map<number, PdfFontResource>();
   private readonly programs = new Map<PdfFont, PdfFontResource>();
-  private readonly explicitSelections = new Map<PdfFont, Map<string, PdfFontResource>>();
+  private readonly explicitSelections = new Map<PdfFont, Map<number, PdfFontResource>>();
   private readonly registered = new Set<PdfFont>();
   private fontBytes = 0;
   constructor(private readonly objects: PdfObjects, private readonly fonts?: PdfFonts, private readonly maxBytes = 16 * 1024 * 1024, private readonly signal?: AbortSignal) {
@@ -124,7 +139,7 @@ export class PdfFontResources {
     if (explicit) this.registerFont(explicit);
     let selections = this.selections;
     if (explicit) { const found = this.explicitSelections.get(explicit); selections = found ?? new Map(); if (!found) this.explicitSelections.set(explicit, selections); }
-    const key = String(bold) + String(italic), existing = selections.get(key);
+    const key = (bold ? 2 : 0) | (italic ? 1 : 0), existing = selections.get(key);
     if (existing) return existing;
     const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
     const shared = font ? this.programs.get(font) : undefined;

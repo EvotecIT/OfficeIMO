@@ -96,6 +96,9 @@ test("PDF native compression and missing-compressor fallback preserve the same p
 test("PDF resource policies fail explicitly without truncation and async callbacks are rejected", async () => {
   for (const limits of [{ maxRows: 0 }, { maxCells: 1 }, { maxTextCharacters: 1 }, { maxOutputBytes: 10 }, { maxPages: 0 }, { maxCellCharacters: 2 }, { maxRowLines: 0 }, { maxPageBytes: 10 }])
     await assert.rejects(writePdf([["Hello", 1]], { columns, limits }), /exceeded/);
+  const pageLimit = { columns: [{ header: "Value" }], includeHeader: false, pageNumbers: false, compression: false, limits: { maxPageBytes: 512 } };
+  assert.equal((await inspectPdf(await writePdf([["row"]], pageLimit))).pages.length, 1);
+  await assert.rejects(writePdf(Array.from({ length: 20 }, () => ["row"]), pageLimit), /maxPageBytes/);
   await assert.rejects(writePdf([["Łódź", 1]], { columns }), /TrueType/);
   await assert.rejects(writePdf([["مرحبا", 1]], { columns, fonts: { regular } }), /shaping/);
   await assert.rejects(writePdf([["e\u0301", 1]], { columns, fonts: { regular } }), /shaping/);

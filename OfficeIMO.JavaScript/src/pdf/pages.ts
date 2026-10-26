@@ -40,7 +40,8 @@ interface ParagraphFrame {
 export class PdfPages {
   readonly references: number[] = [];
   private current = 0;
-  private commands: string[] = [];
+  private commands = "";
+  private commandParts: string[] = [];
   private commandBytes = 0;
   private annotations: { readonly id: number; readonly body: string }[] = [];
   private hyperlinks = 0;
@@ -58,6 +59,12 @@ export class PdfPages {
   private readonly pendingBookmarks: Readonly<PdfBookmark>[] = [];
   private pageNumberWidth = 0;
   private readonly colors = new Map<string, string>();
+  private textFont: PdfFontResource | undefined;
+  private textSize = 0;
+  private textColor = "";
+  private textPrefix = "";
+  private rectangleLefts: readonly number[] | undefined;
+  private rectangleColumns: { readonly x: number; readonly width: number; readonly left: string; readonly widthText: string }[] = [];
   private readonly externalObjects = new Map<string, number>();
   private bandFlow: PdfTableBandFlow | undefined;
   private bandCellBudget = false;
@@ -108,7 +115,7 @@ export class PdfPages {
   }
   private add(command: string): void {
     this.retainPageBytes(command.length);
-    this.commands.push(command);
+    this.commands += command;
   }
   private retainPageBytes(length: number): void {
     this.commandBytes += length;
@@ -123,9 +130,15 @@ export class PdfPages {
     return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
   }
   private text(text: string, font: PdfFontResource, size: number, x: number, baseline: number, foreground = "111827", element?: number): void {
-    const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
-    const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-      (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+    const n = pdfNumber;
+    if (font !== this.textFont || size !== this.textSize || foreground !== this.textColor) {
+      const shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(foreground);
+      // Keep one prefix, independent of report size. Resource identity includes synthetic styling.
+      this.textPrefix = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+        (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 ";
+      this.textFont = font; this.textSize = size; this.textColor = foreground;
+    }
+    const command = this.textPrefix + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
     this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
   }
   private link(link: ExportLink, x: number, bottom: number, width: number, height: number, element?: number): void {
@@ -151,8 +164,8 @@ export class PdfPages {
     for (const segment of line.segments) {
       const registered = marks?.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
       if (segment.glyphs) {
-        const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
-        let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+        const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0, rgb = this.rgb(segment.color ?? "111827");
+        let cursor = x, command = "q " + rgb + " rg " + rgb + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
           (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ");
         for (const glyph of segment.glyphs) {
           command += "1 0 " + n(shear) + " 1 " + n(cursor + (glyph.xOffset + shear * glyph.yOffset) * size / 1000) + " " + n(baseline + glyph.yOffset * size / 1000) + " Tm " + font.encodeGlyph(glyph.id, glyph.logicalText) + " Tj\n";
@@ -188,7 +201,7 @@ export class PdfPages {
     const lineHeight = this.fonts.select().lineHeight(fontSize);
     if (this.pendingPage !== undefined) { this.current = this.pendingPage; this.pendingPage = undefined; }
     else { this.current = this.objects.reserve(); this.references.push(this.current); }
-    this.commands = []; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
+    this.commands = ""; this.commandParts = []; this.annotations = []; this.commandBytes = 0; this.bodyAdded = false; this.sectionPages++;
     if (options.pageNumbers !== false) {
       this.totalPages ??= this.objects.reserve(); this.numberSettings ??= this.settings;
       if (!this.pageNumberWidth) this.pageNumberWidth = this.measurePageNumbers();
@@ -257,13 +270,25 @@ export class PdfPages {
   private draw(row: PdfLayoutRow, firstLine: number, lineCount: number, elements?: readonly (number | undefined)[], repeated: readonly boolean[] = []): void {
     if (!this.layout) throw new Error("A table layout is required before drawing rows.");
     this.bodyAdded = true;
-    const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
+    const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2, lefts = this.layout.lefts;
+    // One geometry token per active physical column; table/band changes release the old tokens.
+    if (this.rectangleLefts !== lefts) { this.rectangleLefts = lefts; this.rectangleColumns = []; }
+    let rectangleHeight: number | undefined, rectangleBottom = "", rectangleHeightText = "";
     for (const [index, cell] of row.cells.entries()) {
       if (this.bandCellBudget) this.settings.budget.cell(this.settings.budget.limits.maxTextCharacters === undefined ? "" :
         (cell.height === undefined ? cell.lines.slice(firstLine, firstLine + lineCount) : cell.lines).map(line => line.text).join(""));
-      const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
-      if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
-      this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
+      const x = lefts[cell.first]!, cellHeight = cell.height ?? height;
+      if (cellHeight !== rectangleHeight) {
+        rectangleBottom = n(this.y - cellHeight); rectangleHeightText = n(cellHeight); rectangleHeight = cellHeight;
+      }
+      let horizontal = this.rectangleColumns[cell.first];
+      if (!horizontal || horizontal.x !== x || horizontal.width !== cell.width) {
+        horizontal = { x, width: cell.width, left: n(x), widthText: n(cell.width) };
+        this.rectangleColumns[cell.first] = horizontal;
+      }
+      const rectangle = horizontal.left + " " + rectangleBottom + " " + horizontal.widthText + " " + rectangleHeightText;
+      if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + rectangle + " re f Q\n"));
+      this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + rectangle + " re S Q\n"));
       const element = elements?.[index], artifact = cell.semanticArtifact || repeated[index],
         owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
       for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
@@ -273,6 +298,7 @@ export class PdfPages {
       if (cell.link) this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
     }
     this.y -= row.structured ? row.height : height;
+    this.sealCommands();
   }
   async block(rows: readonly PdfLayoutRow[]): Promise<void> {
     if (this.bandFlow) return this.bandFlow.block(rows);
@@ -523,9 +549,19 @@ export class PdfPages {
     await this.structure?.complete(li);
   }
 
+  private sealCommands(): void {
+    if (this.commands) { this.commandParts.push(this.commands); this.commands = ""; }
+  }
+  private takeCommands(): string {
+    this.sealCommands();
+    const content = this.commandParts.join("");
+    // Encoding and awaited delivery own the page value; the next page starts independently.
+    this.commandParts = [];
+    return content;
+  }
   private async finishPage(): Promise<void> {
     const contents = this.objects.reserve(), { page, options } = this.settings;
-    await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+    await this.objects.stream(contents, this.takeCommands(), "", options.compression !== false);
     const annotations: number[] = [];
     for (const annotation of this.annotations) {
       annotations.push(annotation.id);
@@ -536,7 +572,7 @@ export class PdfPages {
       (this.structure?.pageDictionary ?? "") +
       (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
     if (this.structure) await this.structure.finishPage();
-    this.commands = []; this.annotations = []; this.commandBytes = 0; this.current = 0;
+    this.annotations = []; this.commandBytes = 0; this.current = 0;
     await this.objects.flushBytes();
   }
   async finish(): Promise<void> {

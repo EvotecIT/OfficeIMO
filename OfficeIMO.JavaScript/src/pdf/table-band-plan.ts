@@ -41,13 +41,20 @@ export async function projectBandRows(rows: readonly PdfLayoutRow[], band: PdfTa
   for (const row of rows) {
     const cells: PdfLayoutCell[] = [];
     for (const cell of row.cells) {
+      // Ordinary data and leaf headings keep their captured width and lines in every band.
+      // Look up their physical position without allocating another per-row column index.
+      if (cell.span === 1) {
+        const first = band.columns.indexOf(cell.first);
+        if (first >= 0) cells.push({ ...cell, source: cell.source ?? cell, first });
+        continue;
+      }
       for (let first = 0; first < band.columns.length;) {
         const source = band.columns[first]!;
         if (source < cell.first || source >= cell.first + cell.span) { first++; continue; }
         let end = first + 1;
         while (end < band.columns.length && band.columns[end] === band.columns[end - 1]! + 1 && band.columns[end]! < cell.first + cell.span) end++;
         const width = band.columns.slice(first, end).reduce((sum, index) => sum + widths[index]!, 0);
-        const lines = cell.span === 1 ? cell.lines : await wrapPdfText(cell.captured!, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
+        const lines = await wrapPdfText(cell.captured!, fonts, settings.fontSize, width - settings.padding * 2, settings, cell.style.wrapText !== false);
         cells.push({ ...cell, source: cell.source ?? cell, first, span: end - first, width, lines,
           lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), cell.font.lineHeight(settings.fontSize)) });
         first = end;
