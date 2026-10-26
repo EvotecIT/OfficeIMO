@@ -185,7 +185,24 @@
           ]
         }
       ],
-      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PptList, tables/images flow, blockquotes become notes); nothing in this area maps to it."
+      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PptList, tables/images flow, blockquotes become notes); nothing in this area maps to it.",
+      "examples": [
+        {
+          "title": "Create a one-slide deck",
+          "description": "Creates a presentation with the default Modern theme, saves it and closes it when the block ends.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Kickoff.pptx {\n    PptSlide -Title 'Northwind migration kickoff' -Subtitle 'Scope, timeline and owners'\n}"
+        },
+        {
+          "title": "Build a quarterly review without coordinates",
+          "description": "Builds a themed deck whose layouts are chosen from the content: a cover, a KPI slide, a two-chart slide and a table slide, with a deck footer and speaker notes.",
+          "code": "$sales = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$priorities = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'Priorities'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Theme Boardroom -Show {\n    PptFooter {\n        PptText 'Contoso | Internal | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Q3 business review' -Subtitle 'Performance, decisions and priorities'\n    PptSlide -Title 'Quarter at a glance' {\n        PptKpi '$4.2M' 'Revenue' -Change '+12% vs Q2'\n        PptKpi '38%' 'Gross margin' -Change '+2 pt'\n        PptKpi '1,284' 'New customers' -Change '+9%'\n    }\n    PptSlide -Title 'Revenue and margin by region' {\n        PptChart -InputObject $sales -Category Region -Value Revenue -Type Column -Title 'Revenue (USD k)'\n        PptChart -InputObject $sales -Category Region -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Start with EMEA: margin grew faster than revenue.'\n    }\n    PptSlide -Title 'Next-quarter priorities' {\n        PptTable -InputObject $priorities -Property Priority, Owner, Due\n    }\n}"
+        },
+        {
+          "title": "Build a deck step by step and save it later",
+          "description": "Without a content block the command returns the live presentation, so a script can add slides in a loop and choose the file name when it saves.",
+          "code": "$teams = Import-OfficeExcel -Path .\\Planning\\Team-Goals.xlsx\n$deck = New-OfficePowerPoint -Theme Minimal\nPptSlide -Document $deck -Title 'Team goals' -Subtitle 'FY2026 planning'\nforeach ($team in $teams | Group-Object Team) {\n    PptSlide -Document $deck -Title $team.Name {\n        PptList ($team.Group | ForEach-Object Goal)\n    }\n}\nSave-OfficePowerPoint -Document $deck -Path .\\Planning\\Team-Goals.pptx\nClose-OfficePowerPoint -Document $deck"
+        }
+      ]
     },
     {
       "name": "Open-OfficePowerPoint",
@@ -287,7 +304,24 @@
           ]
         }
       ],
-      "notes": "Replaces Get-OfficePowerPoint. Opening never restyles the deck; Set-OfficePowerPointTheme -Theme does that on request. New slides added in an opened deck use the deck's own masters and layouts."
+      "notes": "Replaces Get-OfficePowerPoint. Opening never restyles the deck; Set-OfficePowerPointTheme -Theme does that on request. New slides added in an opened deck use the deck's own masters and layouts.",
+      "examples": [
+        {
+          "title": "Append a slide to an existing deck",
+          "description": "Opens a deck, adds a slide that uses the deck's own layouts, then saves and closes it.",
+          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSlide -Title 'Appendix' {\n        PptList 'Data as of 30 September', 'Source: finance warehouse'\n    }\n}"
+        },
+        {
+          "title": "Update the fiscal year in every deck in a folder",
+          "description": "Opens each presentation by its literal path and replaces the old fiscal year in slides and speaker notes.",
+          "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    Open-OfficePowerPoint -LiteralPath $_.FullName {\n        Update-OfficePowerPointText -OldValue 'FY2025' -NewValue 'FY2026' -IncludeNotes\n    }\n}"
+        },
+        {
+          "title": "Open a protected deck for reading",
+          "description": "Without a content block the live presentation is returned, so the script can read it and close it without saving.",
+          "code": "$password = Read-Host -Prompt 'Deck password' -AsSecureString\n$deck = Open-OfficePowerPoint -Path .\\Board\\Q3-Board.pptx -Password $password\nGet-OfficePowerPointSlide -Document $deck -Summary | Select-Object SlideIndex, Title, HasNotes\nClose-OfficePowerPoint -Document $deck"
+        }
+      ]
     },
     {
       "name": "Save-OfficePowerPoint",
@@ -341,6 +375,23 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Save a live presentation",
+          "description": "Writes the changes made to a live presentation back to its file.",
+          "code": "Save-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Fill a template and save it under a new name",
+          "description": "Opens a monthly template, replaces its placeholder token, saves the result as this month's deck and opens it.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Templates\\Monthly-Ops.pptx\nUpdate-OfficePowerPointText -Document $deck -OldValue '{{Month}}' -NewValue (Get-Date -Format 'MMMM yyyy')\nSave-OfficePowerPoint -Document $deck -Path .\\Reports\\Ops-October.pptx -Show\nClose-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Save an encrypted copy",
+          "description": "Saves the live presentation to a new file protected with a password read without echoing it.",
+          "code": "$password = Read-Host -Prompt 'Password for the board copy' -AsSecureString\n$deck | Save-OfficePowerPoint -Path .\\Board\\Q3-Board.pptx -Password $password"
+        }
       ]
     },
     {
@@ -364,7 +415,19 @@
           ]
         }
       ],
-      "notes": "Saving moved entirely to Save-OfficePowerPoint; Close only disposes. No file-system effect, so no -WhatIf."
+      "notes": "Saving moved entirely to Save-OfficePowerPoint; Close only disposes. No file-system effect, so no -WhatIf.",
+      "examples": [
+        {
+          "title": "Release a presentation without saving",
+          "description": "Discards the live presentation and frees its file.",
+          "code": "Close-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Always release a deck after reading it",
+          "description": "Reads slide summaries and closes the presentation in a finally block, so the file is released even if the script fails.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\ntry {\n    Get-OfficePowerPointSlide -Document $deck -Summary | Where-Object { -not $_.HasNotes } | Select-Object SlideIndex, Title\n} finally {\n    Close-OfficePowerPoint -Document $deck\n}"
+        }
+      ]
     },
     {
       "name": "Export-OfficePowerPoint",
@@ -491,7 +554,24 @@
           ]
         }
       ],
-      "notes": "Streams rows; long tables split across slides with the header repeated (TitleAndContent layout). First slide uses the Title layout. Replaces an existing file unless -NoClobber."
+      "notes": "Streams rows; long tables split across slides with the header repeated (TitleAndContent layout). First slide uses the Title layout. Replaces an existing file unless -NoClobber.",
+      "examples": [
+        {
+          "title": "Turn pipeline output into a deck",
+          "description": "Makes a title slide and table slides of the stopped services in one line.",
+          "code": "Get-Service | Where-Object Status -eq Stopped | Export-OfficePowerPoint -Path .\\Reports\\Stopped-Services.pptx -Title 'Stopped services'"
+        },
+        {
+          "title": "Present regional sales with a chart",
+          "description": "Reads a worksheet and exports a themed deck with a cover, a revenue chart slide and table slides that repeat the header when they split.",
+          "code": "$export = @{\n    Path       = '.\\Reports\\Q3-Sales.pptx'\n    Title      = 'Q3 sales by region'\n    Subtitle   = 'Revenue and margin, July to September'\n    Property   = 'Region', 'Revenue', 'Margin', 'Deals'\n    Category   = 'Region'\n    Value      = 'Revenue'\n    ChartType  = 'Column'\n    ChartTitle = 'Revenue (USD k)'\n    Theme      = 'Boardroom'\n}\nImport-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region' | Export-OfficePowerPoint @export -Show"
+        },
+        {
+          "title": "Export a chart-only summary",
+          "description": "Groups open tickets by team and exports only the chart slide, refusing to overwrite last week's file.",
+          "code": "Import-Csv -Path .\\Data\\Open-Tickets.csv |\n    Group-Object Team |\n    ForEach-Object { [pscustomobject]@{ Team = $_.Name; Open = $_.Count } } |\n    Export-OfficePowerPoint -Path .\\Reports\\Backlog-Week43.pptx -Title 'Open tickets by team' -Category Team -Value Open -ChartType Bar -NoTable -NoClobber"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointSlide",
@@ -591,7 +671,24 @@
           ]
         }
       ],
-      "notes": "Merges the deck-plan commands: semantic slides are ordinary slides whose layout content commands (PptKpi, PptCard, PptStep, PptLocation, PptColumn) select designed layouts. Overflow is handled: lists shrink to the theme minimum then continue on a new slide; tables split with the header repeated. Content blocks run inside New-/Open-OfficePowerPoint or with -Document."
+      "notes": "Merges the deck-plan commands: semantic slides are ordinary slides whose layout content commands (PptKpi, PptCard, PptStep, PptLocation, PptColumn) select designed layouts. Overflow is handled: lists shrink to the theme minimum then continue on a new slide; tables split with the header repeated. Content blocks run inside New-/Open-OfficePowerPoint or with -Document.",
+      "examples": [
+        {
+          "title": "Add a slide with a list",
+          "description": "Adds a titled slide; one list gives the TitleAndContent layout without naming it.",
+          "code": "PptSlide -Title 'Agenda' {\n    PptList 'Results', 'Risks', 'Decisions', 'Next steps'\n}"
+        },
+        {
+          "title": "Let the content choose each layout",
+          "description": "Builds a service review where the first slide becomes the cover, a title-only slide becomes a section divider, metrics give a KPI slide, steps give a process slide and two blocks sit side by side.",
+          "code": "$incidents = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Incidents'\nNew-OfficePowerPoint -Path .\\Reports\\Service-Review-October.pptx -Theme Modern {\n    PptSlide -Title 'Service review' -Subtitle 'October 2026' -Eyebrow 'IT operations'\n    PptSlide -Title 'Health'\n    PptSlide -Title 'Service health' {\n        PptKpi '99.95%' 'Availability' -Change '+0.02 pt'\n        PptKpi '182 ms' 'Median latency' -Change '-14 ms'\n        PptKpi '7' 'Priority incidents' -Change '+2' -Color Warning\n    }\n    PptSlide -Title 'Incidents by service' {\n        PptChart -InputObject $incidents -Category Service -Value Count -Type Bar\n        PptTable -InputObject $incidents -Property Service, Count, MeanTimeToRestore\n    }\n    PptSlide -Title 'Change process' {\n        PptStep 'Request' 'Raised in the service desk'\n        PptStep 'Review' 'CAB approves risk and window'\n        PptStep 'Deploy' 'Automated with rollback'\n        PptStep 'Verify' 'Health checks close the change'\n    }\n}"
+        },
+        {
+          "title": "Choose a layout explicitly",
+          "description": "Names the layout when the content alone does not say what the slide is, such as a statement or a closing slide, and adds a transition.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\All-Hands.pptx -Theme Dark {\n    PptSlide -Title 'All-hands' -Subtitle 'Engineering, Q4'\n    PptSlide -Layout Quote -Transition Fade {\n        PptParagraph 'Reliability is a feature our customers notice only when it is missing.'\n    }\n    PptSlide -Title 'Thank you' -Subtitle 'Questions: #eng-all-hands' -Layout Closing\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointText",
@@ -675,7 +772,19 @@
           ]
         }
       ],
-      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PptSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PptTextRun) should point here."
+      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PptSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PptTextRun) should point here.",
+      "examples": [
+        {
+          "title": "Mix bold and colored text in a paragraph",
+          "description": "Adds two runs to one paragraph so the status word stands out in the theme success color.",
+          "code": "PptParagraph {\n    PptText 'Overall status: '\n    PptText 'On track' -Bold -Color Success\n}"
+        },
+        {
+          "title": "Write a status slide with styled runs and a link",
+          "description": "Builds list items from styled runs that color each service by its state and links to the live dashboard.",
+          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Weekly.pptx {\n    PptSlide -Title 'Weekly status' -Subtitle 'Customer-facing services'\n    PptSlide -Title 'Service status' {\n        PptList {\n            foreach ($service in $services) {\n                $color = if ($service.State -eq 'Healthy') { 'Success' } else { 'Warning' }\n                PptListItem {\n                    PptText \"$($service.Name): \" -Bold\n                    PptText $service.State -Color $color\n                }\n            }\n        }\n        PptParagraph {\n            PptText 'Live view: '\n            PptText 'status.contoso.com' -Link 'https://status.contoso.com'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointParagraph",
@@ -898,7 +1007,19 @@
           ]
         }
       ],
-      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block)."
+      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block).",
+      "examples": [
+        {
+          "title": "Add a paragraph to a slide",
+          "description": "Adds a sentence to the slide content area in the theme body style.",
+          "code": "PptSlide -Title 'Why now' {\n    PptParagraph 'Support for the legacy CRM ends in March 2027.'\n}"
+        },
+        {
+          "title": "Explain a decision in short paragraphs",
+          "description": "Writes a decision slide from several paragraphs, one of them built from styled runs, inside a new deck.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\CRM-Decision.pptx {\n    PptSlide -Title 'CRM replacement' -Subtitle 'Decision paper'\n    PptSlide -Title 'Recommendation' {\n        PptParagraph 'Move to the hosted CRM in two waves, sales first and service second.'\n        PptParagraph 'The hosted option removes three on-premises servers and the yearly upgrade project.'\n        PptParagraph {\n            PptText 'Decision needed by: '\n            PptText '15 November' -Bold\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointList",
@@ -1079,7 +1200,24 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide."
+      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide.",
+      "examples": [
+        {
+          "title": "Add a bulleted list",
+          "description": "Adds three bullets in the theme list style.",
+          "code": "PptList 'Migrate mailboxes', 'Retire file servers', 'Enable MFA for all staff'"
+        },
+        {
+          "title": "List open risks from a workbook",
+          "description": "Turns the titles of open risks into bullets; a long list shrinks to the theme minimum and then continues on a new slide.",
+          "code": "$risks = Import-OfficeExcel -Path .\\Projects\\Northwind-Risks.xlsx | Where-Object Status -eq 'Open'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Steering.pptx {\n    PptSlide -Title 'Northwind steering committee' -Subtitle 'Week 43'\n    PptSlide -Title 'Open risks' {\n        PptList ($risks | ForEach-Object Title)\n    }\n    PptSlide -Title 'Cut-over sequence' {\n        PptList 'Freeze changes', 'Final sync', 'Switch DNS', 'Smoke test' -Numbered\n    }\n}"
+        },
+        {
+          "title": "Build a list from items",
+          "description": "Uses a content block of list items to mix levels and styled text.",
+          "code": "PptList {\n    PptListItem 'Identity'\n    PptListItem 'Single sign-on for 42 applications' -Level 2\n    PptListItem 'MFA for all staff' -Level 2\n    PptListItem 'Devices'\n    PptListItem 'Windows 11 rollout: 86% complete' -Level 2\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointListItem",
@@ -1187,6 +1325,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add items to a list",
+          "description": "Adds list items one by one inside a list block.",
+          "code": "PptList {\n    PptListItem 'Collect health signals'\n    PptListItem 'Review with service owners'\n    PptListItem 'Publish decisions'\n}"
+        },
+        {
+          "title": "Show sub-items and highlighted owners",
+          "description": "Builds a two-level list of workstreams from data, with each owner in bold.",
+          "code": "$workstreams = Import-OfficeExcel -Path .\\Projects\\Northwind-Plan.xlsx -Sheet 'Workstreams'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx {\n    PptSlide -Title 'Northwind plan' -Subtitle 'Workstreams and owners'\n    PptSlide -Title 'Workstreams' {\n        PptList {\n            foreach ($workstream in $workstreams) {\n                PptListItem $workstream.Name\n                PptListItem -Level 2 {\n                    PptText 'Owner: '\n                    PptText $workstream.Owner -Bold\n                }\n            }\n        }\n    }\n}"
         }
       ]
     },
@@ -1410,6 +1560,23 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add a table from objects",
+          "description": "Adds a theme-styled table with a header row and right-aligned numbers.",
+          "code": "PptSlide -Title 'Server inventory' {\n    PptTable -InputObject $servers\n}"
+        },
+        {
+          "title": "Show patch compliance per server",
+          "description": "Imports patch results and shows selected columns; a long table splits across slides with the header repeated.",
+          "code": "$patches = Import-Csv -Path .\\Data\\Patch-Compliance.csv\nNew-OfficePowerPoint -Path .\\Reports\\Patch-Compliance.pptx {\n    PptSlide -Title 'Patch compliance' -Subtitle 'October maintenance window'\n    PptSlide -Title 'Servers missing updates' {\n        PptTable -InputObject ($patches | Where-Object Missing -gt 0) -Property Server, Role, Missing, LastPatched\n        PptNotes 'Domain controllers are patched first in the next window.'\n    }\n}"
+        },
+        {
+          "title": "Add an empty grid and fill it",
+          "description": "Creates a table of a given size and sets its cells, for content that is not a list of objects.",
+          "code": "PptSlide -Title 'RACI' {\n    $raci = PptTable -Rows 3 -Columns 3 -PassThru\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 1 -Text 'Task'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 2 -Text 'Responsible'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 1 -Column 3 -Text 'Accountable'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 1 -Text 'Cut-over'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 2 -Text 'Infrastructure'\n    Set-OfficePowerPointTableCell -InputObject $raci -Row 2 -Column 3 -Text 'CIO'\n}"
+        }
       ]
     },
     {
@@ -1577,7 +1744,24 @@
           ]
         }
       ],
-      "notes": "Shared chart vocabulary (-InputObject -Category -Value -Type -Title). PowerPointChartType is replaced by OfficeChartType (ClusteredColumn becomes Column). The Sample set keeps today's placeholder-data chart."
+      "notes": "Shared chart vocabulary (-InputObject -Category -Value -Type -Title). PowerPointChartType is replaced by OfficeChartType (ClusteredColumn becomes Column). The Sample set keeps today's placeholder-data chart.",
+      "examples": [
+        {
+          "title": "Add a chart from objects",
+          "description": "Charts revenue by region with the theme palette.",
+          "code": "PptSlide -Title 'Revenue by region' {\n    PptChart -InputObject $sales -Category Region -Value Revenue\n}"
+        },
+        {
+          "title": "Compare monthly revenue and cost",
+          "description": "Builds a slide with a two-series column chart next to a margin line chart; two blocks give the TwoContent layout.",
+          "code": "$months = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\FY2026-Monthly.pptx -Theme Boardroom {\n    PptSlide -Title 'FY2026 monthly results' -Subtitle 'Finance update'\n    PptSlide -Title 'Revenue, cost and margin' {\n        PptChart -InputObject $months -Category Month -Value Revenue, Cost -Type Column -Title 'USD k'\n        PptChart -InputObject $months -Category Month -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Cost rose in March because of the data-center move.'\n    }\n}"
+        },
+        {
+          "title": "Sketch a deck with a sample chart",
+          "description": "Adds a chart with placeholder data while the real numbers are not ready yet.",
+          "code": "PptSlide -Title 'Pipeline by stage' {\n    PptChart -Type Pie -Title 'Draft: data pending'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointImage",
@@ -1769,7 +1953,24 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficePowerPointVisual as the Visual set (same parameters as the Word, Excel and PDF image commands). -AlternativeText added to the Path set so Test-OfficePowerPoint accessibility findings can be fixed at authoring time."
+      "notes": "Absorbs Add-OfficePowerPointVisual as the Visual set (same parameters as the Word, Excel and PDF image commands). -AlternativeText added to the Path set so Test-OfficePowerPoint accessibility findings can be fixed at authoring time.",
+      "examples": [
+        {
+          "title": "Add a picture",
+          "description": "Adds an image fitted to the layout's image area, with alternative text for screen readers.",
+          "code": "PptSlide -Title 'Network topology' {\n    PptImage .\\Diagrams\\Topology.png -AlternativeText 'Two data centers linked to three branch offices'\n}"
+        },
+        {
+          "title": "Put a diagram next to its key points",
+          "description": "Places a diagram and a list side by side without coordinates; the image and the list give the TwoContent layout.",
+          "code": "New-OfficePowerPoint -Path .\\Projects\\Target-Architecture.pptx {\n    PptSlide -Title 'Target architecture' -Subtitle 'Northwind migration'\n    PptSlide -Title 'Hub and spoke network' {\n        PptImage .\\Diagrams\\Hub-Spoke.png -AlternativeText 'Hub network with three spoke networks for production, test and shared services'\n        PptList 'One firewall in the hub', 'Private endpoints for data services', 'No public IPs in spokes'\n    }\n}"
+        },
+        {
+          "title": "Add an SVG chart as a visual",
+          "description": "Converts an SVG chart into an Office visual and adds it to the slide.",
+          "code": "$visual = ConvertTo-OfficeVisual -InputObject .\\Charts\\Latency-P95.svg -Title 'P95 latency'\nPptSlide -Title 'Latency trend' {\n    PptImage -InputObject $visual -AlternativeText 'P95 latency fell from 240 ms to 180 ms over six weeks'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePowerPointNotes",
@@ -1803,6 +2004,23 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add speaker notes to a slide",
+          "description": "Sets the speaker notes of the current slide inside its block.",
+          "code": "PptSlide -Title 'Budget' {\n    PptChart -InputObject $budget -Category Department -Value Spend\n    PptNotes 'Pause here for questions about the budget.'\n}"
+        },
+        {
+          "title": "Write talking points for each region",
+          "description": "Creates one slide per region with its numbers on the slide and its talking point in the notes.",
+          "code": "$regions = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Regions.pptx {\n    PptSlide -Title 'Q3 regional results'\n    foreach ($region in $regions) {\n        PptSlide -Title $region.Region {\n            PptKpi $region.Revenue 'Revenue'\n            PptKpi $region.Deals 'Deals closed'\n            PptNotes $region.TalkingPoint\n        }\n    }\n}"
+        },
+        {
+          "title": "Set notes on an existing slide",
+          "description": "Pipes a slide from an open deck and replaces its speaker notes.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\nGet-OfficePowerPointSlide -Document $deck -Slide 3 | Set-OfficePowerPointNotes -Text 'Explain the margin before revenue.'\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -1848,7 +2066,19 @@
           ]
         }
       ],
-      "notes": "Replaces the -Metrics hashtables of Add-OfficePowerPointPlanCaseStudy. Two to six per slide."
+      "notes": "Replaces the -Metrics hashtables of Add-OfficePowerPointPlanCaseStudy. Two to six per slide.",
+      "examples": [
+        {
+          "title": "Show two metrics",
+          "description": "Adds metrics to a slide, which gives it the Kpi layout.",
+          "code": "PptSlide -Title 'Service health' {\n    PptKpi '99.95%' 'Availability'\n    PptKpi '182 ms' 'Median latency'\n}"
+        },
+        {
+          "title": "Report support metrics with change indicators",
+          "description": "Calculates this month's support metrics from ticket data and shows them with changes, marking the worsening one with the warning color.",
+          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PptSlide -Title 'Support review' -Subtitle 'October 2026'\n    PptSlide -Title 'October at a glance' {\n        PptKpi $tickets.Count 'Tickets opened' -Change '+6% vs September'\n        PptKpi $closed.Count 'Tickets closed' -Change '+11%'\n        PptKpi '4.6 / 5' 'Satisfaction' -Change '+0.1'\n        PptKpi $breached.Count 'SLA breaches' -Change '+3' -Color Warning\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointCard",
@@ -1898,7 +2128,24 @@
           ]
         }
       ],
-      "notes": "Replaces the -Cards (CardGrid), -Sections (Capability, CaseStudy) and -Logos (LogoWall) hashtables. Cards with body text render with the capability composition; cards with only images render as a logo wall."
+      "notes": "Replaces the -Cards (CardGrid), -Sections (Capability, CaseStudy) and -Logos (LogoWall) hashtables. Cards with body text render with the capability composition; cards with only images render as a logo wall.",
+      "examples": [
+        {
+          "title": "Show three cards",
+          "description": "Adds cards to a slide, which gives it the Cards layout.",
+          "code": "PptSlide -Title 'Current signals' {\n    PptCard 'Availability' -Text 'All regions healthy'\n    PptCard 'Capacity' -Text 'Storage at 71%'\n    PptCard 'Risk' -Text 'One vendor dependency on watch'\n}"
+        },
+        {
+          "title": "Describe service capabilities",
+          "description": "Builds a capabilities slide whose cards carry a short description and a few points each.",
+          "code": "New-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx -Theme Modern {\n    PptSlide -Title 'Managed services' -Subtitle 'What we run for you'\n    PptSlide -Title 'Capabilities' {\n        PptCard 'Identity' -Text 'Directory and access management' -Items 'Single sign-on', 'MFA', 'Access reviews'\n        PptCard 'Endpoints' -Text 'Devices that stay compliant' -Items 'Windows and macOS', 'Patching', 'Encryption'\n        PptCard 'Monitoring' -Text 'Around-the-clock operations' -Items '24x7 desk', 'Alerting', 'Monthly reports'\n    }\n}"
+        },
+        {
+          "title": "Show the systems covered as logos",
+          "description": "Cards with only a title and an image render as a logo wall.",
+          "code": "PptSlide -Title 'Systems covered' {\n    PptCard 'Directory' -Image .\\Logos\\Directory.png\n    PptCard 'Mail' -Image .\\Logos\\Mail.png\n    PptCard 'Backup' -Image .\\Logos\\Backup.png\n    PptCard 'Monitoring' -Image .\\Logos\\Monitoring.png\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointStep",
@@ -1934,7 +2181,19 @@
           ]
         }
       ],
-      "notes": "Replaces the -Steps hashtables of Add-OfficePowerPointPlanProcess. Three to eight steps."
+      "notes": "Replaces the -Steps hashtables of Add-OfficePowerPointPlanProcess. Three to eight steps.",
+      "examples": [
+        {
+          "title": "Show a three-step process",
+          "description": "Adds steps to a slide, which gives it the Process layout.",
+          "code": "PptSlide -Title 'Operating rhythm' {\n    PptStep 'Collect' 'Gather health signals'\n    PptStep 'Review' 'Confirm decisions with owners'\n    PptStep 'Act' 'Track actions to closure'\n}"
+        },
+        {
+          "title": "Lay out a migration timeline",
+          "description": "Shows the migration as numbered weeks with what happens in each.",
+          "code": "New-OfficePowerPoint -Path .\\Projects\\Mail-Migration.pptx {\n    PptSlide -Title 'Mail migration' -Subtitle 'Plan for November'\n    PptSlide -Title 'Five-week plan' {\n        PptStep 'Pilot' 'IT and two volunteer teams' -Number 'Week 1'\n        PptStep 'Wave 1' 'Head office, 400 mailboxes' -Number 'Week 2'\n        PptStep 'Wave 2' 'Regional offices, 650 mailboxes' -Number 'Week 3'\n        PptStep 'Shared mailboxes' 'Rooms and team mailboxes' -Number 'Week 4'\n        PptStep 'Decommission' 'Retire the old mail servers' -Number 'Week 5'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointLocation",
@@ -1977,7 +2236,19 @@
           ]
         }
       ],
-      "notes": "Replaces the -Locations hashtables of Add-OfficePowerPointPlanCoverage. MapLeft/MapTop are fractions of the map area, not slide lengths, so they do not reuse -X/-Y."
+      "notes": "Replaces the -Locations hashtables of Add-OfficePowerPointPlanCoverage. MapLeft/MapTop are fractions of the map area, not slide lengths, so they do not reuse -X/-Y.",
+      "examples": [
+        {
+          "title": "Pin a location on a map",
+          "description": "Adds a location, which gives the slide the Coverage layout; the map position is a fraction of the map area.",
+          "code": "PptSlide -Title 'Regional coverage' {\n    PptLocation 'Dublin' -MapLeft 0.45 -MapTop 0.3 -Detail 'Primary operations'\n}"
+        },
+        {
+          "title": "Show data centers from an inventory",
+          "description": "Pins every data center from a worksheet with its role as the detail text.",
+          "code": "$sites = Import-OfficeExcel -Path .\\Inventory\\Sites.xlsx -Sheet 'Data centers'\nNew-OfficePowerPoint -Path .\\Inventory\\Coverage.pptx {\n    PptSlide -Title 'Where we run' -Subtitle 'Data centers and roles'\n    PptSlide -Title 'Data centers' {\n        foreach ($site in $sites) {\n            PptLocation $site.City -MapLeft $site.MapLeft -MapTop $site.MapTop -Detail $site.Role\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointColumn",
@@ -2007,7 +2278,19 @@
           ]
         }
       ],
-      "notes": "Optional: two content blocks without PptColumn already give TwoContent."
+      "notes": "Optional: two content blocks without PptColumn already give TwoContent.",
+      "examples": [
+        {
+          "title": "Compare two options side by side",
+          "description": "Groups content into two titled columns, which gives the Comparison layout.",
+          "code": "PptSlide -Title 'Build or buy' {\n    PptColumn -Title 'Build' {\n        PptList 'Full control', 'Six months to first release'\n    }\n    PptColumn -Title 'Buy' {\n        PptList 'Live in six weeks', 'Yearly subscription'\n    }\n}"
+        },
+        {
+          "title": "Show before and after a migration",
+          "description": "Puts the old and new environments next to each other, each with its own table and chart.",
+          "code": "$before = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'On-premises'\n$after = Import-OfficeExcel -Path .\\Projects\\Northwind-Costs.xlsx -Sheet 'Hosted'\nNew-OfficePowerPoint -Path .\\Projects\\Northwind-Costs.pptx {\n    PptSlide -Title 'Running costs' -Subtitle 'Before and after the migration'\n    PptSlide -Title 'Yearly cost by item' {\n        PptColumn -Title 'On-premises' {\n            PptChart -InputObject $before -Category Item -Value Cost -Type Pie\n            PptParagraph 'USD 412k per year'\n        }\n        PptColumn -Title 'Hosted' {\n            PptChart -InputObject $after -Category Item -Value Cost -Type Pie\n            PptParagraph 'USD 268k per year'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointFooter",
@@ -2056,7 +2339,19 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PptText and PptSlideNumber."
+      "notes": "Replaces Add-OfficePowerPointDesignerDeck -FooterLeft/-FooterRight. Content block takes PptText and PptSlideNumber.",
+      "examples": [
+        {
+          "title": "Add a footer to every slide",
+          "description": "Sets the deck footer text inside the New- block.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptFooter 'Contoso | Internal'\n    PptSlide -Title 'Q3 business review'\n}"
+        },
+        {
+          "title": "Combine deck and slide footers",
+          "description": "Puts the classification on the left and the slide number on the right of every slide, and gives one slide its own footer.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Security-Review.pptx -Theme Boardroom {\n    PptFooter 'Contoso | Confidential' -Alignment Left\n    PptFooter -Alignment Right {\n        PptSlideNumber\n    }\n    PptSlide -Title 'Security review' -Subtitle 'Q3 2026'\n    PptSlide -Title 'External audit findings' {\n        PptTable -InputObject $findings -Property Finding, Severity, Owner\n        PptFooter 'Source: external audit report, September 2026'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointSlideNumber",
@@ -2069,6 +2364,18 @@
           "name": "Default",
           "default": true,
           "parameters": []
+        }
+      ],
+      "examples": [
+        {
+          "title": "Number the slides",
+          "description": "Adds the slide-number field to the deck footer.",
+          "code": "PptFooter {\n    PptSlideNumber\n}"
+        },
+        {
+          "title": "Write \"Slide N\" in a branded footer",
+          "description": "Combines footer text and the slide-number field for every slide of the deck.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PptFooter {\n        PptText 'Board pack, November 2026 | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PptSlide -Title 'Agenda' {\n        PptList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
         }
       ]
     },
@@ -2220,7 +2527,19 @@
           ]
         }
       ],
-      "notes": "Kept for deliberate placement. Rich text uses a content block of PptParagraph/PptText instead of -Run."
+      "notes": "Kept for deliberate placement. Rich text uses a content block of PptParagraph/PptText instead of -Run.",
+      "examples": [
+        {
+          "title": "Place a text box at an exact position",
+          "description": "Adds a free-placed label in the top-right corner of the slide.",
+          "code": "PptTextBox 'DRAFT' -X 28cm -Y 0.6cm -Width 4cm -Height 1cm"
+        },
+        {
+          "title": "Add a named callout over a chart",
+          "description": "Places a styled callout over the chart and names it, so a later script can find and update it.",
+          "code": "$trend = Import-OfficeExcel -Path .\\Reports\\FY2026-Monthly.xlsx -Sheet 'Summary'\nNew-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx {\n    PptSlide -Title 'Revenue trend' {\n        PptChart -InputObject $trend -Category Month -Value Revenue -Type Line\n        PptTextBox -Name 'Callout' -X 18cm -Y 5cm -Width 8cm -Height 2.5cm {\n            PptParagraph {\n                PptText 'Record month: ' -Bold\n                PptText 'March, after the spring campaign'\n            }\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointShape",
@@ -2315,6 +2634,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Draw a rectangle",
+          "description": "Adds a preset shape at an exact position and size.",
+          "code": "PptShape -Type Rectangle -X 2cm -Y 4cm -Width 6cm -Height 3cm"
+        },
+        {
+          "title": "Draw status lights for each service",
+          "description": "Adds one named circle per service in its status color and spaces them evenly across the slide.",
+          "code": "$services = Import-OfficeExcel -Path .\\Reports\\Ops-October.xlsx -Sheet 'Status'\nNew-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx {\n    PptSlide -Title 'Service status board' {\n        $lights = foreach ($service in $services) {\n            $color = switch ($service.State) { 'Healthy' { 'Success' } 'Degraded' { 'Warning' } default { 'Danger' } }\n            PptShape -Type Ellipse -Name \"Status-$($service.Name)\" -FillColor $color -X 2cm -Y 8cm -Width 2cm -Height 2cm -PassThru\n        }\n        $lights | PptShapeLayout -Distribute Horizontal -ToSlide -Margin 2cm\n    }\n}"
         }
       ]
     },
@@ -2415,7 +2746,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Set-OfficePowerPointPlaceholderText; the main route for corporate templates with their own placeholders."
+      "notes": "Renamed from Set-OfficePowerPointPlaceholderText; the main route for corporate templates with their own placeholders.",
+      "examples": [
+        {
+          "title": "Fill a template placeholder",
+          "description": "Writes text into the body placeholder of the current slide.",
+          "code": "PptPlaceholder -Type Body 'Results, risks and decisions'"
+        },
+        {
+          "title": "Build a deck from a corporate template",
+          "description": "Uses a company .potx as the theme and fills the placeholders of its own layouts by type.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Theme .\\Templates\\Contoso-2026.potx {\n    PptSlide -TemplateLayout 'Title Slide' {\n        PptPlaceholder -Type CenteredTitle 'Partner update'\n        PptPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PptSlide -TemplateLayout 'Title and Content' {\n        PptPlaceholder -Type Title 'Highlights'\n        PptPlaceholder -Type Body {\n            PptParagraph 'Three new regions live'\n            PptParagraph 'Partner portal adoption at 74%'\n        }\n        PptPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePowerPointSection",
@@ -2455,6 +2798,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Start a section at a slide",
+          "description": "Starts the Appendix section at slide 9 of an existing deck.",
+          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSection 'Appendix' -Slide 9\n}"
+        },
+        {
+          "title": "Organize a long deck into sections",
+          "description": "Groups an existing deck into named sections so presenters can collapse and reorder them in PowerPoint.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Annual-Review.pptx\nAdd-OfficePowerPointSection -Document $deck -Name 'Introduction' -Slide 1\nAdd-OfficePowerPointSection -Document $deck -Name 'Results' -Slide 3\nAdd-OfficePowerPointSection -Document $deck -Name 'Plans' -Slide 11\nAdd-OfficePowerPointSection -Document $deck -Name 'Appendix' -Slide 18\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -2527,7 +2882,24 @@
           ]
         }
       ],
-      "notes": "The Centimeters, Inches, Points and Emus sets become one OfficeLength set (-Width 25.4cm)."
+      "notes": "The Centimeters, Inches, Points and Emus sets become one OfficeLength set (-Width 25.4cm).",
+      "examples": [
+        {
+          "title": "Switch a deck to 4:3",
+          "description": "Changes the slide size of an open deck to a preset.",
+          "code": "Set-OfficePowerPointSlideSize -Document $deck -Preset Screen4x3"
+        },
+        {
+          "title": "Make a portrait deck for a lobby screen",
+          "description": "Turns an existing 16:9 deck into portrait for a vertical display.",
+          "code": "Open-OfficePowerPoint -Path .\\Signage\\Lobby-Welcome.pptx {\n    PptSlideSize Screen16x9 -Portrait\n}"
+        },
+        {
+          "title": "Set an exact slide size",
+          "description": "Sets the width and height with units for a banner display.",
+          "code": "Set-OfficePowerPointSlideSize -Document $deck -Width 50cm -Height 12.5cm"
+        }
+      ]
     },
     {
       "name": "Set-OfficePowerPointShapeLayout",
@@ -2728,6 +3100,23 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Align shapes along their top edge",
+          "description": "Aligns all auto shapes on a slide to the top of their selection.",
+          "code": "Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind AutoShape | Set-OfficePowerPointShapeLayout -Align Top"
+        },
+        {
+          "title": "Space shapes evenly across the slide",
+          "description": "Distributes the named status shapes horizontally with equal spacing and centers them vertically.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx\nGet-OfficePowerPointShape -Document $deck -Slide 1 -Kind AutoShape |\n    Set-OfficePowerPointShapeLayout -Distribute Horizontal -CrossAxisAlign Middle -ToSlide -Margin 2cm\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Arrange pictures in a grid",
+          "description": "Arranges every picture on a slide in a three-column grid with gutters.",
+          "code": "Get-OfficePowerPointShape -Document $deck -Slide 4 -Kind Picture |\n    Set-OfficePowerPointShapeLayout -Grid -Columns 3 -GutterX 0.5cm -GutterY 0.5cm -ToSlide -Margin 1.5cm"
+        }
       ]
     },
     {
@@ -2903,7 +3292,24 @@
           ]
         }
       ],
-      "notes": "The same properties are PptSlide parameters when a slide is created. Title targets the title placeholder, else adds a title shape (today's Set-OfficePowerPointSlideTitle behavior)."
+      "notes": "The same properties are PptSlide parameters when a slide is created. Title targets the title placeholder, else adds a title shape (today's Set-OfficePowerPointSlideTitle behavior).",
+      "examples": [
+        {
+          "title": "Change a slide title",
+          "description": "Sets the title of slide 1 in an open deck.",
+          "code": "Set-OfficePowerPointSlide 1 -Document $deck -Title 'Q3 business review'"
+        },
+        {
+          "title": "Add a transition to every slide",
+          "description": "Pipes all slides of a deck and gives them the same fade transition.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\All-Hands.pptx\nGet-OfficePowerPointSlide -Document $deck | Set-OfficePowerPointSlide -Transition Fade\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Set or clear a background image",
+          "description": "Uses a photo as the cover background and removes a leftover background from another slide.",
+          "code": "Set-OfficePowerPointSlide 1 -Document $deck -BackgroundImage .\\Images\\Office-Exterior.jpg\nSet-OfficePowerPointSlide 6 -Document $deck -ClearBackground"
+        }
+      ]
     },
     {
       "name": "Get-OfficePowerPointSlide",
@@ -2938,6 +3344,18 @@
               "notes": "Title, layout (including the chosen design layout), notes and content counts per slide."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List the slides of a deck",
+          "description": "Returns every slide of an open presentation.",
+          "code": "Get-OfficePowerPointSlide -Document $deck"
+        },
+        {
+          "title": "Find slides without speaker notes",
+          "description": "Reads slide summaries before a presentation and lists the slides that still need notes.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\nGet-OfficePowerPointSlide -Document $deck -Summary |\n    Where-Object { -not $_.HasNotes } |\n    Select-Object SlideIndex, Title, LayoutName\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -2979,6 +3397,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Duplicate a slide",
+          "description": "Copies slide 2 and places the copy right after it.",
+          "code": "Copy-OfficePowerPointSlide -Document $deck -Slide 2"
+        },
+        {
+          "title": "Make one slide per region from a template slide",
+          "description": "Copies a template slide for each region, fills its tokens and removes the template slide.",
+          "code": "$regions = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$deck = Open-OfficePowerPoint -Path .\\Templates\\Region-Template.pptx\nforeach ($region in $regions) {\n    $slide = Copy-OfficePowerPointSlide -Document $deck -Slide 2 -PassThru\n    Update-OfficePowerPointText -Slide $slide -OldValue '{{Region}}' -NewValue $region.Region\n    Update-OfficePowerPointText -Slide $slide -OldValue '{{Revenue}}' -NewValue $region.Revenue\n}\nRemove-OfficePowerPointSlide -Document $deck -Slide 2\nSave-OfficePowerPoint -Document $deck -Path .\\Reports\\Q3-Regions.pptx\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -3105,7 +3535,24 @@
           ]
         }
       ],
-      "notes": "-Path is the source file because Import- reads it; -Document is the target (DSL context by default)."
+      "notes": "-Path is the source file because Import- reads it; -Document is the target (DSL context by default).",
+      "examples": [
+        {
+          "title": "Import a slide from another deck",
+          "description": "Copies the first slide of a slide library into the open deck.",
+          "code": "Import-OfficePowerPointSlide -Document $deck -Path .\\Library\\Standard-Slides.pptx -SourceSlide 1"
+        },
+        {
+          "title": "Assemble a deck from team updates",
+          "description": "Creates a cover slide, then imports the first two slides of every team's update deck in name order.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Engineering-Update.pptx {\n    PptSlide -Title 'Engineering update' -Subtitle 'Week 43'\n    Get-ChildItem -Path .\\Updates -Filter *.pptx | Sort-Object Name | ForEach-Object {\n        Import-OfficePowerPointSlide -LiteralPath $_.FullName -SourceSlide 1, 2\n    }\n}"
+        },
+        {
+          "title": "Import from a presentation that is already open",
+          "description": "Copies selected slides from one live presentation into another at a given position.",
+          "code": "$library = Open-OfficePowerPoint -Path .\\Library\\Standard-Slides.pptx\nImport-OfficePowerPointSlide -Document $deck -SourceDocument $library -SourceSlide 3, 4 -Position 2\nClose-OfficePowerPoint -Document $library"
+        }
+      ]
     },
     {
       "name": "Remove-OfficePowerPointSlide",
@@ -3139,6 +3586,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Remove a slide",
+          "description": "Removes slide 5 from an open deck.",
+          "code": "Remove-OfficePowerPointSlide -Document $deck -Slide 5"
+        },
+        {
+          "title": "Remove backup slides before sharing",
+          "description": "Finds the slides titled Backup and removes them, previewing first with -WhatIf.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\n$backup = Get-OfficePowerPointSlide -Document $deck -Summary | Where-Object Title -like 'Backup*'\nRemove-OfficePowerPointSlide -Document $deck -Slide $backup.SlideIndex -WhatIf\nRemove-OfficePowerPointSlide -Document $deck -Slide $backup.SlideIndex\nSave-OfficePowerPoint -Document $deck -Path .\\Reports\\Q3-Review-Shared.pptx\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -3174,6 +3633,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List sections",
+          "description": "Returns the sections of a deck and the slides each contains.",
+          "code": "Get-OfficePowerPointSection -Document $deck"
+        },
+        {
+          "title": "Drop the appendix from a shared copy",
+          "description": "Looks up the Appendix section and removes its slides before saving a copy for customers.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx\n$appendix = Get-OfficePowerPointSection -Document $deck -Name 'Appendix'\nRemove-OfficePowerPointSlide -Document $deck -Slide $appendix.SlideIndices\nSave-OfficePowerPoint -Document $deck -Path .\\Sales\\Managed-Services-Customer.pptx\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -3222,6 +3693,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Rename a section",
+          "description": "Renames the Backup section to Appendix.",
+          "code": "Rename-OfficePowerPointSection -Document $deck -Name 'Backup' -NewName 'Appendix'"
+        },
+        {
+          "title": "Rename a section in every deck in a folder",
+          "description": "Applies the new section name across a folder of decks and saves each one.",
+          "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    $deck = Open-OfficePowerPoint -LiteralPath $_.FullName\n    Rename-OfficePowerPointSection -Document $deck -Name 'Next steps' -NewName 'Decisions'\n    Save-OfficePowerPoint -Document $deck\n    Close-OfficePowerPoint -Document $deck\n}"
+        }
       ]
     },
     {
@@ -3255,6 +3738,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read speaker notes",
+          "description": "Returns the speaker notes of every slide that has them.",
+          "code": "Get-OfficePowerPointNotes -Document $deck"
+        },
+        {
+          "title": "Export a presenter script",
+          "description": "Collects the notes of every slide, including empty ones, into a Word script for rehearsal.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\n$notes = Get-OfficePowerPointNotes -Document $deck -IncludeEmpty\nClose-OfficePowerPoint -Document $deck\nNew-OfficeWord -Path .\\Reports\\Q3-Review-Script.docx {\n    WordHeading 'Q3 review: presenter script'\n    foreach ($note in $notes) {\n        WordHeading \"Slide $($note.SlideIndex)\" -Level 2\n        WordParagraph $note.Text\n    }\n}"
         }
       ]
     },
@@ -3406,7 +3901,24 @@
           ]
         }
       ],
-      "notes": "Absorbs Find-OfficePowerPointShape. Without -Slide, searches every slide of -Document."
+      "notes": "Absorbs Find-OfficePowerPointShape. Without -Slide, searches every slide of -Document.",
+      "examples": [
+        {
+          "title": "List the shapes on a slide",
+          "description": "Returns the shapes on slide 3 with their kind, name and text.",
+          "code": "Get-OfficePowerPointShape -Document $deck -Slide 3"
+        },
+        {
+          "title": "Find and replace text in matching shapes",
+          "description": "Finds text boxes that mention last year's fiscal year and sets their new text.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Annual-Review.pptx\nGet-OfficePowerPointShape -Document $deck -Text 'FY2025 target' -Kind TextBox |\n    Set-OfficePowerPointShapeText -Text 'FY2026 target: USD 18M'\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        },
+        {
+          "title": "Report unfilled template tokens",
+          "description": "Searches every slide with a regular expression for tokens such as {{Owner}} that were not replaced.",
+          "code": "Get-OfficePowerPointShape -Document $deck -Pattern '\\{\\{\\w+\\}\\}' | Select-Object SlideIndex, Name, Text"
+        }
+      ]
     },
     {
       "name": "Set-OfficePowerPointShapeText",
@@ -3467,6 +3979,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Replace the text of a shape",
+          "description": "Finds a shape by name and replaces its text.",
+          "code": "Get-OfficePowerPointShape -Document $deck -Name 'Status' | Set-OfficePowerPointShapeText -Text 'On track'"
+        },
+        {
+          "title": "Write styled text into a shape",
+          "description": "Replaces the callout text with styled runs that flag a risk in the danger color.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Revenue-Trend.pptx\n$callout = Get-OfficePowerPointShape -Document $deck -Name 'Callout'\nSet-OfficePowerPointShapeText -InputObject $callout -Content {\n    PptParagraph {\n        PptText 'Risk: ' -Bold\n        PptText 'Q4 pipeline 18% below plan' -Color Danger\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        }
       ]
     },
     {
@@ -3515,6 +4039,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Append a row to a table",
+          "description": "Adds a row with one value per column to a table found on the slide.",
+          "code": "$table | Add-OfficePowerPointTableRow -Value 'Latency', 'Investigating'"
+        },
+        {
+          "title": "Insert a risk into an existing register",
+          "description": "Finds the risk table by its header text and inserts a row formatted like the first data row.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Projects\\Northwind-Steering.pptx\n$register = Get-OfficePowerPointShape -Document $deck -Text 'Risk' -Kind Table | Select-Object -First 1\n$risk = [ordered]@{\n    Risk   = 'Vendor delivery delay'\n    Impact = 'High'\n    Owner  = 'Procurement'\n}\n$register | Add-OfficePowerPointTableRow -Value $risk -TemplateRow 2 -Position 2\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },
@@ -3601,6 +4137,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Set the text of a cell",
+          "description": "Writes a value into row 2, column 3 of a table.",
+          "code": "Set-OfficePowerPointTableCell -InputObject $table -Row 2 -Column 3 -Text 'Done'"
+        },
+        {
+          "title": "Mark a milestone as late",
+          "description": "Finds the milestone table and replaces one status cell with styled text in the danger color.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Projects\\Northwind-Plan.pptx\n$milestones = Get-OfficePowerPointShape -Document $deck -Text 'Milestone' -Kind Table | Select-Object -First 1\nSet-OfficePowerPointTableCell -InputObject $milestones -Row 4 -Column 3 -Content {\n    PptParagraph {\n        PptText 'Late: ' -Bold -Color Danger\n        PptText 'moved to 28 November'\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        }
       ]
     },
     {
@@ -3662,7 +4210,19 @@
           ]
         }
       ],
-      "notes": "Scope: -Slide, else -Document, else the current DSL slide or presentation. The Auto/Presentation/Slide sets collapse into optional parameters."
+      "notes": "Scope: -Slide, else -Document, else the current DSL slide or presentation. The Auto/Presentation/Slide sets collapse into optional parameters.",
+      "examples": [
+        {
+          "title": "Replace text across a deck",
+          "description": "Replaces every occurrence of the old product name on all slides.",
+          "code": "Update-OfficePowerPointText -Document $deck -OldValue 'Contoso Desk' -NewValue 'Contoso Service Hub'"
+        },
+        {
+          "title": "Fill template tokens from data",
+          "description": "Opens a template, replaces each token in slides and notes with its value and reports how many replacements were made.",
+          "code": "$values = @{\n    '{{Customer}}' = 'Northwind Traders'\n    '{{Quarter}}'  = 'Q3 2026'\n    '{{Manager}}'  = 'Alex Johnson'\n}\nOpen-OfficePowerPoint -Path .\\Templates\\Account-Review.pptx {\n    foreach ($token in $values.Keys) {\n        $count = Update-OfficePowerPointText -OldValue $token -NewValue $values[$token] -IncludeNotes -PassThru\n        Write-Verbose \"$token replaced $count times\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficePowerPointPlaceholder",
@@ -3739,6 +4299,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List a slide's placeholders",
+          "description": "Returns the placeholders on slide 1 of an open deck.",
+          "code": "Get-OfficePowerPointPlaceholder -Document $deck -Slide 1"
+        },
+        {
+          "title": "See what a template layout offers",
+          "description": "Reads the placeholder metadata of a slide's layout before filling a corporate template.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Templates\\Contoso-2026.potx\nGet-OfficePowerPointPlaceholder -Document $deck -Slide 2 -FromLayout\nClose-OfficePowerPoint -Document $deck"
+        }
       ]
     },
     {
@@ -3767,6 +4339,18 @@
               "notes": "1-based; default 1."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read a deck's theme",
+          "description": "Returns the theme name, colors and fonts of the first master.",
+          "code": "Get-OfficePowerPointTheme -Document $deck"
+        },
+        {
+          "title": "Check decks for an outdated theme",
+          "description": "Lists the decks in a folder whose theme is not the current corporate theme.",
+          "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    $deck = Open-OfficePowerPoint -LiteralPath $_.FullName\n    $theme = Get-OfficePowerPointTheme -Document $deck\n    Close-OfficePowerPoint -Document $deck\n    if ($theme.ThemeName -ne 'Contoso 2026') {\n        [pscustomobject]@{ Deck = $_.Name; Theme = $theme.ThemeName }\n    }\n}"
         }
       ]
     },
@@ -3871,7 +4455,24 @@
           ]
         }
       ],
-      "notes": "New decks take -Theme on New-OfficePowerPoint; this command is for decks that already exist or for fine-tuning one. Merges Set-OfficePowerPointThemeColor, -ThemeFonts and -ThemeName. Usable inside a block (document from context) but has no alias: theme work is deck setup, not slide content."
+      "notes": "New decks take -Theme on New-OfficePowerPoint; this command is for decks that already exist or for fine-tuning one. Merges Set-OfficePowerPointThemeColor, -ThemeFonts and -ThemeName. Usable inside a block (document from context) but has no alias: theme work is deck setup, not slide content.",
+      "examples": [
+        {
+          "title": "Apply a built-in theme to an existing deck",
+          "description": "Restyles an open deck with the Boardroom theme.",
+          "code": "Set-OfficePowerPointTheme -Document $deck -Theme Boardroom"
+        },
+        {
+          "title": "Bring old decks onto the corporate template",
+          "description": "Applies the theme of the company template to every master of each deck in a folder.",
+          "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    Open-OfficePowerPoint -LiteralPath $_.FullName {\n        Set-OfficePowerPointTheme -Theme .\\Templates\\Contoso-2026.potx -AllMasters\n    }\n}"
+        },
+        {
+          "title": "Fine-tune brand colors and fonts",
+          "description": "Overrides two accent colors and the heading and body fonts, and renames the theme.",
+          "code": "Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx {\n    Set-OfficePowerPointTheme -Colors @{ Accent1 = '#0F766E'; Accent2 = '#F59E0B' } -HeadingFont 'Segoe UI Semibold' -BodyFont 'Segoe UI' -Name 'Contoso Services'\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficePowerPointLayout",
@@ -3899,6 +4500,18 @@
               "notes": "1-based; default all masters."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List the available layouts",
+          "description": "Returns the layouts of the first master with their index, name and type.",
+          "code": "Get-OfficePowerPointLayout -Document $deck"
+        },
+        {
+          "title": "Pick layout names from a corporate template",
+          "description": "Lists a template's layout names to use with PptSlide -TemplateLayout.",
+          "code": "$template = Open-OfficePowerPoint -Path .\\Templates\\Contoso-2026.potx\nGet-OfficePowerPointLayout -Document $template | Select-Object LayoutIndex, Name, Type\nClose-OfficePowerPoint -Document $template"
         }
       ]
     },
@@ -3988,7 +4601,19 @@
           ]
         }
       ],
-      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose X/Y/Width/Height as OfficeLength so they feed -X/-Y directly."
+      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose X/Y/Width/Height as OfficeLength so they feed -X/-Y directly.",
+      "examples": [
+        {
+          "title": "Get the content area",
+          "description": "Returns the slide content box inside a 1.5 cm margin, for manual placement.",
+          "code": "Get-OfficePowerPointLayoutBox -Document $deck -Margin 1.5cm"
+        },
+        {
+          "title": "Place shapes in equal columns",
+          "description": "Computes three columns and places one labelled shape exactly in each.",
+          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPptSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PptShape -Type RoundRectangle -Name $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height $box.Height\n        PptTextBox $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        }
+      ]
     },
     {
       "name": "Set-OfficePowerPointLayoutPlaceholder",
@@ -4143,7 +4768,19 @@
           ]
         }
       ],
-      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly."
+      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly.",
+      "examples": [
+        {
+          "title": "Change a layout title style",
+          "description": "Makes the title placeholder of layout 2 bold at 32 pt.",
+          "code": "Set-OfficePowerPointLayoutPlaceholder -Document $deck -TemplateLayout 2 -Type Title -Size 32pt -Bold"
+        },
+        {
+          "title": "Adjust a template layout's title area",
+          "description": "Moves and resizes the title placeholder of a named layout and sets its text margins, so every slide using that layout follows.",
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Templates\\Contoso-2026.potx\n$title = @{\n    Document       = $deck\n    TemplateLayout = 'Title and Content'\n    Type           = 'Title'\n    X              = '2cm'\n    Y              = '1cm'\n    Width          = '29.9cm'\n    Height         = '2.5cm'\n    TextMargin     = '6pt', '8pt'\n}\nSet-OfficePowerPointLayoutPlaceholder @title\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+        }
+      ]
     },
     {
       "name": "Test-OfficePowerPoint",
@@ -4225,7 +4862,24 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficePowerPointInspection. Test-OfficeDocument on a .pptx should return this same report (cross-format owner to confirm)."
+      "notes": "Renamed from Get-OfficePowerPointInspection. Test-OfficeDocument on a .pptx should return this same report (cross-format owner to confirm).",
+      "examples": [
+        {
+          "title": "Inspect a deck",
+          "description": "Runs the default package, preflight and accessibility inspections without changing the file.",
+          "code": "Test-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx"
+        },
+        {
+          "title": "Check every deck before publishing",
+          "description": "Inspects each deck in a folder, including visual checks, and lists the decks with package errors.",
+          "code": "Get-ChildItem -Path .\\Publish -Filter *.pptx | ForEach-Object {\n    $report = Test-OfficePowerPoint -LiteralPath $_.FullName -Options @{ InspectVisuals = $true }\n    if ($report.PackageErrors.Count -gt 0) {\n        [pscustomobject]@{ Deck = $_.Name; Errors = $report.PackageErrors.Count }\n    }\n}"
+        },
+        {
+          "title": "Inspect a deck before saving it",
+          "description": "Inspects a live presentation so accessibility findings can be fixed before the file is written.",
+          "code": "$report = Test-OfficePowerPoint -Document $deck\n$report.Accessibility"
+        }
+      ]
     },
     {
       "name": "New-OfficePowerPointPdfOptions",
@@ -4361,7 +5015,19 @@
           ]
         }
       ],
-      "notes": "Include* switches whose library default is on become No*."
+      "notes": "Include* switches whose library default is on become No*.",
+      "examples": [
+        {
+          "title": "Export notes pages to PDF",
+          "description": "Creates options that print each slide with its speaker notes and converts the deck.",
+          "code": "$options = New-OfficePowerPointPdfOptions -PageLayout NotesPages\nConvert-OfficeDocument -Path .\\Reports\\Q3-Review.pptx -To Pdf -OutputPath .\\Reports\\Q3-Review-Notes.pdf -Options $options"
+        },
+        {
+          "title": "Print handouts for a workshop",
+          "description": "Converts every workshop deck to three-slides-per-page handouts without speaker notes.",
+          "code": "$options = New-OfficePowerPointPdfOptions -PageLayout Handouts -HandoutSlidesPerPage 3 -NoSpeakerNotes\nGet-ChildItem -Path .\\Workshop -Filter *.pptx | Convert-OfficeDocument -To Pdf -OutputDirectory .\\Workshop\\Handouts -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePowerPointImageOptions",
@@ -4516,7 +5182,19 @@
           ]
         }
       ],
-      "notes": "Common image-option parameters come from the shared image-options base used by every New-Office*ImageOptions command; keep them identical across formats."
+      "notes": "Common image-option parameters come from the shared image-options base used by every New-Office*ImageOptions command; keep them identical across formats.",
+      "examples": [
+        {
+          "title": "Render selected slides",
+          "description": "Renders only the first two slides of a deck to images.",
+          "code": "$options = New-OfficePowerPointImageOptions -Slide 1, 2\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Review.pptx -OutputDirectory .\\Reports\\Images -Options $options"
+        },
+        {
+          "title": "Make intranet thumbnails",
+          "description": "Renders every slide as a PNG no wider than 1280 pixels on a white background.",
+          "code": "$options = New-OfficePowerPointImageOptions -MaximumOutputWidth 1280 -BackgroundColor White\nExport-OfficeDocumentImage -Path .\\Reports\\All-Hands.pptx -OutputDirectory .\\Intranet\\All-Hands -Format Png -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePowerPointOpenDocumentOptions",
@@ -4566,6 +5244,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Convert to ODP without speaker notes",
+          "description": "Creates options that leave out notes and converts the deck to OpenDocument.",
+          "code": "$options = New-OfficePowerPointOpenDocumentOptions -NoSpeakerNotes\nConvert-OfficeDocument -Path .\\Reports\\Q3-Review.pptx -To OpenDocument -OutputPath .\\Reports\\Q3-Review.odp -Options $options"
+        },
+        {
+          "title": "Archive decks only when nothing is lost",
+          "description": "Converts a folder of decks to ODP for the archive and stops on any deck whose conversion would drop content.",
+          "code": "$options = New-OfficePowerPointOpenDocumentOptions -LossPolicy Block\nGet-ChildItem -Path .\\Archive\\2025 -Filter *.pptx | Convert-OfficeDocument -To OpenDocument -OutputDirectory .\\Archive\\2025-Odp -Options $options -NoClobber"
         }
       ]
     },
@@ -4662,7 +5352,19 @@
           ]
         }
       ],
-      "notes": "Carries the format-specific switches of ConvertTo-OfficePowerPointHtml. -Theme takes OfficeTheme, replacing OfficeVisualThemeKind."
+      "notes": "Carries the format-specific switches of ConvertTo-OfficePowerPointHtml. -Theme takes OfficeTheme, replacing OfficeVisualThemeKind.",
+      "examples": [
+        {
+          "title": "Publish a deck as HTML",
+          "description": "Converts a deck to a themed HTML page.",
+          "code": "Convert-OfficeDocument -Path .\\Reports\\Q3-Review.pptx -To Html -OutputPath .\\Site\\q3-review.html -Options (New-OfficePowerPointHtmlOptions -Theme Modern)"
+        },
+        {
+          "title": "Publish training decks to the intranet",
+          "description": "Converts each training deck to semantic HTML slides without speaker notes, ready for the intranet search index.",
+          "code": "$options = New-OfficePowerPointHtmlOptions -Profile SemanticSlides -Theme Modern -NoNotes\nGet-ChildItem -Path .\\Training -Filter *.pptx | Convert-OfficeDocument -To Html -OutputDirectory .\\Intranet\\Training -Options $options"
+        }
+      ]
     }
   ],
   "map": [

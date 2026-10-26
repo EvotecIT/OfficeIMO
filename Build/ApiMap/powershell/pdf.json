@@ -419,7 +419,24 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "G3: leaving out the content block keeps the document open and returns it (replaces -NoSave); with a block -Path is required and the file is saved and closed when the block ends. If the block throws, nothing is saved and a partial file is removed. Native save fails on content loss unless -AllowLoss (G4, on Save-OfficePdf)."
+      "notes": "G3: leaving out the content block keeps the document open and returns it (replaces -NoSave); with a block -Path is required and the file is saved and closed when the block ends. If the block throws, nothing is saved and a partial file is removed. Native save fails on content loss unless -AllowLoss (G4, on Save-OfficePdf).",
+      "examples": [
+        {
+          "title": "Create a one-page PDF",
+          "description": "Writes a heading and a paragraph with the default Modern theme, then saves and closes the file when the block ends.",
+          "code": "New-OfficePdf -Path .\\Status.pdf {\n    PdfHeading 'Weekly status'\n    PdfParagraph 'All production services are healthy.'\n}"
+        },
+        {
+          "title": "Build a themed service review",
+          "description": "Composes a branded A4 report with metadata, a running header and footer, a callout, a status table and a chart, then opens it.",
+          "code": "$services = @(\n    [pscustomobject]@{ Service = 'Identity'; Owner = 'Platform'; Availability = 99.98; Incidents = 0; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'Mail'; Owner = 'Messaging'; Availability = 99.71; Incidents = 2; Status = 'Watch' }\n    [pscustomobject]@{ Service = 'File shares'; Owner = 'Infrastructure'; Availability = 99.95; Incidents = 1; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'VPN'; Owner = 'Network'; Availability = 98.90; Incidents = 4; Status = 'At risk' }\n)\n$params = @{\n    Path                      = '.\\Reports\\Service-Review-2026-10.pdf'\n    Theme                     = 'Boardroom'\n    CreateOutlineFromHeadings = $true\n    Force                     = $true\n    Show                      = $true\n}\nNew-OfficePdf @params {\n    PdfMetadata -Title 'Service review - October 2026' -Author 'IT Operations' -Subject 'Monthly service review'\n    PdfPageSetup -PageSize A4 -Margin 2cm\n    PdfHeader 'Service review - October 2026' -Align Right\n    PdfFooter {\n        PdfText 'Internal - page '\n        PdfPageNumber -IncludeTotal\n    }\n    PdfHeading 'Service review'\n    PdfParagraph {\n        PdfText 'Overall status: '\n        PdfText 'On track' -Bold -Color Success\n    }\n    PdfPanel 'VPN availability fell below target after the 14 October ISP outage.'\n    PdfHeading 'Availability' -Level 2\n    PdfTable -InputObject $services\n    PdfChart -InputObject $services -Category Service -Value Incidents -Type Column -Title 'Incidents by service'\n}"
+        },
+        {
+          "title": "Keep the document open and save it later",
+          "description": "Leaves out the content block to get a live document, adds one section per region from a loop and saves it with Save-OfficePdf.",
+          "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Q1 = 1.42; Q2 = 1.55; Q3 = 1.71 }\n    [pscustomobject]@{ Region = 'South'; Q1 = 0.98; Q2 = 1.04; Q3 = 1.12 }\n    [pscustomobject]@{ Region = 'East'; Q1 = 1.21; Q2 = 1.18; Q3 = 1.36 }\n    [pscustomobject]@{ Region = 'West'; Q1 = 1.65; Q2 = 1.79; Q3 = 1.88 }\n)\n$pdf = New-OfficePdf -Theme Modern\nforeach ($row in $sales) {\n    Add-OfficePdfHeading -Document $pdf -Text \"$($row.Region) region\"\n    Add-OfficePdfParagraph -Document $pdf -Text \"Q3 revenue: $($row.Q3) million USD.\"\n}\nSave-OfficePdf -Document $pdf -Path .\\Reports\\Q3-Regions.pdf"
+        }
+      ]
     },
     {
       "name": "Open-OfficePdf",
@@ -552,7 +569,24 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces Get-OfficePdf. Without a block it returns the live document (G3). Inside the block, existing-PDF commands (Add-OfficePdfStamp, Set-OfficePdfPage, Remove-OfficePdfPage, Set-OfficePdfMetadata, ...) bind -Document to the open document implicitly. Opening never restyles the document."
+      "notes": "Replaces Get-OfficePdf. Without a block it returns the live document (G3). Inside the block, existing-PDF commands (Add-OfficePdfStamp, Set-OfficePdfPage, Remove-OfficePdfPage, Set-OfficePdfMetadata, ...) bind -Document to the open document implicitly. Opening never restyles the document.",
+      "examples": [
+        {
+          "title": "Open a PDF for editing",
+          "description": "Returns the live document so later commands can read or change it.",
+          "code": "$pdf = Open-OfficePdf -Path .\\Reports\\Q3-Sales.pdf"
+        },
+        {
+          "title": "Finalize a board pack in one block",
+          "description": "Removes a draft page, updates metadata and stamps every page, writing the result to a new file when the block ends.",
+          "code": "Open-OfficePdf -Path .\\Reports\\Q3-Board-Pack.pdf -OutputPath .\\Reports\\Q3-Board-Pack-Final.pdf {\n    Remove-OfficePdfPage -Page 2\n    PdfMetadata -Title 'Q3 board pack' -Author 'Finance' -Subject 'Quarterly results'\n    Add-OfficePdfStamp -Text 'BOARD CONFIDENTIAL' -FontSize 36 -Rotation 30 -Opacity 0.15 -Behind\n}"
+        },
+        {
+          "title": "Open a password-protected PDF",
+          "description": "Prompts for the password instead of writing it in the script, fills the form and saves a copy.",
+          "code": "$password = Read-Host -Prompt 'PDF password' -AsSecureString\nOpen-OfficePdf -Path .\\HR\\Offer-Letter.pdf -Password $password -OutputPath .\\HR\\Offer-Letter-Completed.pdf {\n    Set-OfficePdfFormField -Value @{ CandidateName = 'Grace Hopper'; StartDate = '2026-11-02' }\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficePdf",
@@ -619,7 +653,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-Path optional: defaults to the path the document was created or opened with. -Open/-Show alias collapses to -Show; -UserPassword alias removed."
+      "notes": "-Path optional: defaults to the path the document was created or opened with. -Open/-Show alias collapses to -Show; -UserPassword alias removed.",
+      "examples": [
+        {
+          "title": "Save a live document",
+          "description": "Writes a document created or opened without a content block to a file.",
+          "code": "Save-OfficePdf -Document $pdf -Path .\\Reports\\Status.pdf"
+        },
+        {
+          "title": "Save with restricted permissions",
+          "description": "Builds a document in memory, then saves it with an owner password that allows printing and accessibility only, and opens the result.",
+          "code": "$pdf = New-OfficePdf -Theme Classic\nAdd-OfficePdfHeading -Document $pdf -Text 'Salary bands 2027'\nAdd-OfficePdfParagraph -Document $pdf -Text 'Approved by the compensation committee on 20 October 2026.'\n$ownerPassword = Read-Host -Prompt 'Owner password' -AsSecureString\nSave-OfficePdf -Document $pdf -Path .\\HR\\Salary-Bands-2027.pdf -OwnerPassword $ownerPassword -Permission Print, Accessibility -Show"
+        }
+      ]
     },
     {
       "name": "Close-OfficePdf",
@@ -641,7 +687,19 @@
           ]
         }
       ],
-      "notes": "PdfDocument becomes IDisposable in 3.6 (design: lifecycle). Completes the New/Open/Save/Close set."
+      "notes": "PdfDocument becomes IDisposable in 3.6 (design: lifecycle). Completes the New/Open/Save/Close set.",
+      "examples": [
+        {
+          "title": "Release a document without saving",
+          "description": "Closes a live document and discards any unsaved changes.",
+          "code": "Close-OfficePdf -Document $pdf"
+        },
+        {
+          "title": "Read form values and close",
+          "description": "Opens a submitted form, exports its values for a ticket system and always releases the file, even if reading fails.",
+          "code": "$pdf = Open-OfficePdf -Path .\\Requests\\Access-Request-4711.pdf\ntry {\n    Get-OfficePdfFormField -Document $pdf |\n        Select-Object Name, Value |\n        Export-Csv -Path .\\Requests\\Access-Request-4711.csv -NoTypeInformation\n} finally {\n    Close-OfficePdf -Document $pdf\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfHeading",
@@ -742,7 +800,19 @@
           ]
         }
       ],
-      "notes": "Bookmark parameter is optional sugar for PdfBookmark directly before the heading; omit if the engine cannot attach it."
+      "notes": "Bookmark parameter is optional sugar for PdfBookmark directly before the heading; omit if the engine cannot attach it.",
+      "examples": [
+        {
+          "title": "Add a heading",
+          "description": "Adds a level-1 heading in the theme heading style.",
+          "code": "New-OfficePdf -Path .\\Runbook.pdf {\n    PdfHeading 'Database failover runbook'\n}"
+        },
+        {
+          "title": "Structure a runbook with linked sections",
+          "description": "Uses heading levels for the outline and a bookmark so text earlier in the document can link to the escalation section.",
+          "code": "New-OfficePdf -Path .\\Runbooks\\SQL-Failover.pdf -CreateOutlineFromHeadings {\n    PdfHeading 'SQL failover runbook'\n    PdfParagraph {\n        PdfText 'If the secondary does not come online in 10 minutes, follow '\n        PdfText 'Escalation' -LinkBookmark 'escalation'\n        PdfText '.'\n    }\n    PdfHeading 'Preparation' -Level 2\n    PdfParagraph 'Confirm the availability group is synchronized.'\n    PdfHeading 'Escalation' -Level 2 -Bookmark 'escalation'\n    PdfParagraph 'Page the on-call DBA through the incident bridge.'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfParagraph",
@@ -876,7 +946,19 @@
           ]
         }
       ],
-      "notes": "Content block takes PdfText runs (replaces Add-OfficePdfText -Run hashtables)."
+      "notes": "Content block takes PdfText runs (replaces Add-OfficePdfText -Run hashtables).",
+      "examples": [
+        {
+          "title": "Add a paragraph",
+          "description": "Adds body text in the theme font and spacing.",
+          "code": "New-OfficePdf -Path .\\Notice.pdf {\n    PdfParagraph 'The data center maintenance window starts Saturday at 22:00 UTC.'\n}"
+        },
+        {
+          "title": "Mix styled runs in one paragraph",
+          "description": "Builds a paragraph from PdfText runs so status words stand out in theme colors and a link points to the change record.",
+          "code": "New-OfficePdf -Path .\\Reports\\Change-CHG0042.pdf {\n    PdfHeading 'Change CHG0042'\n    PdfParagraph {\n        PdfText 'Risk: '\n        PdfText 'Low' -Bold -Color Success\n        PdfText '. Rollback tested on '\n        PdfText '18 October' -Italic\n        PdfText '. Details in the '\n        PdfText 'change record' -Link 'https://servicedesk.example.com/change/CHG0042'\n        PdfText '.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfText",
@@ -1089,7 +1171,19 @@
           ]
         }
       ],
-      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link). -Run/-Runs hashtables removed. In fixed-position canvas context link parameters are rejected. -Text is a single string (was string[] concatenated)."
+      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link). -Run/-Runs hashtables removed. In fixed-position canvas context link parameters are rejected. -Text is a single string (was string[] concatenated).",
+      "examples": [
+        {
+          "title": "Add a highlighted line",
+          "description": "At flow level a PdfText run forms its own paragraph, here a highlighted approval note.",
+          "code": "New-OfficePdf -Path .\\Approval.pdf {\n    PdfText 'Approved for release' -Bold -Color Success -BackgroundColor '#ECFDF5'\n}"
+        },
+        {
+          "title": "Combine runs, links and emphasis",
+          "description": "Writes a sentence from several runs inside a paragraph, with an external link and struck-through superseded text.",
+          "code": "New-OfficePdf -Path .\\Reports\\Release-Notes-4.2.pdf {\n    PdfHeading 'Release 4.2'\n    PdfParagraph {\n        PdfText 'Support ends on '\n        PdfText '30 June 2026' -Strikethrough\n        PdfText ' 31 December 2026' -Bold\n        PdfText '. See the '\n        PdfText 'lifecycle policy' -Link 'https://example.com/lifecycle'\n        PdfText ' for details.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfList",
@@ -1174,7 +1268,19 @@
           ]
         }
       ],
-      "notes": "-Items string[] removed in favour of PdfListItem children (shared List/ListItem vocabulary). A PdfList inside a PdfListItem block nests if the engine supports nesting; otherwise nesting is a library feature request."
+      "notes": "-Items string[] removed in favour of PdfListItem children (shared List/ListItem vocabulary). A PdfList inside a PdfListItem block nests if the engine supports nesting; otherwise nesting is a library feature request.",
+      "examples": [
+        {
+          "title": "Add a bulleted list",
+          "description": "Adds three bullet points in the theme list style.",
+          "code": "New-OfficePdf -Path .\\Actions.pdf {\n    PdfList {\n        PdfListItem 'Confirm the service owner'\n        PdfListItem 'Publish the summary'\n        PdfListItem 'Schedule the review'\n    }\n}"
+        },
+        {
+          "title": "Number the steps of a procedure",
+          "description": "Writes a numbered list generated from data, with one step whose text has bold runs.",
+          "code": "$steps = 'Drain the node', 'Apply the patch', 'Reboot', 'Return the node to the pool'\nNew-OfficePdf -Path .\\Runbooks\\Patch-Node.pdf {\n    PdfHeading 'Patch a cluster node'\n    PdfList -Numbered {\n        foreach ($step in $steps) {\n            PdfListItem $step\n        }\n        PdfListItem {\n            PdfText 'Confirm '\n            PdfText 'Ready' -Bold\n            PdfText ' in the cluster console'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfListItem",
@@ -1210,7 +1316,19 @@
           ]
         }
       ],
-      "notes": "Valid only inside a PdfList block."
+      "notes": "Valid only inside a PdfList block.",
+      "examples": [
+        {
+          "title": "Add list items",
+          "description": "Each PdfListItem adds one entry to the enclosing PdfList.",
+          "code": "New-OfficePdf -Path .\\Checklist.pdf {\n    PdfList {\n        PdfListItem 'Backups verified'\n        PdfListItem 'Monitoring silenced'\n    }\n}"
+        },
+        {
+          "title": "List ticket owners with styled text",
+          "description": "Builds one item per open ticket from PdfText runs, with the ticket number in bold and the priority in a theme color.",
+          "code": "$tickets = @(\n    [pscustomobject]@{ Id = 'INC-1042'; Title = 'VPN drops every 30 minutes'; Priority = 'High' }\n    [pscustomobject]@{ Id = 'INC-1051'; Title = 'Shared mailbox not syncing'; Priority = 'Medium' }\n)\nNew-OfficePdf -Path .\\Reports\\Open-Tickets.pdf {\n    PdfHeading 'Open tickets'\n    PdfList {\n        foreach ($ticket in $tickets) {\n            PdfListItem {\n                PdfText \"$($ticket.Id) \" -Bold\n                PdfText \"$($ticket.Title) - \"\n                PdfText $ticket.Priority -Color Warning\n            }\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfTable",
@@ -1770,7 +1888,24 @@
           ]
         }
       ],
-      "notes": "Rows always come from -InputObject (pipeline by value); in the Document set -Document is named, not piped, which removes the PipelineDocument set."
+      "notes": "Rows always come from -InputObject (pipeline by value); in the Document set -Document is named, not piped, which removes the PipelineDocument set.",
+      "examples": [
+        {
+          "title": "Turn objects into a table",
+          "description": "Creates a themed table with a header row, banding and right-aligned numbers from the object properties.",
+          "code": "$services = @(\n    [pscustomobject]@{ Service = 'Identity'; Owner = 'Platform'; Availability = 99.98; Incidents = 0; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'Mail'; Owner = 'Messaging'; Availability = 99.71; Incidents = 2; Status = 'Watch' }\n    [pscustomobject]@{ Service = 'File shares'; Owner = 'Infrastructure'; Availability = 99.95; Incidents = 1; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'VPN'; Owner = 'Network'; Availability = 98.90; Incidents = 4; Status = 'At risk' }\n)\nNew-OfficePdf -Path .\\Services.pdf {\n    PdfTable -InputObject $services\n}"
+        },
+        {
+          "title": "Report selected columns from the pipeline",
+          "description": "Pipes ticket objects into a table with chosen columns, friendly headers, a caption and a header that repeats on every page.",
+          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\nNew-OfficePdf -Path .\\Reports\\Tickets-October.pdf {\n    PdfHeading 'Tickets closed in October'\n    $tickets | PdfTable -Property Id, Title, Owner, ClosedOn -Header 'Ticket', 'Summary', 'Owner', 'Closed' -Caption 'Source: service desk export' -RepeatHeaderRowCount 1\n}"
+        },
+        {
+          "title": "Write explicit rows with merged cells",
+          "description": "Passes row arrays instead of objects; the first row is the header and a PdfTableCell spans the section label across all columns.",
+          "code": "New-OfficePdf -Path .\\Reports\\DR-Targets.pdf {\n    PdfHeading 'Recovery targets'\n    $rows = @(\n        @('System', 'Owner', 'RPO'),\n        @(PdfTableCell 'Tier 1' -ColumnSpan 3 -Bold),\n        @('ERP', 'Finance IT', '15 min'),\n        @('Payroll', 'HR IT', '1 h')\n    )\n    PdfTable -InputObject $rows\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfTableCell",
@@ -1957,7 +2092,19 @@
           ]
         }
       ],
-      "notes": "Content block accepts PdfText runs, PdfImage and PdfFormField children; replaces -Run, -CheckBox, -Image and -FormField arrays and the three New-OfficePdfTableCell* factories. Kept as New- because it returns a value placed in -InputObject row arrays."
+      "notes": "Content block accepts PdfText runs, PdfImage and PdfFormField children; replaces -Run, -CheckBox, -Image and -FormField arrays and the three New-OfficePdfTableCell* factories. Kept as New- because it returns a value placed in -InputObject row arrays.",
+      "examples": [
+        {
+          "title": "Span a cell across columns",
+          "description": "Creates a cell that spans two columns of an explicit table row.",
+          "code": "New-OfficePdf -Path .\\Totals.pdf {\n    PdfTable -InputObject @(\n        @('Region', 'Q3 (USD m)'),\n        @('North', '1.71'),\n        @(PdfTableCell 'Total 1.71' -ColumnSpan 2 -Bold -Align Right)\n    )\n}"
+        },
+        {
+          "title": "Build a sign-off table with form fields",
+          "description": "Places check boxes and a reviewer choice field inside table cells so approvers can complete the sheet in any PDF reader.",
+          "code": "$controls = 'Backups tested', 'Access reviewed', 'Patching current'\nNew-OfficePdf -Path .\\Audit\\Q4-Controls.pdf {\n    PdfHeading 'Q4 control sign-off'\n    $rows = @(, @('Control', 'Done', 'Reviewer'))\n    foreach ($control in $controls) {\n        $id = $control -replace '\\W', ''\n        $done = PdfTableCell { PdfFormField \"$id-Done\" -Type CheckBox }\n        $reviewer = PdfTableCell { PdfFormField \"$id-Reviewer\" -Type Choice -Option 'Unassigned', 'Ada', 'Grace' -Value 'Unassigned' }\n        $rows += , @($control, $done, $reviewer)\n    }\n    PdfTable -InputObject $rows\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfChart",
@@ -2100,7 +2247,19 @@
           ]
         }
       ],
-      "notes": "Shared Chart vocabulary. Renders through the same visual engine PdfImage -InputObject uses for prebuilt ChartForgeX visuals."
+      "notes": "Shared Chart vocabulary. Renders through the same visual engine PdfImage -InputObject uses for prebuilt ChartForgeX visuals.",
+      "examples": [
+        {
+          "title": "Chart one series",
+          "description": "Draws a column chart in the theme palette from the Region and Q3 properties.",
+          "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Q1 = 1.42; Q2 = 1.55; Q3 = 1.71 }\n    [pscustomobject]@{ Region = 'South'; Q1 = 0.98; Q2 = 1.04; Q3 = 1.12 }\n    [pscustomobject]@{ Region = 'East'; Q1 = 1.21; Q2 = 1.18; Q3 = 1.36 }\n    [pscustomobject]@{ Region = 'West'; Q1 = 1.65; Q2 = 1.79; Q3 = 1.88 }\n)\nNew-OfficePdf -Path .\\Sales.pdf {\n    PdfChart -InputObject $sales -Category Region -Value Q3 -Title 'Q3 revenue by region (USD m)'\n}"
+        },
+        {
+          "title": "Compare quarters under the numbers",
+          "description": "Follows the table with a multi-series line chart of the same data, sized and described for screen readers.",
+          "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Q1 = 1.42; Q2 = 1.55; Q3 = 1.71 }\n    [pscustomobject]@{ Region = 'South'; Q1 = 0.98; Q2 = 1.04; Q3 = 1.12 }\n    [pscustomobject]@{ Region = 'East'; Q1 = 1.21; Q2 = 1.18; Q3 = 1.36 }\n    [pscustomobject]@{ Region = 'West'; Q1 = 1.65; Q2 = 1.79; Q3 = 1.88 }\n)\nNew-OfficePdf -Path .\\Reports\\Q3-Sales.pdf -Theme Boardroom {\n    PdfHeading 'Revenue by region'\n    PdfTable -InputObject $sales\n    PdfChart -InputObject $sales -Category Region -Value Q1, Q2, Q3 -Type Line -Title 'Quarterly trend (USD m)' -Height 7cm -AlternativeText 'Revenue rises in every region except East in Q2.'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfImage",
@@ -2440,7 +2599,24 @@
           ]
         }
       ],
-      "notes": "Width/Height become optional (natural size, scaled to fit). Absorbs Add-OfficePdfVisual and New-OfficePdfTableCellImage (inside a PdfTableCell block)."
+      "notes": "Width/Height become optional (natural size, scaled to fit). Absorbs Add-OfficePdfVisual and New-OfficePdfTableCellImage (inside a PdfTableCell block).",
+      "examples": [
+        {
+          "title": "Insert an image",
+          "description": "Adds a PNG at its natural size, scaled down to fit the page width when needed.",
+          "code": "New-OfficePdf -Path .\\Diagram.pdf {\n    PdfImage .\\Images\\Network-Topology.png\n}"
+        },
+        {
+          "title": "Brand a report with a logo and screenshot",
+          "description": "Places a fixed-size logo in the header and a centered screenshot with alternative text in the body.",
+          "code": "New-OfficePdf -Path .\\Reports\\Portal-Launch.pdf {\n    PdfHeader {\n        PdfImage .\\Branding\\Logo.png -Height 1cm\n    }\n    PdfHeading 'Customer portal launch'\n    PdfImage .\\Images\\Portal-Home.png -Width 14cm -Align Center -AlternativeText 'Portal home page with the new navigation bar'\n}"
+        },
+        {
+          "title": "Embed a prebuilt visual",
+          "description": "Converts SVG text into a visual and adds it to the flow, for diagrams produced by other tools.",
+          "code": "$svg = Get-Content -Path .\\Images\\Org-Chart.svg -Raw\n$visual = ConvertTo-OfficeVisual -InputObject $svg -AlternativeText 'Organization chart'\nNew-OfficePdf -Path .\\Reports\\Org-Chart.pdf {\n    PdfHeading 'Organization'\n    PdfImage -InputObject $visual -Width 16cm -Align Center\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfPanel",
@@ -2519,7 +2695,19 @@
           ]
         }
       ],
-      "notes": "Content block takes PdfText runs."
+      "notes": "Content block takes PdfText runs.",
+      "examples": [
+        {
+          "title": "Add a callout",
+          "description": "Highlights one sentence in a theme-colored panel.",
+          "code": "New-OfficePdf -Path .\\Summary.pdf {\n    PdfPanel 'No critical incidents were recorded this month.'\n}"
+        },
+        {
+          "title": "Summarize a decision",
+          "description": "Uses styled runs inside a panel to call out the decision and its owner at the top of a report.",
+          "code": "New-OfficePdf -Path .\\Reports\\Mail-Migration-Decision.pdf {\n    PdfHeading 'Mail migration'\n    PdfPanel {\n        PdfText 'Decision: ' -Bold\n        PdfText 'migrate the remaining 1,200 mailboxes in two waves. Owner: Messaging team.'\n    }\n    PdfParagraph 'Wave 1 starts on 3 November; wave 2 follows after a one-week review.'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfRow",
@@ -2652,7 +2840,19 @@
           ]
         }
       ],
-      "notes": "-Column hashtable specs (Type = 'Heading' ...) replaced by PdfColumn child blocks containing ordinary DSL commands."
+      "notes": "-Column hashtable specs (Type = 'Heading' ...) replaced by PdfColumn child blocks containing ordinary DSL commands.",
+      "examples": [
+        {
+          "title": "Place two blocks side by side",
+          "description": "Creates a row with two equal columns.",
+          "code": "New-OfficePdf -Path .\\TwoColumns.pdf {\n    PdfRow {\n        PdfColumn { PdfParagraph 'Left column' }\n        PdfColumn { PdfParagraph 'Right column' }\n    }\n}"
+        },
+        {
+          "title": "Show a KPI strip",
+          "description": "Builds three KPI columns separated by thin lines and keeps the row with the table that follows.",
+          "code": "$services = @(\n    [pscustomobject]@{ Service = 'Identity'; Owner = 'Platform'; Availability = 99.98; Incidents = 0; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'Mail'; Owner = 'Messaging'; Availability = 99.71; Incidents = 2; Status = 'Watch' }\n    [pscustomobject]@{ Service = 'File shares'; Owner = 'Infrastructure'; Availability = 99.95; Incidents = 1; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'VPN'; Owner = 'Network'; Availability = 98.90; Incidents = 4; Status = 'At risk' }\n)\nNew-OfficePdf -Path .\\Reports\\Ops-Dashboard.pdf {\n    PdfHeading 'Operations dashboard'\n    PdfRow -Gap 12pt -ColumnSeparatorColor TextMuted -KeepWithNext {\n        PdfColumn {\n            PdfHeading '99.6%' -Level 2\n            PdfParagraph 'Average availability'\n        }\n        PdfColumn {\n            PdfHeading '7' -Level 2\n            PdfParagraph 'Incidents'\n        }\n        PdfColumn {\n            PdfHeading '1' -Level 2 -Color Danger\n            PdfParagraph 'Service at risk'\n        }\n    }\n    PdfTable -InputObject $services\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfColumn",
@@ -2682,7 +2882,19 @@
           ]
         }
       ],
-      "notes": "Valid only inside a PdfRow block. Supports the same content as the old hashtables: headings, paragraphs, text, panels, lists, tables, rules, spacers, bookmarks."
+      "notes": "Valid only inside a PdfRow block. Supports the same content as the old hashtables: headings, paragraphs, text, panels, lists, tables, rules, spacers, bookmarks.",
+      "examples": [
+        {
+          "title": "Define a column",
+          "description": "Adds one column to the enclosing row; columns without -Width share the space equally.",
+          "code": "New-OfficePdf -Path .\\Columns.pdf {\n    PdfRow {\n        PdfColumn { PdfHeading 'Signals' -Level 2 }\n        PdfColumn { PdfPanel 'All checks passed.' }\n    }\n}"
+        },
+        {
+          "title": "Weight a sidebar and main column",
+          "description": "Gives a narrow sidebar 30 percent and the main content 70 percent of the row, each with ordinary DSL content.",
+          "code": "New-OfficePdf -Path .\\Reports\\Incident-INC-1042.pdf {\n    PdfHeading 'Incident INC-1042'\n    PdfRow -Gap 18pt {\n        PdfColumn -Width 30 {\n            PdfHeading 'Facts' -Level 3\n            PdfList {\n                PdfListItem 'Severity 2'\n                PdfListItem 'Duration 47 minutes'\n                PdfListItem 'Owner: Network'\n            }\n        }\n        PdfColumn -Width 70 {\n            PdfHeading 'Timeline' -Level 3\n            PdfParagraph 'At 09:12 UTC the primary ISP link flapped; traffic failed over at 09:15.'\n            PdfParagraph 'The link was restored at 09:59 after the carrier replaced a line card.'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfHorizontalRule",
@@ -2764,6 +2976,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Divide sections",
+          "description": "Draws a divider in the theme border color.",
+          "code": "New-OfficePdf -Path .\\Memo.pdf {\n    PdfParagraph 'Executive summary'\n    PdfHorizontalRule\n    PdfParagraph 'Details follow.'\n}"
+        },
+        {
+          "title": "Separate a signature block",
+          "description": "Adds a thicker rule with extra space above it to set off the approval area at the end of a report.",
+          "code": "New-OfficePdf -Path .\\Reports\\Change-Approval.pdf {\n    PdfHeading 'Change approval'\n    PdfParagraph 'The change board approved CHG0042 for the 8 November window.'\n    PdfHorizontalRule -Thickness 1.5pt -Color Accent1 -SpacingBefore 24pt -SpacingAfter 6pt\n    PdfParagraph 'Approved by: Change advisory board'\n}"
+        }
       ]
     },
     {
@@ -2812,6 +3036,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add vertical space",
+          "description": "Inserts 18 points of space between two blocks.",
+          "code": "New-OfficePdf -Path .\\Spaced.pdf {\n    PdfParagraph 'First block'\n    PdfSpacer 18pt\n    PdfParagraph 'Second block'\n}"
+        },
+        {
+          "title": "Push a cover title down the page",
+          "description": "Uses a large spacer to place the title of a cover page in the upper third before the content starts on page 2.",
+          "code": "New-OfficePdf -Path .\\Reports\\Annual-IT-Report.pdf -Theme Boardroom {\n    PdfSpacer 8cm\n    PdfHeading 'Annual IT report 2026' -Align Center\n    PdfParagraph 'Infrastructure and Operations' -Align Center\n    PdfPageBreak\n    PdfHeading 'Highlights'\n}"
+        }
       ]
     },
     {
@@ -2844,6 +3080,18 @@
               "notes": "Document set only; inside a block the document is returned by New-OfficePdf."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Start a new page",
+          "description": "Moves the appendix to its own page.",
+          "code": "New-OfficePdf -Path .\\Report.pdf {\n    PdfHeading 'Summary'\n    PdfPageBreak\n    PdfHeading 'Appendix'\n}"
+        },
+        {
+          "title": "Give each region its own page",
+          "description": "Writes one page per region from data, breaking between regions but not after the last one.",
+          "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Q1 = 1.42; Q2 = 1.55; Q3 = 1.71 }\n    [pscustomobject]@{ Region = 'South'; Q1 = 0.98; Q2 = 1.04; Q3 = 1.12 }\n    [pscustomobject]@{ Region = 'East'; Q1 = 1.21; Q2 = 1.18; Q3 = 1.36 }\n    [pscustomobject]@{ Region = 'West'; Q1 = 1.65; Q2 = 1.79; Q3 = 1.88 }\n)\nNew-OfficePdf -Path .\\Reports\\Regional-Sales.pdf {\n    for ($i = 0; $i -lt $sales.Count; $i++) {\n        PdfHeading \"$($sales[$i].Region) region\"\n        PdfTable -InputObject $sales[$i]\n        if ($i -lt $sales.Count - 1) {\n            PdfPageBreak\n        }\n    }\n}"
         }
       ]
     },
@@ -2892,6 +3140,18 @@
               "notes": "Document set only; inside a block the document is returned by New-OfficePdf."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Mark a destination",
+          "description": "Adds a named destination that links can jump to.",
+          "code": "New-OfficePdf -Path .\\Linked.pdf {\n    PdfBookmark 'appendix'\n    PdfHeading 'Appendix'\n}"
+        },
+        {
+          "title": "Link a contents list to sections",
+          "description": "Builds a small contents list whose entries jump to bookmarks placed before each section.",
+          "code": "$sections = 'Scope', 'Findings', 'Recommendations'\nNew-OfficePdf -Path .\\Audit\\Security-Audit.pdf {\n    PdfHeading 'Security audit 2026'\n    PdfList {\n        foreach ($section in $sections) {\n            PdfListItem {\n                PdfText $section -LinkBookmark $section.ToLower()\n            }\n        }\n    }\n    foreach ($section in $sections) {\n        PdfPageBreak\n        PdfBookmark $section.ToLower()\n        PdfHeading $section\n    }\n}"
         }
       ]
     },
@@ -3058,7 +3318,19 @@
           ]
         }
       ],
-      "notes": "Absorbs New-OfficePdfTableCellCheckBox (-Size -> -Width/-Height) and New-OfficePdfTableCellField when used inside a PdfTableCell block."
+      "notes": "Absorbs New-OfficePdfTableCellCheckBox (-Size -> -Width/-Height) and New-OfficePdfTableCellField when used inside a PdfTableCell block.",
+      "examples": [
+        {
+          "title": "Add a text field",
+          "description": "Adds a fillable text field named Requester.",
+          "code": "New-OfficePdf -Path .\\Form.pdf {\n    PdfParagraph 'Requester'\n    PdfFormField 'Requester' -Type Text -Width 8cm\n}"
+        },
+        {
+          "title": "Build an access request form",
+          "description": "Creates a form with a text field, a priority choice with a default, radio options and an approval check box.",
+          "code": "New-OfficePdf -Path .\\Forms\\Access-Request.pdf {\n    PdfHeading 'Access request'\n    PdfParagraph 'Requester'\n    PdfFormField 'Requester' -Type Text -Width 8cm\n    PdfParagraph 'System'\n    PdfFormField 'System' -Type Choice -Option 'ERP', 'CRM', 'Data warehouse' -Value 'ERP'\n    PdfParagraph 'Access level'\n    PdfFormField 'AccessLevel' -Type RadioButton -Option 'Read', 'Write', 'Admin' -Value 'Read'\n    PdfParagraph 'Manager approval'\n    PdfFormField 'Approved' -Type CheckBox\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfAttachment",
@@ -3154,6 +3426,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Embed a file",
+          "description": "Attaches a CSV file to the generated PDF.",
+          "code": "New-OfficePdf -Path .\\Report.pdf {\n    PdfHeading 'Inventory'\n    PdfAttachment .\\Data\\Inventory.csv\n}"
+        },
+        {
+          "title": "Ship the source data with a report",
+          "description": "Exports the data behind a report to JSON and embeds it as the source file, so readers can audit the numbers.",
+          "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Q1 = 1.42; Q2 = 1.55; Q3 = 1.71 }\n    [pscustomobject]@{ Region = 'South'; Q1 = 0.98; Q2 = 1.04; Q3 = 1.12 }\n    [pscustomobject]@{ Region = 'East'; Q1 = 1.21; Q2 = 1.18; Q3 = 1.36 }\n    [pscustomobject]@{ Region = 'West'; Q1 = 1.65; Q2 = 1.79; Q3 = 1.88 }\n)\n$dataPath = '.\\Reports\\Q3-Sales.json'\n$sales | ConvertTo-Json | Set-Content -Path $dataPath\nNew-OfficePdf -Path .\\Reports\\Q3-Sales.pdf {\n    PdfHeading 'Q3 sales'\n    PdfTable -InputObject $sales\n    PdfAttachment $dataPath -Name 'q3-sales.json' -MimeType 'application/json' -Relationship Source -Description 'Data used for the tables in this report.'\n}"
+        }
       ]
     },
     {
@@ -3239,7 +3523,19 @@
           ]
         }
       ],
-      "notes": "Replaces the {page}/{pages} tokens of -Text for styled numbers and the native CurrentPage()/TotalPages() calls in -Compose callbacks."
+      "notes": "Replaces the {page}/{pages} tokens of -Text for styled numbers and the native CurrentPage()/TotalPages() calls in -Compose callbacks.",
+      "examples": [
+        {
+          "title": "Number the pages",
+          "description": "Shows the current page and the total in the footer.",
+          "code": "New-OfficePdf -Path .\\Numbered.pdf {\n    PdfFooter {\n        PdfText 'Page '\n        PdfPageNumber -IncludeTotal\n    }\n    PdfParagraph 'Body text.'\n}"
+        },
+        {
+          "title": "Style the number in a branded footer",
+          "description": "Combines a confidentiality label with a bold page number and a slash separator, aligned right.",
+          "code": "New-OfficePdf -Path .\\Reports\\Pricing-2027.pdf {\n    PdfFooter -Align Right {\n        PdfText 'Confidential - Northwind Traders - ' -Color TextMuted\n        PdfPageNumber -IncludeTotal -Separator ' / ' -Bold\n    }\n    PdfHeading 'Pricing 2027'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfPageSetup",
@@ -3311,7 +3607,19 @@
           ]
         }
       ],
-      "notes": "Page composition only works inside New-OfficePdf; the Document set (which always threw) is removed."
+      "notes": "Page composition only works inside New-OfficePdf; the Document set (which always threw) is removed.",
+      "examples": [
+        {
+          "title": "Use A4 with wider margins",
+          "description": "Sets the page size and an even margin for every page.",
+          "code": "New-OfficePdf -Path .\\A4.pdf {\n    PdfPageSetup -PageSize A4 -Margin 2.5cm\n    PdfParagraph 'A4 page with 2.5 cm margins.'\n}"
+        },
+        {
+          "title": "Print a wide table in landscape",
+          "description": "Switches to US Letter landscape with a narrow binding margin so a wide inventory table fits.",
+          "code": "$servers = Import-Csv -Path .\\Data\\Servers.csv\nNew-OfficePdf -Path .\\Reports\\Server-Inventory.pdf {\n    PdfPageSetup -PageSize Letter -Orientation Landscape -Margin 0.5in -MarginLeft 1in\n    PdfHeading 'Server inventory'\n    PdfTable -InputObject $servers\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfHeader",
@@ -3409,7 +3717,24 @@
           ]
         }
       ],
-      "notes": "-FirstPage/-EvenPage expose the first-page and even-page variants that were only reachable through -Compose. -Compose is kept as the advanced builder set. Document set removed (always threw)."
+      "notes": "-FirstPage/-EvenPage expose the first-page and even-page variants that were only reachable through -Compose. -Compose is kept as the advanced builder set. Document set removed (always threw).",
+      "examples": [
+        {
+          "title": "Add a running header",
+          "description": "Repeats a title at the top of every page.",
+          "code": "New-OfficePdf -Path .\\Header.pdf {\n    PdfHeader 'Service review'\n    PdfParagraph 'Body text.'\n}"
+        },
+        {
+          "title": "Build a header from runs and a logo",
+          "description": "Combines a logo and a bold report name, aligned right, using child commands.",
+          "code": "New-OfficePdf -Path .\\Reports\\Quarterly-Ops.pdf {\n    PdfHeader -Align Right {\n        PdfImage .\\Branding\\Logo.png -Height 0.8cm\n        PdfText ' Quarterly operations report' -Bold\n    }\n    PdfHeading 'Quarterly operations report'\n}"
+        },
+        {
+          "title": "Use a different first-page header",
+          "description": "Keeps the cover page clean with its own header text while later pages show the document title and page number.",
+          "code": "New-OfficePdf -Path .\\Reports\\Annual-IT-Report.pdf {\n    PdfHeader 'Annual IT report 2026 - page {page} of {pages}' -Align Right\n    PdfHeader 'Northwind Traders' -FirstPage\n    PdfHeading 'Annual IT report 2026'\n    PdfPageBreak\n    PdfHeading 'Highlights'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfFooter",
@@ -3507,7 +3832,19 @@
           ]
         }
       ],
-      "notes": "Same shape as PdfHeader. Default text stays 'Page {page}/{pages}'."
+      "notes": "Same shape as PdfHeader. Default text stays 'Page {page}/{pages}'.",
+      "examples": [
+        {
+          "title": "Add a footer with page numbers",
+          "description": "Uses the {page} and {pages} tokens in plain footer text.",
+          "code": "New-OfficePdf -Path .\\Footer.pdf {\n    PdfFooter 'Page {page} of {pages}' -Align Center\n    PdfParagraph 'Body text.'\n}"
+        },
+        {
+          "title": "Mirror footers for double-sided printing",
+          "description": "Puts the page number on the outside edge: right on odd pages, left on even pages.",
+          "code": "New-OfficePdf -Path .\\Handbooks\\Employee-Handbook.pdf {\n    PdfFooter -Align Right {\n        PdfText 'Employee handbook - '\n        PdfPageNumber\n    }\n    PdfFooter -Align Left -EvenPage {\n        PdfPageNumber\n        PdfText ' - Employee handbook'\n    }\n    PdfHeading 'Welcome'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfBackground",
@@ -3574,7 +3911,24 @@
           ]
         }
       ],
-      "notes": "Merges Set-OfficePdfBackgroundImage and Clear-OfficePdfBackgroundShape. Image path is -ImagePath because -Path is reserved for the document file. Document set removed (always threw)."
+      "notes": "Merges Set-OfficePdfBackgroundImage and Clear-OfficePdfBackgroundShape. Image path is -ImagePath because -Path is reserved for the document file. Document set removed (always threw).",
+      "examples": [
+        {
+          "title": "Tint the page background",
+          "description": "Sets a soft background color on every generated page.",
+          "code": "New-OfficePdf -Path .\\Tinted.pdf {\n    PdfBackground '#F8FAFC'\n    PdfHeading 'Report'\n}"
+        },
+        {
+          "title": "Use a letterhead image",
+          "description": "Draws a faint letterhead image behind the content of every page.",
+          "code": "New-OfficePdf -Path .\\Letters\\Welcome-Letter.pdf {\n    PdfBackground -ImagePath .\\Branding\\Letterhead.png -Fit Cover -Opacity 0.15\n    PdfParagraph 'Dear colleague,'\n    PdfParagraph 'Welcome to Northwind Traders.'\n}"
+        },
+        {
+          "title": "Clear background shapes",
+          "description": "Removes background shapes, such as bands a theme draws, while keeping the background color, for a plain print variant.",
+          "code": "New-OfficePdf -Path .\\Plain.pdf -Theme Boardroom {\n    PdfBackground -Clear -Target Shapes\n    PdfHeading 'Plain variant'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfBackgroundShape",
@@ -3681,7 +4035,19 @@
           ]
         }
       ],
-      "notes": "Document set removed (always threw)."
+      "notes": "Document set removed (always threw).",
+      "examples": [
+        {
+          "title": "Add a top band",
+          "description": "Draws a colored band across the top of every page.",
+          "code": "New-OfficePdf -Path .\\Banded.pdf {\n    PdfBackgroundShape TopBand -Height 2.5cm -FillColor Accent1\n    PdfHeading 'Report'\n}"
+        },
+        {
+          "title": "Compose a branded cover design",
+          "description": "Layers a translucent band and a soft circle to give generated pages a designed look without images.",
+          "code": "New-OfficePdf -Path .\\Reports\\Customer-Survey.pdf {\n    PdfBackgroundShape TopBand -Height 3cm -FillColor '#DBEAFE' -FillOpacity 0.75\n    PdfBackgroundShape Ellipse -X 15cm -Y 23cm -Width 3.5cm -Height 2.5cm -FillColor '#99F6E4' -FillOpacity 0.35\n    PdfHeading 'Customer survey 2026'\n    PdfParagraph '1,248 responses from 14 countries.'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfPageBorder",
@@ -3739,7 +4105,19 @@
           ]
         }
       ],
-      "notes": "Document set removed (always threw)."
+      "notes": "Document set removed (always threw).",
+      "examples": [
+        {
+          "title": "Frame every page",
+          "description": "Draws a thin border inset from the page edge.",
+          "code": "New-OfficePdf -Path .\\Framed.pdf {\n    PdfPageBorder -Inset 1cm\n    PdfHeading 'Certificate'\n}"
+        },
+        {
+          "title": "Design a certificate",
+          "description": "Uses a dashed accent-colored border around a centered certificate.",
+          "code": "New-OfficePdf -Path .\\Certificates\\Ada-Lovelace.pdf {\n    PdfPageSetup -PageSize A4 -Orientation Landscape\n    PdfPageBorder -Color Accent1 -Width 2pt -Inset 1.2cm -DashStyle Dash\n    PdfSpacer 4cm\n    PdfHeading 'Certificate of completion' -Align Center\n    PdfParagraph 'Ada Lovelace completed Secure Operations Training on 24 October 2026.' -Align Center\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfWatermark",
@@ -3787,7 +4165,19 @@
           ]
         }
       ],
-      "notes": "Generation-time watermark. Existing files use Add-OfficePdfStamp -Behind. Document set removed (always threw)."
+      "notes": "Generation-time watermark. Existing files use Add-OfficePdfStamp -Behind. Document set removed (always threw).",
+      "examples": [
+        {
+          "title": "Mark a draft",
+          "description": "Writes DRAFT diagonally across every page.",
+          "code": "New-OfficePdf -Path .\\Draft.pdf {\n    PdfWatermark 'DRAFT'\n    PdfHeading 'Budget proposal'\n}"
+        },
+        {
+          "title": "Watermark a review copy",
+          "description": "Adds a large, faint, rotated watermark to a policy that is still under review.",
+          "code": "New-OfficePdf -Path .\\Policies\\Remote-Work-Policy-v3.pdf {\n    PdfWatermark 'REVIEW COPY' -FontSize 64pt -Opacity 0.1 -Rotation -35 -Color TextMuted\n    PdfHeading 'Remote work policy'\n    PdfParagraph 'Version 3, for review by the works council.'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfMetadata",
@@ -4025,7 +4415,24 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "ShouldProcess applies to the Path/LiteralPath sets only. The old 'File' set becomes Path/LiteralPath."
+      "notes": "ShouldProcess applies to the Path/LiteralPath sets only. The old 'File' set becomes Path/LiteralPath.",
+      "examples": [
+        {
+          "title": "Set document properties while composing",
+          "description": "Sets the title and author of a generated PDF.",
+          "code": "New-OfficePdf -Path .\\Report.pdf {\n    PdfMetadata -Title 'Service review' -Author 'IT Operations'\n    PdfHeading 'Service review'\n}"
+        },
+        {
+          "title": "Update properties of an existing file",
+          "description": "Writes a copy of a scanned contract with searchable title, subject and keywords.",
+          "code": "Set-OfficePdfMetadata -Path .\\Contracts\\MSA-Contoso.pdf -OutputPath .\\Contracts\\MSA-Contoso-Tagged.pdf -Title 'Master services agreement - Contoso' -Subject 'Contract' -Keywords 'MSA; Contoso; 2026'"
+        },
+        {
+          "title": "Tag a folder of reports",
+          "description": "Pipes files into the command and writes a tagged copy of each next to the original.",
+          "code": "Get-ChildItem -Path .\\Reports -Filter '*.pdf' | ForEach-Object {\n    $output = Join-Path -Path $_.DirectoryName -ChildPath \"$($_.BaseName)-tagged.pdf\"\n    Set-OfficePdfMetadata -LiteralPath $_.FullName -OutputPath $output -Author 'Finance' -Keywords 'FY2026'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfCompliance",
@@ -4060,6 +4467,18 @@
               "notes": "Catalog language, not a parsing culture."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Target PDF/A-3b",
+          "description": "Requests the PDF/A-3b profile for an archive copy.",
+          "code": "New-OfficePdf -Path .\\Archive.pdf {\n    PdfCompliance PdfA3B\n    PdfHeading 'Archived report'\n}"
+        },
+        {
+          "title": "Create an accessible report and check it",
+          "description": "Applies PDF/UA groundwork with a document language, then checks readiness of the saved file.",
+          "code": "$services = @(\n    [pscustomobject]@{ Service = 'Identity'; Owner = 'Platform'; Availability = 99.98; Incidents = 0; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'Mail'; Owner = 'Messaging'; Availability = 99.71; Incidents = 2; Status = 'Watch' }\n    [pscustomobject]@{ Service = 'File shares'; Owner = 'Infrastructure'; Availability = 99.95; Incidents = 1; Status = 'Healthy' }\n    [pscustomobject]@{ Service = 'VPN'; Owner = 'Network'; Availability = 98.90; Incidents = 4; Status = 'At risk' }\n)\nNew-OfficePdf -Path .\\Reports\\Accessible-Review.pdf {\n    PdfCompliance PdfUa1 -Groundwork -Language 'en-US'\n    PdfMetadata -Title 'Service review'\n    PdfHeading 'Service review'\n    PdfTable -InputObject $services\n}\nGet-OfficePdfCompliance -Path .\\Reports\\Accessible-Review.pdf -Profile PdfUa1"
         }
       ]
     },
@@ -4237,7 +4656,19 @@
           ]
         }
       ],
-      "notes": "Content block takes PdfText runs (link parameters rejected on a canvas); replaces -Run/-Runs. -Left/-Top aliases removed."
+      "notes": "Content block takes PdfText runs (link parameters rejected on a canvas); replaces -Run/-Runs. -Left/-Top aliases removed.",
+      "examples": [
+        {
+          "title": "Write text at a fixed position",
+          "description": "Prints a review label near the bottom-left corner of every page of an existing PDF.",
+          "code": "Add-OfficePdfStamp -Path .\\Report.pdf -OutputPath .\\Report-Review.pdf -Content {\n    PdfCanvasText 'Review copy' -X 1.25cm -Y 1cm -Size 9pt -Color TextMuted\n}"
+        },
+        {
+          "title": "Stamp a styled page label",
+          "description": "Uses the page context from the canvas callback to print an owner label and the page position on the first and last pages.",
+          "code": "Add-OfficePdfStamp -Path .\\Reports\\Q3-Sales.pdf -OutputPath .\\Reports\\Q3-Sales-Labeled.pdf -Page '1,last' -Content {\n    param($canvas, $page)\n    PdfCanvasText -X 1.25cm -Y 1cm -Width 12cm {\n        PdfText 'Owner: ' -Bold\n        PdfText 'Sales operations' -Color Accent1\n        PdfText \" - page $($page.PageNumber) of $($page.PageCount)\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficePdfStamp",
@@ -5026,7 +5457,29 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Merges Add-OfficePdfCanvas and Add-OfficePdfPageOverlay. Each variant also binds -LiteralPath (omitted here to keep the list readable: TextLiteralPath, ImageLiteralPath, ...). Document sets return the stamped PdfDocument (immutable pipeline). Not a DSL command, so the PdfStamp alias is removed; inside Open-OfficePdf -Document binds implicitly."
+      "notes": "Merges Add-OfficePdfCanvas and Add-OfficePdfPageOverlay. Each variant also binds -LiteralPath (omitted here to keep the list readable: TextLiteralPath, ImageLiteralPath, ...). Document sets return the stamped PdfDocument (immutable pipeline). Not a DSL command, so the PdfStamp alias is removed; inside Open-OfficePdf -Document binds implicitly.",
+      "examples": [
+        {
+          "title": "Stamp text on every page",
+          "description": "Writes a copy of the PDF with REVIEWED across each page.",
+          "code": "Add-OfficePdfStamp -Path .\\Report.pdf -OutputPath .\\Report-Reviewed.pdf -Text 'REVIEWED'"
+        },
+        {
+          "title": "Place a logo on selected pages",
+          "description": "Adds a small logo in the top-right corner of the first two pages only.",
+          "code": "Add-OfficePdfStamp -Path .\\Proposals\\Contoso-Proposal.pdf -OutputPath .\\Proposals\\Contoso-Proposal-Branded.pdf -ImagePath .\\Branding\\Logo.png -Width 2.5cm -Page '1-2' -X 17cm -Y 27cm"
+        },
+        {
+          "title": "Underlay a letterhead page",
+          "description": "Places page 1 of a letterhead PDF behind every page of a generated letter.",
+          "code": "Add-OfficePdfStamp -Path .\\Letters\\Renewal-Notice.pdf -OutputPath .\\Letters\\Renewal-Notice-Letterhead.pdf -OverlayPath .\\Branding\\Letterhead.pdf -OverlayPage 1 -Fit Cover -Behind"
+        },
+        {
+          "title": "Draw on a canvas for each page",
+          "description": "Runs a canvas callback per page to write a footer label with the page number into a document that has none.",
+          "code": "Add-OfficePdfStamp -Path .\\Scans\\Delivery-Notes.pdf -OutputPath .\\Scans\\Delivery-Notes-Numbered.pdf -Content {\n    param($canvas, $page)\n    PdfCanvasText \"Delivery notes - $($page.PageNumber)/$($page.PageCount)\" -X 1.25cm -Y 1cm -Size 9pt\n}"
+        }
+      ]
     },
     {
       "name": "Copy-OfficePdfPage",
@@ -5167,7 +5620,19 @@
           ]
         }
       ],
-      "shouldProcess": true
+      "shouldProcess": true,
+      "examples": [
+        {
+          "title": "Extract pages into a new file",
+          "description": "Copies pages 1 to 3 into a new PDF.",
+          "code": "Copy-OfficePdfPage -Path .\\Report.pdf -OutputPath .\\Summary.pdf -Page '1-3'"
+        },
+        {
+          "title": "Build an executive extract",
+          "description": "Copies the summary pages and the last page of each board pack into an extract and reports the page count.",
+          "code": "Get-ChildItem -Path .\\BoardPacks -Filter '*.pdf' | ForEach-Object {\n    $extract = Join-Path -Path .\\Extracts -ChildPath \"$($_.BaseName)-Executive.pdf\"\n    Copy-OfficePdfPage -LiteralPath $_.FullName -OutputPath $extract -Page '1-2,last' -PassThru\n} | ForEach-Object {\n    Get-OfficeDocumentInfo -Path $_.FullName | Select-Object Path, PageCount\n}"
+        }
+      ]
     },
     {
       "name": "Move-OfficePdfPage",
@@ -5329,7 +5794,19 @@
           ]
         }
       ],
-      "shouldProcess": true
+      "shouldProcess": true,
+      "examples": [
+        {
+          "title": "Move a page",
+          "description": "Moves page 5 so it comes before page 2.",
+          "code": "Move-OfficePdfPage -Path .\\Report.pdf -OutputPath .\\Report-Reordered.pdf -Page 5 -BeforePage 2"
+        },
+        {
+          "title": "Put the appendix after the summary",
+          "description": "Moves a block of appendix pages up front in a live document, then saves it under a new name.",
+          "code": "$pdf = Open-OfficePdf -Path .\\Audit\\Security-Audit.pdf\n$pdf = Move-OfficePdfPage -Document $pdf -Page '9-11' -BeforePage 3\nSave-OfficePdf -Document $pdf -Path .\\Audit\\Security-Audit-Reordered.pdf"
+        }
+      ]
     },
     {
       "name": "Remove-OfficePdfPage",
@@ -5470,7 +5947,19 @@
           ]
         }
       ],
-      "shouldProcess": true
+      "shouldProcess": true,
+      "examples": [
+        {
+          "title": "Remove a page",
+          "description": "Writes a copy without the blank last page.",
+          "code": "Remove-OfficePdfPage -Path .\\Scan.pdf -OutputPath .\\Scan-Clean.pdf -Page last"
+        },
+        {
+          "title": "Drop internal pages before sharing",
+          "description": "Removes the internal notes pages from a customer proposal, previewing the change first with -WhatIf.",
+          "code": "$params = @{\n    Path       = '.\\Proposals\\Contoso-Proposal.pdf'\n    OutputPath = '.\\Proposals\\Contoso-Proposal-Customer.pdf'\n    Page       = '4-5,12'\n}\nRemove-OfficePdfPage @params -WhatIf\nRemove-OfficePdfPage @params"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfPage",
@@ -5828,7 +6317,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-Left/-Bottom/-Right/-Top become -Box* to avoid reading as margins; -Landscape becomes -Orientation."
+      "notes": "-Left/-Bottom/-Right/-Top become -Box* to avoid reading as margins; -Landscape becomes -Orientation.",
+      "examples": [
+        {
+          "title": "Rotate scanned pages",
+          "description": "Rotates pages 2 and 4 by 90 degrees.",
+          "code": "Set-OfficePdfPage -Path .\\Scan.pdf -OutputPath .\\Scan-Rotated.pdf -Page '2,4' -Rotation 90"
+        },
+        {
+          "title": "Normalize mixed page sizes to A4",
+          "description": "Resizes every page of a merged contract bundle to A4 portrait, fitting content inside a 1 cm margin.",
+          "code": "Set-OfficePdfPage -Path .\\Contracts\\Bundle.pdf -OutputPath .\\Contracts\\Bundle-A4.pdf -PageSize A4 -Orientation Portrait -ResizeMode Fit -ResizeMargin 1cm"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfAnnotation",
@@ -5973,6 +6474,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List annotations",
+          "description": "Lists every annotation with its page, subtype and object number.",
+          "code": "Get-OfficePdfAnnotation -Path .\\Reviewed.pdf"
+        },
+        {
+          "title": "Find external links before publishing",
+          "description": "Lists link annotations that carry an action, with their page and action type, for review before a PDF is published.",
+          "code": "Get-OfficePdfAnnotation -Path .\\Publications\\Annual-Report.pdf -Subtype Link -WithAction |\n    Select-Object PageNumber, ObjectNumber, ActionType |\n    Format-Table -AutoSize"
         }
       ]
     },
@@ -6224,7 +6737,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-PassThru returns PdfAnnotationEditResult (replaces -PassThruReport)."
+      "notes": "-PassThru returns PdfAnnotationEditResult (replaces -PassThruReport).",
+      "examples": [
+        {
+          "title": "Change an annotation comment",
+          "description": "Updates the text of annotation object 42.",
+          "code": "Set-OfficePdfAnnotation -Path .\\Reviewed.pdf -OutputPath .\\Reviewed-Updated.pdf -ObjectNumber 42 -Contents 'Resolved in version 3.'"
+        },
+        {
+          "title": "Neutralize risky link actions",
+          "description": "Finds annotations that launch programs or run JavaScript and removes those actions in a live document before saving a safe copy.",
+          "code": "$pdf = Open-OfficePdf -Path .\\Inbound\\Supplier-Catalog.pdf\n$links = Get-OfficePdfAnnotation -Document $pdf -WithAction |\n    Where-Object ActionType -in 'Launch', 'JavaScript'\nforeach ($link in $links) {\n    $pdf = Set-OfficePdfAnnotation -Document $pdf -ObjectNumber $link.ObjectNumber -RemoveAction\n}\nSave-OfficePdf -Document $pdf -Path .\\Inbound\\Supplier-Catalog-Safe.pdf"
+        }
+      ]
     },
     {
       "name": "Remove-OfficePdfAnnotation",
@@ -6420,7 +6945,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-PassThru returns PdfAnnotationEditResult (replaces -PassThruReport)."
+      "notes": "-PassThru returns PdfAnnotationEditResult (replaces -PassThruReport).",
+      "examples": [
+        {
+          "title": "Remove review comments",
+          "description": "Writes a copy without sticky-note (Text) annotations.",
+          "code": "Remove-OfficePdfAnnotation -Path .\\Reviewed.pdf -OutputPath .\\Clean.pdf -Subtype Text"
+        },
+        {
+          "title": "Clean a page and report what changed",
+          "description": "Removes all annotations from the cover page of a contract and returns the edit result for the change log.",
+          "code": "$result = Remove-OfficePdfAnnotation -Path .\\Contracts\\MSA-Contoso.pdf -OutputPath .\\Contracts\\MSA-Contoso-Clean.pdf -Page 1 -PassThru\n$result.AffectedAnnotationCount"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfFormField",
@@ -6532,6 +7069,18 @@
               "notes": "Wildcards supported."
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List form fields",
+          "description": "Shows the name, type and value of every AcroForm field.",
+          "code": "Get-OfficePdfFormField -Path .\\Forms\\Access-Request.pdf"
+        },
+        {
+          "title": "Collect answers from submitted forms",
+          "description": "Reads the same fields from every returned form and exports one row per form to Excel.",
+          "code": "Get-ChildItem -Path .\\Forms\\Returned -Filter '*.pdf' | ForEach-Object {\n    $fields = @{}\n    Get-OfficePdfFormField -LiteralPath $_.FullName | ForEach-Object { $fields[$_.Name] = $_.Value }\n    [pscustomobject]@{\n        File        = $_.Name\n        Requester   = $fields['Requester']\n        System      = $fields['System']\n        AccessLevel = $fields['AccessLevel']\n        Approved    = $fields['Approved']\n    }\n} | Export-OfficeExcel -Path .\\Forms\\Access-Requests.xlsx"
         }
       ]
     },
@@ -6768,7 +7317,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Renamed from Set-OfficePdfForm so the noun matches Get-/Add-OfficePdfFormField."
+      "notes": "Renamed from Set-OfficePdfForm so the noun matches Get-/Add-OfficePdfFormField.",
+      "examples": [
+        {
+          "title": "Fill a form",
+          "description": "Writes a filled copy of the form from a hashtable of field names and values.",
+          "code": "Set-OfficePdfFormField -Path .\\Forms\\Access-Request.pdf -OutputPath .\\Forms\\Access-Request-Ada.pdf -Value @{ Requester = 'Ada Lovelace'; System = 'ERP' }"
+        },
+        {
+          "title": "Generate a flattened form per employee",
+          "description": "Fills one copy of an onboarding form for each new hire from a CSV and flattens it so the values can no longer be edited.",
+          "code": "Import-Csv -Path .\\HR\\New-Hires.csv | ForEach-Object {\n    $values = @{\n        FullName   = $_.Name\n        Department = $_.Department\n        StartDate  = $_.StartDate\n        Laptop     = $true\n    }\n    Set-OfficePdfFormField -Path .\\HR\\Onboarding-Form.pdf -OutputPath \".\\HR\\Onboarding\\$($_.EmployeeId).pdf\" -Value $values -Flatten\n}"
+        }
+      ]
     },
     {
       "name": "Import-OfficePdfXfdf",
@@ -6979,7 +7540,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "LiteralPath variants of the two Path sets are implied. -MaxXfdfBytes -> -MaxXfdfSize. The old -Path aliases FullName/LiteralPath move to the real -LiteralPath parameter."
+      "notes": "LiteralPath variants of the two Path sets are implied. -MaxXfdfBytes -> -MaxXfdfSize. The old -Path aliases FullName/LiteralPath move to the real -LiteralPath parameter.",
+      "examples": [
+        {
+          "title": "Fill a form from an XFDF file",
+          "description": "Applies the field values in an XFDF file and writes a filled copy.",
+          "code": "Import-OfficePdfXfdf -Path .\\Forms\\Access-Request.pdf -XfdfPath .\\Forms\\Access-Request.xfdf -OutputPath .\\Forms\\Access-Request-Filled.pdf"
+        },
+        {
+          "title": "Copy answers between form versions",
+          "description": "Exports the values from last year's form and imports them into this year's version of the same form.",
+          "code": "$xfdf = Export-OfficePdfXfdf -Path .\\Forms\\Vendor-Assessment-2025-Contoso.pdf\n$xfdf | Import-OfficePdfXfdf -Path .\\Forms\\Vendor-Assessment-2026.pdf -OutputPath .\\Forms\\Vendor-Assessment-2026-Contoso.pdf"
+        }
+      ]
     },
     {
       "name": "Export-OfficePdfXfdf",
@@ -7121,7 +7694,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Without -OutputPath returns the XFDF string. -ReadOptions -> -LoadOptions."
+      "notes": "Without -OutputPath returns the XFDF string. -ReadOptions -> -LoadOptions.",
+      "examples": [
+        {
+          "title": "Get form values as XFDF",
+          "description": "Returns the form field values as an XFDF string.",
+          "code": "Export-OfficePdfXfdf -Path .\\Forms\\Access-Request-Ada.pdf"
+        },
+        {
+          "title": "Archive answers next to each form",
+          "description": "Saves an XFDF file for each submitted form without overwriting earlier exports.",
+          "code": "Get-ChildItem -Path .\\Forms\\Returned -Filter '*.pdf' | ForEach-Object {\n    $xfdfPath = [System.IO.Path]::ChangeExtension($_.FullName, '.xfdf')\n    Export-OfficePdfXfdf -LiteralPath $_.FullName -OutputPath $xfdfPath -NoClobber\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfAttachment",
@@ -7269,7 +7854,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "ShouldProcess applies when -OutputDirectory is given."
+      "notes": "ShouldProcess applies when -OutputDirectory is given.",
+      "examples": [
+        {
+          "title": "List embedded files",
+          "description": "Lists the files embedded in a PDF.",
+          "code": "Get-OfficePdfAttachment -Path .\\Reports\\Q3-Sales.pdf"
+        },
+        {
+          "title": "Extract the source data",
+          "description": "Saves one named attachment to a folder and loads it back as objects.",
+          "code": "Get-OfficePdfAttachment -Path .\\Reports\\Q3-Sales.pdf -Name 'q3-sales.json' -OutputDirectory .\\Extracted -NoClobber\nGet-Content -Path .\\Extracted\\q3-sales.json -Raw | ConvertFrom-Json"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfImage",
@@ -7435,7 +8032,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Resource extraction, not page rendering (that is Export-OfficeDocumentImage). ShouldProcess applies when -OutputDirectory is given."
+      "notes": "Resource extraction, not page rendering (that is Export-OfficeDocumentImage). ShouldProcess applies when -OutputDirectory is given.",
+      "examples": [
+        {
+          "title": "List images",
+          "description": "Lists the image resources used on each page.",
+          "code": "Get-OfficePdfImage -Path .\\Brochure.pdf"
+        },
+        {
+          "title": "Extract product photos",
+          "description": "Saves the images from the catalog pages to a folder with a common file name prefix.",
+          "code": "Get-OfficePdfImage -Path .\\Marketing\\Catalog-2026.pdf -Page '3-18' -OutputDirectory .\\Marketing\\Photos -BaseName 'catalog-2026'"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfFont",
@@ -7562,6 +8171,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List fonts",
+          "description": "Shows each font with its embedding and ToUnicode status.",
+          "code": "Get-OfficePdfFont -Path .\\Report.pdf"
+        },
+        {
+          "title": "Find PDFs whose text may not extract",
+          "description": "Checks a folder for fonts that need review, such as missing ToUnicode maps, before indexing the files for search.",
+          "code": "Get-ChildItem -Path .\\Archive -Filter '*.pdf' | ForEach-Object {\n    $file = $_\n    Get-OfficePdfFont -LiteralPath $file.FullName -NeedsReview |\n        Select-Object @{ Name = 'File'; Expression = { $file.Name } }, BaseFont, HasToUnicodeMap, HasEmbeddedFontFile\n}"
         }
       ]
     },
@@ -7872,7 +8493,24 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the action/sanitization result (replaces -PassThruReport; Sanitized always returned it). Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization."
+      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the action/sanitization result (replaces -PassThruReport; Sanitized always returned it). Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization.",
+      "examples": [
+        {
+          "title": "Make a PDF smaller",
+          "description": "Writes a losslessly compressed copy of a large report.",
+          "code": "Optimize-OfficePdf -Path .\\Reports\\Annual-Report.pdf -OutputPath .\\Reports\\Annual-Report-Small.pdf"
+        },
+        {
+          "title": "Sanitize files from outside",
+          "description": "Removes active content such as JavaScript and launch actions from an inbound PDF and returns the proof of what was removed.",
+          "code": "$result = Optimize-OfficePdf -Path .\\Inbound\\Supplier-Invoice-Scan.pdf -OutputPath .\\Inbound\\Safe\\Supplier-Invoice-Scan.pdf -Sanitize -PassThru\n$result"
+        },
+        {
+          "title": "Shrink an archive folder",
+          "description": "Optimizes every PDF in a folder into a separate output folder and lists the savings per file.",
+          "code": "$null = New-Item -Path .\\Archive\\Optimized -ItemType Directory -Force\nGet-ChildItem -Path .\\Archive -Filter '*.pdf' | ForEach-Object {\n    $output = Join-Path -Path .\\Archive\\Optimized -ChildPath $_.Name\n    $null = Optimize-OfficePdf -LiteralPath $_.FullName -OutputPath $output -NoClobber\n    [pscustomobject]@{\n        File     = $_.Name\n        BeforeKB = [math]::Round($_.Length / 1KB)\n        AfterKB  = [math]::Round((Get-Item -LiteralPath $output).Length / 1KB)\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Remove-OfficePdfContent",
@@ -8208,7 +8846,29 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces ConvertTo-OfficePdfRedacted (G8). Passwords, encryption and permissions of existing PDFs are Protect-OfficeDocument. The Rectangle set is the single-area shorthand of the Area set. LiteralPath variants implied for every set."
+      "notes": "Replaces ConvertTo-OfficePdfRedacted (G8). Passwords, encryption and permissions of existing PDFs are Protect-OfficeDocument. The Rectangle set is the single-area shorthand of the Area set. LiteralPath variants implied for every set.",
+      "examples": [
+        {
+          "title": "Redact a phrase",
+          "description": "Permanently removes every occurrence of a client name and writes a redacted copy.",
+          "code": "Remove-OfficePdfContent -Path .\\Contracts\\MSA-Contoso.pdf -OutputPath .\\Contracts\\MSA-Redacted.pdf -Text 'Contoso Ltd'"
+        },
+        {
+          "title": "Redact personal data by pattern",
+          "description": "Previews matches for email addresses and IBANs, then removes them from an HR export with black boxes.",
+          "code": "$patterns = '[\\w.+-]+@[\\w-]+\\.[\\w.]+', '\\b[A-Z]{2}\\d{2}(?: ?[A-Z0-9]{4}){3,7}\\b'\nGet-OfficePdfRedactionPlan -Path .\\HR\\Payroll-Export.pdf -Pattern $patterns\nRemove-OfficePdfContent -Path .\\HR\\Payroll-Export.pdf -OutputPath .\\HR\\Payroll-Export-Redacted.pdf -Pattern $patterns -FillColor '#000000'"
+        },
+        {
+          "title": "Redact a signature area",
+          "description": "Removes everything inside a rectangle on page 3, measured in points from the bottom-left corner of the page.",
+          "code": "Remove-OfficePdfContent -Path .\\Contracts\\Signed-NDA.pdf -OutputPath .\\Contracts\\Signed-NDA-Shareable.pdf -Page 3 -X 72 -Y 90 -Width 240 -Height 60 -Label 'Signature'"
+        },
+        {
+          "title": "Redact several areas at once",
+          "description": "Passes a list of areas, such as the address block on every page of a statement, in one pass.",
+          "code": "$areas = 1..4 | ForEach-Object { [OfficeIMO.Pdf.PdfRedactionArea]::new($_, 56, 700, 220, 60, 'Address') }\nRemove-OfficePdfContent -Path .\\Statements\\Statement-2026-09.pdf -OutputPath .\\Statements\\Statement-2026-09-Redacted.pdf -Area $areas"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfRedactionPlan",
@@ -8423,7 +9083,19 @@
           ]
         }
       ],
-      "notes": "Parameter sets and names match Remove-OfficePdfContent so a plan can be reviewed, then applied with the same arguments. LiteralPath variants implied."
+      "notes": "Parameter sets and names match Remove-OfficePdfContent so a plan can be reviewed, then applied with the same arguments. LiteralPath variants implied.",
+      "examples": [
+        {
+          "title": "Preview a text redaction",
+          "description": "Shows where a phrase occurs without changing the file.",
+          "code": "Get-OfficePdfRedactionPlan -Path .\\Contracts\\MSA-Contoso.pdf -Text 'Contoso Ltd'"
+        },
+        {
+          "title": "Review, then apply with the same arguments",
+          "description": "Builds the arguments once, checks the plan finds matches, and only then redacts.",
+          "code": "$redaction = @{\n    Path    = '.\\Legal\\Discovery-Batch-07.pdf'\n    Pattern = '\\b\\d{3}-\\d{2}-\\d{4}\\b'\n}\n$plan = Get-OfficePdfRedactionPlan @redaction\n$plan\nif ($plan) {\n    Remove-OfficePdfContent @redaction -OutputPath .\\Legal\\Discovery-Batch-07-Redacted.pdf\n}"
+        }
+      ]
     },
     {
       "name": "Update-OfficePdf",
@@ -8582,7 +9254,24 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces ConvertTo-OfficePdfFlatForm, ConvertTo-OfficePdfFlatAnnotation and ConvertTo-OfficePdfSearchable. At least one of -FlattenForm/-FlattenAnnotation is required in the Flatten set. -Force on Searchable becomes default replace with -NoClobber. LiteralPath variants implied."
+      "notes": "Replaces ConvertTo-OfficePdfFlatForm, ConvertTo-OfficePdfFlatAnnotation and ConvertTo-OfficePdfSearchable. At least one of -FlattenForm/-FlattenAnnotation is required in the Flatten set. -Force on Searchable becomes default replace with -NoClobber. LiteralPath variants implied.",
+      "examples": [
+        {
+          "title": "Flatten a filled form",
+          "description": "Turns form fields into ordinary page content so the values cannot be changed.",
+          "code": "Update-OfficePdf -Path .\\Forms\\Access-Request-Ada.pdf -OutputPath .\\Forms\\Access-Request-Ada-Final.pdf -FlattenForm"
+        },
+        {
+          "title": "Finalize a reviewed contract",
+          "description": "Flattens both the form fields and the reviewer annotations of a contract before it goes to the customer.",
+          "code": "Update-OfficePdf -Path .\\Contracts\\MSA-Contoso-Reviewed.pdf -OutputPath .\\Contracts\\MSA-Contoso-Final.pdf -FlattenForm -FlattenAnnotation -NoClobber"
+        },
+        {
+          "title": "Make scans searchable",
+          "description": "Adds an OCR text layer in English and Polish to each scanned PDF so the files can be searched and indexed.",
+          "code": "$ocr = New-OfficeOcrOptions -Language English, Polish\n$null = New-Item -Path .\\Scans\\Searchable -ItemType Directory -Force\nGet-ChildItem -Path .\\Scans -Filter '*.pdf' | ForEach-Object {\n    $output = Join-Path -Path .\\Scans\\Searchable -ChildPath $_.Name\n    Update-OfficePdf -Path $_.FullName -OutputPath $output -Searchable -OcrOptions $ocr -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfSignature",
@@ -8786,7 +9475,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-PassThru returns PdfExternalSignaturePreparation (replaces -PassThruReport); the digest/byte range is what the external signer needs."
+      "notes": "-PassThru returns PdfExternalSignaturePreparation (replaces -PassThruReport); the digest/byte range is what the external signer needs.",
+      "examples": [
+        {
+          "title": "Prepare a signature field",
+          "description": "Writes a copy with an empty signature field and reserved space for an external signer.",
+          "code": "New-OfficePdfSignature -Path .\\Contracts\\MSA-Contoso.pdf -OutputPath .\\Contracts\\MSA-Contoso-Prepared.pdf -FieldName 'Approval'"
+        },
+        {
+          "title": "Hand the digest to an external signer",
+          "description": "Prepares a CAdES signature with signer details and returns the preparation whose byte range and digest go to the HSM or signing service.",
+          "code": "$params = @{\n    Path       = '.\\Contracts\\MSA-Contoso.pdf'\n    OutputPath = '.\\Contracts\\MSA-Contoso-Prepared.pdf'\n    FieldName  = 'CfoApproval'\n    SubFilter  = 'CadesDetached'\n    Name       = 'Jordan Smith'\n    Reason     = 'Approved for signature'\n    Location   = 'Warsaw'\n    PassThru   = $true\n}\n$preparation = New-OfficePdfSignature @params\n$preparation.ComputeSha256Digest()"
+        }
+      ]
     },
     {
       "name": "Set-OfficePdfSignature",
@@ -8904,7 +9605,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-PassThru returns PdfSignatureValidationReport (replaces -PassThruReport)."
+      "notes": "-PassThru returns PdfSignatureValidationReport (replaces -PassThruReport).",
+      "examples": [
+        {
+          "title": "Insert the signature bytes",
+          "description": "Writes the CMS signature returned by the signer into the prepared placeholder.",
+          "code": "Set-OfficePdfSignature -Path .\\Contracts\\MSA-Contoso-Prepared.pdf -SignaturePath .\\Contracts\\MSA-Contoso.p7s -OutputPath .\\Contracts\\MSA-Contoso-Signed.pdf"
+        },
+        {
+          "title": "Sign and verify in one step",
+          "description": "Injects the signature and checks the returned validation report before the contract is sent.",
+          "code": "$report = Set-OfficePdfSignature -Path .\\Contracts\\MSA-Contoso-Prepared.pdf -SignaturePath .\\Contracts\\MSA-Contoso.p7s -OutputPath .\\Contracts\\MSA-Contoso-Signed.pdf -PassThru\n$report.Signatures\n$report.Findings"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfSignature",
@@ -8995,6 +9708,18 @@
               "pipeline": "value"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Inspect signatures",
+          "description": "Reports the signature fields, byte ranges and validation findings of a signed PDF.",
+          "code": "Get-OfficePdfSignature -Path .\\Contracts\\MSA-Contoso-Signed.pdf"
+        },
+        {
+          "title": "Audit signed contracts",
+          "description": "Checks every signed contract in a folder and lists the files that have findings to follow up.",
+          "code": "Get-ChildItem -Path .\\Contracts -Filter '*-Signed.pdf' | ForEach-Object {\n    $report = Get-OfficePdfSignature -LiteralPath $_.FullName\n    if ($report.Findings) {\n        [pscustomobject]@{ File = $_.Name; Findings = $report.Findings.Count }\n    }\n}"
         }
       ]
     },
@@ -9128,7 +9853,24 @@
           ]
         }
       ],
-      "notes": "One diagnostic command replaces Get-OfficePdfDiagnostic, Get-OfficePdfPreflight, Get-OfficePdfAppendOnlyMutation, Get-OfficePdfOptimization and Get-OfficePdfTextDiagnostic (rule 2: diagnostic concepts in one command). Each -Type returns the existing report type unchanged."
+      "notes": "One diagnostic command replaces Get-OfficePdfDiagnostic, Get-OfficePdfPreflight, Get-OfficePdfAppendOnlyMutation, Get-OfficePdfOptimization and Get-OfficePdfTextDiagnostic (rule 2: diagnostic concepts in one command). Each -Type returns the existing report type unchanged.",
+      "examples": [
+        {
+          "title": "Check a PDF's structure",
+          "description": "Reports the structure of a PDF and any blockers found.",
+          "code": "Get-OfficePdfDiagnostic -Path .\\Report.pdf"
+        },
+        {
+          "title": "Check files before a batch edit",
+          "description": "Runs the read/rewrite preflight on each file and keeps only those that can be rewritten safely.",
+          "code": "$ready = Get-ChildItem -Path .\\Inbound -Filter '*.pdf' | Where-Object {\n    $preflight = Get-OfficePdfDiagnostic -LiteralPath $_.FullName -Type Preflight\n    -not $preflight.HasRewriteBlockers\n}\n$ready | Select-Object Name, Length"
+        },
+        {
+          "title": "Check how text will render",
+          "description": "Reports encoding and shaping for right-to-left text before it is written with a specific font.",
+          "code": "Get-OfficePdfDiagnostic -Text 'مرحبا بالعالم' -FontPath .\\Fonts\\NotoNaskhArabic-Regular.ttf -AdvancedLayout"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfCompliance",
@@ -9455,7 +10197,19 @@
           ]
         }
       ],
-      "notes": "External* parameters require -Proof; the implementation splits each input set into readiness and proof variants so this is enforced by binding."
+      "notes": "External* parameters require -Proof; the implementation splits each input set into readiness and proof variants so this is enforced by binding.",
+      "examples": [
+        {
+          "title": "Check PDF/A readiness",
+          "description": "Reports what stands between a file and the PDF/A-3b profile.",
+          "code": "Get-OfficePdfCompliance -Path .\\Archive\\Report.pdf -Profile PdfA3B"
+        },
+        {
+          "title": "Record external validator evidence",
+          "description": "Builds a proof report for an archive file that includes the result of a veraPDF run.",
+          "code": "$params = @{\n    Path                     = '.\\Archive\\Report.pdf'\n    Profile                  = 'PdfA3B'\n    Proof                    = $true\n    ExternalValidator        = 'VeraPdf'\n    ExternalValidatorName    = 'veraPDF'\n    ExternalValidatorVersion = '1.28.1'\n    ExternalExitCode         = 0\n}\nGet-OfficePdfCompliance @params"
+        }
+      ]
     },
     {
       "name": "Get-OfficePdfInteractionMap",
@@ -9583,6 +10337,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Map a page",
+          "description": "Returns text-selection and link hit regions for page 1.",
+          "code": "Get-OfficePdfInteractionMap -Path .\\Report.pdf -Page 1"
+        },
+        {
+          "title": "Find clickable areas in a viewer",
+          "description": "Builds the hit regions for every page of a live document so a custom viewer can highlight links and form widgets.",
+          "code": "$pdf = Open-OfficePdf -Path .\\Manuals\\Installation-Guide.pdf\n$pageCount = (Get-OfficeDocumentInfo -Document $pdf).PageCount\n$maps = foreach ($page in 1..$pageCount) {\n    Get-OfficePdfInteractionMap -Document $pdf -Page $page\n}\nClose-OfficePdf -Document $pdf\n$maps | ConvertTo-Json -Depth 6 | Set-Content -Path .\\Manuals\\Installation-Guide.map.json"
+        }
       ]
     },
     {
@@ -9650,7 +10416,19 @@
           ]
         }
       ],
-      "notes": "Never changes a file. -FailOnLoss is the design's loss control."
+      "notes": "Never changes a file. -FailOnLoss is the design's loss control.",
+      "examples": [
+        {
+          "title": "Compare a rewrite with its original",
+          "description": "Reports which visible signals, such as text, links and form fields, the optimized copy kept.",
+          "code": "Test-OfficePdfRewrite -ReferencePath .\\Report.pdf -DifferencePath .\\Report-Small.pdf"
+        },
+        {
+          "title": "Fail a pipeline when an edit loses content",
+          "description": "Optimizes a file and stops with an error if the result dropped anything a reader would notice.",
+          "code": "Optimize-OfficePdf -Path .\\Publications\\Annual-Report.pdf -OutputPath .\\Publications\\Annual-Report-Web.pdf\nTest-OfficePdfRewrite -ReferencePath .\\Publications\\Annual-Report.pdf -DifferencePath .\\Publications\\Annual-Report-Web.pdf -FailOnLoss -ErrorAction Stop"
+        }
+      ]
     },
     {
       "name": "Export-OfficePdfLayoutOverlay",
@@ -9828,7 +10606,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Kept separate from Export-OfficeDocumentImage: it renders extraction diagnostics, not the page. -OutputPath is a file, never a folder."
+      "notes": "Kept separate from Export-OfficeDocumentImage: it renders extraction diagnostics, not the page. -OutputPath is a file, never a folder.",
+      "examples": [
+        {
+          "title": "Visualize the text layout of a page",
+          "description": "Renders word, line and region boxes for page 1 as an SVG.",
+          "code": "Export-OfficePdfLayoutOverlay -Path .\\Report.pdf -OutputPath .\\Report-Page1-Layout.svg -Page 1 -Format Svg"
+        },
+        {
+          "title": "Debug table extraction",
+          "description": "Renders reading-order diagnostics for a statement page at double scale as PNG to see why columns are read out of order.",
+          "code": "Export-OfficePdfLayoutOverlay -Path .\\Statements\\Statement-2026-09.pdf -OutputPath .\\Debug\\Statement-Page2.png -Page 2 -Format Png -Scale 2 -PassThru"
+        }
+      ]
     },
     {
       "name": "Send-OfficePdfPrinter",
@@ -10028,7 +10818,19 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Requires PowerShell 7.4+. Get-OfficePrinter (queue discovery) is in the cross-format slice."
+      "notes": "Requires PowerShell 7.4+. Get-OfficePrinter (queue discovery) is in the cross-format slice.",
+      "examples": [
+        {
+          "title": "Print a PDF",
+          "description": "Sends a PDF to a named printer queue.",
+          "code": "Send-OfficePdfPrinter -Path .\\Report.pdf -PrinterName 'Finance-HP-4th-Floor'"
+        },
+        {
+          "title": "Print handouts double-sided",
+          "description": "Prints the first ten pages two to a sheet, double-sided, in three copies on the default printer.",
+          "code": "$printer = Get-OfficePrinter | Where-Object IsDefault | Select-Object -First 1\nSend-OfficePdfPrinter -Path .\\Training\\Security-Awareness.pdf -PrinterName $printer.Name -Page '1-10' -PagesPerSheet 2 -Duplex LongEdge -Copies 3"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfImageOptions",
@@ -10126,6 +10928,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Render thumbnails",
+          "description": "Creates options that limit rendered pages to 320 pixels on the longest side.",
+          "code": "$options = New-OfficePdfImageOptions -ThumbnailMaxDimension 320"
+        },
+        {
+          "title": "Render print-quality page images",
+          "description": "Renders pages at 300 DPI on a white background with a timeout, for a document management preview.",
+          "code": "$options = New-OfficePdfImageOptions -TargetDpi 300 -BackgroundColor White -RenderTimeoutSeconds 60\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Sales.pdf -OutputDirectory .\\Previews\\Q3-Sales -Format Png -Options $options"
         }
       ]
     },
@@ -10240,7 +11054,19 @@
           ]
         }
       ],
-      "notes": "On-by-default features become -No{Feature} switches; confirm actual library defaults when implementing (the current cmdlet exposes them as switches that set true)."
+      "notes": "On-by-default features become -No{Feature} switches; confirm actual library defaults when implementing (the current cmdlet exposes them as switches that set true).",
+      "examples": [
+        {
+          "title": "Create PDF-to-Excel options",
+          "description": "Creates options that prefix each sheet name with Table.",
+          "code": "$options = New-OfficePdfExcelOptions -SheetNamePrefix 'Table'"
+        },
+        {
+          "title": "Rebuild statement tables in Excel",
+          "description": "Converts the tables of a bank statement to a workbook with a table style, merging tables that continue across pages.",
+          "code": "$options = New-OfficePdfExcelOptions -SheetNamePrefix 'Statement' -TableStyle TableStyleMedium2 -Culture 'en-GB'\nConvert-OfficeDocument -Path .\\Statements\\Statement-2026-09.pdf -To Excel -OutputPath .\\Statements\\Statement-2026-09.xlsx -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfWordOptions",
@@ -10394,7 +11220,19 @@
           ]
         }
       ],
-      "notes": "Import* switches that default on become -No*; verify each library default when implementing."
+      "notes": "Import* switches that default on become -No*; verify each library default when implementing.",
+      "examples": [
+        {
+          "title": "Create PDF-to-Word options",
+          "description": "Creates options that keep the page breaks of the PDF.",
+          "code": "$options = New-OfficePdfWordOptions -PreservePageBreaks"
+        },
+        {
+          "title": "Turn a PDF report into an editable document",
+          "description": "Rebuilds a report as Word with metadata, repeated table headers and tables fitted to the page width.",
+          "code": "$options = New-OfficePdfWordOptions -IncludeMetadata -RepeatHeaderRows -FitTablesToPageWidth -AlignNumericColumns\nConvert-OfficeDocument -Path .\\Reports\\Annual-Report.pdf -To Word -OutputPath .\\Reports\\Annual-Report.docx -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfPowerPointOptions",
@@ -10529,6 +11367,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Create PDF-to-PowerPoint options",
+          "description": "Creates options that convert only the first five pages.",
+          "code": "$options = New-OfficePdfPowerPointOptions -Page '1-5'"
+        },
+        {
+          "title": "Turn a briefing PDF into slides",
+          "description": "Converts a briefing to a deck with banded tables and source page titles, limited to 20 pages.",
+          "code": "$options = New-OfficePdfPowerPointOptions -MaxPages 20 -IncludeSourceTitles -BandedRows -AlignNumericColumns\nConvert-OfficeDocument -Path .\\Briefings\\Board-Briefing.pdf -To PowerPoint -OutputPath .\\Briefings\\Board-Briefing.pptx -Options $options"
+        }
       ]
     },
     {
@@ -10605,7 +11455,19 @@
           ]
         }
       ],
-      "notes": "Carries the ConvertTo-OfficePdfHtml format switches so Convert-OfficeDocument stays format-neutral."
+      "notes": "Carries the ConvertTo-OfficePdfHtml format switches so Convert-OfficeDocument stays format-neutral.",
+      "examples": [
+        {
+          "title": "Create PDF-to-HTML options",
+          "description": "Creates options that produce an HTML fragment without page containers.",
+          "code": "$options = New-OfficePdfHtmlOptions -Fragment -NoPageContainers"
+        },
+        {
+          "title": "Publish a PDF on an intranet page",
+          "description": "Converts a policy PDF to an HTML fragment that keeps its links and can be pasted into a CMS page.",
+          "code": "$options = New-OfficePdfHtmlOptions -Fragment -IncludeLinkAnnotations -NoMetadata\nConvert-OfficeDocument -Path .\\Policies\\Remote-Work-Policy.pdf -To Html -OutputPath .\\Intranet\\remote-work-policy.html -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfReadOptions",
@@ -10664,7 +11526,19 @@
           ]
         }
       ],
-      "notes": "Exposes PdfReadOptions plus PDF authentication and load limits. Passed in -Options to Read-OfficeDocument, Get-OfficeDocumentInfo, Convert-OfficeDocument and Export-OfficeDocumentImage, which have no PDF-specific parameters of their own."
+      "notes": "Exposes PdfReadOptions plus PDF authentication and load limits. Passed in -Options to Read-OfficeDocument, Get-OfficeDocumentInfo, Convert-OfficeDocument and Export-OfficeDocumentImage, which have no PDF-specific parameters of their own.",
+      "examples": [
+        {
+          "title": "Read only some pages",
+          "description": "Creates read options for pages 1 to 3.",
+          "code": "$options = New-OfficePdfReadOptions -Page '1-3'"
+        },
+        {
+          "title": "Read a protected PDF quickly",
+          "description": "Uses the fast profile and a prompted password to extract the text of a protected statement for search indexing.",
+          "code": "$password = Read-Host -Prompt 'Statement password' -AsSecureString\n$options = New-OfficePdfReadOptions -Profile Fast -Password $password\nRead-OfficeDocument -Path .\\Statements\\Statement-2026-09.pdf -As Text -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficePdfVisualComparisonOptions",
@@ -10757,6 +11631,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Allow small rendering differences",
+          "description": "Creates options that tolerate antialiasing noise when comparing pages.",
+          "code": "$options = New-OfficePdfVisualComparisonOptions -ChannelTolerance 2 -AllowedDifferenceRatio 0.001"
+        },
+        {
+          "title": "Check a regenerated report against the approved one",
+          "description": "Compares the first 10 pages visually at double scale with a small tolerance and writes the comparison report for review.",
+          "code": "$options = New-OfficePdfVisualComparisonOptions -Scale 2 -ChannelTolerance 2 -AllowedDifferenceRatio 0.001 -MaxPages 10\nCompare-OfficeDocument -ReferencePath .\\Approved\\Q3-Sales.pdf -DifferencePath .\\Reports\\Q3-Sales.pdf -Visual -Options $options"
+        }
       ]
     },
     {
@@ -10821,7 +11707,19 @@
           ]
         }
       ],
-      "notes": "Carries the Join-OfficePdf page-normalization parameters."
+      "notes": "Carries the Join-OfficePdf page-normalization parameters.",
+      "examples": [
+        {
+          "title": "Merge onto A4 pages",
+          "description": "Creates merge options that resize every page to A4.",
+          "code": "$options = New-OfficePdfMergeOptions -PageSize A4"
+        },
+        {
+          "title": "Assemble a board pack",
+          "description": "Merges cover, reports and appendix into one A4 portrait pack with annotations flattened.",
+          "code": "$options = New-OfficePdfMergeOptions -PageSize A4 -Orientation Portrait -ResizeMode Fit -FlattenVisualAnnotations\n$parts = '.\\BoardPack\\Cover.pdf', '.\\BoardPack\\Finance.pdf', '.\\BoardPack\\Operations.pdf', '.\\BoardPack\\Appendix.pdf'\nMerge-OfficeDocument -Path $parts -OutputPath .\\BoardPack\\Q3-Board-Pack.pdf -Options $options -Show"
+        }
+      ]
     }
   ],
   "map": [

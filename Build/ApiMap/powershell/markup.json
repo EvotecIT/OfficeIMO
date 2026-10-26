@@ -129,7 +129,24 @@
           ]
         }
       ],
-      "notes": "Content set: -Path is required, the block runs and the file is saved (FileInfo with -PassThru). Live set: no block, -Path optional; returns the live MarkdownDocument for Save-OfficeMarkdown [-Path]. Refuses an existing file unless -Force. Markdown has no theme, so no -Theme."
+      "notes": "Content set: -Path is required, the block runs and the file is saved (FileInfo with -PassThru). Live set: no block, -Path optional; returns the live MarkdownDocument for Save-OfficeMarkdown [-Path]. Refuses an existing file unless -Force. Markdown has no theme, so no -Theme.",
+      "examples": [
+        {
+          "title": "Create a Markdown file",
+          "description": "Writes a heading and a paragraph to a new file and saves it when the block ends.",
+          "code": "New-OfficeMarkdown -Path .\\Notes.md {\n    MarkdownHeading 'Release notes'\n    MarkdownParagraph 'Version 2.4 is available on the internal feed.'\n}"
+        },
+        {
+          "title": "Publish a stopped-services report",
+          "description": "Builds a report with front matter, a summary and a table from Get-Service, replacing yesterday's file.",
+          "code": "$stopped = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName, StartType\nNew-OfficeMarkdown -Path .\\Reports\\Stopped-Services.md -Force {\n    MarkdownFrontMatter @{ title = 'Stopped services'; generated = (Get-Date -Format 'yyyy-MM-dd') }\n    MarkdownHeading 'Stopped services'\n    MarkdownParagraph \"$($stopped.Count) services are stopped on $env:COMPUTERNAME.\"\n    MarkdownTable -InputObject $stopped\n}"
+        },
+        {
+          "title": "Keep the document open and save it later",
+          "description": "Without a content block the live document is returned, so a script can add to it in steps and choose the file name at the end.",
+          "code": "$doc = New-OfficeMarkdown\nforeach ($server in 'web01', 'web02', 'sql01') {\n    Add-OfficeMarkdownHeading -Document $doc -Text $server -Level 2\n    Add-OfficeMarkdownParagraph -Document $doc -Text \"Last patched: $((Get-Date).ToString('yyyy-MM-dd'))\"\n}\nSave-OfficeMarkdown -Document $doc -Path .\\Reports\\Patching.md"
+        }
+      ]
     },
     {
       "name": "Open-OfficeMarkdown",
@@ -431,7 +448,24 @@
           ]
         }
       ],
-      "notes": "Path/LiteralPath with a content block saves back to the file when the block ends. The Text set only parses and returns the document (no file to save)."
+      "notes": "Path/LiteralPath with a content block saves back to the file when the block ends. The Text set only parses and returns the document (no file to save).",
+      "examples": [
+        {
+          "title": "Open a Markdown file",
+          "description": "Parses README.md into a MarkdownDocument for reading or editing.",
+          "code": "$doc = Open-OfficeMarkdown -Path .\\README.md"
+        },
+        {
+          "title": "Append a release to the changelog",
+          "description": "Opens CHANGELOG.md, adds a new section at the end and saves the file back when the block ends.",
+          "code": "Open-OfficeMarkdown -Path .\\CHANGELOG.md {\n    MarkdownHeading '2.4.0 - 2026-10-26' -Level 2\n    MarkdownList 'Added CSV export for audit reports', 'Fixed date parsing in weekly summaries'\n}"
+        },
+        {
+          "title": "Parse Markdown returned by an API",
+          "description": "Parses Markdown text without a file and lists its section headings.",
+          "code": "$response = Invoke-RestMethod -Uri 'https://api.github.com/repos/EvotecIT/OfficeIMO/readme' -Headers @{ Accept = 'application/vnd.github.raw' }\n$doc = Open-OfficeMarkdown -Text $response\nGet-OfficeMarkdownHeading -Document $doc -MaxLevel 2"
+        }
+      ]
     },
     {
       "name": "Save-OfficeMarkdown",
@@ -497,7 +531,19 @@
           ]
         }
       ],
-      "notes": "-Path is optional; without it the document is saved to the path it was created or opened with. -PassThru returns the FileInfo."
+      "notes": "-Path is optional; without it the document is saved to the path it was created or opened with. -PassThru returns the FileInfo.",
+      "examples": [
+        {
+          "title": "Save a document to its own file",
+          "description": "Writes the document back to the path it was opened or created with.",
+          "code": "Save-OfficeMarkdown -Document $doc"
+        },
+        {
+          "title": "Publish a copy with Windows line endings",
+          "description": "Opens the source README and saves a CRLF copy into the publish folder, returning the new file.",
+          "code": "$doc = Open-OfficeMarkdown -Path .\\README.md\nSave-OfficeMarkdown -Document $doc -Path .\\Publish\\README.md -LineEnding CRLF -PassThru"
+        }
+      ]
     },
     {
       "name": "Close-OfficeMarkdown",
@@ -520,7 +566,19 @@
           ]
         }
       ],
-      "notes": "Lifecycle parity with every authoring format. MarkdownDocument holds no file handle, so this only ends the document's DSL scope."
+      "notes": "Lifecycle parity with every authoring format. MarkdownDocument holds no file handle, so this only ends the document's DSL scope.",
+      "examples": [
+        {
+          "title": "Release a document without saving",
+          "description": "Ends the document's scope; nothing is written.",
+          "code": "Close-OfficeMarkdown -Document $doc"
+        },
+        {
+          "title": "Inspect a runbook and discard it",
+          "description": "Opens a runbook, lists its top-level sections and closes it without writing changes.",
+          "code": "$doc = Open-OfficeMarkdown -Path .\\Docs\\Runbook.md\nGet-OfficeMarkdownHeading -Document $doc -MaxLevel 2 | Select-Object Level, Text\nClose-OfficeMarkdown -Document $doc"
+        }
+      ]
     },
     {
       "name": "New-OfficeMarkdownReaderOptions",
@@ -597,7 +655,19 @@
           ]
         }
       ],
-      "notes": "Collects the reader parameters that were repeated on Get-OfficeMarkdown, Get-OfficeMarkdownFrontMatter/Heading/Node/Table and ConvertTo-OfficeMarkdownHtml."
+      "notes": "Collects the reader parameters that were repeated on Get-OfficeMarkdown, Get-OfficeMarkdownFrontMatter/Heading/Node/Table and ConvertTo-OfficeMarkdownHtml.",
+      "examples": [
+        {
+          "title": "Read GitHub-flavored Markdown",
+          "description": "Creates reader options that parse tables, task lists and other GitHub extensions.",
+          "code": "$options = New-OfficeMarkdownReaderOptions -Profile GitHubFlavoredMarkdown"
+        },
+        {
+          "title": "Read untrusted uploads safely",
+          "description": "Limits input size and allows only https and mailto links before parsing files that users uploaded.",
+          "code": "$options = New-OfficeMarkdownReaderOptions -Profile CommonMark -MaxInputCharacters 500000 -DisallowFileUrls -AllowMailtoUrls -RestrictUrlSchemes -AllowedUrlScheme https\nGet-ChildItem .\\Uploads -Filter *.md | ForEach-Object {\n    Get-OfficeMarkdownHeading -LiteralPath $_.FullName -Options $options\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficeMarkdownHtmlOptions",
@@ -746,7 +816,19 @@
           ]
         }
       ],
-      "notes": "Carries every HTML rendering parameter of the former ConvertTo-OfficeMarkdownHtml. -Theme takes the shared OfficeTheme (replaces OfficeVisualThemeKind)."
+      "notes": "Carries every HTML rendering parameter of the former ConvertTo-OfficeMarkdownHtml. -Theme takes the shared OfficeTheme (replaces OfficeVisualThemeKind).",
+      "examples": [
+        {
+          "title": "Convert Markdown to a standalone HTML page",
+          "description": "Renders README.md as a complete HTML document with head and styles.",
+          "code": "Convert-OfficeDocument -Path .\\README.md -To Html -OutputPath .\\README.html -Options (New-OfficeMarkdownHtmlOptions -DocumentMode)"
+        },
+        {
+          "title": "Build an offline documentation site",
+          "description": "Converts every page in the Docs folder to self-contained HTML with inline CSS, heading anchors and external links opening in a new tab.",
+          "code": "$html = New-OfficeMarkdownHtmlOptions -DocumentMode -Style GithubAuto -CssDelivery Inline -AssetMode Offline -IncludeAnchorLinks -ExternalLinksTargetBlank\nGet-ChildItem .\\Docs -Filter *.md | Convert-OfficeDocument -To Html -OutputDirectory .\\Site -Options $html"
+        }
+      ]
     },
     {
       "name": "New-OfficeHtmlMarkdownOptions",
@@ -865,7 +947,19 @@
           ]
         }
       ],
-      "notes": "Carries every conversion parameter of the former ConvertFrom-OfficeMarkdownHtml, including the Markdown writer settings. -Options copies and adjusts an existing options object."
+      "notes": "Carries every conversion parameter of the former ConvertFrom-OfficeMarkdownHtml, including the Markdown writer settings. -Options copies and adjusts an existing options object.",
+      "examples": [
+        {
+          "title": "Convert a web page to portable Markdown",
+          "description": "Writes Markdown that renders the same in any CommonMark viewer.",
+          "code": "Convert-OfficeDocument -Path .\\page.html -To Markdown -OutputPath .\\page.md -Options (New-OfficeHtmlMarkdownOptions -Portable)"
+        },
+        {
+          "title": "Migrate an exported wiki to Markdown",
+          "description": "Resolves relative links against the old wiki address, saves embedded images as files and drops inline HTML that Markdown cannot express.",
+          "code": "$options = New-OfficeHtmlMarkdownOptions -BaseUri 'https://wiki.example.com/' -Base64ImageHandling SaveToFile -Base64ImageOutputDirectory .\\Wiki\\images -DropUnsupportedInlineHtml\nGet-ChildItem .\\Export -Filter *.html | Convert-OfficeDocument -To Markdown -OutputDirectory .\\Wiki -Options $options"
+        }
+      ]
     },
     {
       "name": "New-OfficeMarkdownPdfOptions",
@@ -1008,7 +1102,19 @@
           ]
         }
       ],
-      "notes": "Defaults that are on (default theme, base-directory image restriction, front-matter theme and metadata, first heading as title, outline) are turned off with -No switches. IncludeLocalImages/IncludeDataUriImages stay opt-in resource-policy switches."
+      "notes": "Defaults that are on (default theme, base-directory image restriction, front-matter theme and metadata, first heading as title, outline) are turned off with -No switches. IncludeLocalImages/IncludeDataUriImages stay opt-in resource-policy switches.",
+      "examples": [
+        {
+          "title": "Convert Markdown to PDF with a title",
+          "description": "Sets the PDF title metadata for the converted handbook.",
+          "code": "Convert-OfficeDocument -Path .\\Handbook.md -To Pdf -OutputPath .\\Handbook.pdf -Options (New-OfficeMarkdownPdfOptions -Title 'Employee handbook')"
+        },
+        {
+          "title": "Publish runbooks as branded PDFs",
+          "description": "Converts every runbook with the Boardroom theme, local screenshots and front matter shown as a table.",
+          "code": "$pdf = New-OfficeMarkdownPdfOptions -Theme Boardroom -Author 'IT Operations' -IncludeLocalImages -BaseDirectory .\\Runbooks -FrontMatterRenderMode Table\nConvert-OfficeDocument -Path .\\Runbooks\\*.md -To Pdf -OutputDirectory .\\Runbooks\\Pdf -Options $pdf"
+        }
+      ]
     },
     {
       "name": "New-OfficeMarkdownRtfOptions",
@@ -1031,7 +1137,19 @@
           ]
         }
       ],
-      "notes": "Carries the Markdown-specific setting of the former ConvertTo-OfficeRtf -Markdown/-MarkdownPath sets."
+      "notes": "Carries the Markdown-specific setting of the former ConvertTo-OfficeRtf -Markdown/-MarkdownPath sets.",
+      "examples": [
+        {
+          "title": "Keep raw HTML as text in RTF",
+          "description": "Creates options that write inline HTML as visible text instead of dropping it.",
+          "code": "$options = New-OfficeMarkdownRtfOptions -PreserveRawHtmlAsText"
+        },
+        {
+          "title": "Convert release notes for a ticketing system",
+          "description": "Converts each Markdown release note to RTF for a help desk that only accepts rich text, without replacing files already there.",
+          "code": "$rtf = New-OfficeMarkdownRtfOptions -PreserveRawHtmlAsText\nGet-ChildItem .\\ReleaseNotes -Filter *.md | Convert-OfficeDocument -To Rtf -OutputDirectory .\\ReleaseNotes\\Rtf -Options $rtf -NoClobber"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownHeading",
@@ -1098,7 +1216,24 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Text is now position 0 and -Level (default 1) is named, matching WordHeading/PdfHeading: MarkdownHeading 'Summary' -Level 2."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Text is now position 0 and -Level (default 1) is named, matching WordHeading/PdfHeading: MarkdownHeading 'Summary' -Level 2.",
+      "examples": [
+        {
+          "title": "Add a heading",
+          "description": "Writes a level-1 heading to the new document.",
+          "code": "New-OfficeMarkdown -Path .\\Report.md {\n    MarkdownHeading 'Weekly report'\n}"
+        },
+        {
+          "title": "Group sales by region",
+          "description": "Adds a level-2 heading and a table for every region in the sales export.",
+          "code": "$sales = Import-OfficeCsv -Path .\\Data\\Sales.csv\nNew-OfficeMarkdown -Path .\\Reports\\Sales-by-Region.md {\n    MarkdownHeading 'Sales by region'\n    foreach ($region in $sales | Group-Object Region) {\n        MarkdownHeading $region.Name -Level 2\n        MarkdownTable -InputObject $region.Group\n    }\n}"
+        },
+        {
+          "title": "Add a heading to an open document",
+          "description": "Outside a content block, pipe the document to the command.",
+          "code": "$doc = Open-OfficeMarkdown -Path .\\README.md\n$doc | Add-OfficeMarkdownHeading -Text 'Support' -Level 2\nSave-OfficeMarkdown -Document $doc"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownParagraph",
@@ -1197,7 +1332,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. The content block takes MarkdownText children for styled runs."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. The content block takes MarkdownText children for styled runs.",
+      "examples": [
+        {
+          "title": "Add a paragraph",
+          "description": "Writes one paragraph of plain text.",
+          "code": "New-OfficeMarkdown -Path .\\Status.md {\n    MarkdownParagraph 'All backups completed successfully.'\n}"
+        },
+        {
+          "title": "Mix bold text and a link in one paragraph",
+          "description": "Builds the paragraph from MarkdownText runs so part of it is bold and part is a link.",
+          "code": "New-OfficeMarkdown -Path .\\Reports\\Backup-Status.md {\n    MarkdownHeading 'Backup status'\n    MarkdownParagraph {\n        MarkdownText 'Overall: ' -Bold\n        MarkdownText 'healthy. Details are on the '\n        MarkdownText 'backup dashboard' -Link 'https://status.example.com/backups'\n        MarkdownText '.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownText",
@@ -1251,7 +1398,19 @@
           ]
         }
       ],
-      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Link). Markdown has no underline, color, font or size, so -Underline/-Color/-Font/-Size are not offered; -Code (inline code span) is Markdown-specific. Valid only inside a MarkdownParagraph or MarkdownListItem block."
+      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Link). Markdown has no underline, color, font or size, so -Underline/-Color/-Font/-Size are not offered; -Code (inline code span) is Markdown-specific. Valid only inside a MarkdownParagraph or MarkdownListItem block.",
+      "examples": [
+        {
+          "title": "Make part of a paragraph bold",
+          "description": "Adds a bold label followed by plain text.",
+          "code": "New-OfficeMarkdown -Path .\\Note.md {\n    MarkdownParagraph {\n        MarkdownText 'Deadline: ' -Bold\n        MarkdownText 'Friday 17:00'\n    }\n}"
+        },
+        {
+          "title": "Document commands inline",
+          "description": "Uses inline code and strikethrough runs inside numbered list items of an upgrade guide.",
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Upgrade.md {\n    MarkdownHeading 'Upgrade steps'\n    MarkdownList -Ordered {\n        MarkdownListItem {\n            MarkdownText 'Stop the service with '\n            MarkdownText 'Stop-Service -Name Spooler' -Code\n        }\n        MarkdownListItem {\n            MarkdownText 'Skip the old '\n            MarkdownText 'setup.exe /legacy' -Code -Strikethrough\n            MarkdownText ' step; it is '\n            MarkdownText 'no longer needed' -Italic\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownList",
@@ -1398,7 +1557,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Items stays as the one-line form; the content block form takes MarkdownListItem children (styled items, nested lists)."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Items stays as the one-line form; the content block form takes MarkdownListItem children (styled items, nested lists).",
+      "examples": [
+        {
+          "title": "Add a bulleted list",
+          "description": "Writes three bullets from strings.",
+          "code": "New-OfficeMarkdown -Path .\\Plan.md {\n    MarkdownList 'Plan', 'Build', 'Ship'\n}"
+        },
+        {
+          "title": "List failed services and the next steps",
+          "description": "Adds a bulleted list from Get-Service and a numbered list built from list items.",
+          "code": "$failed = Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }\nNew-OfficeMarkdown -Path .\\Reports\\Service-Check.md {\n    MarkdownHeading 'Automatic services that are not running'\n    MarkdownList -Items $failed.DisplayName\n    MarkdownHeading 'Next steps' -Level 2\n    MarkdownList -Ordered {\n        MarkdownListItem 'Check the System event log for each service'\n        MarkdownListItem 'Restart the service and confirm it stays running'\n        MarkdownListItem 'Open a ticket if it stops again'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownListItem",
@@ -1435,7 +1606,19 @@
           ]
         }
       ],
-      "notes": "Shared List/ListItem vocabulary: a list item takes -Text or a content block (MarkdownText runs, a nested MarkdownList)."
+      "notes": "Shared List/ListItem vocabulary: a list item takes -Text or a content block (MarkdownText runs, a nested MarkdownList).",
+      "examples": [
+        {
+          "title": "Add list items",
+          "description": "Adds two items to the enclosing list.",
+          "code": "New-OfficeMarkdown -Path .\\Tiers.md {\n    MarkdownList {\n        MarkdownListItem 'Web tier'\n        MarkdownListItem 'Data tier'\n    }\n}"
+        },
+        {
+          "title": "Nest lists under styled items",
+          "description": "Each item has a bold label and a nested list of servers.",
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Architecture.md {\n    MarkdownHeading 'Components'\n    MarkdownList {\n        MarkdownListItem {\n            MarkdownText 'Web tier' -Bold\n            MarkdownList 'web01', 'web02'\n        }\n        MarkdownListItem {\n            MarkdownText 'Data tier' -Bold\n            MarkdownList 'sql01 (primary)', 'sql02 (replica)'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownTaskList",
@@ -1516,7 +1699,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Completed positions are 1-based (were 0-based)."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Completed positions are 1-based (were 0-based).",
+      "examples": [
+        {
+          "title": "Add a checklist",
+          "description": "Writes three tasks with the first two checked (positions are 1-based).",
+          "code": "New-OfficeMarkdown -Path .\\Checklist.md {\n    MarkdownTaskList 'Plan', 'Build', 'Ship' -Completed 1, 2\n}"
+        },
+        {
+          "title": "Track a migration from a CSV",
+          "description": "Checks off every step whose status is Done in the tracking file.",
+          "code": "$steps = @(Import-OfficeCsv -Path .\\Data\\Migration-Steps.csv)\n$done = for ($i = 0; $i -lt $steps.Count; $i++) {\n    if ($steps[$i].Status -eq 'Done') { $i + 1 }\n}\nNew-OfficeMarkdown -Path .\\Reports\\Migration-Checklist.md -Force {\n    MarkdownHeading 'Mailbox migration checklist'\n    MarkdownTaskList -Items $steps.Step -Completed $done\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownTable",
@@ -1722,7 +1917,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -InputObject enumerates arrays as rows."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -InputObject enumerates arrays as rows.",
+      "examples": [
+        {
+          "title": "Add a table from objects",
+          "description": "Columns come from the selected properties.",
+          "code": "New-OfficeMarkdown -Path .\\Processes.md {\n    MarkdownTable -InputObject (Get-Process | Select-Object -First 10 Name, Id, CPU)\n}"
+        },
+        {
+          "title": "Write a server summary",
+          "description": "Shows one object as a two-column property table with -View Transpose, then the disks as a normal table.",
+          "code": "$os = Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object Caption, Version, LastBootUpTime\n$disks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType = 3' | Select-Object DeviceID, Size, FreeSpace\nNew-OfficeMarkdown -Path \".\\Reports\\$env:COMPUTERNAME.md\" -Force {\n    MarkdownHeading $env:COMPUTERNAME\n    MarkdownTable -InputObject $os -View Transpose\n    MarkdownHeading 'Disks' -Level 2\n    MarkdownTable -InputObject $disks\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownImage",
@@ -1827,7 +2034,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. Width/Height take lengths and are written as CSS pixels; a bare number now means points (use 200px for the former behavior)."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. Width/Height take lengths and are written as CSS pixels; a bare number now means points (use 200px for the former behavior).",
+      "examples": [
+        {
+          "title": "Add an image",
+          "description": "References a diagram with alternative text.",
+          "code": "New-OfficeMarkdown -Path .\\Overview.md {\n    MarkdownImage .\\Images\\architecture.png -Alt 'Architecture overview'\n}"
+        },
+        {
+          "title": "Embed a chart rendered from a workbook",
+          "description": "Renders the revenue chart from the Q3 workbook to PNG and references it in the report at 600 pixels wide.",
+          "code": "Export-OfficeDocumentImage -Path .\\Reports\\Q3-Sales.xlsx -Sheet Summary -Chart Revenue -OutputPath .\\Reports\\revenue.png\nNew-OfficeMarkdown -Path .\\Reports\\Q3-Sales.md {\n    MarkdownHeading 'Q3 sales'\n    MarkdownImage .\\revenue.png -Alt 'Revenue by region' -Title 'Q3 revenue' -Width 600px\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownCode",
@@ -1896,7 +2115,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Content (a string) is renamed -Text so that -Content always means a script block across the DSL."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Content (a string) is renamed -Text so that -Content always means a script block across the DSL.",
+      "examples": [
+        {
+          "title": "Add a code block",
+          "description": "Writes a fenced PowerShell block.",
+          "code": "New-OfficeMarkdown -Path .\\Snippet.md {\n    MarkdownCode powershell 'Get-Service -Name Spooler'\n}"
+        },
+        {
+          "title": "Document a scheduled task",
+          "description": "Embeds the script and its configuration file in a runbook page.",
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Log-Cleanup.md {\n    MarkdownHeading 'Log cleanup task'\n    MarkdownParagraph 'The scheduled task runs this script every night at 02:00.'\n    MarkdownCode -Language powershell -Text (Get-Content -Path .\\Scripts\\Remove-OldLogs.ps1 -Raw)\n    MarkdownHeading 'Configuration' -Level 2\n    MarkdownCode -Language json -Text (Get-Content -Path .\\Scripts\\cleanup.json -Raw)\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownCallout",
@@ -1979,7 +2210,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Body renamed -Text (shared vocabulary for block text)."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Body renamed -Text (shared vocabulary for block text).",
+      "examples": [
+        {
+          "title": "Add a note",
+          "description": "Writes a NOTE callout with a title and text.",
+          "code": "New-OfficeMarkdown -Path .\\Maintenance.md {\n    MarkdownCallout NOTE 'Maintenance window' 'Servers restart on Saturday at 22:00.'\n}"
+        },
+        {
+          "title": "Warn about expiring certificates",
+          "description": "Adds a warning and a table when certificates expire within 30 days, otherwise a tip.",
+          "code": "$expiring = Get-ChildItem -Path Cert:\\LocalMachine\\My | Where-Object NotAfter -lt (Get-Date).AddDays(30)\nNew-OfficeMarkdown -Path .\\Reports\\Certificates.md -Force {\n    MarkdownHeading 'Certificate review'\n    if ($expiring) {\n        MarkdownCallout -Kind WARNING -Title 'Renew soon' -Text \"$(@($expiring).Count) certificates expire within 30 days.\"\n        MarkdownTable -InputObject ($expiring | Select-Object Subject, NotAfter, Thumbprint)\n    } else {\n        MarkdownCallout -Kind TIP -Title 'All clear' -Text 'No certificate expires in the next 30 days.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownQuote",
@@ -2034,7 +2277,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a block quote",
+          "description": "Writes one quoted line.",
+          "code": "New-OfficeMarkdown -Path .\\Principles.md {\n    MarkdownQuote 'Ship small changes often.'\n}"
+        },
+        {
+          "title": "Quote the best survey comments",
+          "description": "Adds the top three comments from a customer survey as quotes.",
+          "code": "$comments = Import-OfficeCsv -Path .\\Data\\Survey.csv | Where-Object { [int]$_.Score -ge 9 } | Select-Object -First 3\nNew-OfficeMarkdown -Path .\\Reports\\Customer-Voice.md {\n    MarkdownHeading 'What customers said'\n    foreach ($comment in $comments) {\n        MarkdownQuote \"$($comment.Comment) ($($comment.Company))\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownDetails",
@@ -2115,7 +2370,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a collapsible section",
+          "description": "Hides a long log behind a summary line.",
+          "code": "New-OfficeMarkdown -Path .\\Build.md {\n    MarkdownDetails 'Full build log' {\n        MarkdownCode text (Get-Content -Path .\\build.log -Raw)\n    }\n}"
+        },
+        {
+          "title": "Collapse the output of failed jobs",
+          "description": "Lists all nightly jobs, then adds an expanded details block with the error output of each failed job.",
+          "code": "$jobs = Get-Content -Path .\\Data\\nightly-jobs.json -Raw | ConvertFrom-Json\nNew-OfficeMarkdown -Path .\\Reports\\Nightly-Jobs.md -Force {\n    MarkdownHeading 'Nightly jobs'\n    MarkdownTable -InputObject ($jobs | Select-Object Name, Status, Duration)\n    foreach ($job in $jobs | Where-Object Status -eq 'Failed') {\n        MarkdownDetails \"$($job.Name) error output\" -Open {\n            MarkdownCode -Language text -Text $job.Output\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownDefinitionList",
@@ -2170,7 +2437,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Definition accepts any dictionary, so [ordered]@{} keeps term order."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Definition accepts any dictionary, so [ordered]@{} keeps term order.",
+      "examples": [
+        {
+          "title": "Add a definition list",
+          "description": "Writes two terms with their definitions.",
+          "code": "New-OfficeMarkdown -Path .\\Terms.md {\n    MarkdownDefinitionList @{ RPO = 'Recovery point objective'; RTO = 'Recovery time objective' }\n}"
+        },
+        {
+          "title": "Write a glossary in a fixed order",
+          "description": "An ordered dictionary keeps the terms in the order they are written.",
+          "code": "$terms = [ordered]@{\n    SLA = 'Service level agreement: the availability we commit to customers.'\n    SLO = 'Service level objective: the internal target that protects the SLA.'\n    MTTR = 'Mean time to restore: the average time from incident start to recovery.'\n}\nNew-OfficeMarkdown -Path .\\Docs\\Glossary.md {\n    MarkdownHeading 'Glossary'\n    MarkdownDefinitionList -Definition $terms\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownFrontMatter",
@@ -2225,7 +2504,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add YAML front matter",
+          "description": "Writes a title and version at the top of the file.",
+          "code": "New-OfficeMarkdown -Path .\\Release.md {\n    MarkdownFrontMatter @{ title = 'Release notes'; version = '2.4.0' }\n}"
+        },
+        {
+          "title": "Create a blog post for a static site",
+          "description": "Writes ordered front matter with tags and a draft flag that the site generator reads.",
+          "code": "$meta = [ordered]@{\n    title = 'October patching summary'\n    date = '2026-10-26'\n    tags = @('patching', 'windows')\n    draft = $false\n}\nNew-OfficeMarkdown -Path .\\Site\\content\\posts\\2026-10-26-patching.md {\n    MarkdownFrontMatter -InputObject $meta\n    MarkdownHeading 'October patching summary'\n    MarkdownParagraph '214 servers were patched; 3 need a manual reboot.'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownHorizontalRule",
@@ -2266,7 +2557,19 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Separate two sections",
+          "description": "Adds a horizontal rule between paragraphs.",
+          "code": "New-OfficeMarkdown -Path .\\Memo.md {\n    MarkdownParagraph 'Summary for the leadership team.'\n    MarkdownHorizontalRule\n    MarkdownParagraph 'Details for the project team.'\n}"
+        },
+        {
+          "title": "Divide a per-server report",
+          "description": "Puts a rule between the sections for each server.",
+          "code": "$servers = Import-OfficeCsv -Path .\\Data\\Servers.csv\nNew-OfficeMarkdown -Path .\\Reports\\Servers.md {\n    MarkdownHeading 'Server inventory'\n    foreach ($server in $servers) {\n        MarkdownHeading $server.Name -Level 2\n        MarkdownTable -InputObject $server -View Transpose\n        MarkdownHorizontalRule\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeMarkdownTableOfContents",
@@ -2483,7 +2786,24 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -PlaceAtTop/-ForPreviousHeading/-ForSection were mutually exclusive at run time; they become -Placement and a separate -Section set."
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -PlaceAtTop/-ForPreviousHeading/-ForSection were mutually exclusive at run time; they become -Placement and a separate -Section set.",
+      "examples": [
+        {
+          "title": "Add a table of contents at the top",
+          "description": "Lists level-2 and deeper headings at the start of the document.",
+          "code": "New-OfficeMarkdown -Path .\\Guide.md {\n    MarkdownTableOfContents -Placement Top -MinLevel 2\n    MarkdownHeading 'Install' -Level 2\n    MarkdownHeading 'Configure' -Level 2\n}"
+        },
+        {
+          "title": "Number the contents of a runbook",
+          "description": "Adds a titled, numbered table of contents covering levels 2 and 3.",
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Runbook.md {\n    MarkdownHeading 'Payroll service runbook'\n    MarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -Ordered -Placement Top\n    MarkdownHeading 'Start and stop' -Level 2\n    MarkdownHeading 'Health checks' -Level 2\n    MarkdownHeading 'Database' -Level 3\n    MarkdownHeading 'Queues' -Level 3\n    MarkdownHeading 'Escalation' -Level 2\n}"
+        },
+        {
+          "title": "Add contents for one section",
+          "description": "The Section set lists only the headings under the named section.",
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Procedures.md {\n    MarkdownHeading 'Procedures' -Level 2\n    MarkdownTableOfContents -Section 'Procedures' -Title 'In this section' -TitleLevel 3\n    MarkdownHeading 'Failover' -Level 3\n    MarkdownHeading 'Restore from backup' -Level 3\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeMarkdownHeading",
@@ -2694,6 +3014,23 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List the headings of a file",
+          "description": "Returns level, text, anchor and position for each heading.",
+          "code": "Get-OfficeMarkdownHeading -Path .\\README.md"
+        },
+        {
+          "title": "Find pages without a title",
+          "description": "Reports every Markdown file in the docs folder that has no level-1 heading.",
+          "code": "Get-ChildItem -Path .\\Docs -Filter *.md -Recurse | Where-Object {\n    -not (Get-OfficeMarkdownHeading -LiteralPath $_.FullName -MinLevel 1 -MaxLevel 1)\n} | Select-Object Name, DirectoryName"
+        },
+        {
+          "title": "Look up the anchor of a section",
+          "description": "Finds the link anchor for the Installation heading in Markdown text.",
+          "code": "$readme = Get-Content -Path .\\README.md -Raw\n(Get-OfficeMarkdownHeading -Text $readme -HeadingText 'Installation').Anchor"
+        }
       ]
     },
     {
@@ -2800,6 +3137,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read table rows as objects",
+          "description": "Returns each row of each table as an object with the header names as properties.",
+          "code": "Get-OfficeMarkdownTable -Path .\\Docs\\Servers.md -AsObject"
+        },
+        {
+          "title": "Turn a wiki inventory into a workbook",
+          "description": "Reads the server table maintained in Markdown and exports the production rows to Excel.",
+          "code": "Get-OfficeMarkdownTable -Path .\\Docs\\Inventory.md -AsObject |\n    Where-Object Environment -eq 'Production' |\n    Export-OfficeExcel -Path .\\Reports\\Production-Servers.xlsx -Sheet Servers"
         }
       ]
     },
@@ -2935,6 +3284,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read one front matter value",
+          "description": "Returns the title entry of a post.",
+          "code": "Get-OfficeMarkdownFrontMatter -Path .\\post.md -Key title"
+        },
+        {
+          "title": "List draft posts",
+          "description": "Prints the posts whose front matter marks them as drafts.",
+          "code": "Get-ChildItem -Path .\\Site\\content\\posts -Filter *.md | Where-Object {\n    (Get-OfficeMarkdownFrontMatter -LiteralPath $_.FullName -Key draft).Value -eq $true\n} | Select-Object Name, LastWriteTime"
         }
       ]
     },
@@ -3119,6 +3480,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Walk the syntax tree",
+          "description": "Returns one record per block and inline node with its type, depth and source lines.",
+          "code": "Get-OfficeMarkdownNode -Path .\\README.md"
+        },
+        {
+          "title": "Find tables across the docs",
+          "description": "Uses a wildcard on the node type to report where each table starts.",
+          "code": "Get-ChildItem -Path .\\Docs -Filter *.md | ForEach-Object {\n    $file = $_.Name\n    Get-OfficeMarkdownNode -LiteralPath $_.FullName -NodeType '*Table*' -MaxDepth 2 |\n        Select-Object @{ Name = 'File'; Expression = { $file } }, Type, StartLine\n}"
+        }
       ]
     },
     {
@@ -3185,7 +3558,24 @@
           ]
         }
       ],
-      "notes": "Object-to-text conversion, like ConvertTo-Html; stays a ConvertTo- command."
+      "notes": "Object-to-text conversion, like ConvertTo-Html; stays a ConvertTo- command.",
+      "examples": [
+        {
+          "title": "Convert objects to a Markdown table",
+          "description": "Returns the table as a string.",
+          "code": "Get-Service | Select-Object -First 5 Name, Status | ConvertTo-OfficeMarkdown"
+        },
+        {
+          "title": "Write test results to a CI job summary",
+          "description": "Appends a Markdown table of Pester results to the GitHub Actions step summary.",
+          "code": "$result = Invoke-Pester -Path .\\Tests -PassThru\n$result.Tests | Select-Object ExpandedName, Result, Duration | ConvertTo-OfficeMarkdown | Add-Content -Path $env:GITHUB_STEP_SUMMARY"
+        },
+        {
+          "title": "Start a document from a table",
+          "description": "-AsDocument returns a MarkdownDocument that can be saved or extended.",
+          "code": "$doc = Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 Name, CPU | ConvertTo-OfficeMarkdown -AsDocument\nSave-OfficeMarkdown -Document $doc -Path .\\Reports\\Top-CPU.md"
+        }
+      ]
     },
     {
       "name": "New-OfficeRtf",
@@ -3255,7 +3645,19 @@
           ]
         }
       ],
-      "notes": "-Text (or piped strings) is RTF's content: in the Text set -Path is required and the file is written when input ends. The Live set (no -Text, -Path optional) returns the live RtfDocument for Save-OfficeRtf [-Path] (replaces -NoSave). Refuses an existing file unless -Force. RTF keeps its paragraph-list authoring; no DSL is added (Tier 2)."
+      "notes": "-Text (or piped strings) is RTF's content: in the Text set -Path is required and the file is written when input ends. The Live set (no -Text, -Path optional) returns the live RtfDocument for Save-OfficeRtf [-Path] (replaces -NoSave). Refuses an existing file unless -Force. RTF keeps its paragraph-list authoring; no DSL is added (Tier 2).",
+      "examples": [
+        {
+          "title": "Create an RTF note",
+          "description": "Writes one paragraph to a new RTF file.",
+          "code": "New-OfficeRtf -Path .\\Note.rtf -Text 'Server maintenance starts at 22:00.'"
+        },
+        {
+          "title": "Turn a handover text file into RTF",
+          "description": "Each line becomes a paragraph; the file is replaced and opened in the default editor.",
+          "code": "Get-Content -Path .\\Notes\\handover.txt | New-OfficeRtf -Path .\\Notes\\Handover.rtf -Force -Show"
+        }
+      ]
     },
     {
       "name": "Open-OfficeRtf",
@@ -3309,7 +3711,24 @@
           ]
         }
       ],
-      "notes": "No content block: RTF has no PowerShell DSL. The result's Document can be passed to Save-OfficeRtf; lossless in-place edits stay on Update-OfficeRtfText."
+      "notes": "No content block: RTF has no PowerShell DSL. The result's Document can be passed to Save-OfficeRtf; lossless in-place edits stay on Update-OfficeRtfText.",
+      "examples": [
+        {
+          "title": "Read an RTF file",
+          "description": "Returns the read result; its Document holds the paragraphs.",
+          "code": "$rtf = Open-OfficeRtf -Path .\\Contract.rtf"
+        },
+        {
+          "title": "Extract the first paragraph of each letter",
+          "description": "Reads every RTF letter in a folder and returns its first paragraph as plain text.",
+          "code": "Get-ChildItem -Path .\\Letters -Filter *.rtf | Open-OfficeRtf | ForEach-Object {\n    $_.Document.Paragraphs[0].ToPlainText()\n}"
+        },
+        {
+          "title": "Parse RTF stored in a database",
+          "description": "Reads RTF text from a variable rather than a file.",
+          "code": "$rtf = Open-OfficeRtf -Text $ticket.DescriptionRtf\n$rtf.Document.Paragraphs | ForEach-Object { $_.ToPlainText() }"
+        }
+      ]
     },
     {
       "name": "Save-OfficeRtf",
@@ -3345,7 +3764,19 @@
           ]
         }
       ],
-      "notes": "Needed by the lifecycle now that New-OfficeRtf without -Text returns a live document. Also accepts the Document of an Open-OfficeRtf result."
+      "notes": "Needed by the lifecycle now that New-OfficeRtf without -Text returns a live document. Also accepts the Document of an Open-OfficeRtf result.",
+      "examples": [
+        {
+          "title": "Save an RTF document",
+          "description": "Writes the document to a new file.",
+          "code": "Save-OfficeRtf -Document $rtf.Document -Path .\\Copy.rtf"
+        },
+        {
+          "title": "Normalize RTF exported by an old application",
+          "description": "Reads each exported file and writes a clean copy into the archive folder.",
+          "code": "Get-ChildItem -Path .\\Export -Filter *.rtf | ForEach-Object {\n    $rtf = Open-OfficeRtf -LiteralPath $_.FullName\n    Save-OfficeRtf -Document $rtf.Document -Path (Join-Path .\\Archive $_.Name) -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "Close-OfficeRtf",
@@ -3368,7 +3799,19 @@
           ]
         }
       ],
-      "notes": "Lifecycle parity; RtfDocument holds no file handle."
+      "notes": "Lifecycle parity; RtfDocument holds no file handle.",
+      "examples": [
+        {
+          "title": "Release an RTF document",
+          "description": "Ends the document's scope without saving.",
+          "code": "Close-OfficeRtf -Document $rtf.Document"
+        },
+        {
+          "title": "Read a document and discard it",
+          "description": "Counts the paragraphs of a contract and releases the document.",
+          "code": "$rtf = Open-OfficeRtf -Path .\\Contracts\\Lease.rtf\n\"Paragraphs: $($rtf.Document.Paragraphs.Count)\"\nClose-OfficeRtf -Document $rtf.Document"
+        }
+      ]
     },
     {
       "name": "Update-OfficeRtfText",
@@ -3518,7 +3961,19 @@
           ]
         }
       ],
-      "notes": "-OldText and -NewText are given together; the existing check stays because both are optional alongside the property edits."
+      "notes": "-OldText and -NewText are given together; the existing check stays because both are optional alongside the property edits.",
+      "examples": [
+        {
+          "title": "Replace text in an RTF file",
+          "description": "Writes a copy with every 2025 replaced by 2026, keeping all other formatting.",
+          "code": "Update-OfficeRtfText -Path .\\Letter.rtf -OutputPath .\\Letter-2026.rtf -OldText '2025' -NewText '2026'"
+        },
+        {
+          "title": "Fill a welcome letter for each customer",
+          "description": "Replaces a placeholder and sets document properties and variables in one lossless pass per customer.",
+          "code": "$customers = Import-OfficeCsv -Path .\\Data\\Customers.csv\nforeach ($customer in $customers) {\n    $update = @{\n        Path = '.\\Templates\\Welcome.rtf'\n        OutputPath = \".\\Out\\Welcome-$($customer.Id).rtf\"\n        OldText = '{{CustomerName}}'\n        NewText = $customer.Name\n        DocumentProperty = @{ Title = \"Welcome, $($customer.Name)\"; Author = 'Customer Success' }\n        DocumentVariable = @{ AccountManager = $customer.Manager }\n    }\n    Update-OfficeRtfText @update\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficeRtfPdfOptions",
@@ -3607,7 +4062,19 @@
           ]
         }
       ],
-      "notes": "Images, metadata, tables, headers/footers and notes are on by default and turned off with -No switches. Default image sizes are lengths (bare number = points, as before)."
+      "notes": "Images, metadata, tables, headers/footers and notes are on by default and turned off with -No switches. Default image sizes are lengths (bare number = points, as before).",
+      "examples": [
+        {
+          "title": "Convert RTF to PDF without notes",
+          "description": "Leaves footnotes and endnotes out of the PDF.",
+          "code": "Convert-OfficeDocument -Path .\\Letter.rtf -To Pdf -OutputPath .\\Letter.pdf -Options (New-OfficeRtfPdfOptions -NoNotes)"
+        },
+        {
+          "title": "Archive RTF correspondence as PDF",
+          "description": "Embeds the fonts the documents use and gives images without a size a default width.",
+          "code": "$pdf = New-OfficeRtfPdfOptions -AllowDocumentFontEmbedding -DefaultImageWidth 12cm\nConvert-OfficeDocument -Path .\\Correspondence\\*.rtf -To Pdf -OutputDirectory .\\Archive\\Pdf -Options $pdf"
+        }
+      ]
     },
     {
       "name": "New-OfficeRtfHtmlOptions",
@@ -3666,7 +4133,19 @@
           ]
         }
       ],
-      "notes": "RTF reaches HTML through Word; these are the HTML settings of the former ConvertFrom-OfficeRtf -As Html."
+      "notes": "RTF reaches HTML through Word; these are the HTML settings of the former ConvertFrom-OfficeRtf -As Html.",
+      "examples": [
+        {
+          "title": "Convert RTF to HTML with default CSS",
+          "description": "Adds the default stylesheet to the generated page.",
+          "code": "Convert-OfficeDocument -Path .\\Article.rtf -To Html -OutputPath .\\Article.html -Options (New-OfficeRtfHtmlOptions -IncludeDefaultCss)"
+        },
+        {
+          "title": "Publish help-desk articles as HTML",
+          "description": "Writes class-based HTML with a site font so the knowledge base stylesheet controls the look.",
+          "code": "$html = New-OfficeRtfHtmlOptions -FontFamily 'Segoe UI' -IncludeParagraphClasses -IncludeRunClasses -IncludeListStyles -UseImagePaths\nGet-ChildItem -Path .\\HelpDesk -Filter *.rtf | Convert-OfficeDocument -To Html -OutputDirectory .\\KnowledgeBase -Options $html"
+        }
+      ]
     },
     {
       "name": "New-OfficeRtfMarkdownOptions",
@@ -3693,6 +4172,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Include hidden text in Markdown",
+          "description": "Creates options that keep text marked hidden in the RTF.",
+          "code": "$options = New-OfficeRtfMarkdownOptions -IncludeHiddenText"
+        },
+        {
+          "title": "Move RTF procedures into a Markdown wiki",
+          "description": "Converts each procedure without HTML comments for content Markdown cannot express.",
+          "code": "$markdown = New-OfficeRtfMarkdownOptions -NoUnsupportedHtmlComments\nGet-ChildItem -Path .\\Procedures -Filter *.rtf | Convert-OfficeDocument -To Markdown -OutputDirectory .\\Wiki\\Procedures -Options $markdown"
         }
       ]
     },
@@ -3735,7 +4226,19 @@
           ]
         }
       ],
-      "notes": "Carries the HTML-specific settings of the former ConvertTo-OfficeRtf -Html/-HtmlPath sets."
+      "notes": "Carries the HTML-specific settings of the former ConvertTo-OfficeRtf -Html/-HtmlPath sets.",
+      "examples": [
+        {
+          "title": "Set the RTF font for HTML input",
+          "description": "Uses Calibri for text that has no font in the HTML.",
+          "code": "Convert-OfficeDocument -Path .\\Notice.html -To Rtf -OutputPath .\\Notice.rtf -Options (New-OfficeHtmlRtfOptions -FontFamily Calibri)"
+        },
+        {
+          "title": "Convert email templates with their stylesheet",
+          "description": "Resolves images relative to the template folder and applies the shared CSS before writing RTF.",
+          "code": "$rtf = New-OfficeHtmlRtfOptions -FontFamily Calibri -BasePath .\\Templates -StylesheetPath .\\Templates\\mail.css\nGet-ChildItem -Path .\\Templates -Filter *.html | Convert-OfficeDocument -To Rtf -OutputDirectory .\\Templates\\Rtf -Options $rtf"
+        }
+      ]
     },
     {
       "name": "New-OfficeOpenDocument",
@@ -3819,7 +4322,24 @@
           ]
         }
       ],
-      "notes": "Content set: -Path required, the block runs and the package is saved. Live set: no block, -Path optional; returns the live document for Save-OfficeOpenDocument [-Path]. -Kind is inferred from the extension when a path is given, -NoSave is removed and -Force is required to replace a file."
+      "notes": "Content set: -Path required, the block runs and the package is saved. Live set: no block, -Path optional; returns the live document for Save-OfficeOpenDocument [-Path]. -Kind is inferred from the extension when a path is given, -NoSave is removed and -Force is required to replace a file.",
+      "examples": [
+        {
+          "title": "Create an OpenDocument text file",
+          "description": "Writes a heading and a paragraph to a new .odt file.",
+          "code": "New-OfficeOpenDocument -Path .\\Minutes.odt {\n    OpenDocumentHeading 'Weekly sync'\n    OpenDocumentParagraph 'Decisions and owners from this week.'\n}"
+        },
+        {
+          "title": "Create a spreadsheet from sales data",
+          "description": "Writes a header row and one typed row per region to a new .ods sheet.",
+          "code": "$sales = Import-OfficeCsv -Path .\\Data\\Q3-Sales.csv\nNew-OfficeOpenDocument -Path .\\Reports\\Q3-Sales.ods {\n    OpenDocumentSheet 'Q3' {\n        OpenDocumentCell -Row 1 -Column 1 -Value 'Region'\n        OpenDocumentCell -Row 1 -Column 2 -Value 'Revenue'\n        $row = 2\n        foreach ($line in $sales) {\n            OpenDocumentCell -Row $row -Column 1 -Value $line.Region\n            OpenDocumentCell -Row $row -Column 2 -Value ([decimal]$line.Revenue)\n            $row++\n        }\n    }\n}"
+        },
+        {
+          "title": "Keep the document open and save it later",
+          "description": "Without a block, -Kind picks the document type and Save-OfficeOpenDocument names the file.",
+          "code": "$doc = New-OfficeOpenDocument -Kind Text\n$doc | Add-OfficeOpenDocumentHeading -Text 'Draft proposal'\n$doc | Add-OfficeOpenDocumentParagraph -Text 'Scope, timeline and budget follow.'\nSave-OfficeOpenDocument -Document $doc -Path .\\Proposal.odt"
+        }
+      ]
     },
     {
       "name": "Open-OfficeOpenDocument",
@@ -4031,7 +4551,24 @@
           ]
         }
       ],
-      "notes": "Returns OdtDocument, OdsDocument, OdpPresentation or OdgDocument. -Password takes a SecureString; argument transformation also accepts a plain string (with a warning) or a PSCredential (its password). Package limits stay as parameters for untrusted input."
+      "notes": "Returns OdtDocument, OdsDocument, OdpPresentation or OdgDocument. -Password takes a SecureString; argument transformation also accepts a plain string (with a warning) or a PSCredential (its password). Package limits stay as parameters for untrusted input.",
+      "examples": [
+        {
+          "title": "Open an OpenDocument file",
+          "description": "Returns the text, spreadsheet, presentation or drawing document.",
+          "code": "$doc = Open-OfficeOpenDocument -Path .\\Report.odt"
+        },
+        {
+          "title": "Append action items to the minutes",
+          "description": "Adds a section to an existing .odt file and saves it when the block ends.",
+          "code": "Open-OfficeOpenDocument -Path .\\Minutes.odt {\n    OpenDocumentHeading 'Action items' -Level 2\n    OpenDocumentParagraph 'Anna: renew the support contract by 15 November.'\n    OpenDocumentParagraph 'Tomasz: schedule the failover test.'\n}"
+        },
+        {
+          "title": "Open an encrypted file from an untrusted source",
+          "description": "Prompts for the password and caps the package size before reading.",
+          "code": "$password = Read-Host -Prompt 'Spreadsheet password' -AsSecureString\n$doc = Open-OfficeOpenDocument -Path .\\Uploads\\Budget.ods -Password $password -MaxPackageBytes 50MB"
+        }
+      ]
     },
     {
       "name": "Save-OfficeOpenDocument",
@@ -4079,7 +4616,19 @@
           ]
         }
       ],
-      "notes": "-Path is optional for documents from New-/Open-. -PassThru returns the save result with its loss report."
+      "notes": "-Path is optional for documents from New-/Open-. -PassThru returns the save result with its loss report.",
+      "examples": [
+        {
+          "title": "Save an OpenDocument file",
+          "description": "Writes the document back to its own path.",
+          "code": "Save-OfficeOpenDocument -Document $doc"
+        },
+        {
+          "title": "Save an archive copy and check for loss",
+          "description": "Fails if any content cannot be written and returns the save result.",
+          "code": "$doc = Open-OfficeOpenDocument -Path .\\Reports\\Budget.ods\nSave-OfficeOpenDocument -Document $doc -Path .\\Archive\\Budget-2026.ods -FailOnLoss -PassThru\nClose-OfficeOpenDocument -Document $doc"
+        }
+      ]
     },
     {
       "name": "Close-OfficeOpenDocument",
@@ -4102,7 +4651,19 @@
           ]
         }
       ],
-      "notes": "Lifecycle parity with the other authoring formats."
+      "notes": "Lifecycle parity with the other authoring formats.",
+      "examples": [
+        {
+          "title": "Release a document",
+          "description": "Closes the document without saving.",
+          "code": "Close-OfficeOpenDocument -Document $doc"
+        },
+        {
+          "title": "Inspect a file and close it",
+          "description": "Reads document information and releases the file without writing.",
+          "code": "$doc = Open-OfficeOpenDocument -Path .\\Reports\\Budget.ods\nGet-OfficeDocumentInfo -Document $doc\nClose-OfficeOpenDocument -Document $doc"
+        }
+      ]
     },
     {
       "name": "Add-OfficeOpenDocumentHeading",
@@ -4144,7 +4705,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a heading",
+          "description": "Writes a level-1 heading to a text document.",
+          "code": "New-OfficeOpenDocument -Path .\\Report.odt {\n    OpenDocumentHeading 'Quarterly report'\n}"
+        },
+        {
+          "title": "Structure a report by department",
+          "description": "Adds a level-2 heading and a summary paragraph per department.",
+          "code": "$departments = Import-OfficeCsv -Path .\\Data\\Departments.csv\nNew-OfficeOpenDocument -Path .\\Reports\\Headcount.odt {\n    OpenDocumentHeading 'Headcount by department'\n    foreach ($department in $departments) {\n        OpenDocumentHeading $department.Name -Level 2\n        OpenDocumentParagraph \"$($department.Headcount) people, $($department.OpenRoles) open roles.\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeOpenDocumentParagraph",
@@ -4180,7 +4753,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a paragraph",
+          "description": "Writes one paragraph to a text document.",
+          "code": "New-OfficeOpenDocument -Path .\\Note.odt {\n    OpenDocumentParagraph 'The office is closed on 11 November.'\n}"
+        },
+        {
+          "title": "Write a service report",
+          "description": "Adds one paragraph per stopped service under a heading.",
+          "code": "New-OfficeOpenDocument -Path .\\Reports\\Services.odt {\n    OpenDocumentHeading 'Stopped services'\n    foreach ($service in Get-Service | Where-Object Status -eq 'Stopped') {\n        OpenDocumentParagraph \"$($service.DisplayName) ($($service.Name))\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeOpenDocumentSheet",
@@ -4223,7 +4808,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a sheet",
+          "description": "Creates a sheet and sets its first cell.",
+          "code": "New-OfficeOpenDocument -Path .\\Budget.ods {\n    OpenDocumentSheet 'Q1' {\n        OpenDocumentCell -Row 1 -Column 1 -Value 'Total'\n    }\n}"
+        },
+        {
+          "title": "Add one sheet per region",
+          "description": "Writes each region's orders to its own sheet.",
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Orders.csv\nNew-OfficeOpenDocument -Path .\\Reports\\Orders-by-Region.ods {\n    foreach ($region in $orders | Group-Object Region) {\n        OpenDocumentSheet $region.Name {\n            OpenDocumentCell -Row 1 -Column 1 -Value 'Order'\n            OpenDocumentCell -Row 1 -Column 2 -Value 'Amount'\n            $row = 2\n            foreach ($order in $region.Group) {\n                OpenDocumentCell -Row $row -Column 1 -Value $order.OrderId\n                OpenDocumentCell -Row $row -Column 2 -Value ([decimal]$order.Amount)\n                $row++\n            }\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeOpenDocumentSlide",
@@ -4266,7 +4863,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a slide",
+          "description": "Creates a slide with one text box.",
+          "code": "New-OfficeOpenDocument -Path .\\Kickoff.odp {\n    OpenDocumentSlide 'Welcome' {\n        OpenDocumentTextBox 'Project kickoff'\n    }\n}"
+        },
+        {
+          "title": "Build an agenda deck",
+          "description": "Adds one slide per agenda item with a title and the owner.",
+          "code": "$agenda = Import-OfficeCsv -Path .\\Data\\Agenda.csv\nNew-OfficeOpenDocument -Path .\\Decks\\Town-Hall.odp {\n    foreach ($item in $agenda) {\n        OpenDocumentSlide $item.Topic {\n            OpenDocumentTextBox $item.Topic -Y 1cm -Height 3cm\n            OpenDocumentTextBox \"Presented by $($item.Owner)\" -Y 5cm -Height 2cm\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeOpenDocumentTextBox",
@@ -4332,7 +4941,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess. Geometry was in centimeters; it now takes lengths, so a bare number means points. Defaults stay 1cm, 1cm, 20cm x 3cm."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess. Geometry was in centimeters; it now takes lengths, so a bare number means points. Defaults stay 1cm, 1cm, 20cm x 3cm.",
+      "examples": [
+        {
+          "title": "Add a text box",
+          "description": "Places a text box at the default position on the slide.",
+          "code": "New-OfficeOpenDocument -Path .\\Agenda.odp {\n    OpenDocumentSlide 'Agenda' {\n        OpenDocumentTextBox 'Agenda'\n    }\n}"
+        },
+        {
+          "title": "Lay out a title and a summary",
+          "description": "Positions two text boxes with lengths in centimeters.",
+          "code": "New-OfficeOpenDocument -Path .\\Decks\\Results.odp {\n    OpenDocumentSlide 'Results' {\n        OpenDocumentTextBox 'Q3 results' -X 2cm -Y 1.5cm -Width 22cm -Height 3cm -Name Title\n        OpenDocumentTextBox 'Revenue grew 12% and churn fell to 2.1%.' -X 2cm -Y 6cm -Width 22cm -Height 8cm -Name Summary\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeOpenDocumentCell",
@@ -4379,7 +5000,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess. -Row and -Column are 1-based (were 0-based), matching how Office numbers rows and columns. -Sheet here is the sheet object from Add-OfficeOpenDocumentSheet; name/index selection is not offered because the command works inside a sheet block."
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess. -Row and -Column are 1-based (were 0-based), matching how Office numbers rows and columns. -Sheet here is the sheet object from Add-OfficeOpenDocumentSheet; name/index selection is not offered because the command works inside a sheet block.",
+      "examples": [
+        {
+          "title": "Set a cell value",
+          "description": "Writes a value to the first cell of the sheet (rows and columns are 1-based).",
+          "code": "New-OfficeOpenDocument -Path .\\Budget.ods {\n    OpenDocumentSheet 'Budget' {\n        OpenDocumentCell -Row 1 -Column 1 -Value 'Total'\n    }\n}"
+        },
+        {
+          "title": "Write a disk report",
+          "description": "Writes typed numbers and dates so the spreadsheet can sum and sort them.",
+          "code": "$disks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType = 3'\nNew-OfficeOpenDocument -Path .\\Reports\\Disks.ods {\n    OpenDocumentSheet 'Disks' {\n        OpenDocumentCell -Row 1 -Column 1 -Value 'Drive'\n        OpenDocumentCell -Row 1 -Column 2 -Value 'Free GB'\n        OpenDocumentCell -Row 1 -Column 3 -Value 'Checked'\n        $row = 2\n        foreach ($disk in $disks) {\n            OpenDocumentCell -Row $row -Column 1 -Value $disk.DeviceID\n            OpenDocumentCell -Row $row -Column 2 -Value ([math]::Round($disk.FreeSpace / 1GB, 1))\n            OpenDocumentCell -Row $row -Column 3 -Value (Get-Date)\n            $row++\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficeEpub",
@@ -4515,7 +5148,24 @@
           ]
         }
       ],
-      "notes": "Gains the lifecycle shape: a content block of EpubChapter/EpubResource commands that saves when it ends (-Path required; fails on loss unless -AllowLoss, like Save-OfficeEpub), and -Force. Without a block (-Path optional) it returns the live publication for Save-OfficeEpub, as before."
+      "notes": "Gains the lifecycle shape: a content block of EpubChapter/EpubResource commands that saves when it ends (-Path required; fails on loss unless -AllowLoss, like Save-OfficeEpub), and -Force. Without a block (-Path optional) it returns the live publication for Save-OfficeEpub, as before.",
+      "examples": [
+        {
+          "title": "Create an EPUB",
+          "description": "Writes a publication with one chapter.",
+          "code": "New-OfficeEpub -Path .\\Guide.epub -Title 'Onboarding guide' {\n    EpubChapter 'Welcome' -Text 'Welcome to the team.'\n}"
+        },
+        {
+          "title": "Build a handbook from Markdown chapters",
+          "description": "Adds a cover image and one chapter per Markdown file, in file-name order.",
+          "code": "$chapters = Get-ChildItem -Path .\\Book\\chapters -Filter *.md | Sort-Object Name\nNew-OfficeEpub -Path .\\Out\\Operations-Handbook.epub -Title 'Operations handbook' -Author 'IT Operations' -Language en {\n    EpubResource -Path .\\Book\\cover.png -Id cover -MediaType image/png\n    foreach ($chapter in $chapters) {\n        EpubChapter -Title $chapter.BaseName -Markdown (Get-Content -LiteralPath $chapter.FullName -Raw)\n    }\n}"
+        },
+        {
+          "title": "Keep the publication open and save it later",
+          "description": "Without a block the live publication is returned for step-by-step changes.",
+          "code": "$book = New-OfficeEpub -Title 'Release history' -Version Epub3\n$book | Add-OfficeEpubChapter -Title '2.4' -Markdown (Get-Content -Path .\\CHANGELOG.md -Raw)\nSave-OfficeEpub -Document $book -Path .\\Out\\Release-History.epub"
+        }
+      ]
     },
     {
       "name": "Open-OfficeEpub",
@@ -4607,7 +5257,19 @@
           ]
         }
       ],
-      "notes": "With a content block the publication is saved back when the block ends; that save fails on loss unless -AllowLoss."
+      "notes": "With a content block the publication is saved back when the block ends; that save fails on loss unless -AllowLoss.",
+      "examples": [
+        {
+          "title": "Open an EPUB",
+          "description": "Returns the publication for reading or editing.",
+          "code": "$book = Open-OfficeEpub -Path .\\Guide.epub"
+        },
+        {
+          "title": "Add an errata chapter",
+          "description": "Appends a chapter to an existing book and saves it when the block ends.",
+          "code": "Open-OfficeEpub -Path .\\Out\\Operations-Handbook.epub {\n    EpubChapter 'Errata' -Markdown (Get-Content -Path .\\Book\\errata.md -Raw)\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficeEpub",
@@ -4661,7 +5323,19 @@
           ]
         }
       ],
-      "notes": "A native save keeps today's strictness: it fails if content would be lost, and -AllowLoss accepts the loss. -PassThru returns the write report, replacing -ReportVariable. Save- replaces the target like every Save-; -WhatIf/-Confirm protect it."
+      "notes": "A native save keeps today's strictness: it fails if content would be lost, and -AllowLoss accepts the loss. -PassThru returns the write report, replacing -ReportVariable. Save- replaces the target like every Save-; -WhatIf/-Confirm protect it.",
+      "examples": [
+        {
+          "title": "Save a publication",
+          "description": "Writes the publication back to its own file.",
+          "code": "Save-OfficeEpub -Document $book"
+        },
+        {
+          "title": "Save an edited, signed book",
+          "description": "Removes signatures that the edit invalidated and returns the write report.",
+          "code": "$book = Open-OfficeEpub -Path .\\Library\\Policies.epub\nSet-OfficeEpubMetadata -Document $book -Title 'Policies 2026'\nSave-OfficeEpub -Document $book -Path .\\Library\\Policies-2026.epub -RemoveInvalidatedSignatures -PassThru"
+        }
+      ]
     },
     {
       "name": "Close-OfficeEpub",
@@ -4684,7 +5358,19 @@
           ]
         }
       ],
-      "notes": "Lifecycle parity."
+      "notes": "Lifecycle parity.",
+      "examples": [
+        {
+          "title": "Release a publication",
+          "description": "Closes the publication without saving.",
+          "code": "Close-OfficeEpub -Document $book"
+        },
+        {
+          "title": "Read chapter titles and close",
+          "description": "Lists the chapters of a book and releases it.",
+          "code": "$book = Open-OfficeEpub -Path .\\Library\\Policies.epub\nGet-OfficeEpubChapter -Document $book | Select-Object Order, Title\nClose-OfficeEpub -Document $book"
+        }
+      ]
     },
     {
       "name": "Add-OfficeEpubChapter",
@@ -4824,7 +5510,24 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeEpub; outside a block pass -Document or pipe the publication."
+      "notes": "DSL content command inside New-/Open-OfficeEpub; outside a block pass -Document or pipe the publication.",
+      "examples": [
+        {
+          "title": "Add a text chapter",
+          "description": "Adds a chapter from plain text.",
+          "code": "New-OfficeEpub -Path .\\Guide.epub -Title 'Guide' {\n    EpubChapter 'Introduction' -Text 'This guide explains how to request access.'\n}"
+        },
+        {
+          "title": "Add chapters from Markdown files",
+          "description": "Uses each file's first line as the title and the file as the chapter body.",
+          "code": "New-OfficeEpub -Path .\\Out\\Security-Guide.epub -Title 'Security guide' -Author 'Security Office' {\n    foreach ($file in Get-ChildItem -Path .\\Book\\security -Filter *.md | Sort-Object Name) {\n        $title = (Get-Content -LiteralPath $file.FullName -TotalCount 1).TrimStart('#', ' ')\n        EpubChapter -Title $title -Markdown (Get-Content -LiteralPath $file.FullName -Raw)\n    }\n}"
+        },
+        {
+          "title": "Add a chapter from XHTML",
+          "description": "The Xhtml set takes ready-made XHTML content and a container path.",
+          "code": "New-OfficeEpub -Path .\\Out\\Brochure.epub -Title 'Product brochure' {\n    EpubChapter 'Overview' -Xhtml (Get-Content -Path .\\Book\\overview.xhtml -Raw) -Id overview -ContainerPath 'Text/overview.xhtml'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeEpubResource",
@@ -4885,7 +5588,19 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeEpub."
+      "notes": "DSL content command inside New-/Open-OfficeEpub.",
+      "examples": [
+        {
+          "title": "Add a cover image",
+          "description": "Adds an image to the manifest with an ID and media type.",
+          "code": "New-OfficeEpub -Path .\\Guide.epub -Title 'Guide' {\n    EpubResource -Path .\\cover.png -Id cover -MediaType image/png\n    EpubChapter 'Welcome' -Text 'Welcome.'\n}"
+        },
+        {
+          "title": "Ship a stylesheet and a font",
+          "description": "Adds the house stylesheet and font so chapters can reference them.",
+          "code": "New-OfficeEpub -Path .\\Out\\Brand-Guide.epub -Title 'Brand guide' {\n    EpubResource -Path .\\Book\\styles\\book.css -Id css -MediaType text/css -ContainerPath 'Styles/book.css'\n    EpubResource -Path .\\Book\\fonts\\Inter.woff2 -Id inter -MediaType font/woff2 -ContainerPath 'Fonts/Inter.woff2'\n    EpubChapter 'Typography' -Markdown (Get-Content -Path .\\Book\\typography.md -Raw)\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeEpubChapter",
@@ -4906,6 +5621,18 @@
               "pipeline": "byValue"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List chapters",
+          "description": "Returns the chapters in reading order.",
+          "code": "Open-OfficeEpub -Path .\\Guide.epub | Get-OfficeEpubChapter"
+        },
+        {
+          "title": "Search a book's chapters",
+          "description": "Finds the chapters that mention retention.",
+          "code": "$book = Open-OfficeEpub -Path .\\Library\\Policies.epub\nGet-OfficeEpubChapter -Document $book |\n    Where-Object Text -match 'retention' |\n    Select-Object Order, Title"
         }
       ]
     },
@@ -4952,6 +5679,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Change the title",
+          "description": "Sets a new publication title.",
+          "code": "Set-OfficeEpubMetadata -Document $book -Title 'Operations handbook'"
+        },
+        {
+          "title": "Fix metadata across a library",
+          "description": "Sets the language and author on every book in a folder and saves each one.",
+          "code": "Get-ChildItem -Path .\\Library -Filter *.epub | ForEach-Object {\n    $book = Open-OfficeEpub -LiteralPath $_.FullName\n    Set-OfficeEpubMetadata -Document $book -Language en-GB -Author 'Evotec Documentation'\n    Save-OfficeEpub -Document $book\n}"
         }
       ]
     },
@@ -5043,7 +5782,19 @@
           ]
         }
       ],
-      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-."
+      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-.",
+      "examples": [
+        {
+          "title": "Open an AsciiDoc file",
+          "description": "Parses the file into an AsciiDocDocument.",
+          "code": "$doc = Open-OfficeAsciiDoc -Path .\\guide.adoc"
+        },
+        {
+          "title": "Check a docs folder for parse problems",
+          "description": "Returns the parse result with diagnostics for every AsciiDoc file.",
+          "code": "Get-ChildItem -Path .\\docs -Filter *.adoc -Recurse | ForEach-Object {\n    $result = Open-OfficeAsciiDoc -LiteralPath $_.FullName -AsResult\n    [pscustomobject]@{ File = $_.Name; Diagnostics = $result.Diagnostics.Count }\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficeAsciiDoc",
@@ -5097,7 +5848,19 @@
           ]
         }
       ],
-      "notes": "-Path is optional for a document opened from a file."
+      "notes": "-Path is optional for a document opened from a file.",
+      "examples": [
+        {
+          "title": "Save an AsciiDoc document",
+          "description": "Writes the document back to the file it came from.",
+          "code": "Save-OfficeAsciiDoc -Document $doc"
+        },
+        {
+          "title": "Normalize AsciiDoc formatting",
+          "description": "Rewrites every file in canonical form with LF line endings.",
+          "code": "Get-ChildItem -Path .\\docs -Filter *.adoc | ForEach-Object {\n    $doc = Open-OfficeAsciiDoc -LiteralPath $_.FullName\n    Save-OfficeAsciiDoc -Document $doc -Mode Canonical -LineEnding LF\n}"
+        }
+      ]
     },
     {
       "name": "Open-OfficeLatex",
@@ -5187,7 +5950,19 @@
           ]
         }
       ],
-      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-."
+      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-.",
+      "examples": [
+        {
+          "title": "Open a LaTeX file",
+          "description": "Parses the file into a LatexDocument.",
+          "code": "$doc = Open-OfficeLatex -Path .\\paper.tex"
+        },
+        {
+          "title": "Check a thesis for parse problems",
+          "description": "Returns the parse result with diagnostics for each chapter file.",
+          "code": "Get-ChildItem -Path .\\thesis\\chapters -Filter *.tex | ForEach-Object {\n    $result = Open-OfficeLatex -LiteralPath $_.FullName -AsResult\n    [pscustomobject]@{ File = $_.Name; Diagnostics = $result.Diagnostics.Count }\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficeLatex",
@@ -5241,7 +6016,19 @@
           ]
         }
       ],
-      "notes": "-Path is optional for a document opened from a file."
+      "notes": "-Path is optional for a document opened from a file.",
+      "examples": [
+        {
+          "title": "Save a LaTeX document",
+          "description": "Writes the document back to the file it came from.",
+          "code": "Save-OfficeLatex -Document $doc"
+        },
+        {
+          "title": "Write a canonical copy for review",
+          "description": "Saves a normalized copy next to the source with LF line endings.",
+          "code": "$doc = Open-OfficeLatex -Path .\\paper.tex\nSave-OfficeLatex -Document $doc -Path .\\review\\paper.tex -Mode Canonical -LineEnding LF -PassThru"
+        }
+      ]
     },
     {
       "name": "Open-OfficeIWork",
@@ -5307,7 +6094,19 @@
           ]
         }
       ],
-      "notes": "Read-only: iWork files are converted, not saved, so there is no New-/Save-/Close-."
+      "notes": "Read-only: iWork files are converted, not saved, so there is no New-/Save-/Close-.",
+      "examples": [
+        {
+          "title": "Open a Numbers file",
+          "description": "Returns a read-only source document for the spreadsheet.",
+          "code": "$source = Open-OfficeIWork -Path .\\Quarterly.numbers"
+        },
+        {
+          "title": "List sheets and convert to Excel",
+          "description": "Shows the sheet names of a Numbers file, then converts it to .xlsx.",
+          "code": "$source = Open-OfficeIWork -Path .\\Finance\\Quarterly.numbers\n$source.ReadNumbers().Sheets | Select-Object Name\nConvert-OfficeDocument -Path .\\Finance\\Quarterly.numbers -To Excel -OutputPath .\\Finance\\Quarterly.xlsx"
+        }
+      ]
     },
     {
       "name": "Open-OfficeOneNote",
@@ -5373,7 +6172,19 @@
           ]
         }
       ],
-      "notes": "Read-only model; OneNote output goes through Convert-OfficeDocument."
+      "notes": "Read-only model; OneNote output goes through Convert-OfficeDocument.",
+      "examples": [
+        {
+          "title": "Open a OneNote section",
+          "description": "Returns the read-only section model.",
+          "code": "$section = Open-OfficeOneNote -Path .\\Operations.one"
+        },
+        {
+          "title": "Find recently changed pages",
+          "description": "Lists the pages edited in the last week, then exports the section to Markdown.",
+          "code": "$section = Open-OfficeOneNote -Path .\\Notebooks\\Operations.one\n$section.Pages | Where-Object LastModifiedUtc -gt (Get-Date).ToUniversalTime().AddDays(-7) | Select-Object Title, LastModifiedUtc\nConvert-OfficeDocument -Path .\\Notebooks\\Operations.one -To Markdown -OutputPath .\\Notebooks\\Operations.md"
+        }
+      ]
     },
     {
       "name": "Import-OfficeCsv",
@@ -7289,7 +8100,24 @@
           ]
         }
       ],
-      "notes": "Absorbs Get-OfficeCsv (-As Document) and ConvertFrom-OfficeCsv (-Text sets). The four exclusive output switches become -As. Delimiter choice stays a parameter-set dimension (explicit -Delimiter, -UseCulture, -DetectDelimiter). Files stream by default; compressed input is detected or set with -CompressionType. bool parameters with on defaults became -No switches."
+      "notes": "Absorbs Get-OfficeCsv (-As Document) and ConvertFrom-OfficeCsv (-Text sets). The four exclusive output switches become -As. Delimiter choice stays a parameter-set dimension (explicit -Delimiter, -UseCulture, -DetectDelimiter). Files stream by default; compressed input is detected or set with -CompressionType. bool parameters with on defaults became -No switches.",
+      "examples": [
+        {
+          "title": "Import a CSV file",
+          "description": "Returns one object per row.",
+          "code": "Import-OfficeCsv -Path .\\Data\\Users.csv"
+        },
+        {
+          "title": "Import typed data for a report",
+          "description": "Infers column types, so numbers and dates sort and sum correctly, then exports the top customers.",
+          "code": "Import-OfficeCsv -Path .\\Data\\Sales-2026.csv -InferSchema -Culture en-US |\n    Sort-Object Revenue -Descending |\n    Select-Object -First 20 |\n    Export-OfficeExcel -Path .\\Reports\\Top-Customers.xlsx"
+        },
+        {
+          "title": "Read files with unknown delimiters",
+          "description": "Detects comma, semicolon or tab per file and reads gzip-compressed exports directly.",
+          "code": "Get-ChildItem -Path .\\Inbox -Include *.csv, *.csv.gz -Recurse |\n    Import-OfficeCsv -DetectDelimiter -DelimiterCandidates ',', ';', \"`t\" -CompressionType Auto"
+        }
+      ]
     },
     {
       "name": "Export-OfficeCsv",
@@ -8344,7 +9172,24 @@
           ]
         }
       ],
-      "notes": "Replaces the existing file by default; -NoClobber refuses. -InputObject enumerates arrays as rows. Rows stream to the file as they arrive."
+      "notes": "Replaces the existing file by default; -NoClobber refuses. -InputObject enumerates arrays as rows. Rows stream to the file as they arrive.",
+      "examples": [
+        {
+          "title": "Export objects to CSV",
+          "description": "Writes the processes to a CSV file.",
+          "code": "Get-Process | Select-Object Name, Id, CPU | Export-OfficeCsv -Path .\\Processes.csv"
+        },
+        {
+          "title": "Export user data safely for Excel users",
+          "description": "Escapes values that Excel would run as formulas and compresses the file for transfer.",
+          "code": "Import-OfficeCsv -Path .\\Data\\Accounts.csv |\n    Select-Object UserName, Department, Manager, LastLogon |\n    Export-OfficeCsv -Path .\\Out\\Accounts.csv.gz -FormulaInjectionPolicy Escape -CompressionType GZip -NoClobber"
+        },
+        {
+          "title": "Append to a daily log",
+          "description": "Adds today's disk readings to an existing file without repeating the header.",
+          "code": "Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType = 3' |\n    Select-Object @{ Name = 'Date'; Expression = { Get-Date } }, DeviceID, FreeSpace |\n    Export-OfficeCsv -Path .\\Logs\\disk-space.csv -Append -DateTimeFormat 'yyyy-MM-dd HH:mm'"
+        }
+      ]
     },
     {
       "name": "ConvertTo-OfficeCsv",
@@ -8669,7 +9514,19 @@
           ]
         }
       ],
-      "notes": "Object-to-text conversion; stays a ConvertTo- command. Same formula-injection, quoting and culture options as Export-OfficeCsv."
+      "notes": "Object-to-text conversion; stays a ConvertTo- command. Same formula-injection, quoting and culture options as Export-OfficeCsv.",
+      "examples": [
+        {
+          "title": "Convert objects to CSV text",
+          "description": "Returns CSV as a string instead of writing a file.",
+          "code": "Get-Service | Select-Object -First 5 Name, Status | ConvertTo-OfficeCsv"
+        },
+        {
+          "title": "Upload CSV to a web service",
+          "description": "Builds a semicolon-separated body with formula escaping and posts it.",
+          "code": "$body = Import-OfficeCsv -Path .\\Data\\Assets.csv |\n    Select-Object AssetTag, Owner, Location |\n    ConvertTo-OfficeCsv -Delimiter ';' -FormulaInjectionPolicy Escape -UseQuotes Always\nInvoke-RestMethod -Uri 'https://cmdb.example.com/api/import' -Method Post -ContentType 'text/csv' -Body ($body -join [Environment]::NewLine)"
+        }
+      ]
     },
     {
       "name": "New-OfficeHtmlConversionOptions",
@@ -8716,7 +9573,19 @@
           ]
         }
       ],
-      "notes": "Both switches defaulted on in the options type; they become -No switches."
+      "notes": "Both switches defaulted on in the options type; they become -No switches.",
+      "examples": [
+        {
+          "title": "Treat HTML input as untrusted",
+          "description": "Creates options that apply the untrusted-input rules during conversion.",
+          "code": "$options = New-OfficeHtmlConversionOptions -Trust Untrusted"
+        },
+        {
+          "title": "Convert saved web pages to Word",
+          "description": "Uses the document profile and resolves relative links against the original site.",
+          "code": "$html = New-OfficeHtmlConversionOptions -Profile Document -BaseUri 'https://intranet.example.com/policies/' -Trust Untrusted\nGet-ChildItem -Path .\\SavedPages -Filter *.html | Convert-OfficeDocument -To Word -OutputDirectory .\\Policies -Options $html"
+        }
+      ]
     },
     {
       "name": "New-OfficeHtmlRenderOptions",
@@ -8901,7 +9770,19 @@
           ]
         }
       ],
-      "notes": "Viewport size takes lengths (816px stays the default; a bare number now means points). Output pixel limits stay integers because they count raster pixels. -BackgroundColor takes OfficeColor."
+      "notes": "Viewport size takes lengths (816px stays the default; a bare number now means points). Output pixel limits stay integers because they count raster pixels. -BackgroundColor takes OfficeColor.",
+      "examples": [
+        {
+          "title": "Render a page at a wider viewport",
+          "description": "Renders the HTML page as it looks in a 1280-pixel-wide browser window.",
+          "code": "Export-OfficeDocumentImage -Path .\\page.html -OutputDirectory .\\img -Options (New-OfficeHtmlRenderOptions -ViewportWidth 1280px)"
+        },
+        {
+          "title": "Capture a status page for a report",
+          "description": "Renders the page continuously at high resolution on white and refuses diagnosed loss.",
+          "code": "$render = New-OfficeHtmlRenderOptions -Mode Continuous -ViewportWidth 1440px -TargetDpi 192 -BackgroundColor White -FidelityPolicy RequireNoLoss -ResourceTimeoutSeconds 10\nExport-OfficeDocumentImage -Path .\\Exports\\status.html -Format Png -OutputPath .\\Reports\\status.png -Options $render"
+        }
+      ]
     },
     {
       "name": "New-OfficeHtmlPdfOptions",
@@ -8953,6 +9834,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Set PDF margins for HTML input",
+          "description": "Converts an HTML page to PDF with 2 cm margins.",
+          "code": "Convert-OfficeDocument -Path .\\Report.html -To Pdf -OutputPath .\\Report.pdf -Options (New-OfficeHtmlPdfOptions -Margin 2cm)"
+        },
+        {
+          "title": "Print a generated HTML report",
+          "description": "Includes local images and stylesheets, uses the house font and leaves form fields out.",
+          "code": "$pdf = New-OfficeHtmlPdfOptions -FontFamily 'Segoe UI' -Margin 18mm -IncludeLocalResources -NoInteractiveFormControls\nConvert-OfficeDocument -Path .\\Reports\\Weekly-Status.html -To Pdf -OutputPath .\\Reports\\Weekly-Status.pdf -Options $pdf"
+        }
       ]
     },
     {
@@ -9000,7 +9893,19 @@
           ]
         }
       ],
-      "notes": "'Text' names plain-text input (.txt/.log); it is not a document format with its own commands."
+      "notes": "'Text' names plain-text input (.txt/.log); it is not a document format with its own commands.",
+      "examples": [
+        {
+          "title": "Convert a log file to PDF",
+          "description": "Expands tabs to four spaces.",
+          "code": "Convert-OfficeDocument -Path .\\setup.log -To Pdf -OutputPath .\\setup.pdf -Options (New-OfficeTextPdfOptions -TabSize 4)"
+        },
+        {
+          "title": "Archive server logs as PDF",
+          "description": "Reads the logs as UTF-8 and caps each PDF at 200 pages.",
+          "code": "$text = New-OfficeTextPdfOptions -Encoding utf-8 -TabSize 4 -MaximumPages 200\nGet-ChildItem -Path .\\Logs -Filter *.log | Convert-OfficeDocument -To Pdf -OutputDirectory .\\Archive\\Logs -Options $text"
+        }
+      ]
     }
   ],
   "map": [

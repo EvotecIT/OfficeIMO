@@ -157,7 +157,24 @@
           ]
         }
       ],
-      "notes": "With a content block the workbook is saved and closed when the block ends (FileInfo with -PassThru); a block that throws saves nothing and removes the partial file. Without a block (Live set) the live ExcelDocument is returned and -Path is optional (Save-OfficeExcel -Path later). Saving fails if content would be lost unless -AllowLoss. Refuses to replace an existing file without -Force. -Template accepts .xltx/.xlsx/.xlsm (absorbs Copy-OfficeExcelWorkbook). -DocumentProperty takes Title, Author, Subject, Keywords, Description, Category, Company, Manager, ApplicationName and LastModifiedBy keys. -MaxDegreeOfParallelism 1 forces sequential execution; the rest of the execution policy is the document's Execution property."
+      "notes": "With a content block the workbook is saved and closed when the block ends (FileInfo with -PassThru); a block that throws saves nothing and removes the partial file. Without a block (Live set) the live ExcelDocument is returned and -Path is optional (Save-OfficeExcel -Path later). Saving fails if content would be lost unless -AllowLoss. Refuses to replace an existing file without -Force. -Template accepts .xltx/.xlsx/.xlsm (absorbs Copy-OfficeExcelWorkbook). -DocumentProperty takes Title, Author, Subject, Keywords, Description, Category, Company, Manager, ApplicationName and LastModifiedBy keys. -MaxDegreeOfParallelism 1 forces sequential execution; the rest of the execution policy is the document's Execution property.",
+      "examples": [
+        {
+          "title": "Create a workbook with one table",
+          "description": "Creates Services.xlsx with a themed, filterable table of the local services and saves it when the block ends.",
+          "code": "New-OfficeExcel -Path .\\Services.xlsx {\n    ExcelSheet 'Services' {\n        ExcelTable (Get-Service | Select-Object Name, DisplayName, Status, StartType)\n    }\n}"
+        },
+        {
+          "title": "Build a regional sales workbook",
+          "description": "Builds a Q3 sales workbook in the Boardroom theme with a summary chart and the order detail, sets the document title and opens it in Excel.",
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Q3-Orders.csv\n$byRegion = $orders | Group-Object Region | ForEach-Object {\n    [pscustomobject]@{\n        Region  = $_.Name\n        Orders  = $_.Count\n        Revenue = ($_.Group | Measure-Object Amount -Sum).Sum\n    }\n}\n\n$properties = @{ Title = 'Q3 sales'; Company = 'Northwind Traders' }\nNew-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Theme Boardroom -DocumentProperty $properties -Force -Show {\n    ExcelSheet 'Summary' {\n        ExcelTable $byRegion -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -Title 'Revenue by region'\n    }\n    ExcelSheet 'Orders' {\n        ExcelTable $orders -Name Orders\n    }\n}"
+        },
+        {
+          "title": "Keep a workbook open and save it later",
+          "description": "Without a content block the live workbook is returned, so a script can add a sheet per server in a loop and choose the file name when it saves.",
+          "code": "$book = New-OfficeExcel -Theme Modern\nforeach ($server in 'SQL01', 'SQL02', 'WEB01') {\n    $disks = Invoke-Command -ComputerName $server { Get-Volume | Where-Object DriveLetter }\n    Add-OfficeExcelSheet -Document $book -Name $server {\n        ExcelTable ($disks | Select-Object DriveLetter, FileSystemLabel, Size, SizeRemaining)\n    }\n}\nSave-OfficeExcel -Document $book -Path .\\Reports\\Disk-Capacity.xlsx\nClose-OfficeExcel -Document $book"
+        }
+      ]
     },
     {
       "name": "Open-OfficeExcel",
@@ -365,7 +382,24 @@
           ]
         }
       ],
-      "notes": "Replaces Get-OfficeExcel. With a content block the workbook is saved to its own path and closed when the block ends (not with -ReadOnly, and a -Uri workbook is never written back; save it with Save-OfficeExcel -Path). Without a block the live document is returned. Opening never restyles the workbook."
+      "notes": "Replaces Get-OfficeExcel. With a content block the workbook is saved to its own path and closed when the block ends (not with -ReadOnly, and a -Uri workbook is never written back; save it with Save-OfficeExcel -Path). Without a block the live document is returned. Opening never restyles the workbook.",
+      "examples": [
+        {
+          "title": "Update a cell in an existing workbook",
+          "description": "Opens the Q3 sales workbook, stamps the review date on the Summary sheet and saves it back when the block ends.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelCell B1 (Get-Date)\n    }\n}"
+        },
+        {
+          "title": "Add the latest tickets to a tracker",
+          "description": "Appends the tickets exported overnight to the Tickets table and adds a data bar to the age column, then saves the tracker in place.",
+          "code": "$newTickets = Import-OfficeCsv -Path .\\Exports\\Tickets-2026-10-26.csv\nOpen-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        Add-OfficeExcelTableRow -Table Tickets -InputObject $newTickets\n        ExcelConditionalFormat -Header AgeDays -Table Tickets -Color Accent2\n    }\n}"
+        },
+        {
+          "title": "Read a workbook from a web server",
+          "description": "Opens a published budget read-only from HTTPS, reads the IT rows and closes it without writing anything back.",
+          "code": "$book = Open-OfficeExcel -Uri https://intranet.example.com/finance/Budget-2027.xlsx -ReadOnly\nImport-OfficeExcel -Document $book -Sheet Budget | Where-Object Department -eq 'IT'\nClose-OfficeExcel -Document $book"
+        }
+      ]
     },
     {
       "name": "Save-OfficeExcel",
@@ -425,7 +459,24 @@
           ]
         }
       ],
-      "notes": "Fails if content would be lost, as today; -AllowLoss accepts it. Save-time behavior (preflight cleanup, defined-name repair, Open XML validation, formula evaluation, recalculation flags) moves to -SaveOptions (New-OfficeExcelSaveOptions or a hashtable)."
+      "notes": "Fails if content would be lost, as today; -AllowLoss accepts it. Save-time behavior (preflight cleanup, defined-name repair, Open XML validation, formula evaluation, recalculation flags) moves to -SaveOptions (New-OfficeExcelSaveOptions or a hashtable).",
+      "examples": [
+        {
+          "title": "Save a live workbook",
+          "description": "Saves a workbook opened without a content block back to its own path and closes it.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx\nSave-OfficeExcel -Document $book\nClose-OfficeExcel -Document $book"
+        },
+        {
+          "title": "Save a validated copy under a new name",
+          "description": "Writes this week's change log to a new file with Open XML validation, then closes the workbook it returns.",
+          "code": "$book = New-OfficeExcel\nAdd-OfficeExcelSheet -Document $book -Name 'Changes' {\n    ExcelTable (Import-OfficeCsv -Path .\\Data\\Changes-Week43.csv)\n}\n$book |\n    Save-OfficeExcel -Path .\\Reports\\Changes-Week43.xlsx -SaveOptions @{ ValidateOpenXml = $true } -PassThru |\n    Close-OfficeExcel"
+        },
+        {
+          "title": "Save with a password",
+          "description": "Encrypts the saved file with a password read at the prompt, so it never appears in the script or history.",
+          "code": "$password = Read-Host -AsSecureString -Prompt 'Workbook password'\n$book = Open-OfficeExcel -Path .\\Reports\\Salaries-2027.xlsx\nSave-OfficeExcel -Document $book -Path .\\Secure\\Salaries-2027.xlsx -Password $password\nClose-OfficeExcel -Document $book"
+        }
+      ]
     },
     {
       "name": "Close-OfficeExcel",
@@ -449,7 +500,19 @@
           ]
         }
       ],
-      "notes": "Closing never saves; pipe through Save-OfficeExcel -PassThru first. No -WhatIf because nothing is written."
+      "notes": "Closing never saves; pipe through Save-OfficeExcel -PassThru first. No -WhatIf because nothing is written.",
+      "examples": [
+        {
+          "title": "Close a workbook without saving",
+          "description": "Releases a workbook that was only read; nothing is written to disk.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -ReadOnly\nClose-OfficeExcel -Document $book"
+        },
+        {
+          "title": "Always close after reading",
+          "description": "Reads the open purchase requests and closes the workbook in a finally block, so the file is released even if the filter fails.",
+          "code": "$book = Open-OfficeExcel -Path .\\Finance\\Purchase-Requests.xlsx -ReadOnly\ntry {\n    Import-OfficeExcel -Document $book -Table Requests | Where-Object Status -eq 'Awaiting approval'\n} finally {\n    Close-OfficeExcel -Document $book\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelSaveOptions",
@@ -514,7 +577,19 @@
           ]
         }
       ],
-      "notes": "Replaces the eight save switches repeated on New-, Save-, Close- and Export-OfficeExcel. -SaveOptions also accepts a hashtable with the same keys."
+      "notes": "Replaces the eight save switches repeated on New-, Save-, Close- and Export-OfficeExcel. -SaveOptions also accepts a hashtable with the same keys.",
+      "examples": [
+        {
+          "title": "Validate the package on save",
+          "description": "Creates save options that check the written workbook against the Open XML schema.",
+          "code": "$saveOptions = New-OfficeExcelSaveOptions -ValidateOpenXml"
+        },
+        {
+          "title": "Recalculate a budget model when it is saved",
+          "description": "Changes an assumption in the budget model, evaluates the formulas and asks Excel to recalculate fully when the file is next opened.",
+          "code": "$saveOptions = New-OfficeExcelSaveOptions -EvaluateFormulas -FullCalculationOnOpen -RepairDefinedNames\nOpen-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx -SaveOptions $saveOptions {\n    ExcelSheet 'Assumptions' {\n        ExcelCell B4 0.035\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Import-OfficeExcel",
@@ -1061,7 +1136,29 @@
           ]
         }
       ],
-      "notes": "Absorbs Get-OfficeExcelData, Get-OfficeExcelRange and Get-OfficeExcelUsedRange. -Sheet takes a name, 1-based position or object, and * (or any wildcard) imports several sheets with a WorksheetName property on each row (replaces -AllSheets). Without -Range the used range is read; -Range takes an A1 range, a whole-row/column range (5:200, B:F) or a single top-left cell (A5) meaning from there to the end of the used range (replaces -StartRow/-EndRow/-StartColumn/-EndColumn). -As Object (default), Hashtable, DataTable, DataReader or Column replaces the four mutually exclusive switches. Writes a warning when the process runs in globalization-invariant mode and -Culture parsing would be affected (absorbs Get-OfficeExcelRuntimePreflight)."
+      "notes": "Absorbs Get-OfficeExcelData, Get-OfficeExcelRange and Get-OfficeExcelUsedRange. -Sheet takes a name, 1-based position or object, and * (or any wildcard) imports several sheets with a WorksheetName property on each row (replaces -AllSheets). Without -Range the used range is read; -Range takes an A1 range, a whole-row/column range (5:200, B:F) or a single top-left cell (A5) meaning from there to the end of the used range (replaces -StartRow/-EndRow/-StartColumn/-EndColumn). -As Object (default), Hashtable, DataTable, DataReader or Column replaces the four mutually exclusive switches. Writes a warning when the process runs in globalization-invariant mode and -Culture parsing would be affected (absorbs Get-OfficeExcelRuntimePreflight).",
+      "examples": [
+        {
+          "title": "Read the first sheet as objects",
+          "description": "Reads the used range of the first worksheet, using the header row as property names.",
+          "code": "Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Find the largest open orders",
+          "description": "Reads the Orders sheet from row 5, where the header starts below a title block, and lists the ten largest open orders.",
+          "code": "Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet Orders -Range A5 |\n    Where-Object Status -eq 'Open' |\n    Sort-Object Amount -Descending |\n    Select-Object -First 10 OrderId, Customer, Region, Amount"
+        },
+        {
+          "title": "Read a named table",
+          "description": "Reads the rows of the Tickets table wherever it sits in the workbook and counts open tickets per assignee.",
+          "code": "Import-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx -Table Tickets |\n    Where-Object Status -ne 'Closed' |\n    Group-Object Assignee |\n    Sort-Object Count -Descending |\n    Select-Object Name, Count"
+        },
+        {
+          "title": "Combine every sheet of many workbooks",
+          "description": "Reads every worksheet of each branch workbook (each row carries its WorksheetName) and writes one consolidated workbook.",
+          "code": "Get-ChildItem -Path .\\Branches -Filter *.xlsx |\n    Import-OfficeExcel -Sheet * |\n    Export-OfficeExcel -Path .\\Reports\\All-Branches.xlsx -Sheet 'All branches' -Title 'Branch sales, October 2026'"
+        }
+      ]
     },
     {
       "name": "Export-OfficeExcel",
@@ -1669,7 +1766,29 @@
           ]
         }
       ],
-      "notes": "Defaults on: theme table style, frozen header row, fitted columns, number formats inferred from the data (dates, integers, decimals, currency-looking values); -NoTableStyle, -NoFreeze, -NoAutoFit turn each off and -NoTable writes a plain range. Creating a file uses the streaming writer with bounded memory; -Append and -ReplaceSheet open the existing workbook with the object model. A DataSet input writes one sheet per DataTable (sheet and table names from the DataTable). With -Append, -Table names an existing table to extend (replaces -AppendToTable); otherwise rows go after the used range. -ColumnFormat maps headers to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format codes, with optional per-entry Decimals and IncludeHeader keys; it replaces the seven -*Column array parameters. -Address is the top-left cell (replaces -StartRow/-StartColumn). -FlattenOptions carries the nested-value settings (DictionaryEntrySeparator, DictionaryKeyValueSeparator, MaxCollectionItems, MaxNestingDepth, IncludeUnreadableProperties, PropertyConversionErrorAction). Default behavior replaces an existing file; -NoClobber refuses. Also absorbs Import-OfficeExcelDelimitedText through Import-OfficeCsv | Export-OfficeExcel."
+      "notes": "Defaults on: theme table style, frozen header row, fitted columns, number formats inferred from the data (dates, integers, decimals, currency-looking values); -NoTableStyle, -NoFreeze, -NoAutoFit turn each off and -NoTable writes a plain range. Creating a file uses the streaming writer with bounded memory; -Append and -ReplaceSheet open the existing workbook with the object model. A DataSet input writes one sheet per DataTable (sheet and table names from the DataTable). With -Append, -Table names an existing table to extend (replaces -AppendToTable); otherwise rows go after the used range. -ColumnFormat maps headers to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format codes, with optional per-entry Decimals and IncludeHeader keys; it replaces the seven -*Column array parameters. -Address is the top-left cell (replaces -StartRow/-StartColumn). -FlattenOptions carries the nested-value settings (DictionaryEntrySeparator, DictionaryKeyValueSeparator, MaxCollectionItems, MaxNestingDepth, IncludeUnreadableProperties, PropertyConversionErrorAction). Default behavior replaces an existing file; -NoClobber refuses. Also absorbs Import-OfficeExcelDelimitedText through Import-OfficeCsv | Export-OfficeExcel.",
+      "examples": [
+        {
+          "title": "Export objects in one line",
+          "description": "Writes the running processes as a styled table with a frozen header and fitted columns, and opens the file.",
+          "code": "Get-Process | Export-OfficeExcel -Path .\\Processes.xlsx -Show"
+        },
+        {
+          "title": "Export a titled sales sheet",
+          "description": "Exports the Q3 orders as a named table under a title; dates and amounts are formatted from the data, and only the margin column is set explicitly as a percentage.",
+          "code": "$export = @{\n    Path         = '.\\Reports\\Q3-Sales.xlsx'\n    Sheet        = 'Orders'\n    Table        = 'Orders'\n    Title        = 'Q3 orders'\n    ColumnFormat = @{ Margin = 'Percent' }\n}\nImport-OfficeCsv -Path .\\Data\\Q3-Orders.csv |\n    Select-Object OrderId, Customer, Region, OrderDate, Amount, Margin |\n    Export-OfficeExcel @export"
+        },
+        {
+          "title": "Append a daily snapshot to a history table",
+          "description": "Adds today's free-space readings to the DiskHistory table, so the workbook grows into a capacity history one run at a time.",
+          "code": "Get-Volume |\n    Where-Object DriveLetter |\n    Select-Object @{ Name = 'Date'; Expression = { Get-Date } }, DriveLetter, Size, SizeRemaining |\n    Export-OfficeExcel -Path .\\Reports\\Disk-Usage.xlsx -Sheet History -Table DiskHistory -Append"
+        },
+        {
+          "title": "Refresh one sheet of a workbook",
+          "description": "Replaces only the Open tickets sheet with this morning's export and leaves the other sheets, charts and notes in the workbook untouched.",
+          "code": "Import-OfficeCsv -Path .\\Exports\\open-tickets.csv |\n    Export-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx -Sheet 'Open tickets' -ReplaceSheet"
+        }
+      ]
     },
     {
       "name": "Edit-OfficeExcelRow",
@@ -1816,7 +1935,19 @@
           ]
         }
       ],
-      "notes": "Path and LiteralPath save in place; Document leaves saving to the caller."
+      "notes": "Path and LiteralPath save in place; Document leaves saving to the caller.",
+      "examples": [
+        {
+          "title": "Update rows in place",
+          "description": "Marks every draft row on the Releases sheet as ready and saves the workbook.",
+          "code": "Edit-OfficeExcelRow -Path .\\Reports\\Releases.xlsx -Sheet Releases -ScriptBlock {\n    param($row)\n    if ($row['Status'].Value -eq 'Draft') { $row.Set('Status', 'Ready') }\n}"
+        },
+        {
+          "title": "Recalculate renewal dates in an open workbook",
+          "description": "Sets the renewal date of each active licence to one year after its start date in a live workbook, which the script then saves.",
+          "code": "$book = Open-OfficeExcel -Path .\\Contracts\\Licences.xlsx\nEdit-OfficeExcelRow -Document $book -Sheet Licences -Range A1:F400 -ScriptBlock {\n    param($row)\n    if ($row['State'].Value -eq 'Active') {\n        $row.Set('RenewalDate', $row.Get[datetime]('StartDate').AddYears(1))\n    }\n}\nSave-OfficeExcel -Document $book -PassThru | Close-OfficeExcel"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelSheet",
@@ -1863,6 +1994,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add a sheet with content",
+          "description": "Adds an Inventory sheet and writes a table of servers into it.",
+          "code": "New-OfficeExcel -Path .\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Servers.csv)\n    }\n}"
+        },
+        {
+          "title": "Create one sheet per department",
+          "description": "Groups the headcount export by department and writes each group to its own sheet, with a cleaned-up name when a department name has characters Excel does not allow.",
+          "code": "$staff = Import-OfficeCsv -Path .\\HR\\Headcount-2026-10.csv\nNew-OfficeExcel -Path .\\Reports\\Headcount.xlsx {\n    foreach ($group in $staff | Group-Object Department) {\n        ExcelSheet $group.Name -ValidationMode Sanitize {\n            ExcelTable ($group.Group | Select-Object Name, Title, Location, StartDate)\n        }\n    }\n}"
         }
       ]
     },
@@ -1959,7 +2102,19 @@
           ]
         }
       ],
-      "notes": "Merges Set-OfficeExcelSheetVisibility, Set-OfficeExcelSheetTabColor and Set-OfficeExcelActiveSheet. -Visibility Visible | Hidden | VeryHidden. Inside an ExcelSheet block it targets the current sheet. No DSL alias: ExcelSheet belongs to Add-OfficeExcelSheet."
+      "notes": "Merges Set-OfficeExcelSheetVisibility, Set-OfficeExcelSheetTabColor and Set-OfficeExcelActiveSheet. -Visibility Visible | Hidden | VeryHidden. Inside an ExcelSheet block it targets the current sheet. No DSL alias: ExcelSheet belongs to Add-OfficeExcelSheet.",
+      "examples": [
+        {
+          "title": "Colour a sheet tab",
+          "description": "Gives the Summary tab the first accent colour of the workbook theme.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    Set-OfficeExcelSheet -Sheet Summary -TabColor Accent1\n}"
+        },
+        {
+          "title": "Hide a lookup sheet and open on the summary",
+          "description": "Hides the lookup data that formulas depend on and makes Summary the sheet Excel shows first.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Pricing.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Price-List.csv)\n    }\n    ExcelSheet 'Lookups' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Currency-Rates.csv) -Name Rates\n        Set-OfficeExcelSheet -Visibility Hidden\n    }\n    Set-OfficeExcelSheet -Sheet Summary -Active\n}"
+        }
+      ]
     },
     {
       "name": "Move-OfficeExcelSheet",
@@ -2001,7 +2156,19 @@
           ]
         }
       ],
-      "notes": "-Position is 1-based like -Sheet (was a zero-based -Index)."
+      "notes": "-Position is 1-based like -Sheet (was a zero-based -Index).",
+      "examples": [
+        {
+          "title": "Move a sheet to the front",
+          "description": "Moves the Summary sheet to the first tab position.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    Move-OfficeExcelSheet -Sheet Summary -Position 1\n}"
+        },
+        {
+          "title": "Order monthly sheets newest first",
+          "description": "Moves the sheet for each month to the front in turn, so the most recent month ends up first.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Tickets-2026.xlsx\nforeach ($month in 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October') {\n    Move-OfficeExcelSheet -Document $book -Sheet $month -Position 1\n}\nSave-OfficeExcel -Document $book -PassThru | Close-OfficeExcel"
+        }
+      ]
     },
     {
       "name": "Copy-OfficeExcelSheet",
@@ -2190,7 +2357,19 @@
           ]
         }
       ],
-      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place."
+      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place.",
+      "examples": [
+        {
+          "title": "Duplicate a sheet",
+          "description": "Copies the October sheet in the same workbook as a starting point for November.",
+          "code": "Copy-OfficeExcelSheet -Path .\\Reports\\Timesheets.xlsx -Sheet October -Name November"
+        },
+        {
+          "title": "Collect sheets from several workbooks",
+          "description": "Copies the Summary sheet of each regional workbook into the board pack, prefixed with the region name.",
+          "code": "$pack = Open-OfficeExcel -Path .\\Reports\\Board-Pack.xlsx\nforeach ($file in Get-ChildItem -Path .\\Regions -Filter *.xlsx) {\n    Copy-OfficeExcelSheet -Document $pack -Source $file.FullName -Sheet Summary -Name \"$($file.BaseName) summary\"\n}\nSave-OfficeExcel -Document $pack -PassThru | Close-OfficeExcel"
+        }
+      ]
     },
     {
       "name": "Merge-OfficeExcelSheet",
@@ -2442,7 +2621,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Join-OfficeExcelSheet. -Sheet is the target sheet; -Address is the target start cell (defaults to after the used range)."
+      "notes": "Renamed from Join-OfficeExcelSheet. -Sheet is the target sheet; -Address is the target start cell (defaults to after the used range).",
+      "examples": [
+        {
+          "title": "Append one sheet to another",
+          "description": "Appends the rows of the October sheet to the Year sheet, below the rows already there.",
+          "code": "Merge-OfficeExcelSheet -Path .\\Reports\\Sales-2026.xlsx -Sheet Year -SourceSheet October -NoSourceHeader"
+        },
+        {
+          "title": "Merge branch data by column header",
+          "description": "Adds the Krakow branch rows to the combined sheet, matching columns by header even when the branch orders them differently, and reports how many rows were copied.",
+          "code": "Merge-OfficeExcelSheet -Path .\\Reports\\All-Branches.xlsx -Sheet Combined -Source .\\Branches\\Krakow.xlsx -SourceSheet Sales -MatchColumnsByHeader |\n    Select-Object SourceSheetName, TargetSheetName, RowsCopied"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelSheetView",
@@ -2519,7 +2710,19 @@
           ]
         }
       ],
-      "notes": "Merges Set-OfficeExcelWorksheetView, Set-OfficeExcelFreeze and Set-OfficeExcelGridlines. Paired show/hide switches become one switch; -NoGridlines:$false shows gridlines again and -RightToLeft:$false restores left-to-right. -FreezeRows 0 -FreezeColumns 0 unfreezes."
+      "notes": "Merges Set-OfficeExcelWorksheetView, Set-OfficeExcelFreeze and Set-OfficeExcelGridlines. Paired show/hide switches become one switch; -NoGridlines:$false shows gridlines again and -RightToLeft:$false restores left-to-right. -FreezeRows 0 -FreezeColumns 0 unfreezes.",
+      "examples": [
+        {
+          "title": "Freeze the header row",
+          "description": "Keeps the first row visible while scrolling the Orders sheet.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelSheetView -FreezeRows 1\n    }\n}"
+        },
+        {
+          "title": "Set up a dashboard view",
+          "description": "Hides gridlines, zooms out and freezes the title rows and the label column of the dashboard sheet.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelSheet 'Dashboard' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Site-Kpis.csv) -Address A3\n        ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridlines -Zoom 85\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelSheetView",
@@ -2592,6 +2795,18 @@
               "wildcards": true
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Show the view settings of every sheet",
+          "description": "Lists frozen panes, gridlines, zoom and view mode for each worksheet.",
+          "code": "Get-OfficeExcelSheetView -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Check report workbooks before publishing",
+          "description": "Reads the Summary sheet view of each report in a folder to spot workbooks saved in page-break preview.",
+          "code": "Get-ChildItem -Path .\\Reports -Filter *.xlsx |\n    Get-OfficeExcelSheetView -Sheet Summary |\n    Format-Table"
         }
       ]
     },
@@ -2757,7 +2972,24 @@
           ]
         }
       ],
-      "notes": "Absorbs Set-OfficeExcelFormula (-Formula) and Set-OfficeExcelRichText (a script block passed to -Value runs as a content block of ExcelText runs, replacing -Run hashtables). -Sheet also takes an ExcelSheet object (replaces -Worksheet). -Column takes a 1-based index or a column letter. -Value also accepts ExcelRichTextRun objects for rarely used run effects."
+      "notes": "Absorbs Set-OfficeExcelFormula (-Formula) and Set-OfficeExcelRichText (a script block passed to -Value runs as a content block of ExcelText runs, replacing -Run hashtables). -Sheet also takes an ExcelSheet object (replaces -Worksheet). -Column takes a 1-based index or a column letter. -Value also accepts ExcelRichTextRun objects for rarely used run effects.",
+      "examples": [
+        {
+          "title": "Write a value to a cell",
+          "description": "Writes a heading into A1 of the Summary sheet.",
+          "code": "New-OfficeExcel -Path .\\Budget.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelCell A1 'Budget 2027'\n    }\n}"
+        },
+        {
+          "title": "Lay out a small calculation",
+          "description": "Writes labels, inputs and formulas for a cost estimate, formatting the result as currency.",
+          "code": "New-OfficeExcel -Path .\\Estimates\\Migration-Cost.xlsx {\n    ExcelSheet 'Estimate' {\n        ExcelCell A1 'Servers'\n        ExcelCell B1 42\n        ExcelCell A2 'Cost per server'\n        ExcelCell B2 1850 -NumberFormat '#,##0.00'\n        ExcelCell A3 'Total'\n        ExcelCell B3 -Formula '=B1*B2' -NumberFormat '#,##0.00' -BackgroundColor '#FEF3C7'\n    }\n}"
+        },
+        {
+          "title": "Write rich text into a cell",
+          "description": "Passes a block of text runs as the value, so one cell mixes bold and coloured text.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Status.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelCell B2 {\n            ExcelText 'Status: ' -Bold\n            ExcelText 'On track' -Bold -Color Success\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelText",
@@ -2829,7 +3061,19 @@
           ]
         }
       ],
-      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size). Excel rich-text runs cannot carry their own hyperlink, so there is no -Link; -VerticalAlignment gives superscript and subscript. -Size is in points."
+      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size). Excel rich-text runs cannot carry their own hyperlink, so there is no -Link; -VerticalAlignment gives superscript and subscript. -Size is in points.",
+      "examples": [
+        {
+          "title": "Add a bold run to a cell",
+          "description": "Builds a cell value from a bold label and plain text.",
+          "code": "New-OfficeExcel -Path .\\Status.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelCell A1 {\n            ExcelText 'Owner: ' -Bold\n            ExcelText 'Infrastructure team'\n        }\n    }\n}"
+        },
+        {
+          "title": "Highlight a status and add a footnote marker",
+          "description": "Colours the risk word by its theme role and adds a superscript reference to the notes below.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Migration.xlsx {\n    ExcelSheet 'Overview' {\n        ExcelCell B3 {\n            ExcelText 'Cutover risk: '\n            ExcelText 'High' -Bold -Color Danger\n            ExcelText '1' -VerticalAlignment Superscript\n        }\n        ExcelCell B20 '1 Vendor patch not yet certified for production.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelRichText",
@@ -2917,6 +3161,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read the text runs of a cell",
+          "description": "Returns each formatted run of B3 on the Overview sheet.",
+          "code": "Get-OfficeExcelRichText -Path .\\Reports\\Migration.xlsx -Sheet Overview -Address B3"
+        },
+        {
+          "title": "Find the bold parts of a status cell",
+          "description": "Reads the runs of a status cell from an open workbook and keeps only the bold text.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Status.xlsx -ReadOnly\nGet-OfficeExcelRichText -Document $book -Sheet Summary -Address B2 | Where-Object Bold\nClose-OfficeExcel -Document $book"
         }
       ]
     },
@@ -3045,7 +3301,19 @@
           ]
         }
       ],
-      "notes": "bool? parameters become switches; -Bold:$false clears bold and -Hidden:$false unhides. -Height takes ExcelColumnWidth: a bare number is points (Excel's native row unit) and a unit value such as 0.8cm is converted. Column arguments take an index or letter."
+      "notes": "bool? parameters become switches; -Bold:$false clears bold and -Hidden:$false unhides. -Height takes ExcelColumnWidth: a bare number is points (Excel's native row unit) and a unit value such as 0.8cm is converted. Column arguments take an index or letter.",
+      "examples": [
+        {
+          "title": "Write a header row",
+          "description": "Writes column labels across row 1 and makes them bold.",
+          "code": "New-OfficeExcel -Path .\\Rota.xlsx {\n    ExcelSheet 'On call' {\n        ExcelRow 1 'Week', 'Primary', 'Secondary', 'Escalation' -Bold\n    }\n}"
+        },
+        {
+          "title": "Write a header band under a title",
+          "description": "Writes the quarter labels into row 3 below the sheet title, with a light fill and a taller row so the band stands apart from the data.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelCell A1 'Budget 2027 by department'\n        ExcelRow 3 'Department', 'Q1', 'Q2', 'Q3', 'Q4', 'Total' -Bold -BackgroundColor '#F1F5F9' -Height 22\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelColumn",
@@ -3351,7 +3619,19 @@
           ]
         }
       ],
-      "notes": "Absorbs Set-OfficeExcelColumnStyleByHeader as the Header set. -Column takes a 1-based index or a letter (replaces -ColumnName). -Width takes ExcelColumnWidth: characters of the default font, or a length converted through it."
+      "notes": "Absorbs Set-OfficeExcelColumnStyleByHeader as the Header set. -Column takes a 1-based index or a letter (replaces -ColumnName). -Width takes ExcelColumnWidth: characters of the default font, or a length converted through it.",
+      "examples": [
+        {
+          "title": "Set a column width",
+          "description": "Makes column B wide enough for long descriptions and wraps nothing else.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Changes.xlsx {\n    ExcelSheet 'Changes' {\n        ExcelColumn B -Width 60\n    }\n}"
+        },
+        {
+          "title": "Style table columns by header",
+          "description": "Formats the Amount column of the Orders table as currency and colours the Status column cells by their text.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelColumn -Header Amount -Table Orders -Style Currency -Decimals 2\n        ExcelColumn -Header Status -Table Orders -BackgroundByText @{ Overdue = '#FEE2E2'; Paid = '#DCFCE7' }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelRowGroup",
@@ -3436,7 +3716,19 @@
           ]
         }
       ],
-      "notes": "-SummaryAbove replaces -SummaryBelow $false (summary rows below is Excel's default)."
+      "notes": "-SummaryAbove replaces -SummaryBelow $false (summary rows below is Excel's default).",
+      "examples": [
+        {
+          "title": "Group detail rows",
+          "description": "Groups rows 3 to 12 so they can be collapsed under their summary row.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelRowGroup 3 12\n    }\n}"
+        },
+        {
+          "title": "Collapse each region's detail",
+          "description": "Groups and collapses the detail rows of each region with the summary row above them, so the sheet opens showing only the regional totals.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Regional-Sales.xlsx {\n    ExcelSheet 'Detail' {\n        ExcelRowGroup 3 40 -Collapsed -SummaryAbove\n        ExcelRowGroup 42 77 -Collapsed -SummaryAbove\n        ExcelRowGroup 79 120 -Collapsed -SummaryAbove\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelColumnGroup",
@@ -3521,7 +3813,19 @@
           ]
         }
       ],
-      "notes": "Column arguments take an index or a letter (replaces the *ColumnName twins). -SummaryLeft replaces -SummaryRight $false."
+      "notes": "Column arguments take an index or a letter (replaces the *ColumnName twins). -SummaryLeft replaces -SummaryRight $false.",
+      "examples": [
+        {
+          "title": "Group monthly columns",
+          "description": "Groups columns B to M, the monthly figures, next to the yearly total.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelColumnGroup B M\n    }\n}"
+        },
+        {
+          "title": "Collapse quarters into their totals",
+          "description": "Groups each quarter's three months and collapses them, so the sheet shows the quarterly totals first.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Forecast.xlsx {\n    ExcelSheet 'Forecast' {\n        ExcelColumnGroup B D -Collapsed\n        ExcelColumnGroup F H -Collapsed\n        ExcelColumnGroup J L -Collapsed\n        ExcelColumnGroup N P -Collapsed\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Invoke-OfficeExcelAutoFit",
@@ -3564,7 +3868,19 @@
           ]
         }
       ],
-      "notes": "Without -Column or -Row every column and row is fitted. -Column * fits all columns only, -Row * all rows only; lists fit the given indexes or letters (replaces -Columns, -Rows and -All)."
+      "notes": "Without -Column or -Row every column and row is fitted. -Column * fits all columns only, -Row * all rows only; lists fit the given indexes or letters (replaces -Columns, -Rows and -All).",
+      "examples": [
+        {
+          "title": "Fit every column and row",
+          "description": "Fits all columns and rows of the current sheet to their content.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelAutoFit\n    }\n}"
+        },
+        {
+          "title": "Fit only the columns you changed",
+          "description": "Writes long notes into column F and refits only columns E and F, leaving the widths of the rest as designed.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Changes.xlsx {\n    ExcelSheet 'Changes' {\n        ExcelColumn F -Values (Import-OfficeCsv -Path .\\Data\\Change-Notes.csv).Note -StartRow 2\n        ExcelAutoFit -Column E, F\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Invoke-OfficeExcelSort",
@@ -3640,6 +3956,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Sort by one column",
+          "description": "Sorts the used range of the Servers sheet by the Name header.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelSort Name\n    }\n}"
+        },
+        {
+          "title": "Sort by several columns",
+          "description": "Sorts tickets by priority ascending and then by age with the oldest first.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelSort -Order ([ordered]@{ Priority = $true; AgeDays = $false })\n    }\n}"
         }
       ]
     },
@@ -3848,7 +4176,19 @@
           ]
         }
       ],
-      "notes": "-Pattern is a regular expression, as in Search-OfficeDocument and Select-String; -SimpleMatch matches literally (the old default). Inside a block, pass the live -Document. Path and LiteralPath save in place."
+      "notes": "-Pattern is a regular expression, as in Search-OfficeDocument and Select-String; -SimpleMatch matches literally (the old default). Inside a block, pass the live -Document. Path and LiteralPath save in place.",
+      "examples": [
+        {
+          "title": "Replace text across a workbook",
+          "description": "Replaces the old company name in every cell of the workbook and saves it.",
+          "code": "Update-OfficeExcelText -Path .\\Templates\\Price-List.xlsx -Pattern 'Fabrikam Ltd' -Replacement 'Northwind Traders' -SimpleMatch"
+        },
+        {
+          "title": "Rename hosts after a migration",
+          "description": "Uses a regular expression to rename the old SRV hosts to the new naming scheme on the inventory sheets and reports how many cells changed.",
+          "code": "$changed = Update-OfficeExcelText -Path .\\Reports\\Inventory.xlsx -Sheet Servers, Services -Pattern '^SRV-(\\d+)$' -Replacement 'NW-APP-$1' -PassThru\n\"Renamed $changed cells\""
+        }
+      ]
     },
     {
       "name": "Find-OfficeExcel",
@@ -4016,7 +4356,19 @@
           ]
         }
       ],
-      "notes": "Returns live cell matches (Sheet, Address, Value) inside one workbook; Search-OfficeDocument searches many files. -Pattern is a regular expression unless -SimpleMatch; -Exact matches the whole cell text."
+      "notes": "Returns live cell matches (Sheet, Address, Value) inside one workbook; Search-OfficeDocument searches many files. -Pattern is a regular expression unless -SimpleMatch; -Exact matches the whole cell text.",
+      "examples": [
+        {
+          "title": "Find cells containing a value",
+          "description": "Lists every cell in the workbook that mentions the server WEB01.",
+          "code": "Find-OfficeExcel -Path .\\Reports\\Inventory.xlsx -Pattern 'WEB01' -SimpleMatch"
+        },
+        {
+          "title": "Find retired certificates that are still listed",
+          "description": "Looks up each retired certificate thumbprint on the inventory sheet and shows where it still appears.",
+          "code": "$old = Import-OfficeCsv -Path .\\Security\\Retired-Certificates.csv\nforeach ($certificate in $old) {\n    Find-OfficeExcel -Path .\\Security\\Certificates.xlsx -Sheet Inventory -Pattern $certificate.Thumbprint -SimpleMatch -Exact\n}"
+        }
+      ]
     },
     {
       "name": "Clear-OfficeExcelRange",
@@ -4120,7 +4472,19 @@
           ]
         }
       ],
-      "notes": "-PassThru returns the number of cells cleared. -Include Values, Formulas, Styles, Comments, Hyperlinks, DataValidations, ConditionalFormatting, Merges, Sparklines or All (default All) replaces the eleven switches. Without -Range the whole sheet is cleared; -Sheet * clears every sheet. Absorbs Clear-OfficeExcelConditionalFormatting and Clear-OfficeExcelDataValidation."
+      "notes": "-PassThru returns the number of cells cleared. -Include Values, Formulas, Styles, Comments, Hyperlinks, DataValidations, ConditionalFormatting, Merges, Sparklines or All (default All) replaces the eleven switches. Without -Range the whole sheet is cleared; -Sheet * clears every sheet. Absorbs Clear-OfficeExcelConditionalFormatting and Clear-OfficeExcelDataValidation.",
+      "examples": [
+        {
+          "title": "Clear the values of a range",
+          "description": "Removes the values from A2:F200 and keeps formatting, validation and comments.",
+          "code": "Open-OfficeExcel -Path .\\Templates\\Weekly-Report.xlsx {\n    ExcelSheet 'Data' {\n        Clear-OfficeExcelRange A2:F200 -Include Values\n    }\n}"
+        },
+        {
+          "title": "Reset a sheet before reloading it",
+          "description": "Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Weekly-Ops.xlsx {\n    ExcelSheet 'Data' {\n        $cleared = Clear-OfficeExcelRange -PassThru\n        Write-Verbose \"Cleared $cleared cells\"\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Ops-Week43.csv) -Name OpsData\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelTable",
@@ -4270,7 +4634,19 @@
           ]
         }
       ],
-      "notes": "Same defaults as Export-OfficeExcel: theme table style, frozen header, fitted columns, inferred number formats. A DataSet at workbook scope writes one sheet per DataTable (absorbs Add-OfficeExcelDataSet). -PassThru returns the ExcelTable, not a range string."
+      "notes": "Same defaults as Export-OfficeExcel: theme table style, frozen header, fitted columns, inferred number formats. A DataSet at workbook scope writes one sheet per DataTable (absorbs Add-OfficeExcelDataSet). -PassThru returns the ExcelTable, not a range string.",
+      "examples": [
+        {
+          "title": "Write objects as a table",
+          "description": "Writes the services as a themed table with a frozen header, filters and fitted columns.",
+          "code": "New-OfficeExcel -Path .\\Services.xlsx {\n    ExcelSheet 'Services' {\n        ExcelTable (Get-Service)\n    }\n}"
+        },
+        {
+          "title": "Place two named tables on a sheet",
+          "description": "Writes this quarter's targets and actuals side by side as named tables, so charts, formulas and later imports can refer to them by name.",
+          "code": "$targets = Import-OfficeCsv -Path .\\Data\\Q3-Targets.csv\n$actuals = Import-OfficeCsv -Path .\\Data\\Q3-Actuals.csv\nNew-OfficeExcel -Path .\\Reports\\Q3-Performance.xlsx {\n    ExcelSheet 'Performance' {\n        ExcelTable $targets -Name Targets -Address A1\n        ExcelTable $actuals -Name Actuals -Address G1 -ColumnFormat @{ Attainment = 'Percent' }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelTableRow",
@@ -4318,7 +4694,19 @@
           ]
         }
       ],
-      "notes": "-Table takes a table name or an ExcelTable object (replaces -TableName and the Table set). For a file, use Export-OfficeExcel -Append -Table."
+      "notes": "-Table takes a table name or an ExcelTable object (replaces -TableName and the Table set). For a file, use Export-OfficeExcel -Append -Table.",
+      "examples": [
+        {
+          "title": "Append rows to a table",
+          "description": "Adds two new servers to the Servers table; the table range grows to include them.",
+          "code": "$servers = @(\n    [pscustomobject]@{ Name = 'NW-APP-07'; Role = 'Application'; Site = 'Warsaw' }\n    [pscustomobject]@{ Name = 'NW-SQL-03'; Role = 'Database'; Site = 'Frankfurt' }\n)\nOpen-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    Add-OfficeExcelTableRow -Sheet Servers -Table Servers -InputObject $servers\n}"
+        },
+        {
+          "title": "Log each deployment as it finishes",
+          "description": "Appends one row per completed deployment to the Deployments table of a workbook kept open for the whole run.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Deployments.xlsx\nforeach ($target in 'NW-APP-01', 'NW-APP-02', 'NW-APP-03') {\n    $result = Invoke-Command -ComputerName $target { & C:\\Deploy\\Install.ps1 -Release '2026.10.2' }\n    [pscustomobject]@{ Server = $target; Release = '2026.10.2'; Finished = Get-Date; Status = $result.Status } |\n        Add-OfficeExcelTableRow -Document $book -Sheet Log -Table Deployments\n}\nSave-OfficeExcel -Document $book -PassThru | Close-OfficeExcel"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelTable",
@@ -4408,7 +4796,19 @@
           ]
         }
       ],
-      "notes": "Rows of a table are read with Import-OfficeExcel -Table."
+      "notes": "Rows of a table are read with Import-OfficeExcel -Table.",
+      "examples": [
+        {
+          "title": "List the tables in a workbook",
+          "description": "Shows every table with its sheet, range and style.",
+          "code": "Get-OfficeExcelTable -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Inventory the tables across report files",
+          "description": "Lists the tables of every workbook in the Reports folder with where they live, to plan which ones a dashboard should read.",
+          "code": "Get-ChildItem -Path .\\Reports -Filter *.xlsx |\n    Get-OfficeExcelTable |\n    Select-Object SheetName, Name, Range, StyleName"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelTableStyle",
@@ -4435,6 +4835,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List the recommended table styles",
+          "description": "Shows the built-in table styles that render well in every supported host.",
+          "code": "Get-OfficeExcelTableStyle -RecommendedOnly"
+        },
+        {
+          "title": "Pick styles that render outside desktop Excel",
+          "description": "Lists the styles recommended for workbooks also opened in web and mobile spreadsheet apps.",
+          "code": "Get-OfficeExcelTableStyle -Profile CrossHost -RecommendedOnly | Format-Table"
         }
       ]
     },
@@ -4581,7 +4993,19 @@
           ]
         }
       ],
-      "notes": "Merges Add-OfficeExcelAutoFilter (Range set) and Set-OfficeExcelAutoFilter (Condition set)."
+      "notes": "Merges Add-OfficeExcelAutoFilter (Range set) and Set-OfficeExcelAutoFilter (Condition set).",
+      "examples": [
+        {
+          "title": "Add filter buttons to a range",
+          "description": "Adds AutoFilter drop-downs to the header row of A1:F500.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelAutoFilter A1:F500\n    }\n}"
+        },
+        {
+          "title": "Open a sheet filtered to the open work",
+          "description": "Filters the ticket list to the Open and On hold statuses with at least three days of age, so the sheet opens on the work that needs attention.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelAutoFilter -Header Status -Value 'Open', 'On hold'\n        ExcelAutoFilter -Header AgeDays -GreaterThanOrEqual 3\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Clear-OfficeExcelAutoFilter",
@@ -4614,6 +5038,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Remove the AutoFilter from a sheet",
+          "description": "Removes the filter buttons and any filter conditions from the Tickets sheet.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        Clear-OfficeExcelAutoFilter\n    }\n}"
+        },
+        {
+          "title": "Clear filters before sharing a workbook",
+          "description": "Removes the filters left on the working sheets so recipients see every row.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx\nforeach ($sheet in 'Orders', 'Returns', 'Customers') {\n    Clear-OfficeExcelAutoFilter -Document $book -Sheet $sheet\n}\nSave-OfficeExcel -Document $book -Path .\\Outbox\\Q3-Sales.xlsx -PassThru | Close-OfficeExcel"
         }
       ]
     },
@@ -4897,7 +5333,24 @@
           ]
         }
       ],
-      "notes": "Shared Chart vocabulary (-InputObject -Category -Value -Type -Title). The Data set writes the rows into the sheet as a table and charts it. Absorbs Add-OfficeExcelDashboardChart (-Preset, -Style, -ColorStyle). -Address is the top-left anchor cell (replaces -Row/-Column); -Width/-Height take lengths (default 640x360 px). -Type uses the Core OfficeChartType; Excel-only variants (clustered, stacked, 100%) map to OfficeChartType members or an Excel subtype parameter decided in M2. Charts use the theme palette, sans-serif text and light gridlines."
+      "notes": "Shared Chart vocabulary (-InputObject -Category -Value -Type -Title). The Data set writes the rows into the sheet as a table and charts it. Absorbs Add-OfficeExcelDashboardChart (-Preset, -Style, -ColorStyle). -Address is the top-left anchor cell (replaces -Row/-Column); -Width/-Height take lengths (default 640x360 px). -Type uses the Core OfficeChartType; Excel-only variants (clustered, stacked, 100%) map to OfficeChartType members or an Excel subtype parameter decided in M2. Charts use the theme palette, sans-serif text and light gridlines.",
+      "examples": [
+        {
+          "title": "Chart a table",
+          "description": "Adds a themed column chart of the RegionSummary table, anchored at F2.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -Title 'Revenue by region'\n    }\n}"
+        },
+        {
+          "title": "Chart pipeline data directly",
+          "description": "Writes the weekly ticket trend into the sheet and draws a line chart of opened and closed tickets from it in one step.",
+          "code": "$trend = Import-OfficeCsv -Path .\\Data\\Ticket-Trend.csv\nNew-OfficeExcel -Path .\\Reports\\Helpdesk-Trend.xlsx {\n    ExcelSheet 'Trend' {\n        ExcelChart -InputObject $trend -Category Week -Value Opened, Closed -Type Line -Address A1 -Title 'Tickets per week' -Width 18cm -Height 9cm\n    }\n}"
+        },
+        {
+          "title": "Chart a fixed range",
+          "description": "Charts the monthly budget in B3:C15 of an existing sheet as a clustered bar chart.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelChart B3:C15 -Address E3 -Type Bar -Title 'Budget by month'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelChart",
@@ -4939,7 +5392,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Set-OfficeExcelChartStyle; chart-level settings live here."
+      "notes": "Renamed from Set-OfficeExcelChartStyle; chart-level settings live here.",
+      "examples": [
+        {
+          "title": "Apply a chart style",
+          "description": "Applies built-in chart style 3 to a chart returned by ExcelChart.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -PassThru | Set-OfficeExcelChart -Style 3\n    }\n}"
+        },
+        {
+          "title": "Give a dashboard chart a monochrome palette",
+          "description": "Uses a built-in style and colour preset for a chart that sits on a branded dashboard.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelSheet 'Dashboard' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -PassThru\n        Set-OfficeExcelChart -Chart $chart -Style 6 -ColorStyle 14\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelChartAxis",
@@ -5094,6 +5559,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Title the value axis",
+          "description": "Adds a value axis title to a new chart.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -PassThru | ExcelChartAxis -ValueTitle 'Revenue (USD)'\n    }\n}"
+        },
+        {
+          "title": "Fix the scale of an availability chart",
+          "description": "Scales the value axis from 95 to 100 percent with a percentage format, so small differences in site uptime are visible.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Availability.xlsx {\n    ExcelSheet 'Uptime' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -PassThru\n        ExcelChartAxis -Chart $chart -ValueMinimum 0.95 -ValueMaximum 1 -ValueMajorUnit 0.01 -ValueNumberFormat '0%' -CategoryTitle 'Site'\n    }\n}"
+        }
       ]
     },
     {
@@ -5232,7 +5709,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Set-OfficeExcelChartDataLabels (singular noun). Font parameters use the shared Text names."
+      "notes": "Renamed from Set-OfficeExcelChartDataLabels (singular noun). Font parameters use the shared Text names.",
+      "examples": [
+        {
+          "title": "Show values on a chart",
+          "description": "Shows each bar's value on the chart.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -PassThru | ExcelChartDataLabel -ShowValue\n    }\n}"
+        },
+        {
+          "title": "Label a share chart with percentages",
+          "description": "Labels each slice of a pie chart with its category and percentage outside the slice.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Cloud-Spend.xlsx {\n    ExcelSheet 'Spend' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Spend-By-Service.csv) -Category Service -Value Cost -Address A1 -Type Pie -Title 'Cloud spend by service' -PassThru\n        ExcelChartDataLabel -Chart $chart -ShowCategoryName -ShowPercent -Position OutsideEnd -NumberFormat '0%'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelChartLegend",
@@ -5308,6 +5797,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Move the legend to the bottom",
+          "description": "Places the legend of a line chart under the plot area.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Helpdesk-Trend.xlsx {\n    ExcelSheet 'Trend' {\n        ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Ticket-Trend.csv) -Category Week -Value Opened, Closed -Type Line -Address A1 -PassThru | ExcelChartLegend -Position Bottom\n    }\n}"
+        },
+        {
+          "title": "Hide the legend of a single-series chart",
+          "description": "Removes the legend where the chart title already names the only series.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Availability.xlsx {\n    ExcelSheet 'Uptime' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -Title 'Uptime by site' -PassThru\n        ExcelChartLegend -Chart $chart -Hidden\n    }\n}"
         }
       ]
     },
@@ -5484,7 +5985,19 @@
           ]
         }
       ],
-      "notes": "-Index and -Point are 1-based (were zero-based). Absorbs Set-OfficeExcelChartPoint through -Point. Series names match case-insensitively unless -CaseSensitive."
+      "notes": "-Index and -Point are 1-based (were zero-based). Absorbs Set-OfficeExcelChartPoint through -Point. Series names match case-insensitively unless -CaseSensitive.",
+      "examples": [
+        {
+          "title": "Colour a series",
+          "description": "Draws the second series, Closed, in the theme's success colour.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Helpdesk-Trend.xlsx {\n    ExcelSheet 'Trend' {\n        ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Ticket-Trend.csv) -Category Week -Value Opened, Closed -Type Line -Address A1 -PassThru | ExcelChartSeries -Index 2 -LineColor Success\n    }\n}"
+        },
+        {
+          "title": "Highlight one bar",
+          "description": "Colours the bar of the region that missed its target in the danger colour and leaves the others on the theme palette.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Category Region -Value Revenue -Address A1 -Type Column -PassThru\n        ExcelChartSeries -Chart $chart -Name Revenue -Point 3 -FillColor Danger\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelChartTrendline",
@@ -5671,7 +6184,19 @@
           ]
         }
       ],
-      "notes": "-Index is 1-based (was zero-based)."
+      "notes": "-Index is 1-based (was zero-based).",
+      "examples": [
+        {
+          "title": "Add a linear trendline",
+          "description": "Adds a straight trendline to the first series.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Growth.xlsx {\n    ExcelSheet 'Users' {\n        ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Monthly-Users.csv) -Category Month -Value ActiveUsers -Type Line -Address A1 -PassThru | ExcelChartTrendline -Index 1 -Type Linear\n    }\n}"
+        },
+        {
+          "title": "Project storage growth",
+          "description": "Fits a trendline to monthly storage use, projects it three months forward and shows the R-squared value on the chart.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Storage-Forecast.xlsx {\n    ExcelSheet 'Storage' {\n        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\\Data\\Storage-Used.csv) -Category Month -Value UsedTB -Type Line -Address A1 -Title 'Storage used (TB)' -PassThru\n        ExcelChartTrendline -Chart $chart -Name UsedTB -Type Linear -Forward 3 -DisplayRSquared\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelImage",
@@ -6073,7 +6598,24 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size."
+      "notes": "Absorbs Add-OfficeExcelImageFromUrl (Url set) and Add-OfficeExcelVisual (Visual set: ChartForgeX artifacts, OfficeVisualSource, conversion results, SVG). -Address takes a cell (one-cell anchor) or a range such as A1:C15 (two-cell anchor; replaces -Range and -Row/-Column). Geometry takes lengths; without -Width/-Height/-Scale the image keeps its natural size.",
+      "examples": [
+        {
+          "title": "Add a logo",
+          "description": "Places the company logo at A1 of the cover sheet at its natural size.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Cover' {\n        ExcelImage .\\Assets\\Logo.png -Address A1 -AltText 'Northwind Traders logo'\n    }\n}"
+        },
+        {
+          "title": "Fit a site photo into a range",
+          "description": "Stretches an inspection photo across D2:J20 so it moves and resizes with the cells.",
+          "code": "Open-OfficeExcel -Path .\\Facilities\\Inspection-Gdansk.xlsx {\n    ExcelSheet 'Findings' {\n        ExcelImage .\\Photos\\Gdansk-Roof-0412.jpg -Address D2:J20 -Placement MoveAndSize -AltText 'Roof drainage at the Gdansk warehouse'\n    }\n}"
+        },
+        {
+          "title": "Add an image from a URL",
+          "description": "Downloads a published status badge and places it at a fixed width on the summary sheet.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Status.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelImage -Url https://status.example.com/badge/production.png -Address H1 -Width 4cm -AltText 'Production status'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelSparkline",
@@ -6204,7 +6746,19 @@
           ]
         }
       ],
-      "notes": "Colors default to the theme palette."
+      "notes": "Colors default to the theme palette.",
+      "examples": [
+        {
+          "title": "Add line sparklines",
+          "description": "Draws a sparkline for each row of monthly figures in the column next to them.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelSparkline -DataRange B2:M20 -LocationRange N2:N20\n    }\n}"
+        },
+        {
+          "title": "Show weekly trends with high and low points",
+          "description": "Adds column sparklines with the highest and lowest weeks marked, so each site's pattern is visible at a glance.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Site-Incidents.xlsx {\n    ExcelSheet 'Incidents' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Incidents-By-Week.csv) -Name Incidents\n        ExcelSparkline -DataRange B2:M9 -LocationRange N2:N9 -Type Column -ShowHighLow\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelPivotTable",
@@ -6509,7 +7063,19 @@
           ]
         }
       ],
-      "notes": "Each Show*/Hide*, Enable*/Disable*, X/NoX pair becomes one switch read through BoundParameters: -ShowHeaders:$false hides headers, -DataOnRows:$false puts data on columns, -RefreshOnOpen:$false writes the explicit off value. Omitted means Excel's default. -Range is the source range with headers, -Address the destination cell."
+      "notes": "Each Show*/Hide*, Enable*/Disable*, X/NoX pair becomes one switch read through BoundParameters: -ShowHeaders:$false hides headers, -DataOnRows:$false puts data on columns, -RefreshOnOpen:$false writes the explicit off value. Omitted means Excel's default. -Range is the source range with headers, -Address the destination cell.",
+      "examples": [
+        {
+          "title": "Summarise sales in a pivot table",
+          "description": "Builds a pivot table of revenue by region from the order data in A1:F500.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelPivotTable -Range A1:F500 -Address H2 -RowField Region -DataField Amount -DataFunction Sum\n    }\n}"
+        },
+        {
+          "title": "Pivot revenue by region and quarter",
+          "description": "Writes a year of orders and pivots them by region and quarter with a product filter, naming the pivot so a slicer and conditional formats can refer to it.",
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Orders-2026.csv\nNew-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelTable $orders -Name Orders\n        ExcelPivotTable -Range A1:G2400 -Address J3 -Name SalesPivot -RowField Region -ColumnField Quarter -PageField Product -DataField Amount -DataFunction Sum -DataDisplayName 'Revenue' -DataNumberFormat '#,##0' -Layout Tabular -RefreshOnOpen\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelPivotTable",
@@ -6598,6 +7164,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List pivot tables",
+          "description": "Shows every pivot table in the workbook with its location and source.",
+          "code": "Get-OfficeExcelPivotTable -Path .\\Reports\\Sales-2026.xlsx"
+        },
+        {
+          "title": "Check where pivot tables read from",
+          "description": "Lists the source range of each pivot table, to confirm they still point at the current data after the sheet was rebuilt.",
+          "code": "Get-OfficeExcelPivotTable -Path .\\Reports\\Sales-2026.xlsx |\n    Select-Object Name, SheetName, Location, SourceSheet, SourceRange"
+        }
       ]
     },
     {
@@ -6657,7 +7235,19 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeExcelTimeline (-Timeline)."
+      "notes": "Absorbs Add-OfficeExcelTimeline (-Timeline).",
+      "examples": [
+        {
+          "title": "Add a slicer for a pivot field",
+          "description": "Adds slicer metadata for the Region field of the SalesPivot pivot table.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelSlicer -Name RegionSlicer -SourceName Region -PivotTable SalesPivot\n}"
+        },
+        {
+          "title": "Add a timeline for order dates",
+          "description": "Adds timeline metadata for the OrderDate field so readers can filter the pivot table by period in Excel.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelSlicer -Name OrderDateTimeline -SourceName OrderDate -PivotTable SalesPivot -Timeline\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelSubtotal",
@@ -6776,7 +7366,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Add-OfficeExcelSubtotalSummary."
+      "notes": "Renamed from Add-OfficeExcelSubtotalSummary.",
+      "examples": [
+        {
+          "title": "Subtotal a sorted range",
+          "description": "Adds a subtotal row under each region group for the Amount column.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelSubtotal -GroupColumn Region -ValueColumn Amount\n    }\n}"
+        },
+        {
+          "title": "Summarise spend per cost centre",
+          "description": "Sorts the expense lines by cost centre, then adds summed subtotals for amount and VAT with a grand total and collapsed detail rows.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Expenses-October.xlsx {\n    ExcelSheet 'Expenses' {\n        ExcelSort CostCentre\n        ExcelSubtotal -GroupColumn CostCentre -ValueColumn Amount, Vat -Function Sum -GrandTotalLabel 'All cost centres' -HideDetailRows\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelConnection",
@@ -6877,7 +7479,19 @@
           ]
         }
       ],
-      "notes": "Merges Add-OfficeExcelPowerQueryMetadata (PowerQuery set) and Add-OfficeExcelPackageMetadata (Xml set). OfficeIMO stores the metadata; it never runs queries."
+      "notes": "Merges Add-OfficeExcelPowerQueryMetadata (PowerQuery set) and Add-OfficeExcelPackageMetadata (Xml set). OfficeIMO stores the metadata; it never runs queries.",
+      "examples": [
+        {
+          "title": "Add a Power Query definition",
+          "description": "Stores a Power Query query that Excel can refresh; OfficeIMO writes the definition and never runs it.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelConnection -Name SalesQuery -CommandText 'let Source = Excel.CurrentWorkbook(){[Name=\"Orders\"]}[Content] in Source'\n}"
+        },
+        {
+          "title": "Ship a workbook that refreshes from the warehouse",
+          "description": "Adds a described query bound to a query table on the Data sheet and marks it to refresh when the workbook opens.",
+          "code": "$query = 'let Source = Sql.Database(\"dw.example.com\", \"Sales\"), Orders = Source{[Schema=\"dbo\", Item=\"Orders\"]}[Data] in Orders'\nOpen-OfficeExcel -Path .\\Reports\\Live-Sales.xlsx {\n    ExcelConnection -Sheet Data -Name WarehouseOrders -CommandText $query -Description 'Orders from the sales warehouse' -QueryTable OrdersQuery -RefreshOnOpen\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelDataModel",
@@ -6929,6 +7543,18 @@
               "pipeline": "value"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Report data connections",
+          "description": "Lists connections, query tables, data-model parts and external links in the workbook.",
+          "code": "Get-OfficeExcelDataModel -Path .\\Reports\\Live-Sales.xlsx"
+        },
+        {
+          "title": "Find workbooks with external data",
+          "description": "Reports the data model of every workbook on the finance share, to find files that depend on databases or other workbooks.",
+          "code": "Get-ChildItem -Path \\\\files\\Finance -Filter *.xlsx -Recurse |\n    Get-OfficeExcelDataModel |\n    Format-List"
         }
       ]
     },
@@ -6983,7 +7609,19 @@
           ]
         }
       ],
-      "notes": "-SavePivotSourceData:$false replaces -NoSavePivotSourceData."
+      "notes": "-SavePivotSourceData:$false replaces -NoSavePivotSourceData.",
+      "examples": [
+        {
+          "title": "Refresh pivot tables on open",
+          "description": "Makes Excel refresh every pivot cache when the workbook opens.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelRefreshOnOpen -PivotTables\n}"
+        },
+        {
+          "title": "Stop refreshing before archiving",
+          "description": "Turns off refresh-on-open for pivot tables and connections in a month-end copy, so the archived figures stay as they were.",
+          "code": "Open-OfficeExcel -Path .\\Archive\\Sales-2026-09.xlsx {\n    ExcelRefreshOnOpen -PivotTables -Connections -Disable -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelValidation",
@@ -7519,7 +8157,24 @@
           ]
         }
       ],
-      "notes": "-Type List | WholeNumber | Decimal | Date | Time | TextLength | Formula replaces the seven Add-OfficeExcelValidation* commands; -Value/-SecondValue convert to the type (int, double, DateTime, TimeSpan). -NoBlank replaces -AllowBlank $false. Prompt and error text can be set here or later with Set-OfficeExcelValidation."
+      "notes": "-Type List | WholeNumber | Decimal | Date | Time | TextLength | Formula replaces the seven Add-OfficeExcelValidation* commands; -Value/-SecondValue convert to the type (int, double, DateTime, TimeSpan). -NoBlank replaces -AllowBlank $false. Prompt and error text can be set here or later with Set-OfficeExcelValidation.",
+      "examples": [
+        {
+          "title": "Restrict a column to a list",
+          "description": "Adds a drop-down that allows only the listed statuses in C2:C500.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelValidation -Range C2:C500 -Type List -Values 'Open', 'In progress', 'On hold', 'Closed'\n    }\n}"
+        },
+        {
+          "title": "Validate quantities in a request form",
+          "description": "Allows whole numbers from 1 to 500 in the Quantity column of the Requests table and explains the rule when a wrong value is typed.",
+          "code": "Open-OfficeExcel -Path .\\Forms\\Equipment-Requests.xlsx {\n    ExcelSheet 'Requests' {\n        ExcelValidation -Header Quantity -Table Requests -Type WholeNumber -Operator Between -Value 1 -SecondValue 500 -NoBlank -ErrorTitle 'Quantity' -ErrorMessage 'Enter a whole number from 1 to 500.'\n    }\n}"
+        },
+        {
+          "title": "Validate with a formula",
+          "description": "Rejects end dates that come before the start date in the same row.",
+          "code": "Open-OfficeExcel -Path .\\Projects\\Plan.xlsx {\n    ExcelSheet 'Tasks' {\n        ExcelValidation -Range D2:D300 -Type Formula -Formula '=D2>=C2' -ErrorMessage 'The end date must be on or after the start date.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelValidation",
@@ -7681,7 +8336,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Set-OfficeExcelDataValidationMessage."
+      "notes": "Renamed from Set-OfficeExcelDataValidationMessage.",
+      "examples": [
+        {
+          "title": "Add an input prompt",
+          "description": "Shows a hint when someone selects a cell in the Priority column.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        Set-OfficeExcelValidation -Header Priority -Table Tickets -PromptTitle 'Priority' -Prompt 'P1 is a production outage; P4 is a question.' -ShowInputMessage\n    }\n}"
+        },
+        {
+          "title": "Reword error messages across a form",
+          "description": "Replaces the generic error text of the cost-centre rule in an existing form with guidance for the requester.",
+          "code": "Open-OfficeExcel -Path .\\Forms\\Equipment-Requests.xlsx {\n    ExcelSheet 'Requests' {\n        Set-OfficeExcelValidation -Range E2:E500 -ErrorTitle 'Cost centre' -ErrorMessage 'Pick a cost centre from the list. Ask Finance if yours is missing.' -ShowErrorMessage\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelValidation",
@@ -7846,7 +8513,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins."
+      "notes": "Renamed from Get-OfficeExcelDataValidation. -Range and -Header are filters; when both are given, -Header wins.",
+      "examples": [
+        {
+          "title": "List validation rules",
+          "description": "Shows every data validation rule in the workbook.",
+          "code": "Get-OfficeExcelValidation -Path .\\Forms\\Equipment-Requests.xlsx"
+        },
+        {
+          "title": "Check the rules on one column",
+          "description": "Reads the validation that applies to the Quantity column of the Requests table in an open workbook.",
+          "code": "$book = Open-OfficeExcel -Path .\\Forms\\Equipment-Requests.xlsx -ReadOnly\nGet-OfficeExcelValidation -Document $book -Sheet Requests -Header Quantity -Table Requests\nClose-OfficeExcel -Document $book"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelConditionalFormat",
@@ -8683,7 +9362,24 @@
           ]
         }
       ],
-      "notes": "Replaces the four Add-OfficeExcelConditional* commands with rule, color-scale, data-bar and icon-set sets, each targeting a range, a header column or a pivot table. -MidColor adds a three-color scale (new; two colors as before when omitted). Colors default to theme roles (Success, Warning, Danger). -NoValue replaces -ShowValue $false."
+      "notes": "Replaces the four Add-OfficeExcelConditional* commands with rule, color-scale, data-bar and icon-set sets, each targeting a range, a header column or a pivot table. -MidColor adds a three-color scale (new; two colors as before when omitted). Colors default to theme roles (Success, Warning, Danger). -NoValue replaces -ShowValue $false.",
+      "examples": [
+        {
+          "title": "Add data bars to a column",
+          "description": "Draws data bars in the Amount column of the Orders table in the first accent colour.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat -Header Amount -Table Orders -Color Accent1\n    }\n}"
+        },
+        {
+          "title": "Colour attainment from red to green",
+          "description": "Applies a three-colour scale from the theme's danger to success colours to target attainment, and arrows to the change against last quarter.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Performance.xlsx {\n    ExcelSheet 'Performance' {\n        ExcelConditionalFormat -Header Attainment -Table Actuals -StartColor Danger -MidColor Warning -EndColor Success\n        ExcelConditionalFormat -Header Change -Table Actuals -IconSet ThreeArrows\n    }\n}"
+        },
+        {
+          "title": "Flag negative margins with a rule",
+          "description": "Adds a cell rule that marks margins below zero in E2:E500.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat E2:E500 -Rule CellIs -Operator LessThan -Value 0\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelConditionalFormat",
@@ -8848,7 +9544,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun."
+      "notes": "Renamed from Get-OfficeExcelConditionalFormatting to match the Add- noun.",
+      "examples": [
+        {
+          "title": "List conditional formats",
+          "description": "Shows every conditional formatting rule in the workbook.",
+          "code": "Get-OfficeExcelConditionalFormat -Path .\\Reports\\Q3-Performance.xlsx"
+        },
+        {
+          "title": "Review the rules on one column",
+          "description": "Reads only the rules that apply to the Attainment column of the Actuals table.",
+          "code": "Get-OfficeExcelConditionalFormat -Path .\\Reports\\Q3-Performance.xlsx -Sheet Performance -Header Attainment -Table Actuals"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelHyperlink",
@@ -9214,7 +9922,24 @@
           ]
         }
       ],
-      "notes": "Replaces seven link commands. Single cell: Url set (-DisplayMode Text | Url | Host | Smart absorbs Set-OfficeExcelHostHyperlink and Set-OfficeExcelSmartHyperlink) or Internal set (-TargetAddress also accepts \"'Summary'!A1\" or a defined name, replacing -Location). Bulk: UrlRange/UrlHeader (Set-OfficeExcelUrlLinks[ByHeader]) map each cell text to a URL; InternalRange/InternalHeader (Set-OfficeExcelInternalLinks[ByHeader], selected by -Internal) link cell text to sheets. Header sets search the used range unless -Table or -Range narrows them. -Address replaces -Row/-Column."
+      "notes": "Replaces seven link commands. Single cell: Url set (-DisplayMode Text | Url | Host | Smart absorbs Set-OfficeExcelHostHyperlink and Set-OfficeExcelSmartHyperlink) or Internal set (-TargetAddress also accepts \"'Summary'!A1\" or a defined name, replacing -Location). Bulk: UrlRange/UrlHeader (Set-OfficeExcelUrlLinks[ByHeader]) map each cell text to a URL; InternalRange/InternalHeader (Set-OfficeExcelInternalLinks[ByHeader], selected by -Internal) link cell text to sheets. Header sets search the used range unless -Table or -Range narrows them. -Address replaces -Row/-Column.",
+      "examples": [
+        {
+          "title": "Link a cell to a web page",
+          "description": "Turns A2 into a link to the status page with readable text.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Status.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelHyperlink A2 'https://status.example.com' -Display 'Service status'\n    }\n}"
+        },
+        {
+          "title": "Link every ticket number to the helpdesk",
+          "description": "Links each value in the Ticket column of the Tickets table to its page in the helpdesk system.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelHyperlink -Header Ticket -Table Tickets -UrlScript { param($text) \"https://helpdesk.example.com/tickets/$text\" }\n    }\n}"
+        },
+        {
+          "title": "Link a summary to the detail sheets",
+          "description": "Links each server name in the Summary sheet to the sheet of the same name, and adds a link back to the summary on every server sheet.",
+          "code": "$servers = 'SQL01', 'SQL02', 'WEB01'\nOpen-OfficeExcel -Path .\\Reports\\Disk-Capacity.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelHyperlink -Header Server -Internal\n    }\n    foreach ($server in $servers) {\n        ExcelSheet $server {\n            ExcelHyperlink H1 -TargetSheet Summary -TargetAddress A1 -Display 'Back to summary'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelComment",
@@ -9349,7 +10074,19 @@
           ]
         }
       ],
-      "notes": "Absorbs Add-OfficeExcelThreadedComment (-Threaded). -Address replaces -Row/-Column."
+      "notes": "Absorbs Add-OfficeExcelThreadedComment (-Threaded). -Address replaces -Row/-Column.",
+      "examples": [
+        {
+          "title": "Add a note to a cell",
+          "description": "Explains the source of a figure in a note on B4.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    ExcelSheet 'Assumptions' {\n        ExcelComment B4 'Inflation from the October central bank projection.' -Author 'Finance'\n    }\n}"
+        },
+        {
+          "title": "Start a review thread",
+          "description": "Adds a threaded comment asking for confirmation of a forecast figure, attributed to the reviewer.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Forecast-2027.xlsx {\n    ExcelSheet 'Forecast' {\n        ExcelComment F12 'Can we confirm the Q2 hiring plan before this goes to the board?' -Threaded -Author 'Anna Kowalska'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelComment",
@@ -9496,7 +10233,19 @@
           ]
         }
       ],
-      "notes": "-Kind Note | Threaded | All (default All). Absorbs the comment listing of Get-OfficeExcelCommentAudit; its metadata issues (missing authors, orphaned replies) are reported by Test-OfficeDocument."
+      "notes": "-Kind Note | Threaded | All (default All). Absorbs the comment listing of Get-OfficeExcelCommentAudit; its metadata issues (missing authors, orphaned replies) are reported by Test-OfficeDocument.",
+      "examples": [
+        {
+          "title": "List all comments",
+          "description": "Shows every note and threaded comment in the workbook.",
+          "code": "Get-OfficeExcelComment -Path .\\Finance\\Forecast-2027.xlsx"
+        },
+        {
+          "title": "Collect open review threads",
+          "description": "Finds the threaded comments left by the finance reviewer and exports them as a review list.",
+          "code": "Get-OfficeExcelComment -Path .\\Finance\\Forecast-2027.xlsx -Kind Threaded -Author 'Anna Kowalska' |\n    Export-OfficeExcel -Path .\\Reviews\\Forecast-Comments.xlsx -Title 'Open review comments'"
+        }
+      ]
     },
     {
       "name": "Update-OfficeExcelComment",
@@ -9642,7 +10391,19 @@
           ]
         }
       ],
-      "notes": "Rich replacement text is a content block of ExcelText runs (replaces -Run). -All is required when no filter is given."
+      "notes": "Rich replacement text is a content block of ExcelText runs (replaces -Run). -All is required when no filter is given.",
+      "examples": [
+        {
+          "title": "Change the text of matching notes",
+          "description": "Replaces the text of every note that says TBD on the Assumptions sheet.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    Update-OfficeExcelComment -Sheet Assumptions -TextContains 'TBD' -Text 'Confirmed with the vendor on 24 October.'\n}"
+        },
+        {
+          "title": "Hand notes over to a new owner",
+          "description": "Moves every note written by a departing colleague to the team account and rewrites one escalation note with rich text.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    Update-OfficeExcelComment -MatchAuthor 'jnowak' -Author 'Service Desk' -Initials 'SD'\n    Update-OfficeExcelComment -Sheet Tickets -Range F40 {\n        ExcelText 'Escalated: ' -Bold -Color Danger\n        ExcelText 'vendor case 88412 opened.'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Remove-OfficeExcelComment",
@@ -9703,7 +10464,19 @@
           ]
         }
       ],
-      "notes": "Absorbs Clear-OfficeExcelComment. -Range takes a cell or range (replaces -Address/-Row/-Column); -All is required when no filter is given."
+      "notes": "Absorbs Clear-OfficeExcelComment. -Range takes a cell or range (replaces -Address/-Row/-Column); -All is required when no filter is given.",
+      "examples": [
+        {
+          "title": "Remove the note from a cell",
+          "description": "Deletes the note on B4 of the Assumptions sheet.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    Remove-OfficeExcelComment B4 -Sheet Assumptions\n}"
+        },
+        {
+          "title": "Strip review notes before publishing",
+          "description": "Removes every note left by the review bot across all sheets and reports how many were removed.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    $removed = Remove-OfficeExcelComment -Author 'Review Bot' -PassThru\n    Write-Verbose \"Removed $removed review notes\"\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelNamedRange",
@@ -9770,7 +10543,19 @@
           ]
         }
       ],
-      "notes": "-Save is removed; the enclosing block or Save-OfficeExcel saves."
+      "notes": "-Save is removed; the enclosing block or Save-OfficeExcel saves.",
+      "examples": [
+        {
+          "title": "Name an input cell",
+          "description": "Names B2 on the Assumptions sheet TaxRate so formulas can use =Amount*TaxRate.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    ExcelSheet 'Assumptions' {\n        ExcelNamedRange TaxRate 'B2'\n    }\n}"
+        },
+        {
+          "title": "Define the inputs of a model",
+          "description": "Writes the model inputs and names each one, so the calculation sheets read like the business rules they implement.",
+          "code": "New-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    ExcelSheet 'Inputs' {\n        ExcelCell A1 'Exchange rate EUR/USD'\n        ExcelCell B1 1.08\n        ExcelCell A2 'Target margin'\n        ExcelCell B2 0.32 -NumberFormat '0%'\n        ExcelNamedRange EurUsd 'B1'\n        ExcelNamedRange TargetMargin 'B2'\n    }\n    ExcelSheet 'Prices' {\n        ExcelCell A1 'List price (USD)'\n        ExcelCell B1 -Formula '=1000*EurUsd/(1-TargetMargin)'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelNamedRange",
@@ -9859,6 +10644,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List defined names",
+          "description": "Shows every defined name and what it refers to.",
+          "code": "Get-OfficeExcelNamedRange -Path .\\Finance\\Pricing-Model.xlsx"
+        },
+        {
+          "title": "Find broken names",
+          "description": "Lists the defined names that refer to #REF! after sheets were deleted, so they can be repaired or removed.",
+          "code": "Get-OfficeExcelNamedRange -Path .\\Finance\\Budget-2027.xlsx |\n    Where-Object Reference -like '*#REF!*' |\n    Select-Object Name, SheetName, Reference"
+        }
       ]
     },
     {
@@ -9905,6 +10702,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Remove a defined name",
+          "description": "Deletes the OldTaxRate name from the workbook.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    Remove-OfficeExcelNamedRange OldTaxRate\n}"
+        },
+        {
+          "title": "Clean up names that no longer resolve",
+          "description": "Removes every defined name that points to #REF! and saves the workbook.",
+          "code": "$broken = Get-OfficeExcelNamedRange -Path .\\Finance\\Budget-2027.xlsx | Where-Object Reference -like '*#REF!*'\nOpen-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    foreach ($name in $broken) {\n        Remove-OfficeExcelNamedRange -Name $name.Name\n    }\n}"
         }
       ]
     },
@@ -9965,6 +10774,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Rename a defined name",
+          "description": "Renames Rate to TaxRate; formulas that use the name follow the change.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    Rename-OfficeExcelNamedRange Rate TaxRate\n}"
+        },
+        {
+          "title": "Apply a naming convention",
+          "description": "Prefixes every input name of the pricing model with in_ so inputs are easy to tell apart from calculations.",
+          "code": "$names = Get-OfficeExcelNamedRange -Path .\\Finance\\Pricing-Model.xlsx | Where-Object SheetName -eq 'Inputs'\nOpen-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    foreach ($name in $names) {\n        Rename-OfficeExcelNamedRange -Name $name.Name -NewName \"in_$($name.Name)\" -ValidationMode Strict\n    }\n}"
         }
       ]
     },
@@ -10077,7 +10898,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficeExcelFormulaAnalysis. Emits one record per formula cell; -Volatile and -External filter. Workbook totals come from Measure-Object or Get-OfficeDocumentInfo."
+      "notes": "Renamed from Get-OfficeExcelFormulaAnalysis. Emits one record per formula cell; -Volatile and -External filter. Workbook totals come from Measure-Object or Get-OfficeDocumentInfo.",
+      "examples": [
+        {
+          "title": "List formulas in a workbook",
+          "description": "Shows every formula with its references and functions.",
+          "code": "Get-OfficeExcelFormula -Path .\\Finance\\Budget-2027.xlsx"
+        },
+        {
+          "title": "Audit links to other workbooks",
+          "description": "Finds formulas that refer to other workbooks across the finance folder before the folder is moved.",
+          "code": "Get-ChildItem -Path .\\Finance -Filter *.xlsx |\n    Get-OfficeExcelFormula -External |\n    Select-Object SheetName, Address, Formula"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelPageSetup",
@@ -10220,7 +11053,19 @@
           ]
         }
       ],
-      "notes": "Merges Set-OfficeExcelPageSetup, Set-OfficeExcelMargins, Set-OfficeExcelOrientation, Set-OfficeExcelPrintArea, Set-OfficeExcelPrintTitles and Set-OfficeExcelPrintLayout. Margins take lengths (were inches). -RepeatRows 1:2 and -RepeatColumns A:B use Excel row/column syntax (replace the four First/Last parameters); -NoPrintTitles clears them. -Preset applies a layout first; explicit parameters override it."
+      "notes": "Merges Set-OfficeExcelPageSetup, Set-OfficeExcelMargins, Set-OfficeExcelOrientation, Set-OfficeExcelPrintArea, Set-OfficeExcelPrintTitles and Set-OfficeExcelPrintLayout. Margins take lengths (were inches). -RepeatRows 1:2 and -RepeatColumns A:B use Excel row/column syntax (replace the four First/Last parameters); -NoPrintTitles clears them. -Preset applies a layout first; explicit parameters override it.",
+      "examples": [
+        {
+          "title": "Print a sheet landscape on one page wide",
+          "description": "Sets landscape orientation and fits the columns to one page width.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelPageSetup -Orientation Landscape -FitToWidth 1 -FitToHeight 0\n    }\n}"
+        },
+        {
+          "title": "Prepare a long list for printing",
+          "description": "Starts from the data-table print preset, repeats the header row on every page and limits printing to the table area with narrow margins.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelPageSetup -Preset DataTable -PrintArea A1:H420 -RepeatRows 1:1 -MarginPreset Narrow\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelHeader",
@@ -10477,7 +11322,19 @@
           ]
         }
       ],
-      "notes": "Split from Set-OfficeExcelHeaderFooter to match the shared Header/Footer vocabulary. Section text keeps Excel codes such as &P and &N for page numbers."
+      "notes": "Split from Set-OfficeExcelHeaderFooter to match the shared Header/Footer vocabulary. Section text keeps Excel codes such as &P and &N for page numbers.",
+      "examples": [
+        {
+          "title": "Add a page header",
+          "description": "Prints the report name in the centre and the print date on the right of every page.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelHeader -Center 'Q3 orders' -Right '&D'\n    }\n}"
+        },
+        {
+          "title": "Put the logo in the header",
+          "description": "Prints the company logo at the left of the header and the sheet name on the right.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelHeader -ImagePath .\\Assets\\Logo.png -ImagePosition Left -ImageHeight 1cm -Right '&A'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelFooter",
@@ -10734,7 +11591,19 @@
           ]
         }
       ],
-      "notes": "Split from Set-OfficeExcelHeaderFooter."
+      "notes": "Split from Set-OfficeExcelHeaderFooter.",
+      "examples": [
+        {
+          "title": "Number the printed pages",
+          "description": "Prints Page N of M on the right of the footer.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelFooter -Right 'Page &P of &N'\n    }\n}"
+        },
+        {
+          "title": "Add a classification footer to every sheet",
+          "description": "Prints the classification, file name and page number in the footer of each sheet of a new report.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Security-Review.xlsx {\n    foreach ($name in 'Findings', 'Accounts', 'Firewall') {\n        ExcelSheet $name {\n            ExcelTable (Import-OfficeCsv -Path \".\\Data\\$name.csv\")\n            ExcelFooter -Left 'Internal' -Center '&F' -Right 'Page &P of &N'\n        }\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelPageBreak",
@@ -10779,6 +11648,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Break before a row",
+          "description": "Starts a new printed page at row 41.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelPageBreak -Row 41\n    }\n}"
+        },
+        {
+          "title": "Print each site on its own page",
+          "description": "Adds a page break above the first row of each site block so every site starts on a new page.",
+          "code": "$sites = Import-OfficeExcel -Path .\\Reports\\Inventory.xlsx -Sheet Servers\n$firstRows = @()\n$rowNumber = 2\nforeach ($group in $sites | Group-Object Site) {\n    if ($rowNumber -gt 2) { $firstRows += $rowNumber }\n    $rowNumber += $group.Count\n}\nOpen-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    ExcelSheet 'Servers' {\n        ExcelPageBreak -Row $firstRows\n    }\n}"
         }
       ]
     },
@@ -10890,6 +11771,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List manual page breaks",
+          "description": "Shows the manual row and column page breaks of every sheet.",
+          "code": "Get-OfficeExcelPageBreak -Path .\\Reports\\Inventory.xlsx"
+        },
+        {
+          "title": "Check row breaks on one sheet",
+          "description": "Lists only the row breaks of the Servers sheet before the report is sent to print.",
+          "code": "Get-OfficeExcelPageBreak -Path .\\Reports\\Inventory.xlsx -Sheet Servers -Row"
+        }
       ]
     },
     {
@@ -10944,7 +11837,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Clear-OfficeExcelPageBreak: page breaks are items, so Remove is the verb."
+      "notes": "Renamed from Clear-OfficeExcelPageBreak: page breaks are items, so Remove is the verb.",
+      "examples": [
+        {
+          "title": "Remove one page break",
+          "description": "Removes the manual break above row 41.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    Remove-OfficeExcelPageBreak -Sheet Servers -Row 41\n}"
+        },
+        {
+          "title": "Reset breaks before reprinting",
+          "description": "Removes every manual page break from the report sheets so the print layout can be set up again.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Inventory.xlsx {\n    Remove-OfficeExcelPageBreak -Sheet Servers, Services -All -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "Protect-OfficeExcelSheet",
@@ -11063,7 +11968,19 @@
           ]
         }
       ],
-      "notes": "bool Allow* parameters become switches; selecting cells stays allowed unless -NoSelectLockedCells/-NoSelectUnlockedCells. No DSL alias (the alias rule gives ExcelSheet to Add-OfficeExcelSheet)."
+      "notes": "bool Allow* parameters become switches; selecting cells stays allowed unless -NoSelectLockedCells/-NoSelectUnlockedCells. No DSL alias (the alias rule gives ExcelSheet to Add-OfficeExcelSheet).",
+      "examples": [
+        {
+          "title": "Protect a sheet",
+          "description": "Locks the Inputs sheet so only unlocked cells can be edited.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    Protect-OfficeExcelSheet -Sheet Inputs\n}"
+        },
+        {
+          "title": "Protect a shared list but keep it usable",
+          "description": "Protects the staff list while still letting colleagues sort, filter and resize columns.",
+          "code": "Open-OfficeExcel -Path .\\HR\\Staff-Directory.xlsx {\n    ExcelSheet 'Directory' {\n        Protect-OfficeExcelSheet -AllowSort -AllowAutoFilter -AllowFormatColumns\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Unprotect-OfficeExcelSheet",
@@ -11096,6 +12013,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Remove sheet protection",
+          "description": "Unprotects the Inputs sheet.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    Unprotect-OfficeExcelSheet -Sheet Inputs\n}"
+        },
+        {
+          "title": "Update a protected sheet and protect it again",
+          "description": "Unprotects the price sheet, writes the new rates and restores protection with sorting allowed.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    ExcelSheet 'Rates' {\n        Unprotect-OfficeExcelSheet\n        ExcelCell B2 1.09\n        ExcelCell B3 0.86\n        Protect-OfficeExcelSheet -AllowSort\n    }\n}"
         }
       ]
     },
@@ -11199,7 +12128,19 @@
           ]
         }
       ],
-      "notes": "-Theme takes a built-in name, an OfficeTheme or a template path and restyles cell styles, table styles and chart formats (ApplyTheme). -Theme Modern replaces -Default."
+      "notes": "-Theme takes a built-in name, an OfficeTheme or a template path and restyles cell styles, table styles and chart formats (ApplyTheme). -Theme Modern replaces -Default.",
+      "examples": [
+        {
+          "title": "Apply a built-in theme",
+          "description": "Restyles the workbook's cell styles, table styles and charts with the Minimal theme.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelTheme Minimal\n}"
+        },
+        {
+          "title": "Apply the corporate theme from a template",
+          "description": "Takes the colours and fonts from the company template so an older workbook matches current branding.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Legacy-Report.xlsx {\n    ExcelTheme .\\Templates\\Northwind.xltx\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelDateSystem",
@@ -11233,6 +12174,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Use the 1904 date system",
+          "description": "Switches the workbook to the 1904 date system used by some older Mac workbooks.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Legacy-Ledger.xlsx {\n    ExcelDateSystem 1904\n}"
+        },
+        {
+          "title": "Match a partner workbook before copying dates",
+          "description": "Sets the date system of a new workbook to match a 1904-based partner file before copying its sheets in.",
+          "code": "New-OfficeExcel -Path .\\Finance\\Consolidated.xlsx {\n    ExcelDateSystem 1904\n    Copy-OfficeExcelSheet -Source .\\Partners\\Ledger-1904.xlsx -Sheet Ledger\n}"
         }
       ]
     },
@@ -11327,7 +12280,19 @@
           ]
         }
       ],
-      "notes": "-Kind BuiltIn | Application | Custom replaces the three filter switches."
+      "notes": "-Kind BuiltIn | Application | Custom replaces the three filter switches.",
+      "examples": [
+        {
+          "title": "Show document properties",
+          "description": "Lists the built-in, application and custom properties of a workbook.",
+          "code": "Get-OfficeExcelDocumentProperty -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Report owners of shared workbooks",
+          "description": "Reads the custom Owner and Classification properties of every workbook on the share.",
+          "code": "Get-ChildItem -Path \\\\files\\Reports -Filter *.xlsx |\n    Get-OfficeExcelDocumentProperty -Name Owner, Classification -Kind Custom |\n    Format-Table"
+        }
+      ]
     },
     {
       "name": "Set-OfficeExcelDocumentProperty",
@@ -11374,6 +12339,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Set the document title",
+          "description": "Sets the built-in Title property.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    Set-OfficeExcelDocumentProperty Title 'Q3 sales'\n}"
+        },
+        {
+          "title": "Tag a workbook with custom metadata",
+          "description": "Adds owner, classification and review-date custom properties that document management can search.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    Set-OfficeExcelDocumentProperty -Name Owner -Value 'Sales Operations' -Custom\n    Set-OfficeExcelDocumentProperty -Name Classification -Value 'Internal' -Custom\n    Set-OfficeExcelDocumentProperty -Name ReviewDate -Value (Get-Date).AddMonths(6) -Custom\n}"
         }
       ]
     },
@@ -11458,7 +12435,19 @@
           ]
         }
       ],
-      "notes": "-BackLinkAddress replaces -BackLinkRow/-BackLinkColumn."
+      "notes": "-BackLinkAddress replaces -BackLinkRow/-BackLinkColumn.",
+      "examples": [
+        {
+          "title": "Add a contents sheet",
+          "description": "Adds a first sheet with a link to every other sheet.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Board-Pack.xlsx {\n    ExcelTableOfContents\n}"
+        },
+        {
+          "title": "Build a navigable report pack",
+          "description": "Writes one sheet per region, then adds a contents sheet with links and a back link on each regional sheet.",
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Q3-Orders.csv\nNew-OfficeExcel -Path .\\Reports\\Q3-Regions.xlsx {\n    foreach ($group in $orders | Group-Object Region) {\n        ExcelSheet $group.Name {\n            ExcelTable $group.Group -Address A3\n        }\n    }\n    ExcelTableOfContents -Name 'Contents' -BackLink -BackLinkAddress A1 -BackLinkText 'Back to contents'\n}"
+        }
+      ]
     },
     {
       "name": "Invoke-OfficeExcelTemplate",
@@ -11695,7 +12684,24 @@
           ]
         }
       ],
-      "notes": "Merges Invoke-OfficeExcelTemplate, -TemplateRow, -TemplateSheet and -TemplateOptionalRow as parameter sets. A file is filled with New-OfficeExcel -Template or Open-OfficeExcel and a content block."
+      "notes": "Merges Invoke-OfficeExcelTemplate, -TemplateRow, -TemplateSheet and -TemplateOptionalRow as parameter sets. A file is filled with New-OfficeExcel -Template or Open-OfficeExcel and a content block.",
+      "examples": [
+        {
+          "title": "Fill template markers",
+          "description": "Creates a report from a template and replaces its {{Client}}, {{Month}} and {{Availability}} markers.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Service-Report-October.xlsx -Template .\\Templates\\Service-Report.xltx {\n    ExcelTemplate @{ Client = 'Northwind Traders'; Month = 'October 2026'; Availability = 0.9994 }\n}"
+        },
+        {
+          "title": "Repeat a template row for each incident",
+          "description": "Fills the header markers, repeats row 12 once per incident and removes the escalation block because nothing was escalated this month.",
+          "code": "$incidents = Import-OfficeCsv -Path .\\Data\\Incidents-October.csv\n$values = @{\n    Client       = 'Northwind Traders'\n    Month        = 'October 2026'\n    Availability = 0.9994\n}\nNew-OfficeExcel -Path .\\Reports\\Service-Report-October.xlsx -Template .\\Templates\\Service-Report.xltx {\n    ExcelTemplate $values -Culture en-GB\n    ExcelSheet 'Report' {\n        ExcelTemplate -TemplateRow 12 -InputObject $incidents\n        ExcelTemplate -OptionalRow 18 -RowCount 3 -Remove\n    }\n}"
+        },
+        {
+          "title": "Create one sheet per site from a template sheet",
+          "description": "Copies the Site template sheet once per site, names each copy after the site and fills its markers from the site record.",
+          "code": "$sites = Import-OfficeCsv -Path .\\Facilities\\Sites.csv\nOpen-OfficeExcel -Path .\\Facilities\\Inspections-2026.xlsx {\n    ExcelTemplate -TemplateSheet Site -InputObject $sites -SheetNameProperty Name -ThrowOnMissing\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelTemplateMarker",
@@ -11805,6 +12811,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List the markers in a template",
+          "description": "Shows every {{Marker}} in the template with its sheet and cell.",
+          "code": "Get-OfficeExcelTemplateMarker -Path .\\Templates\\Service-Report.xltx"
+        },
+        {
+          "title": "Find markers your data does not fill",
+          "description": "Compares the template with the values a script is about to supply and lists only the markers that would stay unfilled.",
+          "code": "$values = @{ Client = 'Northwind Traders'; Month = 'October 2026' }\nGet-OfficeExcelTemplateMarker -Path .\\Templates\\Service-Report.xltx -Value $values -MissingOnly |\n    Select-Object SheetName, CellReference, Name"
+        }
       ]
     },
     {
@@ -11895,7 +12913,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Test-OfficeExcelTemplateBinding. The report has a ToMarkdown() method (replaces -AsMarkdown)."
+      "notes": "Renamed from Test-OfficeExcelTemplateBinding. The report has a ToMarkdown() method (replaces -AsMarkdown).",
+      "examples": [
+        {
+          "title": "Check that values fill a template",
+          "description": "Returns $true when the values bind every marker in the template.",
+          "code": "Test-OfficeExcelTemplate -Path .\\Templates\\Service-Report.xltx -Value @{ Client = 'Northwind Traders'; Month = 'October 2026'; Availability = 0.9994 } -Quiet"
+        },
+        {
+          "title": "Stop a report run when the template changed",
+          "description": "Writes a Markdown binding report for review and stops before generating the monthly reports if any marker is unbound.",
+          "code": "$values = @{ Client = 'Northwind Traders'; Month = 'October 2026'; Availability = 0.9994 }\n$report = Test-OfficeExcelTemplate -Path .\\Templates\\Service-Report.xltx -Value $values\n$report.ToMarkdown() | Set-Content -Path .\\Logs\\Template-Binding.md\nif (-not (Test-OfficeExcelTemplate -Path .\\Templates\\Service-Report.xltx -Value $values -Quiet)) {\n    throw 'The service report template has markers this script does not fill. See Logs\\Template-Binding.md.'\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelReportSheet",
@@ -11962,7 +12992,19 @@
           ]
         }
       ],
-      "notes": "The report builder (sheet.Report() in C#) takes its fonts, colors and spacing from the workbook theme; the fill colors override it."
+      "notes": "The report builder (sheet.Report() in C#) takes its fonts, colors and spacing from the workbook theme; the fill colors override it.",
+      "examples": [
+        {
+          "title": "Create a report sheet",
+          "description": "Adds a Summary report sheet with a title and a KPI row, laid out by the report builder in the workbook theme.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTitle 'Operations summary' 'Week 43, 2026'\n        ExcelReportKpi ([ordered]@{ Uptime = '99.97%'; Incidents = 4; 'Changes shipped' = 37 })\n    }\n}"
+        },
+        {
+          "title": "Build a monthly service review",
+          "description": "Lays out a complete service review: title, KPIs, a callout, a site table with its chart and a legend, all styled by the theme.",
+          "code": "$sites = Import-OfficeCsv -Path .\\Data\\Site-Availability.csv\n$legend = @(\n    [pscustomobject]@{ Status = 'Met'; Meaning = 'Availability at or above the 99.9% target' }\n    [pscustomobject]@{ Status = 'Missed'; Meaning = 'Below target; a service credit may apply' }\n)\nNew-OfficeExcel -Path .\\Reports\\Service-Review-October.xlsx -Theme Boardroom {\n    ExcelReportSheet 'Review' {\n        ExcelReportTitle 'Service review' 'October 2026'\n        ExcelReportKpi ([ordered]@{ Availability = '99.94%'; 'P1 incidents' = 1; 'Mean time to restore' = '42 min'; 'Changes' = 128 })\n        ExcelReportCallout Warning 'Two sites missed target' 'Gdansk and Porto were below 99.9% after the network maintenance on 14 October.'\n        ExcelReportHeading 'Availability by site'\n        ExcelReportTable $sites 'Sites'\n        ExcelReportChart -Type Column -Category Site -Value Availability -Title 'Availability by site'\n        ExcelReportSpacer\n        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelReportTitle",
@@ -11998,6 +13040,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add a report title",
+          "description": "Adds the title block at the top of a report sheet.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTitle 'Operations summary'\n    }\n}"
+        },
+        {
+          "title": "Add a title with the reporting period",
+          "description": "Adds a title and a subtitle built from the current month, so a scheduled run labels itself.",
+          "code": "$period = (Get-Date).ToString('MMMM yyyy')\nNew-OfficeExcel -Path .\\Reports\\Capacity-Review.xlsx {\n    ExcelReportSheet 'Capacity' {\n        ExcelReportTitle 'Capacity review' \"Storage and compute, $period\"\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Capacity.csv) 'Clusters'\n    }\n}"
+        }
       ]
     },
     {
@@ -12028,7 +13082,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Add-OfficeExcelReportSection to the shared Heading noun."
+      "notes": "Renamed from Add-OfficeExcelReportSection to the shared Heading noun.",
+      "examples": [
+        {
+          "title": "Add a section heading",
+          "description": "Starts a new section of the report.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportHeading 'Incidents'\n    }\n}"
+        },
+        {
+          "title": "Split a report into sections",
+          "description": "Gives each part of a security report its own heading and table.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Security-Review.xlsx {\n    ExcelReportSheet 'Review' {\n        ExcelReportTitle 'Security review' 'Q3 2026'\n        ExcelReportHeading 'Privileged accounts'\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Privileged-Accounts.csv)\n        ExcelReportHeading 'Firewall changes'\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Firewall-Changes.csv)\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelReportParagraph",
@@ -12056,6 +13122,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add explanatory text",
+          "description": "Adds a paragraph under the title.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportParagraph 'Figures cover all production services from 1 to 31 October.'\n    }\n}"
+        },
+        {
+          "title": "Explain a table before it appears",
+          "description": "Describes how availability is measured before the site table, so readers do not need a separate methods document.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Service-Review-October.xlsx {\n    ExcelReportSheet 'Review' {\n        ExcelReportHeading 'Availability by site'\n        ExcelReportParagraph 'Availability is measured every minute from two external probes. Planned maintenance announced five days ahead is excluded.'\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Site-Availability.csv)\n    }\n}"
         }
       ]
     },
@@ -12085,6 +13163,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add space between blocks",
+          "description": "Leaves one empty row between two report blocks.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTitle 'Operations summary'\n        ExcelReportSpacer\n        ExcelReportParagraph 'Week 43, 2026'\n    }\n}"
+        },
+        {
+          "title": "Separate KPIs from the detail",
+          "description": "Leaves two rows between the KPI cards and the detail table to give the summary room.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Helpdesk-Review.xlsx {\n    ExcelReportSheet 'Review' {\n        ExcelReportKpi ([ordered]@{ Opened = 412; Closed = 398; 'Median age' = '1.6 days' })\n        ExcelReportSpacer 2\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Tickets-By-Team.csv) 'Tickets by team'\n    }\n}"
         }
       ]
     },
@@ -12135,6 +13225,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add an information callout",
+          "description": "Highlights a note for readers in an information callout.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportCallout Info 'Data source' 'Monitoring export from 1 November, 06:00.'\n    }\n}"
+        },
+        {
+          "title": "Report results with matching callouts",
+          "description": "Adds a success or error callout depending on whether the backup checks passed, so the outcome is the first thing a reader sees.",
+          "code": "$failed = Import-OfficeCsv -Path .\\Data\\Backup-Results.csv | Where-Object Result -ne 'Success'\nNew-OfficeExcel -Path .\\Reports\\Backup-Check.xlsx {\n    ExcelReportSheet 'Backups' {\n        ExcelReportTitle 'Nightly backup check' (Get-Date).ToString('d MMMM yyyy')\n        if ($failed) {\n            ExcelReportCallout Error 'Backups failed' \"$(@($failed).Count) jobs did not complete. Details are below.\"\n            ExcelReportTable $failed 'Failed jobs'\n        } else {\n            ExcelReportCallout Success 'All backups completed' 'Every scheduled job finished successfully.'\n        }\n    }\n}"
+        }
       ]
     },
     {
@@ -12177,7 +13279,19 @@
           ]
         }
       ],
-      "notes": "Renamed from Add-OfficeExcelReportKpiRow (one alias per noun, matching PptKpi)."
+      "notes": "Renamed from Add-OfficeExcelReportKpiRow (one alias per noun, matching PptKpi).",
+      "examples": [
+        {
+          "title": "Add a row of KPI cards",
+          "description": "Shows three headline figures as KPI cards.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportKpi ([ordered]@{ Uptime = '99.97%'; Incidents = 4; Deployments = 37 })\n    }\n}"
+        },
+        {
+          "title": "Compute KPIs from the data",
+          "description": "Calculates the sales KPIs from the order export and shows them four to a row.",
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Q3-Orders.csv\n$kpis = [ordered]@{\n    Revenue           = ($orders | Measure-Object Amount -Sum).Sum\n    Orders            = $orders.Count\n    'Average order'   = [math]::Round(($orders | Measure-Object Amount -Average).Average, 2)\n    'Active customers' = ($orders | Select-Object -ExpandProperty Customer -Unique).Count\n}\nNew-OfficeExcel -Path .\\Reports\\Q3-Sales-Summary.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTitle 'Q3 sales' 'July to September 2026'\n        ExcelReportKpi $kpis -PerRow 4\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeExcelReportLegend",
@@ -12235,6 +13349,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add a legend",
+          "description": "Explains the status values used in the report.",
+          "code": "$legend = @(\n    [pscustomobject]@{ Status = 'Ready'; Meaning = 'Validated and ready to ship' }\n    [pscustomobject]@{ Status = 'Review'; Meaning = 'Waiting for the owner' }\n)\nNew-OfficeExcel -Path .\\Reports\\Release-Readiness.xlsx {\n    ExcelReportSheet 'Readiness' {\n        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend\n    }\n}"
+        },
+        {
+          "title": "Match legend colours to the table",
+          "description": "Colours each status in the legend the same way as the rows of the readiness table.",
+          "code": "$legend = @(\n    [pscustomobject]@{ Status = 'Ready'; Meaning = 'Validated and ready to ship' }\n    [pscustomobject]@{ Status = 'Review'; Meaning = 'Waiting for the owner' }\n    [pscustomobject]@{ Status = 'Blocked'; Meaning = 'Cannot ship until a dependency is fixed' }\n)\nNew-OfficeExcel -Path .\\Reports\\Release-Readiness.xlsx {\n    ExcelReportSheet 'Readiness' {\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Release-Items.csv) 'Release 2026.11'\n        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend -FirstColumnFillByValue @{ Ready = '#DCFCE7'; Review = '#FEF3C7'; Blocked = '#FEE2E2' }\n    }\n}"
         }
       ]
     },
@@ -12344,6 +13470,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add a titled table",
+          "description": "Adds a styled table with a title to the report.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Operations.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTable (Get-Service | Where-Object Status -eq 'Stopped') 'Stopped services'\n    }\n}"
+        },
+        {
+          "title": "Choose the columns to show",
+          "description": "Shows only the columns readers need from a wide asset export and leaves the internal identifiers out.",
+          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv\nNew-OfficeExcel -Path .\\Reports\\Asset-Review.xlsx {\n    ExcelReportSheet 'Assets' {\n        ExcelReportTitle 'Laptops due for replacement'\n        ExcelReportTable ($assets | Where-Object AgeYears -ge 4) 'Due this year' -Property AssetTag, User, Model, Purchased, AgeYears\n    }\n}"
+        }
       ]
     },
     {
@@ -12415,7 +13553,19 @@
           ]
         }
       ],
-      "notes": "New block that absorbs the chart half of New-OfficeExcelDashboard. Without -Table it charts the previous ExcelReportTable and places the chart beside it."
+      "notes": "New block that absorbs the chart half of New-OfficeExcelDashboard. Without -Table it charts the previous ExcelReportTable and places the chart beside it.",
+      "examples": [
+        {
+          "title": "Chart the table above",
+          "description": "Charts the previous report table and places the chart beside it.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelReportSheet 'Summary' {\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) 'Revenue by region'\n        ExcelReportChart -Category Region -Value Revenue\n    }\n}"
+        },
+        {
+          "title": "Show a trend with a dashboard preset",
+          "description": "Adds a weekly ticket table and charts opened against closed tickets with the trend preset.",
+          "code": "New-OfficeExcel -Path .\\Reports\\Helpdesk-Review.xlsx {\n    ExcelReportSheet 'Trend' {\n        ExcelReportTitle 'Helpdesk trend' 'Last 12 weeks'\n        ExcelReportTable (Import-OfficeCsv -Path .\\Data\\Ticket-Trend.csv) 'Tickets per week'\n        ExcelReportChart -Preset Trend -Category Week -Value Opened, Closed -Title 'Opened and closed tickets'\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Compare-OfficeExcelRange",
@@ -12548,7 +13698,19 @@
           ]
         }
       ],
-      "notes": "Reference/difference naming as in Compare-Object and Compare-OfficeDocument; without -DifferencePath/-DifferenceDocument both ranges come from the reference workbook. Whole-workbook comparison is Compare-OfficeDocument."
+      "notes": "Reference/difference naming as in Compare-Object and Compare-OfficeDocument; without -DifferencePath/-DifferenceDocument both ranges come from the reference workbook. Whole-workbook comparison is Compare-OfficeDocument.",
+      "examples": [
+        {
+          "title": "Compare a sheet in two versions",
+          "description": "Lists the cells of the Budget sheet that differ between two versions of the workbook.",
+          "code": "Compare-OfficeExcelRange -ReferencePath .\\Finance\\Budget-v1.xlsx -DifferencePath .\\Finance\\Budget-v2.xlsx -Sheet Budget"
+        },
+        {
+          "title": "Reconcile two lists in one workbook",
+          "description": "Compares the ledger with the bank statement range by range, ignoring case and stray spaces, and writes the differences to a review workbook.",
+          "code": "$compare = @{\n    ReferencePath   = '.\\Finance\\Reconciliation-October.xlsx'\n    Sheet           = 'Ledger'\n    Range           = 'A1:F400'\n    DifferenceSheet = 'Bank'\n    DifferenceRange = 'A1:F400'\n}\nCompare-OfficeExcelRange @compare -TrimStrings -IgnoreCase |\n    Export-OfficeExcel -Path .\\Finance\\Reconciliation-Differences.xlsx -Title 'Ledger and bank differences'"
+        }
+      ]
     },
     {
       "name": "Export-OfficeExcelGoogleSpreadsheet",
@@ -12674,7 +13836,24 @@
           ]
         }
       ],
-      "notes": "-Mode Export (default) | Plan | Batch replaces -PlanOnly and -AsBatch. Stays an Excel command: the target is an online service with a session, not a file conversion."
+      "notes": "-Mode Export (default) | Plan | Batch replaces -PlanOnly and -AsBatch. Stays an Excel command: the target is an online service with a session, not a file conversion.",
+      "examples": [
+        {
+          "title": "Preview a Google Sheets export",
+          "description": "Returns the translation plan, including anything Google Sheets cannot represent, without contacting Google.",
+          "code": "Export-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Mode Plan"
+        },
+        {
+          "title": "Publish a workbook to Google Sheets",
+          "description": "Uploads the sales workbook through an authenticated Google Workspace session and stops if any content would be lost.",
+          "code": "Export-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -FailOnLoss"
+        },
+        {
+          "title": "Build the request batch for your own client",
+          "description": "Returns the provider-neutral request batch for an open workbook, for an integration that sends the requests itself.",
+          "code": "$book = Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -ReadOnly\n$batch = Export-OfficeExcelGoogleSpreadsheet -Document $book -Mode Batch\nClose-OfficeExcel -Document $book"
+        }
+      ]
     },
     {
       "name": "Get-OfficeExcelNumberFormatPreset",
@@ -12701,6 +13880,18 @@
               "pipeline": "none"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List number format presets",
+          "description": "Shows the preset names usable with -ColumnFormat and -Style and the format codes they produce.",
+          "code": "Get-OfficeExcelNumberFormatPreset"
+        },
+        {
+          "title": "See formats for another culture",
+          "description": "Shows the presets with one decimal place as they are written for German workbooks.",
+          "code": "Get-OfficeExcelNumberFormatPreset -Decimals 1 -Culture de-DE"
         }
       ]
     },
@@ -12918,7 +14109,19 @@
           ]
         }
       ],
-      "notes": "Margins take lengths (were PDF points). -Sheet replaces -SheetName."
+      "notes": "Margins take lengths (were PDF points). -Sheet replaces -SheetName.",
+      "examples": [
+        {
+          "title": "Convert chosen sheets to PDF",
+          "description": "Converts only the Summary and Orders sheets, honouring the print areas set in the workbook.",
+          "code": "$pdf = New-OfficeExcelPdfOptions -Sheet Summary, Orders -UseWorksheetPrintAreas\nConvert-OfficeDocument -Path .\\Reports\\Q3-Sales.xlsx -OutputPath .\\Reports\\Q3-Sales.pdf -Options $pdf"
+        },
+        {
+          "title": "Convert a folder of reports with page setup",
+          "description": "Converts every workbook in the folder to A4 PDFs that use each sheet's page setup, headers and repeated titles.",
+          "code": "$pdf = New-OfficeExcelPdfOptions -PageSize A4 -MarginLeft 1.5cm -MarginRight 1.5cm -UseWorksheetPageSetup -UseWorksheetHeadersAndFooters -UseWorksheetPrintTitleRows -RespectWorkbookSheetVisibility\nGet-ChildItem -Path .\\Reports -Filter *.xlsx |\n    Convert-OfficeDocument -To Pdf -OutputDirectory .\\Pdf -Options $pdf"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelImageOptions",
@@ -13085,7 +14288,19 @@
           ]
         }
       ],
-      "notes": "Merges New-OfficeExcelWorkbookImageOptions. Sheet, range and chart selection are -Sheet, -Range and -Chart on Export-OfficeDocumentImage. The two C# options types merge in M2."
+      "notes": "Merges New-OfficeExcelWorkbookImageOptions. Sheet, range and chart selection are -Sheet, -Range and -Chart on Export-OfficeDocumentImage. The two C# options types merge in M2.",
+      "examples": [
+        {
+          "title": "Render a sheet with gridlines",
+          "description": "Renders the Summary sheet to PNG with gridlines shown.",
+          "code": "$image = New-OfficeExcelImageOptions -ShowGridlines\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Sales.xlsx -Sheet Summary -OutputPath .\\Images\\Q3-Summary.png -Options $image"
+        },
+        {
+          "title": "Render dashboard sheets for a status page",
+          "description": "Renders the dashboard at double scale with charts and images, so the PNG stays sharp when embedded in a web page.",
+          "code": "$image = New-OfficeExcelImageOptions -Scale 2 -IncludeCharts -IncludeImages -IncludeConditionalFormatting\nExport-OfficeDocumentImage -Path .\\Reports\\Operations.xlsx -Sheet Dashboard -OutputDirectory .\\Site\\Images -Options $image"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelOpenDocumentOptions",
@@ -13131,6 +14346,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Convert to OpenDocument with basic styles",
+          "description": "Converts a workbook to .ods and keeps its basic cell styles.",
+          "code": "Convert-OfficeDocument -Path .\\Finance\\Budget-2027.xlsx -To Ods -Options (New-OfficeExcelOpenDocumentOptions -IncludeBasicStyles)"
+        },
+        {
+          "title": "Convert large workbooks within limits",
+          "description": "Converts the archive folder to OpenDocument with row and column limits that protect the run from oversized files.",
+          "code": "$ods = New-OfficeExcelOpenDocumentOptions -IncludeBasicStyles -MaximumRows 200000 -MaximumColumns 200\nConvert-OfficeDocument -Path .\\Archive\\*.xlsx -To Ods -OutputDirectory .\\Archive\\Ods -Options $ods"
+        }
       ]
     },
     {
@@ -13172,7 +14399,19 @@
           ]
         }
       ],
-      "notes": "Carries the Excel-only settings of Test-OfficeExcelWorkbook and Get-OfficeExcelPreflight. The report has ToMarkdown() and ThrowIfFailed()."
+      "notes": "Carries the Excel-only settings of Test-OfficeExcelWorkbook and Get-OfficeExcelPreflight. The report has ToMarkdown() and ThrowIfFailed().",
+      "examples": [
+        {
+          "title": "Check that formulas can be calculated",
+          "description": "Tests whether OfficeIMO can calculate the formulas in a workbook.",
+          "code": "Test-OfficeDocument -Path .\\Finance\\Budget-2027.xlsx -Options (New-OfficeExcelTestOptions -Capability CalculateFormulas)"
+        },
+        {
+          "title": "Preflight templates before a report run",
+          "description": "Checks each template for template binding and PDF export and includes repair hints for anything that fails.",
+          "code": "$checks = New-OfficeExcelTestOptions -Capability BindTemplate, ExportPdfReport -IncludeRepairHints\nGet-ChildItem -Path .\\Templates -Filter *.xltx |\n    Test-OfficeDocument -Options $checks"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelRepairOptions",
@@ -13195,7 +14434,19 @@
           ]
         }
       ],
-      "notes": "-Area DefinedNames | Tables | SheetViews | PrintSettings | Drawings | Calculation (default all) replaces the six -Skip* switches of Repair-OfficeExcelWorkbook."
+      "notes": "-Area DefinedNames | Tables | SheetViews | PrintSettings | Drawings | Calculation (default all) replaces the six -Skip* switches of Repair-OfficeExcelWorkbook.",
+      "examples": [
+        {
+          "title": "Repair defined names and tables",
+          "description": "Repairs only the defined names and tables of a damaged workbook and writes the result to a new file.",
+          "code": "Repair-OfficeDocument -Path .\\Reports\\Broken.xlsx -OutputPath .\\Reports\\Repaired.xlsx -Options (New-OfficeExcelRepairOptions -Area DefinedNames, Tables)"
+        },
+        {
+          "title": "Repair print settings across a folder",
+          "description": "Fixes sheet views and print settings in every workbook of a migrated share, leaving formulas and drawings untouched.",
+          "code": "$repair = New-OfficeExcelRepairOptions -Area SheetViews, PrintSettings\nGet-ChildItem -Path \\\\files\\Migrated -Filter *.xlsx |\n    Repair-OfficeDocument -Options $repair -PassThru"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelProtectionOptions",
@@ -13230,7 +14481,19 @@
           ]
         }
       ],
-      "notes": "Precomputed legacy hashes and the write-reservation user name; the restrictions themselves (Structure, Windows, ReadOnlyRecommended) are -Restriction values of Protect-OfficeDocument, and the password to modify is its -RestrictionPassword."
+      "notes": "Precomputed legacy hashes and the write-reservation user name; the restrictions themselves (Structure, Windows, ReadOnlyRecommended) are -Restriction values of Protect-OfficeDocument, and the password to modify is its -RestrictionPassword.",
+      "examples": [
+        {
+          "title": "Reserve a workbook for a team",
+          "description": "Recommends read-only opening and records who reserved the workbook.",
+          "code": "$modify = Read-Host -AsSecureString -Prompt 'Password to modify'\nProtect-OfficeDocument -Path .\\Finance\\Budget-2027.xlsx -Restriction ReadOnlyRecommended -RestrictionPassword $modify -Options (New-OfficeExcelProtectionOptions -ReservedBy 'Finance team')"
+        },
+        {
+          "title": "Lock the structure of published budgets",
+          "description": "Locks sheet structure in every published budget and names the reserving team, using one password read at the start.",
+          "code": "$modify = Read-Host -AsSecureString -Prompt 'Password to modify'\n$excel = New-OfficeExcelProtectionOptions -ReservedBy 'Financial Planning'\nGet-ChildItem -Path .\\Finance\\Published -Filter *.xlsx |\n    Protect-OfficeDocument -Restriction Structure, ReadOnlyRecommended -RestrictionPassword $modify -Options $excel"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelHtmlOptions",
@@ -13283,7 +14546,19 @@
           ]
         }
       ],
-      "notes": "Carries the settings of ConvertTo-OfficeExcelHtml. -Theme takes an OfficeTheme (replaces OfficeVisualThemeKind)."
+      "notes": "Carries the settings of ConvertTo-OfficeExcelHtml. -Theme takes an OfficeTheme (replaces OfficeVisualThemeKind).",
+      "examples": [
+        {
+          "title": "Convert a workbook to HTML",
+          "description": "Converts a workbook to a web page with a title.",
+          "code": "Convert-OfficeDocument -Path .\\Reports\\Q3-Sales.xlsx -To Html -OutputPath .\\Site\\Q3-Sales.html -Options (New-OfficeExcelHtmlOptions -Title 'Q3 sales')"
+        },
+        {
+          "title": "Publish a visual review page",
+          "description": "Renders the workbook as a visual review page in the Boardroom theme, capped at 500 rows per sheet for a fast page.",
+          "code": "$html = New-OfficeExcelHtmlOptions -Profile VisualReview -Theme Boardroom -Title 'Operations dashboard' -MaxRowsPerSheet 500\nConvert-OfficeDocument -Path .\\Reports\\Operations.xlsx -To Html -OutputPath .\\Site\\Operations.html -Options $html"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelCompareOptions",
@@ -13306,7 +14581,19 @@
           ]
         }
       ],
-      "notes": "-Exclude Cells | CellStyles | NamedRanges | Tables | WorksheetMetadata | Comments replaces the six -Skip* switches of Compare-OfficeExcelWorkbook."
+      "notes": "-Exclude Cells | CellStyles | NamedRanges | Tables | WorksheetMetadata | Comments replaces the six -Skip* switches of Compare-OfficeExcelWorkbook.",
+      "examples": [
+        {
+          "title": "Compare values only",
+          "description": "Compares two versions of a workbook while ignoring cell style changes.",
+          "code": "Compare-OfficeDocument -ReferencePath .\\Finance\\Budget-v1.xlsx -DifferencePath .\\Finance\\Budget-v2.xlsx -Options (New-OfficeExcelCompareOptions -Exclude CellStyles)"
+        },
+        {
+          "title": "Review content changes between releases",
+          "description": "Compares last month's and this month's price list, ignoring styles and comments, and saves the comparison report.",
+          "code": "$compare = New-OfficeExcelCompareOptions -Exclude CellStyles, Comments\nCompare-OfficeDocument -ReferencePath .\\Pricing\\Price-List-2026-09.xlsx -DifferencePath .\\Pricing\\Price-List-2026-10.xlsx -Options $compare -OutputPath .\\Pricing\\Price-Changes-October.xlsx"
+        }
+      ]
     },
     {
       "name": "New-OfficeExcelMergeOptions",
@@ -13348,7 +14635,19 @@
           ]
         }
       ],
-      "notes": "Carries the settings of Join-OfficeExcelWorkbook."
+      "notes": "Carries the settings of Join-OfficeExcelWorkbook.",
+      "examples": [
+        {
+          "title": "Merge workbooks into one",
+          "description": "Combines the regional workbooks into one workbook, prefixing each copied sheet name.",
+          "code": "Merge-OfficeDocument -Path .\\Regions\\*.xlsx -OutputPath .\\Reports\\All-Regions.xlsx -Options (New-OfficeExcelMergeOptions -NamePrefix 'Region ')"
+        },
+        {
+          "title": "Collect one sheet from every branch",
+          "description": "Copies only the Sales sheet of each branch workbook as values, cleaning sheet names Excel would reject.",
+          "code": "$merge = New-OfficeExcelMergeOptions -Sheet Sales -CopyMode Values -ValidationMode Sanitize\nMerge-OfficeDocument -Path .\\Branches\\*.xlsx -OutputPath .\\Reports\\Branch-Sales.xlsx -Options $merge -Show"
+        }
+      ]
     }
   ],
   "map": [

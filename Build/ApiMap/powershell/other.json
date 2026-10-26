@@ -158,7 +158,24 @@
           ]
         }
       ],
-      "notes": "Lifecycle rule: with a content block the diagram is saved and closed when the block ends (FileInfo with -PassThru); a throwing block saves nothing and removes the partial file. Without a block (Live set) -Path is optional and the live VisioDocument is returned unsaved; Save-OfficeVisio -Path writes it. With a block (Content set) -Path is required. Refuses an existing file unless -Force. No -Theme: Visio has no theme support today (see open questions). No alias: the command opens a block rather than running inside one."
+      "notes": "Lifecycle rule: with a content block the diagram is saved and closed when the block ends (FileInfo with -PassThru); a throwing block saves nothing and removes the partial file. Without a block (Live set) -Path is optional and the live VisioDocument is returned unsaved; Save-OfficeVisio -Path writes it. With a block (Content set) -Path is required. Refuses an existing file unless -Force. No -Theme: Visio has no theme support today (see open questions). No alias: the command opens a block rather than running inside one.",
+      "examples": [
+        {
+          "title": "Create a diagram",
+          "description": "Writes a diagram with one process box and saves it when the block ends.",
+          "code": "New-OfficeVisio -Path .\\Flow.vsdx {\n    VisioRectangle 'Start'\n}"
+        },
+        {
+          "title": "Draw an order flow",
+          "description": "Places three keyed shapes and connects them with labelled connectors.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Order-Flow.vsdx -Title 'Order flow' -PageName 'Overview' {\n    VisioRectangle -Key web -Text 'Web shop' -X 1.5in -Y 5in\n    VisioRectangle -Key api -Text 'Orders API' -X 4.25in -Y 5in\n    VisioRectangle -Key db -Text 'Orders DB' -X 7in -Y 5in\n    VisioConnector -From web -To api -Label 'HTTPS'\n    VisioConnector -From api -To db -Label 'SQL'\n}"
+        },
+        {
+          "title": "Keep the diagram open and save it later",
+          "description": "Without a block the live diagram is returned; pages are added to it and Save-OfficeVisio names the file.",
+          "code": "$diagram = New-OfficeVisio -PageName 'Site A' -Width 11in -Height 8.5in\nAdd-OfficeVisioPage -Document $diagram -Name 'Site B' {\n    VisioRectangle -Key fw -Text 'Firewall' -X 2in -Y 4in\n    VisioRectangle -Key core -Text 'Core switch' -X 5in -Y 4in\n    VisioConnector -From fw -To core\n}\nSave-OfficeVisio -Document $diagram -Path .\\Diagrams\\Sites.vsdx"
+        }
+      ]
     },
     {
       "name": "Open-OfficeVisio",
@@ -233,7 +250,19 @@
           ]
         }
       ],
-      "notes": "Replaces Get-OfficeVisio. Inside the block the DSL targets the first page; VisioPage adds pages. ShouldProcess covers the save that a content block performs."
+      "notes": "Replaces Get-OfficeVisio. Inside the block the DSL targets the first page; VisioPage adds pages. ShouldProcess covers the save that a content block performs.",
+      "examples": [
+        {
+          "title": "Open a diagram",
+          "description": "Returns the live diagram for reading or editing.",
+          "code": "$diagram = Open-OfficeVisio -Path .\\Diagrams\\Network.vsdx"
+        },
+        {
+          "title": "Add a disaster-recovery page",
+          "description": "Adds a new page to an existing diagram and saves it when the block ends.",
+          "code": "Open-OfficeVisio -Path .\\Diagrams\\Network.vsdx {\n    VisioPage 'DR site' {\n        VisioRectangle -Key fw -Text 'Firewall' -X 1.5in -Y 4in\n        VisioRectangle -Key core -Text 'Core switch' -X 4.5in -Y 4in\n        VisioRectangle -Key hosts -Text 'VM hosts' -X 7.5in -Y 4in\n        VisioConnector -From fw -To core\n        VisioConnector -From core -To hosts\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficeVisio",
@@ -274,6 +303,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Save a diagram",
+          "description": "Writes the diagram back to its own path.",
+          "code": "Save-OfficeVisio -Document $diagram"
+        },
+        {
+          "title": "Save a copy and open it",
+          "description": "Saves the edited diagram under a new name and opens it in Visio.",
+          "code": "$diagram = Open-OfficeVisio -Path .\\Diagrams\\Network.vsdx\nAdd-OfficeVisioPage -Document $diagram -Name 'Change 4711' {\n    VisioTextBox 'Planned for 14 November' -X 1in -Y 7.5in\n}\nSave-OfficeVisio -Document $diagram -Path .\\Diagrams\\Network-Change-4711.vsdx -Show"
+        }
       ]
     },
     {
@@ -297,7 +338,19 @@
           ]
         }
       ],
-      "notes": "Added so Visio has the same New/Open/Save/Close lifecycle as other authoring formats. VisioDocument is not IDisposable today; the command releases the document and disposes it once the C# lifecycle makes it disposable."
+      "notes": "Added so Visio has the same New/Open/Save/Close lifecycle as other authoring formats. VisioDocument is not IDisposable today; the command releases the document and disposes it once the C# lifecycle makes it disposable.",
+      "examples": [
+        {
+          "title": "Release a diagram",
+          "description": "Closes the diagram without saving.",
+          "code": "Close-OfficeVisio -Document $diagram"
+        },
+        {
+          "title": "Inspect a diagram and discard it",
+          "description": "Reads diagram information and releases it without writing.",
+          "code": "$diagram = Open-OfficeVisio -Path .\\Diagrams\\Network.vsdx\nGet-OfficeDocumentInfo -Document $diagram -Detailed\nClose-OfficeVisio -Document $diagram"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioRectangle",
@@ -400,7 +453,19 @@
           ]
         }
       ],
-      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had.",
+      "examples": [
+        {
+          "title": "Add a process box",
+          "description": "Places a rectangle at the default position and size.",
+          "code": "New-OfficeVisio -Path .\\Box.vsdx {\n    VisioRectangle 'Collect logs'\n}"
+        },
+        {
+          "title": "Draw a deployment pipeline",
+          "description": "Places one keyed box per stage from left to right and connects each stage to the next.",
+          "code": "$stages = 'Build', 'Test', 'Staging', 'Production'\nNew-OfficeVisio -Path .\\Diagrams\\Pipeline.vsdx {\n    for ($i = 0; $i -lt $stages.Count; $i++) {\n        VisioRectangle -Key $stages[$i] -Text $stages[$i] -X \"$(1.5 + $i * 2.5)in\" -Y 5in -Width 2in -Height 1in\n    }\n    for ($i = 1; $i -lt $stages.Count; $i++) {\n        VisioConnector -From $stages[$i - 1] -To $stages[$i]\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioEllipse",
@@ -503,7 +568,19 @@
           ]
         }
       ],
-      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had.",
+      "examples": [
+        {
+          "title": "Add an ellipse",
+          "description": "Places an ellipse at the default position.",
+          "code": "New-OfficeVisio -Path .\\Start.vsdx {\n    VisioEllipse 'Start'\n}"
+        },
+        {
+          "title": "Mark the start and end of a process",
+          "description": "Uses ellipses for the terminators of an onboarding flow.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Onboarding.vsdx {\n    VisioEllipse -Key start -Text 'Offer signed' -X 1.5in -Y 5in -Width 1.75in -Height 0.9in\n    VisioRectangle -Key accounts -Text 'Create accounts' -X 4.25in -Y 5in\n    VisioEllipse -Key done -Text 'First day' -X 7in -Y 5in -Width 1.75in -Height 0.9in\n    VisioConnector -From start -To accounts\n    VisioConnector -From accounts -To done\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioDiamond",
@@ -606,7 +683,19 @@
           ]
         }
       ],
-      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had.",
+      "examples": [
+        {
+          "title": "Add a decision",
+          "description": "Places a decision diamond.",
+          "code": "New-OfficeVisio -Path .\\Decision.vsdx {\n    VisioDiamond 'Approved?'\n}"
+        },
+        {
+          "title": "Draw a change-approval flow",
+          "description": "Branches from a decision diamond to two outcomes with labelled connectors.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Change-Approval.vsdx {\n    VisioRectangle -Key review -Text 'CAB review' -X 1.5in -Y 5in\n    VisioDiamond -Key approved -Text 'Approved?' -X 4.25in -Y 5in -Width 1.6in -Height 1.2in\n    VisioRectangle -Key deploy -Text 'Deploy' -X 7in -Y 5in\n    VisioRectangle -Key rework -Text 'Rework request' -X 4.25in -Y 2.75in\n    VisioConnector -From review -To approved\n    VisioConnector -From approved -To deploy -Label 'Yes'\n    VisioConnector -From approved -To rework -Label 'No' -FromSide Bottom -ToSide Top\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioTextBox",
@@ -709,7 +798,19 @@
           ]
         }
       ],
-      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 0.5in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had. The alias is VisioTextBox, not VisioText, because Text is the shared name for styled runs."
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 0.5in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had. The alias is VisioTextBox, not VisioText, because Text is the shared name for styled runs.",
+      "examples": [
+        {
+          "title": "Add a note",
+          "description": "Places a text annotation on the page.",
+          "code": "New-OfficeVisio -Path .\\Note.vsdx {\n    VisioTextBox 'Draft - not for distribution'\n}"
+        },
+        {
+          "title": "Title and annotate a diagram",
+          "description": "Adds a page title and a footnote around the diagram shapes.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Backup.vsdx {\n    VisioTextBox 'Backup topology' -X 4.25in -Y 7.75in -Width 6in -Height 0.6in\n    VisioRectangle -Key app -Text 'App servers' -X 2in -Y 5in\n    VisioRectangle -Key vault -Text 'Backup vault' -X 6.5in -Y 5in\n    VisioConnector -From app -To vault -Label 'Nightly'\n    VisioTextBox 'Retention: 35 days daily, 12 months monthly' -X 4.25in -Y 1in -Width 6in\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioPage",
@@ -764,6 +865,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add a page",
+          "description": "Adds a second page with its own shapes.",
+          "code": "New-OfficeVisio -Path .\\Diagram.vsdx {\n    VisioPage 'Details' {\n        VisioRectangle 'Queue'\n    }\n}"
+        },
+        {
+          "title": "Draw one page per site",
+          "description": "Reads the site list and draws each site's devices on its own page.",
+          "code": "$devices = Import-OfficeCsv -Path .\\Data\\Network-Devices.csv\nNew-OfficeVisio -Path .\\Diagrams\\Sites.vsdx -PageName 'Index' {\n    VisioTextBox 'One page per site' -X 4.25in -Y 7.5in -Width 6in\n    foreach ($site in $devices | Group-Object Site) {\n        VisioPage $site.Name -Width 11in -Height 8.5in {\n            $x = 1.5\n            foreach ($device in $site.Group) {\n                VisioRectangle -Key $device.Name -Text \"$($device.Name)`n$($device.Role)\" -X \"$($x)in\" -Y 4in\n                $x += 2.5\n            }\n        }\n    }\n}"
         }
       ]
     },
@@ -851,7 +964,19 @@
           ]
         }
       ],
-      "notes": "-From and -To accept a key or a shape object, so the ByKey/ByShape parameter sets and -FromShape/-ToShape merge into one set."
+      "notes": "-From and -To accept a key or a shape object, so the ByKey/ByShape parameter sets and -FromShape/-ToShape merge into one set.",
+      "examples": [
+        {
+          "title": "Connect two shapes",
+          "description": "Links two keyed shapes with a routed connector.",
+          "code": "New-OfficeVisio -Path .\\Link.vsdx {\n    VisioRectangle -Key client -Text 'Client' -X 1.5in -Y 4in\n    VisioRectangle -Key server -Text 'Server' -X 5in -Y 4in\n    VisioConnector -From client -To server\n}"
+        },
+        {
+          "title": "Draw an integration with right-angle routing",
+          "description": "Connects shapes side to side with right-angle connectors, labels and arrowheads.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Integration.vsdx {\n    VisioRectangle -Key crm -Text 'CRM' -X 1.5in -Y 6in\n    VisioRectangle -Key bus -Text 'Service bus' -X 4.25in -Y 4in\n    VisioRectangle -Key erp -Text 'ERP' -X 7in -Y 6in\n    VisioConnector -From crm -To bus -Kind RightAngle -FromSide Bottom -ToSide Left -Label 'Customer events' -EndArrow Triangle\n    VisioConnector -From bus -To erp -Kind RightAngle -FromSide Right -ToSide Bottom -Label 'Orders' -EndArrow Triangle\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeVisioContainer",
@@ -959,6 +1084,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Group shapes in a container",
+          "description": "Wraps two keyed shapes in a titled Visio container.",
+          "code": "New-OfficeVisio -Path .\\Tier.vsdx {\n    VisioRectangle -Key api -Text 'API' -X 2in -Y 4in\n    VisioRectangle -Key worker -Text 'Worker' -X 4.5in -Y 4in\n    VisioContainer -Key app -Text 'Application tier' -ShapeId api, worker\n}"
+        },
+        {
+          "title": "Show network zones",
+          "description": "Puts the shapes of each zone into their own container and connects across zones.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Zones.vsdx {\n    VisioRectangle -Key proxy -Text 'Reverse proxy' -X 2in -Y 5in\n    VisioRectangle -Key waf -Text 'WAF' -X 2in -Y 3.5in\n    VisioRectangle -Key app -Text 'App servers' -X 5.5in -Y 5in\n    VisioRectangle -Key sql -Text 'SQL cluster' -X 5.5in -Y 3.5in\n    VisioContainer -Key dmz -Text 'DMZ' -ShapeId proxy, waf\n    VisioContainer -Key internal -Text 'Internal network' -ShapeId app, sql -Margin 0.3in\n    VisioConnector -From proxy -To app\n}"
         }
       ]
     },
@@ -1174,7 +1311,19 @@
           ]
         }
       ],
-      "notes": "-Catalog takes a registered name or a catalog object (like -Sheet takes a name or a sheet), replacing the CatalogName/CatalogObject sets. Alias stays VisioStencil: the Visio term for the item dropped on the page."
+      "notes": "-Catalog takes a registered name or a catalog object (like -Sheet takes a name or a sheet), replacing the CatalogName/CatalogObject sets. Alias stays VisioStencil: the Visio term for the item dropped on the page.",
+      "examples": [
+        {
+          "title": "Place a built-in stencil shape",
+          "description": "Drops the flowchart process shape on the page.",
+          "code": "New-OfficeVisio -Path .\\Stencil.vsdx {\n    VisioStencil 'flow.process' -BuiltIn Flowchart -Text 'Intake'\n}"
+        },
+        {
+          "title": "Draw a flowchart from registered stencils",
+          "description": "Registers the flowchart catalog as the default, then places stencil shapes by ID.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Ticket-Triage.vsdx -UseMastersByDefault {\n    VisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default\n    VisioStencil 'flow.start-end' -Key new -Text 'Ticket raised' -X 1.5in -Y 5in\n    VisioStencil 'flow.decision' -Key p1 -Text 'Priority 1?' -X 4.25in -Y 5in\n    VisioStencil 'flow.process' -Key page -Text 'Page on-call' -X 7in -Y 5in\n    VisioStencil 'flow.process' -Key queue -Text 'Add to queue' -X 4.25in -Y 2.75in\n    VisioConnector -From new -To p1\n    VisioConnector -From p1 -To page -Label 'Yes'\n    VisioConnector -From p1 -To queue -Label 'No'\n}"
+        }
+      ]
     },
     {
       "name": "Set-OfficeVisioShapeLayout",
@@ -1439,7 +1588,24 @@
           ]
         }
       ],
-      "notes": "-Grid, -HorizontalStack and -VerticalStack were exclusive at run time (first one won); they become parameter sets, and -Columns / -PreserveFirstShapeCenter appear only with -Grid. Spacing defaults stay 0.5in."
+      "notes": "-Grid, -HorizontalStack and -VerticalStack were exclusive at run time (first one won); they become parameter sets, and -Columns / -PreserveFirstShapeCenter appear only with -Grid. Spacing defaults stay 0.5in.",
+      "examples": [
+        {
+          "title": "Align shapes on one line",
+          "description": "Lines up three keyed shapes on their vertical centers.",
+          "code": "New-OfficeVisio -Path .\\Aligned.vsdx {\n    VisioRectangle -Key a -Text 'Plan' -X 1.5in -Y 4in\n    VisioRectangle -Key b -Text 'Build' -X 4in -Y 4.3in\n    VisioRectangle -Key c -Text 'Run' -X 6.5in -Y 3.8in\n    VisioLayout -ShapeId a, b, c -AlignVertical Middle -Distribute Horizontal\n}"
+        },
+        {
+          "title": "Arrange servers in a grid",
+          "description": "Places one shape per server, then lays them out in a three-column grid.",
+          "code": "$servers = Import-OfficeCsv -Path .\\Data\\Servers.csv\nNew-OfficeVisio -Path .\\Diagrams\\Server-Grid.vsdx {\n    foreach ($server in $servers) {\n        VisioRectangle -Key $server.Name -Text $server.Name\n    }\n    VisioLayout -ShapeId $servers.Name -Grid -Columns 3 -HorizontalSpacing 0.5in -VerticalSpacing 0.4in\n}"
+        },
+        {
+          "title": "Stack shapes vertically",
+          "description": "The VerticalStack set places shapes in a column with even spacing.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Layers.vsdx {\n    VisioRectangle -Key ui -Text 'User interface'\n    VisioRectangle -Key logic -Text 'Business logic'\n    VisioRectangle -Key data -Text 'Data access'\n    VisioLayout -ShapeId ui, logic, data -VerticalStack -VerticalSpacing 0.3in\n}"
+        }
+      ]
     },
     {
       "name": "Import-OfficeVisioStencilCatalog",
@@ -1740,7 +1906,24 @@
           ]
         }
       ],
-      "notes": "One command for loading catalogs: Get-OfficeVisioStencilCatalog (load anywhere) and Import-OfficeVisioStencil (load and register inside New-OfficeVisio) merge. Outside a block it returns the catalog; -Name/-Default outside a block are an error. Import-OfficeVisioStencil -LoadCatalogName becomes -CatalogName; its -Name keeps meaning the registration key and loses the CatalogName/Key parameter aliases."
+      "notes": "One command for loading catalogs: Get-OfficeVisioStencilCatalog (load anywhere) and Import-OfficeVisioStencil (load and register inside New-OfficeVisio) merge. Outside a block it returns the catalog; -Name/-Default outside a block are an error. Import-OfficeVisioStencil -LoadCatalogName becomes -CatalogName; its -Name keeps meaning the registration key and loses the CatalogName/Key parameter aliases.",
+      "examples": [
+        {
+          "title": "Load a built-in catalog",
+          "description": "Returns the network stencil catalog for searching or placing shapes.",
+          "code": "$network = Import-OfficeVisioStencilCatalog -BuiltIn Network"
+        },
+        {
+          "title": "Register a catalog inside a diagram",
+          "description": "Registers the network catalog as the default so later VisioStencil calls need only the shape ID.",
+          "code": "New-OfficeVisio -Path .\\Diagrams\\Branch-Office.vsdx -UseMastersByDefault {\n    VisioStencilCatalog -BuiltIn Network -Name Net -Default\n    VisioStencil 'net.firewall' -Key fw -Text 'Firewall' -X 1.5in -Y 4in\n    VisioStencil 'net.router' -Key router -Text 'Router' -X 4.25in -Y 4in\n    VisioStencil 'net.switch' -Key switch -Text 'Access switch' -X 7in -Y 4in\n    VisioConnector -From fw -To router\n    VisioConnector -From router -To switch\n}"
+        },
+        {
+          "title": "Load company stencils from files",
+          "description": "Reads the masters from a folder of .vssx packages into one named catalog.",
+          "code": "$brand = Import-OfficeVisioStencilCatalog -Path .\\Stencils\\*.vssx -CatalogName 'Company shapes' -Category Company\nFind-OfficeVisioStencil -Catalog $brand -Query server"
+        }
+      ]
     },
     {
       "name": "Find-OfficeVisioStencil",
@@ -1797,7 +1980,19 @@
           ]
         }
       ],
-      "notes": "-CatalogName merges into -Catalog, which takes a name or an object, as on VisioStencil. Not a content command, so it has no alias."
+      "notes": "-CatalogName merges into -Catalog, which takes a name or an object, as on VisioStencil. Not a content command, so it has no alias.",
+      "examples": [
+        {
+          "title": "Search a built-in catalog",
+          "description": "Finds network shapes that match 'router'.",
+          "code": "Find-OfficeVisioStencil -BuiltIn Network -Query router"
+        },
+        {
+          "title": "Pick shapes for an architecture diagram",
+          "description": "Searches all built-in catalogs for database shapes and shows the best five matches.",
+          "code": "$all = Import-OfficeVisioStencilCatalog -BuiltIn All\nFind-OfficeVisioStencil -Catalog $all -Query database -First 5"
+        }
+      ]
     },
     {
       "name": "Export-OfficeVisioStencilPreviewGallery",
@@ -1991,6 +2186,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Preview a stencil package",
+          "description": "Writes preview images and an HTML index for every master in the package.",
+          "code": "Export-OfficeVisioStencilPreviewGallery -Path .\\Stencils\\Network.vssx -OutputDirectory .\\StencilPreview"
+        },
+        {
+          "title": "Publish previews for all company stencils",
+          "description": "Builds one titled gallery per package with larger thumbnails for the design team.",
+          "code": "Get-ChildItem -Path .\\Stencils -Filter *.vssx | ForEach-Object {\n    $gallery = @{\n        LiteralPath = $_.FullName\n        OutputDirectory = Join-Path .\\StencilPreview $_.BaseName\n        Title = \"$($_.BaseName) stencils\"\n        ThumbnailWidth = 240\n        ThumbnailHeight = 180\n    }\n    Export-OfficeVisioStencilPreviewGallery @gallery -PassThru\n}"
+        }
       ]
     },
     {
@@ -2026,7 +2233,19 @@
           ]
         }
       ],
-      "notes": "Gains -WhatIf/-Confirm because it writes files."
+      "notes": "Gains -WhatIf/-Confirm because it writes files.",
+      "examples": [
+        {
+          "title": "Generate the sample gallery",
+          "description": "Writes the editable reference diagrams to a folder.",
+          "code": "New-OfficeVisioGallery -OutputDirectory .\\VisioSamples"
+        },
+        {
+          "title": "Generate samples with PNG previews",
+          "description": "Writes the samples, then renders each diagram to PNG for a quick review.",
+          "code": "New-OfficeVisioGallery -OutputDirectory .\\VisioSamples\nGet-ChildItem -Path .\\VisioSamples -Filter *.vsdx | Export-OfficeDocumentImage -OutputDirectory .\\VisioSamples\\png -Format Png"
+        }
+      ]
     },
     {
       "name": "New-OfficeVisioImageOptions",
@@ -2166,7 +2385,19 @@
           ]
         }
       ],
-      "notes": "Rendering features that are on by default become -No{Feature} switches, matching the old ConvertTo-OfficeVisioPng names. Font selection that only ConvertTo-OfficeVisioPng exposed (-FontFilePath, -FontFaceName, -FontCollectionIndex) moves here so it survives the move to Export-OfficeDocumentImage. MaximumRasterPixels and MaximumTotalRasterPixels gain a Count suffix because they are pixel counts, not lengths with a unit suffix. Shared image parameters (Scale … TextShapingLanguage) follow whatever the cross-format image options base settles on."
+      "notes": "Rendering features that are on by default become -No{Feature} switches, matching the old ConvertTo-OfficeVisioPng names. Font selection that only ConvertTo-OfficeVisioPng exposed (-FontFilePath, -FontFaceName, -FontCollectionIndex) moves here so it survives the move to Export-OfficeDocumentImage. MaximumRasterPixels and MaximumTotalRasterPixels gain a Count suffix because they are pixel counts, not lengths with a unit suffix. Shared image parameters (Scale … TextShapingLanguage) follow whatever the cross-format image options base settles on.",
+      "examples": [
+        {
+          "title": "Render only the first page",
+          "description": "Creates image options for page 1 without connector labels.",
+          "code": "Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputDirectory .\\Images -Format Png -Options (New-OfficeVisioImageOptions -Page 1 -PageCount 1 -NoConnectorLabels)"
+        },
+        {
+          "title": "Render diagrams for documentation",
+          "description": "Uses the documentation font, supersampling for smooth lines and a white background.",
+          "code": "$image = New-OfficeVisioImageOptions -FontPath .\\Fonts\\Inter.ttf -Supersampling 2 -BackgroundColor White -TargetDpi 192\nGet-ChildItem -Path .\\Diagrams -Filter *.vsdx | Export-OfficeDocumentImage -OutputDirectory .\\Docs\\images -Format Png -Options $image"
+        }
+      ]
     },
     {
       "name": "ConvertTo-OfficeVisioVisual",
@@ -2227,7 +2458,19 @@
           ]
         }
       ],
-      "notes": "Object-to-model conversion kept as ConvertTo-, like ConvertTo-OfficeMarkdown; the result's Document can be edited and saved with Save-OfficeVisio."
+      "notes": "Object-to-model conversion kept as ConvertTo-, like ConvertTo-OfficeMarkdown; the result's Document can be edited and saved with Save-OfficeVisio.",
+      "examples": [
+        {
+          "title": "Convert a visual artifact",
+          "description": "Turns a saved visual-artifact JSON file into an editable Visio document and fidelity report.",
+          "code": "$visual = Get-Content -Path .\\Topology.cfx.json -Raw | ConvertTo-OfficeVisioVisual"
+        },
+        {
+          "title": "Edit a converted topology before saving",
+          "description": "Converts the artifact, adds a note page and saves the result as .vsdx.",
+          "code": "$visual = Get-Content -Path .\\Topology.cfx.json -Raw | ConvertTo-OfficeVisioVisual -PageName 'Topology' -UseNaturalPageSize\n$visual.Report\nAdd-OfficeVisioPage -Document $visual.Document -Name 'Notes' {\n    VisioTextBox 'Generated from the monitoring export on 26 October 2026' -X 1in -Y 7.5in -Width 6in\n}\nSave-OfficeVisio -Document $visual.Document -Path .\\Diagrams\\Topology.vsdx"
+        }
+      ]
     },
     {
       "name": "Export-OfficeVisioVisual",
@@ -2312,7 +2555,19 @@
           ]
         }
       ],
-      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses."
+      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses.",
+      "examples": [
+        {
+          "title": "Export a visual artifact to Visio",
+          "description": "Writes a saved visual-artifact JSON file as a native .vsdx.",
+          "code": "Get-Content -Path .\\Topology.cfx.json -Raw | Export-OfficeVisioVisual -Path .\\Topology.vsdx"
+        },
+        {
+          "title": "Export every artifact in a folder",
+          "description": "Writes one editable diagram per artifact without shape data, keeping files that already exist.",
+          "code": "Get-ChildItem -Path .\\Artifacts -Filter *.cfx.json | ForEach-Object {\n    $target = Join-Path .\\Diagrams ($_.Name -replace '\\.cfx\\.json$', '.vsdx')\n    Get-Content -LiteralPath $_.FullName -Raw | Export-OfficeVisioVisual -Path $target -NoShapeData -NoClobber -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "New-OfficeProject",
@@ -2417,7 +2672,19 @@
           ]
         }
       ],
-      "notes": "Gains -Path and a content block for the shared lifecycle. Without a block (Live set) -Path is optional and the live project is returned; nothing is written until Save-OfficeProject. With a block (Content set) -Path is required. -Name is no longer positional."
+      "notes": "Gains -Path and a content block for the shared lifecycle. Without a block (Live set) -Path is optional and the live project is returned; nothing is written until Save-OfficeProject. With a block (Content set) -Path is required. -Name is no longer positional.",
+      "examples": [
+        {
+          "title": "Create a project in memory",
+          "description": "Returns a live project that starts on 2 November 2026.",
+          "code": "$project = New-OfficeProject -Name 'Office move' -StartDate '2026-11-02'"
+        },
+        {
+          "title": "Plan an office move",
+          "description": "Adds tasks and finish-to-start links and saves the plan when the block ends.",
+          "code": "New-OfficeProject -Path .\\Plans\\Office-Move.mpp -Name 'Office move' -StartDate '2026-11-02' {\n    $plan = Add-OfficeProjectTask 'Plan the move' -DurationDays 5 -PassThru\n    $pack = Add-OfficeProjectTask 'Pack and label' -DurationDays 3 -PassThru\n    $move = Add-OfficeProjectTask 'Move day' -DurationDays 1 -PassThru\n    $live = Add-OfficeProjectTask 'Office open' -DurationDays 0 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $plan.Uid -SuccessorUid $pack.Uid\n    Add-OfficeProjectDependency -PredecessorUid $pack.Uid -SuccessorUid $move.Uid\n    Add-OfficeProjectDependency -PredecessorUid $move.Uid -SuccessorUid $live.Uid\n}"
+        }
+      ]
     },
     {
       "name": "Open-OfficeProject",
@@ -2515,6 +2782,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Open a project read-only",
+          "description": "Reads a project file without allowing changes.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Office-Move.mpp -ReadOnly"
+        },
+        {
+          "title": "Add a task to an existing plan",
+          "description": "Adds a review task and saves the project when the block ends.",
+          "code": "Open-OfficeProject -Path .\\Plans\\Office-Move.mpp {\n    Add-OfficeProjectTask 'Post-move review' -DurationDays 1\n}"
+        }
       ]
     },
     {
@@ -2571,7 +2850,19 @@
           ]
         }
       ],
-      "notes": "-Path is optional: without it the project is saved to the path it was created or opened with. A native save keeps today's strictness: it fails if content would be lost, and -AllowLoss accepts the loss; the assessment report goes to -ReportVariable. -Force keeps its current meaning (replace an existing file)."
+      "notes": "-Path is optional: without it the project is saved to the path it was created or opened with. A native save keeps today's strictness: it fails if content would be lost, and -AllowLoss accepts the loss; the assessment report goes to -ReportVariable. -Force keeps its current meaning (replace an existing file).",
+      "examples": [
+        {
+          "title": "Save a project",
+          "description": "Writes the project to the path it was opened or created with.",
+          "code": "Save-OfficeProject -Document $project"
+        },
+        {
+          "title": "Export a plan as MSPDI XML",
+          "description": "Saves a copy that other planning tools can import and keeps the loss assessment for review.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Office-Move.mpp\nSave-OfficeProject -Document $project -Path .\\Plans\\Office-Move.xml -Format Xml -ReportVariable saveReport -AllowLoss\n$saveReport\nClose-OfficeProject -Document $project"
+        }
+      ]
     },
     {
       "name": "Close-OfficeProject",
@@ -2591,6 +2882,18 @@
               "pipeline": "value"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Close a project",
+          "description": "Releases the project without saving.",
+          "code": "Close-OfficeProject -Document $project"
+        },
+        {
+          "title": "Read tasks and close",
+          "description": "Lists the tasks of a plan and releases it.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Office-Move.mpp -ReadOnly\nGet-OfficeProjectTask -Document $project | Select-Object Uid, Name, Start, Finish\nClose-OfficeProject -Document $project"
         }
       ]
     },
@@ -2648,6 +2951,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add a task",
+          "description": "Adds a three-day task to the new project.",
+          "code": "New-OfficeProject -Path .\\Plans\\Design.mpp -Name 'Website redesign' {\n    Add-OfficeProjectTask 'Design' -DurationDays 3\n}"
+        },
+        {
+          "title": "Build phases with summary tasks",
+          "description": "Adds a summary task per phase with child tasks and a milestone at the end.",
+          "code": "$phases = [ordered]@{\n    Discovery = @{ 'Stakeholder interviews' = 4; 'Requirements sign-off' = 1 }\n    Delivery = @{ 'Build' = 15; 'User acceptance testing' = 5 }\n}\nNew-OfficeProject -Path .\\Plans\\Website.mpp -Name 'Website redesign' -StartDate '2026-11-09' {\n    foreach ($phase in $phases.Keys) {\n        $summary = Add-OfficeProjectTask $phase -Summary -PassThru\n        foreach ($task in $phases[$phase].GetEnumerator()) {\n            Add-OfficeProjectTask $task.Key -DurationDays $task.Value -ParentUid $summary.Uid\n        }\n    }\n    Add-OfficeProjectTask 'Go live' -DurationDays 0\n}"
+        }
       ]
     },
     {
@@ -2687,6 +3002,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add a resource",
+          "description": "Adds a named work resource.",
+          "code": "New-OfficeProject -Path .\\Plans\\Team.mpp -Name 'Migration' {\n    Add-OfficeProjectResource 'Anna Nowak'\n}"
+        },
+        {
+          "title": "Add the team with rates",
+          "description": "Adds one resource per team member with an hourly standard rate from a CSV.",
+          "code": "$team = Import-OfficeCsv -Path .\\Data\\Team.csv\nNew-OfficeProject -Path .\\Plans\\Migration.mpp -Name 'Mail migration' {\n    foreach ($member in $team) {\n        Add-OfficeProjectResource $member.Name -StandardRate ([decimal]$member.HourlyRate)\n    }\n}"
         }
       ]
     },
@@ -2731,6 +3058,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Assign a resource to a task",
+          "description": "Assigns the engineer to the build task full time.",
+          "code": "New-OfficeProject -Path .\\Plans\\Build.mpp -Name 'Build' {\n    $task = Add-OfficeProjectTask 'Build' -DurationDays 10 -PassThru\n    $engineer = Add-OfficeProjectResource 'Tomasz Kowalski' -PassThru\n    Add-OfficeProjectAssignment -TaskUid $task.Uid -ResourceUid $engineer.Uid\n}"
+        },
+        {
+          "title": "Share a resource across tasks",
+          "description": "Assigns one engineer at 50% to two parallel tasks.",
+          "code": "New-OfficeProject -Path .\\Plans\\Upgrade.mpp -Name 'SQL upgrade' -StartDate '2026-11-16' {\n    $dba = Add-OfficeProjectResource 'Database team' -StandardRate 85 -PassThru\n    $test = Add-OfficeProjectTask 'Test upgrade on staging' -DurationDays 4 -PassThru\n    $docs = Add-OfficeProjectTask 'Update runbooks' -DurationDays 4 -PassThru\n    Add-OfficeProjectAssignment -TaskUid $test.Uid -ResourceUid $dba.Uid -UnitsPercent 50\n    Add-OfficeProjectAssignment -TaskUid $docs.Uid -ResourceUid $dba.Uid -UnitsPercent 50\n}"
         }
       ]
     },
@@ -2781,6 +3120,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Link two tasks",
+          "description": "Makes the second task start when the first finishes.",
+          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $test = Add-OfficeProjectTask 'Test' -DurationDays 3 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $test.Uid\n}"
+        },
+        {
+          "title": "Overlap and delay tasks",
+          "description": "Starts documentation two days after the build starts and waits one day after testing before release.",
+          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release 2.4' -StartDate '2026-11-02' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $docs = Add-OfficeProjectTask 'Write release notes' -DurationDays 3 -PassThru\n    $test = Add-OfficeProjectTask 'Regression test' -DurationDays 3 -PassThru\n    $ship = Add-OfficeProjectTask 'Release' -DurationDays 0 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $docs.Uid -Type StartToStart -LagDays 2\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $test.Uid\n    Add-OfficeProjectDependency -PredecessorUid $test.Uid -SuccessorUid $ship.Uid -LagDays 1\n}"
+        }
       ]
     },
     {
@@ -2808,6 +3159,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List tasks",
+          "description": "Returns every task of the project.",
+          "code": "Get-OfficeProjectTask -Document $project"
+        },
+        {
+          "title": "Report unfinished tasks",
+          "description": "Exports tasks that are not complete to a workbook for the weekly status meeting.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp -ReadOnly\nGet-OfficeProjectTask -Document $project |\n    Where-Object { $_.PercentComplete -lt 100 } |\n    Select-Object Uid, Name, Start, Finish, PercentComplete |\n    Export-OfficeExcel -Path .\\Reports\\Open-Tasks.xlsx -Sheet 'Open tasks'\nClose-OfficeProject -Document $project"
         }
       ]
     },
@@ -2837,6 +3200,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List resources",
+          "description": "Returns every resource of the project.",
+          "code": "Get-OfficeProjectResource -Document $project"
+        },
+        {
+          "title": "Look up resources by UID",
+          "description": "Returns only the resources with the given UIDs.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Migration.mpp -ReadOnly\nGet-OfficeProjectResource -Document $project -Uid 1, 2 | Select-Object Uid, Name"
+        }
       ]
     },
     {
@@ -2865,6 +3240,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "List assignments",
+          "description": "Returns every task-resource assignment.",
+          "code": "Get-OfficeProjectAssignment -Document $project"
+        },
+        {
+          "title": "Show who works on what",
+          "description": "Lists each assignment with its task and resource names.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Migration.mpp -ReadOnly\nGet-OfficeProjectAssignment -Document $project |\n    Select-Object @{ Name = 'Task'; Expression = { $_.Task.Name } }, @{ Name = 'Resource'; Expression = { $_.Resource.Name } }, Units"
+        }
       ]
     },
     {
@@ -2887,6 +3274,18 @@
               "pipeline": "value"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List dependencies",
+          "description": "Returns every task link in the project.",
+          "code": "Get-OfficeProjectDependency -Document $project"
+        },
+        {
+          "title": "Count links per dependency type",
+          "description": "Summarises how the plan's tasks are linked.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Release.mpp -ReadOnly\nGet-OfficeProjectDependency -Document $project | Group-Object Type | Select-Object Name, Count"
         }
       ]
     },
@@ -2947,6 +3346,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Mark a task complete",
+          "description": "Sets progress to 100% on a task from the pipeline.",
+          "code": "Get-OfficeProjectTask -Document $project -Uid 3 | Set-OfficeProjectTask -PercentComplete 100"
+        },
+        {
+          "title": "Update progress from a status sheet",
+          "description": "Applies the percentages reported by the team and saves the plan.",
+          "code": "$status = Import-OfficeCsv -Path .\\Data\\Task-Status.csv\n$project = Open-OfficeProject -Path .\\Plans\\Website.mpp\nforeach ($row in $status) {\n    Get-OfficeProjectTask -Document $project -Uid ([int]$row.Uid) |\n        Set-OfficeProjectTask -PercentComplete ([int]$row.PercentComplete)\n}\nSave-OfficeProject -Document $project\nClose-OfficeProject -Document $project"
+        }
       ]
     },
     {
@@ -2981,7 +3392,19 @@
           ]
         }
       ],
-      "notes": "No longer supports -WhatIf: -Apply changes the in-memory project, not a file."
+      "notes": "No longer supports -WhatIf: -Apply changes the in-memory project, not a file.",
+      "examples": [
+        {
+          "title": "Calculate the schedule",
+          "description": "Returns the calculated dates without changing the project.",
+          "code": "$schedule = Invoke-OfficeProjectSchedule -Document $project"
+        },
+        {
+          "title": "Recalculate and save dates",
+          "description": "Writes calculated task and assignment dates into the project and saves it.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp\nInvoke-OfficeProjectSchedule -Document $project -CalculateAssignments -Apply\nSave-OfficeProject -Document $project\nClose-OfficeProject -Document $project"
+        }
+      ]
     },
     {
       "name": "Get-OfficeProjectView",
@@ -3036,7 +3459,19 @@
           ]
         }
       ],
-      "notes": "'Choose Options or Kind' becomes two parameter sets."
+      "notes": "'Choose Options or Kind' becomes two parameter sets.",
+      "examples": [
+        {
+          "title": "Capture a Gantt view",
+          "description": "Captures a Gantt view from the project's calculated schedule.",
+          "code": "$view = Get-OfficeProjectView -Document $project -Kind Gantt"
+        },
+        {
+          "title": "Report resource load",
+          "description": "Calculates the schedule once and captures resource usage and Gantt views from it.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Migration.mpp -ReadOnly\n$schedule = Invoke-OfficeProjectSchedule -Document $project -CalculateAssignments\n$usage = Get-OfficeProjectView -Document $project -Schedule $schedule -Kind ResourceUsage\n$gantt = Get-OfficeProjectView -Document $project -Schedule $schedule -Kind Gantt\n$usage | Export-OfficeProjectReport -Path .\\Reports\\Resource-Usage.xlsx\n$gantt | Export-OfficeProjectReport -Path .\\Reports\\Gantt.pdf"
+        }
+      ]
     },
     {
       "name": "Export-OfficeProjectReport",
@@ -3077,7 +3512,19 @@
           ]
         }
       ],
-      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses (replaces -Force)."
+      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses (replaces -Force).",
+      "examples": [
+        {
+          "title": "Export a Gantt chart to PDF",
+          "description": "Writes the captured view as a PDF report.",
+          "code": "Get-OfficeProjectView -Document $project -Kind Gantt | Export-OfficeProjectReport -Path .\\Reports\\Gantt.pdf"
+        },
+        {
+          "title": "Send the schedule in several formats",
+          "description": "Writes the same Gantt view as PDF, Excel and PowerPoint without replacing existing reports.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp -ReadOnly\n$view = Get-OfficeProjectView -Document $project -Kind Gantt\nforeach ($file in 'Gantt.pdf', 'Gantt.xlsx', 'Gantt.pptx') {\n    Export-OfficeProjectReport -View $view -Path (Join-Path .\\Reports $file) -NoClobber -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "ConvertTo-OfficeProjectTable",
@@ -3114,6 +3561,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Map CSV rows to a task table",
+          "description": "Maps the ID and Task columns to the project task fields.",
+          "code": "Import-Csv -Path .\\tasks.csv | ConvertTo-OfficeProjectTable -Kind Tasks -ColumnMap @{ Uid = 'ID'; Name = 'Task' }"
+        },
+        {
+          "title": "Prepare tasks and resources from a tracker",
+          "description": "Maps two exports to task and resource tables ready for Import-OfficeProjectTable.",
+          "code": "$tasks = Import-OfficeCsv -Path .\\Data\\Tracker-Tasks.csv |\n    ConvertTo-OfficeProjectTable -Kind Tasks -ColumnMap @{ Uid = 'Id'; Name = 'Title' }\n$resources = Import-OfficeCsv -Path .\\Data\\Tracker-People.csv |\n    ConvertTo-OfficeProjectTable -Kind Resources -ColumnMap @{ Uid = 'Id'; Name = 'FullName' }"
         }
       ]
     },
@@ -3169,7 +3628,19 @@
           ]
         }
       ],
-      "notes": "-AllowUnmappedColumns stays: an unmapped column is usually a typo in -ColumnMap, so refusing it by default is input validation, not a loss policy."
+      "notes": "-AllowUnmappedColumns stays: an unmapped column is usually a typo in -ColumnMap, so refusing it by default is input validation, not a loss policy.",
+      "examples": [
+        {
+          "title": "Build a project from a task table",
+          "description": "Creates a project from a mapped task table and reports what was imported.",
+          "code": "$taskTable | Import-OfficeProjectTable -Name Delivery -ReportVariable importReport"
+        },
+        {
+          "title": "Create a plan from tracker exports",
+          "description": "Builds a project from mapped tasks and resources and saves it as .mpp.",
+          "code": "$tasks = Import-OfficeCsv -Path .\\Data\\Tracker-Tasks.csv |\n    ConvertTo-OfficeProjectTable -Kind Tasks -ColumnMap @{ Uid = 'Id'; Name = 'Title' }\n$resources = Import-OfficeCsv -Path .\\Data\\Tracker-People.csv |\n    ConvertTo-OfficeProjectTable -Kind Resources -ColumnMap @{ Uid = 'Id'; Name = 'FullName' }\n$project = Import-OfficeProjectTable -Table $tasks, $resources -Name 'Tracker import' -StartDate '2026-11-02' -ReportVariable importReport\n$importReport\nSave-OfficeProject -Document $project -Path .\\Plans\\Tracker-Import.mpp"
+        }
+      ]
     },
     {
       "name": "Get-OfficeProjectTable",
@@ -3208,7 +3679,19 @@
           ]
         }
       ],
-      "notes": "Fails on lossy projection as today; -AllowLoss (was -AllowLossyProjection) returns the tables with loss notices as warnings."
+      "notes": "Fails on lossy projection as today; -AllowLoss (was -AllowLossyProjection) returns the tables with loss notices as warnings.",
+      "examples": [
+        {
+          "title": "Get a project's tables",
+          "description": "Projects tasks, resources, assignments and calendars into mapped tables.",
+          "code": "$export = Get-OfficeProjectTable -Document $project"
+        },
+        {
+          "title": "Review what a projection drops",
+          "description": "Accepts loss, then shows the loss notices and which tables were produced.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp -ReadOnly\n$export = Get-OfficeProjectTable -Document $project -AllowLoss\n$export.Notices\n$export.Tables | Select-Object Kind"
+        }
+      ]
     },
     {
       "name": "New-OfficeAccess",
@@ -3293,7 +3776,19 @@
           ]
         }
       ],
-      "notes": "Gains -Path and a content block. -Format is replaced by the .accdb/.mdb extension. Without a block (Live set) -Path is optional and the live database is returned unsaved; with a block (Content set) -Path is required."
+      "notes": "Gains -Path and a content block. -Format is replaced by the .accdb/.mdb extension. Without a block (Live set) -Path is optional and the live database is returned unsaved; with a block (Content set) -Path is required.",
+      "examples": [
+        {
+          "title": "Create an empty database",
+          "description": "Returns a live .accdb database that is saved later with Save-OfficeAccess.",
+          "code": "$database = New-OfficeAccess -Path .\\Contacts.accdb -Title Contacts"
+        },
+        {
+          "title": "Build an asset database from CSV",
+          "description": "Defines a typed table, loads the CSV rows and saves the database when the block ends.",
+          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv -InferSchema\nNew-OfficeAccess -Path .\\Data\\Assets.accdb -Title 'IT assets' {\n    $table = Add-OfficeAccessTable Assets -PassThru\n    $table | Add-OfficeAccessColumn Id -Type AutoNumber\n    $table | Add-OfficeAccessColumn AssetTag -MaxLength 20\n    $table | Add-OfficeAccessColumn Model -MaxLength 120\n    $table | Add-OfficeAccessColumn PurchaseDate -Type DateTime\n    $table | Add-OfficeAccessColumn Cost -Type Currency\n    $assets | Add-OfficeAccessRow -Table $table\n}"
+        }
+      ]
     },
     {
       "name": "Open-OfficeAccess",
@@ -3366,7 +3861,19 @@
           ]
         }
       ],
-      "notes": "Replaces Get-OfficeAccess. Opened databases stay read-only, as today, so there is no content block; editing an existing database is not a current capability."
+      "notes": "Replaces Get-OfficeAccess. Opened databases stay read-only, as today, so there is no content block; editing an existing database is not a current capability.",
+      "examples": [
+        {
+          "title": "Open a database",
+          "description": "Opens a database read-only without running queries or macros.",
+          "code": "$database = Open-OfficeAccess -Path .\\Contacts.accdb"
+        },
+        {
+          "title": "Export one table to Excel",
+          "description": "Loads only the Customers table and writes its rows to a workbook.",
+          "code": "$database = Open-OfficeAccess -Path .\\Data\\Sales.accdb -Table Customers\nGet-OfficeAccessRow -Document $database -Table Customers |\n    Export-OfficeExcel -Path .\\Reports\\Customers.xlsx -Sheet Customers\nClose-OfficeAccess -Document $database"
+        }
+      ]
     },
     {
       "name": "Save-OfficeAccess",
@@ -3412,7 +3919,19 @@
           ]
         }
       ],
-      "notes": "-Path optional (defaults to the New-OfficeAccess path). A native save keeps today's strictness (fails if content would be lost); -AllowLoss is new and accepts the loss through AccessSaveOptions.LossPolicy."
+      "notes": "-Path optional (defaults to the New-OfficeAccess path). A native save keeps today's strictness (fails if content would be lost); -AllowLoss is new and accepts the loss through AccessSaveOptions.LossPolicy.",
+      "examples": [
+        {
+          "title": "Save a database",
+          "description": "Writes the database to the path given to New-OfficeAccess.",
+          "code": "Save-OfficeAccess -Document $database"
+        },
+        {
+          "title": "Save a legacy .mdb copy",
+          "description": "Writes the same model as an Access 2003 database for an older line-of-business tool.",
+          "code": "Save-OfficeAccess -Document $database -Path .\\Export\\Contacts.mdb -AllowLoss -Force -PassThru"
+        }
+      ]
     },
     {
       "name": "Close-OfficeAccess",
@@ -3432,6 +3951,18 @@
               "pipeline": "value"
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Close a database",
+          "description": "Releases the database without saving.",
+          "code": "Close-OfficeAccess -Document $database"
+        },
+        {
+          "title": "Read the schema and close",
+          "description": "Lists the tables of a database and releases it.",
+          "code": "$database = Open-OfficeAccess -Path .\\Data\\Sales.accdb\nGet-OfficeAccessTable -Document $database\nClose-OfficeAccess -Document $database"
         }
       ]
     },
@@ -3467,6 +3998,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Add a table",
+          "description": "Adds an empty table to the new database.",
+          "code": "New-OfficeAccess -Path .\\Contacts.accdb {\n    Add-OfficeAccessTable Contacts\n}"
+        },
+        {
+          "title": "Add related tables",
+          "description": "Creates a customers table and an orders table with their fields.",
+          "code": "New-OfficeAccess -Path .\\Data\\Orders.accdb -Title 'Orders' {\n    $customers = Add-OfficeAccessTable Customers -PassThru\n    $customers | Add-OfficeAccessColumn CustomerId -Type AutoNumber\n    $customers | Add-OfficeAccessColumn Name -MaxLength 100\n    $orders = Add-OfficeAccessTable Orders -PassThru\n    $orders | Add-OfficeAccessColumn OrderId -Type AutoNumber -AutoNumberSeed 1000\n    $orders | Add-OfficeAccessColumn CustomerId -Type Int32\n    $orders | Add-OfficeAccessColumn Total -Type Currency\n}"
         }
       ]
     },
@@ -3528,7 +4071,19 @@
           ]
         }
       ],
-      "notes": "MaxLength/AutoNumberSeed/Precision/Scale depend on the -Type value, which parameter sets cannot express; the run-time checks stay."
+      "notes": "MaxLength/AutoNumberSeed/Precision/Scale depend on the -Type value, which parameter sets cannot express; the run-time checks stay.",
+      "examples": [
+        {
+          "title": "Add a text field",
+          "description": "Adds a short-text field with a maximum length.",
+          "code": "$table | Add-OfficeAccessColumn DisplayName -Type ShortText -MaxLength 120"
+        },
+        {
+          "title": "Define a typed price list",
+          "description": "Adds an AutoNumber key, text, decimal and date fields.",
+          "code": "New-OfficeAccess -Path .\\Data\\Prices.accdb {\n    $prices = Add-OfficeAccessTable Prices -PassThru\n    $prices | Add-OfficeAccessColumn Id -Type AutoNumber\n    $prices | Add-OfficeAccessColumn Sku -MaxLength 30\n    $prices | Add-OfficeAccessColumn Description -Type LongText\n    $prices | Add-OfficeAccessColumn UnitPrice -Type Decimal -Precision 18 -Scale 4\n    $prices | Add-OfficeAccessColumn ValidFrom -Type DateTime\n}"
+        }
+      ]
     },
     {
       "name": "Add-OfficeAccessRow",
@@ -3562,6 +4117,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Add a row",
+          "description": "Appends one row from a hashtable.",
+          "code": "Add-OfficeAccessRow -Table $table -InputObject @{ DisplayName = 'Anna Nowak' }"
+        },
+        {
+          "title": "Load services into a table",
+          "description": "Defines fields and appends one row per Windows service.",
+          "code": "New-OfficeAccess -Path .\\Data\\Services.accdb -Title 'Service inventory' {\n    $table = Add-OfficeAccessTable Services -PassThru\n    $table | Add-OfficeAccessColumn Name -MaxLength 128\n    $table | Add-OfficeAccessColumn DisplayName -MaxLength 255\n    $table | Add-OfficeAccessColumn Status -MaxLength 20\n    Get-Service | Select-Object Name, DisplayName, @{ Name = 'Status'; Expression = { \"$($_.Status)\" } } |\n        Add-OfficeAccessRow -Table $table\n}"
+        }
       ]
     },
     {
@@ -3590,6 +4157,18 @@
               "position": 0
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List tables",
+          "description": "Returns every table definition and its schema.",
+          "code": "Get-OfficeAccessTable -Document $database"
+        },
+        {
+          "title": "Document a database schema",
+          "description": "Writes the fields of two tables to a Markdown page.",
+          "code": "$database = Open-OfficeAccess -Path .\\Data\\Sales.accdb\nNew-OfficeMarkdown -Path .\\Docs\\Sales-Schema.md -Force {\n    MarkdownHeading 'Sales database schema'\n    foreach ($table in Get-OfficeAccessTable -Document $database -Name Customers, Orders) {\n        MarkdownHeading $table.Name -Level 2\n        MarkdownTable -InputObject ($table.Columns | Select-Object Name, DataType, MaxLength)\n    }\n}\nClose-OfficeAccess -Document $database"
         }
       ]
     },
@@ -3624,6 +4203,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read the rows of a table",
+          "description": "Streams the rows of the Contacts table as objects.",
+          "code": "Get-OfficeAccessRow -Document $database -Table Contacts"
+        },
+        {
+          "title": "Sample a large table",
+          "description": "Reads the first 1000 orders and shows the biggest ones.",
+          "code": "$database = Open-OfficeAccess -Path .\\Data\\Sales.accdb\nGet-OfficeAccessRow -Document $database -Table Orders -MaxRows 1000 |\n    Sort-Object Total -Descending |\n    Select-Object -First 10 OrderId, CustomerId, Total"
         }
       ]
     },
@@ -3700,7 +4291,24 @@
           ]
         }
       ],
-      "notes": "Replaces Get-OfficeEmail. Email has no authoring model, so it has Open-/Save- but no New-/Close-."
+      "notes": "Replaces Get-OfficeEmail. Email has no authoring model, so it has Open-/Save- but no New-/Close-.",
+      "examples": [
+        {
+          "title": "Open a message",
+          "description": "Reads an Outlook .msg file.",
+          "code": "$mail = Open-OfficeEmail -Path .\\Message.msg"
+        },
+        {
+          "title": "Summarise a folder of saved messages",
+          "description": "Reads each message without loading attachment content and exports sender, subject and date to Excel.",
+          "code": "$options = New-OfficeEmailReaderOptions -NoAttachmentContent\nGet-ChildItem -Path .\\Mail -Include *.msg, *.eml -Recurse | ForEach-Object {\n    $mail = Open-OfficeEmail -LiteralPath $_.FullName -Options $options\n    [pscustomobject]@{\n        File = $_.Name\n        From = \"$($mail.From)\"\n        Subject = $mail.Subject\n        Date = $mail.Date\n        Attachments = $mail.Attachments.Count\n    }\n} | Export-OfficeExcel -Path .\\Reports\\Mail-Summary.xlsx"
+        },
+        {
+          "title": "Inspect read diagnostics",
+          "description": "-AsResult returns the read result with diagnostics instead of only the message.",
+          "code": "$result = Open-OfficeEmail -Path .\\Quarantine\\suspicious.eml -AsResult\n$result.Diagnostics"
+        }
+      ]
     },
     {
       "name": "Open-OfficeEmailMailbox",
@@ -3762,7 +4370,19 @@
           ]
         }
       ],
-      "notes": "Kept separate from Open-OfficeEmail: it returns a container of messages with its own reader options."
+      "notes": "Kept separate from Open-OfficeEmail: it returns a container of messages with its own reader options.",
+      "examples": [
+        {
+          "title": "Open an mbox file",
+          "description": "Reads a mailbox archive.",
+          "code": "$mailbox = Open-OfficeEmailMailbox -Path .\\Archive.mbox"
+        },
+        {
+          "title": "List senders in an archive",
+          "description": "Reads up to 10,000 messages and counts messages per sender.",
+          "code": "$options = New-OfficeEmailMailboxReaderOptions -MessageOptions (New-OfficeEmailReaderOptions -NoAttachmentContent) -MaxMessageCount 10000\n$mailbox = Open-OfficeEmailMailbox -Path .\\Archive\\support.mbox -Options $options\n$mailbox.Messages | Group-Object { \"$($_.Document.From)\" } | Sort-Object Count -Descending | Select-Object -First 10 Name, Count"
+        }
+      ]
     },
     {
       "name": "Save-OfficeEmail",
@@ -3808,7 +4428,19 @@
           ]
         }
       ],
-      "notes": "-Path stays mandatory: an opened message does not keep a writable source path."
+      "notes": "-Path stays mandatory: an opened message does not keep a writable source path.",
+      "examples": [
+        {
+          "title": "Save a message as .eml",
+          "description": "Writes the message in MIME format; the extension selects it.",
+          "code": "Save-OfficeEmail -Document $mail -Path .\\Message.eml"
+        },
+        {
+          "title": "Convert Outlook messages to .eml",
+          "description": "Converts every .msg in a folder for a mail system that only imports MIME files.",
+          "code": "Get-ChildItem -Path .\\Export -Filter *.msg | ForEach-Object {\n    $mail = Open-OfficeEmail -LiteralPath $_.FullName\n    Save-OfficeEmail -Document $mail -Path (Join-Path .\\Eml \"$($_.BaseName).eml\") -Format Eml -PassThru\n}"
+        }
+      ]
     },
     {
       "name": "Save-OfficeEmailMailbox",
@@ -3847,6 +4479,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Save a mailbox",
+          "description": "Writes the mailbox as mbox.",
+          "code": "Save-OfficeEmailMailbox -Document $mailbox -Path .\\Archive.mbox"
+        },
+        {
+          "title": "Rewrite an archive in mboxrd format",
+          "description": "Saves a copy that quotes From lines unambiguously for long-term storage.",
+          "code": "$mailbox = Open-OfficeEmailMailbox -Path .\\Archive\\support.mbox\n$options = New-OfficeEmailMailboxWriterOptions -Variant Mboxrd\nSave-OfficeEmailMailbox -Document $mailbox -Path .\\Archive\\support-mboxrd.mbox -Options $options -PassThru"
         }
       ]
     },
@@ -3939,6 +4583,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Skip attachment content",
+          "description": "Reads message metadata and bodies without loading attachments.",
+          "code": "$options = New-OfficeEmailReaderOptions -NoAttachmentContent"
+        },
+        {
+          "title": "Read untrusted messages with limits",
+          "description": "Caps message size, attachment size and MIME depth before reading quarantined mail.",
+          "code": "$options = New-OfficeEmailReaderOptions -MaxInputBytes 25MB -MaxAttachmentBytes 10MB -MaxTotalAttachmentBytes 20MB -MaxMimeDepth 20 -MaxAttachmentCount 50\nGet-ChildItem -Path .\\Quarantine -Filter *.eml | ForEach-Object {\n    Open-OfficeEmail -LiteralPath $_.FullName -Options $options -AsResult\n}"
         }
       ]
     },
@@ -4084,7 +4740,19 @@
           ]
         }
       ],
-      "notes": "-Password also accepts a plain string (with a warning) or a PSCredential (its password)."
+      "notes": "-Password also accepts a plain string (with a warning) or a PSCredential (its password).",
+      "examples": [
+        {
+          "title": "Provide a store password",
+          "description": "Prompts for the password of a protected mail store.",
+          "code": "$storeOptions = New-OfficeEmailStoreReaderOptions -Password (Read-Host -Prompt 'Store password' -AsSecureString)"
+        },
+        {
+          "title": "Read an Apple Mail message with store limits",
+          "description": "Limits the store reader before opening an .emlx message from a mail store.",
+          "code": "$storeOptions = New-OfficeEmailStoreReaderOptions -MaxItemCount 5000 -MaxAttachmentBytes 10MB -NoAttachmentContent\nOpen-OfficeEmail -Path .\\Mail\\12345.emlx -StoreOptions $storeOptions"
+        }
+      ]
     },
     {
       "name": "New-OfficeEmailWriterOptions",
@@ -4132,6 +4800,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Allow lossy conversion",
+          "description": "Lets a save continue when the target format cannot carry every property.",
+          "code": "$options = New-OfficeEmailWriterOptions -AllowLoss"
+        },
+        {
+          "title": "Convert .msg to .eml with Bcc kept",
+          "description": "Keeps the Bcc header in the archive copy and accepts properties that MIME cannot store.",
+          "code": "$options = New-OfficeEmailWriterOptions -AllowLoss -IncludeBccHeader\n$mail = Open-OfficeEmail -Path .\\Legal\\Hold-0042.msg\nSave-OfficeEmail -Document $mail -Path .\\Legal\\Hold-0042.eml -Options $options"
+        }
       ]
     },
     {
@@ -4170,6 +4850,18 @@
             }
           ]
         }
+      ],
+      "examples": [
+        {
+          "title": "Limit the number of messages",
+          "description": "Reads at most 1,000 messages from a mailbox.",
+          "code": "$options = New-OfficeEmailMailboxReaderOptions -MaxMessageCount 1000"
+        },
+        {
+          "title": "Read a large archive safely",
+          "description": "Combines per-message limits with a mailbox size cap.",
+          "code": "$message = New-OfficeEmailReaderOptions -NoAttachmentContent -MaxInputBytes 25MB\n$options = New-OfficeEmailMailboxReaderOptions -MessageOptions $message -MaxMailboxBytes 2GB -Variant Auto\nOpen-OfficeEmailMailbox -Path .\\Archive\\2025.mbox -Options $options -AsResult"
+        }
       ]
     },
     {
@@ -4197,6 +4889,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Write mboxrd",
+          "description": "Creates mailbox writer options for the mboxrd variant.",
+          "code": "$options = New-OfficeEmailMailboxWriterOptions -Variant Mboxrd"
+        },
+        {
+          "title": "Write a mailbox with message settings",
+          "description": "Uses the preserved raw source of each message where possible.",
+          "code": "$message = New-OfficeEmailWriterOptions -UsePreservedRawSource\n$options = New-OfficeEmailMailboxWriterOptions -MessageOptions $message -Variant Mboxrd\nSave-OfficeEmailMailbox -Document $mailbox -Path .\\Archive\\copy.mbox -Options $options"
         }
       ]
     },
@@ -4283,6 +4987,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Connect with an API token",
+          "description": "Use your Atlassian email as the user name and the API token as the password.",
+          "code": "$credential = Get-Credential -Message 'Atlassian email and API token'\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -UserName $credential.UserName -Password $credential.Password"
+        },
+        {
+          "title": "Connect with an OAuth access token",
+          "description": "The Bearer set uses an OAuth 2.0 token and the site's cloud ID.",
+          "code": "$token = Read-Host -Prompt 'OAuth access token' -AsSecureString\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -AccessToken $token -CloudId $env:CONFLUENCE_CLOUD_ID -ApplicationName 'Status publisher'"
         }
       ]
     },
@@ -4381,6 +5097,23 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read a page as Markdown",
+          "description": "Returns the page body converted to Markdown with its conversion report.",
+          "code": "Get-OfficeConfluencePage -Session $session -PageId 12345 -As Markdown"
+        },
+        {
+          "title": "Back up a space to Markdown files",
+          "description": "Lists every page in a space and writes each one to a Markdown file.",
+          "code": "Get-OfficeConfluencePage -Session $session -SpaceId 98765 | ForEach-Object {\n    $markdown = Get-OfficeConfluencePage -Session $session -PageId $_.Id -As Markdown\n    $markdown.Value | Set-Content -Path (Join-Path .\\Backup \"$($_.Id).md\") -Encoding utf8\n}"
+        },
+        {
+          "title": "Find a page by title",
+          "description": "Lists pages in a space whose title matches exactly.",
+          "code": "Get-OfficeConfluencePage -Session $session -SpaceId 98765 -Title 'On-call rota'"
         }
       ]
     },
@@ -4591,7 +5324,24 @@
           ]
         }
       ],
-      "notes": "-PlanOnly is kept rather than mapped to -WhatIf: it returns the exact request (ConfluencePageWritePlan) as an object and needs no session, which -WhatIf cannot do. -WhatIf still previews a live call. Live and plan calls become parameter sets, so -Session is mandatory where it is used and the 'Provide -Session or use -PlanOnly' run-time error disappears. ShouldProcess stays because the command changes remote content."
+      "notes": "-PlanOnly is kept rather than mapped to -WhatIf: it returns the exact request (ConfluencePageWritePlan) as an object and needs no session, which -WhatIf cannot do. -WhatIf still previews a live call. Live and plan calls become parameter sets, so -Session is mandatory where it is used and the 'Provide -Session or use -PlanOnly' run-time error disappears. ShouldProcess stays because the command changes remote content.",
+      "examples": [
+        {
+          "title": "Create a page from Markdown",
+          "description": "Creates a page in a space from a Markdown file.",
+          "code": "Publish-OfficeConfluencePage -Session $session -SpaceId 98765 -Title 'Release 2.4' -Content (Get-Content -Path .\\Release-2.4.md -Raw)"
+        },
+        {
+          "title": "Update the daily status page",
+          "description": "Reads the current version and publishes the regenerated report as the next version.",
+          "code": "$page = Get-OfficeConfluencePage -Session $session -PageId 12345\n$report = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-OfficeMarkdown\n$update = @{\n    Session = $session\n    PageId = $page.Id\n    VersionNumber = $page.Version.Number + 1\n    VersionMessage = 'Automated refresh'\n    Title = $page.Title\n    Content = $report -join [Environment]::NewLine\n}\nPublish-OfficeConfluencePage @update"
+        },
+        {
+          "title": "Preview the request without a session",
+          "description": "-PlanOnly returns the exact request as an object and contacts nothing.",
+          "code": "Publish-OfficeConfluencePage -PlanOnly -SpaceId 98765 -Title 'Daily status' -Content (Get-Content -Path .\\status.md -Raw)"
+        }
+      ]
     },
     {
       "name": "Remove-OfficeConfluencePage",
@@ -4662,7 +5412,24 @@
           ]
         }
       ],
-      "notes": "Same plan treatment as Publish-OfficeConfluencePage."
+      "notes": "Same plan treatment as Publish-OfficeConfluencePage.",
+      "examples": [
+        {
+          "title": "Delete a page",
+          "description": "Moves the page to the trash.",
+          "code": "Remove-OfficeConfluencePage -Session $session -PageId 12345"
+        },
+        {
+          "title": "Clean up old generated pages",
+          "description": "Deletes last month's generated status pages, asking before each one.",
+          "code": "Get-OfficeConfluencePage -Session $session -SpaceId 98765 |\n    Where-Object Title -like 'Daily status 2026-09-*' |\n    ForEach-Object { Remove-OfficeConfluencePage -Session $session -PageId $_.Id -Confirm }"
+        },
+        {
+          "title": "Plan a purge offline",
+          "description": "Returns the delete request for review without a session.",
+          "code": "Remove-OfficeConfluencePage -PlanOnly -PageId 12345 -Purge"
+        }
+      ]
     },
     {
       "name": "Get-OfficeConfluenceAttachment",
@@ -4740,7 +5507,19 @@
           ]
         }
       ],
-      "notes": "ShouldProcess applies to writing -OutputPath only."
+      "notes": "ShouldProcess applies to writing -OutputPath only.",
+      "examples": [
+        {
+          "title": "List a page's attachments",
+          "description": "Returns the attachment objects of the page.",
+          "code": "Get-OfficeConfluenceAttachment -Session $session -PageId 12345"
+        },
+        {
+          "title": "Download the latest report",
+          "description": "Finds the workbook attached to the page and saves it locally.",
+          "code": "$attachment = Get-OfficeConfluenceAttachment -Session $session -PageId 12345 | Where-Object FileName -eq 'Capacity.xlsx'\nGet-OfficeConfluenceAttachment -Session $session -PageId 12345 -AttachmentId $attachment.Id -OutputPath .\\Downloads\\Capacity.xlsx -Force"
+        }
+      ]
     },
     {
       "name": "Send-OfficeConfluenceAttachment",
@@ -4845,7 +5624,19 @@
           ]
         }
       ],
-      "notes": "Gains Path/LiteralPath sets so Get-ChildItem output can be piped in."
+      "notes": "Gains Path/LiteralPath sets so Get-ChildItem output can be piped in.",
+      "examples": [
+        {
+          "title": "Upload a file",
+          "description": "Attaches a workbook to a page.",
+          "code": "Send-OfficeConfluenceAttachment -Path .\\Reports\\Capacity.xlsx -Session $session -PageId 12345"
+        },
+        {
+          "title": "Publish this week's reports",
+          "description": "Generates a workbook and uploads every report in the folder with a comment.",
+          "code": "Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 50 Name, Id, WorkingSet64 |\n    Export-OfficeExcel -Path .\\Out\\Top-Memory.xlsx\nGet-ChildItem -Path .\\Out -Filter *.xlsx |\n    Send-OfficeConfluenceAttachment -Session $session -PageId 12345 -Comment \"Weekly upload $(Get-Date -Format 'yyyy-MM-dd')\""
+        }
+      ]
     },
     {
       "name": "Set-OfficeConfluenceManagedSection",
@@ -4888,6 +5679,18 @@
               "mandatory": false
             }
           ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Replace a marked section",
+          "description": "Returns the page body with the daily-report section replaced, adding it if missing.",
+          "code": "$result = Set-OfficeConfluenceManagedSection -ExistingBody $storage -SectionId daily-report -Replacement $html -AppendIfMissing"
+        },
+        {
+          "title": "Refresh one section of a hand-written page",
+          "description": "Updates only the generated part of a page and leaves the rest of the authors' text intact.",
+          "code": "$page = Get-OfficeConfluencePage -Session $session -PageId 12345 -BodyFormat Storage\n$table = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-Html -Fragment\n$section = Set-OfficeConfluenceManagedSection -ExistingBody $page.Body.Storage.Value -SectionId stopped-services -Replacement ($table -join '') -AppendIfMissing\n$update = @{\n    Session = $session\n    PageId = $page.Id\n    VersionNumber = $page.Version.Number + 1\n    Title = $page.Title\n    Content = $section.UpdatedBody\n    ContentFormat = 'Storage'\n}\nPublish-OfficeConfluencePage @update"
         }
       ]
     }

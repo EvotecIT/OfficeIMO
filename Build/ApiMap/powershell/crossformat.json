@@ -1296,7 +1296,29 @@
           ]
         }
       ],
-      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeConversionPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; route-specific .NET option types without a factory (OdgToPdfOptions, VisioToPdfOptions, XpsToPdfOptions, ChmConversionOptions, DjVuToPdfOptions, PublisherReadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfToWordOptions, New-OfficePdfToPowerPointOptions, New-OfficePdfExcelImportOptions, New-OfficeHtmlConversionOptions (whatever final names those areas choose). Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments."
+      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeConversionPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; route-specific .NET option types without a factory (OdgToPdfOptions, VisioToPdfOptions, XpsToPdfOptions, ChmConversionOptions, DjVuToPdfOptions, PublisherReadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfToWordOptions, New-OfficePdfToPowerPointOptions, New-OfficePdfExcelImportOptions, New-OfficeHtmlConversionOptions (whatever final names those areas choose). Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments.",
+      "examples": [
+        {
+          "title": "Convert a document to PDF",
+          "description": "Writes Q3-Sales.pdf next to the source and returns its conversion report.",
+          "code": "Convert-OfficeDocument -Path .\\Reports\\Q3-Sales.docx -To Pdf"
+        },
+        {
+          "title": "Convert a folder in parallel with a settings hashtable",
+          "description": "Pipes every Word report from a year folder through eight parallel conversions with A4 pages and page numbers, then lists only the files that lost content.",
+          "code": "$pdfSettings = @{ PageSize = 'A4'; IncludePageNumbers = $true }\nGet-ChildItem -Path .\\Reports\\2026 -Filter *.docx -Recurse |\n    Convert-OfficeDocument -To Pdf -OutputDirectory .\\Pdf\\2026 -Options $pdfSettings -ThrottleLimit 8 |\n    Where-Object HasLoss |\n    Select-Object -Property Source, OutputPath, Diagnostics"
+        },
+        {
+          "title": "Archive a mixed folder and resume after an interruption",
+          "description": "Converts Word, Excel and PowerPoint files in one run, routing each options object to the format it belongs to, and continues from the checkpoint if the run stops part way.",
+          "code": "$wordPdf = New-OfficeWordPdfOptions -PageSize A4 -IncludePageNumbers\n$excelPdf = New-OfficeExcelPdfOptions -PageSize A4 -UseWorksheetPrintAreas\n$slidesPdf = New-OfficePowerPointPdfOptions -NoSpeakerNotes\n$monthEnd = @{\n    Path            = '\\\\fs01\\Finance\\Month-End'\n    Recurse         = $true\n    Extension       = '.docx', '.xlsx', '.pptx'\n    OutputDirectory = 'D:\\Archive\\Month-End'\n    ReportPath      = 'D:\\Archive\\Month-End\\run.json'\n}\nConvert-OfficeDocument @monthEnd -To Pdf -Options $wordPdf, $excelPdf, $slidesPdf -ThrottleLimit 8\n\n# After a reboot or a network drop, the same call with -Resume reuses verified outputs and runs the rest.\nConvert-OfficeDocument @monthEnd -To Pdf -Options $wordPdf, $excelPdf, $slidesPdf -ThrottleLimit 8 -Resume"
+        },
+        {
+          "title": "Save a batch as a job and run it later",
+          "description": "Saves a portable job file that Studio and the officeimo CLI also open, previews it, then runs it with the source password read from an environment variable.",
+          "code": "Convert-OfficeDocument -Path .\\Contracts -Recurse -To Pdf -OutputDirectory .\\Contracts-Pdf -PasswordVariable CONTRACTS_PASSWORD -JobName 'Nightly contract archive' -SaveJob .\\Jobs\\contracts.officejob.json\n\nConvert-OfficeDocument -JobPath .\\Jobs\\contracts.officejob.json -Plan\nConvert-OfficeDocument -JobPath .\\Jobs\\contracts.officejob.json -RetryFailed -SummaryVariable nightly\n$nightly"
+        }
+      ]
     },
     {
       "name": "Read-OfficeDocument",
@@ -1823,7 +1845,29 @@
           ]
         }
       ],
-      "notes": "Formerly the alias of Get-OfficeDocument; now the command. Views: Document = OfficeDocumentReadResult; Text = plain text per document (new projection over blocks; replaces Get-OfficeImageText and the PDF text readers); Markdown = page-aware Markdown per document, or OfficeDocumentPageMarkdown per page with -ByPage (was Get-OfficeDocumentPageMarkdown); Json = the reader's versioned JSON (was -AsJson); Chunks (Get-OfficeDocumentChunk); Hierarchy (Get-OfficeDocumentHierarchy); Structure (Get-OfficeDocumentStructured); Tables (Get-OfficeDocumentTable); Visuals (Get-OfficeDocumentVisual); Assets (Get-OfficeDocumentAsset); Ingest = one ReaderIngestResult for the whole selection (Get-OfficeDocumentIngest); Ocr = recognition review with per-page words, confidence and reconstructed layout, which Convert-OfficeDocument -Document turns into Word, Excel, HTML or CSV (was Get-OfficeImageDocument). Writing tables, visuals or assets to disk is Export-OfficeDocumentAsset, so Read- has no file-system effect. Asset filters (Kind, MediaType, Extension) moved to Export-OfficeDocumentAsset; for listing use Where-Object. Multiple files, wildcards and folders read in parallel with -ThrottleLimit, results stream as each finishes, failures are non-terminating ReadError records (replaces Get-OfficeDocumentBatch, its -ContinueOnError and -BatchOptions). Candidate absorptions from other areas (decided by their agents): Read-OfficePdf and Get-OfficePdfText (design consolidation table), Get-OfficeWordText for plain extraction."
+      "notes": "Formerly the alias of Get-OfficeDocument; now the command. Views: Document = OfficeDocumentReadResult; Text = plain text per document (new projection over blocks; replaces Get-OfficeImageText and the PDF text readers); Markdown = page-aware Markdown per document, or OfficeDocumentPageMarkdown per page with -ByPage (was Get-OfficeDocumentPageMarkdown); Json = the reader's versioned JSON (was -AsJson); Chunks (Get-OfficeDocumentChunk); Hierarchy (Get-OfficeDocumentHierarchy); Structure (Get-OfficeDocumentStructured); Tables (Get-OfficeDocumentTable); Visuals (Get-OfficeDocumentVisual); Assets (Get-OfficeDocumentAsset); Ingest = one ReaderIngestResult for the whole selection (Get-OfficeDocumentIngest); Ocr = recognition review with per-page words, confidence and reconstructed layout, which Convert-OfficeDocument -Document turns into Word, Excel, HTML or CSV (was Get-OfficeImageDocument). Writing tables, visuals or assets to disk is Export-OfficeDocumentAsset, so Read- has no file-system effect. Asset filters (Kind, MediaType, Extension) moved to Export-OfficeDocumentAsset; for listing use Where-Object. Multiple files, wildcards and folders read in parallel with -ThrottleLimit, results stream as each finishes, failures are non-terminating ReadError records (replaces Get-OfficeDocumentBatch, its -ContinueOnError and -BatchOptions). Candidate absorptions from other areas (decided by their agents): Read-OfficePdf and Get-OfficePdfText (design consolidation table), Get-OfficeWordText for plain extraction.",
+      "examples": [
+        {
+          "title": "Read a document as plain text",
+          "description": "Returns the text of a Word handbook as one string.",
+          "code": "Read-OfficeDocument -Path .\\Handbook.docx -As Text"
+        },
+        {
+          "title": "Chunk a knowledge base for AI ingestion",
+          "description": "Reads Word, PDF, PowerPoint and Excel files from a whole folder tree eight at a time and writes one JSON line per chunk for an embedding pipeline.",
+          "code": "Read-OfficeDocument -Path .\\Knowledge -Recurse -Extension .docx, .pdf, .pptx, .xlsx -MaximumDocuments 0 -As Chunks -MaximumChunkCharacters 1200 -ThrottleLimit 8 |\n    ForEach-Object { $_ | ConvertTo-Json -Depth 5 -Compress } |\n    Set-Content -Path .\\Index\\chunks.jsonl"
+        },
+        {
+          "title": "Read once and project several views",
+          "description": "Reads a board pack once, then saves it as Markdown and lists its tables without opening the file again.",
+          "code": "$boardPack = Read-OfficeDocument -Path .\\Board\\Q3-Board-Pack.pdf\n$boardPack | Read-OfficeDocument -As Markdown | Set-Content -Path .\\Board\\Q3-Board-Pack.md\n$boardPack | Read-OfficeDocument -As Tables"
+        },
+        {
+          "title": "Turn a scanned ledger into a workbook",
+          "description": "Recognizes the text and table layout of a scanned page and converts the reviewed result into an Excel workbook.",
+          "code": "$ocr = New-OfficeOcrOptions -Language English -MinimumConfidence 0.7\nRead-OfficeDocument -Path .\\Scans\\Ledger-2026-09.png -As Ocr -OcrOptions $ocr |\n    Convert-OfficeDocument -To Excel -OutputPath .\\Scans\\Ledger-2026-09.xlsx"
+        }
+      ]
     },
     {
       "name": "Search-OfficeDocument",
@@ -2072,7 +2116,29 @@
           ]
         }
       ],
-      "notes": "Every set writes OfficeDocumentSearchMatch objects (path, format, location, line text, matched value, index, pages, limit flags), so a read result searched again gives the same shape as a path search; the InputObject set no longer returns OfficeDocumentSearchResult. Unreadable files are non-terminating errors; -ErrorAction Stop replaces -StopOnError. Does not absorb Find-OfficeWord, Find-OfficeExcel and similar commands that return live, editable objects inside one open document; those stay with their formats."
+      "notes": "Every set writes OfficeDocumentSearchMatch objects (path, format, location, line text, matched value, index, pages, limit flags), so a read result searched again gives the same shape as a path search; the InputObject set no longer returns OfficeDocumentSearchResult. Unreadable files are non-terminating errors; -ErrorAction Stop replaces -StopOnError. Does not absorb Find-OfficeWord, Find-OfficeExcel and similar commands that return live, editable objects inside one open document; those stay with their formats.",
+      "examples": [
+        {
+          "title": "Search a folder for a word",
+          "description": "Finds every mention of termination in the documents in the Contracts folder.",
+          "code": "Search-OfficeDocument -Path .\\Contracts -Pattern 'termination'"
+        },
+        {
+          "title": "Rank contracts by risky clauses",
+          "description": "Searches a contract share in parallel with two regular expressions and lists the files with the most matches first.",
+          "code": "Search-OfficeDocument -Path \\\\fs01\\Legal\\Contracts -Recurse -Pattern 'auto(matic)?[- ]renew', 'notice period of \\d+ days' -ThrottleLimit 8 |\n    Group-Object -Property Path |\n    Sort-Object -Property Count -Descending |\n    Select-Object -Property Count, Name"
+        },
+        {
+          "title": "Search recent files from Get-ChildItem",
+          "description": "Searches only ticket attachments changed in the last 30 days for the whole word VPN.",
+          "code": "Get-ChildItem -Path .\\Tickets -Include *.docx, *.pdf, *.eml -Recurse |\n    Where-Object LastWriteTime -gt (Get-Date).AddDays(-30) |\n    Search-OfficeDocument -Pattern 'VPN' -WholeWord"
+        },
+        {
+          "title": "Search a document you already read",
+          "description": "Runs several searches over one read result, so a large manual is parsed only once.",
+          "code": "$manual = Read-OfficeDocument -Path .\\Manuals\\Router-Admin-Guide.pdf\n$manual | Search-OfficeDocument -Pattern 'firmware'\n$manual | Search-OfficeDocument -Pattern 'factory reset' -SimpleMatch"
+        }
+      ]
     },
     {
       "name": "Get-OfficeDocumentInfo",
@@ -2245,7 +2311,29 @@
           ]
         }
       ],
-      "notes": "OfficeDocumentInfo: Path, Format, DetectedFormat, Confidence and detection evidence (was Get-OfficeDocumentDetection), Title/Author/Created/Modified metadata, PageCount/SheetCount/SlideCount, IsEncrypted and protection kinds, features in use (macros, external links, embedded objects, forms, signatures), and Details with -Detailed. Mirrors OfficeDocument.Inspect(path) in C#. Candidate absorptions from other areas (decided by their agents): Get-OfficePdfInfo (design consolidation table), Get-OfficeVisioInfo, Get-OfficeWordStatistics, Get-OfficeExcelSummary, Get-OfficePowerPointInspection."
+      "notes": "OfficeDocumentInfo: Path, Format, DetectedFormat, Confidence and detection evidence (was Get-OfficeDocumentDetection), Title/Author/Created/Modified metadata, PageCount/SheetCount/SlideCount, IsEncrypted and protection kinds, features in use (macros, external links, embedded objects, forms, signatures), and Details with -Detailed. Mirrors OfficeDocument.Inspect(path) in C#. Candidate absorptions from other areas (decided by their agents): Get-OfficePdfInfo (design consolidation table), Get-OfficeVisioInfo, Get-OfficeWordStatistics, Get-OfficeExcelSummary, Get-OfficePowerPointInspection.",
+      "examples": [
+        {
+          "title": "Inspect a document",
+          "description": "Shows the format, metadata, sheet count and protection of a workbook.",
+          "code": "Get-OfficeDocumentInfo -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Inventory a shared drive into Excel",
+          "description": "Collects format, size counts and encryption for every Office and PDF file on a share and exports the list as a workbook.",
+          "code": "Get-ChildItem -Path \\\\fs01\\Shared -Include *.docx, *.xlsx, *.pptx, *.pdf -Recurse |\n    Get-OfficeDocumentInfo |\n    Select-Object -Property Path, Format, PageCount, SheetCount, SlideCount, IsEncrypted, Modified |\n    Export-OfficeExcel -Path .\\Inventory\\Shared-Drive.xlsx"
+        },
+        {
+          "title": "Inspect an encrypted workbook in detail",
+          "description": "Opens a password-protected budget and returns the Excel inspection snapshot along with the common info.",
+          "code": "$password = Read-Host -Prompt 'Workbook password' -AsSecureString\n$info = Get-OfficeDocumentInfo -Path .\\Finance\\Budget-2027.xlsx -Password $password -Detailed\n$info.Details"
+        },
+        {
+          "title": "Identify a file with the wrong extension",
+          "description": "Detects what an email attachment really is from its content, not its name.",
+          "code": "Get-OfficeDocumentInfo -Path .\\Downloads\\attachment.bin |\n    Select-Object -Property Format, DetectedFormat, Confidence"
+        }
+      ]
     },
     {
       "name": "Get-OfficeDocumentCapability",
@@ -2381,7 +2469,29 @@
           ]
         }
       ],
-      "notes": "Conversion rows carry the route id, source/target formats and extensions, fidelity kind, support level, text-formatting contract, limitations and ConversionSupported/ConversionCommand (now always Convert-OfficeDocument). The PdfBatch filter and PdfBatchCommand property are gone because PDF batches run through Convert-OfficeDocument; use -To Pdf -Executable."
+      "notes": "Conversion rows carry the route id, source/target formats and extensions, fidelity kind, support level, text-formatting contract, limitations and ConversionSupported/ConversionCommand (now always Convert-OfficeDocument). The PdfBatch filter and PdfBatchCommand property are gone because PDF batches run through Convert-OfficeDocument; use -To Pdf -Executable.",
+      "examples": [
+        {
+          "title": "List supported formats",
+          "description": "Lists every format OfficeIMO can read and what each reader supports.",
+          "code": "Get-OfficeDocumentCapability"
+        },
+        {
+          "title": "See what a Word file can become",
+          "description": "Lists the conversion routes from .docx that Convert-OfficeDocument can run on this machine, with their fidelity.",
+          "code": "Get-OfficeDocumentCapability -Conversion -From .docx -Executable"
+        },
+        {
+          "title": "Pick an explicit conversion route",
+          "description": "Finds a runnable PDF-to-Word route and passes its id to Convert-OfficeDocument instead of the default choice.",
+          "code": "$route = Get-OfficeDocumentCapability -Conversion -From .pdf -To Word -Executable | Select-Object -First 1\nConvert-OfficeDocument -Path .\\Scans\\Lease-Agreement.pdf -To Word -Route $route.Id"
+        },
+        {
+          "title": "Check protection support for PDF",
+          "description": "Shows which passwords, encryption and permission restrictions Protect-OfficeDocument can apply to PDF files.",
+          "code": "Get-OfficeDocumentCapability -Protection -Format pdf"
+        }
+      ]
     },
     {
       "name": "Export-OfficeDocumentImage",
@@ -3194,7 +3304,29 @@
           ]
         }
       ],
-      "notes": "With -OutputDirectory or -OutputPath: one OfficeImageExportResult per input document (files written, page numbers, diagnostics). Without either (Path, LiteralPath, Document and Text sets): in-memory mode, no file-system effect, one OfficeImage per rendered unit with Format, Source, Page/Slide/Sheet (1-based), Name, Width, Height and Bytes (raster) or SvgText (SVG); Bytes is hidden from default views. This replaces the in-memory results of ConvertTo-OfficeVisioPng (byte[]), ConvertTo-OfficeVisioSvg (string) and the other Export-Office*Image commands. Absorbs (mapped by their agents): Export-OfficeWordImage, Export-OfficeExcelImage, Export-OfficeExcelRangeImage (-Sheet -Range), Export-OfficeExcelChartImage (-Sheet -Chart), Export-OfficePdfImage, Export-OfficePowerPointImage, Export-OfficeHtmlImage (-Text -From Html or -Document), Export-OfficeVisioImage, ConvertTo-OfficeVisioPng and ConvertTo-OfficeVisioSvg (-Format Png/Svg; Transparent, NoText, font and connector-label settings move to New-OfficeVisioImageOptions). New-OfficeExcelWorkbookImageOptions and New-OfficeExcelImageOptions overlap; the Excel agent decides whether they merge. Raster limits (MaximumRasterPixelCount, MaximumTotalRasterPixelCount, MaximumOutputCount, RenderTimeoutSeconds ...) stay in the format options factories. PDF input honors -Password; permission restrictions are handled by PdfLoadOptions inside New-OfficePdfImageOptions or by the PDF area's load options."
+      "notes": "With -OutputDirectory or -OutputPath: one OfficeImageExportResult per input document (files written, page numbers, diagnostics). Without either (Path, LiteralPath, Document and Text sets): in-memory mode, no file-system effect, one OfficeImage per rendered unit with Format, Source, Page/Slide/Sheet (1-based), Name, Width, Height and Bytes (raster) or SvgText (SVG); Bytes is hidden from default views. This replaces the in-memory results of ConvertTo-OfficeVisioPng (byte[]), ConvertTo-OfficeVisioSvg (string) and the other Export-Office*Image commands. Absorbs (mapped by their agents): Export-OfficeWordImage, Export-OfficeExcelImage, Export-OfficeExcelRangeImage (-Sheet -Range), Export-OfficeExcelChartImage (-Sheet -Chart), Export-OfficePdfImage, Export-OfficePowerPointImage, Export-OfficeHtmlImage (-Text -From Html or -Document), Export-OfficeVisioImage, ConvertTo-OfficeVisioPng and ConvertTo-OfficeVisioSvg (-Format Png/Svg; Transparent, NoText, font and connector-label settings move to New-OfficeVisioImageOptions). New-OfficeExcelWorkbookImageOptions and New-OfficeExcelImageOptions overlap; the Excel agent decides whether they merge. Raster limits (MaximumRasterPixelCount, MaximumTotalRasterPixelCount, MaximumOutputCount, RenderTimeoutSeconds ...) stay in the format options factories. PDF input honors -Password; permission restrictions are handled by PdfLoadOptions inside New-OfficePdfImageOptions or by the PDF area's load options.",
+      "examples": [
+        {
+          "title": "Render slides to PNG files",
+          "description": "Writes one PNG per slide of the review deck into the Slides folder.",
+          "code": "Export-OfficeDocumentImage -Path .\\Decks\\Q3-Review.pptx -OutputDirectory .\\Slides"
+        },
+        {
+          "title": "Render one chart to a single image",
+          "description": "Saves the regional revenue chart from the Summary sheet as a high-resolution PNG for a newsletter.",
+          "code": "Export-OfficeDocumentImage -Path .\\Reports\\Q3-Sales.xlsx -Sheet Summary -Chart 'Revenue by region' -OutputPath .\\Images\\Revenue-by-Region.png -Dpi 200"
+        },
+        {
+          "title": "Make first-page thumbnails for a mixed folder",
+          "description": "Renders the first page or slide of every PDF, Word and PowerPoint handout as a JPEG thumbnail, six files at a time.",
+          "code": "$thumbnail = New-OfficePdfImageOptions -ThumbnailMaxDimension 320\nGet-ChildItem -Path .\\Handouts -Include *.pdf, *.docx, *.pptx -Recurse |\n    Export-OfficeDocumentImage -OutputDirectory .\\Thumbnails -Page 1 -Format Jpeg -Options $thumbnail -ThrottleLimit 6"
+        },
+        {
+          "title": "Render in memory for an HTML report",
+          "description": "Renders a dashboard range without writing image files and embeds each image in an HTML page as a data URI.",
+          "code": "$images = Export-OfficeDocumentImage -Path .\\Reports\\Weekly-Ops.xlsx -Sheet Dashboard -Range A1:H30\n$body = foreach ($image in $images) {\n    '<img alt=\"{0}\" src=\"data:image/png;base64,{1}\">' -f $image.Name, [Convert]::ToBase64String($image.Bytes)\n}\nSet-Content -Path .\\Reports\\Weekly-Ops.html -Value \"<html><body>$($body -join '')</body></html>\""
+        }
+      ]
     },
     {
       "name": "Export-OfficeDocumentAsset",
@@ -3451,7 +3583,24 @@
           ]
         }
       ],
-      "notes": "Was the -OutputDirectory behavior of Get-OfficeDocumentAsset, Get-OfficeDocumentTable and Get-OfficeDocumentVisual, and an alias of Get-OfficeDocumentAsset. Read-OfficeDocument returns the same content as objects."
+      "notes": "Was the -OutputDirectory behavior of Get-OfficeDocumentAsset, Get-OfficeDocumentTable and Get-OfficeDocumentVisual, and an alias of Get-OfficeDocumentAsset. Read-OfficeDocument returns the same content as objects.",
+      "examples": [
+        {
+          "title": "Extract images from a deck",
+          "description": "Writes the pictures and embedded files of a presentation into the Assets folder.",
+          "code": "Export-OfficeDocumentAsset -Path .\\Decks\\Q3-Review.pptx -OutputDirectory .\\Assets"
+        },
+        {
+          "title": "Export every report table as CSV",
+          "description": "Saves the tables of each Word report as CSV files in a folder named after the report.",
+          "code": "Get-ChildItem -Path .\\Reports -Filter *.docx | ForEach-Object {\n    Export-OfficeDocumentAsset -LiteralPath $_.FullName -Type Table -TableFormat Csv -OutputDirectory (Join-Path -Path .\\Tables -ChildPath $_.BaseName)\n}"
+        },
+        {
+          "title": "Extract only photos without overwriting",
+          "description": "Copies the PNG and JPEG images out of a brochure and leaves files that already exist untouched.",
+          "code": "Export-OfficeDocumentAsset -Path .\\Marketing\\Brochure.docx -OutputDirectory .\\Marketing\\Images -Extension .png, .jpg -NoClobber"
+        }
+      ]
     },
     {
       "name": "Test-OfficeDocument",
@@ -3608,7 +3757,24 @@
           ]
         }
       ],
-      "notes": "Never changes a file. OfficeValidationReport has IsValid and OfficeDiagnostic entries; -Check Security returns the package-security findings (macros, ActiveX, external relationships, embedded objects) previously in OfficePackageSecurityReport. Absorbs from this area: Get-OfficePackageSecurity (-Check Security; -ThrowOnViolation is replaced by -Quiet or by testing IsValid). Candidate absorptions from other areas: Test-OfficeExcelWorkbook (its -RepairDefinedNames moves to Repair-OfficeDocument), Test-OfficeExcelAccessibility, Get-OfficePdfCompliance, Get-OfficePdfPreflight, Test-OfficePdfRewrite."
+      "notes": "Never changes a file. OfficeValidationReport has IsValid and OfficeDiagnostic entries; -Check Security returns the package-security findings (macros, ActiveX, external relationships, embedded objects) previously in OfficePackageSecurityReport. Absorbs from this area: Get-OfficePackageSecurity (-Check Security; -ThrowOnViolation is replaced by -Quiet or by testing IsValid). Candidate absorptions from other areas: Test-OfficeExcelWorkbook (its -RepairDefinedNames moves to Repair-OfficeDocument), Test-OfficeExcelAccessibility, Get-OfficePdfCompliance, Get-OfficePdfPreflight, Test-OfficePdfRewrite.",
+      "examples": [
+        {
+          "title": "Validate a workbook",
+          "description": "Checks the structure of a workbook and returns a report with IsValid and any diagnostics.",
+          "code": "Test-OfficeDocument -Path .\\Reports\\Q3-Sales.xlsx"
+        },
+        {
+          "title": "Quarantine unsafe uploads",
+          "description": "Applies the untrusted-input security policy to an uploaded file and moves it aside when it fails.",
+          "code": "$upload = '.\\Uploads\\Vendor-Proposal.docx'\nif (-not (Test-OfficeDocument -Path $upload -Check Security -Untrusted -Quiet)) {\n    Move-Item -Path $upload -Destination .\\Quarantine\n}"
+        },
+        {
+          "title": "Audit published documents for accessibility",
+          "description": "Checks structure and accessibility for every published document and keeps only the reports that found problems.",
+          "code": "Get-ChildItem -Path .\\Published -Include *.docx, *.pptx, *.pdf -Recurse |\n    Test-OfficeDocument -Check Structure, Accessibility |\n    Where-Object { -not $_.IsValid }"
+        }
+      ]
     },
     {
       "name": "Repair-OfficeDocument",
@@ -3740,7 +3906,24 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Repair-OfficeExcelWorkbook (its Skip* switches move into an Excel repair options factory; -NoSave is removed), the repair part of Test-OfficeExcelWorkbook -RepairDefinedNames."
+      "notes": "Candidate absorptions from other areas: Repair-OfficeExcelWorkbook (its Skip* switches move into an Excel repair options factory; -NoSave is removed), the repair part of Test-OfficeExcelWorkbook -RepairDefinedNames.",
+      "examples": [
+        {
+          "title": "Repair into a copy",
+          "description": "Fixes a damaged workbook and writes the repaired version beside the original.",
+          "code": "Repair-OfficeDocument -Path .\\Reports\\Q3-Sales.xlsx -OutputPath .\\Reports\\Q3-Sales-Repaired.xlsx"
+        },
+        {
+          "title": "Test a folder and repair only what fails",
+          "description": "Validates every workbook in the inbox, repairs the failing ones in place and returns their repair reports.",
+          "code": "Get-ChildItem -Path .\\Inbox -Filter *.xlsx |\n    Where-Object { -not (Test-OfficeDocument -LiteralPath $_.FullName -Quiet) } |\n    Repair-OfficeDocument -PassThru"
+        },
+        {
+          "title": "Preview repairs",
+          "description": "Shows which documents would be changed without writing anything.",
+          "code": "Repair-OfficeDocument -Path .\\Inbox\\*.docx -WhatIf"
+        }
+      ]
     },
     {
       "name": "Protect-OfficeDocument",
@@ -3938,7 +4121,29 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Protect-OfficeWordDocument (-ProtectionType becomes -Restriction), Protect-OfficeExcelWorkbook (NoStructure/ProtectWindows become -Restriction; LegacyPasswordHash moves to Excel options); sheet-level Protect-OfficeExcelSheet stays with Excel. Covers passwords, encryption and permission restrictions for every format, PDF included (Protect-OfficePdf does not exist; PDF redaction is Remove-OfficePdfContent in the PDF area). -Password also accepts a PSCredential through transformation; there is no -Credential parameter. Output: FileInfo with -PassThru on a path, the document with -PassThru on -Document."
+      "notes": "Candidate absorptions from other areas: Protect-OfficeWordDocument (-ProtectionType becomes -Restriction), Protect-OfficeExcelWorkbook (NoStructure/ProtectWindows become -Restriction; LegacyPasswordHash moves to Excel options); sheet-level Protect-OfficeExcelSheet stays with Excel. Covers passwords, encryption and permission restrictions for every format, PDF included (Protect-OfficePdf does not exist; PDF redaction is Remove-OfficePdfContent in the PDF area). -Password also accepts a PSCredential through transformation; there is no -Credential parameter. Output: FileInfo with -PassThru on a path, the document with -PassThru on -Document.",
+      "examples": [
+        {
+          "title": "Encrypt a workbook with a password",
+          "description": "Encrypts a salary workbook in place so it needs the password to open.",
+          "code": "$password = Read-Host -Prompt 'Open password' -AsSecureString\nProtect-OfficeDocument -Path .\\HR\\Salaries-2027.xlsx -Password $password -Encrypt"
+        },
+        {
+          "title": "Make a policy read-only",
+          "description": "Restricts editing of a Word policy so readers can open it but need the password to change it.",
+          "code": "$password = Read-Host -Prompt 'Editing password' -AsSecureString\nProtect-OfficeDocument -Path .\\Policies\\Travel-Policy.docx -Restriction ReadOnly -Password $password"
+        },
+        {
+          "title": "Encrypt a PDF and withhold permissions",
+          "description": "Writes a protected copy of a board pack that needs one password to open and blocks copying and editing unless the permissions password is given.",
+          "code": "$openPassword = Read-Host -Prompt 'Open password' -AsSecureString\n$ownerPassword = Read-Host -Prompt 'Permissions password' -AsSecureString\nProtect-OfficeDocument -Path .\\Board\\Q3-Board-Pack.pdf -Encrypt -Password $openPassword -Restriction Copy, Modify -RestrictionPassword $ownerPassword -OutputPath .\\Board\\Q3-Board-Pack-Protected.pdf"
+        },
+        {
+          "title": "Encrypt a folder of payroll files",
+          "description": "Encrypts every payroll workbook with the password from a credential prompt and returns the protected files.",
+          "code": "$credential = Get-Credential -UserName 'Payroll' -Message 'Password for the payroll workbooks'\nGet-ChildItem -Path .\\Payroll -Filter *.xlsx |\n    Protect-OfficeDocument -Password $credential -Encrypt -PassThru"
+        }
+      ]
     },
     {
       "name": "Unprotect-OfficeDocument",
@@ -4071,7 +4276,19 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Unprotect-OfficeExcelWorkbook; sheet-level Unprotect-OfficeExcelSheet stays with Excel."
+      "notes": "Candidate absorptions from other areas: Unprotect-OfficeExcelWorkbook; sheet-level Unprotect-OfficeExcelSheet stays with Excel.",
+      "examples": [
+        {
+          "title": "Remove a workbook password",
+          "description": "Decrypts a workbook in place and removes its restrictions.",
+          "code": "$password = Read-Host -Prompt 'Workbook password' -AsSecureString\nUnprotect-OfficeDocument -Path .\\HR\\Salaries-2027.xlsx -Password $password"
+        },
+        {
+          "title": "Lift one restriction into a draft copy",
+          "description": "Removes only the read-only restriction and saves an editable copy for the next revision, leaving the published policy protected.",
+          "code": "$password = Read-Host -Prompt 'Editing password' -AsSecureString\nUnprotect-OfficeDocument -Path .\\Policies\\Travel-Policy.docx -Restriction ReadOnly -Password $password -OutputPath .\\Drafts\\Travel-Policy.docx"
+        }
+      ]
     },
     {
       "name": "Compare-OfficeDocument",
@@ -4202,7 +4419,24 @@
           ]
         }
       ],
-      "notes": "Names follow Compare-Object (-ReferenceObject/-DifferenceObject). -WhatIf applies only to -OutputPath. Candidate absorptions from other areas: Compare-OfficeWordDocument, Compare-OfficePdfVisual, Compare-OfficeExcelWorkbook (its Skip* switches move to Excel comparison options). Range-level Compare-OfficeExcelRange stays with Excel."
+      "notes": "Names follow Compare-Object (-ReferenceObject/-DifferenceObject). -WhatIf applies only to -OutputPath. Candidate absorptions from other areas: Compare-OfficeWordDocument, Compare-OfficePdfVisual, Compare-OfficeExcelWorkbook (its Skip* switches move to Excel comparison options). Range-level Compare-OfficeExcelRange stays with Excel.",
+      "examples": [
+        {
+          "title": "Compare two versions",
+          "description": "Reports the content differences between two versions of a contract.",
+          "code": "Compare-OfficeDocument -ReferencePath .\\Contracts\\MSA-v3.docx -DifferencePath .\\Contracts\\MSA-v4.docx"
+        },
+        {
+          "title": "Produce a Word redline",
+          "description": "Writes a redline document for legal review, ignoring whitespace changes and volatile metadata.",
+          "code": "$comparison = New-OfficeWordComparisonOptions -IgnoreWhitespace -NoVolatileMetadata\nCompare-OfficeDocument -ReferencePath .\\Contracts\\MSA-v3.docx -DifferencePath .\\Contracts\\MSA-v4.docx -Options $comparison -OutputPath .\\Contracts\\MSA-v3-to-v4-Redline.docx"
+        },
+        {
+          "title": "Compare print proofs visually",
+          "description": "Compares the rendered pages of a catalog proof and the final print file, stopping after 50 differences.",
+          "code": "Compare-OfficeDocument -ReferencePath .\\Print\\Catalog-Proof.pdf -DifferencePath .\\Print\\Catalog-Final.pdf -Visual -Page '1-12' -MaximumDifferences 50"
+        }
+      ]
     },
     {
       "name": "Merge-OfficeDocument",
@@ -4381,7 +4615,24 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel."
+      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel.",
+      "examples": [
+        {
+          "title": "Merge PDFs into one",
+          "description": "Combines the agenda, minutes and financials into a single board pack, in that order.",
+          "code": "Merge-OfficeDocument -Path .\\Board\\Agenda.pdf, .\\Board\\Minutes.pdf, .\\Board\\Financials.pdf -OutputPath .\\Board\\Board-Pack.pdf"
+        },
+        {
+          "title": "Merge weekly reports in name order",
+          "description": "Sorts the weekly Word reports by file name, merges them into one monthly document and opens it.",
+          "code": "Get-ChildItem -Path .\\Reports\\Weekly -Filter 'Week-*.docx' |\n    Sort-Object -Property Name |\n    Merge-OfficeDocument -OutputPath .\\Reports\\September-Weekly-Reports.docx -Show"
+        },
+        {
+          "title": "Append sections to an open proposal",
+          "description": "Opens a proposal cover, appends the scope and pricing documents and saves the combined proposal under a new name.",
+          "code": "$proposal = Open-OfficeWord -Path .\\Proposal\\Cover.docx\nMerge-OfficeDocument -Document $proposal -Path .\\Proposal\\Scope.docx, .\\Proposal\\Pricing.docx -OutputPath .\\Proposal\\Northwind-Proposal.docx\nClose-OfficeWord -Document $proposal"
+        }
+      ]
     },
     {
       "name": "Split-OfficeDocument",
@@ -4815,7 +5066,29 @@
           ]
         }
       ],
-      "notes": "Candidate absorption from other areas: Split-OfficePdf (-IgnorePermissionRestrictions moves into -Options). Other formats join when their engines support splitting (Word by section, PowerPoint by section)."
+      "notes": "Candidate absorption from other areas: Split-OfficePdf (-IgnorePermissionRestrictions moves into -Options). Other formats join when their engines support splitting (Word by section, PowerPoint by section).",
+      "examples": [
+        {
+          "title": "Split a PDF into single pages",
+          "description": "Writes each page of a scanned batch to its own PDF.",
+          "code": "Split-OfficeDocument -Path .\\Scans\\Batch-0412.pdf -OutputDirectory .\\Scans\\Pages"
+        },
+        {
+          "title": "Split by page ranges",
+          "description": "Cuts a board pack into its three sections with zero-padded, consistently named files.",
+          "code": "Split-OfficeDocument -Path .\\Board\\Board-Pack.pdf -OutputDirectory .\\Board\\Sections -Page '1-2', '3-10', '11-24' -Prefix Board-Pack-Section -PadIndex"
+        },
+        {
+          "title": "Split a manual by chapter bookmarks",
+          "description": "Creates one PDF per top-level bookmark of an administration guide.",
+          "code": "Split-OfficeDocument -Path .\\Manuals\\Admin-Guide.pdf -OutputDirectory .\\Manuals\\Chapters -ByBookmark"
+        },
+        {
+          "title": "Split a folder of scans into two-page records",
+          "description": "Splits every scanned batch into two-page files, reading restricted PDFs through a load-options hashtable.",
+          "code": "Get-ChildItem -Path .\\Scans\\Incoming -Filter *.pdf |\n    Split-OfficeDocument -OutputDirectory .\\Scans\\Records -PageCount 2 -Options @{ IgnorePermissionRestrictions = $true }"
+        }
+      ]
     },
     {
       "name": "Import-OfficeConversionReport",
@@ -4857,7 +5130,19 @@
           ]
         }
       ],
-      "notes": "Was Get-OfficeConversionJobReport. Import- is the approved verb for reading a data file into objects. The report type is OfficeConversionJobRunReport today and OfficeBatchReport after the C# rename."
+      "notes": "Was Get-OfficeConversionJobReport. Import- is the approved verb for reading a data file into objects. The report type is OfficeConversionJobRunReport today and OfficeBatchReport after the C# rename.",
+      "examples": [
+        {
+          "title": "Read a saved run report",
+          "description": "Loads the run report a conversion wrote with -ReportPath.",
+          "code": "Import-OfficeConversionReport -Path .\\Pdf\\run.json"
+        },
+        {
+          "title": "Review last week's nightly runs",
+          "description": "Imports every nightly conversion report written in the last seven days, whether by this module, Studio or the CLI.",
+          "code": "Get-ChildItem -Path .\\Logs -Filter 'nightly-*.json' |\n    Where-Object LastWriteTime -gt (Get-Date).AddDays(-7) |\n    Import-OfficeConversionReport"
+        }
+      ]
     },
     {
       "name": "New-OfficeDocumentReader",
@@ -4920,7 +5205,19 @@
           ]
         }
       ],
-      "notes": "Not an options factory: it returns an immutable reader object, so it keeps its name."
+      "notes": "Not an options factory: it returns an immutable reader object, so it keeps its name.",
+      "examples": [
+        {
+          "title": "Create a reader with OCR",
+          "description": "Creates a reader that recognizes text in scanned pages and uses it to read a folder of scans.",
+          "code": "$reader = New-OfficeDocumentReader -Ocr\nRead-OfficeDocument -Path .\\Scans -Reader $reader -As Text"
+        },
+        {
+          "title": "Share one configured reader across a mailbox job",
+          "description": "Configures OCR and store limits once, then uses the same reader to search mail archives and build an ingest result.",
+          "code": "$ocr = New-OfficeOcrOptions -Language English, Polish -MinimumConfidence 0.8\n$reader = New-OfficeDocumentReader -OcrOptions $ocr -MaximumStoreItems 5000 -MaximumConcurrentReads 4\nSearch-OfficeDocument -Path .\\Mailboxes -Recurse -Extension .pst, .eml -Pattern 'purchase order' -Reader $reader\nRead-OfficeDocument -Path .\\Mailboxes\\Finance.pst -As Ingest -Reader $reader"
+        }
+      ]
     },
     {
       "name": "New-OfficeDocumentHierarchyOptions",
@@ -4985,7 +5282,19 @@
           ]
         }
       ],
-      "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options."
+      "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options.",
+      "examples": [
+        {
+          "title": "Create chunking options",
+          "description": "Creates hierarchy options that keep each chunk under 800 tokens.",
+          "code": "New-OfficeDocumentHierarchyOptions -MaximumTokens 800"
+        },
+        {
+          "title": "Chunk policies by heading for retrieval",
+          "description": "Splits every policy into heading-aware chunks with overlap and the heading path included in each chunk's text.",
+          "code": "$hierarchy = New-OfficeDocumentHierarchyOptions -MaximumTokens 800 -OverlapTokens 80 -IncludeContextInText\nRead-OfficeDocument -Path .\\Policies\\*.docx -As Hierarchy -HierarchyOptions $hierarchy"
+        }
+      ]
     },
     {
       "name": "New-OfficeOcrOptions",
@@ -5145,7 +5454,19 @@
           ]
         }
       ],
-      "notes": "Consumed by Read-OfficeDocument -OcrOptions, Convert-OfficeDocument -OcrOptions and New-OfficeDocumentReader -OcrOptions; the PDF area's searchable-PDF command (ConvertTo-OfficePdfSearchable today) should take the same object. Replaces the OCR parameter block repeated on Get-OfficeImageText, Get-OfficeImageDocument, ConvertTo-OfficePdfSearchable and New-OfficeDocumentReader."
+      "notes": "Consumed by Read-OfficeDocument -OcrOptions, Convert-OfficeDocument -OcrOptions and New-OfficeDocumentReader -OcrOptions; the PDF area's searchable-PDF command (ConvertTo-OfficePdfSearchable today) should take the same object. Replaces the OCR parameter block repeated on Get-OfficeImageText, Get-OfficeImageDocument, ConvertTo-OfficePdfSearchable and New-OfficeDocumentReader.",
+      "examples": [
+        {
+          "title": "Create OCR options",
+          "description": "Creates OCR settings that drop words recognized with less than 75 percent confidence.",
+          "code": "New-OfficeOcrOptions -MinimumConfidence 0.75"
+        },
+        {
+          "title": "Convert scanned forms with a local Tesseract",
+          "description": "Uses an installed Tesseract with English and Polish trained data, without downloading languages, to turn a folder of scans into Word documents.",
+          "code": "$ocr = New-OfficeOcrOptions -TesseractPath /opt/homebrew/bin/tesseract -Language English, Polish -Dpi 300 -NoLanguageDownload\nConvert-OfficeDocument -Path .\\Scans\\Forms -Extension .png, .jpg, .tif -To Word -OutputDirectory .\\Scans\\Word -OcrOptions $ocr"
+        }
+      ]
     },
     {
       "name": "Get-OfficeDocumentProvenance",
@@ -5223,7 +5544,19 @@
           ]
         }
       ],
-      "notes": "Was Get-OfficeProvenance; renamed to the Verb-OfficeDocument{Noun} pattern for any-format commands. Kept separate from Get-OfficeDocumentInfo because it runs an external verifier and pluggable detectors."
+      "notes": "Was Get-OfficeProvenance; renamed to the Verb-OfficeDocument{Noun} pattern for any-format commands. Kept separate from Get-OfficeDocumentInfo because it runs an external verifier and pluggable detectors.",
+      "examples": [
+        {
+          "title": "Check an image's provenance",
+          "description": "Reports the C2PA manifest, signatures and generation signals of a press photo.",
+          "code": "Get-OfficeDocumentProvenance -Path .\\Press\\Launch-Photo.jpg"
+        },
+        {
+          "title": "Assess incoming press material",
+          "description": "Checks every image and PDF in the press inbox with a specific c2patool installation.",
+          "code": "Get-ChildItem -Path .\\Press\\Incoming -Include *.jpg, *.png, *.pdf -Recurse |\n    Get-OfficeDocumentProvenance -C2paToolPath /usr/local/bin/c2patool"
+        }
+      ]
     },
     {
       "name": "ConvertTo-OfficeVisual",
@@ -5307,7 +5640,19 @@
           ]
         }
       ],
-      "notes": "An object-to-object conversion, so it keeps the ConvertTo- verb. Used outside content blocks, so it has no DSL alias. Width/Height share the base class with the Add-Office*Visual commands; their agents should apply the same OfficeLength change."
+      "notes": "An object-to-object conversion, so it keeps the ConvertTo- verb. Used outside content blocks, so it has no DSL alias. Width/Height share the base class with the Add-Office*Visual commands; their agents should apply the same OfficeLength change.",
+      "examples": [
+        {
+          "title": "Convert an SVG logo",
+          "description": "Turns an SVG file into a reusable visual 4 cm wide.",
+          "code": "Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm"
+        },
+        {
+          "title": "Reuse one visual in Word and PowerPoint",
+          "description": "Converts the logo once and places the same visual in a Word brief and on a slide.",
+          "code": "$logo = Get-Item -Path .\\Brand\\Logo.svg | ConvertTo-OfficeVisual -Width 4cm -AlternativeText 'Northwind logo'\nNew-OfficeWord -Path .\\Reports\\Brand-Update.docx {\n    WordImage -InputObject $logo\n    WordHeading 'Brand update'\n    WordParagraph 'The refreshed logo is used in every template from 1 November.'\n}\nNew-OfficePowerPoint -Path .\\Decks\\Brand-Update.pptx {\n    PptSlide -Title 'Our new logo' {\n        PptImage -InputObject $logo\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Get-OfficePrinter",
@@ -5355,7 +5700,19 @@
           ]
         }
       ],
-      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePdfPrinter (PDF area)."
+      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePdfPrinter (PDF area).",
+      "examples": [
+        {
+          "title": "List printers",
+          "description": "Lists the printers available for Send-OfficePdfPrinter, including the default.",
+          "code": "Get-OfficePrinter"
+        },
+        {
+          "title": "Print from a specific tray",
+          "description": "Finds the letterhead tray of the finance printer and prints a statement from it.",
+          "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePdfPrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+        }
+      ]
     }
   ],
   "map": [
