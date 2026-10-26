@@ -137,9 +137,7 @@ public sealed partial class TableBlock {
                 continue;
             }
 
-            var normalized = NormalizeBreakMarkers(cell);
-            var sanitized = SanitizeInlineMarkdownInput(normalized);
-            parsed[i] = MarkdownReader.ParseInlineText(sanitized, options, state);
+            parsed[i] = MarkdownReader.ParseTableCellInlineText(cell, options, state);
         }
 
         return parsed;
@@ -147,22 +145,19 @@ public sealed partial class TableBlock {
 
     private string RenderCellHtml(string cell, TableCell? structuredCell, InlineSequence? parsedCell) {
         if (structuredCell != null) {
-            return NormalizeEncodedEntities(structuredCell.RenderHtml());
+            return structuredCell.RenderHtml();
         }
 
         if (parsedCell != null) {
-            var parsedRendered = NormalizeEncodedEntities(parsedCell.RenderHtml());
+            var parsedRendered = parsedCell.RenderHtml();
             return parsedRendered.Contains('\n') ? parsedRendered.Replace("\n", "<br/>") : parsedRendered;
         }
 
         if (string.IsNullOrEmpty(cell)) return string.Empty;
         // Allow simple <br> markers inside table cells and support inline markdown (code, links, emphasis).
         // We avoid allowing arbitrary HTML by translating only <br> tags to hard breaks and then using the inline parser.
-        var normalized = NormalizeBreakMarkers(cell);
-        var sanitized = SanitizeInlineMarkdownInput(normalized);
-        var inlines = MarkdownReader.ParseInlineText(sanitized, InlineRenderOptions, InlineRenderState);
+        var inlines = MarkdownReader.ParseTableCellInlineText(cell, InlineRenderOptions, InlineRenderState);
         var rendered = inlines.RenderHtml();
-        rendered = NormalizeEncodedEntities(rendered);
         return rendered.Contains('\n') ? rendered.Replace("\n", "<br/>") : rendered;
     }
 
@@ -219,76 +214,7 @@ public sealed partial class TableBlock {
         return builder?.ToString() ?? value;
     }
 
-    internal static string NormalizeBreakMarkers(string cell) {
-        var builder = new StringBuilder(cell.Length);
-
-        for (int i = 0; i < cell.Length; i++) {
-            char ch = cell[i];
-            switch (ch) {
-                case '\r':
-                    if (i + 1 < cell.Length && cell[i + 1] == '\n') {
-                        i++;
-                    }
-                    builder.Append('\n');
-                    break;
-                case '\n':
-                    builder.Append('\n');
-                    break;
-                case '<':
-                    if (TryConsumeBreakTag(cell, i, out int consumed)) {
-                        builder.Append('\n');
-                        i += consumed - 1;
-                    } else {
-                        builder.Append(ch);
-                    }
-                    break;
-                default:
-                    builder.Append(ch);
-                    break;
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    internal static string SanitizeInlineMarkdownInput(string value) {
-        StringBuilder? builder = null;
-        for (int i = 0; i < value.Length; i++) {
-            char ch = value[i];
-            switch (ch) {
-                case '<':
-                    builder ??= AllocateCellBuilder(value, i);
-                    if (TryConsumeSupportedInlineFormattingTag(value, i, out int formattingTagLength)) {
-                        builder.Append(value, i, formattingTagLength);
-                        i += formattingTagLength - 1;
-                    } else {
-                        builder.Append("&lt;");
-                    }
-                    break;
-                case '>':
-                    builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("&gt;");
-                    break;
-                case '&':
-                    builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("&amp;");
-                    break;
-                default:
-                    builder?.Append(ch);
-                    break;
-            }
-        }
-
-        return builder?.ToString() ?? value;
-    }
-
-    internal static string NormalizeEncodedEntities(string value) {
-        if (value.IndexOf("&amp;", StringComparison.Ordinal) < 0) {
-            return value;
-        }
-
-        return value.Replace("&amp;amp;", "&amp;");
-    }
+    internal static string NormalizeBreakMarkers(string cell) => MarkdownReader.NormalizeTableCellBreaks(cell);
 
     private static StringBuilder AllocateCellBuilder(string seed, int copyLength) {
         var builder = new StringBuilder(seed.Length + 8);
@@ -581,9 +507,7 @@ public sealed partial class TableBlock {
             return new TableCell(structuredBlocks);
         }
 
-        var normalized = NormalizeBreakMarkers(cell ?? string.Empty);
-        var sanitized = SanitizeInlineMarkdownInput(normalized);
-        var inlines = MarkdownReader.ParseInlineText(sanitized, InlineRenderOptions, InlineRenderState);
+        var inlines = MarkdownReader.ParseTableCellInlineText(cell ?? string.Empty, InlineRenderOptions, InlineRenderState);
         return new TableCell(new[] {
             new ParagraphBlock(inlines)
         });

@@ -317,7 +317,7 @@ public static partial class MarkdownReader {
         }
 
         var (sanitized, sourceMap) = NormalizeTableCellInlineMarkdownWithSourceMap(cell, state);
-        return ParseInlines(sanitized, options, state, sourceMap);
+        return ParseInlines(sanitized, options, state, sourceMap, TableCellHtmlMode.Parsed);
     }
 
     private static List<TableCell> BuildTableCells(
@@ -756,127 +756,6 @@ public static partial class MarkdownReader {
         return new TableCellSourceFragment(markdown, text, span);
     }
 
-    private static (string Text, MarkdownInlineSourceMap? SourceMap) NormalizeTableCellInlineMarkdownWithSourceMap(
-        TableCellSourceFragment cell,
-        MarkdownReaderState? state) {
-        if (string.IsNullOrEmpty(cell.Markdown)) {
-            return (string.Empty, null);
-        }
-
-        var builder = new StringBuilder(cell.Markdown.Length + 8);
-        List<MarkdownSourcePoint?>? points = state?.SourceTextMap == null ? null : new List<MarkdownSourcePoint?>(cell.Markdown.Length + 8);
-        List<MarkdownSourceSpan?>? tokenSpans = points == null ? null : new List<MarkdownSourceSpan?>(cell.Markdown.Length + 8);
-        List<string?>? tokenLiterals = points == null ? null : new List<string?>(cell.Markdown.Length + 8);
-        int absoluteLine = cell.SourceSpan.StartLine;
-        int column = cell.SourceSpan.StartColumn ?? 1;
-        int codeFenceLen = 0;
-
-        void AppendMapped(string value, int sourceColumn, MarkdownSourceSpan? tokenSpan = null, string? tokenLiteral = null) {
-            builder.Append(value);
-            if (points == null) {
-                return;
-            }
-
-            var point = state!.SourceTextMap!.CreatePoint(absoluteLine, sourceColumn);
-            for (int i = 0; i < value.Length; i++) {
-                points.Add(point);
-                tokenSpans!.Add(i == 0 ? tokenSpan : null);
-                tokenLiterals!.Add(i == 0 ? tokenLiteral : null);
-            }
-        }
-
-        for (int i = 0; i < cell.Markdown.Length; i++) {
-            char ch = cell.Markdown[i];
-            if (ch == '`') {
-                int run = 1;
-                int tick = i + 1;
-                while (tick < cell.Markdown.Length && cell.Markdown[tick] == '`') {
-                    run++;
-                    tick++;
-                }
-
-                if (codeFenceLen == 0) {
-                    if (HasClosingBacktickRun(cell.Markdown, i + run, run)) {
-                        codeFenceLen = run;
-                    }
-                } else if (run == codeFenceLen) {
-                    codeFenceLen = 0;
-                }
-
-                AppendMapped(cell.Markdown.Substring(i, run), column);
-                column += run;
-                i += run - 1;
-                continue;
-            }
-
-            if (codeFenceLen != 0 && ch == '\\' && i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '|') {
-                AppendMapped("|", column + 1);
-                column += 2;
-                i++;
-                continue;
-            }
-
-            if (ch == '\r') {
-                if (i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '\n') {
-                    i++;
-                }
-                AppendMapped("\n", column);
-                column++;
-                continue;
-            }
-
-            if (ch == '\n') {
-                AppendMapped("\n", column);
-                column++;
-                continue;
-            }
-
-            if (ch == '<' && TableBlock.TryConsumeBreakTag(cell.Markdown, i, out int consumed)) {
-                AppendMapped(
-                    "\n",
-                    column,
-                    CreateSpan(state, absoluteLine, column, absoluteLine, column + consumed - 1),
-                    cell.Markdown.Substring(i, consumed));
-                column += consumed;
-                i += consumed - 1;
-                continue;
-            }
-
-            switch (ch) {
-                case '<':
-                    if (TableBlock.TryConsumeSupportedInlineFormattingTag(cell.Markdown, i, out int formattingTagLength)) {
-                        AppendMapped(cell.Markdown.Substring(i, formattingTagLength), column);
-                        column += formattingTagLength;
-                        i += formattingTagLength - 1;
-                        continue;
-                    }
-
-                    if (TryConsumeInlineRawHtmlTableCellTag(cell.Markdown, i, out int rawHtmlTagLength)) {
-                        AppendMapped(cell.Markdown.Substring(i, rawHtmlTagLength), column);
-                        column += rawHtmlTagLength;
-                        i += rawHtmlTagLength - 1;
-                        continue;
-                    }
-
-                    AppendMapped("&lt;", column);
-                    break;
-                case '>':
-                    AppendMapped("&gt;", column);
-                    break;
-                case '&':
-                    AppendMapped("&amp;", column);
-                    break;
-                default:
-                    AppendMapped(ch.ToString(), column);
-                    break;
-            }
-
-            column++;
-        }
-
-        return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray(), tokenSpans!.ToArray(), tokenLiterals!.ToArray()));
-    }
-
     private static bool TryConsumeInlineRawHtmlTableCellTag(string markdown, int index, out int consumed) {
         consumed = 0;
         if (!TryConsumeRawInlineHtmlTag(markdown, index, out int rawHtmlTagLength)) {
@@ -907,6 +786,8 @@ public static partial class MarkdownReader {
         int absoluteLine = cell.SourceSpan.StartLine;
         int column = cell.SourceSpan.StartColumn ?? 1;
         int currentStartColumn = column;
+        char blockFenceChar = '\0';
+        int blockFenceLength = 0;
 
         void Flush() {
             slices.Add(new MarkdownSourceLineSlice(current.ToString(), absoluteLine, currentStartColumn));
@@ -916,6 +797,20 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < cell.Markdown.Length; i++) {
             char ch = cell.Markdown[i];
+            if (ch == '\\' && i + 1 < cell.Markdown.Length && IsBackslashEscapable(cell.Markdown[i + 1])) {
+                current.Append(cell.Markdown, i, 2);
+                column += 2;
+                i++;
+                continue;
+            }
+
+            if (TryConsumeTableCellLiteralToken(cell.Markdown, i, out int literalLength, ref blockFenceChar, ref blockFenceLength, preserveFencedCodeSpans: false)) {
+                current.Append(cell.Markdown, i, literalLength);
+                column += literalLength;
+                i += literalLength - 1;
+                continue;
+            }
+
             if (ch == '\r') {
                 if (i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '\n') {
                     i++;

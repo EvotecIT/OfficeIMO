@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 // Inline parsing helpers for MarkdownReader.
 public static partial class MarkdownReader {
-    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
+    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null, TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
         InlineSequence sequence;
         bool hasRegisteredAbbreviations = options.Abbreviations && state?.Abbreviations.Count > 0;
         if (state?.CaptureSyntaxTree == false
@@ -19,7 +19,7 @@ public static partial class MarkdownReader {
         } else if (TryParsePlainDoubleAsteriskInlines(text, options, state, sourceMap, out var plainStrongSequence)) {
             sequence = plainStrongSequence;
         } else {
-            sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+            sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap, tableCellHtmlMode: tableCellHtmlMode);
         }
 
         ApplyGenericAttributesToInlineElements(sequence, options);
@@ -37,7 +37,8 @@ public static partial class MarkdownReader {
         MarkdownInlineSourceMap? sourceMap = null,
         InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null,
         int inlineHtmlWrapperDepth = 0,
-        int imageAltDepth = 0) {
+        int imageAltDepth = 0,
+        TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
         var root = new InlineSequence(ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages) ? 8 : 1) {
             AutoSpacing = false
         };
@@ -384,7 +385,8 @@ public static partial class MarkdownReader {
                 SliceMap(relativeStart, safeLength),
                 inlineHtmlWrapperMatches.Slice(relativeStart),
                 inlineHtmlWrapperDepth,
-                imageAltDepth);
+                imageAltDepth,
+                tableCellHtmlMode);
         }
 
         int pos = 0;
@@ -678,7 +680,7 @@ public static partial class MarkdownReader {
             if (text[pos] == '[') {
                 if (allowLinks) {
                     if (TryParseLink(text, pos, options, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2, inlineHtmlWrapperMatches)) {
-                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, label2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
+                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, label2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
@@ -703,7 +705,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
                             if (resolved is null) {
@@ -725,7 +727,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
                             if (resolved is null) {
@@ -744,7 +746,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl3.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl3.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode);
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
                             if (resolved is null) {
@@ -963,13 +965,15 @@ public static partial class MarkdownReader {
             }
 
             if (options.InlineHtml && text[pos] == '<') {
-                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, sourceMap, allowLinks, allowImages, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, out int consumedHtmlTag, out var htmlNode)) {
+                if ((tableCellHtmlMode != TableCellHtmlMode.Builder || TableBlock.TryConsumeSupportedInlineFormattingTag(text, pos, out _))
+                    && TryParseSupportedInlineHtmlTag(text, pos, options, state, sourceMap, allowLinks, allowImages, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, tableCellHtmlMode, out int consumedHtmlTag, out var htmlNode)) {
                     AddRawNode(htmlNode, pos, consumedHtmlTag);
                     pos += consumedHtmlTag;
                     continue;
                 }
 
-                if (TryConsumeRawInlineHtmlTag(text, pos, sourceMap, out int consumedRawHtmlTag, out string rawInlineHtml)) {
+                if (TryConsumeRawInlineHtmlTag(text, pos, sourceMap, out int consumedRawHtmlTag, out string rawInlineHtml)
+                    && IsTableCellInlineHtmlAllowed(rawInlineHtml, tableCellHtmlMode)) {
                     AddRawNode(new HtmlRawInline(rawInlineHtml), pos, consumedRawHtmlTag);
                     pos += consumedRawHtmlTag;
                     continue;
