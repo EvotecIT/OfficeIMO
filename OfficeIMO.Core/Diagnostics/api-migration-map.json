@@ -1,0 +1,70 @@
+{
+  "milestone": "M2",
+  "sharedEnums": [
+    {
+      "target": "OfficeIMO.OfficeChartType",
+      "replace": [
+        "OfficeIMO.Drawing.OfficeChartKind",
+        "OfficeIMO.Excel.ExcelChartType",
+        "OfficeIMO.Excel.ExcelModernChartType",
+        "OfficeIMO.PowerPoint.PowerPointChartKind"
+      ],
+      "notes": "OfficeChartKind is the renderer's flat subset of the same chart-family concept. M1 keeps numeric values for that subset and adds existing native authoring families. Map by member name, not by numeric cast from format enums. Column and Bar are authoring aliases. Do not collapse 3-D or modern families to their render projection."
+    },
+    {
+      "target": "OfficeIMO.OfficeAlignment",
+      "replace": [
+        "OfficeIMO.Drawing.OfficeTextAlignment",
+        "OfficeIMO.Word.WordParagraphAlignment",
+        "OfficeIMO.Excel.ExcelHorizontalAlignment",
+        "OfficeIMO.PowerPoint.PowerPointTextAlignment",
+        "OfficeIMO.Pdf.PdfAlign",
+        "OfficeIMO.Pdf.PdfColumnAlign",
+        "OfficeIMO.Markdown.ColumnAlignment"
+      ],
+      "notes": "Map shared horizontal alignment only. Keep format-only distributed, fill, decimal/tab, and vertical alignment semantics explicit; they are not interchangeable with Justify. Start and End depend on content direction."
+    },
+    {
+      "target": "OfficeIMO.Drawing.OfficeImageFormat",
+      "replace": [
+        "OfficeIMO.Drawing.OfficeImageExportFormat",
+        "DocumentFormat.OpenXml.Packaging.ImagePartType"
+      ],
+      "notes": "Keep the existing Core image format. Export capabilities remain format-specific subsets; external SDK types are mapped at the format boundary, not deleted. Check actual SDK ImagePartType namespace per caller."
+    },
+    {
+      "target": "OfficeIMO.OfficePageOrientation",
+      "replace": [
+        "DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues",
+        "DocumentFormat.OpenXml.Spreadsheet.OrientationValues"
+      ],
+      "notes": "Word already maps the existing Core orientation through generated Open XML converters. Keep that Core type. Map format-only Default/Automatic distinctly; a missing orientation is not necessarily Portrait. External SDK types stay inside format adapters."
+    }
+  ],
+  "themeMigration": {
+    "replace": "OfficeIMO.Drawing.OfficeVisualThemeKind",
+    "target": "OfficeIMO.OfficeTheme",
+    "notes": "The legacy enum is used by HTML and Markdown-facing render options with different profiles; replacement requires consumer migration. OfficeThemeChartStyle contains authoring tokens; OfficeChartStyle remains the existing renderer override model. M2/M6 map authoring tokens to renderer/native settings. Theme roles with native slots retain their identity until the format writer; status roles resolve to literal colors. ThemeSlot uses accent1-6, dk1 for Text, dk2 for TextMuted, lt1 for Background. Themes populate these identities even in dark palettes. OfficeTheme.FromDocument and per-format application are not implemented in Core."
+  },
+  "deleteAfterConsumerMigration": [
+    "OfficeIMO.IOfficeConversionReport",
+    "OfficeIMO.IOfficeConversionResult<TValue,TReport>",
+    "OfficeIMO.OfficeConversionResult<TValue,TReport>",
+    "OfficeIMO.OfficeConversionFidelityDiagnostic",
+    "OfficeIMO.OfficeConversionFidelityDiagnostics",
+    "OfficeIMO.OfficeConversionDiagnostic",
+    "OfficeIMO.OfficeConversionDiagnosticCategory",
+    "OfficeIMO.OfficeConversionDiagnosticSeverity",
+    "OfficeIMO.OfficeConversionLossPolicy",
+    "OfficeIMO.OfficeConversionFailureReason.DataLossBlocked"
+  ],
+  "retain": [
+    "OfficeIMO.OfficeConversionLossKind: severity alone cannot represent informational loss or unassessed coverage",
+    "OfficeIMO.OfficeConversionException: migrate Report to OfficeConversionReport after old callers move",
+    "OfficeIMO.IOfficeResult and IOfficeResult<TValue>: non-conversion consumers require separate review",
+    "OfficeIMO.OfficeConversionFileConflictPolicy: file conflict policy is separate from loss policy",
+    "OfficeIMO.Core/Conversion/OfficeDiagnosticCollector.cs: internal bounded collection remains useful"
+  ],
+  "consumerReports": "Replace WordMarkdownConversionReport, PdfWordConversionReport, PdfExcelTableImportReport, PdfPowerPointConversionReport, PdfConversionReport and other typed conversion reports at their owning packages. Preserve location, severity and exact loss kind; richer compatibility dimensions and fallback artifacts need an explicit mapping, not silent discard.",
+  "lossControls": "OfficeConversionReport.HasLoss and ThrowIfLoss are public. Legacy RequireNoLoss and FidelityDiagnostics are explicit interface adapters only. FailOnLoss belongs on converter options in M2; Core performs no conversion itself."
+}
