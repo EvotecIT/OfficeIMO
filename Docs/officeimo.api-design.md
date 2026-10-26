@@ -100,7 +100,7 @@ A theme applies when a document is created. Loading or opening an existing docum
 - `OfficeConversionReport` is the single report type: source and target, output path, pages or items written, elapsed time, and a list of `OfficeDiagnostic`.
 - `OfficeDiagnostic` has `Code`, `Severity`, `Message`, `Location` and `Format`. Codes come from one catalog in Core, so a flattened 3-D chart is `chart-flattened` in Word, Excel and PowerPoint alike.
 - `report.HasLoss`, `report.ThrowIfLoss()`, `FailOnLoss` for conversions and `AllowLoss` for native saves are the only loss controls.
-- PowerShell errors use `FullyQualifiedErrorId` values of the form `{DiagnosticCode},{CommandName}`, so scripts can match the same codes the C# report carries.
+- PowerShell errors use the diagnostic code as the error ID, so `FullyQualifiedErrorId` starts with the same code the C# report carries; PowerShell appends the implementing cmdlet type after the comma, as it does for every binary cmdlet.
 
 ## C# rules
 
@@ -346,7 +346,7 @@ The same map drives three things:
 
 ### Platform support
 
-- PowerShell 7.6 and later (on .NET 10) is the primary target. PowerShell 7.4 reaches end of support in November 2026 along with .NET 8.
+- PowerShell 7.6 and later (on .NET 10) is the primary target: the module's PowerShell 7 payload is built for `net10.0`. PowerShell 7.4 and 7.5 reach end of support on 10 November 2026, along with .NET 8 and .NET 9. The manifest stays loadable on Windows PowerShell 5.1, and import checks the edition: PowerShell 7 hosts older than 7.6 get a clear error, and Windows PowerShell 5.1 loads its own `net472` payload.
 - The module loads its third-party dependencies (Open XML SDK, AngleSharp and others) in an isolated assembly load context, so they never clash with other modules. OfficeIMO's own assemblies load so that type names such as `[OfficeIMO.Word.WordDocument]` work in user scripts. M3 qualifies the exact mechanism.
 - Windows PowerShell 5.1 stays supported for the commands that work there. The manifest description and the README say what is missing on 5.1, and assembly resolution problems are reported through PowerShell's error stream, not the console.
 
