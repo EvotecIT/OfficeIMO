@@ -258,6 +258,7 @@ public sealed partial class HtmlRenderingTests {
         "<!DOCTYPE html><style>html,body{margin:0;padding:0;font-size:16px;line-height:20px;font-family:Arial}</style>" + body;
 
     private static HtmlRenderOptions TableGeometryOptions() => new() {
+        AllowSystemFontFallback = false,
         Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 600D,
         ViewportHeight = 300D,

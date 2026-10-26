@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(summaryHeight, Shape("td#summary").Height, 3);
         Assert.Equal(detailHeight, Shape("td#detail").Height, 3);
         Assert.Equal(200D, Shape("div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]

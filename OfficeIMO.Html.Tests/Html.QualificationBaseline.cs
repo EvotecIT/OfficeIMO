@@ -31,6 +31,8 @@ public sealed class HtmlQualificationBaselineTests {
         foreach (HtmlQualificationProfile profile in corpus.Manifest.Profiles) {
             var resolved = new HashSet<string>(StringComparer.Ordinal);
             var options = new HtmlRenderOptions {
+                DefaultFontFamily = "OfficeIMO Qualification",
+                AllowSystemFontFallback = false,
                 Mode = profile.Mode == "paged" ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,
                 ViewportWidth = profile.ViewportWidth,
                 ViewportHeight = profile.ViewportHeight,

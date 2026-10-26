@@ -61,6 +61,10 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("font-size:0")]
     [InlineData("opacity:0")]
     [InlineData("color:transparent")]
+    [InlineData("clip-path:circle(0)")]
+    [InlineData("clip-path:inset(60%)")]
+    [InlineData("position:absolute;clip:rect(0,20px,0,0)")]
+    [InlineData("position:absolute;clip:rect(0,0,20px,0)")]
     public void HtmlDefaultFontMetrics_NonPaintedRequestsDoNotInventEstimateLoss(string hiddenStyle) {
         string html = "<style>body,p{margin:0;font:16px Unselected}</style>"
             + "<p id='hidden' style='font-family:Unregistered;" + hiddenStyle + "'>HIDDEN</p><p>VISIBLE</p>";

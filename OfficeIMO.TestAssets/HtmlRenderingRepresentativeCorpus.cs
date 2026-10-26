@@ -228,14 +228,23 @@ internal sealed class HtmlRenderingCorpusCase {
             _ => 640D
         };
 
-    internal HtmlRenderOptions CreateOptions() => new HtmlRenderOptions {
-        Mode = Mode,
-        ViewportWidth = 640D,
-        PageSize = new OfficePageSize(8.27D, 11.69D),
-        Margins = HtmlRenderMargins.All(40D),
-        Scale = 0.5D,
-        BackgroundColor = OfficeColor.White,
-        UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
-        FidelityPolicy = RequireNoLoss ? HtmlRenderFidelityPolicy.RequireNoLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
-    };
+    internal HtmlRenderOptions CreateOptions() {
+        var options = new HtmlRenderOptions {
+            AllowSystemFontFallback = false,
+            Mode = Mode,
+            ViewportWidth = 640D,
+            PageSize = new OfficePageSize(8.27D, 11.69D),
+            Margins = HtmlRenderMargins.All(40D),
+            Scale = 0.5D,
+            BackgroundColor = OfficeColor.White,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            FidelityPolicy = RequireNoLoss ? HtmlRenderFidelityPolicy.RequireNoLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+        };
+        // The strict static corpus owns its font bytes; installed faces cannot
+        // decide whether its otherwise supported layout is lossless on a host.
+        if (RequireNoLoss) options.Fonts.Add("Arial",
+            OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+                System.Linq.Enumerable.Range(32, 224).ToArray()));
+        return options;
+    }
 }

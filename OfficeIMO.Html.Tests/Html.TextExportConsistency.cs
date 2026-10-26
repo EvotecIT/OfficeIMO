@@ -148,8 +148,10 @@ public class HtmlTextExportConsistencyTests {
     public void LetterSpacingKeepsGlyphPaintWidthSeparateFromAdvance() {
         const string html = "<p style='font-family:Arial;font-size:24px;letter-spacing:8px'>AB</p>";
         var source = HtmlConversionDocument.Parse(html);
+        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false };
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
         HtmlRenderDocument rendered = source.RenderToPdfResult(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf)).RenderResult.Document;
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options)).RenderResult.Document;
         HtmlRenderText[] runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
         foreach (var run in runs) _log.WriteLine($"{run.Text}: paint={run.TextPaintWidth} advance={run.TextAdvanceWidth}");
         Assert.Equal(2, runs.Length);
@@ -157,7 +159,7 @@ public class HtmlTextExportConsistencyTests {
         Assert.Equal(runs[0].X + runs[0].TextAdvanceWidth!.Value, runs[1].X, 3);
         // PDF-backed SVG carries painted glyph contours with logical labels.
         // Selectable <text> is not the export contract for retained face programs.
-        var xml = System.Xml.Linq.XDocument.Parse(source.ToSvg());
+        var xml = System.Xml.Linq.XDocument.Parse(source.ToSvg(options));
         var labels = xml.Descendants().Where(element => element.Attribute("aria-label") != null).ToArray();
         Assert.Equal(new[] { "A", "B" }, labels.Select(element => (string)element.Attribute("aria-label")!));
         Assert.All(labels, element => Assert.Contains(element.Descendants(), child =>

@@ -92,6 +92,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ChargeLayoutOperations(1L, "font metric attribution");
                 HtmlRenderVisual visual = pending.Pop();
                 if (visual is HtmlRenderEffectGroup { Opacity: 0D }) continue;
+                if (visual is HtmlRenderPathClipGroup { ClipPath.Kind: OfficeClipPathKind.Empty }) continue;
+                if (visual is HtmlRenderClipGroup clip
+                    && (clip.ClipHorizontal && clip.ClipWidth <= 0D
+                        || clip.ClipVertical && clip.ClipHeight <= 0D)) continue;
                 if (visual.PaintChildren is { } children) {
                     for (int index = children.Count - 1; index >= 0; index--) pending.Push(children[index]);
                 }

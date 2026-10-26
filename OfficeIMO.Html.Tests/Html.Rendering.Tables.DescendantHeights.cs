@@ -21,7 +21,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         Assert.Equal(first, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(second, Shape(rendered, "div#detail").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -38,7 +38,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(expected, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -52,7 +52,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(expected, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(following, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(240D, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         Assert.Equal(12D, Shape(rendered, "div#fill").Y, 3);
         Assert.Equal(176D, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(50D, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(50D, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -110,7 +110,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(200D, Shape(rendered, "span#fill").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -126,7 +126,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(120D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 3);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(20D, Shape(rendered, "span#fill").Height, 3);
         Assert.Equal(20D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(20D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 3);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(200D, Shape(rendered, "td#cell::before").Height, 3);
         Assert.Equal(new[] { "Paid", "Following" }, Text(rendered).OrderBy(x => x.LogicalTextOrder).Select(x => x.Text));
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(expected, Shape(rendered, "div#fill").Height, 3);
         Assert.Equal(expected, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
 
         Assert.Equal(120D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 3);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         Assert.Equal(120D, Shape(rendered, "div#detail").Height, 3);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
         Assert.Equal(new[] { "A", "B", "C", "D", "Due", "Following" }, Text(rendered).Select(x => x.Text));
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -283,7 +283,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         HtmlRenderDocument rendered = Render("<table style='height:200px'><tr><td><div id='fill' style='display:flex;" + sizing + ";background:lime'>Paid</div></td></tr></table>" + Following);
 
         Assert.Equal(20D, Shape(rendered, "div#fill").Height, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -311,7 +311,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
     public void IndefiniteOrIneffectiveRowGroupPercentagesDoNotReportHeightLoss(string sizing) {
         HtmlRenderDocument rendered = Render("<table style='height:200px'><tbody style='" + sizing + "'><tr><td>Paid</td></tr></tbody></table>" + Following);
 
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         HtmlRenderDocument rendered = Render("<table><tbody style='height:25%'><tr><td>Paid</td></tr></tbody></table>" + Following);
 
         Assert.Equal(20D, Shape(rendered, "div#following").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -367,7 +367,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
             }
         }
         options.MaxLayoutOperations = lower;
-        Execute("20px").RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(Execute("20px"));
         HtmlDomLimitException limit = Assert.Throws<HtmlDomLimitException>(() => Execute("100%"));
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), limit.LimitSource);
     }
@@ -413,7 +413,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
     private const string Pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
     private const string Following = "<div id='following' style='height:20px;background:red'>Following</div>";
     private static string Source(string html) => "<!doctype html><style>html,body{margin:0;padding:0;font:16px/20px Arial}table{margin:0;width:240px;border-spacing:0;table-layout:fixed}td{padding:0;vertical-align:top}</style>" + html;
-    private static HtmlRenderOptions Options() => new() { ViewportWidth = 600, ViewportHeight = 300, PageSize = new OfficePageSize(600D / 96D, 300D / 96D), Margins = HtmlRenderMargins.All(0), UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
+    private static HtmlRenderOptions Options() => new() { AllowSystemFontFallback = false, ViewportWidth = 600, ViewportHeight = 300, PageSize = new OfficePageSize(600D / 96D, 300D / 96D), Margins = HtmlRenderMargins.All(0), UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
     private static HtmlRenderDocument Render(string html, HtmlRenderIntentProfile profile = HtmlRenderIntentProfile.PrintPaged) => HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(Source(html)), HtmlRenderRequest.Create(profile, options: Options())).Document;
     private static IEnumerable<HtmlRenderVisual> Visuals(HtmlRenderDocument rendered) => rendered.Pages.SelectMany(page => Enumerate(page.Scene));
     private static IEnumerable<HtmlRenderVisual> Enumerate(IEnumerable<HtmlRenderVisual> visuals) {

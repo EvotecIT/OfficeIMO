@@ -86,6 +86,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlDefaultFont_RejectedRetentionReportsItsOwnApproximation() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
+        var options = new HtmlToPdfOptions {
+            FontFamily = new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data),
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            MaxResourceBytes = 1
+        };
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+            HtmlConversionDocument.Parse("<p style='font:20px Arial'>A</p>"), options);
+
+        HtmlDiagnostic rejected = Assert.Single(rendered.Diagnostics,
+            item => item.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
+        Assert.Equal(OfficeConversionLossKind.Approximation, rejected.LossKind);
+        Assert.Empty(rendered.Fonts.Faces);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
     public void HtmlDefaultFont_RegularOnlyStandardRegistrationKeepsSynthesizedItalicPaint() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
         var options = new HtmlToPdfOptions {

@@ -585,7 +585,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("PolygonMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("CollinearMarker", pdfText, StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,0 0,0 0))"));
-        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
+        Assert.Empty(rendered.Diagnostics);
+        rendered.RequireNoLoss();
     }
 
     [Fact]
