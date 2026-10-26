@@ -20,6 +20,11 @@
     <ProjectReference Include="..\PSWriteOffice\PSWriteOffice.csproj" />
   </ItemGroup>
 
+  <!-- Downloaded only for the isolated PowerShell conflict test; never referenced or copied to product output. -->
+  <ItemGroup>
+    <PackageDownload Include="DocumentFormat.OpenXml" Version="[3.1.1]" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
