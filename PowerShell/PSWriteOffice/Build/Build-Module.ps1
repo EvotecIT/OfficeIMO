@@ -57,6 +57,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         LicenseUri             = 'https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE'
 
         DotNetFrameworkVersion = '4.7.2'
+        FormatsToProcess       = @('PSWriteOffice.Format.ps1xml')
     }
     New-ConfigurationManifest @Manifest
 
@@ -126,6 +127,8 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         NETHandleAssemblyWithSameName     = $true
         NETProjectPath                    = 'Sources\PSWriteOffice\PSWriteOffice.csproj'
         NETAssemblyLoadContext            = $true
+        NETAssemblyTypeAcceleratorMode    = 'Assembly'
+        NETAssemblyTypeAcceleratorAssemblies = @('OfficeIMO.Core', 'OfficeIMO.Word', 'OfficeIMO.Excel', 'OfficeIMO.PowerPoint', 'OfficeIMO.Pdf')
         NETDevelopmentBinaries            = $true
         NETDevelopmentBinariesMode        = 'Auto'
         NETDevelopmentSourceBootstrapperMode = 'ReplaceSingleFile'
