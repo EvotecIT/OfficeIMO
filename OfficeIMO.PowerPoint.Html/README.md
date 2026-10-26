@@ -61,6 +61,16 @@ options.IncludeExtractionProof = false;
 PowerPointToHtmlResult result = presentation.ToHtmlResult(options);
 ```
 
+Each visual-review slide embeds an SVG snapshot whose text is measured and drawn with installed platform fonts. Set `Fonts` to supply TrueType faces that take precedence, so the snapshot does not depend on the fonts installed on the machine. It is null by default, which keeps platform font resolution.
+
+```csharp
+var options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+options.Fonts = new OfficeFontFaceCollection()
+    .Add("Calibri", File.ReadAllBytes("Fonts/Calibri.ttf"))
+    .Add("Calibri", File.ReadAllBytes("Fonts/Calibri-Bold.ttf"), OfficeFontStyle.Bold);
+string html = presentation.ToHtml(options);
+```
+
 ## Targets
 
 `netstandard2.0`, `net8.0`, and `net10.0`; `net472` is included when building on Windows.
