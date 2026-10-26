@@ -2,6 +2,32 @@ using System;
 
 namespace OfficeIMO;
 
+/// <summary>A converted value and its report, returned together by asynchronous conversions.</summary>
+/// <typeparam name="T">The target document, text, artifact or other converted value.</typeparam>
+public sealed class OfficeConversionResult<T> {
+    /// <summary>Creates a result containing a non-null converted value and its report.</summary>
+    public OfficeConversionResult(T value, OfficeConversionReport report) {
+        if (value is null) throw new ArgumentNullException(nameof(value));
+        Value = value;
+        Report = report ?? throw new ArgumentNullException(nameof(report));
+    }
+
+    /// <summary>Gets the converted value.</summary>
+    public T Value { get; }
+
+    /// <summary>Gets the conversion report.</summary>
+    public OfficeConversionReport Report { get; }
+
+    /// <summary>Gets whether the report describes possible fidelity loss.</summary>
+    public bool HasLoss => Report.HasLoss;
+
+    /// <summary>Deconstructs the result into its converted value and report.</summary>
+    public void Deconstruct(out T value, out OfficeConversionReport report) {
+        value = Value;
+        report = Report;
+    }
+}
+
 /// <summary>Describes whether an OfficeIMO operation completed successfully.</summary>
 public interface IOfficeResult {
     /// <summary>Gets whether the operation completed successfully.</summary>

@@ -5,6 +5,84 @@
 
 `OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
 
+## Lengths, colors and themes
+
+`OfficeLength` stores whole EMUs and makes units explicit. Parsing and formatting
+use invariant culture; a bare number means points. Fractional EMUs round to the
+nearest whole EMU, with midpoint ties away from zero. Arithmetic throws on
+overflow. `ToString()` displays points with up to four decimals and no trailing
+zeros. Unit formats (`pt`, `cm`, `mm`, `in`, `px`) use the same display precision;
+`emu` preserves the exact whole-EMU value for parsing back without loss.
+`ToTwips()` and `ToHalfPoints()` perform coarser rounding when writing a
+format; they do not change the stored length.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+
+OfficeLength width = OfficeLength.Parse("2.5cm");
+OfficeLength padding = OfficeLength.Points(6);
+OfficeLength total = width + padding * 2;
+string display = total.ToString();            // "82.8661pt"
+string exact = total.ToString("emu");         // "1052400emu", exact round trip
+string centimeters = total.ToString("cm");    // "2.9233cm"
+
+OfficeTheme theme = OfficeTheme.Modern.WithPalette(
+    OfficeTheme.Modern.Palette.With(accent1: OfficeColor.Parse("#3458A4")));
+OfficeColor accent = OfficeColor.Parse("Accent1");
+OfficeColor rgb = accent.Resolve(theme);
+```
+
+`OfficeColor` keeps literal RGBA colors and semantic roles in the same value type.
+`Accent1` through `Accent6`, `Text`, `TextMuted` and `Background` expose native theme
+slot identities through `ThemeSlot`. `Success`, `Warning` and `Danger` have no
+native slot and resolve to literal palette colors. Keep a role intact when writing
+native theme references; call `Resolve(theme)` before reading RGBA channels or
+formatting a literal hexadecimal/CSS color. `ToString()` preserves a role name.
+Palette entries must be literal, preventing circular role references.
+
+`OfficeTheme.Default` is `Modern`. `Classic`, `Minimal`, `Boardroom` and `Dark` are
+also available. A theme contains `Palette`, `Fonts`, `TypeScale`, `TableStyle`,
+`ChartStyle` and `Spacing`. Top-level `WithPalette`, `WithFonts`, `WithTypeScale`,
+`WithTableStyle`, `WithChartStyle` and `WithSpacing` methods return customized
+copies. Each component has a `With(...)` method with optional named replacements.
+All components are immutable, and fallback-font and series-color lists are copied.
+Core describes the identity; document packages apply it to their own formats.
+
+`OfficeChartType` includes the existing flat renderer families and native 3-D,
+stock, surface and modern chart families. `Column` and `Bar` mean clustered
+columns and bars. `OfficeAlignment` describes shared horizontal alignment,
+including direction-dependent `Start` and `End`. `OfficeImageFormat` and
+`OfficePageOrientation` retain their existing Core definitions. A format's
+supported subset remains part of that format's contract.
+
+## Conversion diagnostics
+
+`OfficeConversionReport` records a completed conversion's `Source`, `Target`,
+optional `OutputPath`, `ItemsWritten`, `Elapsed` and immutable `Diagnostics`.
+Unreadable input, invalid arguments and I/O failures throw from converters.
+`HasLoss` includes approximation, omission and unassessed fidelity; call
+`ThrowIfLoss()` when the application requires conversion without reported loss.
+The resulting `OfficeConversionException` carries the report.
+
+`OfficeConversionResult<T>` carries a converted `Value` together with its
+`OfficeConversionReport` for asynchronous conversions. `HasLoss` reads the
+report's loss state, and deconstruction exposes both values:
+
+```csharp
+var report = new OfficeConversionReport("Word", "Text");
+var result = new OfficeConversionResult<string>("Converted text", report);
+var (text, conversionReport) = result;
+conversionReport.ThrowIfLoss();
+```
+
+Each `OfficeDiagnostic` has a stable `Code`, `Severity`, `Message`, optional
+`Location` and `Format`, and a separate `LossKind`. Severity alone does not establish
+loss: a warning may require review without losing content, and an informational
+finding may describe content that was not preserved. `OfficeDiagnosticCodes` is
+the shared code catalog. For example, `OfficeDiagnosticCodes.ChartFlattened` is
+`chart-flattened` across formats.
+
 ## Bounded embedded payload reads
 
 Native document owners create `OfficeEmbeddedPayloadInspection` sessions through
