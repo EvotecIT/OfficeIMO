@@ -1,5 +1,7 @@
 import { ExportCell, checkAbort, inputRows } from "../../core/index.js";
 import type { CellPresentation, ExportValue } from "../../core/index.js";
+import { canopyPivot, pivotNumberFormat } from "./pivot.js";
+import type { CanopyPivotMapping } from "./pivot.js";
 import { datetime } from "./dates.js";
 import { captureFields } from "../../internal/capture.js";
 import { copyColumns } from "../../internal/rows.js";
@@ -20,12 +22,14 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
   readonly source: CanopyExport;
   readonly request: CanopyCapture["request"];
   readonly report: (diagnostic: CanopyDiagnostic) => void;
+  readonly pivot: CanopyPivotMapping | undefined;
   readonly tones: ReadonlyMap<string, Readonly<CellPresentation>>;
 } {
   options = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "signal", "onDiagnostic"]);
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
   if (!capture || typeof capture.rows !== "function" || !capture.request) throw new TypeError("A portable CanopyX capture with request and rows() is required.");
-  const request = captureFields(capture.request, ["columns", "recordCount", "values", "presentation", "timeZone", "revision", "scope", "total", "matched", "selection", "query", "generatedAt", "grouping", "formatRules"]);
+  const request = captureFields(capture.request, ["columns", "recordCount", "values", "presentation", "timeZone", "revision", "scope", "total", "matched", "selection", "query", "generatedAt", "grouping", "pivot", "formatRules"]);
+  const pivot = canopyPivot(request);
   const signal = options.signal, values = request.values;
   if (!Array.isArray(request.columns) || !request.columns.length || (request.recordCount !== null && (!Number.isSafeInteger(request.recordCount) || request.recordCount < 0)) ||
     (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
@@ -52,7 +56,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     return style;
   };
   const ids = new Set<string>();
-  const specs = request.columns.map(input => {
+  const specs = (pivot?.columns ?? request.columns).map(input => {
     const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
     const column = Object.freeze({ ...fields,
       ...(fields.width === undefined ? {} : { width: Object.freeze(captureFields(fields.width, ["unit", "preferred", "minimum", "maximum"])) }),
@@ -63,7 +67,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
       (column.width !== undefined && (column.width.unit !== "css-px" || !Number.isFinite(column.width.preferred) ||
         !Number.isFinite(column.width.minimum) || column.width.minimum <= 0 || column.width.preferred < column.width.minimum ||
         column.width.maximum !== undefined && (!Number.isFinite(column.width.maximum) || column.width.maximum < column.width.preferred))) ||
-      (request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
+      (!pivot && request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
       throw new TypeError("Invalid or duplicate Canopy export column.");
     ids.add(column.id); diagnostics(column.diagnostics, undefined, column.id);
     const selected: NonNullable<CanopySourceOptions["columnOptions"]>[string] = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
@@ -78,7 +82,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
       ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
       ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
       ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
-    return Object.freeze({ id: column.id, kind: column.kind, input: column, column: Object.freeze(captured!) });
+    return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
   const source: CanopyExport = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
@@ -86,6 +90,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
       checkAbort(signal);
       if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object") throw new TypeError("Invalid Canopy export record.");
+      pivot?.observe(row);
       diagnostics(row.diagnostics, row.id);
       const rowStyle = tone(row.tone, row.id), result: ExportValue[] = [];
       for (const spec of specs) {
@@ -98,7 +103,10 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         diagnostics(cell.diagnostics, row.id, spec.id);
         let value: import("../../core/index.js").CellValue = values === "display" ? cell.text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
-        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle ? { ...rowStyle, ...cellStyle } : undefined;
+        const capturedFormat = pivot && spec.kind === "number" ? pivotNumberFormat(cell) : undefined;
+        const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride ?? capturedFormat;
+        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
+          ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
         result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
@@ -108,5 +116,5 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     }
     if (rowCount !== null && count !== rowCount) throw new TypeError("Canopy capture did not produce its declared recordCount.");
   } });
-  return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones });
+  return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }

@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## JavaScript CanopyX pivot captures
+
+Pass explicit frozen `request.pivot` captures through the optional CanopyX export entry point. They retain their own precomputed numeric values, formats and row/column outlines. Do not supply ordinary grouping metadata, replacement outline callbacks, an Excel table or a recalculating footer for the same pivot. PDF/CSV preserve the complete static projection and report `PIVOT_OUTLINES_XLSX_ONLY`; XLSX retains the interactive outlines with summaries above and left of details. Ordinary record/grouped exports keep their existing behavior.
+
 ## Reading running text from RTF-generated PDFs
 
 RTF PDF headers and footers use rich running content and are marked as PDF
