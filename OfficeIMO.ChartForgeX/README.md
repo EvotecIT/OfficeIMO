@@ -2,7 +2,7 @@
 
 `OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer, and for projecting supported diagram semantics into native editable Visio. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
-The bridge uses ChartForgeX 2.0. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` only in applications that produce stories or animation. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
+The bridge uses ChartForgeX 3.1. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` when composing stories or animation scenes; GIF and APNG encoding is available in the ChartForgeX core package. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
