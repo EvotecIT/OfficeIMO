@@ -10,7 +10,10 @@
 `OfficeLength` stores whole EMUs and makes units explicit. Parsing and formatting
 use invariant culture; a bare number means points. Fractional EMUs round to the
 nearest whole EMU, with midpoint ties away from zero. Arithmetic throws on
-overflow. `ToTwips()` and `ToHalfPoints()` perform coarser rounding when writing a
+overflow. `ToString()` displays points with up to four decimals and no trailing
+zeros. Unit formats (`pt`, `cm`, `mm`, `in`, `px`) use the same display precision;
+`emu` preserves the exact whole-EMU value for parsing back without loss.
+`ToTwips()` and `ToHalfPoints()` perform coarser rounding when writing a
 format; they do not change the stored length.
 
 ```csharp
@@ -20,8 +23,9 @@ using OfficeIMO.Drawing;
 OfficeLength width = OfficeLength.Parse("2.5cm");
 OfficeLength padding = OfficeLength.Points(6);
 OfficeLength total = width + padding * 2;
-string exact = total.ToString();              // whole EMUs, exact round trip
-string centimeters = total.ToString("cm", null);
+string display = total.ToString();            // "82.8661pt"
+string exact = total.ToString("emu");         // "1052400emu", exact round trip
+string centimeters = total.ToString("cm");    // "2.9233cm"
 
 OfficeTheme theme = OfficeTheme.Modern.WithPalette(
     OfficeTheme.Modern.Palette.With(accent1: OfficeColor.Parse("#3458A4")));
@@ -60,6 +64,17 @@ Unreadable input, invalid arguments and I/O failures throw from converters.
 `HasLoss` includes approximation, omission and unassessed fidelity; call
 `ThrowIfLoss()` when the application requires conversion without reported loss.
 The resulting `OfficeConversionException` carries the report.
+
+`OfficeConversionResult<T>` carries a converted `Value` together with its
+`OfficeConversionReport` for asynchronous conversions. `HasLoss` reads the
+report's loss state, and deconstruction exposes both values:
+
+```csharp
+var report = new OfficeConversionReport("Word", "Text");
+var result = new OfficeConversionResult<string>("Converted text", report);
+var (text, conversionReport) = result;
+conversionReport.ThrowIfLoss();
+```
 
 Each `OfficeDiagnostic` has a stable `Code`, `Severity`, `Message`, optional
 `Location` and `Format`, and a separate `LossKind`. Severity alone does not establish

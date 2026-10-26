@@ -1,5 +1,15 @@
 {
   "milestone": "M2",
+  "namespaceMigration": [
+    {
+      "from": "OfficeIMO.Drawing.OfficeColor",
+      "target": "OfficeIMO.OfficeColor"
+    },
+    {
+      "from": "OfficeIMO.Drawing.OfficeColorRole",
+      "target": "OfficeIMO.OfficeColorRole"
+    }
+  ],
   "sharedEnums": [
     {
       "target": "OfficeIMO.OfficeChartType",
@@ -59,6 +69,7 @@
     "OfficeIMO.OfficeConversionFailureReason.DataLossBlocked"
   ],
   "retain": [
+    "OfficeIMO.OfficeConversionResult<T>: sealed async conversion result with Value and OfficeConversionReport; replace the result with two type parameters and its conversion interface after callers migrate",
     "OfficeIMO.OfficeConversionLossKind: severity alone cannot represent informational loss or unassessed coverage",
     "OfficeIMO.OfficeConversionException: migrate Report to OfficeConversionReport after old callers move",
     "OfficeIMO.IOfficeResult and IOfficeResult<TValue>: non-conversion consumers require separate review",

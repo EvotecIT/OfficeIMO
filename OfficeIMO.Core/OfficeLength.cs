@@ -62,14 +62,26 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
         } catch (OverflowException) { return false; }
     }
 
-    /// <summary>Formats exactly as whole EMUs for an invariant round trip.</summary>
+    /// <summary>Formats in invariant points with up to four decimal places and no trailing zeros.</summary>
     public override string ToString() => ToString(null, CultureInfo.InvariantCulture);
-    /// <summary>Formats using a unit token (pt, cm, mm, in, px, emu), or G for exact EMUs. Output is always invariant.</summary>
-    /// <remarks>The provider is intentionally ignored so the result remains valid input to <see cref="Parse"/>.</remarks>
+    /// <summary>Formats in the requested unit, using points when the format is empty or G.</summary>
+    /// <remarks>Use emu for an exact round trip; other units display up to four decimal places.</remarks>
+    public string ToString(string? format) => ToString(format, CultureInfo.InvariantCulture);
+    /// <summary>Formats using pt, cm, mm, in, px or emu. An empty format or G means points.</summary>
+    /// <remarks>
+    /// Output is invariant regardless of the provider. Physical units round to four decimal places,
+    /// with midpoint ties away from zero and trailing zeros trimmed. At the EMU limits, rounding
+    /// stays within the parseable range. Use emu for an exact whole-EMU round trip.
+    /// </remarks>
     public string ToString(string? format, IFormatProvider? formatProvider) {
-        string unit = string.IsNullOrEmpty(format) || string.Equals(format, "G", StringComparison.OrdinalIgnoreCase) ? "emu" : format!.ToLowerInvariant();
+        string unit = string.IsNullOrEmpty(format) || string.Equals(format, "G", StringComparison.OrdinalIgnoreCase) ? "pt" : format!.ToLowerInvariant();
         decimal factor = Factor(unit);
-        return (_emus / factor).ToString("G29", CultureInfo.InvariantCulture) + unit;
+        if (unit == "emu") return _emus.ToString(CultureInfo.InvariantCulture) + unit;
+        decimal rounded = decimal.Round(_emus / factor, 4, MidpointRounding.AwayFromZero);
+        decimal parsedEmus = decimal.Round(rounded * factor, 0, MidpointRounding.AwayFromZero);
+        if (parsedEmus > long.MaxValue) rounded -= 0.0001m;
+        else if (parsedEmus < long.MinValue) rounded += 0.0001m;
+        return rounded.ToString("0.####", CultureInfo.InvariantCulture) + unit;
     }
 
     /// <inheritdoc />

@@ -9,7 +9,7 @@ public class OfficeLengthTests {
     [InlineData("en-US")]
     [InlineData("pl-PL")]
     [InlineData("de-DE")]
-    public void InvariantParsingAndFormattingRoundTripAcrossCultures(string cultureName) {
+    public void InvariantDisplaysParseAndEmusRoundTripAcrossCultures(string cultureName) {
         CultureInfo saved = CultureInfo.CurrentCulture;
         CultureInfo savedUi = CultureInfo.CurrentUICulture;
         try {
@@ -17,12 +17,20 @@ public class OfficeLengthTests {
             CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = culture;
             Assert.Equal(OfficeLength.Centimeters(2.5), OfficeLength.Parse("2.5cm"));
             Assert.Equal(OfficeLength.Points(12.5), OfficeLength.Parse("12.5"));
-            foreach (long emus in new[] { 0L, 1L, -1L, 914400L, long.MaxValue, long.MinValue }) {
+            Assert.Equal("12pt", OfficeLength.Points(12).ToString());
+            Assert.Equal("70.8661pt", OfficeLength.Centimeters(2.5).ToString());
+            Assert.Equal("70.8661pt", ((IFormattable)OfficeLength.Centimeters(2.5)).ToString(null, culture));
+            foreach (long emus in new[] { 0L, 1L, -1L, 900000L, 914400L, long.MaxValue, long.MinValue }) {
                 OfficeLength value = OfficeLength.Emus(emus);
+                Assert.Equal(value.ToString("pt"), value.ToString());
+                Assert.Equal(value, OfficeLength.Parse(value.ToString("emu")));
                 foreach (string unit in new[] { "G", "pt", "cm", "mm", "in", "px", "emu" }) {
                     string formatted = value.ToString(unit, culture);
                     Assert.DoesNotContain(",", formatted);
-                    Assert.Equal(value, OfficeLength.Parse(formatted));
+                    Assert.Equal(value.ToString(unit), formatted);
+                    Assert.True(OfficeLength.TryParse(formatted, out OfficeLength parsed));
+                    Assert.Equal(parsed, OfficeLength.Parse(formatted));
+                    if (unit == "emu") Assert.Equal(value, parsed);
                 }
             }
             Assert.False(OfficeLength.TryParse("2,5cm", out _));
@@ -31,6 +39,29 @@ public class OfficeLengthTests {
             CultureInfo.CurrentUICulture = savedUi;
         }
     }
+
+    [Theory]
+    [InlineData(null, "70.8661pt")]
+    [InlineData("", "70.8661pt")]
+    [InlineData("G", "70.8661pt")]
+    [InlineData("pt", "70.8661pt")]
+    [InlineData("PT", "70.8661pt")]
+    [InlineData("cm", "2.5cm")]
+    [InlineData("mm", "25mm")]
+    [InlineData("in", "0.9843in")]
+    [InlineData("px", "94.4882px")]
+    [InlineData("emu", "900000emu")]
+    public void UnitFormatsRoundForDisplayAndTrimTrailingZeros(string? format, string expected) {
+        Assert.Equal(expected, OfficeLength.Centimeters(2.5).ToString(format));
+        Assert.Equal("-" + expected, OfficeLength.Centimeters(-2.5).ToString(format));
+        Assert.True(OfficeLength.TryParse(expected, out _));
+    }
+
+    [Theory]
+    [InlineData(9, "0.0003mm")]
+    [InlineData(-9, "-0.0003mm")]
+    public void DisplayMidpointsRoundAwayFromZero(long emus, string expected) =>
+        Assert.Equal(expected, OfficeLength.Emus(emus).ToString("mm"));
 
     [Fact]
     public void PhysicalUnitRelationshipsAreExact() {
@@ -117,6 +148,6 @@ public class OfficeLengthTests {
         OfficeLength value = OfficeLength.Points(points);
         Assert.Equal(twips, value.ToTwips());
         Assert.Equal(halfPoints, value.ToHalfPoints());
-        Assert.Equal(value, OfficeLength.Parse(value.ToString()));
+        Assert.Equal(value, OfficeLength.Parse(value.ToString("emu")));
     }
 }
