@@ -6,6 +6,21 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
 
+## Unified public API
+
+OfficeIMO 3.6 and PSWriteOffice 3.6 adopt one public API across C# and PowerShell: shared lengths, colors, themes and conversion reports; one lifecycle and conversion grammar per format; format packages without other format engines; consolidated, parameter-set-based cmdlets with one alias rule; and themed output by default. The [API design](officeimo.api-design.md) defines the rules. Milestones merge into the `feature/api-unification` branch, which reaches `master` as one pull request.
+
+- [ ] M0 Contract: the design, generated inventories of today's C# and PowerShell API, and the machine-readable old-to-new command and type map that drives `MIGRATION.md`, the replacement test and removed-command hints.
+- [ ] M1 Foundations: `OfficeLength`, `OfficeColor` roles, `OfficeTheme`, shared `Office*` enums and options, the diagnostic catalog and `OfficeConversionReport`. Depends on M0.
+- [ ] M2 C# Tier 1: lifecycle including PDF, options naming, `Add*` returns and typed tables and charts, units, the three conversion forms, `OfficeConverter`, fluent API removal, the Excel streaming writer, visibility cleanup, adapter packages without cross-engine dependencies, the `OfficeIMO` front-door package, `netstandard2.0`/`net10.0` targets and AOT flags. Depends on M1.
+- [ ] M3 PowerShell foundations: shared base classes for paths, documents, lengths, colors, passwords, themes, switches and `-WhatIf` scope; format views; alias rules and their tests; assembly isolation on PowerShell 7.6. Depends on M1.
+- [ ] M4 Cross-format commands: `Convert`, `Read`, `Search`, `Get-…Info`, `Export-…Image`, `Test`/`Repair`, `Protect`/`Unprotect`, `Compare`/`Merge`/`Split`, and the PDF transform commands. Depends on M2 and M3.
+- [ ] M5 Format commands: consolidation and the shared DSL for Excel, Word, PDF, PowerPoint and Markdown, then Tier 2; invoice removal. Depends on M2 and M3.
+- [ ] M6 Visual quality: built-in themes, PowerPoint layouts with automatic selection and overflow handling, `Export-OfficePowerPoint` from data, Markdown outlines to decks, Word, Excel and PDF defaults, chart styling and visual acceptance. Depends on M1, then runs alongside M5.
+- [ ] M7 Scale: streaming export, parallel and resumable batches, measured runs. Depends on M4.
+- [ ] M8 Documentation: root and package READMEs with a quick start on the first screen, getting-started guides, help with executed examples, `about_` topics, the 3.6 migration section generated from the map, and the website. Depends on M5.
+- [ ] M9 Console experience: optional ConsoleMonster integration. Depends on M5.
+
 ## VBA host integration
 
 - [ ] Extend [Access VBA persistence](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to create qualified form/report code-behind and author inert event bindings, with native Access/VBE and unrelated-designer preservation proof.
