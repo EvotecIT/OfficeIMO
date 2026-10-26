@@ -1,0 +1,862 @@
+{
+  "package": "OfficeIMO.Markdown",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 61,
+    "byAction": {
+      "change": 14,
+      "merge": 16,
+      "move": 1,
+      "remove": 3,
+      "rename": 27
+    },
+    "byCategory": {
+      "lifecycle": 27,
+      "naming": 30,
+      "options": 4
+    },
+    "packageMoves": 1
+  },
+  "lifecycle": [
+    {
+      "member": "MarkdownDoc()",
+      "verdict": "remove"
+    },
+    {
+      "member": "static MarkdownDoc Create()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "MarkdownDoc TableFrom(object data)",
+      "verdict": "merge"
+    },
+    {
+      "member": "MarkdownDoc TableFromAuto(object data, Action<TableFromOptions> configure = null, bool alignNumeric = True, bool alignDates = True)",
+      "verdict": "merge"
+    },
+    {
+      "member": "MarkdownDoc TableFrom<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
+      "verdict": "merge"
+    },
+    {
+      "member": "string ToHtmlFragment(HtmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "string ToHtmlFragmentWithCss(HtmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "string ToHtmlDocument(HtmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "HtmlRenderParts ToHtmlParts(HtmlOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "void SaveAsHtml(string path, HtmlOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task SaveAsHtmlAsync(string path, HtmlOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static MarkdownDoc Parse(string markdown, MarkdownReaderOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static MarkdownParseResult ParseResult(string markdown, MarkdownReaderOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static MarkdownDoc Load(string path, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static MarkdownDoc Load(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static MarkdownParseResult LoadResult(string path, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static MarkdownParseResult LoadResult(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<MarkdownDoc> LoadAsync(string path, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static Task<MarkdownDoc> LoadAsync(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static Task<MarkdownParseResult> LoadResultAsync(string path, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<MarkdownParseResult> LoadResultAsync(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "byte[] ToBytes(MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "byte[] ToBytes(MarkdownWriteOptions options, Encoding encoding, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "MemoryStream ToStream(MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "verdict": "remove"
+    },
+    {
+      "member": "void Save(string path, MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "void Save(Stream stream, MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task SaveAsync(string path, MarkdownWriteOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task SaveAsync(Stream stream, MarkdownWriteOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "string ToMarkdown()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "string ToMarkdown(MarkdownWriteOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "string ToMarkdown(MarkdownWriteOptions options, CancellationToken cancellationToken)",
+      "verdict": "conforms"
+    }
+  ],
+  "naming": {
+    "unprefixedTypes": 104,
+    "astTypesLeftForDecision": [
+      "AbbreviationInline",
+      "BoldInline",
+      "BoldItalicInline",
+      "BoldItalicSequenceInline",
+      "BoldSequenceInline",
+      "CalloutBlock",
+      "CodeBlock",
+      "CodeSpanInline",
+      "CustomContainerBlock",
+      "DefinitionListBlock",
+      "DetailsBlock",
+      "FootnoteDefinitionBlock",
+      "FootnoteRefInline",
+      "FrontMatterBlock",
+      "HardBreakInline",
+      "HeadingBlock",
+      "HighlightInline",
+      "HighlightSequenceInline",
+      "HorizontalRuleBlock",
+      "HtmlCommentBlock",
+      "HtmlRawBlock",
+      "HtmlRawInline",
+      "HtmlTagSequenceInline",
+      "IContextualHtmlMarkdownBlock",
+      "IContextualHtmlMarkdownInline",
+      "IInlineContainerMarkdownInline",
+      "ILiteralTextMarkdownInline",
+      "IPlainTextMarkdownInline",
+      "IRenderableMarkdownInline",
+      "ISyntaxMarkdownBlock",
+      "ISyntaxMarkdownInline",
+      "ImageBlock",
+      "ImageInline",
+      "ImageLinkInline",
+      "InsertedInline",
+      "InsertedSequenceInline",
+      "ItalicInline",
+      "ItalicSequenceInline",
+      "LinkInline",
+      "OrderedListBlock",
+      "ParagraphBlock",
+      "QuoteBlock",
+      "SemanticFencedBlock",
+      "SoftBreakInline",
+      "StrikethroughInline",
+      "StrikethroughSequenceInline",
+      "SubscriptInline",
+      "SubscriptSequenceInline",
+      "SummaryBlock",
+      "SuperscriptInline",
+      "SuperscriptSequenceInline",
+      "TableBlock",
+      "TocBlock",
+      "TocMarkerBlock",
+      "UnderlineInline",
+      "UnorderedListBlock"
+    ],
+    "notes": "Prefixing every AST node (ParagraphBlock -> MarkdownParagraphBlock, BoldInline -> MarkdownBoldInline) is ~70 more renames for little user value; recommend an explicit exception for *Block/*Inline AST nodes in OfficeIMO.Markdown."
+  },
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.Markdown.MarkdownNative* (MarkdownNativeDocument and ~45 *Snapshot/*Field types)",
+      "file": "OfficeIMO.Markdown/Native/",
+      "why": "Native-renderer interchange model; consumed by OfficeIMO.MarkdownRenderer (+IntelligenceX). Keep public only if it is a documented renderer contract, else InternalsVisibleTo."
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownIntelligenceX* transforms",
+      "why": "Product-specific (IntelligenceX) transforms in the core Markdown package."
+    },
+    {
+      "type": "OfficeIMO.Markdown.HtmlAssetMerger / HtmlAsset / HtmlAssetKind / CssDelivery / AssetMode",
+      "why": "HTML rendering plumbing exposed publicly without the Markdown prefix."
+    }
+  ],
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and net472. Four NET8_0_OR_GREATER conditions stay valid; no NETFRAMEWORK branches."
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": []
+  },
+  "openQuestions": [
+    "Prefix the ~70 AST node types (*Block/*Inline) or record an exception.",
+    "MarkdownDocument and IDisposable.",
+    "Markdown->HTML rendering stays in OfficeIMO.Markdown (string renderer, no engine) - record as an explicit exception to \"conversions live in adapters\".",
+    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownDocument",
+      "reason": "The Markdown model is MarkdownDocument, loaded with Load or Parse like every other format.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs, OfficeIMO.Markdown/Core/MarkdownDoc.ObjectTreeBinding.cs, OfficeIMO.Markdown/Core/MarkdownDoc.Writing.cs (+1 partial files)",
+      "category": "naming",
+      "notes": "Referenced in 281 .cs files (165 outside tests) across the repository. Also (lifecycle): change -> OfficeIMO.Markdown.MarkdownDocument : IDisposable (no-op) - or a documented exception"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc()",
+      "kind": "constructor",
+      "action": "remove",
+      "new": null,
+      "replacement": "OfficeIMO.Markdown.MarkdownDocument.Create()",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Two ways to create; Create() exists."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.TableFrom(object data)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : TableBlock",
+      "reason": "Typed data in, styled output out, the same in every format.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "TableFromOptions merges into the shared table options."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.TableFromAuto(object data, Action<TableFromOptions> configure = null, bool alignNumeric = True, bool alignDates = True)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : TableBlock",
+      "reason": "Typed data in, styled output out, the same in every format.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "TableFromOptions merges into the shared table options."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.TableFrom<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : TableBlock",
+      "reason": "Typed data in, styled output out, the same in every format.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "TableFromOptions merges into the shared table options."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlFragment(HtmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToHtml(MarkdownHtmlExportOptions options = null) : string",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\")."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlFragmentWithCss(HtmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToHtml(MarkdownHtmlExportOptions options = null) : string",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\")."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlDocument(HtmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToHtml(MarkdownHtmlExportOptions options = null) : string",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\")."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlParts(HtmlOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToHtmlParts(MarkdownHtmlExportOptions options = null) : MarkdownHtmlParts",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Separate head/body/CSS parts for hosts that compose their own page; keep, with renamed types."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.SaveAsHtml(string path, HtmlOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtml(string path | Stream stream, MarkdownHtmlExportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Returns void today; no Stream overload."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.SaveAsHtmlAsync(string path, HtmlOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtmlAsync(string path | Stream stream, MarkdownHtmlExportOptions options = null) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+      "category": "lifecycle",
+      "notes": "Returns void today; no Stream overload."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.Parse(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownLoadOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ParseResult(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "MarkdownParseResult carries syntax tree + diagnostics."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.Load(string path, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Load(string path, MarkdownLoadOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownLoadOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.Load(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Load(Stream stream, MarkdownLoadOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownLoadOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadResult(string path, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Load(path or stream, MarkdownLoadOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadResult(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Load(path or stream, MarkdownLoadOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadAsync(string path, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.LoadAsync(string path, MarkdownLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownLoadOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadAsync(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.LoadAsync(Stream stream, MarkdownLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownLoadOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadResultAsync(string path, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.LoadAsync(path or stream, MarkdownLoadOptions options) - report via a result-returning async form (see openQuestions: async + out)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.LoadResultAsync(Stream stream, MarkdownReaderOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.LoadAsync(path or stream, MarkdownLoadOptions options) - report via a result-returning async form (see openQuestions: async + out)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToBytes(MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToBytes(MarkdownSaveOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToBytes(MarkdownWriteOptions options, Encoding encoding, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ToBytes(MarkdownSaveOptions options, CancellationToken cancellationToken)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.ToStream(MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use Save(Stream) or ToBytes().",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.Save(string path, MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Save(string path, MarkdownSaveOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.Save(Stream stream, MarkdownWriteOptions options = null, Encoding encoding = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Save(Stream stream, MarkdownSaveOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.SaveAsync(string path, MarkdownWriteOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsync(string path, MarkdownSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDoc.SaveAsync(Stream stream, MarkdownWriteOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsync(Stream stream, MarkdownSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDoc.IO.cs",
+      "category": "lifecycle",
+      "notes": "Encoding parameter moves into MarkdownSaveOptions.Encoding."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "OfficeIMO.Markdown.MarkdownDocument.Parse(...)",
+      "reason": "MarkdownReader.Parse duplicates MarkdownDocument.Parse.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.Abbreviations.cs, OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.ContainerWhitespace.cs, OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.Definitions.cs (+61 partial files)",
+      "category": "naming",
+      "notes": "MarkdownReader.Parse is used in 198 files across 63 project folders."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader.Parse(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions options = null)",
+      "reason": "MarkdownReader.Parse -> MarkdownDocument.Parse/Load.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader.ParseSemantic(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions { Semantic = true })",
+      "reason": "MarkdownReader.Parse -> MarkdownDocument.Parse/Load.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions { IncludeSyntaxTree = true }, out OfficeConversionReport report)",
+      "reason": "MarkdownReader.Parse -> MarkdownDocument.Parse/Load.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Parse(string markdown, MarkdownLoadOptions { IncludeSyntaxTree = true }, out OfficeConversionReport report)",
+      "reason": "MarkdownReader.Parse -> MarkdownDocument.Parse/Load.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReader.ParseInlineText(string text, MarkdownReaderOptions options = null)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.ParseInline(string text, MarkdownLoadOptions options = null) : InlineSequence",
+      "reason": "MarkdownReader.Parse -> MarkdownDocument.Parse/Load.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReader.Inlines.Extensions.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.HtmlOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownHtmlExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Options/HtmlOptions.cs",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReaderOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReaderOptions.cs",
+      "category": "options",
+      "notes": "Parse and Load share one options type; Encoding moves in from the separate parameter."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownSaveOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Markdown/Options/MarkdownWriteOptions.cs",
+      "category": "options",
+      "notes": "Encoding moves in from the separate parameter."
+    },
+    {
+      "old": "OfficeIMO.Markdown.TocOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownTocOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Options/TocOptions.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.PrismOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownPrismOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Options/PrismOptions.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.ReadmeOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownReadmeOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Scaffold/ReadmeOptions.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.HtmlStyle",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownHtmlStyle",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Options/HtmlStyle.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.HtmlRenderParts",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownHtmlParts",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Options/HtmlRenderParts.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.Scaffold",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownScaffold",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Scaffold/ReadmeScaffold.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.ChangelogScaffold",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownChangelogScaffold",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Scaffold/ChangelogScaffold.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.ContributingScaffold",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownContributingScaffold",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Scaffold/ContributingScaffold.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.TableBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownTableBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Builders/TableBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.Table",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownTable",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/Table.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.TableRow",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownTableRow",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Blocks/TableRow.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.TableCell",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownTableCell",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Blocks/TableCell.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.Paragraph",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownParagraph",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/Paragraph.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.ListItem",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownListItem",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Blocks/ListItem.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.UnorderedList",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownUnorderedList",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/UnorderedList.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.H1",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownH1",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/H1.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.H2",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownH2",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/H2.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.H3",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownH3",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Model/H3.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.OrderedListBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownOrderedListBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Builders/OrderedListBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.UnorderedListBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownUnorderedListBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Builders/UnorderedListBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.QuoteBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownQuoteBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Builders/QuoteBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.DefinitionListBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownDefinitionListBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Builders/DefinitionListBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.BadgeBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.MarkdownBadgeBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Markdown/Scaffold/BadgeBuilder.cs",
+      "category": "naming",
+      "notes": "Generic names (Table, Paragraph, ListItem, H1) collide with Word/Excel/PowerPoint types in files that import several OfficeIMO namespaces."
+    },
+    {
+      "old": "OfficeIMO.Markdown.TableFromOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeTableOptions",
+      "reason": "Shared options use the Office prefix.",
+      "file": "OfficeIMO.Markdown/Options/TableFromOptions.cs",
+      "category": "options"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Markdown",
+      "to": "(none)",
+      "scope": "Depends only on OfficeIMO.Core. Markdown->HTML rendering stays in package (string renderer, no HTML engine).",
+      "reason": "Conforms to the package rule; the in-package HTML renderer is a documented exception to adapter placement."
+    }
+  ]
+}

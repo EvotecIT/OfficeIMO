@@ -1,0 +1,3516 @@
+{
+  "package": "OfficeIMO.Word",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 329,
+    "byAction": {
+      "change": 139,
+      "internalize": 28,
+      "merge": 125,
+      "move": 1,
+      "remove": 26,
+      "rename": 10
+    },
+    "byCategory": {
+      "authoring": 80,
+      "conversion": 42,
+      "lifecycle": 29,
+      "naming": 6,
+      "options": 4,
+      "package": 1,
+      "units": 139,
+      "visibility": 28
+    },
+    "packageMoves": 3
+  },
+  "lifecycle": [
+    {
+      "member": "static WordDocumentConversionReport AnalyzeConversion(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<WordDocumentConversionReport> AnalyzeConversionAsync(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static WordDocumentConversionResult Convert(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<WordDocumentConversionResult> ConvertAsync(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static WordDocument Create(WordCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument Create(string filePath, WordCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument CreateFromTemplate(string templatePath)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static WordDocument Create(Stream stream, WordCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument Load(string filePath, WordLoadOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<WordDocument> LoadAsync(string filePath, WordLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static Task<WordDocument> LoadAsync(Stream stream, WordLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument Load(Stream stream, WordLoadOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static WordDocument LoadLegacyDoc(string path, LegacyDocImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static LegacyDocLoadResult LoadLegacyDocWithReport(string path, LegacyDocImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static WordDocument LoadLegacyDoc(Stream stream, LegacyDocImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static LegacyDocLoadResult LoadLegacyDocWithReport(Stream stream, LegacyDocImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void Dispose()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "ValueTask DisposeAsync()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void SaveEncrypted(string filePath, string password, WordSaveOptions saveOptions = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void SaveEncrypted(Stream destination, string password)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void SaveEncrypted(Stream destination, string password, WordSaveOptions saveOptions)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void Save()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(WordSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(string filePath)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(string filePath, WordSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void SaveCopy(string filePath, WordSaveOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveCopyAsync(string filePath, WordSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "byte[] ToBytes(WordFileFormat format = Docx, WordSaveOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "MemoryStream ToStream(WordFileFormat format = Docx, WordSaveOptions options = null)",
+      "verdict": "remove"
+    },
+    {
+      "member": "Task SaveAsync(CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(WordSaveOptions options, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(string filePath, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(string filePath, WordSaveOptions options, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(Stream outputStream)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(Stream outputStream, WordSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(Stream outputStream, WordFileFormat format, WordSaveOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task SaveAsync(Stream outputStream, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(Stream outputStream, WordSaveOptions options, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(Stream outputStream, WordFileFormat format, WordSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    }
+  ],
+  "survivingCapabilities": [
+    {
+      "fluent": "WordFluentDocument.Callout(string kind, string title, string body)",
+      "objectModel": "WordDocument.AddCallout(OfficeCalloutKind kind, string title, string body) : WordParagraph",
+      "file": "OfficeIMO.Word/Fluent/WordFluentDocument.cs",
+      "notes": "Implemented only in the fluent layer today (paragraph shading by kind). Colors come from theme roles (Info/Success/Warning/Danger) instead of hard-coded LightBlue/Khaki/MistyRose."
+    },
+    {
+      "fluent": "WordFluentDocument.Code(string language, string content)",
+      "objectModel": "WordDocument.AddCodeBlock(string code, string language = null) : WordParagraph",
+      "file": "OfficeIMO.Word/Fluent/WordFluentDocument.cs",
+      "notes": "Fluent-only today; resolves a monospace font via WordFontResolver. Should use the theme code font and a Word style."
+    },
+    {
+      "fluent": "WordFluentDocument.TocHere(...) / TocAtTop(...)",
+      "objectModel": "WordDocument.AddTableOfContent(string title, int minLevel, int maxLevel) and an insert-at-top option",
+      "file": "OfficeIMO.Word/Fluent/WordFluentDocument.cs",
+      "notes": "Fluent builds a TOC field with \\o \\h \\z \\u and a heading; the object model AddTableOfContent uses templates. Keep one TOC entry point with an optional title."
+    },
+    {
+      "fluent": "ListBuilder.ItemTask(string text, bool done)",
+      "objectModel": "WordList.AddTaskItem(string text, bool done = false) : WordParagraph",
+      "file": "OfficeIMO.Word/Fluent/ListBuilder.cs",
+      "notes": "Composed from AddItem + AddCheckBox; worth a named method because Markdown task lists map to it."
+    },
+    {
+      "fluent": "ListBuilder.ItemLink(string text, string url, bool style)",
+      "objectModel": "WordList.AddItem(...) then AddHyperLink; optional WordList.AddLinkItem",
+      "file": "OfficeIMO.Word/Fluent/ListBuilder.cs"
+    },
+    {
+      "fluent": "WordTableBuilder.Rows(IEnumerable<IReadOnlyList<string>>), Rows(IEnumerable<(string,string)>), Rows(IEnumerable<KeyValuePair<string,string>>), From2D(object[,])",
+      "objectModel": "WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) plus AddTable(object[,] values)",
+      "file": "OfficeIMO.Word/Fluent/WordTableBuilder.cs",
+      "notes": "Typed data in, styled table out; replaces AddTableFromObjects."
+    },
+    {
+      "fluent": "WordFluentDocument.FindRegex(string pattern[, TimeSpan], Action<WordParagraphBuilder>)",
+      "objectModel": "WordDocument.FindRunsRegex(...) exists; make it public as WordDocument.Find(Regex) if it is not",
+      "file": "OfficeIMO.Word/Fluent/WordFluentDocument.cs"
+    },
+    {
+      "fluent": "ImageBuilder.Crop/Rotate/MaxWidth/BehindText/Wrap/Link/Alt/Align",
+      "objectModel": "WordImage properties (CropTop..., Rotation, WrapText, Description) exist; MaxWidth and Link need WordImage members or AddImage options",
+      "file": "OfficeIMO.Word/Fluent/ImageBuilder.cs"
+    },
+    {
+      "fluent": "H1..H6, P, Ul, Ol, Paragraph, Section, PageSetup, Header/Footer builders, Info builder, ForEach*",
+      "objectModel": "AddHeading/AddParagraph/AddList/AddSection/Sections[i].PageSettings/Header/Footer/BuiltinDocumentProperties and plain loops",
+      "notes": "Already on the object model; removal only."
+    }
+  ],
+  "additions": [
+    "WordDocument.AddImage(string path | Stream stream, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions options = null) : WordImage (only WordParagraph and AddImageFromUrlAsync exist today)",
+    "WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : WordTable",
+    "WordDocument.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : WordChart and the nameof() overload",
+    "WordDocument.AddCallout(...) and WordDocument.AddCodeBlock(...) (from the fluent layer)",
+    "WordDocument.ApplyTheme(OfficeTheme theme) and WordCreateOptions.Theme"
+  ],
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.Word.WordHelpers",
+      "file": [
+        "OfficeIMO.Word/WordHelpers.Converters.cs",
+        "OfficeIMO.Word/WordHelpers.HeadersAndFooters.cs"
+      ],
+      "why": "Helper type; used by tests and by WordHelpers.Converters/HeadersAndFooters partials."
+    },
+    {
+      "type": "OfficeIMO.Word.WordDocumentSnapshot (+ 19 Word*Snapshot types)",
+      "file": [
+        "OfficeIMO.Word/WordInspectionSnapshot.cs"
+      ],
+      "why": "Inspection snapshot consumed by Reader.Word, Word.GoogleDocs and Word.OpenDocument. Either internal with InternalsVisibleTo, or public read-only models renamed *Info per the naming rule."
+    },
+    {
+      "type": "OfficeIMO.Word.WordDocumentVisualSnapshot",
+      "file": [
+        "OfficeIMO.Word/Imaging/WordDocumentVisualSnapshot.cs"
+      ],
+      "why": "Exposes OfficeIMO.Pdf.PdfTextSpan in its public surface, which keeps the PDF engine in Word's public contract."
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.* / OfficeIMO.Word.Legacy.* model types",
+      "why": "33 public legacy model types without the Word prefix."
+    }
+  ],
+  "colors": {
+    "stringColorProperties": 53,
+    "stringColorParameterMembers": 34,
+    "target": "OfficeColor only (M1 Core); *Hex string twins are removed. Not itemised in M0."
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and the Windows-only net472 TFM. One #if NETFRAMEWORK branch (WordDocument.Save.cs:454, cloned package snapshot for System.IO.Packaging on .NET Framework) must become a runtime check in the netstandard2.0 build, because .NET Framework consumers will run that build. Three NET5_0_OR_GREATER-style conditions stay valid under net10.0."
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Word/OfficeIMO.Word.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf"
+    ],
+    "packageReferences": [
+      "DocumentFormat.OpenXml [3.5.1, 4.0.0)",
+      "Microsoft.Bcl.AsyncInterfaces 10.0.9"
+    ]
+  },
+  "openQuestions": [
+    "Word image export is built on the PDF writer+reader+renderer (WordPageImageExport). Keeping image export in OfficeIMO.Word without the PDF engine requires splitting OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) and a PDF writer. That is a large engine refactor; the cheaper option is to move Word image export to OfficeIMO.Word.Pdf (or a new OfficeIMO.Word.Imaging that references Pdf) and accept that Word image export needs the PDF engine. PowerPoint does not have this problem (its scene renderer already targets OfficeIMO.Drawing).",
+    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
+    "WordDocument.ToMarkdown() string -> MarkdownDocument (Word.Markdown) changes the return type of a widely used call; consider whether the string form keeps a name (ToMarkdownText).",
+    "Save(path) vs SaveCopy semantics (see lifecycle entry)."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.WordDocument.AnalyzeConversion(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Analyze(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/WordDocument.Conversion.Analysis.cs",
+      "category": "lifecycle",
+      "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AnalyzeConversionAsync(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.AnalyzeAsync(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/WordDocument.Conversion.Analysis.cs",
+      "category": "lifecycle",
+      "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Convert(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/WordDocument.Conversion.cs",
+      "category": "lifecycle",
+      "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ConvertAsync(string sourcePath, string destinationPath, WordDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/WordDocument.Conversion.cs",
+      "category": "lifecycle",
+      "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.CreateFromTemplate(string templatePath)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Create(string filePath, WordCreateOptions { Template = templatePath })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.CreateLoad.cs",
+      "category": "lifecycle",
+      "notes": "Excel has three CreateFromTemplate overloads with ExcelTemplateCreateOptions; one Template property covers both."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadEncrypted(string filePath, string password, WordLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadEncrypted(Stream stream, string password, WordLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadLegacyDoc(string path, LegacyDocImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions options)",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+      "category": "lifecycle",
+      "notes": "Load detects DOC by content; LegacyDocImportOptions becomes WordLoadOptions.Legacy."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadLegacyDocWithReport(string path, LegacyDocImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+      "category": "lifecycle",
+      "notes": "LegacyDocLoadResult is replaced by the report overload."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadLegacyDoc(Stream stream, LegacyDocImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions options)",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+      "category": "lifecycle",
+      "notes": "Load detects DOC by content; LegacyDocImportOptions becomes WordLoadOptions.Legacy."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.LoadLegacyDocWithReport(Stream stream, LegacyDocImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Load(path or stream, WordLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+      "category": "lifecycle",
+      "notes": "LegacyDocLoadResult is replaced by the report overload."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveEncrypted(string filePath, string password, WordSaveOptions saveOptions = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Save(path or stream, WordSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveEncrypted(Stream destination, string password)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Save(path or stream, WordSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveEncrypted(Stream destination, string password, WordSaveOptions saveOptions)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.Save(path or stream, WordSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToBytes(WordFileFormat format = Docx, WordSaveOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.ToBytes(WordSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "Format moves into WordSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToStream(WordFileFormat format = Docx, WordSaveOptions options = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use Save(Stream) or ToBytes().",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Save(Stream outputStream, WordFileFormat format, WordSaveOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.Save(Stream destination, WordSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "The WordFileFormat parameter moves into WordSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsync(Stream outputStream, WordFileFormat format, WordSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsync(Stream destination, WordSaveOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "The WordFileFormat parameter moves into WordSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveCopy(string filePath, WordSaveOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.SaveCopy(string filePath, WordSaveOptions options = null)",
+      "reason": "Design text shows doc.Save(\"Copy.docx\") as a copy, but Save(path) re-associates the document path while SaveCopy does not. Keep both and document Save(path) as \"save as\"; confirm in review.",
+      "file": "OfficeIMO.Word/WordDocument.Save.cs",
+      "category": "lifecycle",
+      "notes": "Decision needed, no signature change proposed."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AsFluent()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model directly.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/WordDocument.Validation.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.FooterContentBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/FootersBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.FootersBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/FootersBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.HeaderContentBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/HeadersBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.HeadersBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/HeadersBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.ImageBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/ImageBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.ListBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/ListBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.PageSetupBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/PageSetupBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.RunBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/RunBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.SectionBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/SectionBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.TextBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/TextBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.WordFluentDocument",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/WordFluentDocument.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.WordInfoBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/WordInfoBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.WordParagraphBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/WordParagraphBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.Fluent.WordTableBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the WordDocument object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Word/Fluent/WordTableBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImage(string filePathImage, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(..., OfficeLength? width = null, OfficeLength? height = null, ...) : WordImage",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring",
+      "notes": "Returns the paragraph today while InsertImage returns the WordImage; width/height are double? without a unit (pixels)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.InsertImage(string filePathImage, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use AddImage, which returns the WordImage.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImage(Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(..., OfficeLength? width = null, OfficeLength? height = null, ...) : WordImage",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring",
+      "notes": "Returns the paragraph today while InsertImage returns the WordImage; width/height are double? without a unit (pixels)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.InsertImage(Stream imageStream, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use AddImage, which returns the WordImage.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(..., OfficeLength? width = null, OfficeLength? height = null, ...) : WordImage",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring",
+      "notes": "Returns the paragraph today while InsertImage returns the WordImage; width/height are double? without a unit (pixels)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.InsertImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use AddImage, which returns the WordImage.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(Stream image, string fileName, ...) : WordImage",
+      "replacement": "Decode or open the resource and pass the stream.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.InsertImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use AddImage, which returns the WordImage.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(Stream image, string fileName, ...) : WordImage",
+      "replacement": "Decode or open the resource and pass the stream.",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Images.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTableFromObjects(IEnumerable<object> items, WordTableStyle style = TableGrid, bool includeHeader = True, WordTableLayoutMode? layout = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : WordTable",
+      "reason": "Typed data in, styled output out, the same in Word, Excel and PowerPoint.",
+      "file": "OfficeIMO.Word/WordDocument.ObjectTables.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddImageFromUrlAsync(string url, double? width = null, double? height = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, OfficeRemoteImageLoadOptions options = null, CancellationToken cancellationToken = default) : Task<WordImage>",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddImageFromUrlAsync(string url, double? width, double? height, OfficeRemoteImageLoadOptions remoteImageOptions, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null, OfficeRemoteImageLoadOptions options = null, CancellationToken cancellationToken = default) : Task<WordImage>",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddImageVml(string filePathImage, double? width = null, double? height = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddImage(..., WordImageOptions { Vml = true }) : WordImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "VML pictures are a legacy rendering of the same concept; keep the capability as an option rather than a second verb."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddChart(string title = , bool roundedCorners = False, int width = 600, int height = 600)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddChart<T>(OfficeChartType type, IEnumerable<T> data, ...) : WordChart",
+      "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "int width/height are pixels. The untyped overload creates an empty chart filled through AddBar/AddLine...; fold into the typed overload."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = , bool roundedCorners = False, int width = 600, int height = 600)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartType type, ...) : WordChart",
+      "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
+      "file": "OfficeIMO.Word/WordDocument.SharedCharts.cs",
+      "category": "authoring",
+      "notes": "int width/height are pixels. OfficeChartKind becomes OfficeChartType (Core M1)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddChart(string title = , bool roundedCorners = False, int width = 600, int height = 600)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddChart<T>(OfficeChartType type, IEnumerable<T> data, ...) : WordChart",
+      "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+      "category": "authoring",
+      "notes": "int width/height are pixels. The untyped overload creates an empty chart filled through AddBar/AddLine...; fold into the typed overload."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddImageVml(string filePathImage, double? width = null, double? height = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddImage(..., WordImageOptions { Vml = true }) : WordImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.VmlImages.cs",
+      "category": "authoring",
+      "notes": "VML pictures are a legacy rendering of the same concept; keep the capability as an option rather than a second verb."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = , bool roundedCorners = False, int width = 600, int height = 600)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddChart(OfficeChartType type, ...) : WordChart",
+      "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
+      "file": "OfficeIMO.Word/WordParagraph.SharedCharts.cs",
+      "category": "authoring",
+      "notes": "int width/height are pixels. OfficeChartKind becomes OfficeChartType (Core M1)."
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddImageVml(string filePathImage, double? width = null, double? height = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.AddImage(..., WordImageOptions { Vml = true }) : WordImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "VML pictures are a legacy rendering of the same concept; keep the capability as an option rather than a second verb."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddMacro(string filePath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.Macros.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddMacro(byte[] data)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.Macros.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddMacro(Stream stream, long? maxBytes = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddMacro(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.PackagePayloads.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters()",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(WordNumberFormat? numberingFormat = null, WordFootnotePosition? position = null, WordNoteNumberRestart? restartNumbering = null, int? startNumber = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddFootnoteProperties(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddEndnoteProperties(WordNumberFormat? numberingFormat = null, WordEndnotePosition? position = null, WordNoteNumberRestart? restartNumbering = null, int? startNumber = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddEndnoteProperties(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddPageNumbering(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordDocument.SectionProperties.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddEquation(OfficeMathExpression expression)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddEquation(...) : WordEquation",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.Math.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(...) : WordEmbeddedObject",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(...) : WordEmbeddedObject",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddFootNote(string text)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddFootNote(...) : WordFootNote",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddEndNote(string text)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddEndNote(...) : WordEndNote",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddComment(string author, string initials, string comment)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddComment(...) : WordComment",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddBookmark(string bookmarkName)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddBookmark(...) : WordBookmark",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddCrossReference(string referenceId, WordCrossReferenceType type)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddCrossReference(...) : WordField",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddCitation(string sourceTag)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddCitation(...) : WordField",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = False, List<string> parameters = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddField(...) : WordField",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddField(...) : WordField",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldBuilder builder, bool advanced = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddField(...) : WordField",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddEquation(string omml)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddEquation(...) : WordEquation",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddHyperLink(string text, Uri uri, bool addStyle = False, string tooltip = , bool history = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddHyperLink(...) : WordHyperLink",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddHyperLink(string text, string anchor, bool addStyle = False, string tooltip = , bool history = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddHyperLink(...) : WordHyperLink",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddHeadersAndFooters()",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.AddHeadersAndFooters(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.AddComment(string author, string initials, string comment)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.AddComment(...) : WordComment",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddChartLine<T>(string name, int[] values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddChartLine(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddLine<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddLine(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddChartAxisX(List<string> categories)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddChartAxisX(...) : WordChartAxis",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar(string name, int values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar(string name, int[] values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddArea(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, int[] values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddArea(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddScatter(string name, List<double> xValues, List<double> yValues, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddScatter(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddRadar<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddRadar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar3D<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddBar3D(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddLine3D<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddLine3D(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddArea3D<T>(string name, List<T> values, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddArea3D(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddLegend(OfficeChartLegendPosition legendPosition)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddLegend(...) : WordChartLegend",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSmartArt.AddNode(string text)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSmartArt.AddNode(...) : WordSmartArtNode",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordSmartArt.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordListNumbering.AddLevel(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordListNumbering.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPaperStyle.AddCover(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordPaperStyle.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPaperStyle.AddPageChrome(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Word/WordPaperStyle.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.GetContentWidthPoints()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.GetContentWidth(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ContentWidth.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.SetSize(int widthPx, int? heightPx = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.SetSize(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPx, widthPx"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.SetWidthToPageContent(double fraction = 1, int? heightPx = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.SetWidthToPageContent(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPx"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordHeader.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordHeader.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordHeader.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordHeader.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeader.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordHeader.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordHeader.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeColor color, double strokeWeightPt = 1)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = #000000, double strokeWeightPt = 1)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, OfficeColor fillColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, string fillColor = #FFFFFF)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.AddShapeGroup(IEnumerable<WordShapeGroupItem> items, double leftPt, double topPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.AddShapeGroup(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ShapeGroups.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.AddShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.AddShapeDrawing(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddDrawingShape(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddDrawingShape(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeColor fillColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddEllipse(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = #FFFFFF)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddEllipse(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeColor color, double strokeWeightPt = 1)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = #000000, double strokeWeightPt = 1)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordShape.AddRoundedRectangle(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = #FFFFFF, double arcSize = 0.25)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShape.AddRoundedRectangle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShape.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, string colorHex = null, double? sizePt = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSmartArt.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, string colorHex = null, double? sizePt = null, string[] texts)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSmartArt.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string text, bool bold, bool italic, bool underline, string colorHex, double? sizePt)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSmartArt.SetNodeText(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSmartArt.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: "
+    },
+    {
+      "old": "OfficeIMO.Word.WordChartSnapshot.HeightPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChartSnapshot.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChartSnapshot.WidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChartSnapshot.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.HangingIndentTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.HangingIndent : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.LeftIndentTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.LeftIndent : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.MarkerCharacterSpacingTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.MarkerCharacterSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HeightPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HorizontalOffsetPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HorizontalOffset : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.VerticalOffsetPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.VerticalOffset : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.WidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropBottomCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordImage.CropBottom : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropCentimeters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropLeftCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordImage.CropLeft : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropCentimeters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropRightCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordImage.CropRight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropCentimeters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropTopCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordImage.CropTop : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropCentimeters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImageExportOptions.LogicalUnitsPerInch",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImageExportOptions.LogicalUnitsPerInch : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Imaging/WordImageExportOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordLine.StrokeWeightPt",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordLine.StrokeWeightPt : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordLine.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordListLevel.IndentationHangingCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordListLevel.IndentationHanging : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordListLevel.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordListLevel.IndentationLeftCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordListLevel.IndentationLeft : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordListLevel.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.BottomCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordMargins.Bottom : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.LeftCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordMargins.Left : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.RightCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordMargins.Right : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.TopCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordMargins.Top : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordPageSizeDefinition.HeightTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSizeDefinition.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPageSizes.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordPageSizeDefinition.WidthTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSizeDefinition.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPageSizes.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordPaperStyle.TableFontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPaperStyle.TableFontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Word/WordPaperStyle.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPaperStyle.TableLineSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPaperStyle.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPaperStyle.TableParagraphSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPaperStyle.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.FontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.FontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Word/WordParagraph.RunProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationAfterPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationAfter : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationBeforePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationBefore : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationFirstLinePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationFirstLine : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationHangingPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationHanging : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Word/WordParagraph.Kerning.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacingAfterPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingAfter : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacingBeforePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingBefore : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacingPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentEndPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentEnd : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentFirstLinePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentFirstLine : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentStartPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentStart : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphSnapshot.SpaceAbovePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphSnapshot.SpaceAbove : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphSnapshot.SpaceBelowPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphSnapshot.SpaceBelow : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndentTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfterTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBeforeTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordRunSnapshot.FontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordRunSnapshot.FontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionColumn.SpaceAfterTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionColumn.SpaceAfter : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSectionColumn.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionColumn.WidthTwips",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionColumn.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordSectionColumn.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.ColumnSpacingPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.ColumnSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.FooterMarginPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.FooterMargin : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.HeaderMarginPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.HeaderMargin : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.MarginBottomPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginBottom : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.MarginLeftPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginLeft : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.MarginRightPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginRight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.MarginTopPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginTop : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.PageHeightPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.PageHeight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSectionSnapshot.PageWidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSectionSnapshot.PageWidth : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordShapeGroupItem.HeightPt",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.HeightPt : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShapeGroup.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordShapeGroupItem.LeftPt",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.LeftPt : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShapeGroup.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordShapeGroupItem.TopPt",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.TopPt : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShapeGroup.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordShapeGroupItem.WidthPt",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.WidthPt : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordShapeGroup.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTabStopSnapshot.PositionPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTabStopSnapshot.Position : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginBottomCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableCell.MarginBottom : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginLeftCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableCell.MarginLeft : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginRightCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableCell.MarginRight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginTopCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableCell.MarginTop : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.CellSpacingCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.CellSpacing : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottomCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottom : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeftCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeft : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRightCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTopCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTop : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.TableIndentationCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.TableIndentation : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/Table/WordTableStyleDetails.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.HeightCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTextBox.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffsetCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.VerticalPositionOffsetCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.WidthCentimeters",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordTextBox.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationBefore",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationBefore : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationAfter",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationAfter : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationFirstLine",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationFirstLine : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.IndentationHanging",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationHanging : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacing",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacingBefore",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingBefore : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.LineSpacingAfter",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingAfter : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.Left",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.Left : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.Right",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.Right : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.Top",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.Top : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.Bottom",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.Bottom : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.HeaderDistance",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.HeaderDistance : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.FooterDistance",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.FooterDistance : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.Gutter",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordMargins.Gutter : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordMargins.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginTopWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableCell.MarginTop : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginBottomWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableCell.MarginBottom : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginLeftWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableCell.MarginLeft : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableCell.MarginRightWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableCell.MarginRight : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTableCell.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropTop",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.CropTop : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropBottom",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.CropBottom : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropLeft",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.CropLeft : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.CropRight",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.CropRight : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.EmuWidth",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.Width : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.cs",
+      "category": "units",
+      "notes": "Raw EMU double?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.EmuHeight",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.Height : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.cs",
+      "category": "units",
+      "notes": "Raw EMU double?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.HorizontalPositionOffset",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.HorizontalPositionOffset : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.Position.cs",
+      "category": "units",
+      "notes": "Raw EMU long?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.VerticalPositionOffset",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.VerticalPositionOffset : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordImage.Position.cs",
+      "category": "units",
+      "notes": "Raw EMU long?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units",
+      "notes": "Raw EMU int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units",
+      "notes": "Raw EMU int?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.Width",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTextBox.Width : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units",
+      "notes": "Raw EMU long; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTextBox.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTextBox.Height : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordTextBox.cs",
+      "category": "units",
+      "notes": "Raw EMU long; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordPageSizes.Width",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSizes.Width : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPageSizes.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.WordPageSizes.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSizes.Height : OfficeLength?",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Word/WordPageSizes.cs",
+      "category": "units",
+      "notes": "Raw twips (or 1/1000 for crop) uint?; the *Points/*Centimeters twin property merges into this one."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordImportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "options",
+      "notes": "Legacy Word import becomes format detection in Load."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportOptions.cs",
+      "category": "options",
+      "notes": "DOC is loaded by Load with format detection; legacy settings become WordLoadOptions.Legacy."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Pdf.WordPdfExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word/Layout/WordToPdfOptions.cs",
+      "category": "options",
+      "notes": "Moves with the Word PDF exporter into the OfficeIMO.Word.Pdf adapter. Also (package): move -> OfficeIMO.Word.Pdf.WordPdfExportOptions (assembly OfficeIMO.Word.Pdf)"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentConversionOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word/WordDocument.Conversion.Models.cs",
+      "category": "options",
+      "notes": "DOC/DOCX conversion moves to OfficeConverter."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToPdf(WordPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "PdfDocumentConversionResult carries the document plus warnings; the out-report overload replaces it. Used internally by image export and Workflows."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "SaveAsPdfResult catches failures into PdfSaveResult; SaveAsPdf throws. Same return type today."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "SaveAsPdfResult catches failures into PdfSaveResult; SaveAsPdf throws. Same return type today."
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "doc.SaveAsPdf(stream) or doc.ToPdf().ToBytes(); file-to-file callers use OfficeConverter.",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToPdfDocumentResult(Stream source, WordToPdfOptions pdfOptions = null, LegacyDocImportOptions importOptions = null, OfficeConversionLossPolicy lossPolicy = Block, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(Stream source, OfficeFormat.Doc, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null)",
+      "replacement": "Or WordDocument.Load(stream).SaveAsPdf(...) with the OfficeIMO.Word.Pdf adapter.",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/Layout/LegacyDocPdfConverter.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.LegacyDocPdfConverter",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "OfficeConverter or Load + SaveAsPdf.",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Word/Layout/LegacyDocPdfConverter.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Word.Pdf.WordPdfConverterExtensions (assembly OfficeIMO.Word.Pdf)",
+      "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
+      "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.Native.AnchoredImageDiagnostics.cs, OfficeIMO.Word/Layout/WordPdfConverterExtensions.Native.AnchoredImageSources.cs, OfficeIMO.Word/Layout/WordPdfConverterExtensions.Native.AnchoredImages.cs (+113 partial files)",
+      "category": "package"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfExportWarning",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeDiagnostic",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type. Also lacks the Word prefix.",
+      "file": "OfficeIMO.Word/Layout/PdfExportWarning.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToPng(WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToSvg(WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsPng(string path, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsSvg(string path, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsPng(Stream stream, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsSvg(Stream stream, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsPngAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsSvgAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsPngAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsSvgAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToJpeg(WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToTiff(WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToWebp(WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options) : byte[] with options.Format",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsJpeg(string path, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsTiff(string path, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsWebp(string path, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsJpeg(Stream stream, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsTiff(Stream stream, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsWebp(Stream stream, WordImageExportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImage(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsJpegAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsTiffAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsWebpAsync(string path, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsJpegAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsTiffAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.SaveAsWebpAsync(Stream stream, WordImageExportOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.SaveAsImageAsync(path or stream, WordImageExportOptions options = null) : OfficeConversionReport",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Word/Imaging/WordDocument.Imaging.RasterFormats.cs",
+      "category": "conversion",
+      "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToImage()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Word/Imaging/WordImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToImage(WordImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Word/Imaging/WordImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToImages()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Word/Imaging/WordImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.ToImages(WordImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with WordImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Word/Imaging/WordImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectContentSafety(string filePath, OfficeContentSafetyOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectContentSafety(string filePath, OfficeContentSafetyOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectContentSafety(byte[] documentBytes, OfficeContentSafetyOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectContentSafety(byte[] documentBytes, OfficeContentSafetyOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectMacroProjectSignatures(string filePath, WordMacroProjectSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.MacroSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectMacroProjectSignatures(string filePath, IOfficeSecurityProvider securityProvider, WordMacroProjectSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.MacroSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectProvenance(byte[] data, string fileName = document.docx, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.Provenance.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectProvenance(string filePath, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.Provenance.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectPackageSignatures(string filePath, OfficePackageSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.SharedPackageSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.InspectVbaSignatures(string filePath, OfficeVbaSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path) for any format.",
+      "file": "OfficeIMO.Word/WordDocument.SharedVbaSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Static, path-based inspection exists so untrusted files are inspected without a full load. Confirm whether OfficeDocument.Inspect(path) keeps that no-load guarantee before removing the static."
+    },
+    {
+      "old": "OfficeIMO.Word.AskField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordAskField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/AskField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.AuthorField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordAuthorField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/AuthorField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.CitationField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordCitationField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/CitationField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.FileNameField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFileNameField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/FileNameField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.RefField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordRefField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/RefField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.SetField",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordSetField",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word/FieldCodes/SetField.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordBlockContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordDetection",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordFormat",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterOccurrence",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordImportResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordImporter",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordImporter.Structure.cs, OfficeIMO.Word/Legacy/LegacyWordImporter.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordNoteContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordNoteKind",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordResourceReference",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordRunContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordTableCellContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordTableContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordTableRowContent",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Diagnostics/LegacyDocDiagnosticSeverity.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Diagnostics/LegacyDocImportDiagnostic.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportReport.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportSummary.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word/LegacyDoc/LegacyDocLoadResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocCompoundFeature.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocCompoundFeatureKind.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.Load.cs, OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.PageLayout.cs, OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.ParagraphProjection.cs (+1 partial files)",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocPreservedFeature.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeatureKind",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocPreservedFeatureKind.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocUnsupportedFeature.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    },
+    {
+      "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind",
+      "kind": "enum",
+      "action": "internalize",
+      "new": null,
+      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocUnsupportedFeatureKind.cs",
+      "category": "visibility",
+      "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word)."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Word",
+      "to": "OfficeIMO.Word.Pdf",
+      "scope": "Layout/ (123 files, namespace OfficeIMO.Word.Pdf: WordPdfConverterExtensions*, WordToPdfOptions, PdfExportWarning, PdfFootnote, TableLayout*, LegacyDocPdfConverter)",
+      "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
+      "notes": "OfficeIMO.Word already grants InternalsVisibleTo OfficeIMO.Word.Pdf, so the exporter can keep using Word internals. Namespace stays OfficeIMO.Word.Pdf."
+    },
+    {
+      "from": "OfficeIMO.Word",
+      "to": "OfficeIMO.Word.Pdf (or OfficeIMO.Word.Imaging, see notes)",
+      "scope": "Imaging/ (WordDocument.Imaging*.cs, WordPageImageExport, WordImageExportOptions, WordDocumentVisualSnapshot, WordImageExportBuilder)",
+      "reason": "Word image export renders by calling document.ToPdfDocumentResult(), re-reading the bytes with PdfReadDocument.Open and rasterising through the internal PdfImageExportEngine. It depends on the PDF writer, reader and renderer, not just a layout engine.",
+      "notes": "The design keeps image export in the format package only on its own rendering code. Word has no own paginating layout: pagination and line breaking are done by the PDF composition engine (PdfParagraphBuilder, PdfTableStyle, PdfPageBuilder: 193 PdfCore references across Layout/). A lower-level shared package would have to split OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) plus the PDF writer/reader. Until that split exists, the honest placement is the adapter."
+    },
+    {
+      "from": "OfficeIMO.Word",
+      "to": "OfficeIMO.Core (removal)",
+      "scope": "ProjectReference ..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
+      "notes": "Only Layout/ (7 files directly, 123 via namespace) and Imaging/ (2 files) use OfficeIMO.Pdf; after the two moves the reference can be dropped."
+    }
+  ]
+}

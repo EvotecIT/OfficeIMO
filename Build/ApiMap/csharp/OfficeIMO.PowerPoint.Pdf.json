@@ -1,0 +1,275 @@
+{
+  "package": "OfficeIMO.PowerPoint.Pdf",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 20,
+    "byAction": {
+      "change": 4,
+      "merge": 3,
+      "move": 6,
+      "remove": 6,
+      "rename": 1
+    },
+    "byCategory": {
+      "conversion": 14,
+      "options": 1,
+      "package": 5
+    },
+    "packageMoves": 2
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.PowerPoint",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and net472; no conditional code."
+  },
+  "incomingFromOfficeIMO.PowerPoint": [
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocument(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.ToPdf(PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.ToPdf(PowerPointPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfBytes(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> removed",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResult(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResult(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>"
+  ],
+  "openQuestions": [
+    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Alternative spelling per design: PowerPointDocument.FromPdf(pdf, options). Provide one of the two, not both."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsPowerPoint(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns OfficeOutputResult<PdfPowerPointConversionReport> today."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsPowerPoint(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns OfficeOutputResult<PdfPowerPointConversionReport> today."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsPowerPointAsync(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<OfficeOutputResult<PdfPowerPointConversionReport>> today."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsPowerPointAsync(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<OfficeOutputResult<PdfPowerPointConversionReport>> today."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocumentReadResult document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocumentReadResult document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocumentReadResult document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocumentReadResult document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocumentReadResult document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocumentReadResult document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointConverterExtensions (assembly OfficeIMO.Pdf.PowerPoint)",
+      "reason": "Reconstruction from PDF lives in the matching OfficeIMO.Pdf.{Target} adapter.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs, OfficeIMO.PowerPoint.Pdf/PdfPowerPointEditableContentImporter.TableTypography.cs, OfficeIMO.PowerPoint.Pdf/PdfPowerPointEditableContentImporter.cs",
+      "category": "package"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfToPowerPointOptions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfToPowerPointOptions.cs",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConversionModels.cs",
+      "category": "conversion",
+      "notes": "Implements IOfficeConversionReport with RequireNoLoss(); maps to report.ThrowIfLoss()."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConversionModels.cs",
+      "category": "conversion",
+      "notes": "OfficeConversionResult<TDocument, TReport> subclass; replaced by the out-report overload."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointVisualPageEntry",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointVisualPageEntry",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConversionModels.cs",
+      "category": "package",
+      "notes": "Also (conversion): merge -> OfficeIMO.OfficeDiagnostic / OfficeConversionReport items"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportEntry",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointTableImportEntry",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConversionModels.cs",
+      "category": "package",
+      "notes": "Also (conversion): merge -> OfficeIMO.OfficeDiagnostic / OfficeConversionReport items"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointEditablePageEntry",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointEditablePageEntry",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConversionModels.cs",
+      "category": "package",
+      "notes": "Also (conversion): merge -> OfficeIMO.OfficeDiagnostic / OfficeConversionReport items"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportMode",
+      "kind": "enum",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointImportMode",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.PowerPoint.Pdf/PdfToPowerPointOptions.cs",
+      "category": "package",
+      "notes": "Rename to {Target}PdfImportMode to match the options name."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.PowerPoint.Pdf",
+      "to": "OfficeIMO.Pdf.PowerPoint",
+      "scope": "All current content (PDF -> PowerPoint reconstruction)",
+      "reason": "Reconstruction from PDF lives in OfficeIMO.Pdf.PowerPoint.",
+      "notes": "Package ID OfficeIMO.PowerPoint.Pdf is reused for PowerPoint -> PDF export (from OfficeIMO.PowerPoint/Layout/)."
+    },
+    {
+      "from": "OfficeIMO.PowerPoint",
+      "to": "OfficeIMO.PowerPoint.Pdf",
+      "scope": "OfficeIMO.PowerPoint/Layout/ (PowerPoint -> PDF exporter, 22 files)",
+      "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
+      "notes": "See OfficeIMO.PowerPoint.json packageMoves."
+    }
+  ]
+}

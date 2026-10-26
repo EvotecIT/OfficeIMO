@@ -1,0 +1,387 @@
+{
+  "package": "OfficeIMO.Word.Markdown",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 32,
+    "byAction": {
+      "change": 5,
+      "internalize": 4,
+      "merge": 11,
+      "move": 1,
+      "rename": 11
+    },
+    "byCategory": {
+      "conversion": 16,
+      "naming": 8,
+      "options": 3,
+      "visibility": 5
+    },
+    "packageMoves": 1
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Word",
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.Markdown",
+      "OfficeIMO.Markdown.Html"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and net472; no conditional code."
+  },
+  "htmlDependency": {
+    "today": "ProjectReferences OfficeIMO.Word.Html and OfficeIMO.Markdown.Html, which bring OfficeIMO.Html and AngleSharp.",
+    "callSites": [
+      {
+        "file": "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.RenderHosts.cs:44",
+        "code": "public void InsertHtml(string html) => _document.AddHtmlToBody(HtmlConversionDocument.Parse(html));",
+        "use": "Raw HTML blocks and HTML comments in Markdown (BlockRenderer.cs:256, 262) are inserted through the Word HTML importer."
+      },
+      {
+        "file": "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.SemanticBlocks.cs:27-30",
+        "code": "HtmlConversionDocument.Parse(html).ToMarkdownDocument(HtmlToMarkdownOptions.CreateOfficeIMOProfile())",
+        "use": "TryRenderHtmlFallbackViaMarkdownAst: HTML fragments are converted back to Markdown AST and rendered natively."
+      }
+    ],
+    "otherUsings": "MarkdownToWordConverter.cs, .Images.cs, .SharedRendering.cs, .Formatting.cs and .BlockRenderer.cs have \"using OfficeIMO.Word.Html; using OfficeIMO.Markdown.Html;\" but no other type use (verify at compile time).",
+    "removal": [
+      "Add an internal raw-HTML hook to WordMarkdownImportOptions (for example Func<string, WordDocument, bool> or an IWordMarkdownHtmlRenderer interface) that defaults to a non-HTML fallback: emit the raw HTML as literal/code text and record an OfficeDiagnostic (\"html-block-as-text\").",
+      "OfficeIMO.Word.Html registers the real HTML renderer when present: either an opt-in extension (options.UseHtmlBlocks()) in OfficeIMO.Word.Html, or the OfficeIMO front door wires it so the default bundle keeps today's behavior.",
+      "Drop both ProjectReferences; OfficeIMO.Word.Markdown then references Core, Word and Markdown only.",
+      "Behavior change: users of OfficeIMO.Word.Markdown alone lose HTML-block fidelity unless they also install OfficeIMO.Word.Html (or OfficeIMO). Document in MIGRATION.md."
+    ],
+    "readmeImpact": "README mentions ToHtmlViaMarkdown/ToHtmlFragmentViaMarkdown/SaveAsHtmlViaMarkdown, which are not in the current public API (stale README to fix with M4)."
+  },
+  "openQuestions": [
+    "Raw HTML blocks lose fidelity when only OfficeIMO.Word.Markdown is installed; acceptable default?",
+    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.SaveAsMarkdown(WordDocument document, string path, WordToMarkdownOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsMarkdown(string path, WordMarkdownExportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns WordToMarkdownResult today."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.SaveAsMarkdown(WordDocument document, Stream stream, WordToMarkdownOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsMarkdown(Stream stream, WordMarkdownExportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns WordToMarkdownResult today."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.SaveAsMarkdownAsync(WordDocument document, string path, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsMarkdownAsync(string path, WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<WordToMarkdownResult> today."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.SaveAsMarkdownAsync(WordDocument document, Stream stream, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsMarkdownAsync(Stream stream, WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<WordToMarkdownResult> today."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdown(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns string today; the string form becomes doc.ToMarkdown().ToMarkdown(). Breaks every caller that uses the string."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdownDocumentResult(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToMarkdown(WordMarkdownExportOptions options, out OfficeConversionReport report) : MarkdownDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdownDocument(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.FromMarkdown(markdown, WordMarkdownImportOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Extension on MarkdownDoc today (md.ToWordDocument()); static WordDocument.FromMarkdown needs a C# 14 static extension member."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions { Template = templateDocument }) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "MarkdownToWordTemplateOptions merges into WordMarkdownImportOptions."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordTemplateOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordTemplateOptions.cs",
+      "category": "options",
+      "notes": "Template becomes WordMarkdownImportOptions.Template."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordToMarkdownOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Markdown/Options/WordToMarkdownOptions.cs",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordToMarkdownResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionResult`1",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionDiagnostic",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeDiagnostic",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionException",
+      "kind": "type",
+      "action": "merge",
+      "new": "report.ThrowIfLoss() / Core loss exception",
+      "reason": "report.HasLoss, report.ThrowIfLoss() and FailOnLoss are the only loss controls.",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.ImageExportMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImageExportMode",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Word.Markdown/Options/ImageExportMode.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions.ApplyDefaults(WordDocument document)",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "reason": "Converter plumbing on an options type (ApplyDefaults mutates a WordDocument; CreateReaderOptions builds parser options).",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "reason": "Converter plumbing on an options type (ApplyDefaults mutates a WordDocument; CreateReaderOptions builds parser options).",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordToMarkdownOptions.CreateReaderOptions(MarkdownDialectProfile profile = OfficeIMO)",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "reason": "Converter plumbing on an options type.",
+      "file": "OfficeIMO.Word.Markdown/Options/WordToMarkdownOptions.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownSemanticBlocks",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Parser-configuration plumbing (CreateReaderOptions/ConfigureReaderOptions).",
+      "file": "OfficeIMO.Word.Markdown/WordMarkdownSemanticBlocks.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.MarkdownRenderer.IntelligenceX (or internal)",
+      "reason": "Product-specific preset (CreateIntelligenceXTranscript) in a general adapter.",
+      "file": "OfficeIMO.Word.Markdown/Presets/MarkdownToWordPresets.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownImageLayoutOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutOptions",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownImageFitMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImageFitMode",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownImageHintPrecedence",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImageHintPrecedence",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownImageLayoutDiagnostic",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
+      "category": "naming",
+      "notes": "MarkdownImageLayoutDiagnostic merges into OfficeDiagnostic instead."
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownPageBreakMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownPageBreakMode",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownPageBreakMode.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownUnsupportedContentMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownUnsupportedContentMode",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownUnsupportedContentMode.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.MarkdownVisualFallbackMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownVisualFallbackMode",
+      "reason": "Format types start with the format name. Markdown* names in this adapter collide with OfficeIMO.Markdown types.",
+      "file": "OfficeIMO.Word.Markdown/Options/MarkdownVisualFallbackMode.cs",
+      "category": "naming"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Word.Markdown",
+      "to": "(remove references)",
+      "scope": "ProjectReference OfficeIMO.Word.Html and OfficeIMO.Markdown.Html",
+      "reason": "Adapters do not chain through a third format; Markdown to Word should not need HTML.",
+      "notes": "See htmlDependency."
+    }
+  ]
+}

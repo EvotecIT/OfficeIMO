@@ -1,0 +1,1821 @@
+{
+  "package": "OfficeIMO.Pdf",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 148,
+    "byAction": {
+      "change": 39,
+      "internalize": 3,
+      "merge": 57,
+      "move": 3,
+      "remove": 15,
+      "rename": 31
+    },
+    "byCategory": {
+      "authoring": 4,
+      "conversion": 15,
+      "lifecycle": 85,
+      "naming": 21,
+      "options": 4,
+      "package": 1,
+      "units": 18
+    },
+    "packageMoves": 1
+  },
+  "lifecycle": [
+    {
+      "member": "static OfficeContentSafetyReport InspectContentSafety(string filePath, OfficeContentSafetyOptions options = null, PdfLoadOptions readOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static OfficeContentSafetyReport InspectContentSafety(byte[] pdf, OfficeContentSafetyOptions options = null, PdfLoadOptions readOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static OfficeContentCleanupResult RemoveSelectedContent(byte[] pdf, OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null, PdfLoadOptions readOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static OfficeContentCleanupResult RemoveSelectedContent(string inputPath, string outputPath, OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null, PdfLoadOptions readOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static PdfDocument CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static PdfDocument CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static PdfDocument CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
+      "verdict": "rename"
+    },
+    {
+      "member": "byte[] ToBytes()",
+      "verdict": "change"
+    },
+    {
+      "member": "byte[] ToBytes(CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "MemoryStream ToStream()",
+      "verdict": "remove"
+    },
+    {
+      "member": "PdfBytesResult ToBytesResult()",
+      "verdict": "merge"
+    },
+    {
+      "member": "PdfBytesResult ToBytesResult(CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "PdfSaveResult Save(Stream stream)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfSaveResult Save(Stream stream, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfSaveResult SaveResult(Stream stream)",
+      "verdict": "merge"
+    },
+    {
+      "member": "PdfSaveResult SaveResult(Stream stream, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "PdfSaveResult Save(string path)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfSaveResult Save(string path, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfSaveResult SaveResult(string path)",
+      "verdict": "merge"
+    },
+    {
+      "member": "PdfSaveResult SaveResult(string path, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "Task<PdfSaveResult> SaveAsync(Stream stream, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task<PdfSaveResult> SaveResultAsync(Stream stream, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "Task<PdfSaveResult> SaveAsync(string path, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task<PdfSaveResult> SaveAsync(string path, OfficeConversionFileConflictPolicy conflictPolicy, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task<PdfSaveResult> SaveResultAsync(string path, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfDocument Merge(PdfMergeOptions options, PdfDocument[] documents)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(PdfMergeOptions options, byte[][] pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfMergeResult MergeResult(PdfMergeOptions options, PdfDocument[] documents)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfDocument Create(PdfOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Create(Action<PdfDocumentBuilder> compose, PdfOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Load(byte[] pdf, PdfLoadOptions loadOptions = null)",
+      "verdict": "remove"
+    },
+    {
+      "member": "static PdfDocument Load(string path, PdfLoadOptions loadOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Load(Stream stream, PdfLoadOptions loadOptions = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Load(string path, PdfLoadOptions loadOptions, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Load(Stream stream, PdfLoadOptions loadOptions, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "static Task<PdfDocument> LoadAsync(string path, PdfLoadOptions loadOptions = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static Task<PdfDocument> LoadAsync(Stream stream, PdfLoadOptions loadOptions = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocumentPreflight Preflight(byte[] pdf, PdfLoadOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocumentPreflight Preflight(byte[] pdf, PdfLoadOptions options, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocumentPreflight Preflight(string path, PdfLoadOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocumentPreflight Preflight(Stream stream, PdfLoadOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfDocumentInfo Inspect(PdfLoadOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfDocumentInfo Inspect(PdfLoadOptions options, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfDocumentPreflight Preflight(PdfLoadOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "PdfDocumentPreflight Preflight(PdfLoadOptions options, CancellationToken cancellationToken)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Merge(PdfDocument[] documents)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument Merge(IEnumerable<PdfDocument> documents)",
+      "verdict": "change"
+    },
+    {
+      "member": "static PdfDocument MergeBytes(IEnumerable<byte[]> pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfDocument MergeBytes(IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(byte[][] pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(IEnumerable<byte[]> pdfs)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static byte[] MergeToBytes(IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static PdfDocument Merge(IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "verdict": "change"
+    }
+  ],
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.Pdf.PdfArtifactSnapshot",
+      "file": [
+        "OfficeIMO.Pdf/Core/PdfArtifactSnapshot.cs"
+      ],
+      "why": "Snapshot used inside Core/Rendering only."
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfRewritePreservationMatrix / PdfRewritePreservation / PdfRepairArtifact",
+      "why": "Static evidence/matrix helpers; check documentation use."
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfAdvancedUnderstandingStages, PdfLogical*Analysis/Continuations/Parser static classes",
+      "why": "Pipeline stages exposed as public statics."
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfDocument.TryValidateImageBytes / TryPrepareImageBytes (static)",
+      "why": "Image preparation helpers on the document type."
+    },
+    {
+      "type": "OfficeIMO.Pdf.PdfProjectionOptions",
+      "why": "Options for OfficeDocumentModel projection; only the Reader.All facade exposes it."
+    }
+  ],
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and net472. 16 NET472 / NETSTANDARD2_0 conditions exist; those written as \"NET472 || NETSTANDARD2_0\" (Manipulation/PdfProductionSplitter.cs:326, Utilities/PdfLayoutDiagnosticBuffer.cs:32, Reading/Logical/PdfLogicalReadingOrder.Tables.cs:36) keep working on netstandard2.0; any that are NET472-only must be checked for .NET Framework runtime behavior. AllowUnsafeBlocks is conditional on netstandard2.0/net472. 56 NET8_0_OR_GREATER and 36 NET5+ conditions remain valid under net10.0."
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": []
+  },
+  "notes": [
+    "OfficeIMO.Pdf grants InternalsVisibleTo to OfficeIMO.Word and OfficeIMO.Word.Pdf (and 20 others): PdfImageExportEngine is internal and Word/PowerPoint image export depends on it.",
+    "PDF also exposes 27 PdfOperationResult<PdfDocument> *Result operations; the throwing/Result merge rule needs a decision for operations, not only conversions."
+  ],
+  "openQuestions": [
+    "PdfReadDocument/PdfDocumentReadResult internalization requires moving the reading API (pages, text, forms, outlines, structured extraction) onto PdfDocument - the largest single PDF change.",
+    "27 PdfOperationResult<PdfDocument> *Result operations: apply the throwing/Result merge rule to operations too?",
+    "Create(Action<PdfDocumentBuilder>) is a compose-callback API; confirm it is the PDF object model rather than a second authoring style.",
+    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer)."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument : IDisposable, IAsyncDisposable",
+      "reason": "PdfDocument joins the shared lifecycle shape, including IDisposable.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Blocks.Annotations.cs, OfficeIMO.Pdf/Core/PdfDocument.Blocks.Containers.cs, OfficeIMO.Pdf/Core/PdfDocument.Blocks.DefaultStyles.cs (+37 partial files)",
+      "category": "lifecycle",
+      "notes": "Implements no interfaces today. Instances are byte-backed and immutable (operations return new PdfDocument via PdfOperationResult<PdfDocument>); Dispose releases the source buffer/stream."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.InspectContentSafety(string filePath, OfficeContentSafetyOptions options = null, PdfLoadOptions readOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) / instance member",
+      "reason": "Static inspection helpers move onto the document.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.InspectContentSafety(byte[] pdf, OfficeContentSafetyOptions options = null, PdfLoadOptions readOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) / instance member",
+      "reason": "Static inspection helpers move onto the document.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.RemoveSelectedContent(byte[] pdf, OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null, PdfLoadOptions readOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.RemoveContent(OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null) : PdfDocument (instance), plus the path-to-path form only if the no-load guarantee is required",
+      "reason": "Operations live on the document; loading options belong to Load.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static byte[]/path cleanup with PdfLoadOptions; same pattern on WordDocument and ExcelDocument (not itemised there)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.RemoveSelectedContent(string inputPath, string outputPath, OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null, PdfLoadOptions readOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.RemoveContent(OfficeContentCleanupSelection selection, OfficeContentCleanupOptions options = null) : PdfDocument (instance), plus the path-to-path form only if the no-load guarantee is required",
+      "reason": "Operations live on the document; loading options belong to Load.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Static byte[]/path cleanup with PdfLoadOptions; same pattern on WordDocument and ExcelDocument (not itemised there)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options = null)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options, CancellationToken cancellationToken)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options = null)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options, CancellationToken cancellationToken)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ToBytes()",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.ToBytes(PdfSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ToBytes(CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.ToBytes(PdfSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ToStream()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use Save(Stream) or ToBytes().",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ToBytesResult()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.ToBytes(PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ToBytesResult(CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.ToBytes(PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream, PdfSaveOptions options = null) : void",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream, PdfSaveOptions options = null, CancellationToken cancellationToken = default) : void",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResult(Stream stream)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResult(Stream stream, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(Stream stream, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Save(string path)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(string path, PdfSaveOptions options = null) : void",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Save(string path, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(string path, PdfSaveOptions options = null, CancellationToken cancellationToken = default) : void",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResult(string path)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(string path, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResult(string path, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Save(string path, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveAsync(Stream stream, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.SaveAsync(Stream stream, PdfSaveOptions options = null, CancellationToken cancellationToken = default) : Task",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResultAsync(Stream stream, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.SaveAsync(Stream stream, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveAsync(string path, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.SaveAsync(string path, PdfSaveOptions options = null, CancellationToken cancellationToken = default) : Task",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveAsync(string path, OfficeConversionFileConflictPolicy conflictPolicy, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.SaveAsync(string path, PdfSaveOptions { ConflictPolicy = ... }, CancellationToken cancellationToken = default) : Task",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SaveResultAsync(string path, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.SaveAsync(string path, PdfSaveOptions options = null)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
+      "category": "lifecycle",
+      "notes": "SaveResult captures failures in PdfSaveResult; Save throws."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(PdfMergeOptions options, PdfDocument[] documents)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(PdfMergeOptions options, byte[][] pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeResult(PdfMergeOptions options, PdfDocument[] documents)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Create(PdfOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Create(PdfCreateOptions options = null) and Create(string filePath, PdfCreateOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "No path-associated Create today, so Save() has nothing to save to."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Create(Action<PdfDocumentBuilder> compose, PdfOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Create(Action<PdfDocumentBuilder> compose, PdfCreateOptions options = null)",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "PdfDocumentBuilder composition is PDF's object model; keep the compose overload but confirm it is not a second authoring model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Load(byte[] pdf, PdfLoadOptions loadOptions = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "PdfDocument.Load(new MemoryStream(bytes), options)",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Word, Excel and PowerPoint have no byte[] Load. Low-value removal; keep if the immutable byte-backed pipeline makes it materially cheaper."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Load(string path, PdfLoadOptions loadOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(string path, PdfLoadOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Load(Stream stream, PdfLoadOptions loadOptions = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(Stream stream, PdfLoadOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Load(string path, PdfLoadOptions loadOptions, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(string path, PdfLoadOptions options, CancellationToken cancellationToken)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Load(Stream stream, PdfLoadOptions loadOptions, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(Stream stream, PdfLoadOptions options, CancellationToken cancellationToken)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.LoadAsync(string path, PdfLoadOptions loadOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.LoadAsync(string path, PdfLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.LoadAsync(Stream stream, PdfLoadOptions loadOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.LoadAsync(Stream stream, PdfLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+      "category": "lifecycle",
+      "notes": "Parameter is named loadOptions; rename to options. PdfLoadOptions.Default becomes UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(byte[] pdf, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options)",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(byte[] pdf, PdfLoadOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options)",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(string path, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options)",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(Stream stream, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options)",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfInspectOptions options = null, CancellationToken cancellationToken = default) : PdfDocumentInfo",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Takes PdfLoadOptions today (the document re-reads its bytes)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfLoadOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfInspectOptions options = null, CancellationToken cancellationToken = default) : PdfDocumentInfo",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Takes PdfLoadOptions today (the document re-reads its bytes)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfInspectOptions options = null) on a loaded document",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Preflight(PdfLoadOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Inspect(PdfInspectOptions options = null) on a loaded document",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Static path/byte/stream preflight overloads mirror the internal PdfInspector statics; instance Preflight/Inspect take PdfLoadOptions although the document is already loaded."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(PdfDocument[] documents)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytes(IEnumerable<byte[]> pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeBytes(IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(byte[][] pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(IEnumerable<byte[]> pdfs)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeToBytes(IEnumerable<byte[]> pdfs, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null) : PdfDocument",
+      "replacement": "Load byte arrays first; call ToBytes() on the result.",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "22 Merge overloads across bytes/documents/result/to-bytes shapes."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.Merge(IEnumerable<PdfDocument> documents, PdfMergeOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Options-first parameter order (PdfMergeOptions options, PdfDocument[] documents) differs from every other API."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLoadOptions.Default",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfLoadOptions.UntrustedDefaults",
+      "reason": "Each load options type has UntrustedDefaults for files from outside.",
+      "file": "OfficeIMO.Pdf/Reading/Options/PdfLoadOptions.cs",
+      "category": "lifecycle",
+      "notes": "Default => new PdfLoadOptions() (lenient parsing, default limits) - so it is not an untrusted profile today; UntrustedDefaults must set strict limits like WordLoadOptions.UntrustedDefaults."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadDocument.Open(byte[] pdf, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(path | Stream, PdfLoadOptions options = null)",
+      "reason": "One document type per format.",
+      "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Loading.cs",
+      "category": "lifecycle",
+      "notes": "PdfReadDocument is the read model (pages, text, forms, outlines: 7+ partial files plus PdfReadDocumentExtensions/PdfReadPageExtensions). Making it internal means PdfDocument must expose the reading surface (Pages, ExtractText...). High-impact; plan in M2."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadDocument.Open(string path, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(path | Stream, PdfLoadOptions options = null)",
+      "reason": "One document type per format.",
+      "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Loading.cs",
+      "category": "lifecycle",
+      "notes": "PdfReadDocument is the read model (pages, text, forms, outlines: 7+ partial files plus PdfReadDocumentExtensions/PdfReadPageExtensions). Making it internal means PdfDocument must expose the reading surface (Pages, ExtractText...). High-impact; plan in M2."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadDocument.Open(Stream stream, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.Load(path | Stream, PdfLoadOptions options = null)",
+      "reason": "One document type per format.",
+      "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Loading.cs",
+      "category": "lifecycle",
+      "notes": "PdfReadDocument is the read model (pages, text, forms, outlines: 7+ partial files plus PdfReadDocumentExtensions/PdfReadPageExtensions). Making it internal means PdfDocument must expose the reading surface (Pages, ExtractText...). High-impact; plan in M2."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadDocument",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "PdfDocument.Load(...) and the reading members moved onto PdfDocument.",
+      "reason": "One public document type per format; the immutable internal pipeline stays an implementation detail.",
+      "file": "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.ActiveContent.cs, OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Attachments.cs, OfficeIMO.Pdf/Reading/Core/PdfReadDocument.Catalog.cs (+18 partial files)",
+      "category": "lifecycle",
+      "notes": "Used publicly by Word/PowerPoint image export, Reader.Pdf, Workflows and Studio. Candidate, depends on moving the read API onto PdfDocument."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentReadResult",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Adapters take PdfDocument only.",
+      "reason": "Second read model: every PDF reconstruction adapter has a parallel PdfDocumentReadResult overload set.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.Attachments.cs, OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.CatalogActions.cs, OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.OptionalContent.cs (+10 partial files)",
+      "category": "lifecycle",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSaveResult",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Save returns void; SaveAs{Target} returns OfficeConversionReport.",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Pdf/Core/PdfSaveResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "X.ToPdf(options, out OfficeConversionReport report) : PdfDocument",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Pdf/Model/PdfDocumentConversionResult.MetadataProof.cs, OfficeIMO.Pdf/Model/PdfDocumentConversionResult.OptionalContentProof.cs, OfficeIMO.Pdf/Model/PdfDocumentConversionResult.cs",
+      "category": "conversion",
+      "notes": "Returned by every *ToPdfDocumentResult in Word, PowerPoint, Excel.Pdf, Reader.All and 10+ Tier 2 adapters."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfColor",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Drawing.OfficeColor",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Pdf/Enums/PdfColor.cs",
+      "category": "naming",
+      "notes": "159 PDF members take PdfColor; PdfColor.FromOfficeColor already exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(Stream source, PdfPlainTextOptions options = null, long maximumInputBytes = 67108864, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromText(Stream source, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
+      "category": "conversion",
+      "notes": "maximumInputBytes moves into PdfTextImportOptions."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(byte[] bytes, PdfPlainTextOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromText(byte[] bytes, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
+      "category": "conversion",
+      "notes": "maximumInputBytes moves into PdfTextImportOptions."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(string text, PdfPlainTextOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.FromText(string text, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
+      "category": "conversion",
+      "notes": "maximumInputBytes moves into PdfTextImportOptions."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPlainTextConverter",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "PdfDocument.FromText(...)",
+      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(OfficeDocumentModel source, PdfProjectionOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "replacement": "OfficeConverter routes",
+      "reason": "Cross-package plumbing for Reader.All OfficeDocumentPdfConverter (Email/EPUB/Visio via OfficeDocumentModel).",
+      "file": "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.cs",
+      "category": "conversion",
+      "notes": "Candidate; reach through InternalsVisibleTo from the front door."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalMarkdownExtensions.ToMarkdown(PdfDocumentReadResult document, PdfLogicalMarkdownOptions options = null)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.FromPdf(PdfDocument pdf, MarkdownPdfImportOptions options = null) in a new OfficeIMO.Pdf.Markdown adapter, or keep as PdfDocument.ExtractMarkdown() : string",
+      "reason": "To{Target} returns the target model; a MarkdownDocument needs the Markdown package, which PDF must not reference.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalMarkdown.cs",
+      "category": "conversion",
+      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage. Decide between a new adapter and a text-extraction name."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalMarkdownExtensions.ToMarkdown(PdfLogicalPage page, PdfLogicalMarkdownOptions options = null)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.FromPdf(PdfDocument pdf, MarkdownPdfImportOptions options = null) in a new OfficeIMO.Pdf.Markdown adapter, or keep as PdfDocument.ExtractMarkdown() : string",
+      "reason": "To{Target} returns the target model; a MarkdownDocument needs the Markdown package, which PDF must not reference.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalMarkdown.cs",
+      "category": "conversion",
+      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage. Decide between a new adapter and a text-extraction name."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(PdfReadDocument document, OfficeImageExportFormat format, PdfImageExportOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(PdfDocumentConversionResult conversion, OfficeImageExportFormat format, PdfImageExportOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ExportImages/SaveAsImages with PdfImageExportOptions.",
+      "reason": "Builder twins of the same export.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page, PdfImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ExportImages/SaveAsImages with PdfImageExportOptions.",
+      "reason": "Builder twins of the same export.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfReadDocument document)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfReadDocument document, PdfImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocument document)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ExportImages/SaveAsImages with PdfImageExportOptions.",
+      "reason": "Builder twins of the same export.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocument document, PdfImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ExportImages/SaveAsImages with PdfImageExportOptions.",
+      "reason": "Builder twins of the same export.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocumentConversionResult conversion)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocumentConversionResult conversion, PdfImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Call the PdfDocument overload.",
+      "reason": "Parallel overloads for internal read/conversion types.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadataResult(CancellationToken cancellationToken, string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SynchronizeMetadataResult(CancellationToken cancellationToken, string title = null, string author = null, string subject = null, string keywords = null, bool createXmpMetadata = True, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.SynchronizeMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.AppendMetadataRevisionResult(CancellationToken cancellationToken, string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null, bool createXmpMetadata = False)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.AppendMetadataRevision(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeWithResult(PdfDocument document, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.MergeWith(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Merge.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeWithResult(byte[] pdf, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.MergeWith(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeWithResult(string path, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.MergeWith(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.MergeWithResult(Stream stream, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.MergeWith(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.FlattenVisualAnnotationsResult(PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.FlattenVisualAnnotations(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.FlattenVisualAnnotationsResult(PdfLoadOptions options, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.FlattenVisualAnnotations(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.AppendMetadataRevisionResult(string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null, bool createXmpMetadata = False)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.AppendMetadataRevision(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.SynchronizeMetadataResult(string title = null, string author = null, string subject = null, string keywords = null, bool createXmpMetadata = True, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.SynchronizeMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadataResult(string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(...) : PdfDocument",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
+      "category": "lifecycle",
+      "notes": "Operation returning PdfOperationResult<PdfDocument>; also takes PdfLoadOptions on an already loaded document. Confirm in M2 whether a throwing twin exists."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageMargins.FromInches(double left, double top, double right, double bottom)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PageMargins.From(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Compose/PageMargins.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageMargins.UniformInches(double inches)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PageMargins.Uniform(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Compose/PageMargins.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageSize.FromInches(double width, double height)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PageSize.From(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Compose/PageSize.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgbaPixels()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgba(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Manipulation/IPdfRedactionImageDecoder.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(PdfDocumentReadResult document, int maxRows, bool mergePageContinuations, bool suppressRepeatedBodyHeaderRows, int maximumSegmentsPerTable, double geometryTolerancePoints)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: geometryTolerancePoints"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(PdfDocumentReadResult document, int maxRows, bool mergePageContinuations, bool suppressRepeatedBodyHeaderRows, int maximumSegmentsPerTable, double geometryTolerancePoints, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: geometryTolerancePoints"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfImageExportOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRasterPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRaster : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Interaction/PdfLayoutDebugOverlayOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerancePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerance : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalParagraphContinuations.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerancePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerance : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableContinuations.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotalPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotal : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfPageChangeOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageDisplayOptions.MaximumPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfPageDisplayOptions.Maximum : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfPageDisplayOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPagePrintOptions.MaximumPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfPagePrintOptions.Maximum : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfPagePrintOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShadingPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShading : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Options/PdfReadLimits.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMaxPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMax : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/PdfTextLayoutOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotalPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotal : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfVisualPageComparison.ComparedPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.Compared : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonReport.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfVisualPageComparison.DifferentPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.Different : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonReport.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageMargins",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfPageMargins (OfficeLength based)",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Compose/PageMargins.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageSize",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfPageSize (OfficeLength based)",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Compose/PageSize.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PageSizes",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfPageSizes",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Compose/PageSizes.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.TableStyles",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfTableStyles",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Styles/TableStyles.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.HeaderTextBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfHeaderTextBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Compose/HeaderTextBuilder.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.FooterTextBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfFooterTextBuilder",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Compose/FooterTextBuilder.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.FooterSegment",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfFooterSegment",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Options/FooterSegment.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.FooterSegmentKind",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfFooterSegmentKind",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Options/FooterSegmentKind.cs",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredBand",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredBand",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredHeading",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredHeading",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredHeadingPage",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredHeadingPage",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredLine",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredLine",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredListItem",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredListItem",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredListItemPage",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredListItemPage",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredPage",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredPage",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredParagraph",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredParagraph",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredParagraphPage",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredParagraphPage",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredTable",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredTable",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredTableColumn",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredTableColumn",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.StructuredTablePage",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfStructuredTablePage",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+      "category": "naming",
+      "notes": "Returned by PdfReadDocumentExtensions.Extract*; may instead become internal with the read model."
+    },
+    {
+      "old": "OfficeIMO.Pdf.TableStyles.FromWordTableStyle(string styleName)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.Pdf (internal)",
+      "reason": "A Word concept inside the PDF engine; the Word PDF adapter maps Word table styles.",
+      "file": "OfficeIMO.Pdf/Styles/TableStyles.cs",
+      "category": "package"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageDocumentOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfImageImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+      "category": "options",
+      "notes": "Options of PdfDocument.FromImages."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfCreateOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Pdf/Options/PdfOptions.Attachments.cs, OfficeIMO.Pdf/Options/PdfOptions.CanvasStamp.cs, OfficeIMO.Pdf/Options/PdfOptions.Catalog.cs (+27 partial files)",
+      "category": "options",
+      "notes": "PdfOptions (123 properties) mixes creation defaults, rendering and save-time settings; split save-time settings into a new PdfSaveOptions."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPlainTextOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfTextImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Pdf/Options/PdfPlainTextOptions.cs",
+      "category": "options",
+      "notes": "Options of PdfDocument.FromText."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Pdf/Reading/Options/PdfReadOptions.cs",
+      "category": "options",
+      "notes": "Two load-time option types for one document; merge into PdfLoadOptions."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Pdf",
+      "to": "(new) OfficeIMO.Pdf.Word",
+      "scope": "Reconstruction to Word now in OfficeIMO.Word.Pdf (PdfWordConverterExtensions, PdfToWordOptions, PdfWord*)",
+      "reason": "Reconstruction from PDF lives in the matching OfficeIMO.Pdf.{Target} adapter.",
+      "notes": "Listed here for completeness; see OfficeIMO.Word.Pdf.json."
+    }
+  ]
+}

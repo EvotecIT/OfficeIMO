@@ -1,0 +1,3194 @@
+{
+  "package": "OfficeIMO.Excel",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 282,
+    "byAction": {
+      "change": 145,
+      "internalize": 4,
+      "merge": 94,
+      "remove": 19,
+      "rename": 20
+    },
+    "byCategory": {
+      "authoring": 108,
+      "conversion": 3,
+      "lifecycle": 52,
+      "naming": 1,
+      "options": 11,
+      "units": 106,
+      "visibility": 1
+    },
+    "packageMoves": 1
+  },
+  "lifecycle": [
+    {
+      "member": "static ExcelDocumentConversionReport AnalyzeConversion(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDocumentConversionReport> AnalyzeConversionAsync(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocumentConversionResult Convert(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDocumentConversionResult> ConvertAsync(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument Create(ExcelCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument Create(string filePath, ExcelCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument Create(Stream stream, ExcelCreateOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument Load(string filePath, ExcelLoadOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument LoadEncrypted(string filePath, string password, ExcelLoadOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument Load(Stream stream, ExcelLoadOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument LoadEncrypted(Stream stream, string password, ExcelLoadOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDocument> LoadAsync(string filePath, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDocument> LoadAsync(Stream stream, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static Task<ExcelDocument> LoadEncryptedAsync(Stream stream, string password, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelWorkbookDataReader> OpenDataReaderAsync(string path, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static Task<ExcelWorkbookDataReader> OpenDataReaderAsync(Stream stream, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenDataReader(string path, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static IReadOnlyList<string> GetSheetNames(string path, ExcelReadOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenDataReader(Stream stream, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenDataReader(byte[] bytes, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static Task<ExcelWorkbookDataReader> OpenDataReaderAsync(Uri uri, ExcelReadOptions options = null, ExcelHttpLoadOptions httpOptions = null, CancellationToken cancellationToken = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(string path, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(Stream stream, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenEncryptedDataReader(string path, string password, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenEncryptedDataReader(Stream stream, string password, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static ExcelWorkbookDataReader OpenEncryptedDataReader(byte[] encryptedBytes, string password, ExcelReadOptions options = null)",
+      "verdict": "rename"
+    },
+    {
+      "member": "static IReadOnlyList<ExcelDataSetImportResult> WriteDataSet(Stream stream, DataSet dataSet, ExcelTableStyle tableStyle = TableStyleMedium2, bool includeHeaders = True, bool includeAutoFilter = True, CancellationToken ct = null, ExcelDateSystem dateSystem = NineteenHundred)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void Dispose()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "ValueTask DisposeAsync()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static ExcelDocument OpenFileBacked(string filePath, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions httpOptions = null, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions saveOptions = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void Save(string filePath)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(string filePath, ExcelSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void SaveEncrypted(string filePath, string password, ExcelSaveOptions saveOptions = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "void Save()",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(ExcelSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "byte[] ToBytes(ExcelFileFormat format = Xlsx, ExcelSaveOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "MemoryStream ToStream(ExcelFileFormat format = Xlsx, ExcelSaveOptions options = null)",
+      "verdict": "remove"
+    },
+    {
+      "member": "void Save(Stream destination)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(Stream destination, ExcelSaveOptions options)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "void SaveEncrypted(Stream destination, string password, ExcelSaveOptions saveOptions = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "Task SaveAsync(Stream destination, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(Stream destination, ExcelSaveOptions options, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "change"
+    },
+    {
+      "member": "Task SaveAsync(CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(ExcelSaveOptions options, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveAsync(string filePath, ExcelSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "void SaveCopy(string filePath, ExcelSaveOptions options = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "Task SaveCopyAsync(string filePath, ExcelSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "verdict": "conforms"
+    },
+    {
+      "member": "static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> ImportSpreadsheetXml(string filePath, ExcelSpreadsheetXmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> ImportSpreadsheetXml(byte[] input, ExcelSpreadsheetXmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> ImportSpreadsheetXml(Stream input, ExcelSpreadsheetXmlOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDataSetImportResult WriteRows<T>(Stream stream, IEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static Task<ExcelDataSetImportResult> WriteRowsAsync<T>(Stream stream, IAsyncEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDataSetImportResult WriteDataReader(Stream stream, IDataReader reader, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument CreateFromTemplate(string templatePath)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument CreateFromTemplate(string templatePath, string filePath, ExcelTemplateCreateOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static ExcelDocument CreateFromTemplate(Stream templateStream, string filePath, ExcelTemplateCreateOptions options = null)",
+      "verdict": "merge"
+    },
+    {
+      "member": "static void CopyPackage(string sourcePath, string destinationPath, bool overwrite = True)",
+      "verdict": "internalize"
+    },
+    {
+      "member": "static void CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = True)",
+      "verdict": "internalize"
+    },
+    {
+      "member": "static ExcelDocument Create(string filePath, string worksheetName)",
+      "verdict": "merge"
+    }
+  ],
+  "survivingCapabilities": [
+    {
+      "fluent": "ChartBuilder presets KpiScorecard, RevenueTrend, StatusBreakdown, TopNBar, VarianceColumns, VarianceWaterfall, Contribution",
+      "objectModel": "ExcelSheet.Apply*Defaults(ExcelChart) helpers exist and are called by the presets; expose as ExcelChart.ApplyPreset(ExcelChartPreset) or OfficeChartOptions.Preset",
+      "file": "OfficeIMO.Excel/Fluent/ChartBuilder.cs"
+    },
+    {
+      "fluent": "ChartBuilder 3-D/stacked/100% variants",
+      "objectModel": "AddChart(OfficeChartType ...) with Excel-only variants in ExcelChartOptions (Stacking, ThreeD); OfficeChartType from Core M1"
+    },
+    {
+      "fluent": "PivotTableBuilder (Sum/Count/Average/Min/Max, DateGroup, NumberGroup, CalculatedField, layout/subtotal options)",
+      "objectModel": "ExcelSheet.AddPivotTable(..., ExcelPivotTableOptions) : ExcelPivotTable; PivotTableBuilder wraps the two AddPivotTable overloads and should become an options type",
+      "file": "OfficeIMO.Excel/Fluent/PivotTableBuilder.cs"
+    },
+    {
+      "fluent": "SparklineBuilder",
+      "objectModel": "ExcelSheet.AddSparklines(...) : ExcelSparklineGroup (string colors become OfficeColor)",
+      "file": "OfficeIMO.Excel/Fluent/SparklineBuilder.cs"
+    },
+    {
+      "fluent": "SheetBuilder.RowsFrom<T>, Table, HeaderRow, AutoFilter, Freeze, ConditionalColorScale/DataBar, AutoFit",
+      "objectModel": "AddTable<T>, Freeze, AddConditional*, AutoFit* exist on ExcelSheet"
+    },
+    {
+      "fluent": "SheetIndex.Add / AddBackLinks",
+      "objectModel": "ExcelDocument.AddTableOfContents(...) and AddBackLinksToToc() exist"
+    },
+    {
+      "fluent": "HeaderFooterBuilder images (LeftImage, CenterImage, RightImage, footer variants)",
+      "objectModel": "ExcelSheet.HeaderLogoFromUrlAsync / FooterLogoFromUrlAsync exist; stream/byte[] header images need an object-model method"
+    },
+    {
+      "fluent": "ExcelInfoBuilder",
+      "objectModel": "ExcelDocument.BuiltinDocumentProperties"
+    }
+  ],
+  "additions": [
+    "ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
+    "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
+    "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",
+    "ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null) / CreateWriter(path, theme: OfficeTheme) : ExcelWorkbookWriter",
+    "ExcelColumnWidth (characters, or a length through the default font) for column widths and row heights"
+  ],
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.Excel.ExcelWorkbookWriteReservationInfo / ExcelWorkbookWriteReservationOptions",
+      "file": [
+        "OfficeIMO.Excel/ExcelWorkbookWriteReservation.cs"
+      ],
+      "why": "Write-reservation plumbing; used only inside OfficeIMO.Excel and its tests."
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelStreamingContractReport",
+      "file": [
+        "OfficeIMO.Excel/ExcelWorkbookIntelligence.cs"
+      ],
+      "why": "\"Contract\" report used by workbook intelligence internals and tests."
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelRuntimePreflight / ExcelRuntimePreflightReport",
+      "file": [
+        "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
+      ],
+      "why": "Runtime preflight; used by PSWriteOffice, so check whether it is a documented feature before internalizing."
+    },
+    {
+      "type": "OfficeIMO.Excel.ExcelWorkbookSnapshot (+ 19 Excel*Snapshot types)",
+      "file": [
+        "OfficeIMO.Excel/ExcelInspectionSnapshot.cs"
+      ],
+      "why": "Inspection snapshot consumed by Reader.Excel, Excel.GoogleSheets, Excel.OpenDocument and PSWriteOffice; InternalsVisibleTo or rename to *Info."
+    },
+    {
+      "type": "OfficeIMO.Excel.LegacyXls.LegacyXlsWriteReservation",
+      "file": [
+        "OfficeIMO.Excel/LegacyXls/Model/LegacyXlsWriteReservation.cs"
+      ],
+      "why": "\"Reservation\" plumbing."
+    },
+    {
+      "type": "OfficeIMO.Excel.Fluent.SheetComposer+ColumnComposer",
+      "why": "Nested public builder; keep as ExcelReportBuilder.ColumnComposer only if Columns(...) stays in the report API."
+    }
+  ],
+  "colors": {
+    "stringColorProperties": 36,
+    "stringColorParameterMembers": 116,
+    "target": "OfficeColor only; not itemised in M0 except report-builder members."
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Drop net8.0 and net472. Three #if NETFRAMEWORK branches in ExcelDocument.Save.Public.cs (lines 384, 526, 596: non-seekable destination handling on .NET Framework System.IO.Packaging) and one NETSTANDARD2_0 || NETFRAMEWORK branch in Read/ExcelSheetReader.NumericParsing.cs must become runtime checks or netstandard2.0 code paths. 48 NET8_0_OR_GREATER and 57 NET5+/NETCOREAPP conditions remain valid under net10.0. System.Text.Json and Microsoft.Bcl.AsyncInterfaces stay conditional on netstandard2.0."
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": [
+      "DocumentFormat.OpenXml [3.5.1, 4.0.0)",
+      "System.Text.Encoding.CodePages 10.0.9",
+      "Microsoft.Bcl.AsyncInterfaces 10.0.9",
+      "System.Text.Json [10.0.7,11.0.0)"
+    ]
+  },
+  "openQuestions": [
+    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
+    "ExcelReadOptions has 35 properties and drives both the streaming reader and CreateInspectionSnapshot; split reader options from inspection options.",
+    "InsertObjects<T> writes a plain range; decide whether AddTable<T> covers that (AsRange option) or a SetValues<T> stays."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AnalyzeConversion(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Analyze(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Conversion.Analysis.cs",
+      "category": "lifecycle",
+      "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AnalyzeConversionAsync(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.AnalyzeAsync(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Conversion.Analysis.cs",
+      "category": "lifecycle",
+      "notes": "New OfficeConverter member returning OfficeConversionReport without writing output (to confirm in M1/M4)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.Convert(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Conversion.cs",
+      "category": "lifecycle",
+      "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ConvertAsync(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Conversion.cs",
+      "category": "lifecycle",
+      "notes": "Same-family conversion (legacy binary <-> Open XML) is one OfficeConverter route; the engine stays in this package as internal code."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadEncrypted(string filePath, string password, ExcelLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadEncrypted(Stream stream, string password, ExcelLoadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadEncryptedAsync(string filePath, string password, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.LoadAsync(path or stream, ExcelLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadEncryptedAsync(Stream stream, string password, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.LoadAsync(path or stream, ExcelLoadOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(string path, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Async.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Stream stream, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Async.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(string path, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.GetSheetNames(string path, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path).SheetNames",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(Stream stream, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(byte[] bytes, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Uri uri, ExcelReadOptions options = null, ExcelHttpLoadOptions httpOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(string path, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Encrypted.Async.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(Stream stream, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Encrypted.Async.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(string path, string password, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Encrypted.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(Stream stream, string password, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Encrypted.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(byte[] encryptedBytes, string password, ExcelReadOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader",
+      "reason": "Very large workbooks use explicit streaming APIs (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DataReader.Encrypted.cs",
+      "category": "lifecycle",
+      "notes": "Streaming reader, counterpart of CreateWriter. Password and Uri inputs become ExcelReaderOptions properties; byte[] input uses a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.WriteDataSet(Stream stream, DataSet dataSet, ExcelTableStyle tableStyle = TableStyleMedium2, bool includeHeaders = True, bool includeAutoFilter = True, CancellationToken ct = null, ExcelDateSystem dateSystem = NineteenHundred)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)",
+      "reason": "Very large workbooks use an explicit streaming writer (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.DirectDataSet.cs",
+      "category": "lifecycle",
+      "notes": "Static Stream writers become the explicit streaming writer of the design (writer.WriteTable(name, IEnumerable<T> | IAsyncEnumerable<T> | DataTable | IDataReader))."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.OpenFileBacked(string filePath, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(string filePath, ExcelLoadOptions { FileBacked = true })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.FileBackedEdit.cs",
+      "category": "lifecycle",
+      "notes": "A large-workbook loading mode, not a separate lifecycle."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadAsync(Uri uri, ExcelHttpLoadOptions httpOptions = null, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.LoadAsync(Uri uri, ExcelLoadOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Http.cs",
+      "category": "lifecycle",
+      "notes": "ExcelHttpLoadOptions folds into ExcelLoadOptions; parameter order matches the other LoadAsync overloads."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadLegacyXls(string path, LegacyXlsImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options)",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.LegacyXls.cs",
+      "category": "lifecycle",
+      "notes": "Load detects XLS by content."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/ExcelDocument.LegacyXls.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadLegacyXls(Stream stream, LegacyXlsImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options)",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.LegacyXls.cs",
+      "category": "lifecycle",
+      "notes": "Load detects XLS by content."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/ExcelDocument.LegacyXls.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions saveOptions = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Save(path or stream, ExcelSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Encrypted.cs, OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.SaveEncrypted(string filePath, string password, ExcelSaveOptions saveOptions = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Save(path or stream, ExcelSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ToBytes(ExcelFileFormat format = Xlsx, ExcelSaveOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.ToBytes(ExcelSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "Format moves into ExcelSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ToStream(ExcelFileFormat format = Xlsx, ExcelSaveOptions options = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use Save(Stream) or ToBytes().",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.Save(Stream destination, ExcelSaveOptions options = null)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "The ExcelFileFormat parameter moves into ExcelSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.SaveEncrypted(Stream destination, string password, ExcelSaveOptions saveOptions = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Save(path or stream, ExcelSaveOptions { Password = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Encrypted.cs, OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "Encryption is a save option, as PdfLoadOptions.Password already is for PDF."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.SaveAsync(Stream destination, ExcelSaveOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "category": "lifecycle",
+      "notes": "The ExcelFileFormat parameter moves into ExcelSaveOptions.Format."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ImportSpreadsheetXml(string filePath, ExcelSpreadsheetXmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/ExcelDocument.SpreadsheetXml.cs",
+      "category": "lifecycle",
+      "notes": "SpreadsheetML 2003 is an Excel-family input; returns OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> today. byte[] overload: use a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ImportSpreadsheetXml(byte[] input, ExcelSpreadsheetXmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/ExcelDocument.SpreadsheetXml.cs",
+      "category": "lifecycle",
+      "notes": "SpreadsheetML 2003 is an Excel-family input; returns OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> today. byte[] overload: use a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ImportSpreadsheetXml(Stream input, ExcelSpreadsheetXmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/ExcelDocument.SpreadsheetXml.cs",
+      "category": "lifecycle",
+      "notes": "SpreadsheetML 2003 is an Excel-family input; returns OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> today. byte[] overload: use a MemoryStream."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.WriteRows<T>(Stream stream, IEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)",
+      "reason": "Very large workbooks use an explicit streaming writer (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.TabularWrite.cs",
+      "category": "lifecycle",
+      "notes": "Static Stream writers become the explicit streaming writer of the design (writer.WriteTable(name, IEnumerable<T> | IAsyncEnumerable<T> | DataTable | IDataReader))."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.WriteRowsAsync<T>(Stream stream, IAsyncEnumerable<T> items, IReadOnlyList<string> headers, Action<ExcelTabularRowWriter, T> writeRow, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)",
+      "reason": "Very large workbooks use an explicit streaming writer (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.TabularWrite.cs",
+      "category": "lifecycle",
+      "notes": "Static Stream writers become the explicit streaming writer of the design (writer.WriteTable(name, IEnumerable<T> | IAsyncEnumerable<T> | DataTable | IDataReader))."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.WriteDataReader(Stream stream, IDataReader reader, ExcelTabularWriteOptions options = null, CancellationToken ct = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.CreateWriter(path or stream, ExcelWriterOptions options = null).WriteTable(...)",
+      "reason": "Very large workbooks use an explicit streaming writer (design: Large workbooks).",
+      "file": "OfficeIMO.Excel/ExcelDocument.TabularWrite.cs",
+      "category": "lifecycle",
+      "notes": "Static Stream writers become the explicit streaming writer of the design (writer.WriteTable(name, IEnumerable<T> | IAsyncEnumerable<T> | DataTable | IDataReader))."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CreateFromTemplate(string templatePath)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, ExcelCreateOptions { Template = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.TemplateCreation.cs",
+      "category": "lifecycle",
+      "notes": "Three overloads (path; path+destination; stream+destination) with ExcelTemplateCreateOptions."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CreateFromTemplate(string templatePath, string filePath, ExcelTemplateCreateOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, ExcelCreateOptions { Template = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.TemplateCreation.cs",
+      "category": "lifecycle",
+      "notes": "Three overloads (path; path+destination; stream+destination) with ExcelTemplateCreateOptions."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CreateFromTemplate(Stream templateStream, string filePath, ExcelTemplateCreateOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, ExcelCreateOptions { Template = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.TemplateCreation.cs",
+      "category": "lifecycle",
+      "notes": "Three overloads (path; path+destination; stream+destination) with ExcelTemplateCreateOptions."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CopyPackage(string sourcePath, string destinationPath, bool overwrite = True)",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "reason": "Implementation detail.",
+      "file": "OfficeIMO.Excel/ExcelDocument.TemplateCreation.cs",
+      "category": "lifecycle",
+      "notes": "Raw package copy helper; File.Copy or Load+SaveCopy cover users."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = True)",
+      "kind": "method",
+      "action": "internalize",
+      "new": null,
+      "reason": "Implementation detail.",
+      "file": "OfficeIMO.Excel/ExcelDocument.TemplateCreation.cs",
+      "category": "lifecycle",
+      "notes": "Raw package copy helper; File.Copy or Load+SaveCopy cover users."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, string worksheetName)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, ExcelCreateOptions { FirstSheetName = ... })",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs, OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AsFluent()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument object model; reports use sheet.Report().",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Fluent.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ChartBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ChartBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ColumnBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ColumnBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ColumnCollectionBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ColumnCollectionBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ColumnSizingOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnSizingOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Excel/Fluent/ColumnSizingOptions.cs",
+      "category": "authoring",
+      "notes": "Used by ExcelReportBuilder.ApplyColumnSizing."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ExcelFluentWorkbook",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelFluentWorkbook.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ExcelInfoBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelInfoBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.ExcelTableBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelTableBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.HeaderFooterBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ExcelSheet.SetHeaderFooter / a header-footer model on ExcelSheet.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/HeaderFooterBuilder.cs",
+      "category": "authoring",
+      "notes": "Also used by the public object-model method ExcelSheet.HeaderFooter(Action<HeaderFooterBuilder>) (OfficeIMO.Excel/Fluent/ExcelSheet.HeaderFooter.Fluent.cs) and ExcelReportBuilder.HeaderFooter."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.IconSetOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelIconSetOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Excel/Fluent/TableVisualOptions.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.OverflowMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelReportOverflowMode",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Excel/Fluent/OverflowMode.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.PivotTableBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/PivotTableBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.RangeBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/RangeBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.RowBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/RowBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/SheetBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder",
+      "reason": "SheetComposer stays as the report builder, reached through sheet.Report(); it moves out of the Fluent namespace and takes the format prefix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.ColumnsLayout.cs, OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs, OfficeIMO.Excel/Fluent/SheetComposer.Images.cs (+8 partial files)",
+      "category": "authoring",
+      "notes": "Public ctor SheetComposer(ExcelDocument workbook, string sheetName, SheetTheme? theme) creates the sheet itself; the target is ExcelSheet.Report(ExcelReportOptions options = null) on an existing sheet, so the ctor becomes internal."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer+ColumnComposer",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder+ColumnComposer",
+      "reason": "Moves with the report builder.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.ColumnsLayout.cs",
+      "category": "authoring",
+      "notes": "Nested public builder used by Columns(...); keep only if multi-column report layout stays public."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetIndex",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddTableOfContents(...) : ExcelSheet",
+      "reason": "One way to do each thing.",
+      "file": "OfficeIMO.Excel/Fluent/SheetIndex.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetTheme",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeTheme",
+      "reason": "Every new document starts from OfficeTheme; the report builder takes ExcelReportOptions.Theme.",
+      "file": "OfficeIMO.Excel/Fluent/SheetTheme.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SparklineBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/SparklineBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.StatusPalettes",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeTheme (Success, Warning, Danger roles)",
+      "reason": "Status colors are theme roles.",
+      "file": "OfficeIMO.Excel/Fluent/StatusPalettes.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.StyleBuilder",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the ExcelDocument/ExcelSheet object model; see survivingCapabilities.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/StyleBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.TableVisualOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelTableVisualOptions",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Excel/Fluent/TableVisualOptions.cs",
+      "category": "authoring",
+      "notes": "Used by ExcelReportBuilder.TableFrom."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.HeaderFooter(Action<HeaderFooterBuilder> configure)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use SetHeaderFooter / SetFirstPageHeaderFooter / SetEvenPageHeaderFooter or a header-footer model.",
+      "reason": "One authoring model per format: the AsFluent() API and its builders are removed.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelSheet.HeaderFooter.Fluent.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer(ExcelDocument workbook, string sheetName, SheetTheme theme = null)",
+      "kind": "constructor",
+      "action": "internalize",
+      "new": "OfficeIMO.Excel.ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
+      "reason": "Reached through sheet.Report().",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(int row, int column, byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "category": "authoring",
+      "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "category": "authoring",
+      "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "category": "authoring",
+      "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.Callout(string kind, string title, string body, int widthColumns = 8)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.Callout(OfficeCalloutKind kind, string title, string body, ...)",
+      "reason": "Callout kind is a free string today; use the shared callout kind and theme roles (same as Word AddCallout).",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Layout.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.BulletedListWithFill(IEnumerable<string> items, string fillHex)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.BulletedListWithFill(... OfficeColor ...)",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Layout.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.KpiRow(IEnumerable<ValueTuple<string, object>> kpis, int perRow = 3, string labelFillHex = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.KpiRow(... OfficeColor ...)",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Layout.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.SectionLegend(string title, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows, IDictionary<string, string> firstColumnFillByValue = null, string headerFillHex = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.SectionLegend(... OfficeColor ...)",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Legend.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.ConditionalColorScale(string rangeA1, string startHex, string endHex)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.ConditionalColorScale(... OfficeColor ...)",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.PrintAndCF.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.ConditionalDataBar(string rangeA1, string colorHex)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.ConditionalDataBar(... OfficeColor ...)",
+      "reason": "OfficeColor is the only public color type.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.PrintAndCF.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.Margins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.PrintAndCF.cs",
+      "category": "units",
+      "notes": "double inches today."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.TableFrom<T>(IEnumerable<T> items, string title = null, Action<ObjectFlattenerOptions> configure = null, ExcelTableStyle style = TableStyleMedium9, bool autoFilter = True, bool freezeHeaderRow = True, Action<TableVisualOptions> visuals = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddTable<T>(IEnumerable<T> rows, ...) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Table.DataTable.cs",
+      "category": "authoring",
+      "notes": "Returns the table name (string) today."
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.TableFrom(DataTable table, string title = null, Action<ObjectFlattenerOptions> configure = null, ExcelTableStyle style = TableStyleMedium9, bool autoFilter = True, bool freezeHeaderRow = True, Action<TableVisualOptions> visuals = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddTable<T>(IEnumerable<T> rows, ...) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Table.DataTable.cs",
+      "category": "authoring",
+      "notes": "Returns the table name (string) today."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "authoring",
+      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartDataRange dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, ExcelChartData cachedData = null, string title = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "authoring",
+      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, bool hasHeaders = True, string title = null, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "authoring",
+      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChartFromRange(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string tableName, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "authoring",
+      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChartFromTable(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = True, ExcelExecutionMode? mode = null, CancellationToken ct = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable table, OfficeTableOptions options = null) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataTable.cs",
+      "category": "authoring",
+      "notes": "InsertDataTable returns void; InsertDataTableAsTable returns the table name."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertDataTableAsTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = True, string tableName = null, ExcelTableStyle style = TableStyleMedium2, bool includeAutoFilter = True, ExcelExecutionMode? mode = null, CancellationToken ct = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable table, OfficeTableOptions options = null) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataTable.Tables.cs",
+      "category": "authoring",
+      "notes": "InsertDataTable returns void; InsertDataTableAsTable returns the table name."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageAt(int row, int column, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use AddImage, which returns the ExcelImage.",
+      "reason": "One way to do each thing. Duplicate of AddImage returning void.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageAt(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[] image, OfficeLength? width = null, OfficeLength? height = null, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImage(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFile(int row, int column, string path, int? widthPixels = null, int? heightPixels = null, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromFile(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int? widthPixels, int? heightPixels, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(int row, int column, string url, double scalePercent, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, double scalePercent, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageToRange(string range, byte[] imageBytes, string contentType = image/png, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageToRange(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(int xPixels, int yPixels, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(string range, string path, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "reason": "One verb per concept: AddImage everywhere.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+      "category": "authoring",
+      "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = True, int startRow = 1)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "reason": "Typed data in, styled output out.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
+      "category": "authoring",
+      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "reason": "Typed data in, styled output out.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
+      "category": "authoring",
+      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, ValueTuple<string, Func<T, object>>[] columns)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "reason": "Typed data in, styled output out.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
+      "category": "authoring",
+      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartKind chartKind, OfficeChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
+      "file": "OfficeIMO.Excel/ExcelSheet.SharedCharts.cs",
+      "category": "authoring",
+      "notes": "OfficeChartKind becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader, string name, ExcelTableStyle style)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader = true, string name = null, ExcelTableStyle style = ..., ...) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+      "category": "authoring",
+      "notes": "Returns void today, while Word and PowerPoint return the table."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = Sanitize)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader = true, string name = null, ExcelTableStyle style = ..., ...) : ExcelTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+      "category": "authoring",
+      "notes": "Returns void today, while Word and PowerPoint return the table."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2 = null, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2, bool stopIfTrue, int? priority = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1, string formula2, string fillColor, bool stopIfTrue = False, int? priority = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string range, string startColor, string endColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string range, OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string range, string color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[] percentThresholds, double[] numberThresholds)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string range)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(string pivotTableName, ExcelConditionalFormattingOperator operator, string formula1, string formula2 = null, ExcelPivotRangeTarget target = DataBody)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(string pivotTableName, string startColor, string endColor, ExcelPivotRangeTarget target = DataBody)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(string pivotTableName, string color, ExcelPivotRangeTarget target = DataBody)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(string pivotTableName, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[] percentThresholds = null, double[] numberThresholds = null, ExcelPivotRangeTarget target = DataBody)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ConditionalFormatting.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotTable(string sourceRange, string destinationCell, string name, IEnumerable<string> rowFields, IEnumerable<string> columnFields, IEnumerable<string> pageFields, IEnumerable<ExcelPivotDataField> dataFields, bool showRowGrandTotals, bool showColumnGrandTotals, string pivotStyleName, ExcelPivotLayout layout, bool? dataOnRows, bool? showHeaders, bool? showEmptyRows, bool? showEmptyColumns, bool? showDrill)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotTable(...) : ExcelPivotTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotTable(string sourceRange, string destinationCell, string name = null, IEnumerable<string> rowFields = null, IEnumerable<string> columnFields = null, IEnumerable<string> pageFields = null, IEnumerable<ExcelPivotDataField> dataFields = null, bool showRowGrandTotals = True, bool showColumnGrandTotals = True, string pivotStyleName = null, ExcelPivotLayout layout = Compact, bool? dataOnRows = null, bool? showHeaders = null, bool? showEmptyRows = null, bool? showEmptyColumns = null, bool? showDrill = null, IEnumerable<ExcelPivotFieldOptions> fieldOptions = null, string rowHeaderCaption = null, string columnHeaderCaption = null, string grandTotalCaption = null, string missingCaption = null, string errorCaption = null, bool? showDataDropDown = null, bool? showDropZones = null, bool? showDataTips = null, bool? showMemberPropertyTips = null, bool? fieldListSortAscending = null, bool? customListSort = null, IEnumerable<ExcelPivotFilter> pivotFilters = null, IEnumerable<ExcelPivotCalculatedField> calculatedFields = null, IEnumerable<ExcelPivotGrouping> groupings = null, ExcelPivotTableOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotTable(...) : ExcelPivotTable",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName, IReadOnlyDictionary<string, string[]> groups)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ManualGrouping.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName, IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string> hiddenGroupItems)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotTables.ManualGrouping.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue, int? priority)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = False, string fillColor = null, int? priority = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string range)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string range, string fillColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string range)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string range, string fillColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(string range, bool aboveAverage = True, bool equalAverage = False, uint? standardDeviation = null, bool stopIfTrue = False, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(string range, string text, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(string range, string text, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(string range, string text, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(string range, string text, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string range, uint rank, bool bottom = False, bool percent = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, string fillColor)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(string range, ExcelConditionalFormatType type, string text, bool stopIfTrue = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(string range, bool containsBlanks = True, bool stopIfTrue = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(string range, bool containsErrors = True, bool stopIfTrue = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, bool stopIfTrue = False, string fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(...) : the created object",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RuleManagement.cs",
+      "category": "authoring",
+      "notes": "Return type to be named in M2 when the created model type is public. Also (authoring): change -> OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(...) : ExcelConditionalFormat"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddSparklines(string dataRange, string locationRange, ExcelSparklineType type, bool displayMarkers = False, bool displayHighLow = False, bool displayFirstLast = False, bool displayNegative = False, bool displayAxis = False, string seriesColor = null, string axisColor = null, string negativeColor = null, string markersColor = null, string highColor = null, string lowColor = null, string firstColor = null, string lastColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddSparklines(...) : ExcelSparklineGroup",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Sparklines.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddSparklines(string dataRange, string locationRange, bool displayMarkers = False, bool displayHighLow = False, bool displayFirstLast = False, bool displayNegative = False, bool displayAxis = False, string seriesColor = null, string axisColor = null, string negativeColor = null, string markersColor = null, string highColor = null, string lowColor = null, string firstColor = null, string lastColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddSparklines(...) : ExcelSparklineGroup",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Sparklines.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>> filterCriteria = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddAutoFilter(...) : ExcelAutoFilter",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AddTableOfContents(string sheetName = TOC, bool placeFirst = True, bool withHyperlinks = True, bool includeNamedRanges = False, bool includeHiddenNamedRanges = False, Predicate<string> rangeNameFilter = null, bool styled = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddTableOfContents(...) : ExcelSheet",
+      "reason": "Add* methods return the created object.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Toc.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels(string range)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.GetRangeSize(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.RangeSize.cs",
+      "category": "units",
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLine(string lineColor = null, double? lineWidthPoints = null, bool noLine = False, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetChartAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetChartAreaStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelCallouts(bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabelCallouts(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelLeaderLines(bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabelLeaderLines(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelShapeStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabelShapeStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(int seriesIndex, uint pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataPoints.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(string seriesName, uint pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataPoints.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(int seriesIndex, uint pointIndex, string color, double? widthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataPoints.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(string seriesName, uint pointIndex, string color, double? widthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataPoints.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetPlotAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetPlotAreaStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(string seriesName, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(string seriesName, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string seriesName, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisLine(string lineColor = null, double? lineWidthPoints = null, bool noLine = False, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisLine(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: fontSizePoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelImage.MoveTo(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: offsetXPixels, offsetYPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.SetSize(int widthPixels, int heightPixels)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelImage.SetSize(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.SetTwoCellEndingMarker(int toRow, int toColumn, int toOffsetXPixels = 0, int toOffsetYPixels = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelImage.SetTwoCellEndingMarker(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: toOffsetXPixels, toOffsetYPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelModernChart.SetPlacement(int row, int column, int widthPixels, int heightPixels)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelModernChart.SetPlacement(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelModernChart.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddContributionChart(string dataRangeA1, int row, int column, string title = Contribution, int widthPixels = 520, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddContributionChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddFunnelChart(IEnumerable<string> categories, IEnumerable<double> values, int row, int column, string title = Funnel, bool sortDescending = True, int widthPixels = 640, int heightPixels = 360)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddFunnelChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ModernChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddHistogramChart(IEnumerable<double> values, int row, int column, string title = Histogram, int? binCount = null, double? binWidth = null, int widthPixels = 640, int heightPixels = 360)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddHistogramChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ModernChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string dataRangeA1, int row, int column, string title = KPI Scorecard, int widthPixels = 520, int heightPixels = 300, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddModernChart(ExcelChartData data, int row, int column, ExcelModernChartType chartType, string title = null, int widthPixels = 640, int heightPixels = 360)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddModernChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ModernCharts.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddParetoChart(IEnumerable<string> categories, IEnumerable<double> values, int row, int column, string title = Pareto, int widthPixels = 720, int heightPixels = 360)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddParetoChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ModernChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string pivotTableName, string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, bool hasHeaders = True, string title = null, bool includeCachedData = True, uint formatId = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(string dataRangeA1, int row, int column, string title = Revenue Trend, int widthPixels = 720, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string dataRangeA1, int row, int column, string title = Status Breakdown, int widthPixels = 520, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(string dataRangeA1, int row, int column, string title = Top Items, int widthPixels = 640, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(string dataRangeA1, int row, int column, string title = Variance, int widthPixels = 640, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(string dataRangeA1, int row, int column, string title = Variance Bridge, int widthPixels = 720, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(IEnumerable<string> categories, IEnumerable<double> changes, int row, int column, string title = Waterfall, bool includeTotal = True, string totalLabel = Total, int widthPixels = 720, int heightPixels = 360)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ModernChartRecipes.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.ChartLayout(int row, int column, int widthPixels = 520, int heightPixels = 320, int chartsPerRow = 2, int horizontalGapPixels = 48, int verticalGapRows = 2)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.ChartLayout(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.ChartLayout.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, horizontalGapPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelSheet.HeaderFooter.Fluent.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/ExcelSheet.HeaderFooter.Fluent.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = image/png, double? widthPoints = null, double? heightPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetFooterImage(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = image/png, double? widthPoints = null, double? heightPoints = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetHeaderImage(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.FromBytes(byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.FromBytes(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.FromStream(Stream stream, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.FromStream(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
+      "category": "units",
+      "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSizePoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSize : double (points)",
+      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "file": "OfficeIMO.Excel/ExcelChartDataLabelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidth : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartDataLabelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidth : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartDataLabelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartPlacement.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartPlacement.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartPlacement.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartPlacement.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartPlacement.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartPlacement.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartSnapshot.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartSnapshot.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetXPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetX : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetYPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetY : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartSnapshot.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChartSnapshot.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDashboardChartOptions.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDashboardChartOptions.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DashboardCharts.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDashboardChartOptions.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelDashboardChartOptions.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DashboardCharts.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.OffsetXPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.OffsetX : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.OffsetYPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.OffsetY : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.ToOffsetXPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.ToOffsetX : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.ToOffsetYPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.ToOffsetY : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImage.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImage.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelImage.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidth : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeight : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.HeightPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.WidthPoints",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSlicerViewOptions.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSlicerViewOptions.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelPivotInteractionViewOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSlicerViewOptions.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSlicerViewOptions.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelPivotInteractionViewOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/SpreadsheetXml/ExcelSpreadsheetXmlOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.OffsetXPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.OffsetX : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.OffsetYPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.OffsetY : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateImage.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTemplateImage.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelTemplate.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTimelineViewOptions.HeightPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTimelineViewOptions.Height : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelPivotInteractionViewOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTimelineViewOptions.WidthPixels",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelTimelineViewOptions.Width : OfficeLength",
+      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "file": "OfficeIMO.Excel/ExcelPivotInteractionViewOptions.cs",
+      "category": "units"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocumentConversionOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Conversion.Models.cs",
+      "category": "options",
+      "notes": "Format-family conversion (XLS/XLSX/XLSB) moves to OfficeConverter."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelHttpLoadOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/ExcelHttpLoadOptions.cs",
+      "category": "options",
+      "notes": "Remote loading settings become a property of the load options (Core OfficeRemoteImageLoadOptions pattern)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelReaderOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/Read/ExcelReadOptions.cs",
+      "category": "options",
+      "notes": "Options of the streaming reader (ExcelDocument.OpenReader), the counterpart of CreateWriter. Not a load-options type."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/SpreadsheetXml/ExcelSpreadsheetXmlOptions.cs",
+      "category": "options",
+      "notes": "SpreadsheetML 2003 import becomes format detection in Load; its settings move to ExcelLoadOptions."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTabularWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelWriterOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "category": "options",
+      "notes": "Options of the streaming writer (ExcelDocument.CreateWriter)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTemplateCreateOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelCreateOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/ExcelLifecycleOptions.cs",
+      "category": "options",
+      "notes": "Template creation becomes ExcelCreateOptions.Template."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelWorkbookImageExportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImageExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportOptions.cs",
+      "category": "options",
+      "notes": "One image export options type per format."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelWorksheetImageExportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelImageExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportOptions.cs",
+      "category": "options",
+      "notes": "One image export options type per format."
+    },
+    {
+      "old": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/Legacy/LegacySpreadsheetContracts.cs",
+      "category": "options",
+      "notes": "Legacy spreadsheet import becomes format detection in Load."
+    },
+    {
+      "old": "OfficeIMO.Excel.LegacyXls.LegacyXlsImportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/LegacyXls/LegacyXlsImportOptions.cs",
+      "category": "options",
+      "notes": "XLS is loaded by Load with format detection; legacy settings become ExcelLoadOptions.Legacy."
+    },
+    {
+      "old": "OfficeIMO.Excel.Xlsb.XlsbImportOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelLoadOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Excel/Xlsb/XlsbImportOptions.cs",
+      "category": "options",
+      "notes": "XLSB is loaded by Load with format detection."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ToImages()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with ExcelImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.ToImages(ExcelWorkbookImageExportOptions options)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToImage/SaveAsImage/SaveAsImages with ExcelImageExportOptions.",
+      "reason": "The image-export builders are a second, fluent way to set the same options.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportBuilder.cs",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectContentSafety(string filePath, OfficeContentSafetyOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectContentSafety(byte[] workbookBytes, string fileName = workbook.xlsx, OfficeContentSafetyOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.ContentSafety.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectPackageSignatures(string filePath, OfficePackageSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.PackageSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectProvenance(byte[] data, string fileName = workbook.xlsx, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.Provenance.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectProvenance(string filePath, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.Provenance.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.InspectVbaSignatures(string filePath, OfficeVbaSignatureInspectionOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, OfficeInspectOptions options) or an instance Inspect*()",
+      "reason": "Static inspection helpers move onto the document as Inspect(), plus OfficeDocument.Inspect(path).",
+      "file": "OfficeIMO.Excel/ExcelDocument.VbaSignatures.cs",
+      "category": "lifecycle",
+      "notes": "Keep the no-load guarantee for untrusted files (see Word entry)."
+    },
+    {
+      "old": "OfficeIMO.Excel.A1",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelA1",
+      "reason": "Format types start with the format name.",
+      "file": "OfficeIMO.Excel/Read/Helpers/A1.CellReferenceParsing.cs, OfficeIMO.Excel/Read/Helpers/A1.cs",
+      "category": "naming",
+      "notes": "Or internalize if only helpers use it."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSpreadsheetXmlReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/SpreadsheetXml/ExcelSpreadsheetXmlReport.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/Legacy/LegacySpreadsheetContracts.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Excel.LegacyXls.LegacyXlsLoadResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Excel/LegacyXls/LegacyXlsLoadResult.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Excel.LegacyXls.Model",
+      "kind": "namespace",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Reach XLS through ExcelDocument.Load; the parsed model is an implementation detail.",
+      "reason": "Legacy binary model exposed publicly without the Excel prefix.",
+      "file": "OfficeIMO.Excel/LegacyXls/",
+      "category": "visibility",
+      "notes": "193 public types (LegacyXls*). Candidate for M2; check Reader.Excel and Excel.OpenDocument usage first."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Excel",
+      "to": "(none)",
+      "scope": "Excel already depends only on OfficeIMO.Core and Open XML SDK; Excel PDF export already lives in OfficeIMO.Excel.Pdf.",
+      "reason": "Conforms to the package rule."
+    }
+  ]
+}

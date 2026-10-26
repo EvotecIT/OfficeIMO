@@ -1,0 +1,447 @@
+{
+  "package": "OfficeIMO.Workflows",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 33,
+    "byAction": {
+      "change": 12,
+      "internalize": 1,
+      "merge": 19,
+      "move": 1
+    },
+    "byCategory": {
+      "conversion": 27,
+      "options": 4,
+      "package": 1,
+      "visibility": 1
+    },
+    "packageMoves": 2
+  },
+  "tier2Options": [
+    "BookOnixExportOptions",
+    "EmailEvidenceOptions",
+    "OfficeInvoiceWorkflowBatchOptions",
+    "OfficeProvenanceWorkflowBatchOptions",
+    "OfficeRasterContentSafetyOptions",
+    "OfficeScanCleanupOptions",
+    "PdfAssemblyOptions",
+    "PdfPrintDeliveryOptions",
+    "PdfPrintRenderOptions",
+    "ProjectImageExportOptions",
+    "ProjectOfficeReportOptions"
+  ],
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.Workflows.*Serializer (OfficeProvenanceReportSerializer, OfficeTextIntegrityReportSerializer, ...)",
+      "why": "Serializers become Load/Save on the report types."
+    },
+    {
+      "type": "OfficeIMO.Workflows.OfficeWorkflowSourceSnapshotKind, PdfHealthSnapshot",
+      "why": "Snapshot plumbing."
+    },
+    {
+      "type": "OfficeIMO.Workflows.PdfPrintPlanner",
+      "why": "Planner used by PdfPrintRenderer."
+    },
+    {
+      "type": "OfficeIMO.Workflows.OfficeOperationCapabilityCatalog / OfficeWorkflowCatalog / OfficeProvenanceWorkflowCatalog",
+      "why": "Catalogs for Studio/CLI discovery; keep public only if the CLI is a supported consumer outside InternalsVisibleTo."
+    }
+  ],
+  "projectReferences": {
+    "csproj": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+    "targetFrameworks": [
+      "net8.0;net10.0"
+    ],
+    "projectReferences": [
+      "OfficeIMO.OpenDocument.Odg.Pdf",
+      "OfficeIMO.Core",
+      "OfficeIMO.Email.Html",
+      "OfficeIMO.Invoicing",
+      "OfficeIMO.Invoicing.Pdf",
+      "OfficeIMO.Invoicing.Validation",
+      "OfficeIMO.Project",
+      "OfficeIMO.CSV",
+      "OfficeIMO.Epub",
+      "OfficeIMO.Epub.Image",
+      "OfficeIMO.Excel",
+      "OfficeIMO.Excel.Pdf",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Markdown",
+      "OfficeIMO.Markdown.Pdf",
+      "OfficeIMO.Rtf.Pdf",
+      "OfficeIMO.Xps.Pdf",
+      "OfficeIMO.Chm.Pdf",
+      "OfficeIMO.Chm.Markdown",
+      "OfficeIMO.Chm.Epub",
+      "OfficeIMO.DjVu.Pdf",
+      "OfficeIMO.OpenDocument",
+      "OfficeIMO.Ocr",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Pdf.Ocr",
+      "OfficeIMO.Reader.Image",
+      "OfficeIMO.Reader.Ocr",
+      "OfficeIMO.PowerPoint",
+      "OfficeIMO.PowerPoint.Pdf",
+      "OfficeIMO.Visio",
+      "OfficeIMO.Visio.Pdf",
+      "OfficeIMO.Publisher.Pdf",
+      "OfficeIMO.Word",
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.Word.Pdf"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "net8.0;net10.0"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net10.0"
+    ],
+    "change": "Today net8.0;net10.0 only (no netstandard2.0, so PSWriteOffice excludes it on net472). Moving to netstandard2.0 needs polyfills for: ArgumentNullException.ThrowIfNull (235 uses), SHA256.HashData (23), Convert.ToHexString (29), Path.GetRelativePath (11), File.Move(..., overwrite) (12), File.*Async (5), Parallel.ForEachAsync (1), range/index syntax (8), init/required/records (C# features work with polyfill attributes), ImplicitUsings. If OfficeConverter moves to the netstandard2.0 front door, the batch engine must be ported; otherwise OfficeConverter is net10.0-only and Windows PowerShell 5.1 loses it."
+  },
+  "notes": [
+    "Workflows references 35 projects (Invoicing, Project, Visio, OCR, DjVu, CHM, Email, EPUB, ...). OfficeConverter cannot absorb Workflows wholesale into the front door without pulling all of them in; see OfficeIMO.json."
+  ],
+  "openQuestions": [
+    "OfficeConverter in the netstandard2.0 front door requires porting the Workflows batch engine to netstandard2.0 (polyfills listed under frameworks), or OfficeConverter is net10.0-only.",
+    "Where BookOnix/publishing types live."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Convert(string inputPath)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport  /  ConvertAsync(...)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "Builder chain OfficeWorkflow.Convert(in).Via(route).To(out).WithProfile(...).RunAsync() today."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions)."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "OfficeConversionBatchBuilder (ToDirectory, Via, WithCheckpoint, WithConcurrency, WithLimits, OnConflict, SelectExtensions) maps to OfficeBatchOptions (MaxParallelism, ResumeFrom, limits, conflict policy, extensions)."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Inspect(string inputPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.Inspect(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Compare(string inputPath, string comparisonPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.Compare(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Optimize(string inputPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.Optimize(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.PlanRepair(string inputPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.PlanRepair(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Repair(string inputPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.Repair(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Sanitize(string inputPath)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.Sanitize(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ExtractPages(string inputPath, int[] pageNumbers)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.ExtractPages(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ProtectPdf(string inputPath, PdfStandardEncryptionOptions encryption)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.ProtectPdf(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.RemovePdfProtection(string inputPath, string ownerPassword)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.RemovePdfProtection(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.SignPdf(string inputPath, IPdfExternalSigner signer, PdfExternalSignatureOptions options, IPdfSignatureCryptographyProvider verifier)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.SignPdf(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.RunAsync(OfficeWorkflowRequest request, IProgress<OfficeWorkflowProgress> progress = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.RunAsync(...)",
+      "reason": "Non-conversion workflow operations (Inspect, Compare, Optimize, Repair, Sanitize, ExtractPages, ProtectPdf, SignPdf ...) are Tier 2 here; they keep their builder but should share OfficeBatchOptions/OfficeConversionReport vocabulary.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "notes": "No rename proposed in M0; Inspect should route to OfficeDocument.Inspect."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflowBuilder",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflowBuilder (conversion members removed)",
+      "reason": "Keeps the non-conversion workflows; Convert/Via/To for conversions go to OfficeConverter.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchBuilder",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/OfficeConversionBatchBuilder.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchRequest",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchReport",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchReport",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchReport.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchItemResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchItemReport",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchContracts.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJob",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJob.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobRunReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchReport",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunReport.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobSerializer",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions.Load/Save",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobSerializer.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchSerializer",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions.Load/Save",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchSerializer.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchReportSerializer",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchReport.Load/Save",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/Batches/OfficeConversionBatchReportSerializer.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobRunReportSerializer",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchReport.Load/Save",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunReportSerializer.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobRunner",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(OfficeBatchOptions)",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions; OfficeConverter owns batch conversion.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunner.Recording.cs, OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobRunner.cs",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobCommands",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "CLI/Studio command plumbing.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobCommands.cs",
+      "category": "visibility",
+      "notes": "Candidate."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJobOptions.cs",
+      "category": "options",
+      "notes": "Studio and the CLI save jobs as OfficeBatchOptions."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionJobRuntimeOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Workflows/ConversionJobs/OfficeConversionJob.cs",
+      "category": "options",
+      "notes": "Runtime settings (parallelism, resume) are OfficeBatchOptions properties."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflowConversionOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflowConversionOptions.cs",
+      "category": "options",
+      "notes": "Moves to the OfficeIMO front door with OfficeConverter."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflowDirectoryReadOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflowDirectoryInput.cs",
+      "category": "options",
+      "notes": "Input selection (recursion, extensions) becomes OfficeBatchOptions."
+    },
+    {
+      "old": "OfficeIMO.Workflows (BookOnix*, BookManuscriptImporter, Publishing/)",
+      "kind": "namespace",
+      "action": "move",
+      "new": "a publishing package (for example OfficeIMO.Epub.Publishing) or OfficeIMO.Epub",
+      "reason": "ONIX book metadata is a publishing feature, not a workflow; it accounts for most of Workflows' unprefixed public types and keeps the batch engine tied to EPUB.",
+      "file": "OfficeIMO.Workflows/Publishing/",
+      "category": "package",
+      "notes": "101 public BookOnix* types plus BookManuscriptImporter. Tier 2; decide owner in M2."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Workflows",
+      "to": "OfficeIMO (front door)",
+      "scope": "Conversion and batch core: OfficeWorkflow.Convert/ConvertDirectory/ConvertFiles, OfficeConversionBatchBuilder, Batches/ (OfficeConversionBatchExecutor*, report, serializers), ConversionJobs/, OfficeWorkflowRunner.Conversions/ConversionBatch/ConversionSerialization",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "notes": "Tier 1 routes (Word/Excel/PowerPoint/PDF/Markdown/HTML) register in the front door; Tier 2 routes (RTF, XPS, CHM, DjVu, Visio, ODF, Email, EPUB, Publisher, iWork) stay in Workflows and register into OfficeConverter through a route registry (OfficeWorkflowConversionRegistration already exists)."
+    },
+    {
+      "from": "OfficeIMO.Workflows",
+      "to": "(stays)",
+      "scope": "Invoicing/, Project/, Printing/, Email/, provenance, redaction, OCR, signing, publication workflows",
+      "reason": "Tier 2 workflows; no format package depends on them."
+    }
+  ]
+}

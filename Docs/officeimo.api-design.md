@@ -154,16 +154,18 @@ writer.WriteTable("Events", events);   // IEnumerable<T> or IAsyncEnumerable<T>,
 
 ### Conversion
 
-Three forms, the same in every format:
+Two forms, the same in every format, always called on the source document:
 
 | Form | Meaning | Example |
 | --- | --- | --- |
 | `SaveAs{Target}(path or stream, options)` | Write the target file; returns `OfficeConversionReport` | `doc.SaveAsPdf("Report.pdf")` |
 | `To{Target}(options)` | Return the target document model in memory | `MarkdownDocument md = doc.ToMarkdown();` |
-| `{Format}Document.From{Source}(input, options)` | Create a document from another format | `WordDocument.FromMarkdown(text)` |
 
-- There is one method per form and target. The throwing and `…Result` pairs (`SaveAsPdf` / `SaveAsPdfResult`) merge.
-- `To{Target}` and `From{Source}` have an overload with `out OfficeConversionReport report` for callers who want the loss report.
+
+- Converting into a format is a conversion from the source: `MarkdownDocument.Parse(text).ToWord()`, `HtmlDocument.Parse(html).ToWord()`. There are no static `From…` factories, because adapters would need C# 14 static extension members to add them.
+- There is one method per form and target. The throwing and `…Result` pairs merge, for conversions (`SaveAsPdf` / `SaveAsPdfResult`) and for other operations that come in pairs today, such as the PDF editing operations.
+- `To{Target}` has an overload with `out OfficeConversionReport report` for callers who want the loss report. Async forms (`To{Target}Async`) return `OfficeConversionResult<T>`, which carries the value and the report, because async methods cannot have `out` parameters.
+- `ToHtml()` returns a string. HTML is the one target whose model users rarely want; `HtmlDocument.Parse` gives the model when needed.
 - `OfficeConverter` is the universal entry point for file-to-file and batch work. It absorbs `OfficeWorkflow.Convert`, the `OfficeDocumentPdfConverter` façades and the `*ToPdfBytes` helpers. Studio and the CLI save jobs as the same `OfficeBatchOptions`.
 
 ```csharp
@@ -172,7 +174,7 @@ OfficeConversionReport report = OfficeConverter.Convert("In.docx", "Out.pdf");
 OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
     Directory.EnumerateFiles("Reports", "*.docx"),
     outputDirectory: "Pdf",
-    target: OfficeFormat.Pdf,
+    target: OfficeDocumentFormat.Pdf,
     new OfficeBatchOptions { MaxParallelism = 8, ResumeFrom = "Pdf/.officeimo-batch.json" });
 ```
 
@@ -184,16 +186,19 @@ Package boundaries follow principle 7.
 - Conversions live in adapter packages named `OfficeIMO.{Source}.{Target}`: `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.PowerPoint.Pdf`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Html`. Each brings only the two engines it joins. Word and PowerPoint PDF export, which moved into the format packages during 3.x, move back out, so a Word user no longer carries the PDF engine.
 - Adapters do not chain through a third format. `OfficeIMO.Word.Markdown` currently pulls in `OfficeIMO.Word.Html` and with it the HTML engine and AngleSharp; Markdown to Word should not need HTML.
 - Reconstruction from PDF (PDF to Word, Excel or PowerPoint) lives in the matching `OfficeIMO.Pdf.{Target}` adapter.
-- Image export (PNG, JPEG, SVG) stays in each format package, but only on its own rendering code. If it currently borrows the PDF layout engine, the shared layout moves to a lower-level package both can use, without the PDF writer.
-- The `OfficeIMO` package is the front door. It references Word, Excel, PowerPoint, PDF and Markdown, the adapters between them, `OfficeConverter` and Reader. `dotnet add package OfficeIMO` is the first line of the README. The NuGet ID is already registered to this project (two unlisted 0.1.x versions from 2022).
-- Namespaces stay per format (`OfficeIMO.Word`, `OfficeIMO.Excel`). The `OfficeIMO` namespace holds only `OfficeConverter`, `OfficeFormat` and the batch types.
-- Libraries target `netstandard2.0` (which serves .NET Framework 4.7.2+) and `net10.0`, identically on every build host. `net8.0` is dropped because .NET 8 reaches end of support in November 2026.
+- Image export stays in the Excel and PowerPoint packages, whose renderers draw with Core's drawing types. Word paginates through the PDF layout engine, so Word page images live in `OfficeIMO.Word.Pdf` together with PDF export.
+- `OfficeIMO.Word.Pdf` and `OfficeIMO.PowerPoint.Pdf` change direction in 3.6: today they convert PDF into Word and PowerPoint; afterwards they convert Word and PowerPoint into PDF, and the reverse lives in `OfficeIMO.Pdf.Word` and `OfficeIMO.Pdf.PowerPoint`. `MIGRATION.md` states this first, because the package names stay the same while their contents change.
+- The `OfficeIMO` package is the front door. It references Word, Excel, PowerPoint, PDF and Markdown, the adapters between them, `OfficeConverter` and Reader with its format handlers. `dotnet add package OfficeIMO` is the first line of the README. The NuGet ID is already registered to this project (two unlisted 0.1.x versions from 2022).
+- Namespaces stay per format (`OfficeIMO.Word`, `OfficeIMO.Excel`). The `OfficeIMO` namespace already holds Core's shared types; `OfficeConverter` and the batch types join them, and the existing `OfficeDocumentFormat` enum names formats.
+- The `OfficeIMO` package targets `net10.0`, because its batch engine relies on modern runtime APIs. .NET Framework applications reference the format and adapter packages directly.
+- Libraries target `netstandard2.0` (which serves .NET Framework 4.7.2+) and `net10.0`, identically on every build host. `net8.0` is dropped because .NET 8 reaches end of support in November 2026. The `netstandard2.0` build keeps a test run on .NET Framework on Windows, which PSWriteOffice on Windows PowerShell 5.1 depends on.
 - Packages that pass trimming and NativeAOT analysis declare `IsAotCompatible`.
 
 ### Naming
 
 - The Markdown model is `MarkdownDocument`, loaded with `MarkdownDocument.Load` or `Parse`, like every other format.
-- Format types start with the format: `WordTable`, `ExcelTable`, `PowerPointTable`, `PdfTable`.
+- Format types start with the format: `WordTable`, `ExcelTable`, `PowerPointTable`, `PdfTable`. Markdown syntax-tree node types (`HeadingBlock`, `ParagraphBlock`) are the exception; the `OfficeIMO.Markdown` namespace already qualifies them.
+- Every document type implements `IDisposable`, doing nothing where there is nothing to release, so `using` works the same for every format.
 - Options end in `Options`, results in `Report`, read-only snapshots in `Info`.
 
 ### Visibility
