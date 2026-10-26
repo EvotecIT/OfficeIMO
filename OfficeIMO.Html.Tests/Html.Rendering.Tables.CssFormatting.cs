@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("https://example.com/alert", alert.LinkUri);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Hidden");
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderNamedDestination>(), destination => destination.Name == "first");
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html)
             .ToPdfBytes(new HtmlToPdfOptions(CssTableOptions())));
         Assert.Equal(expectedTables, pdf.TaggedContent!.StructureElements.Count(item => item.StructureType == "Table"));
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(text, item => Assert.Equal("https://example.com/row", item.LinkUri));
         Assert.True(text[1].X > text[0].X);
         Assert.True(text[2].X > text[1].X);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(first.X >= before.X + before.TextAdvanceWidth);
         Assert.True(after.X >= second.X + second.Width);
         Assert.Equal(before.Y, after.Y, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, allText.Count(text => text.Text == "After table"));
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => EnumerateTablePaginationScene(page.Scene)).OfType<HtmlRenderSemanticGroup>(),
             group => group.Role == HtmlRenderSemanticGroupRole.Table);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -216,7 +216,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(text.IndexOf("GeneratedAfter", StringComparison.Ordinal), text.LastIndexOf("GeneratedAfter", StringComparison.Ordinal));
         Assert.True(text.IndexOf("GeneratedBefore", StringComparison.Ordinal) < text.IndexOf("Retained", StringComparison.Ordinal));
         Assert.True(text.IndexOf("Retained", StringComparison.Ordinal) < text.IndexOf("GeneratedAfter", StringComparison.Ordinal));
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -229,7 +229,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div class='box' style='display:table'><div class='box' style='display:table-row-group'>"
             + "<div class='box' style='display:table-row'><div style='display:table-cell'>Retained</div></div></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CaptionAfter", text);
         Assert.Contains("CellBefore", text);
         Assert.Contains("CellAfter", text);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -281,7 +281,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expected.Width, actual.Width, 3);
             Assert.Equal(expected.Height, actual.Height, 3);
         }
-        Assert.False(table.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(table);
     }
 
     [Theory]
@@ -307,7 +307,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(shapes, shape => shape.Source == tag + "#replaced" && shape.Shape.FillColor == OfficeColor.White);
         if (kind == "input") Assert.Equal(9D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CellValue").X, 3);
         else Assert.Equal(9D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).X, 3);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -326,7 +326,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedWidth, inner.Width, 3);
         Assert.Equal(inner.Width, outer.Width, 3);
         Assert.True(next.X >= inner.X + inner.Width - 0.001D);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -382,7 +382,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(Array.IndexOf(text, "Second") < Array.IndexOf(text, "Body1"));
         if (paged) Assert.True(text.Count(value => value == "First") > 1);
         else Assert.Equal(kind == "header" ? new[] { "First", "Body0", "Second", "Body1" } : new[] { "Body0", "Second", "Body1", "First" }, text);
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -408,7 +408,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Pages.Count > 1);
         Assert.Equal(1, text.Count(value => value == "Second"));
         Assert.Equal(new[] { "Before", "Second", "After0" }, text.Take(3));
-        Assert.False(rendered.HasLoss);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     private static HtmlRenderOptions CssTableOptions() => new HtmlRenderOptions {

@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(20, 20));
         Assert.DoesNotContain("html-fragment:main", info.LinkDestinationNames);
         Assert.Contains("html-fragment:main", info.NamedDestinationNames);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]

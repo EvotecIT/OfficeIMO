@@ -387,10 +387,10 @@ public sealed partial class HtmlRenderingTests {
             + "@page:first{font-size:150%}</style><p>Body</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
-        HtmlRenderPage automatic = Assert.Single(HtmlRenderEngine.Render(document,
-            new HtmlToPdfOptions { AllowSystemFontFallback = false }).Pages);
-        HtmlRenderPage explicitFont = Assert.Single(HtmlRenderEngine.Render(document,
-            new HtmlToPdfOptions { FontFamily = family, AllowSystemFontFallback = false }).Pages);
+        HtmlRenderPage automatic = Assert.Single(document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
+            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { AllowSystemFontFallback = true })).RenderResult.Document.Pages);
+        HtmlRenderPage explicitFont = Assert.Single(document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
+            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { FontFamily = family, AllowSystemFontFallback = false })).RenderResult.Document.Pages);
         HtmlRenderText margin = PageMarginTypographyText(automatic, "top-center");
         HtmlRenderText control = PageMarginTypographyText(explicitFont, "top-center");
 

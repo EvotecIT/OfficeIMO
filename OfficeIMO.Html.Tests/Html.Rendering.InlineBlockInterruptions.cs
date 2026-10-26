@@ -162,6 +162,7 @@ public sealed class HtmlInlineBlockInterruptionTests {
     }
 
     private static HtmlRenderOptions Options() => new() {
+        AllowSystemFontFallback = false,
         ViewportWidth = 640D, ViewportHeight = 200D, Margins = HtmlRenderMargins.All(0D)
     };
 }

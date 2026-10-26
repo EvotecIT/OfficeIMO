@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(5D, tail.Y - following.Y, 3);
         Assert.Contains(visuals.OfType<HtmlRenderAnchorFragment>(), anchor => anchor.LinkUri == "https://example.test/"
             && Math.Abs(anchor.Y - tail.Y) < 20D && anchor.X <= tail.X && anchor.X + anchor.Width >= tail.X + tail.Width);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -62,6 +62,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(texts, text => Assert.True(text.X + (text.TextAdvanceWidth ?? text.Width) <= width + 0.001D));
         Assert.True(texts[texts.Length - 1].X + (texts[texts.Length - 1].TextAdvanceWidth ?? texts[texts.Length - 1].Width)
             + 10D <= width + 0.001D);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 }

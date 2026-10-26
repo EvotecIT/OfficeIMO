@@ -37,7 +37,11 @@ internal static partial class HtmlPdfRenderedConverter {
         if (planned.Count == 0) return false;
 
         var resolvedRuns = new List<OutlinedFontRun>(planned.Count);
-        bool requiresOutlines = false;
+        // A resolved bidi group owns one logical replacement. Keep all of its
+        // selected glyph paint as contours, so a reopened PDF can retain that
+        // replacement with the complete paint rather than lose path-only slices
+        // inside a mixed glyph/text scope.
+        bool requiresOutlines = logicalTextOwned && visual.BidiVisualOrderResolved;
         foreach (OfficeFontFallbackRun run in planned) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!webFonts.Faces.TryResolveFaceForText(
@@ -285,7 +289,8 @@ internal static partial class HtmlPdfRenderedConverter {
         // A selected glyph such as a space can have advance and logical source
         // without ink. Keep its admitted result and ActualText; absence of contours
         // alone must not send it through a fresh text-shaping fallback.
-        bool retainedEmptyRun = allContours.Count == 0 && runs.All(run => run.PreparedShaping != null);
+        bool retainedEmptyRun = allContours.Count == 0 && (runs.All(run => run.PreparedShaping != null)
+            || logicalTextOwned && visual.BidiVisualOrderResolved);
         if (!TryResolveContourBounds(
                 allContours,
                 out double minimumX,

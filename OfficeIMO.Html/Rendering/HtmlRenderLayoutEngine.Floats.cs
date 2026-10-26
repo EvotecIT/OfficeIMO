@@ -551,7 +551,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int count = (int)requiredCount;
             ChargeLayoutOperations((long)count * leaderPattern.Length, "leader text expansion");
             string repeated = string.Concat(Enumerable.Repeat(leaderPattern, count));
-            paint = new HtmlRenderText(
+            paint = CaptureTextMetricProvenance(new HtmlRenderText(
                 repeated,
                 x,
                 y,
@@ -571,7 +571,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 textPaintWidth: Math.Max(0.01D, count * unitWidth),
                 featureSettings: run.Style.TextFeatureSettings,
                 fontPalette: run.Style.FontPalette,
-                fontDescriptor: run.Style.FontDescriptor);
+                fontDescriptor: run.Style.FontDescriptor));
         }
 
         return new HtmlRenderSemanticGroup(

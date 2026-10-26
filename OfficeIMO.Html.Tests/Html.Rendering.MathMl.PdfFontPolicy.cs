@@ -20,7 +20,9 @@ public sealed partial class HtmlRenderingTests {
             + "<p style=\"font-family:'" + installedFamily + "',math\">PARENT</p>"
             + "<iframe style='width:200px;height:80px' srcdoc=\""
             + System.Net.WebUtility.HtmlEncode(child) + "\"></iframe>");
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlToPdfOptions { DefaultFontFamily = "Policy Default" };
+        options.Fonts.Add("Policy Default", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         options.ResourcePolicy.AllowDocumentFontEmbedding = false;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(source, options);
         HtmlRenderDocument rendered = result.RenderResult!.Document;
@@ -32,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
         Assert.Contains("PARENT", text, StringComparison.Ordinal);
         Assert.Contains("CHILD", text, StringComparison.Ordinal);
-        Assert.Empty(options.Fonts.Faces);
+        Assert.Equal("Policy Default", Assert.Single(options.Fonts.Faces).FamilyName);
         Assert.False(options.ResourcePolicy.AllowDocumentFontEmbedding);
     }
 

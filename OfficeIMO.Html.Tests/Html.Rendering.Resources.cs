@@ -19,6 +19,8 @@ public sealed partial class HtmlRenderingTests {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
 
         Assert.False(rendered.HasLoss);
@@ -42,6 +44,8 @@ public sealed partial class HtmlRenderingTests {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
 
         Assert.False(rendered.HasLoss);

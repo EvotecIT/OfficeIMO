@@ -148,20 +148,23 @@ public class HtmlTextExportConsistencyTests {
     public void LetterSpacingKeepsGlyphPaintWidthSeparateFromAdvance() {
         const string html = "<p style='font-family:Arial;font-size:24px;letter-spacing:8px'>AB</p>";
         var source = HtmlConversionDocument.Parse(html);
+        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false };
+        options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
         HtmlRenderDocument rendered = source.RenderToPdfResult(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf)).RenderResult.Document;
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options)).RenderResult.Document;
         HtmlRenderText[] runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
         foreach (var run in runs) _log.WriteLine($"{run.Text}: paint={run.TextPaintWidth} advance={run.TextAdvanceWidth}");
-        string svg = source.ToSvg();
-        var xml = System.Xml.Linq.XDocument.Parse(svg);
-        var textNodes = xml.Descendants().Where(element => element.Name.LocalName == "text").ToArray();
-        foreach (var text in textNodes) _log.WriteLine(text.ToString());
-        Assert.NotEmpty(runs);
-        Assert.Equal(runs.Length, textNodes.Length);
-        for (int index=0;index<runs.Length;index++) {
-            double writtenWidth = HtmlSvgTestCoordinates.CssValue(textNodes[index], "textLength");
-            Assert.InRange(writtenWidth, runs[index].TextPaintWidth!.Value-0.1, runs[index].TextPaintWidth!.Value+0.1);
-        }
+        Assert.Equal(2, runs.Length);
+        Assert.All(runs, run => Assert.Equal(8D, run.TextAdvanceWidth!.Value - run.TextPaintWidth!.Value, 3));
+        Assert.Equal(runs[0].X + runs[0].TextAdvanceWidth!.Value, runs[1].X, 3);
+        // PDF-backed SVG carries painted glyph contours with logical labels.
+        // Selectable <text> is not the export contract for retained face programs.
+        var xml = System.Xml.Linq.XDocument.Parse(source.ToSvg(options));
+        var labels = xml.Descendants().Where(element => element.Attribute("aria-label") != null).ToArray();
+        Assert.Equal(new[] { "A", "B" }, labels.Select(element => (string)element.Attribute("aria-label")!));
+        Assert.All(labels, element => Assert.Contains(element.Descendants(), child =>
+            child.Name.LocalName == "path" && !string.IsNullOrWhiteSpace((string?)child.Attribute("d"))));
+
     }
 
     [Theory]

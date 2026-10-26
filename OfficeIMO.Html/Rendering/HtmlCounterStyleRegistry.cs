@@ -59,6 +59,19 @@ internal sealed class HtmlCounterStyleRegistry {
         return true;
     }
 
+    /// <summary>Formats the implicit list label shared by discovery and layout.</summary>
+    internal string FormatListMarker(int ordinal, string style, bool ordered, out bool limited) {
+        bool customFound = TryFormatMarker(ordinal, style, out string custom, out bool customLimited);
+        if (customFound && custom.Length > 0) {
+            limited = customLimited;
+            return custom;
+        }
+        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, style, out string marker, out bool builtinLimited))
+            marker = ordered ? ordinal.ToString(CultureInfo.InvariantCulture) : "•";
+        limited = builtinLimited || customFound && customLimited;
+        return marker.Length == 0 ? string.Empty : marker + HtmlCounterStyleFormatter.MarkerSuffix(builtinLimited ? "decimal" : style);
+    }
+
     private bool TryFormat(
         int value,
         string styleName,

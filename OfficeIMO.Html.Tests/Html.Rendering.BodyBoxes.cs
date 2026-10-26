@@ -35,7 +35,7 @@ public sealed class HtmlBodyBoxTests {
 
     [Fact]
     public void BodyBoxKeepsForcedPageBreaksAndContentOrder() {
-        var result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<style>*{margin:0}body{padding:5px;border:2px solid blue}p{font-size:16px;line-height:20px}</style><p>First</p><p style='break-before:page'>Second</p>"), new HtmlRenderOptions {
+        var result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<style>*{margin:0}body{padding:5px;border:2px solid blue}p{font-size:16px;line-height:20px}</style><p>First</p><p style='break-before:page'>Second</p>"), new HtmlRenderOptions { AllowSystemFontFallback = false,
             Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(200D / 96D, 100D / 96D), Margins = HtmlRenderMargins.All(0D)
         });
         Assert.Equal(2, result.Pages.Count);
@@ -46,7 +46,7 @@ public sealed class HtmlBodyBoxTests {
 
     [Fact]
     public void NamedPageGeometryKeepsHtmlCanvasBackground() {
-        var result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<style>@page{size:200px 100px;margin:0}@page chapter{size:240px 100px;margin:0}*{margin:0}html{background:blue}body{margin:10px;padding:10px;background:red}p{page:chapter;height:20px}</style><p></p>"), new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0D) });
+        var result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<style>@page{size:200px 100px;margin:0}@page chapter{size:240px 100px;margin:0}*{margin:0}html{background:blue}body{margin:10px;padding:10px;background:red}p{page:chapter;height:20px}</style><p></p>"), new HtmlRenderOptions { AllowSystemFontFallback = false, Mode = HtmlRenderMode.Paged, Margins = HtmlRenderMargins.All(0D) });
         Assert.Equal(240D, result.Pages[0].Width, 3);
         var image = OfficeDrawingRasterRenderer.Render(result.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Blue, image.GetPixel(1, 1));
@@ -85,7 +85,7 @@ public sealed class HtmlBodyBoxTests {
         Assert.Equal(localClip ? OfficeColor.White : OfficeColor.Red, image.GetPixel(20, 45));
     }
 
-    private static HtmlRenderDocument Render(string html) => HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+    private static HtmlRenderDocument Render(string html) => HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { AllowSystemFontFallback = false,
         ViewportWidth = 200D, ViewportHeight = 100D, Margins = HtmlRenderMargins.All(0D)
     });
 }

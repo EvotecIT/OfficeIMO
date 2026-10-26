@@ -581,7 +581,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var textVisuals = new List<HtmlRenderVisual>(lines.Count + (wrappedLength < normalized.Length ? 1 : 0));
         for (int index = 0; index < lines.Count; index++) {
             if (lines[index].Length == 0) continue;
-            textVisuals.Add(new HtmlRenderText(
+            AddTextMetricVisual(textVisuals, new HtmlRenderText(
                 lines[index],
                 x + horizontalInset,
                 y + verticalInset + index * lineHeight,
@@ -613,7 +613,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 fontDescriptor: style.FontDescriptor) { SemanticSourceOrder = sourceOrder });
         }
         if (wrappedLength < normalized.Length) {
-            textVisuals.Add(new HtmlRenderText(
+            AddTextMetricVisual(textVisuals, new HtmlRenderText(
                 normalized.Substring(wrappedLength), x + horizontalInset, y + height + lineHeight,
                 textWidth, lineHeight, style.Font, style.Color, OfficeTextAlignment.Left,
                 lineHeight, textVisuals.Count, link, source, "figure-alternative-text",

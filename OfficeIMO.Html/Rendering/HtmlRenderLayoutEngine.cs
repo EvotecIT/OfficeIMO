@@ -215,6 +215,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     internal HtmlRenderDocument Render() {
+        HtmlRenderDocument rendered = RenderCore();
+        // A replacement engine has already finalized its authoritative result.
+        return _fontLayoutRebuilt ? rendered : ReportEstimatedTextMetrics(rendered);
+    }
+
+    private HtmlRenderDocument RenderCore() {
         CheckCancellation();
         IdentifyStaticRadioGroups();
         HtmlRenderDocument rendered = RenderSinglePass();

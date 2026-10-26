@@ -154,6 +154,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D),
             AllowSystemFontFallback = false };
         options.Fonts.Add("Generated Arabic Fixture", font);
+        options.Fonts.Add("Arial", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('H', 'o', 's', 't'));
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
         HtmlRenderLogicalTextGroup group = Assert.Single(visuals.OfType<HtmlRenderLogicalTextGroup>(), g => g.Text == "سلام");

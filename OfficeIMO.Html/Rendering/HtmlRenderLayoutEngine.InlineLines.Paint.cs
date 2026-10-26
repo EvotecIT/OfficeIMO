@@ -245,7 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         // Keep CSS decoration paint in the existing shared HTML owner.
                         bool vectorDecoration = segment.Run.Style.VectorTextDecoration || paintSegment.PreparedShaping != null;
                         double frameWidth = Math.Min(Math.Max(0.01D, lineRight - paintSegment.X), paintSegment.Width + frameTolerance);
-                        textVisuals.Add(new HtmlRenderText(
+                        AddTextMetricVisual(textVisuals, new HtmlRenderText(
                             paintSegment.Text,
                             paintSegment.X,
                             textY,

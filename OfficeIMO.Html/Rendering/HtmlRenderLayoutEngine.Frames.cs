@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         IReadOnlyList<HtmlRenderVisual> frameVisuals = RenderFrameContent(
-            element, contentSize.Width, contentSize.Height, source);
+            element, contentSize.Width, contentSize.Height, source, out HtmlRenderLayoutEngine? frameEngine);
         IReadOnlyList<HtmlRenderVisual> translated = frameVisuals
             .Select((visual, index) => visual.Translate(contentX, contentY, index))
             .ToArray();
@@ -66,6 +66,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         if (!style.PaintVisible) visuals.Clear();
+        else if (frameEngine != null) AcceptEstimatedTextMetrics(frameEngine);
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         var block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -90,7 +91,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement frame,
         double viewportWidth,
         double viewportHeight,
-        string source) {
+        string source,
+        out HtmlRenderLayoutEngine? renderedEngine) {
+        renderedEngine = null;
         string? srcdoc = frame.GetAttribute("srcdoc");
         if (string.IsNullOrWhiteSpace(srcdoc)) return Array.Empty<HtmlRenderVisual>();
         if (_options.FrameDepth >= _options.MaxFrameDepth) {
@@ -154,6 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _cancellationToken,
             fontUsage);
         HtmlRenderDocument rendered = engine.Render();
+        renderedEngine = engine;
         _nextLogicalTextOrder = engine._nextLogicalTextOrder;
         _nextSemanticNodeId = engine._nextSemanticNodeId;
         return ReplaceDescendantFormFieldsForPaintEffect(

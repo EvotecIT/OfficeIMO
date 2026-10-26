@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(120D, TableGeometryShape(rendered, (css ? "div" : "td") + "#summary").Width, 3);
         Assert.Equal(120D, TableGeometryShape(rendered, (css ? "div" : "td") + "#detail").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(100D, TableGeometryShape(rendered, (css ? "div" : "td") + "#summary").Height, 3);
         Assert.Equal(100D, TableGeometryShape(rendered, (css ? "div" : "td") + "#detail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(150D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(50D, TableGeometryShape(rendered, "td#tail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(100D, TableGeometryShape(rendered, "td#summary").Height, 3);
         Assert.Equal(100D, TableGeometryShape(rendered, "td#tail").Height, 3);
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -98,6 +98,6 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(290.625D, TableGeometryShape(rendered, "div#ordinary").Width, 3);
-        rendered.RequireNoLoss();
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 }

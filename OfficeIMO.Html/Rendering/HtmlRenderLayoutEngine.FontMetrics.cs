@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var margins = new Lazy<MarginFontPreparation>(() => PrepareMarginFontRequirements(blocks));
         if (!Pdf.HtmlPdfRenderedConverter.TryPrepareLibraryFontMetrics(
                 blocks.SelectMany(block => block.Visuals).Concat(EnumerateAdditionalFontVisuals(margins)),
-                EnumerateMarginFontRequirements(margins), _fonts, pdfOptions, _cancellationToken)) return false;
+                EnumerateMarginFontRequirements(margins), _fonts, pdfOptions, _resources, _diagnostics, _cancellationToken)) return false;
         CheckCancellation();
         _fontLayoutRebuilt = true;
         rendered = new HtmlRenderLayoutEngine(_document, _computedStyles, _options,

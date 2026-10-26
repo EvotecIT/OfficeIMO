@@ -161,6 +161,12 @@ PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `Po
 
 Layout and master placeholder prompts are not slide content. Create a concrete slide placeholder to display its text or field; it inherits the template's geometry and style. Ordinary layout and master artwork remains visible.
 
+## HTML default-font metrics
+
+Raw HTML rendering retains the configured default font when installed-font fallback is permitted. Its selected face can change advances, baselines, wrapping and page counts compared with the earlier estimated layout. Register complete font bytes and set `AllowSystemFontFallback = false` for a fixed font selection across hosts.
+
+Visible raw text measured without a selected program reports `HtmlRenderFontMetricsEstimated`. `RequireNoLoss` rejects that approximation. Supply a covering face through `Fonts` or a policy-approved `@font-face`, or use `AllowDiagnosedLoss` and inspect the diagnostic. Explicit PDF default-font registrations retain their bytes for shared layout and painting; caller-supplied CSS faces keep ownership.
+
 ## Office conversion fonts and Word page images
 
 `WordParagraph.AddFootNote` rejects header and footer paragraphs, including their table cells, with `InvalidOperationException` before changing the document. Place footnote references in body paragraphs or body table cells. Earlier calls in running stories could produce invalid DOCX; existing malformed inputs remain subject to conversion loss reporting.

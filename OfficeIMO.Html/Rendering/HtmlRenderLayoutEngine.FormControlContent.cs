@@ -307,7 +307,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.PaintVisible) _fontUsage?.Observe(text, style.Font.FamilyName, style.FontDescriptor);
         double lineHeight = Math.Min(style.LineHeight, height);
         double textY = y + Math.Max(0D, (height - lineHeight) / 2D);
-        visuals.Add(new HtmlRenderText(
+        AddTextMetricVisual(visuals, new HtmlRenderText(
             text,
             x,
             textY,
@@ -355,7 +355,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string line = lines[index];
             if (line.Length == 0) continue;
             if (style.PaintVisible) _fontUsage?.Observe(line, style.Font.FamilyName, style.FontDescriptor);
-            visuals.Add(new HtmlRenderText(
+            AddTextMetricVisual(visuals, new HtmlRenderText(
                 line,
                 x,
                 y + index * lineHeight,

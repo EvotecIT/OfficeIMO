@@ -316,7 +316,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, group.Width, 3);
         Assert.Equal((byte)255, pixel.R);
         Assert.InRange(pixel.A, (byte)127, (byte)128);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -372,7 +372,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("opacity=\"0.5\"", svg, StringComparison.Ordinal);
         Assert.Contains("InlineEffectMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(raster.Width > 0 && raster.Height > 0);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
@@ -386,7 +386,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 100D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -397,7 +397,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("AB", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
         Assert.Equal("AB", string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character))));
         Assert.True(PdfCore.PdfReadDocument.Open(pdf).HasTaggedContent);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Fact]
@@ -558,7 +558,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportHeight = 110D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -586,6 +586,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CollinearMarker", pdfText, StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,0 0,0 0))"));
         Assert.Empty(rendered.Diagnostics);
+        rendered.RequireNoLoss();
     }
 
     [Fact]

@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         });
         IReadOnlyList<HtmlRenderText> marginText = Assert.Single(rendered.Pages).Visuals
             .OfType<HtmlRenderText>()
@@ -46,6 +46,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, marginText.Count);
         Assert.Equal(capturedFirst ? "Captured" : "Ordinary", marginText[0].Text);
         Assert.Equal(capturedFirst ? "Ordinary" : "Captured", marginText[1].Text);
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 }

@@ -56,20 +56,25 @@ public sealed partial class HtmlRenderingTests {
 
         string image = inlineImage ? "<img style='width:40px;height:40px' src='data:image/png;base64,"
             + Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(255, 0, 0)) + "'>" : string.Empty;
-        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
-            HtmlConversionDocument.Parse("<div style='font:" + (largeParagraphFont ? "100" : "20") + "px/20px Arial'>"
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<div style='font:" + (largeParagraphFont ? "100" : "20") + "px/20px Arial'>"
                 + (precedingNormalText ? (largeParagraphFont ? "<span style='text-shadow:0 0 red'>A</span>" : "A") : string.Empty)
                 + "<span style='font-size:" + (largeParagraphFont ? "20px" : "100px;text-shadow:0 0 red") + "'>A</span>"
-                + image + "</div>"),
-            options);
+                + image + "</div>");
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(source, options);
+        var scopedOptions = new HtmlToPdfOptions(options);
+        scopedOptions.Fonts.Add("Arial", font);
+        HtmlPdfRenderResult scoped = HtmlPdfRenderedConverter.Convert(source, scopedOptions);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
             .OfType<HtmlRenderText>(), run => run.Font.Size == 100D);
         Assert.True(result.Document.Options.TryResolveNamedFontFace("Arial", false, false, out PdfCore.PdfNamedFontFace face));
         Assert.True(result.Document.Options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? program));
         double ascent = program!.GetAscender(100D);
-        double height = ascent + program.GetDescender(100D);
+        HtmlRenderText scopedText = Assert.Single(scoped.RenderResult!.Document.Pages[0].Visuals
+            .OfType<HtmlRenderText>(), run => run.Font.Size == 100D);
 
-        Assert.Equal(text.LayoutY + (20D - height) / 2D + ascent - 100D, text.Y, 3);
+        // Retaining the selected named program gives both routes the same used
+        // CSS font box, including its ordinary-line quantization.
+        Assert.Equal(scopedText.Y, text.Y, 6);
         Assert.Equal(ascent - 100D, text.PaintTopOverflow, 3);
         HtmlRenderSemanticGroup shadow = Assert.Single(
             EnumerateRenderVisuals(result.RenderResult.Document.Pages[0].Scene)

@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "html-fragment:target" }, info.LinkDestinationNames);
         Assert.Equal(OfficeColor.White, raster.GetPixel(11, 51));
         Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfReadDocument.Open(pdf).Pages.Select(page => page.ExtractText())));
-        Assert.Empty(rendered.Diagnostics);
+        HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
     [Theory]
