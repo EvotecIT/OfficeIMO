@@ -2,6 +2,15 @@ namespace OfficeIMO.Rtf;
 
 public sealed partial class RtfParagraph {
     // Conversion views isolate mutable formatting while retaining original content and resource identities.
+    /// <summary>Copies paragraph controls without sharing visible content or a cached list marker.</summary>
+    internal RtfParagraph CopyEmptyFormattingView() {
+        RtfParagraph copy = CopyFormattingView();
+        copy._runs = new List<RtfRun>();
+        copy._inlines = new List<IRtfInline>();
+        copy.ListText = null;
+        return copy;
+    }
+
     internal RtfParagraph CopyFormattingView() {
         var copy = (RtfParagraph)MemberwiseClone();
         var context = new RtfCloneContext();

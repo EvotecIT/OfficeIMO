@@ -120,6 +120,7 @@ internal static partial class RtfPdfConverter {
         options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case RtfParagraph paragraph:
+                state.PreviousBodyParagraph = paragraph;
                 RenderParagraph(document, paragraph, pdf, options, state);
                 break;
             case RtfTable table when options.IncludeTables:

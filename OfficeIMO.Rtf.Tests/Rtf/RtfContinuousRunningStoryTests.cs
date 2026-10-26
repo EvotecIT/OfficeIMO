@@ -380,6 +380,91 @@ public class RtfContinuousRunningStoryTests {
                 .Letters[0].StartBaseLine.Y;
     }
 
+    [Theory]
+    [InlineData(false, -480, false, 0, 0)]
+    [InlineData(true, -480, false, 0, 0)]
+    [InlineData(false, 480, true, 0, 0)]
+    [InlineData(true, -480, false, 120, 180)]
+    public void AuthoredEmptyMiddleSectionRetainsActiveParagraphControls(bool laterPageGroup,
+        int lineSpacing, bool lineSpacingMultiple, int spaceBefore, int spaceAfter) {
+        RtfDocument source = CreateDocument(out RtfSection first);
+        source.Settings.SetDefaultFont(source.AddFont("Arial"));
+        var body = new List<string>();
+        RtfSection pageOwner = first;
+        if (laterPageGroup) {
+            Body(first, "PREFIXBODY");
+            body.Add("PREFIXBODY");
+            pageOwner = source.AddSection(RtfSectionBreakKind.NextPage);
+            pageOwner.AddHeader().AddParagraph("HEADERC");
+        }
+        RtfParagraph preceding = Body(pageOwner, "FIRSTBODY");
+        preceding.LineSpacingTwips = lineSpacing;
+        preceding.LineSpacingMultiple = lineSpacingMultiple;
+        preceding.SpaceBeforeTwips = spaceBefore;
+        preceding.SpaceAfterTwips = spaceAfter;
+        body.Add("FIRSTBODY");
+        RtfSection empty = source.AddSection(RtfSectionBreakKind.Continuous);
+        empty.AddHeader().AddParagraph("HEADERMID");
+        int emptyIndex = source.Sections.Count - 1;
+        RtfSection changed = source.AddSection(RtfSectionBreakKind.Continuous);
+        changed.AddHeader().AddParagraph("HEADERB");
+        Body(changed, "BEFOREBREAK");
+        Body(changed, "FOLLOWINGPAGE").PageBreakBefore = true;
+        body.Add("BEFOREBREAK");
+        body.Add("FOLLOWINGPAGE");
+        foreach (RtfParagraph paragraph in source.HeaderFooters.SelectMany(story => story.Paragraphs)) {
+            paragraph.SpaceBeforeTwips = 0;
+            paragraph.SpaceAfterTwips = 0;
+        }
+        Assert.Empty(empty.Blocks);
+        string serialized = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        byte[] original = System.Text.Encoding.ASCII.GetBytes(serialized);
+        RtfReadResult read = RtfDocument.LoadResult(original);
+        RtfParagraph implicitParagraph = Assert.IsType<RtfParagraph>(Assert.Single(read.Document.Sections[emptyIndex].Blocks));
+        Assert.Empty(implicitParagraph.Inlines);
+        Assert.Equal(lineSpacing, implicitParagraph.LineSpacingTwips);
+        Assert.Equal(lineSpacingMultiple, implicitParagraph.LineSpacingMultiple);
+        Assert.Equal(spaceBefore, implicitParagraph.SpaceBeforeTwips);
+        Assert.Equal(spaceAfter, implicitParagraph.SpaceAfterTwips);
+
+        string suffix = $"{laterPageGroup}-{lineSpacing}-{lineSpacingMultiple}-{spaceBefore}-{spaceAfter}";
+        Converted direct = Convert(source, "rtf-authored-active-empty-direct-" + suffix);
+        Converted reloaded = Convert(read.Document, "rtf-authored-active-empty-reloaded-" + suffix);
+        int ownerPage = laterPageGroup ? 1 : 0;
+        Assert.Equal(ownerPage + 2, direct.Pages.Length);
+        Assert.Equal(direct.Pages, reloaded.Pages);
+        foreach (Converted converted in new[] { direct, reloaded }) {
+            Assert.Contains(laterPageGroup ? "HEADERC" : "HEADERA", converted.Pages[ownerPage], StringComparison.Ordinal);
+            Assert.DoesNotContain("HEADERB", converted.Pages[ownerPage], StringComparison.Ordinal);
+            Assert.Equal(1, Occurrences(converted.Pages[ownerPage + 1], "HEADERB"));
+            Assert.DoesNotContain("HEADERMID", string.Concat(converted.Pages), StringComparison.Ordinal);
+            Assert.Contains("BEFOREBREAK", converted.Pages[ownerPage], StringComparison.Ordinal);
+            Assert.Contains("FOLLOWINGPAGE", converted.Pages[ownerPage + 1], StringComparison.Ordinal);
+            AssertBodyOnce(converted.Pages, body.ToArray());
+            Assert.DoesNotContain(converted.Result.Warnings, warning => warning.Code == "ContinuousSectionPageSettingsFlattened");
+        }
+        using var directPdf = UglyToad.PdfPig.PdfDocument.Open(direct.Bytes);
+        using var reloadedPdf = UglyToad.PdfPig.PdfDocument.Open(reloaded.Bytes);
+        double directAdvance = Baseline(directPdf, "FOLLOWINGPAGE") - Baseline(directPdf, "BEFOREBREAK");
+        double reloadedAdvance = Baseline(reloadedPdf, "FOLLOWINGPAGE") - Baseline(reloadedPdf, "BEFOREBREAK");
+        Assert.Equal(reloadedAdvance, directAdvance, 3);
+        Assert.Empty(empty.Blocks);
+        Assert.Equal(serialized, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(original, read.ToBytesLossless());
+
+        static RtfParagraph Body(RtfSection section, string text) {
+            RtfParagraph paragraph = section.AddParagraph(text);
+            paragraph.SpaceBeforeTwips = 0;
+            paragraph.SpaceAfterTwips = 0;
+            paragraph.LineSpacingTwips = 240;
+            paragraph.LineSpacingMultiple = true;
+            return paragraph;
+        }
+        static double Baseline(UglyToad.PdfPig.PdfDocument pdf, string marker) =>
+            Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == marker)
+                .Letters[0].StartBaseLine.Y;
+    }
+
     private static RtfDocument CreateDocument(out RtfSection first) {
         RtfDocument source = RtfDocument.Create();
         source.PageSetup.SetPaperSize(4800, 6400);

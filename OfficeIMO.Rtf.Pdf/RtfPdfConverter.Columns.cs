@@ -40,10 +40,11 @@ internal static partial class RtfPdfConverter {
 
     private static void RenderSectionBlocks(RtfDocument document, RtfSection section, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
         // A section terminator owns an implicit paragraph even when an
-        // authored model has no explicit body blocks. Resolve that paragraph
-        // through normal RTF defaults without changing the source collection.
+        // authored model has no explicit body blocks. Active body paragraph
+        // controls cross section boundaries; the first uses normal parsed
+        // defaults. Detached formatting never changes the source collection.
         IEnumerable<IRtfBlock> blocks = section.Blocks.Count == 0
-            ? new[] { new RtfParagraph { UseParsedParagraphDefaults = true } }
+            ? new[] { state.CreateImplicitBodyParagraph(document) }
             : section.Blocks;
         int count = section.ColumnCount ?? Math.Max(1, section.Columns.Count);
         if (count <= 1) {

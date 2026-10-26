@@ -19,6 +19,17 @@ internal static partial class RtfPdfConverter {
 
         public bool InColumns { get; set; }
 
+        // Body section controls remain active until a later body paragraph resets them.
+        public RtfParagraph? PreviousBodyParagraph { get; set; }
+
+        public RtfParagraph CreateImplicitBodyParagraph(RtfDocument document) {
+            RtfParagraph paragraph = PreviousBodyParagraph == null
+                ? new RtfParagraph()
+                : document.GetParagraphFormatting(PreviousBodyParagraph).CopyEmptyFormattingView();
+            paragraph.UseParsedParagraphDefaults = true;
+            return paragraph;
+        }
+
         /// <summary>Shares operation font slots while isolating running-story numbering and note references from body flow.</summary>
         public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfOptions fontOptions) =>
             new PdfRenderState(document, _fontSlots, fontOptions);
