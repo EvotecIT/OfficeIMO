@@ -1,0 +1,5833 @@
+{
+  "area": "other",
+  "commands": [
+    {
+      "name": "New-OfficeVisio",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates a .vsdx diagram with a first page; with a content block it builds, saves and closes the diagram.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioDocument",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "PageName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "First page width. Default 210mm (A4 portrait, unchanged)."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "First page height. Default 297mm."
+            },
+            {
+              "name": "DisplayUnit",
+              "type": "VisioMeasurementUnit",
+              "mandatory": false,
+              "notes": "Unit Visio shows for the page in rulers and the ShapeSheet. Geometry parameters carry their own unit."
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Author",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "RequestRecalcOnOpen",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "UseMastersByDefault",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "PageName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "First page width. Default 210mm (A4 portrait, unchanged)."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "First page height. Default 297mm."
+            },
+            {
+              "name": "DisplayUnit",
+              "type": "VisioMeasurementUnit",
+              "mandatory": false,
+              "notes": "Unit Visio shows for the page in rulers and the ShapeSheet. Geometry parameters carry their own unit."
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Author",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "RequestRecalcOnOpen",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "UseMastersByDefault",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Lifecycle rule: with a content block the diagram is saved and closed when the block ends (FileInfo with -PassThru); a throwing block saves nothing and removes the partial file. Without a block (Live set) -Path is optional and the live VisioDocument is returned unsaved; Save-OfficeVisio -Path writes it. With a block (Content set) -Path is required. Refuses an existing file unless -Force. No -Theme: Visio has no theme support today (see open questions). No alias: the command opens a block rather than running inside one."
+    },
+    {
+      "name": "Open-OfficeVisio",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Opens an existing .vsdx diagram; with a content block it edits, saves and closes it.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioDocument",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces Get-OfficeVisio. Inside the block the DSL targets the first page; VisioPage adds pages. ShouldProcess covers the save that a content block performs."
+    },
+    {
+      "name": "Save-OfficeVisio",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Saves a live diagram to its own path or to -Path.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioDocument"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "VisioDocument",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Close-OfficeVisio",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Releases a live diagram without saving it.",
+      "outputType": [],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "VisioDocument",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ],
+      "notes": "Added so Visio has the same New/Open/Save/Close lifecycle as other authoring formats. VisioDocument is not IDisposable today; the command releases the document and disposes it once the C# lifecycle makes it disposable."
+    },
+    {
+      "name": "Add-OfficeVisioRectangle",
+      "alias": "VisioRectangle",
+      "status": "existing",
+      "synopsis": "Adds a rectangle (process box) to the current page.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Target page outside a content block; inside a block the current page is used."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name used by VisioConnector, VisioContainer and VisioLayout to refer to the shape."
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Degrees."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+    },
+    {
+      "name": "Add-OfficeVisioEllipse",
+      "alias": "VisioEllipse",
+      "status": "existing",
+      "synopsis": "Adds an ellipse to the current page.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Target page outside a content block; inside a block the current page is used."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name used by VisioConnector, VisioContainer and VisioLayout to refer to the shape."
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Degrees."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+    },
+    {
+      "name": "Add-OfficeVisioDiamond",
+      "alias": "VisioDiamond",
+      "status": "existing",
+      "synopsis": "Adds a decision diamond to the current page.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Target page outside a content block; inside a block the current page is used."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name used by VisioConnector, VisioContainer and VisioLayout to refer to the shape."
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Degrees."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 1in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had."
+    },
+    {
+      "name": "Add-OfficeVisioTextBox",
+      "alias": "VisioTextBox",
+      "status": "existing",
+      "synopsis": "Adds a text annotation to the current page.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Target page outside a content block; inside a block the current page is used."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name used by VisioConnector, VisioContainer and VisioLayout to refer to the shape."
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Degrees."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 0.5in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had. The alias is VisioTextBox, not VisioText, because Text is the shared name for styled runs."
+    },
+    {
+      "name": "Add-OfficeVisioPage",
+      "alias": "VisioPage",
+      "status": "existing",
+      "synopsis": "Adds a page to the diagram; a content block runs with that page as the target.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioPage"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "VisioDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Outside a content block; inside one the enclosing diagram is used."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "DisplayUnit",
+              "type": "VisioMeasurementUnit",
+              "mandatory": false
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeVisioConnector",
+      "alias": "VisioConnector",
+      "status": "existing",
+      "synopsis": "Connects two shapes with a routed connector.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioConnector"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "From",
+              "type": "object",
+              "mandatory": true,
+              "notes": "Shape key, id, name, or a VisioShape object."
+            },
+            {
+              "name": "To",
+              "type": "object",
+              "mandatory": true,
+              "notes": "Shape key, id, name, or a VisioShape object."
+            },
+            {
+              "name": "Kind",
+              "type": "ConnectorKind",
+              "mandatory": false
+            },
+            {
+              "name": "FromSide",
+              "type": "VisioSide",
+              "mandatory": false
+            },
+            {
+              "name": "ToSide",
+              "type": "VisioSide",
+              "mandatory": false
+            },
+            {
+              "name": "Label",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "BeginArrow",
+              "type": "EndArrow",
+              "mandatory": false
+            },
+            {
+              "name": "EndArrow",
+              "type": "EndArrow",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-From and -To accept a key or a shape object, so the ByKey/ByShape parameter sets and -FromShape/-ToShape merge into one set."
+    },
+    {
+      "name": "Add-OfficeVisioContainer",
+      "alias": "VisioContainer",
+      "status": "existing",
+      "synopsis": "Groups shapes in a native Visio container.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Page",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "value",
+              "notes": "VisioShape objects or shape keys."
+            },
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false
+            },
+            {
+              "name": "ShapeId",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": true,
+              "aliases": [
+                "Id"
+              ],
+              "notes": "Key of the container itself, like -Key on shapes."
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "HeadingHeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "ContainerStyle",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "HeadingStyle",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Locked",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoAutoResize",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoHighlight",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoRibbon",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeVisioStencilShape",
+      "alias": "VisioStencil",
+      "status": "existing",
+      "synopsis": "Places a shape from a stencil catalog on the current page.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Catalog",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Catalog",
+              "type": "object",
+              "mandatory": false,
+              "notes": "Name of a catalog registered with VisioStencilCatalog, or a VisioStencilCatalog object. Default: the diagram's default catalog, else all built-in stencils."
+            },
+            {
+              "name": "Stencil",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "notes": "Master name in the catalog. The parameter alias -Name is removed because -Name now names the shape, as on other shapes."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Defaults to the stencil's own size."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "BuiltIn",
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "BuiltIn",
+              "type": "OfficeVisioBuiltInStencilCatalog",
+              "mandatory": true
+            },
+            {
+              "name": "Stencil",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "notes": "Master name in the catalog. The parameter alias -Name is removed because -Name now names the shape, as on other shapes."
+            },
+            {
+              "name": "Key",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Defaults to the stencil's own size."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NameU",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FillColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineColor",
+              "type": "OfficeColor",
+              "mandatory": false
+            },
+            {
+              "name": "LineWeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "LinePattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "FillPattern",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Angle",
+              "type": "double",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Catalog takes a registered name or a catalog object (like -Sheet takes a name or a sheet), replacing the CatalogName/CatalogObject sets. Alias stays VisioStencil: the Visio term for the item dropped on the page."
+    },
+    {
+      "name": "Set-OfficeVisioShapeLayout",
+      "alias": "VisioLayout",
+      "status": "existing",
+      "synopsis": "Aligns, distributes, layers or re-flows a set of shapes.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Align",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "value",
+              "notes": "VisioShape objects or shape keys."
+            },
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false
+            },
+            {
+              "name": "ShapeId",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "Layer",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AlignHorizontal",
+              "type": "VisioHorizontalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "AlignVertical",
+              "type": "VisioVerticalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "Distribute",
+              "type": "VisioDistributionAxis",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Grid",
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "value",
+              "notes": "VisioShape objects or shape keys."
+            },
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false
+            },
+            {
+              "name": "ShapeId",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "Layer",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AlignHorizontal",
+              "type": "VisioHorizontalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "AlignVertical",
+              "type": "VisioVerticalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "Distribute",
+              "type": "VisioDistributionAxis",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Grid",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "Columns",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "HorizontalSpacing",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "VerticalSpacing",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "PreserveFirstShapeCenter",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoRouteInternalConnectors",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "HorizontalStack",
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "value",
+              "notes": "VisioShape objects or shape keys."
+            },
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false
+            },
+            {
+              "name": "ShapeId",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "Layer",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AlignHorizontal",
+              "type": "VisioHorizontalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "AlignVertical",
+              "type": "VisioVerticalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "Distribute",
+              "type": "VisioDistributionAxis",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "HorizontalStack",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "HorizontalSpacing",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "NoRouteInternalConnectors",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "VerticalStack",
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "value",
+              "notes": "VisioShape objects or shape keys."
+            },
+            {
+              "name": "Page",
+              "type": "VisioPage",
+              "mandatory": false
+            },
+            {
+              "name": "ShapeId",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "Layer",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AlignHorizontal",
+              "type": "VisioHorizontalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "AlignVertical",
+              "type": "VisioVerticalAlignment",
+              "mandatory": false
+            },
+            {
+              "name": "Distribute",
+              "type": "VisioDistributionAxis",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "VerticalStack",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "VerticalSpacing",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "NoRouteInternalConnectors",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Grid, -HorizontalStack and -VerticalStack were exclusive at run time (first one won); they become parameter sets, and -Columns / -PreserveFirstShapeCenter appear only with -Grid. Spacing defaults stay 0.5in."
+    },
+    {
+      "name": "Import-OfficeVisioStencilCatalog",
+      "alias": "VisioStencilCatalog",
+      "status": "renamed",
+      "synopsis": "Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.",
+      "outputType": [
+        "OfficeIMO.Visio.Stencils.VisioStencilCatalog"
+      ],
+      "parameterSets": [
+        {
+          "name": "BuiltIn",
+          "default": true,
+          "parameters": [
+            {
+              "name": "BuiltIn",
+              "type": "OfficeVisioBuiltInStencilCatalog",
+              "mandatory": false,
+              "notes": "Default All."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Inside a diagram block: key under which the catalog is registered for VisioStencil -Catalog."
+            },
+            {
+              "name": "Default",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Inside a diagram block: make it the default catalog."
+            }
+          ]
+        },
+        {
+          "name": "Path",
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "wildcards": true
+            },
+            {
+              "name": "Recurse",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "CatalogName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name given to the loaded catalog."
+            },
+            {
+              "name": "Category",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IdPrefix",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "MasterName",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnsupportedMasters",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoLearnMasterDimensions",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoPreviewImageMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoConnectionPointMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultWidth",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 1.8in."
+            },
+            {
+              "name": "DefaultHeight",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 0.9in."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Inside a diagram block: key under which the catalog is registered for VisioStencil -Catalog."
+            },
+            {
+              "name": "Default",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Inside a diagram block: make it the default catalog."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Recurse",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "CatalogName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name given to the loaded catalog."
+            },
+            {
+              "name": "Category",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IdPrefix",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "MasterName",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnsupportedMasters",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoLearnMasterDimensions",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoPreviewImageMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoConnectionPointMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultWidth",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 1.8in."
+            },
+            {
+              "name": "DefaultHeight",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 0.9in."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Inside a diagram block: key under which the catalog is registered for VisioStencil -Catalog."
+            },
+            {
+              "name": "Default",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Inside a diagram block: make it the default catalog."
+            }
+          ]
+        },
+        {
+          "name": "Installed",
+          "parameters": [
+            {
+              "name": "Installed",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "CatalogName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Name given to the loaded catalog."
+            },
+            {
+              "name": "Category",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IdPrefix",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "MasterName",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnsupportedMasters",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoLearnMasterDimensions",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoPreviewImageMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoConnectionPointMetadata",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultWidth",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 1.8in."
+            },
+            {
+              "name": "DefaultHeight",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 0.9in."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Inside a diagram block: key under which the catalog is registered for VisioStencil -Catalog."
+            },
+            {
+              "name": "Default",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Inside a diagram block: make it the default catalog."
+            }
+          ]
+        },
+        {
+          "name": "Catalog",
+          "parameters": [
+            {
+              "name": "Catalog",
+              "type": "VisioStencilCatalog",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Inside a diagram block: key under which the catalog is registered for VisioStencil -Catalog."
+            },
+            {
+              "name": "Default",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Inside a diagram block: make it the default catalog."
+            }
+          ]
+        }
+      ],
+      "notes": "One command for loading catalogs: Get-OfficeVisioStencilCatalog (load anywhere) and Import-OfficeVisioStencil (load and register inside New-OfficeVisio) merge. Outside a block it returns the catalog; -Name/-Default outside a block are an error. Import-OfficeVisioStencil -LoadCatalogName becomes -CatalogName; its -Name keeps meaning the registration key and loses the CatalogName/Key parameter aliases."
+    },
+    {
+      "name": "Find-OfficeVisioStencil",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Searches a stencil catalog by name, keyword or category.",
+      "outputType": [
+        "OfficeIMO.Visio.Stencils.VisioStencilShape"
+      ],
+      "parameterSets": [
+        {
+          "name": "Catalog",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Catalog",
+              "type": "object",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Registered catalog name or VisioStencilCatalog. Default: the diagram's default catalog, else all built-in stencils."
+            },
+            {
+              "name": "Query",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "First",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "BuiltIn",
+          "parameters": [
+            {
+              "name": "BuiltIn",
+              "type": "OfficeVisioBuiltInStencilCatalog",
+              "mandatory": true
+            },
+            {
+              "name": "Query",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "First",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-CatalogName merges into -Catalog, which takes a name or an object, as on VisioStencil. Not a content command, so it has no alias."
+    },
+    {
+      "name": "Export-OfficeVisioStencilPreviewGallery",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Writes preview images, thumbnails and an HTML index for the masters in a stencil package.",
+      "outputType": [
+        "OfficeIMO.Visio.Stencils.VisioStencilPreviewGallery"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "MasterName",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnsupportedMasters",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoLearnMasterDimensions",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PreviewDirectoryName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IndexFileName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoIndex",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoThumbnails",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "ThumbnailDirectoryName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "ThumbnailWidth",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Raster thumbnail size in pixels, not document geometry; stays an integer."
+            },
+            {
+              "name": "ThumbnailHeight",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultWidth",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultHeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "MasterName",
+              "type": "string[]",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnsupportedMasters",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoLearnMasterDimensions",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PreviewDirectoryName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IndexFileName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoIndex",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoThumbnails",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "ThumbnailDirectoryName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "ThumbnailWidth",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Raster thumbnail size in pixels, not document geometry; stays an integer."
+            },
+            {
+              "name": "ThumbnailHeight",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultWidth",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "DefaultHeight",
+              "type": "OfficeLength",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeVisioGallery",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Generates the reference gallery of editable sample diagrams (flowchart, architecture, network, timeline, swimlane, org chart, graph).",
+      "outputType": [
+        "OfficeIMO.Visio.VisioGalleryResult"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "OutputDirectory",
+          "default": true,
+          "parameters": [
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "NoPackageValidation",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoVisualQualityAnalysis",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Gains -WhatIf/-Confirm because it writes files."
+    },
+    {
+      "name": "New-OfficeVisioImageOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates the Visio-specific settings that Export-OfficeDocumentImage -Options applies to .vsdx input.",
+      "outputType": [
+        "OfficeIMO.Visio.VisioImageExportOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Page",
+              "type": "int",
+              "mandatory": false,
+              "notes": "1-based first page (G1); converted to the 0-based VisioImageExportOptions.PageIndex."
+            },
+            {
+              "name": "PageCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "NoText",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoStencilArtwork",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoConnectorLabels",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoConnectorLabelOverlapResolution",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Supersampling",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeSvgXmlDeclaration",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "FontPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FontFaceName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FontCollectionIndex",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumOutputWidth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumOutputHeight",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "notes": "Transparent replaces the old -Transparent switch."
+            },
+            {
+              "name": "TargetDpi",
+              "type": "double",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumRasterPixelCount",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "RasterOverflowBehavior",
+              "type": "OfficeRasterOverflowBehavior",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumOutputCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumTotalRasterPixelCount",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumTotalEncodedBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "RenderTimeoutSeconds",
+              "type": "double",
+              "mandatory": false
+            },
+            {
+              "name": "MaximumDegreeOfParallelism",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "TextShapingLanguage",
+              "type": "string",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Rendering features that are on by default become -No{Feature} switches, matching the old ConvertTo-OfficeVisioPng names. Font selection that only ConvertTo-OfficeVisioPng exposed (-FontFilePath, -FontFaceName, -FontCollectionIndex) moves here so it survives the move to Export-OfficeDocumentImage. MaximumRasterPixels and MaximumTotalRasterPixels gain a Count suffix because they are pixel counts, not lengths with a unit suffix. Shared image parameters (Scale … TextShapingLanguage) follow whatever the cross-format image options base settles on."
+    },
+    {
+      "name": "ConvertTo-OfficeVisioVisual",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Converts an ImagePlayground/ChartForgeX visual artifact into a live, editable Visio document and fidelity report.",
+      "outputType": [
+        "OfficeIMO.ChartForgeX.OfficeVisioVisualConversionResult"
+      ],
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "PageName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "UseNaturalPageSize",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PixelsPerInch",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Scale for interpreting the artifact's pixel coordinates; not a length."
+            },
+            {
+              "name": "NoTitle",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoGroups",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoShapeData",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoHyperlinks",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Object-to-model conversion kept as ConvertTo-, like ConvertTo-OfficeMarkdown; the result's Document can be edited and saved with Save-OfficeVisio."
+    },
+    {
+      "name": "Export-OfficeVisioVisual",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Writes an ImagePlayground/ChartForgeX visual artifact as a native editable .vsdx.",
+      "outputType": [
+        "System.IO.FileInfo",
+        "OfficeIMO.ChartForgeX.OfficeVisioVisualConversionResult"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "PageName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "UseNaturalPageSize",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PixelsPerInch",
+              "type": "double",
+              "mandatory": false,
+              "notes": "Scale for interpreting the artifact's pixel coordinates; not a length."
+            },
+            {
+              "name": "NoTitle",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoGroups",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoShapeData",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoHyperlinks",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Returns the conversion result instead of the FileInfo."
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses."
+    },
+    {
+      "name": "New-OfficeProject",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates a project (MSPDI XML or MPP by extension); with a content block it builds, saves and closes it.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDocument",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StartDate",
+              "type": "DateTime",
+              "mandatory": false
+            },
+            {
+              "name": "NoStandardCalendar",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StartDate",
+              "type": "DateTime",
+              "mandatory": false
+            },
+            {
+              "name": "NoStandardCalendar",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Gains -Path and a content block for the shared lifecycle. Without a block (Live set) -Path is optional and the live project is returned; nothing is written until Save-OfficeProject. With a block (Content set) -Path is required. -Name is no longer positional."
+    },
+    {
+      "name": "Open-OfficeProject",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Opens a .mpp, .mpt or MSPDI .xml project without calculating or executing it; with a content block it edits, saves and closes it.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDocument",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "ReadOnly",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "With a content block the block runs and nothing is saved."
+            },
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1
+            },
+            {
+              "name": "ReadOnly",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "With a content block the block runs and nothing is saved."
+            },
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Save-OfficeProject",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Saves a project through the native codec, reporting anything the target format cannot carry.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDocument"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "Format",
+              "type": "ProjectFileFormat",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "ReportVariable",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Path is optional: without it the project is saved to the path it was created or opened with. A native save keeps today's strictness: it fails if content would be lost, and -AllowLoss accepts the loss; the assessment report goes to -ReportVariable. -Force keeps its current meaning (replace an existing file)."
+    },
+    {
+      "name": "Close-OfficeProject",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Closes a project without saving it.",
+      "outputType": [],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeProjectTask",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Adds a task, summary or milestone (duration 0) in working days.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectTask"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "DurationDays",
+              "type": "decimal",
+              "mandatory": false,
+              "notes": "Working days; a duration, not a length."
+            },
+            {
+              "name": "ParentUid",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Summary",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Manual",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeProjectResource",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Adds a work resource with an optional standard rate.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectResource"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "StandardRate",
+              "type": "decimal",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeProjectAssignment",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Assigns a resource to a task by UID.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectAssignment"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
+            },
+            {
+              "name": "TaskUid",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "ResourceUid",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "UnitsPercent",
+              "type": "decimal",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeProjectDependency",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Links two tasks (finish-to-start by default) with optional lag.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDependency"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
+            },
+            {
+              "name": "PredecessorUid",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "SuccessorUid",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "Type",
+              "type": "ProjectDependencyType",
+              "mandatory": false
+            },
+            {
+              "name": "LagDays",
+              "type": "decimal",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeProjectTask",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Returns the project's task objects (optionally by UID).",
+      "outputType": [
+        "OfficeIMO.Project.ProjectTask"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Uid",
+              "type": "int[]",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeProjectResource",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Returns the project's resource objects (optionally by UID).",
+      "outputType": [
+        "OfficeIMO.Project.ProjectResource"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Uid",
+              "type": "int[]",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeProjectAssignment",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Returns the project's assignment objects (optionally by UID).",
+      "outputType": [
+        "OfficeIMO.Project.ProjectAssignment"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Uid",
+              "type": "int[]",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeProjectDependency",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Returns the project's dependency objects.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDependency"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Set-OfficeProjectTask",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Changes a task's name, duration, dates, progress or manual scheduling.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectTask"
+      ],
+      "parameterSets": [
+        {
+          "name": "Task",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Task",
+              "type": "ProjectTask",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "DurationDays",
+              "type": "decimal",
+              "mandatory": false
+            },
+            {
+              "name": "Start",
+              "type": "DateTime",
+              "mandatory": false
+            },
+            {
+              "name": "Finish",
+              "type": "DateTime",
+              "mandatory": false
+            },
+            {
+              "name": "PercentComplete",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Manual",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Was bool?; -Manual:$false still turns manual scheduling off."
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Invoke-OfficeProjectSchedule",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Calculates the schedule and, with -Apply, writes the calculated dates into the project.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectScheduleResult"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "CalculateAssignments",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Apply",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "No longer supports -WhatIf: -Apply changes the in-memory project, not a file."
+    },
+    {
+      "name": "Get-OfficeProjectView",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Captures a portable Gantt, usage, histogram or network view from a calculated schedule.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectView"
+      ],
+      "parameterSets": [
+        {
+          "name": "Kind",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Schedule",
+              "type": "ProjectScheduleResult",
+              "mandatory": false
+            },
+            {
+              "name": "Kind",
+              "type": "ProjectViewKind",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Options",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Schedule",
+              "type": "ProjectScheduleResult",
+              "mandatory": false
+            },
+            {
+              "name": "Options",
+              "type": "ProjectViewOptions",
+              "mandatory": true
+            }
+          ]
+        }
+      ],
+      "notes": "'Choose Options or Kind' becomes two parameter sets."
+    },
+    {
+      "name": "Export-OfficeProjectReport",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Writes a project view as a .pdf, .html, .docx, .xlsx or .pptx report chosen by extension.",
+      "outputType": [
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "View",
+          "default": true,
+          "parameters": [
+            {
+              "name": "View",
+              "type": "ProjectView",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces an existing file by default, like other Export- commands; -NoClobber refuses (replaces -Force)."
+    },
+    {
+      "name": "ConvertTo-OfficeProjectTable",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Maps pipeline rows (for example from Import-Csv) to a project task, resource, assignment or calendar table.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectMappedTable"
+      ],
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "PSObject[]",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Kind",
+              "type": "ProjectDataKind",
+              "mandatory": true
+            },
+            {
+              "name": "ColumnMap",
+              "type": "IDictionary",
+              "mandatory": true
+            },
+            {
+              "name": "MaxRows",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Import-OfficeProjectTable",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Builds a new project from up to four mapped tables.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDocument"
+      ],
+      "parameterSets": [
+        {
+          "name": "Table",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Table",
+              "type": "ProjectMappedTable[]",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StartDate",
+              "type": "DateTime",
+              "mandatory": false
+            },
+            {
+              "name": "CalendarUid",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "AllowUnmappedColumns",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRows",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ReportVariable",
+              "type": "string",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-AllowUnmappedColumns stays: an unmapped column is usually a typo in -ColumnMap, so refusing it by default is input validation, not a loss policy."
+    },
+    {
+      "name": "Get-OfficeProjectTable",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Projects a project's tasks, resources, assignments and calendars into mapped tables.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectDataExportResult"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ProjectDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRows",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxCells",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Fails on lossy projection as today; -AllowLoss (was -AllowLossyProjection) returns the tables with loss notices as warnings."
+    },
+    {
+      "name": "New-OfficeAccess",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates a native .accdb or .mdb database (format from the extension) without a provider or seed file; with a content block it builds, saves and closes it.",
+      "outputType": [
+        "OfficeIMO.Access.AccessDocument",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Applies to the save at the end of a content block."
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Gains -Path and a content block. -Format is replaced by the .accdb/.mdb extension. Without a block (Live set) -Path is optional and the live database is returned unsaved; with a block (Content set) -Path is required."
+    },
+    {
+      "name": "Open-OfficeAccess",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Opens a native database read-only, without running queries, macros or linked connections.",
+      "outputType": [
+        "OfficeIMO.Access.AccessDocument"
+      ],
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Table",
+              "type": "string[]",
+              "mandatory": false,
+              "notes": "Load only these tables."
+            },
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRows",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Table",
+              "type": "string[]",
+              "mandatory": false,
+              "notes": "Load only these tables."
+            },
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRows",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces Get-OfficeAccess. Opened databases stay read-only, as today, so there is no content block; editing an existing database is not a current capability."
+    },
+    {
+      "name": "Save-OfficeAccess",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Writes a native database.",
+      "outputType": [
+        "OfficeIMO.Access.AccessDocument"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "AccessDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Path optional (defaults to the New-OfficeAccess path). A native save keeps today's strictness (fails if content would be lost); -AllowLoss is new and accepts the loss through AccessSaveOptions.LossPolicy."
+    },
+    {
+      "name": "Close-OfficeAccess",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Closes a database without saving it.",
+      "outputType": [],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "AccessDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeAccessTable",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Adds a table to a new database.",
+      "outputType": [
+        "OfficeIMO.Access.AccessTable"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "AccessDocument",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-OfficeAccess content block."
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeAccessColumn",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Adds a typed field to a table.",
+      "outputType": [
+        "OfficeIMO.Access.AccessColumn"
+      ],
+      "parameterSets": [
+        {
+          "name": "Table",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Table",
+              "type": "AccessTable",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Type",
+              "type": "AccessDataType",
+              "mandatory": false
+            },
+            {
+              "name": "MaxLength",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "AutoNumberSeed",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Precision",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Scale",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "MaxLength/AutoNumberSeed/Precision/Scale depend on the -Type value, which parameter sets cannot express; the run-time checks stay."
+    },
+    {
+      "name": "Add-OfficeAccessRow",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Appends objects or dictionaries as rows using the declared field types.",
+      "outputType": [
+        "OfficeIMO.Access.AccessTable"
+      ],
+      "parameterSets": [
+        {
+          "name": "Table",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Table",
+              "type": "AccessTable",
+              "mandatory": true
+            },
+            {
+              "name": "InputObject",
+              "type": "PSObject[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeAccessTable",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Lists table definitions and schema.",
+      "outputType": [
+        "OfficeIMO.Access.AccessTable"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "AccessDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Name",
+              "type": "string[]",
+              "mandatory": false,
+              "position": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeAccessRow",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Streams a table's rows as objects.",
+      "outputType": [
+        "PSCustomObject"
+      ],
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "AccessDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Table",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "MaxRows",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Open-OfficeEmail",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Opens a message (.eml, .msg, TNEF, .emlx) as an EmailDocument, or its read result with diagnostics.",
+      "outputType": [
+        "OfficeIMO.Email.EmailDocument",
+        "OfficeIMO.Email.EmailReadResult",
+        "OfficeIMO.Email.Store.EmailStoreReadResult"
+      ],
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Options",
+              "type": "EmailReaderOptions",
+              "mandatory": false
+            },
+            {
+              "name": "StoreOptions",
+              "type": "EmailStoreReaderOptions",
+              "mandatory": false,
+              "notes": "Apple Mail .emlx only."
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "EmailReaderOptions",
+              "mandatory": false
+            },
+            {
+              "name": "StoreOptions",
+              "type": "EmailStoreReaderOptions",
+              "mandatory": false,
+              "notes": "Apple Mail .emlx only."
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces Get-OfficeEmail. Email has no authoring model, so it has Open-/Save- but no New-/Close-."
+    },
+    {
+      "name": "Open-OfficeEmailMailbox",
+      "alias": null,
+      "status": "renamed",
+      "synopsis": "Opens an mbox mailbox as an EmailMailbox, or its read result with diagnostics.",
+      "outputType": [
+        "OfficeIMO.Email.EmailMailbox",
+        "OfficeIMO.Email.EmailMailboxReadResult"
+      ],
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Options",
+              "type": "EmailMailboxReaderOptions",
+              "mandatory": false
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "EmailMailboxReaderOptions",
+              "mandatory": false
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Kept separate from Open-OfficeEmail: it returns a container of messages with its own reader options."
+    },
+    {
+      "name": "Save-OfficeEmail",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Saves a message as .eml, .msg or .emlx (from -Format or the extension).",
+      "outputType": [
+        "OfficeIMO.Email.EmailWriteResult"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "EmailDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Format",
+              "type": "EmailFileFormat",
+              "mandatory": false
+            },
+            {
+              "name": "Options",
+              "type": "EmailWriterOptions",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Path stays mandatory: an opened message does not keep a writable source path."
+    },
+    {
+      "name": "Save-OfficeEmailMailbox",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Saves a mailbox as mbox.",
+      "outputType": [
+        "OfficeIMO.Email.EmailWriteResult"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "EmailMailbox",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Options",
+              "type": "EmailMailboxWriterOptions",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeEmailReaderOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates per-message read limits and attachment policy.",
+      "outputType": [
+        "OfficeIMO.Email.EmailReaderOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxHeaderBytes",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxHeaderCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxPartCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxMimeDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxAttachmentBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxTotalAttachmentBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxNestedMessageDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "NoAttachmentContent",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PreserveRawSource",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "MaxCompoundDirectoryEntries",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxMapiPropertyCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxDecodedPropertyBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxTnefAttributeCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxAttachmentCount",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeEmailStoreReaderOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates read limits for mail stores (.emlx and store archives), including a store password.",
+      "outputType": [
+        "OfficeIMO.Email.Store.EmailStoreReaderOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxNodeCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxBTreeDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxCachedBTreePages",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxFolderCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxItemCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxPropertiesPerItem",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxDecodedPropertyBytesPerItem",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxAttachmentsPerItem",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxAttachmentBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxTotalAttachmentBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "NoAttachmentContent",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "notes": "PST password. A plain string is accepted with a warning, per the shared -Password rule."
+            },
+            {
+              "name": "PasswordEncoding",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeAssociatedItems",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeOrphanedItems",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "MaxNestedMessageDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxArchiveEntries",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxArchiveEntryBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxArchiveDecodedBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxXmlCharactersPerItem",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxMessageBytes",
+              "type": "long",
+              "mandatory": false
+            },
+            {
+              "name": "MaxDirectoryDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxDirectoryFileCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxDecodedTableBytes",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-Password also accepts a plain string (with a warning) or a PSCredential (its password)."
+    },
+    {
+      "name": "New-OfficeEmailWriterOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates per-message write settings.",
+      "outputType": [
+        "OfficeIMO.Email.EmailWriterOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Replaces -ConversionLossPolicy. Default fails on loss (old Block, unchanged); -AllowLoss writes and warns about each loss (old Warn/Allow)."
+            },
+            {
+              "name": "UsePreservedRawSource",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeBccHeader",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Base64LineLength",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxNestedMessageDepth",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxOutputBytes",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeEmailMailboxReaderOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates mailbox read limits around a per-message policy.",
+      "outputType": [
+        "OfficeIMO.Email.EmailMailboxReaderOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "MessageOptions",
+              "type": "EmailReaderOptions",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Variant",
+              "type": "MboxVariant",
+              "mandatory": false
+            },
+            {
+              "name": "MaxMessageCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxMailboxBytes",
+              "type": "long",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeEmailMailboxWriterOptions",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates mailbox write settings around a per-message policy.",
+      "outputType": [
+        "OfficeIMO.Email.EmailMailboxWriterOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "MessageOptions",
+              "type": "EmailWriterOptions",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Variant",
+              "type": "MboxVariant",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeConfluenceSession",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates a Confluence Cloud session from a credential (API token) or an OAuth access token.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluenceSession"
+      ],
+      "parameterSets": [
+        {
+          "name": "Basic",
+          "default": true,
+          "parameters": [
+            {
+              "name": "SiteUri",
+              "type": "Uri",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "UserName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Required unless -Password is given a PSCredential, whose user name is used."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": true,
+              "notes": "API token. Also accepts a PSCredential (user name and token) or a plain string with a warning."
+            },
+            {
+              "name": "ApplicationName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "RequestTimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRetryCount",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Bearer",
+          "parameters": [
+            {
+              "name": "SiteUri",
+              "type": "Uri",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "AccessToken",
+              "type": "SecureString",
+              "mandatory": true
+            },
+            {
+              "name": "CloudId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "ApplicationName",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "RequestTimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "MaxRetryCount",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeConfluencePage",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Gets pages by ID or lists them by space and title, as page objects or projected to Markdown or HTML.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluencePage",
+        "OfficeIMO.Confluence.ConfluencePageBatch",
+        "OfficeIMO.Confluence.ConfluenceContentConversionResult`1[System.String]"
+      ],
+      "parameterSets": [
+        {
+          "name": "List",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "SpaceId",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Cursor",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Limit",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "AsBatch",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Return each API response batch with its cursor instead of individual pages. Cannot be combined with -As Markdown/Html."
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "As",
+              "type": "OfficeConfluencePageOutput",
+              "mandatory": false,
+              "notes": "Page (default), Markdown or Html. Replaces the exclusive -AsMarkdown/-AsHtml switches."
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "ById",
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "As",
+              "type": "OfficeConfluencePageOutput",
+              "mandatory": false,
+              "notes": "Page (default), Markdown or Html. Replaces the exclusive -AsMarkdown/-AsHtml switches."
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Publish-OfficeConfluencePage",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Creates or updates a page from Markdown, HTML, storage or ADF content, or returns the write plan offline.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluencePage",
+        "OfficeIMO.Confluence.ConfluencePageWritePlan"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Create",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "SpaceId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "ParentId",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Content",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "ContentFormat",
+              "type": "OfficeConfluenceContentFormat",
+              "mandatory": false
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Update",
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "VersionNumber",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "VersionMessage",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Content",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "ContentFormat",
+              "type": "OfficeConfluenceContentFormat",
+              "mandatory": false
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "CreatePlan",
+          "parameters": [
+            {
+              "name": "PlanOnly",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "SpaceId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "ParentId",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Content",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "ContentFormat",
+              "type": "OfficeConfluenceContentFormat",
+              "mandatory": false
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "UpdatePlan",
+          "parameters": [
+            {
+              "name": "PlanOnly",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "VersionNumber",
+              "type": "int",
+              "mandatory": true
+            },
+            {
+              "name": "VersionMessage",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Content",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "ContentFormat",
+              "type": "OfficeConfluenceContentFormat",
+              "mandatory": false
+            },
+            {
+              "name": "BodyFormat",
+              "type": "ConfluenceBodyFormat",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "-PlanOnly is kept rather than mapped to -WhatIf: it returns the exact request (ConfluencePageWritePlan) as an object and needs no session, which -WhatIf cannot do. -WhatIf still previews a live call. Live and plan calls become parameter sets, so -Session is mandatory where it is used and the 'Provide -Session or use -PlanOnly' run-time error disappears. ShouldProcess stays because the command changes remote content."
+    },
+    {
+      "name": "Remove-OfficeConfluencePage",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Deletes (or purges) a page, or returns the delete plan offline.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluencePageWritePlan"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Session",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Purge",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Draft",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Plan",
+          "parameters": [
+            {
+              "name": "PlanOnly",
+              "type": "switch",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Purge",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Draft",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "notes": "Same plan treatment as Publish-OfficeConfluencePage."
+    },
+    {
+      "name": "Get-OfficeConfluenceAttachment",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Lists a page's attachments, or downloads one to bytes or a file.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluenceAttachment",
+        "OfficeIMO.Confluence.ConfluenceAttachmentBatch",
+        "System.Byte[]",
+        "System.IO.FileInfo"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "List",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Cursor",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Limit",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "AsBatch",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Download",
+          "parameters": [
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "AttachmentId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Replace an existing -OutputPath; without it the download refuses, as today."
+            }
+          ]
+        }
+      ],
+      "notes": "ShouldProcess applies to writing -OutputPath only."
+    },
+    {
+      "name": "Send-OfficeConfluenceAttachment",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Uploads files as page attachments.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluenceAttachment"
+      ],
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "wildcards": true
+            },
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "FileName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Upload name; only with a single input file."
+            },
+            {
+              "name": "ContentType",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Comment",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoMinorEdit",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Uploads are minor edits by default (was -MinorEdit:$false)."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Session",
+              "type": "ConfluenceSession",
+              "mandatory": true
+            },
+            {
+              "name": "PageId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "FileName",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Upload name; only with a single input file."
+            },
+            {
+              "name": "ContentType",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Comment",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoMinorEdit",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Uploads are minor edits by default (was -MinorEdit:$false)."
+            }
+          ]
+        }
+      ],
+      "notes": "Gains Path/LiteralPath sets so Get-ChildItem output can be piped in."
+    },
+    {
+      "name": "Set-OfficeConfluenceManagedSection",
+      "alias": null,
+      "status": "existing",
+      "synopsis": "Replaces (or appends) a marked section inside a page body string.",
+      "outputType": [
+        "OfficeIMO.Confluence.ConfluenceManagedSectionResult",
+        "System.String"
+      ],
+      "parameterSets": [
+        {
+          "name": "ExistingBody",
+          "default": true,
+          "parameters": [
+            {
+              "name": "ExistingBody",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "SectionId",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "Replacement",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "AppendIfMissing",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThruBody",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "map": [
+    {
+      "old": "New-OfficeVisio",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeVisio",
+      "parameterSet": "Live | Content",
+      "parameters": {
+        "NoSave": null,
+        "Open": "Show",
+        "Unit": "DisplayUnit"
+      },
+      "hint": "New-OfficeVisio -Path .\\Map.vsdx { VisioRectangle 'API' -X 1in -Y 4in }; leave out the block instead of -NoSave.",
+      "reason": "Shared lifecycle: -NoSave is removed (leave out the content block to keep the document open; -Path is then optional), -Open becomes -Show, -Force guards existing files, and page size is OfficeLength."
+    },
+    {
+      "old": "Get-OfficeVisio",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Open-OfficeVisio",
+      "parameterSet": "Path",
+      "hint": "Open-OfficeVisio -Path .\\Map.vsdx",
+      "reason": "Lifecycle rule: Get- commands that open a file become Open-; Get- is for reading content out of a document."
+    },
+    {
+      "old": "Save-OfficeVisio",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Save-OfficeVisio",
+      "parameterSet": "Document",
+      "parameters": {
+        "Open": "Show"
+      },
+      "reason": "-Open becomes the shared -Show switch."
+    },
+    {
+      "old": "Add-OfficeVisioPage",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioPage",
+      "parameters": {
+        "Unit": "DisplayUnit"
+      },
+      "reason": "Page size is OfficeLength; the measurement unit is only the page's display unit."
+    },
+    {
+      "old": "Add-OfficeVisioRectangle",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioRectangle",
+      "parameterSet": "Page",
+      "parameters": {
+        "Unit": null
+      },
+      "hint": "VisioRectangle 'Text' -X 1in -Y 4in -Width 2in -Height 1in  (a bare number is now points)",
+      "reason": "Geometry and line weight become OfficeLength and colors OfficeColor, so -Unit is removed; the four shape commands share one style parameter list."
+    },
+    {
+      "old": "Add-OfficeVisioEllipse",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioEllipse",
+      "parameterSet": "Page",
+      "parameters": {
+        "Unit": null
+      },
+      "hint": "VisioEllipse 'Text' -X 1in -Y 4in -Width 2in -Height 1in  (a bare number is now points)",
+      "reason": "Geometry and line weight become OfficeLength and colors OfficeColor, so -Unit is removed; the four shape commands share one style parameter list."
+    },
+    {
+      "old": "Add-OfficeVisioDiamond",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioDiamond",
+      "parameterSet": "Page",
+      "parameters": {
+        "Unit": null
+      },
+      "hint": "VisioDiamond 'Text' -X 1in -Y 4in -Width 2in -Height 1in  (a bare number is now points)",
+      "reason": "Geometry and line weight become OfficeLength and colors OfficeColor, so -Unit is removed; the four shape commands share one style parameter list."
+    },
+    {
+      "old": "Add-OfficeVisioTextBox",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioTextBox",
+      "parameterSet": "Page",
+      "parameters": {
+        "Unit": null
+      },
+      "hint": "VisioTextBox 'Text' -X 1in -Y 4in -Width 2in -Height 1in  (a bare number is now points)",
+      "reason": "Geometry and line weight become OfficeLength and colors OfficeColor, so -Unit is removed; the four shape commands share one style parameter list."
+    },
+    {
+      "old": "Add-OfficeVisioConnector",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioConnector",
+      "parameterSet": "Page",
+      "parameters": {
+        "FromShape": "From",
+        "ToShape": "To"
+      },
+      "hint": "VisioConnector -From $shapeA -To 'api'",
+      "reason": "-From/-To accept a key or a shape, merging the ByShape set into one."
+    },
+    {
+      "old": "Add-OfficeVisioContainer",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioContainer",
+      "parameterSet": "Page",
+      "parameters": {
+        "Id": "Key"
+      },
+      "hint": "VisioContainer -Key app -Text 'Application tier' -ShapeId api,worker",
+      "reason": "The container's own key is -Key, as on every shape (-Id remains a parameter alias); margins and heading height are OfficeLength."
+    },
+    {
+      "old": "Add-OfficeVisioStencilShape",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeVisioStencilShape",
+      "parameterSet": "Catalog",
+      "parameters": {
+        "CatalogObject": "Catalog",
+        "ShapeName": "Name"
+      },
+      "hint": "VisioStencil process -Catalog Flow -Key intake -Text 'Intake' -X 1.5in -Y 4in",
+      "reason": "-Catalog takes a registered name or a catalog object, replacing the CatalogName/CatalogObject sets; -ShapeName becomes -Name as on other shapes."
+    },
+    {
+      "old": "Set-OfficeVisioShapeLayout",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Set-OfficeVisioShapeLayout",
+      "parameterSet": "Align",
+      "reason": "Grid/HorizontalStack/VerticalStack become parameter sets; spacing is OfficeLength."
+    },
+    {
+      "old": "Import-OfficeVisioStencil",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Import-OfficeVisioStencilCatalog",
+      "parameterSet": "BuiltIn",
+      "parameters": {
+        "LoadCatalogName": "CatalogName"
+      },
+      "hint": "VisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default",
+      "reason": "The command loads and registers a stencil catalog; it merges with Get-OfficeVisioStencilCatalog under one name that says what it returns."
+    },
+    {
+      "old": "Get-OfficeVisioStencilCatalog",
+      "kind": "cmdlet",
+      "action": "merge",
+      "new": "Import-OfficeVisioStencilCatalog",
+      "parameterSet": "BuiltIn",
+      "hint": "Import-OfficeVisioStencilCatalog -BuiltIn Flowchart",
+      "reason": "Loading a catalog and loading-plus-registering it were two commands with the same five sources; outside a diagram block Import-OfficeVisioStencilCatalog just returns the catalog."
+    },
+    {
+      "old": "Find-OfficeVisioStencil",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Find-OfficeVisioStencil",
+      "parameterSet": "Catalog",
+      "parameters": {
+        "CatalogName": "Catalog"
+      },
+      "reason": "-CatalogName merges into -Catalog, which takes a name or an object."
+    },
+    {
+      "old": "Export-OfficeVisioStencilPreviewGallery",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Export-OfficeVisioStencilPreviewGallery",
+      "parameterSet": "Path",
+      "reason": "Path/LiteralPath become separate parameter sets; default master size is OfficeLength."
+    },
+    {
+      "old": "New-OfficeVisioGallery",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeVisioGallery",
+      "reason": "Gains -WhatIf/-Confirm because it writes files."
+    },
+    {
+      "old": "New-OfficeVisioImageOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeVisioImageOptions",
+      "parameters": {
+        "RenderText": "NoText",
+        "RenderStencilArtwork": "NoStencilArtwork",
+        "RenderConnectorLabels": "NoConnectorLabels",
+        "ResolveConnectorLabelOverlaps": "NoConnectorLabelOverlapResolution",
+        "PageIndex": "Page",
+        "MaximumRasterPixels": "MaximumRasterPixelCount",
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+      },
+      "hint": "New-OfficeVisioImageOptions -Page 1 -PageCount 1 -NoConnectorLabels",
+      "reason": "Pages are 1-based (-Page replaces 0-based -PageIndex); features that are on by default are turned off with -No{Feature} switches; font selection from ConvertTo-OfficeVisioPng moves here."
+    },
+    {
+      "old": "ConvertTo-OfficeVisioVisual",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "ConvertTo-OfficeVisioVisual",
+      "parameterSet": "InputObject"
+    },
+    {
+      "old": "Export-OfficeVisioVisual",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Export-OfficeVisioVisual",
+      "parameterSet": "InputObject",
+      "parameters": {
+        "Open": "Show"
+      },
+      "reason": "-Open becomes -Show; an existing file is replaced unless -NoClobber, like other Export- commands."
+    },
+    {
+      "old": "ConvertTo-OfficeVisioPng",
+      "kind": "cmdlet",
+      "action": "cross-format",
+      "new": "Export-OfficeDocumentImage",
+      "parameterSet": "PathFile | DocumentFile",
+      "parameters": {
+        "OutputPath": "OutputPath",
+        "PageIndex": "Page",
+        "PixelsPerInch": "Dpi",
+        "BackgroundColor": "BackgroundColor",
+        "Transparent": "BackgroundColor",
+        "NoText": "New-OfficeVisioImageOptions -NoText",
+        "NoStencilArtwork": "New-OfficeVisioImageOptions -NoStencilArtwork",
+        "NoConnectorLabels": "New-OfficeVisioImageOptions -NoConnectorLabels",
+        "NoConnectorLabelOverlapResolution": "New-OfficeVisioImageOptions -NoConnectorLabelOverlapResolution",
+        "Open": null,
+        "Supersampling": "New-OfficeVisioImageOptions -Supersampling",
+        "FontFilePath": "New-OfficeVisioImageOptions -FontPath",
+        "FontFaceName": "New-OfficeVisioImageOptions -FontFaceName",
+        "FontCollectionIndex": "New-OfficeVisioImageOptions -FontCollectionIndex"
+      },
+      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Png -OutputPath .\\Map.png -Dpi 144",
+      "reason": "Page and slide image export is one cross-format command (-Format Png); Visio-only settings travel in -Options (New-OfficeVisioImageOptions). -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed because Export-OfficeDocumentImage has no -Show; open the written file with Invoke-Item. Output without -OutputPath (bytes or SVG text) is not part of the cross-format command; write to -OutputPath and read the file."
+    },
+    {
+      "old": "ConvertTo-OfficeVisioSvg",
+      "kind": "cmdlet",
+      "action": "cross-format",
+      "new": "Export-OfficeDocumentImage",
+      "parameterSet": "PathFile | DocumentFile",
+      "parameters": {
+        "OutputPath": "OutputPath",
+        "PageIndex": "Page",
+        "PixelsPerInch": "Dpi",
+        "BackgroundColor": "BackgroundColor",
+        "Transparent": "BackgroundColor",
+        "NoText": "New-OfficeVisioImageOptions -NoText",
+        "NoStencilArtwork": "New-OfficeVisioImageOptions -NoStencilArtwork",
+        "NoConnectorLabels": "New-OfficeVisioImageOptions -NoConnectorLabels",
+        "NoConnectorLabelOverlapResolution": "New-OfficeVisioImageOptions -NoConnectorLabelOverlapResolution",
+        "Open": null,
+        "IncludeXmlDeclaration": "New-OfficeVisioImageOptions -IncludeSvgXmlDeclaration"
+      },
+      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg -OutputPath .\\Map.svg -BackgroundColor Transparent",
+      "reason": "Same as ConvertTo-OfficeVisioPng with -Format Svg. -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed because Export-OfficeDocumentImage has no -Show; open the written file with Invoke-Item. Output without -OutputPath (bytes or SVG text) is not part of the cross-format command; write to -OutputPath and read the file."
+    },
+    {
+      "old": "Export-OfficeVisioImage",
+      "kind": "cmdlet",
+      "action": "cross-format",
+      "new": "Export-OfficeDocumentImage",
+      "parameterSet": "Path | Document",
+      "parameters": {
+        "OutputPath": "OutputDirectory"
+      },
+      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputDirectory .\\Images -Format Png -Options (New-OfficeVisioImageOptions)",
+      "reason": "One of the eight Export-Office*Image commands replaced by Export-OfficeDocumentImage; -OutputPath was a folder and becomes -OutputDirectory."
+    },
+    {
+      "old": "Get-OfficeVisioInfo",
+      "kind": "cmdlet",
+      "action": "cross-format",
+      "new": "Get-OfficeDocumentInfo",
+      "parameterSet": "Path | Document",
+      "parameters": {
+        "AsText": null
+      },
+      "hint": "(Get-OfficeDocumentInfo -Path .\\Map.vsdx -Detailed).Details.ToText()",
+      "reason": "Generic document information is one cross-format command. With -Detailed, Details carries the Visio inspection snapshot (pages, shapes, connectors); its ToText() replaces -AsText."
+    },
+    {
+      "old": "VisioRectangle",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioRectangle"
+    },
+    {
+      "old": "VisioRect",
+      "kind": "alias",
+      "action": "merge",
+      "new": "VisioRectangle",
+      "hint": "VisioRectangle",
+      "reason": "Spelling twin; one alias per DSL command."
+    },
+    {
+      "old": "VisioEllipse",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioEllipse"
+    },
+    {
+      "old": "VisioDiamond",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioDiamond"
+    },
+    {
+      "old": "VisioTextBox",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioTextBox"
+    },
+    {
+      "old": "VisioText",
+      "kind": "alias",
+      "action": "merge",
+      "new": "VisioTextBox",
+      "hint": "VisioTextBox 'Note' -X 1in -Y 1in",
+      "reason": "Twin of VisioTextBox; 'Text' is the shared DSL name for styled runs, so the text-box shape keeps the TextBox noun."
+    },
+    {
+      "old": "VisioPage",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioPage"
+    },
+    {
+      "old": "VisioConnector",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioConnector"
+    },
+    {
+      "old": "VisioContainer",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioContainer"
+    },
+    {
+      "old": "VisioStencil",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioStencil"
+    },
+    {
+      "old": "VisioLayout",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioLayout"
+    },
+    {
+      "old": "VisioArrange",
+      "kind": "alias",
+      "action": "merge",
+      "new": "VisioLayout",
+      "hint": "VisioLayout -ShapeId one,two -HorizontalStack",
+      "reason": "Twin of VisioLayout; one alias per DSL command."
+    },
+    {
+      "old": "VisioStencilCatalog",
+      "kind": "alias",
+      "action": "keep",
+      "new": "VisioStencilCatalog",
+      "reason": "The alias now belongs to Import-OfficeVisioStencilCatalog, which inside a diagram block loads and registers the catalog and still returns it. Outside a block use Import-OfficeVisioStencilCatalog by name."
+    },
+    {
+      "old": "VisioStencilImport",
+      "kind": "alias",
+      "action": "rename",
+      "new": "VisioStencilCatalog",
+      "hint": "VisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default",
+      "reason": "Verb-last alias; the single DSL alias is format prefix plus noun."
+    },
+    {
+      "old": "Import-VisioStencil",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use VisioStencilCatalog inside New-OfficeVisio, or Import-OfficeVisioStencilCatalog.",
+      "reason": "Unprefixed verb-noun alias; Import-OfficeVisioStencilCatalog and its DSL alias VisioStencilCatalog remain."
+    },
+    {
+      "old": "OfficeVisio",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use New-OfficeVisio -Path .\\Map.vsdx { ... }",
+      "reason": "Aliases exist only for commands used inside a content block; New-OfficeVisio opens the block and remains."
+    },
+    {
+      "old": "VisioNew",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use New-OfficeVisio -Path .\\Map.vsdx { ... }",
+      "reason": "Verb-last alias for a command that opens a block rather than running inside one; New-OfficeVisio remains."
+    },
+    {
+      "old": "VisioOpen",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Open-OfficeVisio -Path .\\Map.vsdx",
+      "reason": "Lifecycle commands have no DSL alias; Open-OfficeVisio replaces Get-OfficeVisio."
+    },
+    {
+      "old": "VisioSave",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Save-OfficeVisio -Document $diagram",
+      "reason": "Save-OfficeVisio is not used inside a content block (the block saves on exit), so it has no alias; the command remains."
+    },
+    {
+      "old": "VisioInfo",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Get-OfficeDocumentInfo -Path .\\Map.vsdx",
+      "reason": "Not a content command; Get-OfficeVisioInfo moved to Get-OfficeDocumentInfo."
+    },
+    {
+      "old": "Find-VisioStencil",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Find-OfficeVisioStencil.",
+      "reason": "Unprefixed verb-noun alias; Find-OfficeVisioStencil remains."
+    },
+    {
+      "old": "New-VisioGallery",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use New-OfficeVisioGallery.",
+      "reason": "Unprefixed verb-noun alias; New-OfficeVisioGallery remains."
+    },
+    {
+      "old": "Export-VisioStencilPreviewGallery",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Export-OfficeVisioStencilPreviewGallery.",
+      "reason": "Unprefixed verb-noun alias; Export-OfficeVisioStencilPreviewGallery remains."
+    },
+    {
+      "old": "ConvertTo-VisioPng",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Png -OutputPath .\\Map.png",
+      "reason": "Unprefixed verb-noun alias of a command that moved to Export-OfficeDocumentImage."
+    },
+    {
+      "old": "ConvertTo-VisioSvg",
+      "kind": "alias",
+      "action": "remove",
+      "new": null,
+      "hint": "Use Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg -OutputPath .\\Map.svg",
+      "reason": "Unprefixed verb-noun alias of a command that moved to Export-OfficeDocumentImage."
+    },
+    {
+      "old": "New-OfficeProject",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeProject",
+      "parameterSet": "Live | Content",
+      "hint": "New-OfficeProject -Path .\\Delivery.mpp -Name Delivery -StartDate '2026-10-20' { Add-OfficeProjectTask Design -DurationDays 3 }",
+      "reason": "Shared lifecycle: gains a content block that saves on exit (then -Path is required), -Path and -Force; -Name is no longer positional."
+    },
+    {
+      "old": "Get-OfficeProject",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Open-OfficeProject",
+      "parameterSet": "Path",
+      "hint": "Open-OfficeProject -Path .\\Delivery.mpp -ReadOnly",
+      "reason": "Lifecycle rule: Get- commands that open a file become Open-; Get- is for reading content out of a document."
+    },
+    {
+      "old": "Save-OfficeProject",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Save-OfficeProject",
+      "parameterSet": "Document",
+      "reason": "-Path becomes optional (saves to the path the project was created or opened with); native saves keep failing on loss with -AllowLoss to accept it."
+    },
+    {
+      "old": "Close-OfficeProject",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Close-OfficeProject"
+    },
+    {
+      "old": "Add-OfficeProjectTask",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeProjectTask",
+      "parameterSet": "Document",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+    },
+    {
+      "old": "Add-OfficeProjectResource",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeProjectResource",
+      "parameterSet": "Document",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+    },
+    {
+      "old": "Add-OfficeProjectAssignment",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeProjectAssignment",
+      "parameterSet": "Document",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+    },
+    {
+      "old": "Add-OfficeProjectDependency",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeProjectDependency",
+      "parameterSet": "Document",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+    },
+    {
+      "old": "Get-OfficeProjectTask",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeProjectTask"
+    },
+    {
+      "old": "Get-OfficeProjectResource",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeProjectResource"
+    },
+    {
+      "old": "Get-OfficeProjectAssignment",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeProjectAssignment"
+    },
+    {
+      "old": "Get-OfficeProjectDependency",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeProjectDependency"
+    },
+    {
+      "old": "ConvertTo-OfficeProjectTable",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "ConvertTo-OfficeProjectTable"
+    },
+    {
+      "old": "Import-OfficeProjectTable",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Import-OfficeProjectTable"
+    },
+    {
+      "old": "Set-OfficeProjectTask",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Set-OfficeProjectTask",
+      "reason": "-Manual becomes a switch; -Manual:$false still clears it."
+    },
+    {
+      "old": "Invoke-OfficeProjectSchedule",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Invoke-OfficeProjectSchedule",
+      "reason": "-WhatIf/-Confirm removed: -Apply changes the in-memory project, not a file."
+    },
+    {
+      "old": "Get-OfficeProjectView",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeProjectView",
+      "parameterSet": "Kind",
+      "reason": "-Kind and -Options become separate parameter sets."
+    },
+    {
+      "old": "Export-OfficeProjectReport",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Export-OfficeProjectReport",
+      "parameterSet": "View",
+      "parameters": {
+        "Force": null
+      },
+      "hint": "Export-OfficeProjectReport -View $view -Path .\\Delivery.pdf -NoClobber",
+      "reason": "Export- commands replace an existing output by default and refuse with -NoClobber."
+    },
+    {
+      "old": "Export-OfficeProjectTable",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Get-OfficeProjectTable",
+      "parameterSet": "Document",
+      "parameters": {
+        "AllowLossyProjection": "AllowLoss"
+      },
+      "hint": "Get-OfficeProjectTable -Document $project -AllowLoss",
+      "reason": "It writes no file, so Export- (and its -WhatIf promise) does not fit; Get- reads content out of a document. -AllowLossyProjection becomes the shared -AllowLoss."
+    },
+    {
+      "old": "New-OfficeAccess",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeAccess",
+      "parameterSet": "Live | Content",
+      "parameters": {
+        "Format": null
+      },
+      "hint": "New-OfficeAccess -Path .\\Contacts.accdb -Title Contacts { $t = Add-OfficeAccessTable Contacts -PassThru; ... }",
+      "reason": "Shared lifecycle: gains a content block that saves on exit (then -Path is required), -Path and -Force; the .accdb/.mdb extension replaces -Format."
+    },
+    {
+      "old": "Get-OfficeAccess",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Open-OfficeAccess",
+      "parameterSet": "Path",
+      "parameters": {
+        "TableName": "Table"
+      },
+      "hint": "Open-OfficeAccess -Path .\\Contacts.accdb -Table Contacts",
+      "reason": "Lifecycle rule: Get- commands that open a file become Open-; Get- is for reading content out of a document."
+    },
+    {
+      "old": "Save-OfficeAccess",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Save-OfficeAccess",
+      "parameterSet": "Document",
+      "reason": "-Path becomes optional; the save still fails on loss, and the new -AllowLoss accepts it."
+    },
+    {
+      "old": "Close-OfficeAccess",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Close-OfficeAccess"
+    },
+    {
+      "old": "Add-OfficeAccessTable",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeAccessTable",
+      "reason": "-Document becomes optional inside a New-OfficeAccess content block."
+    },
+    {
+      "old": "Add-OfficeAccessColumn",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeAccessColumn"
+    },
+    {
+      "old": "Add-OfficeAccessRow",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Add-OfficeAccessRow"
+    },
+    {
+      "old": "Get-OfficeAccessTable",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeAccessTable"
+    },
+    {
+      "old": "Get-OfficeAccessRow",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeAccessRow",
+      "parameters": {
+        "TableName": "Table"
+      },
+      "hint": "Get-OfficeAccessRow -Document $database -Table Contacts",
+      "reason": "-TableName becomes -Table, matching Open-OfficeAccess and Add-OfficeAccessRow."
+    },
+    {
+      "old": "Get-OfficeEmail",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Open-OfficeEmail",
+      "parameterSet": "Path",
+      "hint": "Open-OfficeEmail -Path .\\Message.msg",
+      "reason": "Lifecycle rule: Get- commands that open a file become Open-; Get- is for reading content out of a document."
+    },
+    {
+      "old": "Get-OfficeEmailMailbox",
+      "kind": "cmdlet",
+      "action": "rename",
+      "new": "Open-OfficeEmailMailbox",
+      "parameterSet": "Path",
+      "hint": "Open-OfficeEmailMailbox -Path .\\Archive.mbox",
+      "reason": "Lifecycle rule: Get- commands that open a file become Open-; Get- is for reading content out of a document."
+    },
+    {
+      "old": "Save-OfficeEmail",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Save-OfficeEmail"
+    },
+    {
+      "old": "Save-OfficeEmailMailbox",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Save-OfficeEmailMailbox",
+      "parameters": {
+        "Mailbox": "Document"
+      },
+      "hint": "Save-OfficeEmailMailbox -Document $mailbox -Path .\\Archive.mbox",
+      "reason": "-Document is the one name for a live document object."
+    },
+    {
+      "old": "New-OfficeEmailReaderOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeEmailReaderOptions",
+      "parameters": {
+        "ExcludeAttachmentContent": "NoAttachmentContent"
+      },
+      "hint": "New-OfficeEmailReaderOptions -NoAttachmentContent",
+      "reason": "Features that are on by default are turned off with -No{Feature}."
+    },
+    {
+      "old": "New-OfficeEmailStoreReaderOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeEmailStoreReaderOptions",
+      "parameters": {
+        "ExcludeAttachmentContent": "NoAttachmentContent",
+        "PstPassword": "Password",
+        "PstPasswordEncoding": "PasswordEncoding"
+      },
+      "hint": "New-OfficeEmailStoreReaderOptions -Password (Read-Host -AsSecureString)",
+      "reason": "Passwords use the shared SecureString -Password; on-by-default features use -No{Feature}."
+    },
+    {
+      "old": "New-OfficeEmailWriterOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeEmailWriterOptions",
+      "parameters": {
+        "ConversionLossPolicy": "AllowLoss"
+      },
+      "hint": "New-OfficeEmailWriterOptions -AllowLoss",
+      "reason": "Native saves fail on loss by default (old Block); the -AllowLoss switch replaces -ConversionLossPolicy Warn/Allow and writes with a warning per loss."
+    },
+    {
+      "old": "New-OfficeEmailMailboxReaderOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeEmailMailboxReaderOptions"
+    },
+    {
+      "old": "New-OfficeEmailMailboxWriterOptions",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeEmailMailboxWriterOptions"
+    },
+    {
+      "old": "New-OfficeConfluenceSession",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "New-OfficeConfluenceSession",
+      "parameterSet": "Basic",
+      "parameters": {
+        "Credential": "Password"
+      },
+      "hint": "New-OfficeConfluenceSession -SiteUri https://example.atlassian.net/ -Password (Get-Credential)",
+      "reason": "One -Password parameter (SecureString) replaces -Credential; a PSCredential still works and supplies -UserName."
+    },
+    {
+      "old": "Get-OfficeConfluencePage",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeConfluencePage",
+      "parameterSet": "List",
+      "parameters": {
+        "AsMarkdown": "As",
+        "AsHtml": "As",
+        "AsPage": "AsBatch"
+      },
+      "hint": "Get-OfficeConfluencePage -Session $session -PageId 12345 -As Markdown",
+      "reason": "Mutually exclusive output switches become one -As value; -AsPage (an API batch, not a Confluence page) becomes -AsBatch."
+    },
+    {
+      "old": "Publish-OfficeConfluencePage",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Publish-OfficeConfluencePage",
+      "parameterSet": "Create",
+      "hint": "Publish-OfficeConfluencePage -PlanOnly -SpaceId 42 -Title 'Daily status' -Content $markdown",
+      "reason": "Live and -PlanOnly calls become parameter sets, so -Session is mandatory for live calls instead of a run-time error."
+    },
+    {
+      "old": "Remove-OfficeConfluencePage",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Remove-OfficeConfluencePage",
+      "parameterSet": "Session",
+      "reason": "Live and -PlanOnly calls become parameter sets."
+    },
+    {
+      "old": "Get-OfficeConfluenceAttachment",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Get-OfficeConfluenceAttachment",
+      "parameterSet": "List",
+      "parameters": {
+        "AsPage": "AsBatch",
+        "OutFile": "OutputPath"
+      },
+      "hint": "Get-OfficeConfluenceAttachment -Session $session -PageId 12345 -AttachmentId att1 -OutputPath .\\report.xlsx",
+      "reason": "Shared parameter names: the written file is -OutputPath; an API batch is -AsBatch."
+    },
+    {
+      "old": "Send-OfficeConfluenceAttachment",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Send-OfficeConfluenceAttachment",
+      "parameterSet": "Path",
+      "parameters": {
+        "MinorEdit": "NoMinorEdit"
+      },
+      "hint": "Get-ChildItem .\\out\\*.xlsx | Send-OfficeConfluenceAttachment -Session $session -PageId 12345",
+      "reason": "bool parameters become switches (-NoMinorEdit for the on-by-default minor edit); Path/LiteralPath sets accept piped files."
+    },
+    {
+      "old": "Set-OfficeConfluenceManagedSection",
+      "kind": "cmdlet",
+      "action": "keep",
+      "new": "Set-OfficeConfluenceManagedSection"
+    },
+    {
+      "old": "Add-OfficeInvoiceLine",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Export-OfficeInvoicePdf",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Get-OfficeInvoice",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Get-OfficeInvoiceLine",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Get-OfficeInvoiceTarget",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "New-OfficeInvoice",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "New-OfficeInvoiceParty",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Save-OfficeInvoice",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Set-OfficeInvoice",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Set-OfficeInvoiceLine",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    },
+    {
+      "old": "Test-OfficeInvoice",
+      "kind": "cmdlet",
+      "action": "remove",
+      "new": null,
+      "hint": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET.",
+      "reason": "Electronic invoices are no longer part of PSWriteOffice; use the OfficeIMO.Invoicing packages from .NET."
+    }
+  ]
+}

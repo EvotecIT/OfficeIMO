@@ -94,10 +94,12 @@ A theme applies when a document is created. Loading or opening an existing docum
 
 ### Results and diagnostics
 
-- Failures (unreadable input, I/O, invalid arguments) always throw in C# and write errors in PowerShell. Loss is never an exception unless requested.
+- Failures (unreadable input, I/O, invalid arguments) always throw in C# and write errors in PowerShell.
+- Converting to another format reports loss and continues; `FailOnLoss` turns loss into an error.
+- Saving a document in its own format fails if content would be lost, as it does today; `AllowLoss` accepts the loss explicitly.
 - `OfficeConversionReport` is the single report type: source and target, output path, pages or items written, elapsed time, and a list of `OfficeDiagnostic`.
 - `OfficeDiagnostic` has `Code`, `Severity`, `Message`, `Location` and `Format`. Codes come from one catalog in Core, so a flattened 3-D chart is `chart-flattened` in Word, Excel and PowerPoint alike.
-- `report.HasLoss`, `report.ThrowIfLoss()` and the `FailOnLoss` option are the only loss controls.
+- `report.HasLoss`, `report.ThrowIfLoss()`, `FailOnLoss` for conversions and `AllowLoss` for native saves are the only loss controls.
 - PowerShell errors use `FullyQualifiedErrorId` values of the form `{DiagnosticCode},{CommandName}`, so scripts can match the same codes the C# report carries.
 
 ## C# rules
@@ -229,7 +231,7 @@ These cover most everyday jobs for every supported format:
 Some current `ConvertTo-`/`ConvertFrom-` commands are not file conversions, and they keep their own commands:
 
 - **Object-to-text conversions** follow PowerShell's `ConvertTo-Html` / `ConvertTo-Json` pattern and stay as `ConvertTo-` commands: `ConvertTo-OfficeMarkdown` (objects to a Markdown table) and `ConvertTo-OfficeCsv`.
-- **PDF transforms** become commands with matching verbs: `Optimize-OfficePdf` (size and sanitization), `Protect-OfficePdf` (passwords and redaction), and `Update-OfficePdf` (flatten forms, add a searchable OCR text layer). The final names are fixed in the M0 map.
+- **PDF transforms** become commands with matching verbs: `Optimize-OfficePdf` (size and sanitization), `Remove-OfficePdfContent` (permanent redaction of text, patterns or areas), and `Update-OfficePdf` (flatten forms and annotations, add a searchable OCR text layer). Passwords, encryption and permissions for PDF go through `Protect-OfficeDocument` like every other format.
 
 ### Document lifecycle
 
@@ -243,7 +245,7 @@ Close-Office{Format} -Document
 ```
 
 - With a content block, `New-` and `Open-` save and close when the block ends. They return nothing, or the file with `-PassThru`. If the block throws, nothing is saved, a partially written new file is removed, and the error propagates.
-- Without a content block, they return the live document, which the script saves and closes. `-NoSave` is removed; leaving out the block is how to keep a document open.
+- Without a content block, they return the live document, which the script saves and closes. `-NoSave` is removed; leaving out the block is how to keep a document open. `New-` without a block does not need `-Path`; `Save-Office{Format} -Path` names the file later.
 - `New-` refuses to replace an existing file unless `-Force` is given, like `New-Item`.
 - `Open-` replaces the `Get-Office{Format}` commands that open files. `Get-` is for reading content out of a document.
 - `-Show` opens the saved file in its default application.
@@ -262,7 +264,7 @@ One name, one meaning, everywhere. The set below is fixed; a new command does no
 | `-InputObject` | Data rows for tables, charts and exports. An array is enumerated as rows, from the pipeline or as an argument, unlike `Export-Csv -InputObject` |
 | `-Sheet` | A worksheet by name (string), 1-based position (integer) or object. Replaces the `-Sheet` + `-SheetIndex` pair. A sheet named `1` is selected with `-Sheet '1'` |
 | `-Theme` | A built-in theme name, a theme object or a template path |
-| `-Password` | `SecureString`, or `-Credential` as a `PSCredential`. A plain string is accepted and converted, with a warning. `SecureString` is not encrypted outside Windows; it is used to keep passwords out of history, logs and transcripts |
+| `-Password` | `SecureString`. Argument transformation also accepts a plain string (with a warning) or a `PSCredential`, whose password is used; there is no separate `-Credential` parameter. `SecureString` is not encrypted outside Windows; it keeps passwords out of history, logs and transcripts |
 | `-Culture` | Culture for parsing and formatting numbers and dates in data commands. Defaults to the current culture; lengths and other parameters always parse invariantly |
 | `-PassThru` | Return what was created or changed |
 | `-Force` | Allow `New-` to replace an existing file |
@@ -272,8 +274,10 @@ One name, one meaning, everywhere. The set below is fixed; a new command does no
 
 Other rules:
 
+- **Positions are 1-based** everywhere: pages, slides, sheets, sections, table rows and columns, list items and insert positions, matching how Office numbers them.
 - **Parameter sets instead of runtime checks.** Mutually exclusive inputs (`-Path` / `-LiteralPath` / `-Document`, `-Text` / content block, `-Url` / `-Sheet` targets) are parameter sets with a sensible default, so tab completion and `Get-Help` show only valid combinations. "Use either -X or -Y" errors disappear.
 - **Switches for on/off.** The 123 `bool` and `bool?` parameters become switches. A shared base class reads `BoundParameters` to tell "not given" from `-Bold:$false`, so formatting can still be turned off explicitly. Defaults that are on are turned off with `-No{Feature}` switches (`-NoFreeze`, `-NoAutoFit`). Numeric and enum parameters keep their types.
+- **Options objects** come from `New-Office{Format}{Purpose}Options` commands, which give tab completion and help. Every `-Options` parameter also accepts a hashtable of option property names, converted to the options type the command needs; unknown keys are errors.
 - **Lengths, colors and themes** use the shared Core types with argument transformation and tab completion. Every enum and style completes.
 - **`-WhatIf` and `-Confirm`** cover file-system effects only: `New`, `Save`, `Export`, `Convert`, `Repair`, `Protect`, `Remove`. Commands that add content inside a document block do not support them, so `New-OfficeWord -WhatIf { … }` builds nothing and writes nothing, without asking once per paragraph.
 
