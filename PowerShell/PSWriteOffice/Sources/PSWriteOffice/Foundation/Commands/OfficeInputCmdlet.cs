@@ -30,7 +30,8 @@ public abstract class OfficeInputCmdlet : AsyncPSCmdlet {
             try { result.AddRange(OfficePath.ResolveInput(SessionState, input, literal, allowDirectory,
                 (error, item) => WriteError(OfficeError.Create(error, "input-unreadable", item)))); }
             catch (ArgumentException error) { ThrowTerminatingError(OfficeError.Create(error, "invalid-argument", input, ErrorCategory.InvalidArgument)); }
-            catch (Exception error) when (error is System.IO.IOException or RuntimeException or UnauthorizedAccessException) {
+            catch (Exception error) when ((error is System.IO.IOException or RuntimeException or UnauthorizedAccessException) &&
+                error is not (ActionPreferenceStopException or PipelineStoppedException)) {
                 WriteError(OfficeError.Create(error, "input-unreadable", input));
             }
         }

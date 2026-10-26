@@ -94,6 +94,17 @@ Describe 'Provider paths, output policy and errors' {
         $errors[0].TargetObject | Should -Be $invalid
         $errors[0].FullyQualifiedErrorId | Should -Match '^input-unreadable,'
     }
+    It 'preserves the rejected wildcard item when ErrorAction Stop terminates resolution' {
+        $folder = Join-Path $TestDrive 'stopping'; $null = New-Item -ItemType Directory -Path $folder
+        Set-Content -LiteralPath (Join-Path $folder 'valid.txt') -Value fixture
+        $invalid = Join-Path $folder 'nested'; $null = New-Item -ItemType Directory -Path $invalid
+        $caught = $null
+        try { Test-OfficeFoundationPath -Path (Join-Path $folder '*') -ErrorAction Stop } catch { $caught = $_ }
+        $caught | Should -Not -BeNullOrEmpty
+        $caught.FullyQualifiedErrorId | Should -Match '^input-unreadable,'
+        $caught.TargetObject | Should -Be $invalid
+        $caught.CategoryInfo.Category | Should -Be ObjectNotFound
+    }
     It 'rejects a directory OutputPath and mutually exclusive output inputs' {
         { Export-OfficeFoundation -OutputPath $TestDrive -ErrorAction Stop } | Should -Throw
         { Export-OfficeFoundation -OutputPath a.txt -OutputDirectory $TestDrive } | Should -Throw
