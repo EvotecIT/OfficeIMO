@@ -110,6 +110,67 @@ public sealed class WordPdfDeclaredFontAlternateTests {
     }
 
     [Theory]
+    [InlineData("OfficeIMO Raw, Literal", "OfficeIMO Raw, Literal", false)]
+    [InlineData("OfficeIMO Raw, Literal", "OfficeIMO Raw, Literal", true)]
+    [InlineData(@"OfficeIMO Raw\Face", @"OfficeIMO Raw\Face", false)]
+    [InlineData(@"OfficeIMO Raw\Face", @"OfficeIMO Raw\Face", true)]
+    [InlineData("\"OfficeIMO Raw, Literal\"", "OfficeIMO Raw, Literal", false)]
+    [InlineData("\"OfficeIMO Raw, Literal\"", "OfficeIMO Raw, Literal", true)]
+    public void DeclaredLiteralAlternatePrecedesParsedFallbackAndPreservesSource(
+        string alternateValue, string resolvedFamily, bool documentDefault) {
+        using WordDocument document = CreateDocument(alternateValue);
+        if (documentDefault) {
+            document.Settings.FontFamily = MissingFamily;
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+                .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
+            document.AddParagraph("AAAA").FontSize = 12;
+        } else AddFontOwner(document, "body");
+        var fonts = new PdfOptions().RegisterNamedFontFamily(Family(resolvedFamily, 900))
+            .RegisterNamedFontFamily(Family("OfficeIMO Raw", 300));
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(fonts);
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(fonts));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
+        Assert.Equal(4, word.Letters.Count);
+        Assert.Equal(10.8D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
+        var warning = Assert.Single(result.Warnings, warning => warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Details.TryGetValue("fontFamily", out string? family) && family == MissingFamily);
+        Assert.Equal(resolvedFamily, warning.Details["resolvedFontFamily"]);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(fonts));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DeclaredAlternateProfileDistinguishesLiteralFromParsedFallback(bool literalAvailable) {
+        const string literalFamily = "OfficeIMO Raw, Literal";
+        const string componentFamily = "OfficeIMO Raw";
+        using WordDocument document = CreateDocument(literalFamily);
+        AddFontOwner(document, "body");
+        var faces = new OfficeFontFaceCollection().Add(componentFamily,
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, Enumerable.Range(32, 95).ToArray()));
+        if (literalAvailable) faces.Add(literalFamily,
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, Enumerable.Range(32, 95).ToArray()));
+        var options = Options(new PdfOptions()).UseRenderingProfile(new OfficeRenderingProfile("declared-alternate", faces));
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(options.PdfOptions!);
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
+        Assert.Equal(4, word.Letters.Count);
+        Assert.Equal(literalAvailable ? 10.8D : 3.6D,
+            word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
+        var warning = Assert.Single(result.Warnings, warning => warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Details.TryGetValue("fontFamily", out string? family) && family == MissingFamily);
+        Assert.Equal(literalAvailable ? literalFamily : componentFamily, warning.Details["resolvedFontFamily"]);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(options.PdfOptions!));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ExactStandardCandidatePrecedesLaterDeclaredFamily(bool standardPrimary) {

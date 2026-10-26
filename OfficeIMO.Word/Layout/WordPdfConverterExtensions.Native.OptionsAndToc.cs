@@ -592,7 +592,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (string candidate in new[] { sourceFamily }.Concat(alternates)) {
                 string quoted = OfficeFontFamilyParser.Quote(candidate);
                 string? named = null;
-                if (pdfOptions.HasRenderingProfileFamilyPlanner(candidate)) named = candidate;
+                if (pdfOptions.HasRenderingProfileFamilyPlanner(quoted)) named = candidate;
                 else if (pdfOptions.TryResolveNamedOfficeFontFamily(quoted, out string? registered)) named = registered;
                 else if (allowSystemFontEmbedding &&
                          PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfCore.PdfEmbeddedFontFamily? installed) &&

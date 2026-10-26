@@ -187,6 +187,7 @@ public sealed class PdfTextFallbackPlan {
     }
 
     private static PdfTextRun CreateStyledNamedRun(string text, string fontFamily, PdfTextRun? styleTemplate) {
+        fontFamily = OfficeIMO.Drawing.OfficeFontFamilyParser.SerializeLiteral(fontFamily);
         if (styleTemplate == null) {
             return PdfTextRun.Normal(text, fontFamily: fontFamily);
         }

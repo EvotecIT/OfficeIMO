@@ -25,10 +25,21 @@ namespace OfficeIMO.Word.Pdf {
                         if (string.IsNullOrWhiteSpace(primary) || string.IsNullOrWhiteSpace(alternateNames)) continue;
                         string key = NormalizeNativeFontFamily(primary!);
                         if (_declaredFontAlternates.ContainsKey(key)) continue;
-                        List<string> alternates = OfficeFontFamilyParser.Parse(alternateNames,
-                            maximumCandidates: OfficeFontFamilyParser.DefaultMaximumCandidates - 1);
-                        alternates.RemoveAll(alternate => string.Equals(NormalizeNativeFontFamily(alternate), key,
-                            StringComparison.OrdinalIgnoreCase));
+                        int maximumAlternates = OfficeFontFamilyParser.DefaultMaximumCandidates - 1;
+                        var alternates = new List<string>(maximumAlternates);
+                        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { key };
+                        // Word treats the complete value as one alternate name; retain
+                        // parsed fallback ordering only after that literal lookup.
+                        string literalAlternate = alternateNames!.Trim();
+                        if (literalAlternate.Length <= OfficeFontFamilyParser.DefaultMaximumFamilyNameLength &&
+                            seen.Add(NormalizeNativeFontFamily(literalAlternate))) {
+                            alternates.Add(literalAlternate);
+                        }
+                        foreach (string alternate in OfficeFontFamilyParser.Parse(alternateNames,
+                                     maximumCandidates: maximumAlternates)) {
+                            if (alternates.Count >= maximumAlternates) break;
+                            if (seen.Add(NormalizeNativeFontFamily(alternate))) alternates.Add(alternate);
+                        }
                         if (alternates.Count > 0) _declaredFontAlternates[key] = alternates;
                     }
                 }
