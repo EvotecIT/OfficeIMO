@@ -37,8 +37,8 @@ const server = createServer(async (request, response) => {
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
 try {
   if (!process.argv.includes("--pdf-rich") && !process.argv.includes("--execution") && !process.argv.includes("--shaping"))
-    await run(["run", "--project", "OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples.csproj", "-c", "Release", "--artifacts-path", join(output, "build"), "--", join(output, "example")]);
-  const runner = interopDll === undefined ? ["run", "--project", "Build/BrowserExports/OfficeIMO.Browser.Interop.csproj", "-c", "Release", "--artifacts-path", join(output, "build"), "--"] : [interopDll];
+    await run(["run", "--project", "OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples.csproj", "-c", "Release", "-p:UseSharedCompilation=false", "--artifacts-path", join(output, "build"), "--", join(output, "example")]);
+  const runner = interopDll === undefined ? ["run", "--project", "Build/BrowserExports/OfficeIMO.Browser.Interop.csproj", "-c", "Release", "-p:UseSharedCompilation=false", "--artifacts-path", join(output, "build"), "--"] : [interopDll];
   await run([...runner, repository, join(output, "interop"), "--limits", "--example=" + join(output, "example"),
     "--module-url=http://127.0.0.1:" + server.address().port + "/dist", ...argumentsForRunner]);
 } finally { await new Promise(resolve => server.close(resolve)); }

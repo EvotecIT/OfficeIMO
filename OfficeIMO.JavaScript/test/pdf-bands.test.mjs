@@ -39,6 +39,13 @@ test("horizontal bands preserve readable widths and synchronized bounded windows
   }
   const nonleading = await inspectPdf(await writePdf(data(1), { ...base, wideTable: { mode: "bands", repeatColumns: [2] } }));
   assert.deepEqual(nonleading.pages[0].lines.slice(0, 3), ["Header-2", "Header-0", "Header-1"], "An explicitly repeated nonleading identifier becomes the physical prefix");
+  const reordered = await inspectPdf(await writePdf(data(1), { ...base, wideTable: { mode: "bands", repeatColumns: ["c2", "c0"] } }));
+  assert.equal(reordered.pages.length, 5);
+  for (const [index, page] of reordered.pages.entries()) {
+    const metric = [1, 3, 4, 5, 6][index];
+    assert.deepEqual(page.lines, ["Header-0", "Header-2", `Header-${metric}`, "ID-0", "R0C2", `R0C${metric}`],
+      "Noncontiguous repeated identifiers keep captured column order before every remaining metric");
+  }
 });
 
 test("structured band headings and footers repeat captured intersections and retain vertical span geometry", async () => {

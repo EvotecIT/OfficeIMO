@@ -64,7 +64,7 @@ New-BenchmarkSuite 'officeimo-complete-report-workloads' -OutputRoot $evidence {
     Add-BenchmarkMetric OutputBytes { param($case, $run) $run.Measurement.outputBytes }
     if ($compare) {
         foreach ($baseline in $comparisonBaselines) {
-            Add-BenchmarkComparison -Baseline $baseline -Metric EngineMs,FirstDeliveryMs,NodePeakRssBytes,SampledHeapBytes,MaxTimerGapMs,OutputBytes
+            Add-BenchmarkComparison -Baseline $baseline -Metric EngineMs,NodeCpuMs,FirstDeliveryMs,NodePeakRssBytes,SampledHeapBytes,MaxTimerGapMs,OutputBytes
         }
     }
     Set-BenchmarkArtifacts Json,Csv,Markdown

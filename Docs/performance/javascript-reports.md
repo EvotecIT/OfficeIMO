@@ -7,10 +7,30 @@ awaited file sinks. PDF validation preserves the complete logical table, header
 associations, identifiers, page content and navigation. Smaller files alone do
 not satisfy memory or latency criteria.
 
-The [latest fixed comparison](#bounded-pdf-and-xlsx-comparison) meets the M8
-wide-PDF time and narrow/wide peak-RSS targets. It also records material latency
-losses against M9, including a higher XLSX median. Earlier failed comparisons
-and their measured tradeoffs remain below with their exact source bindings.
+The [23 October comparison](#bounded-pdf-and-xlsx-comparison) meets its selected
+M8 wide-PDF time and narrow/wide peak-RSS targets for the runtime measured
+there. It retains material M9 latency losses, including a higher XLSX median.
+Eleven M10 comparisons are recorded: [two on 24 October](#m10-comparisons-on-24-october-2026),
+the [25 October page-command comparison](#page-command-and-complete-fragment-lifetime),
+the [page-local string comparison](#page-local-string-accumulation), the
+[physical-row command-parts comparison](#physical-row-command-parts), the
+[CID-text/CSV-dispatch comparison](#mapping-local-cid-text-and-primitive-csv-dispatch),
+the [numeric-CSV/font-selection comparison](#numeric-csv-and-font-selection-seventh-m10-cohort),
+the [reused-RGB command-text comparison](#reused-rgb-command-text-eighth-m10-cohort),
+the [single-entry command-prefix comparison](#single-entry-pdf-command-prefix-ninth-m10-cohort),
+the [rectangle-reuse/CSV-prefix comparison](#per-row-pdf-rectangle-reuse-and-csv-prefix-checks-tenth-m10-cohort)
+and the [geometry-token/row-maxima comparison](#pdf-geometry-tokens-and-row-maxima-eleventh-m10-cohort).
+All except the interrupted second cohort complete 120 independent validations.
+The first ten do not meet all five unchanged M10 criteria. The seventh passes
+output and both memory criteria; only its narrow-Helvetica time mean fails the selected time
+criterion. The eighth also passes output and both memory criteria, but narrow
+Helvetica's time mean and median both rise. The ninth passes the output and
+memory criteria, but wide Helvetica and wide quote-all CSV time means rise.
+The tenth passes output and memory criteria; wide Helvetica's time mean and
+narrow quote-all CSV's time median rise. The eleventh meets all five selected
+criteria in its fixed local cohort. Minimal-CSV, XLSX, M9 and responsiveness
+losses remain visible. Every earlier failed or mixed result stays bound to its
+own source; later passes and partial results do not replace it.
 
 Run the maintained PowerForge suite from the repository root:
 
@@ -660,3 +680,982 @@ $refs = @{ m8 = './baseline/m8.mjs'; m9 = './baseline/m9.mjs' }
 ```
 
 Run identity: `20261023-220212-951eba5a`. The shared runner and independent readers own scheduling and validation; keep all raw samples and losses. This finite cohort provides no universal speedup, no universal no-regression result and no quiet-machine or cross-host guarantee.
+
+## M10 comparisons on 24 October 2026
+
+Neither candidate below meets the fixed M10 criteria. The first cohort completes
+all 120 independent validations but fails PDF time and peak-RSS criteria. The
+second is interrupted by the whole-command deadline; its completed lanes already
+fail criteria, so completing the missing embedded-font samples alone cannot
+qualify that candidate.
+
+Both use the existing PowerForge runner on the normal shared Apple M4
+development host, macOS Arm64 and Node 24.18.0. Each selected case/runtime has
+one warmup and five measured exports, rotated ordering, no outlier removal and
+no affinity, priority or forced-GC change. The fixed matrix has 120 actual
+outputs: 48 Helvetica PDF, 48 CSV/XLSX and 24 embedded-Carlito PDF outputs.
+Helvetica and Carlito remain separate profiles.
+
+Each export imports its module before the operation timer in a fresh Node
+process; JIT state remains fresh. Lazy input construction and awaited regular-file
+sink writes are included. Embedded-font setup precedes the timer. Lifetime peak
+RSS includes imports, font setup and native allocations; sampled heap/external
+maxima do not decompose it and must not be added to RSS. `EngineMs` is the inner
+export metric, not the shared runner's outer `durationMs`. First delivery means
+the first accepted sink bytes, not a usable first page or record.
+
+The exact runtime bindings are:
+
+| Role | Source or package | `officeimo.mjs` SHA-256 |
+| --- | --- | --- |
+| Public baseline | `@evotecit/officeimo` 0.1.2 | `efc8e4d16d24d19a4df3b023a665123a198476ab03aefba5b9c7e4915ff8a99b` |
+| First M10 candidate | `3f7553503c7b25f664a512374a89535aac55459c` | `2c71940deb30e58f1964cec9f375534a189533333902999c867d0ed5011b4928` |
+| Revised M10 candidate | `213a70fbdc96ea9d698419b822b9b55fe7f9c2b4` | `7007b569d584e8ca39dbb99267b0f290eab629fcc389f9dc2b1d631be1dbab35` |
+
+The M8 and M9 baselines retain the exact revisions and bundle hashes in the
+preceding reproduction table. They are reused as frozen compiled bytes without
+rebuilding. The revised M10 runtime withdraws a per-call projection map, restores
+`for...of` traversal and avoids redundant lookups in existing font caches. That
+source change justifies a separate cohort; it does not establish an isolated
+speed or memory contribution.
+
+The five criteria remain unchanged:
+
+1. Independently validate all 120 actual outputs, including warmups.
+2. Retain exact public-0.1.2 output bytes for the changed PDF/CSV cases. XLSX is
+   independently checked for typed values and schema; timestamp-dependent ZIP
+   identity is reported separately.
+3. Each of the four PDF and two quote-all CSV cases must have lower export-time
+   **mean and median** than public 0.1.2.
+4. Each PDF case must have peak-RSS **mean and median** no higher than public
+   0.1.2.
+5. Both original Helvetica PDF cases must preserve peak-RSS **mean and median**
+   no higher than M8.
+
+### First M10 cohort: complete, criteria unmet
+
+All 20 warmups and 100 measured outputs pass independent validation. Every
+changed PDF/CSV output is byte-identical to its public-0.1.2 counterpart. This
+correctness result does not satisfy the time or memory criteria.
+
+Each value below is **mean / median**. The arrows show **public 0.1.2 → first
+candidate**. Times are milliseconds; RSS is MiB. Percentage changes use
+unrounded measurements; display values are rounded.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 842.23 / 711.97 → 1,060.28 / 1,032.25 | 131.85 / 131.91 → 131.64 / 132.70 | +25.89% / +44.99% | -0.16% / +0.60% |
+| Helvetica tagged PDF, 10,000 × 20 | 3,455.10 / 3,139.47 → 3,448.32 / 3,082.86 | 234.72 / 241.38 → 245.79 / 234.64 | -0.20% / -1.80% | +4.72% / -2.79% |
+| Carlito tagged PDF, 10,000 × 6 | 932.17 / 983.34 → 1,098.52 / 919.75 | 134.65 / 133.95 → 136.29 / 135.86 | +17.84% / -6.47% | +1.22% / +1.42% |
+| Carlito tagged PDF, 10,000 × 20 | 2,393.07 / 3,036.86 → 2,140.11 / 1,642.40 | 236.50 / 236.05 → 242.22 / 243.36 | -10.57% / -45.92% | +2.42% / +3.10% |
+| Minimal CSV, 100,000 × 6 | 267.71 / 268.14 → 270.00 / 255.19 | 74.08 / 74.02 → 74.36 / 74.31 | +0.86% / -4.83% | +0.39% / +0.40% |
+| Quote-all CSV, 100,000 × 6 | 284.84 / 290.55 → 242.74 / 258.97 | 74.79 / 74.81 → 74.42 / 74.52 | -14.78% / -10.87% | -0.50% / -0.40% |
+| Quote-all CSV, 100,000 × 20 | 688.75 / 768.49 → 636.19 / 660.19 | 80.70 / 80.11 → 75.42 / 75.31 | -7.63% / -14.09% | -6.54% / -5.99% |
+| Typed XLSX, 100,000 × 6 | 1,244.43 / 1,236.19 → 1,147.85 / 1,100.57 | 79.63 / 79.12 → 80.16 / 80.14 | -7.76% / -10.97% | +0.67% / +1.28% |
+
+The PDF time criterion fails for narrow Helvetica and the Carlito narrow mean.
+The public-baseline RSS criterion fails for the Helvetica narrow median, the
+Helvetica wide mean, and both statistics of each Carlito case. Original M8
+Helvetica RSS gains remain in this cohort: narrow mean/median is 1.43% / 1.89%
+lower and wide is 5.34% / 6.99% lower. That historical-baseline result does not
+waive the newer public-baseline or time criteria. Minimal-CSV mean time and
+XLSX memory losses remain visible as guard observations.
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261024-121852-60e05b25` | 8 / 40 |
+| CSV/XLSX | `20261024-124832-60e80484` | 8 / 40 |
+| Embedded Carlito PDF | `20261024-125023-246f326f` | 4 / 20 |
+
+Each run retains its canonical `samples.json`, `summary.json`, `comparison.json`
+and `comparison.md`, plus the per-iteration producer measurements and independent
+validation receipts. The first candidate's runtime and packages remain retained
+with their hashes, so its manifests are not reinterpreted through a subsequently
+rebuilt worktree path.
+
+### Revised M10 cohort: interrupted, completed criteria still unmet
+
+The whole-command supervisor has a 3,600-second deadline. Its receipt ends at
+14:27:53.308791 UTC after 3,619.75 seconds with a timeout and exit code -9.
+This establishes an incomplete cohort; it does not establish an export crash or
+the cause of any measured latency difference.
+
+The Helvetica and CSV/XLSX stages validate all 96 outputs. Embedded Carlito has
+five independently validated measured outputs, four produced but unvalidated
+warmups, one produced but unvalidated measured output, and fourteen missing
+measured outputs. Totals are **101 validated, 5 produced but unvalidated and 14
+missing**. The embedded stage has no terminal canonical summary, comparison,
+sample aggregate or final runtime-verification receipt. Its partial samples are
+retained but are not used for five-sample statistics.
+
+The completed five-sample cases are shown below. Arrows now mean **public 0.1.2
+→ revised candidate**; units and mean/median ordering are unchanged.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 1,371.05 / 1,215.09 → 1,114.39 / 1,112.60 | 130.17 / 129.98 → 131.54 / 132.06 | -18.72% / -8.43% | +1.06% / +1.60% |
+| Helvetica tagged PDF, 10,000 × 20 | 6,534.79 / 3,091.82 → 7,790.75 / 3,465.32 | 227.97 / 231.52 → 225.43 / 227.84 | +19.22% / +12.08% | -1.11% / -1.59% |
+| Minimal CSV, 100,000 × 6 | 1,026.60 / 572.66 → 1,024.03 / 508.64 | 73.87 / 73.81 → 72.64 / 73.73 | -0.25% / -11.18% | -1.66% / -0.11% |
+| Quote-all CSV, 100,000 × 6 | 989.06 / 637.20 → 558.02 / 507.99 | 73.16 / 74.42 → 74.43 / 74.61 | -43.58% / -20.28% | +1.74% / +0.25% |
+| Quote-all CSV, 100,000 × 20 | 2,075.45 / 1,900.71 → 1,610.56 / 1,427.86 | 76.59 / 75.84 → 73.76 / 74.98 | -22.40% / -24.88% | -3.70% / -1.13% |
+| Typed XLSX, 100,000 × 6 | 3,912.69 / 3,141.35 → 2,694.88 / 2,796.03 | 76.26 / 77.88 → 78.36 / 78.34 | -31.12% / -10.99% | +2.75% / +0.60% |
+
+The completed wide Helvetica case contradicts the time criterion by 19.22% mean
+and 12.08% median. The narrow Helvetica case contradicts the public-baseline RSS
+criterion by 1.06% / 1.60%; its RSS is also 1.43% / 1.17% above M8. Wide
+Helvetica RSS remains 17.86% / 13.66% below M8. Both quote-all CSV time
+statistics improve, but the narrow quote-all RSS and XLSX RSS losses are retained.
+These observations use all five measured samples; completing Carlito cannot
+remove the already observed criterion failures.
+
+Every completed Helvetica/CSV case retains all six exact public/candidate
+output-hash matches, including its validated warmup. That does not close the
+incomplete embedded-font byte and structure acceptance.
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261024-132736-6c68578f` | 8 / 40 |
+| CSV/XLSX | `20261024-140801-68027e6f` | 8 / 40 |
+| Embedded Carlito PDF, incomplete | `20261024-141210-99b3346d` | 0 / 5 |
+
+All raw measurement samples, validation receipts, retained partial producer
+outputs and earlier M9/M10 losses remain separate. No sample is removed,
+replaced, pooled across candidates or
+replayed to obtain a favorable outcome. Background activity, launch variation,
+CPU measurements and the supervisor timeout do not identify a new causal
+performance component. The unchanged criteria remain unmet; this entry provides
+no acceptance result for a later candidate and no universal speed, memory or
+performance-no-regression claim.
+
+## Page-command and complete-fragment lifetime
+
+Measured 25 October 2026 UTC. Source
+`900db5c4b97c87abe92901869ebdf16dbde16e73`, runtime SHA-256
+`bfeee0cd16d32d445d0e6504a9d76106da20e2ed7a2f5cbd5a8f058c39592268`.
+
+The third M10 candidate removes three source-proven common costs. Page
+completion transfers its joined content directly to the existing stream writer
+and releases the redundant command list before any codec or sink wait. Tagged
+ordinary rows allocate row-header association lists only when an actual row
+header is reached, while logical cell allocation and identifier order stay the
+same. Complete ordinary first fragments reuse their captured physical cells and
+line metrics; partial lines, spans, explicit heights and continuation artifacts
+retain their existing paths. The minimum repeated-identifier scan is reused
+within the same row operation.
+
+These paths also exist in the controls. Removing their allocations does not
+identify the cause of a particular timing or RSS difference. The measured
+runtime and its complete inputs retain their original bytes and hashes; later
+document or source edits do not reinterpret this cohort.
+
+### Third M10 cohort: complete, criteria unmet
+
+All **120 outputs** pass independent validation: **20 warmups and 100 measured
+exports**, with one warmup and five measured samples per selected case/runtime.
+Every changed PDF/CSV output remains byte-identical to public 0.1.2. The same
+normal-host, rotated, no-outlier-removal policy and all five M10 criteria apply.
+Helvetica and embedded Carlito remain separate profiles. Values below are
+**mean / median**, with arrows showing **public 0.1.2 → third candidate**.
+Times are milliseconds and RSS is MiB; changes use unrounded measurements.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 550.22 / 406.99 → 566.96 / 468.74 | 132.36 / 132.30 → 109.88 / 110.66 | +3.04% / +15.17% | -16.99% / -16.36% |
+| Helvetica tagged PDF, 10,000 × 20 | 2,621.78 / 2,362.61 → 2,392.79 / 2,028.76 | 235.41 / 236.28 → 231.22 / 232.39 | -8.73% / -14.13% | -1.78% / -1.65% |
+| Carlito tagged PDF, 10,000 × 6 | 541.38 / 362.89 → 876.34 / 1,052.36 | 134.64 / 134.80 → 116.46 / 117.27 | +61.87% / +189.99% | -13.50% / -13.01% |
+| Carlito tagged PDF, 10,000 × 20 | 2,295.76 / 2,334.97 → 2,203.93 / 2,570.74 | 233.94 / 230.66 → 228.15 / 230.73 | -4.00% / +10.10% | -2.47% / +0.03% |
+| Minimal CSV, 100,000 × 6 | 183.93 / 165.08 → 194.74 / 159.17 | 73.95 / 74.17 → 74.26 / 74.41 | +5.88% / -3.58% | +0.42% / +0.32% |
+| Quote-all CSV, 100,000 × 6 | 229.70 / 251.86 → 184.00 / 148.05 | 74.83 / 74.70 → 74.48 / 74.34 | -19.89% / -41.22% | -0.47% / -0.48% |
+| Quote-all CSV, 100,000 × 20 | 508.18 / 470.39 → 424.55 / 367.47 | 81.76 / 77.17 → 75.55 / 75.30 | -16.46% / -21.88% | -7.59% / -2.43% |
+| Typed XLSX, 100,000 × 6 | 899.84 / 872.28 → 824.58 / 776.59 | 80.37 / 79.56 → 80.05 / 79.50 | -8.36% / -10.97% | -0.40% / -0.08% |
+
+The time criterion remains **unmet**. Narrow Helvetica time is 3.04% / 15.17%
+higher; narrow Carlito is 61.87% / 189.99% higher. Wide Carlito's mean improves,
+but its median is 10.10% higher. Both quote-all CSV cases improve by mean and
+median. Minimal CSV remains a guard observation: its mean is **5.88% higher**,
+its median is 3.58% lower, and RSS is 0.42% / 0.32% higher. These losses are
+retained rather than replaced with the favorable statistics.
+
+The public-baseline RSS criterion also remains **unmet**. Wide Carlito's median
+increases from 241,860,608 to 241,942,528 bytes: **+0.03387%**, or 81,920 bytes.
+This small increase still fails the unchanged no-increase condition. Its mean
+is 2.47% lower; both statistics of the other PDF cases are lower.
+
+Both original M8 Helvetica memory criteria pass: narrow RSS mean/median is
+18.52% / 17.83% lower, and wide is 21.86% / 15.66% lower. Same-cohort wide time
+still has a 0.06% / 7.51% increase against M8, and a 12.39% mean reduction with
+a **44.10% median increase against M9**. Those timing observations remain
+separate from the M8 memory criterion. The XLSX guard has 8.36% / 10.97% lower
+time and 0.40% / 0.08% lower RSS against public 0.1.2; its typed-value and schema
+readbacks pass. Timestamp-dependent XLSX ZIP identity is not a byte-equality
+requirement. Earlier XLSX and M9 losses stay bound to their earlier sources.
+
+The unchanged criteria therefore resolve as follows:
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | **Unmet** |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-075623-3b1c0ffe` | 8 / 40 |
+| CSV/XLSX | `20261025-081736-5dc4a5ae` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-081905-544038b0` | 4 / 20 |
+
+All raw samples, output hashes and canonical summaries/comparisons remain
+retained, including every warmup and loss. The first failed cohort, interrupted
+second cohort and historical M9 comparisons are not pooled or substituted.
+This normal-host five-sample result gives no universal speed, memory or
+performance-no-regression guarantee.
+
+### CPU diagnosis and separate string-accumulator experiment
+
+Four CPU-profiled exports cover narrow Helvetica and Carlito under public 0.1.2
+and the measured third runtime. All four preserve their corresponding cohort
+bytes and pass qpdf. Whole-process samples include imports, font setup, layout
+and output; they do not isolate the export timer or establish the cause of the
+failed cohort statistics. Their perturbed time and memory observations are
+not acceptance measurements and do not waive either unmet criterion.
+
+The page-local string experiment is measured separately below. Its result does
+not reinterpret the third cohort or waive either of that cohort's unmet criteria.
+
+## Page-local string accumulation
+
+Measured 25 October 2026 UTC. Source
+`49c3f24dca8f5c4c653fcd28bc634d54a7a4f611`, runtime SHA-256
+`299913df8b2bfd8367299304acac6b91e4077053fb0d1869418afe5c8ec3bd6f`.
+
+The fourth M10 candidate appends drawing commands to one ordered page-local
+string instead of retaining a command list and joining it at page completion.
+It adds no public API, dependency or font cache. Page-byte accounting, stream
+delivery, semantic ownership and resource limits retain their existing
+contracts. Codec, arena, member and delivery-buffer policies are unchanged.
+The measured runtime and all 19 measured inputs are retained with their original
+hashes; subsequent source or documentation edits do not reinterpret this cohort.
+
+### Fourth M10 cohort: complete, time criterion unmet
+
+All **120 outputs** pass independent validation: **20 warmups and 100 measured
+exports**, with one warmup and five measured samples per selected case/runtime.
+Every changed PDF/CSV output is byte-identical to public 0.1.2. Public 0.1.2,
+M8 and M9 use the same frozen compiled controls recorded above. The normal
+shared-host, rotated-order policy and all five M10 criteria are unchanged;
+no outliers are removed or samples pooled across candidates. Values below are
+**mean / median**, with arrows showing **public 0.1.2 → fourth candidate**.
+Times are milliseconds and RSS is MiB; changes use unrounded measurements.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 982.87 / 992.06 → 884.71 / 927.27 | 131.81 / 132.23 → 111.33 / 110.95 | -9.99% / -6.53% | -15.53% / -16.09% |
+| Helvetica tagged PDF, 10,000 × 20 | 2,083.73 / 1,973.73 → 3,407.71 / 3,376.80 | 239.91 / 238.95 → 228.67 / 229.11 | +63.54% / +71.09% | -4.69% / -4.12% |
+| Carlito tagged PDF, 10,000 × 6 | 1,374.16 / 1,343.82 → 1,264.68 / 1,333.76 | 135.87 / 135.97 → 113.45 / 112.44 | -7.97% / -0.75% | -16.50% / -17.31% |
+| Carlito tagged PDF, 10,000 × 20 | 3,752.72 / 4,033.08 → 4,012.76 / 4,100.15 | 230.41 / 231.02 → 230.39 / 227.81 | +6.93% / +1.66% | -0.01% / -1.39% |
+| Minimal CSV, 100,000 × 6 | 582.31 / 610.01 → 572.59 / 544.89 | 74.03 / 74.11 → 74.46 / 74.61 | -1.67% / -10.68% | +0.58% / +0.67% |
+| Quote-all CSV, 100,000 × 6 | 540.02 / 564.22 → 532.26 / 502.45 | 74.66 / 74.67 → 74.64 / 74.73 | -1.44% / -10.95% | -0.02% / +0.08% |
+| Quote-all CSV, 100,000 × 20 | 1,695.90 / 1,873.66 → 1,437.37 / 1,246.67 | 76.91 / 75.31 → 75.09 / 74.94 | -15.24% / -33.46% | -2.36% / -0.50% |
+| Typed XLSX, 100,000 × 6 | 2,908.11 / 2,805.76 → 2,800.10 / 2,874.30 | 78.75 / 78.67 → 78.88 / 78.47 | -3.71% / +2.44% | +0.16% / -0.26% |
+
+Only the selected time criterion remains unmet in this cohort. Narrow Helvetica
+time is 9.99% / 6.53% lower and narrow Carlito is 7.97% / 0.75% lower than
+public 0.1.2. Both quote-all CSV time statistics also improve. Wide Helvetica,
+however, is **63.54% / 71.09% slower**, and wide Carlito is **6.93% / 1.66%
+slower**. These increases are retained without a waiver.
+
+All four PDF RSS means and medians are no higher than public 0.1.2. Wide
+Carlito's mean reduction is only 0.00678%, or 16,384 bytes; this is not evidence
+of a material memory improvement. Both original M8 Helvetica memory criteria
+also pass: narrow RSS mean/median is 16.65% / 16.89% lower and wide is
+11.26% / 7.85% lower. Same-cohort wide Helvetica time is 27.74% / 27.06% lower
+than M8 but **18.56% / 23.44% higher than M9**. These different baselines do not
+replace the failed public-baseline time criterion.
+
+Guard losses remain visible. Minimal-CSV RSS increases 0.58% / 0.67%; narrow
+quote-all CSV has a 0.08% higher RSS median. Typed XLSX has a 3.71% lower time
+mean but a **2.44% higher median**, with RSS mean 0.16% higher and median 0.26%
+lower. Typed-value and schema readbacks pass; timestamp-dependent XLSX ZIP
+identity is not a byte-equality requirement. Earlier minimal-CSV, XLSX and PDF
+losses remain bound to their earlier cohorts.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-085228-00492158` | 8 / 40 |
+| CSV/XLSX | `20261025-091820-e592eaac` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-092132-685bc621` | 4 / 20 |
+
+All raw samples, warmups, output hashes and canonical summaries/comparisons are
+retained, including the failed and interrupted prior cohorts. Normal shared-host
+activity remains part of this observation; no quiet-host, priority, affinity or
+forced-GC treatment is inferred. This five-sample result provides no universal
+speed, memory or performance-no-regression guarantee.
+
+### Wide-PDF diagnosis and separate row-string experiment
+
+Four additional CPU-profiled exports cover wide Helvetica and Carlito under
+public 0.1.2 and the measured fourth runtime. All four preserve their cohort
+bytes and pass qpdf. Samples move between page completion and encoding work;
+whole-process self-sample counts include imports, setup, layout and output.
+They neither isolate a causal regression nor substitute for the failed time
+criterion. Instrumented timing and RSS are not acceptance measurements.
+
+The physical-row command-parts experiment is measured separately below. Its
+result does not reinterpret the fourth cohort or waive that cohort's time loss.
+
+## Physical-row command parts
+
+Measured 25 October 2026 UTC. Source
+`5b2bb0f76aa6a41bec99f2e505ea19953245dc80`, runtime SHA-256
+`f06a55a22393ffccd42d90824246b4399c5f034e9af0261e2e4b5e4ad21c0094`.
+
+The fifth M10 candidate accumulates drawing commands in a string tail and seals
+that tail into ordered parts at existing physical-row boundaries. Page completion
+joins the parts and any trailing commands, then releases both before awaiting
+delivery. Whole-page byte accounting and command order are unchanged; sealing
+a row adds no intermediate sink write. The font mapping, byte codec, public API,
+dependencies, cancellation and backpressure contracts are unchanged.
+
+### Fifth M10 cohort: complete, time and public-RSS criteria unmet
+
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. Every changed PDF/CSV output is byte-identical to public 0.1.2.
+The same frozen public 0.1.2, M8 and M9 controls, rotated-order policy and five
+unchanged M10 criteria apply. Values below are **mean / median**; arrows show
+**public 0.1.2 → fifth candidate**. Times are milliseconds and RSS is MiB;
+percentage changes use unrounded measurements.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 1,607.96 / 1,469.74 → 1,444.15 / 1,447.09 | 129.82 / 131.02 → 106.42 / 107.89 | -10.19% / -1.54% | -18.02% / -17.65% |
+| Helvetica tagged PDF, 10,000 × 20 | 3,758.26 / 3,977.68 → 3,217.59 / 3,242.68 | 233.96 / 234.69 → 221.12 / 219.02 | -14.39% / -18.48% | -5.49% / -6.68% |
+| Carlito tagged PDF, 10,000 × 6 | 3,072.41 / 1,905.82 → 2,010.37 / 1,615.87 | 132.21 / 132.73 → 114.48 / 117.53 | -34.57% / -15.21% | -13.41% / -11.45% |
+| Carlito tagged PDF, 10,000 × 20 | 4,122.48 / 3,448.13 → 4,021.18 / 4,012.89 | 236.21 / 237.92 → 234.86 / 238.47 | -2.46% / +16.38% | -0.57% / +0.23% |
+| Minimal CSV, 100,000 × 6 | 439.82 / 374.63 → 635.82 / 525.96 | 74.28 / 74.22 → 73.02 / 74.55 | +44.56% / +40.40% | -1.71% / +0.44% |
+| Quote-all CSV, 100,000 × 6 | 837.95 / 661.64 → 701.71 / 686.10 | 74.55 / 74.61 → 74.71 / 74.66 | -16.26% / +3.70% | +0.22% / +0.06% |
+| Quote-all CSV, 100,000 × 20 | 2,780.67 / 2,676.87 → 1,866.04 / 1,754.31 | 72.62 / 73.66 → 74.14 / 73.73 | -32.89% / -34.46% | +2.10% / +0.11% |
+| Typed XLSX, 100,000 × 6 | 2,526.68 / 2,575.11 → 3,096.06 / 3,305.39 | 76.60 / 76.89 → 78.06 / 78.17 | +22.53% / +28.36% | +1.91% / +1.67% |
+
+Both Helvetica PDF time statistics improve: narrow is 10.19% / 1.54% lower and
+wide is 14.39% / 18.48% lower than public 0.1.2. Narrow Carlito is 34.57% /
+15.21% lower, and wide quote-all CSV is 32.89% / 34.46% lower. These improvements
+do not satisfy a criterion requiring every selected case to pass.
+
+Wide Carlito has a 2.46% lower time mean but a **16.38% higher median**. Its
+RSS mean is 0.57% lower, while its median rises from 249,479,168 to 250,052,608
+bytes: **+0.22985%**, or 573,440 bytes. That increase fails the unchanged
+public-baseline PDF RSS criterion. Narrow quote-all CSV has a 16.26% lower
+time mean but a **3.70% higher median**, so it also fails the time criterion.
+Its CPU mean/median is 8.13% / 9.17% lower; that separate metric does not waive
+the export-time median loss.
+
+The original M8 Helvetica RSS criterion passes: narrow mean/median is 18.38% /
+16.14% lower, and wide is 14.21% / 14.58% lower. All PDF/CSV byte and independent
+structure/value checks pass. These results do not erase the fifth cohort's
+public-RSS and time failures or any earlier failed memory measurement.
+
+Guard losses remain material. Minimal-CSV time is **44.56% / 40.40% higher**,
+with CPU 7.69% / 14.83% higher; its RSS mean is 1.71% lower but median 0.44%
+higher. Typed XLSX time is **22.53% / 28.36% higher**, CPU is 2.67% / 1.00%
+higher and RSS is 1.91% / 1.67% higher. Wide quote-all CSV's time improves while
+RSS rises 2.10% / 0.11%; narrow quote-all RSS rises 0.22% / 0.06%. XLSX typed
+values and schema pass; timestamp-dependent ZIP identity remains outside the
+PDF/CSV byte-equality requirement.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | **Unmet** |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-094925-12108486` | 8 / 40 |
+| CSV/XLSX | `20261025-102030-6bf39d19` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-102352-12efe864` | 4 / 20 |
+
+The complete frozen inputs, all raw samples, warmups, output hashes and canonical
+summaries/comparisons are retained. No sample is discarded, replaced or pooled
+with an earlier candidate. This is a normal shared-host observation, without
+quiet-host treatment or outlier selection. Background activity is not a causal
+explanation or a waiver for a failed criterion. No universal speed, memory or
+performance-no-regression claim follows from this five-sample cohort.
+
+### CID and CSV diagnosis before the sixth cohort
+
+Two further CPU-profiled exports preserve their corresponding bytes and pass
+qpdf. They are diagnostics, not acceptance timings or proof of a causal
+regression. The combined CID-text/CSV-dispatch candidate is measured separately
+below. The diagnostic outputs do not isolate the contribution of either change
+or reinterpret the fifth cohort's failed time and public-RSS criteria.
+
+## Mapping-local CID text and primitive CSV dispatch
+
+Measured 25 October 2026 UTC. Source
+`94209992006b2b1cbc799a3a310eb1f774748002`, runtime SHA-256
+`ec1c2718f79d5e7bd635e7574b0684cfeb7e772e2b537235d58d5207da7a4608`.
+
+The sixth M10 candidate reuses a four-digit CID hexadecimal string on each
+existing font-mapping entry at both CID registration owners. It introduces no
+new map or cross-document state. CSV captures the primitive kind once and
+handles strings, numbers and booleans before native Date recognition, while
+retaining Date validation, error, formula-protection and quoting contracts.
+The fifth candidate's physical-row command ownership is retained. There is no
+public API or dependency change. Mapping-local text adds bounded per-glyph
+state, so memory remains measured rather than assumed to improve.
+
+### Sixth M10 cohort: complete, time criterion unmet
+
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. Every changed PDF/CSV output is byte-identical to public 0.1.2.
+All 21 frozen inputs remain unchanged. The same public 0.1.2, M8 and M9 controls,
+rotated order, normal shared-host conditions and five unchanged M10 criteria
+apply. Values below are **mean / median**; arrows show **public 0.1.2 → sixth
+candidate**. Times are milliseconds and RSS is MiB; percentage changes use
+unrounded measurements.
+
+| Workload | Export ms, public → candidate | Peak RSS MiB, public → candidate | Time change | RSS change |
+| --- | ---: | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 536.30 / 448.58 → 447.12 / 348.44 | 131.59 / 132.00 → 110.17 / 109.84 | -16.63% / -22.32% | -16.28% / -16.79% |
+| Helvetica tagged PDF, 10,000 × 20 | 1,633.29 / 1,649.75 → 1,555.13 / 1,227.74 | 238.94 / 240.84 → 231.33 / 232.98 | -4.79% / -25.58% | -3.18% / -3.26% |
+| Carlito tagged PDF, 10,000 × 6 | 568.95 / 361.35 → 413.58 / 362.90 | 133.95 / 133.11 → 108.22 / 107.47 | -27.31% / +0.43% | -19.21% / -19.26% |
+| Carlito tagged PDF, 10,000 × 20 | 1,612.12 / 1,340.87 → 1,875.51 / 1,644.47 | 237.26 / 239.14 → 236.38 / 236.00 | +16.34% / +22.64% | -0.37% / -1.31% |
+| Minimal CSV, 100,000 × 6 | 174.43 / 145.46 → 169.86 / 140.63 | 73.89 / 73.77 → 73.83 / 73.75 | -2.62% / -3.32% | -0.08% / -0.02% |
+| Quote-all CSV, 100,000 × 6 | 195.84 / 160.95 → 219.97 / 191.89 | 74.26 / 74.31 → 74.85 / 74.95 | +12.32% / +19.23% | +0.80% / +0.86% |
+| Quote-all CSV, 100,000 × 20 | 431.00 / 426.31 → 418.96 / 422.12 | 86.80 / 89.12 → 75.15 / 75.41 | -2.79% / -0.98% | -13.42% / -15.39% |
+| Typed XLSX, 100,000 × 6 | 816.12 / 695.66 → 1,139.27 / 703.45 | 80.38 / 80.45 → 79.16 / 79.30 | +39.60% / +1.12% | -1.51% / -1.44% |
+
+Only the selected time criterion fails in this cohort. Helvetica narrow time
+is 16.63% / 22.32% lower and wide is 4.79% / 25.58% lower than public 0.1.2.
+Narrow Carlito's mean is 27.31% lower, but its median rises from 361.349666 to
+362.902125 ms: **+0.42963%**. Wide Carlito is **16.34% / 22.64% slower**.
+Neither the small narrow-median increase nor the larger wide losses are waived.
+
+Narrow quote-all CSV is **12.32% / 19.23% slower**, with CPU 5.45% / 22.56%
+higher and RSS 0.80% / 0.86% higher. Minimal CSV improves by 2.62% / 3.32% time
+and 0.71% / 2.80% CPU. Wide quote-all CSV improves by 2.79% / 0.98% time,
+4.33% / 3.12% CPU and 13.42% / 15.39% RSS. These different outcomes do not
+isolate the CSV dispatch change as either a causal gain or a regression cause.
+
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+Both original M8 Helvetica memory criteria also pass: narrow RSS mean/median
+is 17.82% / 18.05% lower and wide is 15.33% / 14.38% lower. Exact changed
+PDF/CSV bytes and independent value/structure checks pass, without replacing
+any earlier failed memory result.
+
+The typed XLSX guard retains a **39.60% higher time mean and 1.12% higher
+median**. Its CPU mean is 12.33% higher while its median is 0.04149% lower;
+RSS is 1.51% / 1.44% lower. Typed-value and schema readbacks pass, while
+timestamp-dependent ZIP identity remains outside the PDF/CSV byte-equality
+requirement. Earlier XLSX and CSV losses remain visible in their own cohorts.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-110618-5d24179d` | 8 / 40 |
+| CSV/XLSX | `20261025-112535-35862516` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-112722-48f11425` | 4 / 20 |
+
+The frozen inputs, every measurement and warmup sample, output hashes,
+validation receipts and canonical summaries remain retained. The runner removes
+successfully validated bulk artifacts; decisive diagnostic outputs are kept.
+No sample is discarded, pooled across candidates or replayed to obtain a
+favorable result. No background-activity explanation or CPU
+measurement waives failed export-time criteria. These normal shared-host,
+five-sample observations provide no universal speed, memory or
+performance-no-regression guarantee and qualify no later source change.
+
+## Numeric CSV and font selection: seventh M10 cohort
+
+Measured 25 October 2026 UTC. Source
+`3d1fcc99f4d4b2995211a89858c6eca172d3069d`, runtime SHA-256
+`1d2c28dd6f35ed4e560888aa68ffbf61107d8ac9820b10f8252ef602e412bed9`.
+
+The seventh candidate includes primitive-number CSV completion before common
+string escaping. It preserves the existing finite-number conversion and empty
+non-finite result, wrapping either result for quote-all and leaving numbers
+unquoted in the other modes. String-returning formatters, null replacements,
+Dates, formula protection, source ownership and stream behavior retain their
+existing paths. Font selection also uses a private numeric key for the four bold/italic
+combinations, avoiding repeated boolean-to-string conversion. Explicit-font
+registration, shared font programs and first-use resource order are unchanged.
+The complete runtime is measured together; this cohort does not isolate the
+contribution of an individual source change.
+
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. Every changed PDF/CSV output is byte-identical to public 0.1.2.
+The same frozen controls, rotated order, normal shared-host conditions and
+five unchanged M10 criteria apply. Every numeric pair below is **mean / median**;
+arrows show **public 0.1.2 → seventh candidate**. CPU is process CPU time and
+RSS is lifetime process peak memory. Percentage changes use unrounded values.
+
+### Export time
+
+| Workload | Export time, public → candidate (ms) | Change |
+| --- | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 1,150.39 / 1,163.55 → 1,162.99 / 1,085.91 | +1.09% / -6.67% |
+| Helvetica tagged PDF, 10,000 × 20 | 3,100.16 / 3,126.22 → 2,826.87 / 2,706.31 | -8.82% / -13.43% |
+| Carlito tagged PDF, 10,000 × 6 | 1,253.01 / 1,043.52 → 926.79 / 918.98 | -26.03% / -11.93% |
+| Carlito tagged PDF, 10,000 × 20 | 2,333.84 / 2,307.36 → 1,866.77 / 1,851.13 | -20.01% / -19.77% |
+| Minimal CSV, 100,000 × 6 | 384.53 / 380.08 → 382.69 / 381.13 | -0.48% / +0.28% |
+| Quote-all CSV, 100,000 × 6 | 395.75 / 412.31 → 355.06 / 356.47 | -10.28% / -13.54% |
+| Quote-all CSV, 100,000 × 20 | 1,187.06 / 1,183.98 → 964.28 / 935.36 | -18.77% / -21.00% |
+| Typed XLSX, 100,000 × 6 | 1,724.27 / 1,722.39 → 1,771.73 / 1,768.08 | +2.75% / +2.65% |
+
+### Process CPU time
+
+| Workload | CPU time, public → candidate (ms) | Change |
+| --- | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 1,064.89 / 1,068.99 → 973.53 / 1,007.66 | -8.58% / -5.74% |
+| Helvetica tagged PDF, 10,000 × 20 | 3,078.99 / 3,114.48 → 2,581.65 / 2,679.66 | -16.15% / -13.96% |
+| Carlito tagged PDF, 10,000 × 6 | 1,128.64 / 1,172.09 → 936.79 / 956.99 | -17.00% / -18.35% |
+| Carlito tagged PDF, 10,000 × 20 | 2,424.76 / 2,460.28 → 2,064.58 / 2,140.74 | -14.85% / -12.99% |
+| Minimal CSV, 100,000 × 6 | 332.62 / 349.57 → 351.56 / 352.17 | +5.70% / +0.74% |
+| Quote-all CSV, 100,000 × 6 | 398.52 / 408.08 → 366.67 / 364.49 | -7.99% / -10.68% |
+| Quote-all CSV, 100,000 × 20 | 1,003.02 / 1,030.54 → 851.22 / 840.01 | -15.13% / -18.49% |
+| Typed XLSX, 100,000 × 6 | 1,527.04 / 1,512.23 → 1,575.93 / 1,564.89 | +3.20% / +3.48% |
+
+### Peak RSS
+
+| Workload | Peak RSS, public → candidate (MiB) | Change |
+| --- | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 132.35 / 132.34 → 106.83 / 107.48 | -19.28% / -18.78% |
+| Helvetica tagged PDF, 10,000 × 20 | 231.12 / 230.58 → 226.32 / 229.23 | -2.07% / -0.58% |
+| Carlito tagged PDF, 10,000 × 6 | 132.77 / 133.70 → 108.65 / 108.50 | -18.17% / -18.85% |
+| Carlito tagged PDF, 10,000 × 20 | 236.97 / 236.55 → 229.32 / 231.77 | -3.23% / -2.02% |
+| Minimal CSV, 100,000 × 6 | 73.94 / 74.02 → 74.35 / 74.38 | +0.56% / +0.49% |
+| Quote-all CSV, 100,000 × 6 | 74.59 / 74.47 → 74.49 / 74.30 | -0.13% / -0.23% |
+| Quote-all CSV, 100,000 × 20 | 76.41 / 76.06 → 75.03 / 75.20 | -1.80% / -1.13% |
+| Typed XLSX, 100,000 × 6 | 79.03 / 79.30 → 78.88 / 78.84 | -0.19% / -0.57% |
+
+The sole selected-speed failure is narrow Helvetica's export-time mean:
+1,150.3924248 → 1,162.986525 ms, **+1.09477%**. Its median improves 6.67%,
+CPU falls 8.58% / 5.74% and RSS falls 19.28% / 18.78%. Those separate statistics
+do not waive the higher mean. Both statistics improve for each of the other
+five selected speed cases: wide Helvetica, narrow/wide Carlito and narrow/wide
+quote-all CSV.
+
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+Both original M8 Helvetica memory criteria also pass: narrow RSS mean/median
+is 20.24% / 20.13% lower, and wide is 10.47% / 10.47% lower. The same-cohort
+M9 comparison retains a narrow-PDF median increase of **8.53%**, despite a
+5.39% lower mean. Each baseline keeps its own meaning; neither memory gains
+nor a different comparison replace the failed public-baseline time mean.
+
+Guard losses remain explicit. Minimal CSV has a 0.48% lower time mean but a
+**0.28% higher median**, CPU 5.70% / 0.74% higher and RSS 0.56% / 0.49% higher.
+Typed XLSX time is **2.75% / 2.65% higher** and CPU is 3.20% / 3.48% higher,
+while RSS is 0.19% / 0.57% lower. Its typed-value and schema checks pass;
+timestamp-dependent XLSX ZIP identity remains outside the PDF/CSV byte-equality
+criterion. These guard observations and all earlier mixed results are retained
+without a universal performance claim or a causal explanation inferred from
+the cohort alone.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-115816-cc6e43f5` | 8 / 40 |
+| CSV/XLSX | `20261025-122831-8b9ff656` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-123059-94775740` | 4 / 20 |
+
+Raw measurements, all warmup measurement records, output hashes, independent
+validation receipts and canonical summaries remain retained. The canonical
+runner automatically deletes successfully validated bulk output files;
+retention does not mean that every PDF, CSV or XLSX binary is still present.
+Decisive diagnostic artifacts are retained separately. No sample is discarded,
+replaced, pooled across candidates or rerun to select favorable statistics.
+The time criterion remains unmet, and these five-sample observations provide
+no universal speed, memory or performance-no-regression guarantee and no
+acceptance for a later source change.
+
+## Reused RGB command text: eighth M10 cohort
+
+Measured 25 October 2026 UTC. Source
+`959ca451132fb20b1f3302f06baa303bf2b0a0cb`, runtime SHA-256
+`720aab4e0cfb0f9397b1f7f3e10c53c1d890ff27c8a677b5b142e96ba2a4b4d2`.
+
+The eighth candidate reuses one validated RGB string within each ordinary or
+shaped PDF text command. It retains the preceding font-selection and CSV paths.
+The complete runtime is measured together; these results do not isolate an RGB
+serialization gain or establish the cause of a slower sample.
+
+The fixed cohort completes with exit code zero in **2,380.517 seconds**. All
+**120 actual outputs** pass independent validation: **20 warmups and 100 measured
+exports**, with one warmup and five measured samples per selected case/runtime.
+Every changed PDF/CSV output is byte-identical to public 0.1.2. The same frozen
+controls, rotated order, normal shared-host conditions and five unchanged M10
+criteria apply. Every pair below is **mean / median**; arrows show **public
+0.1.2 → eighth candidate**. Export time is the recorded `EngineMs`, rather than
+the outer process duration. CPU is aggregate process `NodeCpuMs`, including
+native threads. RSS is lifetime process peak memory; its table keeps the exact
+recorded bytes. Percentage changes use unrounded values.
+
+### Export time
+
+| Workload | Export time, public → candidate (ms) |
+| --- | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 657.20 / 740.49 → 778.60 / 742.09 |
+| Helvetica tagged PDF, 10,000 × 20 | 3,291.41 / 2,962.61 → 2,481.56 / 2,492.42 |
+| Carlito tagged PDF, 10,000 × 6 | 960.49 / 1,069.65 → 827.15 / 807.02 |
+| Carlito tagged PDF, 10,000 × 20 | 3,370.43 / 3,418.47 → 2,525.14 / 2,467.35 |
+| Minimal CSV, 100,000 × 6 | 281.76 / 229.82 → 245.29 / 212.66 |
+| Quote-all CSV, 100,000 × 6 | 217.05 / 203.09 → 184.82 / 187.45 |
+| Quote-all CSV, 100,000 × 20 | 512.91 / 545.92 → 485.14 / 506.45 |
+| Typed XLSX, 100,000 × 6 | 1,083.69 / 910.93 → 868.35 / 902.01 |
+
+### Process CPU time
+
+| Workload | CPU time, public → candidate (ms) |
+| --- | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 785.75 / 878.18 → 801.72 / 839.09 |
+| Helvetica tagged PDF, 10,000 × 20 | 2,659.83 / 2,712.27 → 2,349.23 / 2,259.72 |
+| Carlito tagged PDF, 10,000 × 6 | 1,022.23 / 1,134.58 → 848.20 / 934.56 |
+| Carlito tagged PDF, 10,000 × 20 | 3,200.74 / 3,210.86 → 2,543.36 / 2,555.46 |
+| Minimal CSV, 100,000 × 6 | 262.73 / 263.47 → 245.60 / 251.48 |
+| Quote-all CSV, 100,000 × 6 | 237.50 / 241.58 → 218.98 / 226.06 |
+| Quote-all CSV, 100,000 × 20 | 542.85 / 587.67 → 507.58 / 534.74 |
+| Typed XLSX, 100,000 × 6 | 1,010.78 / 933.94 → 932.43 / 944.93 |
+
+### Peak RSS
+
+| Workload | Peak RSS, public → candidate (bytes) |
+| --- | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | 138,543,104 / 138,297,344 → 113,777,049.6 / 115,310,592 |
+| Helvetica tagged PDF, 10,000 × 20 | 249,652,838.4 / 248,840,192 → 243,489,177.6 / 243,351,552 |
+| Carlito tagged PDF, 10,000 × 6 | 140,833,587.2 / 140,820,480 → 113,508,352 / 113,065,984 |
+| Carlito tagged PDF, 10,000 × 20 | 241,093,836.8 / 241,041,408 → 237,174,784 / 236,732,416 |
+| Minimal CSV, 100,000 × 6 | 77,771,571.2 / 77,725,696 → 77,879,705.6 / 77,824,000 |
+| Quote-all CSV, 100,000 × 6 | 78,361,395.2 / 78,315,520 → 77,955,072 / 77,922,304 |
+| Quote-all CSV, 100,000 × 20 | 85,698,150.4 / 81,461,248 → 79,151,104 / 79,151,104 |
+| Typed XLSX, 100,000 × 6 | 83,663,257.6 / 83,148,800 → 83,895,910.4 / 83,542,016 |
+
+Narrow Helvetica fails both selected time statistics: its mean rises from
+657.1978002 to 778.6005 ms, **+18.47278%**, and its median rises from 740.494083
+to 742.090667 ms, **+0.21561%**. CPU mean is 2.03% higher while its median is
+4.45% lower. Neither CPU nor memory gains waive either export-time loss. Both
+time statistics improve for the other five selected speed cases: wide
+Helvetica, narrow/wide Carlito and narrow/wide quote-all CSV.
+
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+The original M8 Helvetica memory criteria also pass: narrow RSS is 19.79% /
+19.12% lower and wide is 11.15% / 12.59% lower. M9 remains a separate control:
+narrow Helvetica time is **1.95% / 111.56% higher** and wide is **25.13% /
+51.38% higher**. The narrow M8 time median is also 43.65% higher. These losses
+are retained alongside the public-baseline gains and memory results.
+
+The unchanged guards retain mixed results. Minimal CSV improves time and CPU,
+but RSS rises **0.13904% / 0.12648%**. Typed XLSX time improves **19.87% /
+0.98%**, while CPU median rises **1.17695%** and RSS rises **0.27808% /
+0.47291%**. Its typed-value and schema readbacks pass; timestamp-dependent ZIP
+identity remains outside the changed PDF/CSV byte-equality criterion. These
+results do not replace earlier CSV or XLSX losses.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-141215-a74112b8` | 8 / 40 |
+| CSV/XLSX | `20261025-143724-a2cb9eed` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-143907-72370a0a` | 4 / 20 |
+
+Frozen inputs, raw samples, warmup measurement records, output hashes,
+independent validation receipts and canonical reports remain retained. The
+canonical runner automatically deletes successfully validated bulk output
+files, so retention does not mean every PDF, CSV or XLSX binary remains.
+All seven earlier cohorts stay separate and unwaived. No sample is discarded,
+pooled across candidates or replayed to select favorable statistics; background
+activity does not explain away a failed criterion. These five-sample
+shared-host observations establish no universal speed, memory or
+performance-no-regression guarantee.
+
+The subsequent single-entry PDF command-prefix candidate is measured separately
+in the [ninth cohort](#single-entry-pdf-command-prefix-ninth-m10-cohort). Its
+results do not change this RGB-reuse cohort's failed time criterion.
+
+## Single-entry PDF command prefix: ninth M10 cohort
+
+Measured 25 October 2026 UTC. Source
+`8f060049a6989f6fb969d783a2992eadcd379b97`, runtime SHA-256
+`564a689cd48631bf69c9fc9c13167faabe7923fa5db38042c8d5a9b7f8a303c8`.
+This candidate adds internal single-entry PDF command-prefix reuse to the
+preceding RGB-reuse runtime. The complete candidate is measured together;
+the cohort does not isolate a change's contribution or a causal regression.
+
+The fixed cohort completes with exit code zero in **1,682.093 seconds**.
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. Every changed PDF/CSV output is byte-identical to public 0.1.2.
+The same frozen controls, rotated order and normal shared-host conditions apply.
+
+Each table entry is the percentage change in **mean / median** relative to
+public 0.1.2, calculated from unrounded recorded `EngineMs`, aggregate process
+`NodeCpuMs` and lifetime process peak RSS. Negative values are lower. CPU includes
+native threads; RSS includes import/setup and cannot be added to sampled heap.
+
+| Workload | Export-time change | CPU-time change | Peak-RSS change |
+| --- | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | -26.23% / -37.04% | -21.77% / -33.68% | -16.53% / -16.23% |
+| Helvetica tagged PDF, 10,000 × 20 | +4.31% / -2.57% | -11.42% / -12.44% | -5.96% / -6.88% |
+| Carlito tagged PDF, 10,000 × 6 | -21.90% / -4.65% | -13.85% / -6.70% | -18.48% / -16.86% |
+| Carlito tagged PDF, 10,000 × 20 | -39.57% / -29.32% | -30.03% / -25.92% | -2.62% / -2.60% |
+| Minimal CSV, 100,000 × 6 | -33.14% / -15.45% | -7.95% / -10.59% | +0.63% / +0.74% |
+| Quote-all CSV, 100,000 × 6 | -34.08% / -6.37% | -17.29% / -4.69% | +0.24% / +0.36% |
+| Quote-all CSV, 100,000 × 20 | +24.70% / -14.42% | -3.32% / -8.23% | -6.42% / -8.75% |
+| Typed XLSX, 100,000 × 6 | -51.46% / -49.18% | -32.50% / -40.73% | +1.00% / +0.06% |
+
+Narrow Helvetica passes both selected time statistics. The time criterion still
+fails on two means: wide Helvetica rises from 1,420.8362252 to 1,482.053675 ms,
+**+4.30855%**, and wide quote-all CSV rises from 776.7839086 to 968.677275 ms,
+**+24.70357%**. Their medians fall **2.56725%** and **14.41845%** respectively.
+Lower medians, CPU or memory do not waive either mean loss.
+
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+The original M8 Helvetica memory criteria also pass: narrow RSS is 18.50% /
+18.04% lower and wide is 17.02% / 19.17% lower. Against the same-cohort M9
+control, narrow Helvetica time is 16.03% / 26.69% lower and wide is 39.15% /
+48.66% lower; these observations do not erase earlier M9 losses. Minimal CSV,
+narrow quote-all CSV and XLSX retain higher RSS means and medians in the table.
+XLSX typed-value and schema readbacks pass; timestamp-dependent ZIP identity
+remains outside the changed PDF/CSV byte-equality criterion.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+Canonical run identities:
+
+| Stage | Run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-150313-f8a9fdd9` | 8 / 40 |
+| CSV/XLSX | `20261025-152040-d2254dac` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-152235-742b6ab3` | 4 / 20 |
+
+Frozen inputs, raw samples, warmup measurements, output hashes, independent
+validation receipts and canonical reports remain retained. Successfully
+validated bulk output files are automatically deleted; not every PDF, CSV or
+XLSX binary remains. All eight earlier cohorts stay separate and unwaived.
+No sample is discarded, pooled across candidates or replayed to select favorable
+statistics. Background activity does not explain away a failed criterion.
+These shared-host, five-sample observations establish no universal speed,
+memory or performance-no-regression guarantee and qualify no later candidate.
+
+## Per-row PDF rectangle reuse and CSV prefix checks: tenth M10 cohort
+
+Measured 25 October 2026 UTC. Source
+`802a4fc79eeb06a47cd760aa51b7c8ff6b1e5a83`, runtime SHA-256
+`ba38111ea055f2af1de62bc66c0442cbaa160ab877defbbf186da7c53b9379b0`.
+The candidate adds per-row PDF rectangle serialization reuse and CSV
+formula-prefix checks. The complete runtime is measured together; individual
+changes are not isolated by this cohort.
+
+The fixed cohort completes with exit code zero in **1,731.605 seconds**.
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. Every changed PDF/CSV output is byte-identical to public 0.1.2.
+The same frozen controls, rotated order and normal shared-host conditions apply.
+
+Each entry is the percentage change in **mean / median** relative to public
+0.1.2, from unrounded recorded `EngineMs`, aggregate process `NodeCpuMs` and
+lifetime process peak RSS. Negative values are lower. CPU includes native
+threads; RSS includes import/setup and cannot be added to sampled heap.
+
+| Workload | Export-time change | CPU-time change | Peak-RSS change |
+| --- | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | -31.43% / -11.31% | -24.44% / -10.31% | -19.00% / -19.50% |
+| Helvetica tagged PDF, 10,000 × 20 | +30.85% / -4.10% | -0.18% / -7.52% | -6.82% / -7.72% |
+| Carlito tagged PDF, 10,000 × 6 | -19.37% / -18.28% | -15.81% / -15.44% | -20.02% / -20.10% |
+| Carlito tagged PDF, 10,000 × 20 | -14.61% / -18.08% | -14.89% / -16.31% | -3.54% / -3.80% |
+| Minimal CSV, 100,000 × 6 | -6.15% / -12.54% | -3.01% / -6.15% | +0.80% / +0.72% |
+| Quote-all CSV, 100,000 × 6 | -11.69% / +0.57% | -4.57% / -2.40% | +0.69% / +0.56% |
+| Quote-all CSV, 100,000 × 20 | -14.55% / -26.64% | -14.42% / -24.20% | -9.05% / -9.33% |
+| Typed XLSX, 100,000 × 6 | +79.97% / +9.00% | +5.52% / +10.39% | -2.01% / -2.13% |
+
+The selected time criterion remains unmet. Wide Helvetica's mean rises from
+1,136.3688668 to 1,486.8826416 ms, **+30.84507%**, while its median falls
+**4.10355%**. Narrow quote-all CSV's median rises from 205.585208 to 206.7535 ms,
+**+0.568276%**, despite an **11.69003%** lower mean. Wide quote-all CSV now
+passes both time statistics; its earlier failed mean remains in the ninth
+cohort. Lower CPU, lower memory and a better time statistic do not waive either
+failure.
+
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+The original M8 Helvetica memory criteria also pass: narrow RSS is 20.75% /
+21.12% lower and wide is 23.44% / 18.49% lower. Against the same-cohort M9
+control, wide Helvetica retains a **0.479945% higher mean**, with a 21.70%
+lower median. Minimal CSV and narrow quote-all CSV retain higher RSS means
+and medians in the table.
+
+The unchanged XLSX guard has a **79.97% higher export-time mean and 9.00%
+higher median**, with CPU 5.52% / 10.39% higher. These observations do not
+identify a cause or attribute the loss to the PDF/CSV changes. Typed-value and
+schema readbacks pass; timestamp-dependent ZIP identity remains outside the
+changed PDF/CSV byte-equality criterion.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | **Unmet** |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+| Stage | Canonical run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-154309-d60fccbd` | 8 / 40 |
+| CSV/XLSX | `20261025-160129-bad5c253` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-160352-deaae384` | 4 / 20 |
+
+Frozen inputs, raw samples, warmup measurements, output hashes, independent
+validation receipts and canonical reports remain retained. Successfully
+validated bulk output files are automatically deleted; not every binary
+remains. All nine earlier cohorts and this cohort's mixed results stay
+separate and unwaived. No sample is discarded, pooled across candidates or
+replayed to select favorable statistics. Background activity does not explain
+away a failed criterion. These shared-host, five-sample observations establish
+no universal performance guarantee or acceptance for a later source change.
+
+## PDF geometry tokens and row maxima: eleventh M10 cohort
+
+Measured 25 October 2026 UTC. Source
+`3100eab32c4a53cf6f3decfc4c93b1b9165e74f5`, runtime SHA-256
+`3a5fd1fc991f0e78999818be1535d9fb5a0be4517a07adefbcfdb7414a1cc3ef`.
+PDF geometry-token reuse retains one slot per active physical column, checked
+against its actual position and width. Table row maxima use one indexed pass
+without the two temporary mapped arrays. CSV normalizes null values in the
+record path without repeating that check while quoting. The complete candidate
+is measured together; the cohort does not isolate
+the contribution of any one change or establish constant-memory behavior.
+
+The fixed cohort completes with exit code zero in **1,555.617 seconds**.
+All **120 actual outputs** pass independent validation: **20 warmups and 100
+measured exports**, with one warmup and five measured samples per selected
+case/runtime. All four PDF and three CSV cases preserve exact public-0.1.2
+bytes, including warmups. All five unchanged selected criteria pass for this
+local cohort. Measurements use the same normal shared M4 host, frozen controls
+and rotated order, without quiet-host treatment or sample removal.
+
+Each entry is the percentage change in **mean / median** relative to public
+0.1.2, calculated from unrounded recorded metrics and displayed to two decimals.
+Negative values are lower. `EngineMs` measures export time; `NodeCpuMs` includes
+native threads. Lifetime peak RSS includes import/setup and cannot be added to
+sampled heap.
+
+| Workload | EngineMs change | NodeCpuMs change | Peak-RSS change |
+| --- | ---: | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 6 | -41.02% / -37.40% | -34.33% / -32.63% | -20.71% / -20.52% |
+| Helvetica tagged PDF, 10,000 × 20 | -25.83% / -28.12% | -23.81% / -20.91% | -6.18% / -5.82% |
+| Carlito tagged PDF, 10,000 × 6 | -13.20% / -7.15% | -14.28% / -1.38% | -19.81% / -19.86% |
+| Carlito tagged PDF, 10,000 × 20 | -11.98% / -3.46% | -11.31% / -13.36% | -1.40% / -0.85% |
+| Minimal CSV, 100,000 × 6 | +5.31% / +0.29% | -5.86% / +4.61% | +0.78% / +1.15% |
+| Quote-all CSV, 100,000 × 6 | -14.20% / -12.30% | -15.03% / -10.14% | +0.63% / +0.67% |
+| Quote-all CSV, 100,000 × 20 | -25.89% / -10.64% | -26.33% / -9.40% | -12.34% / -15.55% |
+| Typed XLSX, 100,000 × 6 | -6.91% / +18.43% | -5.55% / +3.50% | +0.47% / +0.02% |
+
+The six selected PDF/quote-all CSV speed cases improve both time statistics.
+All four PDF peak-RSS means and medians are no higher than public 0.1.2.
+The original M8 Helvetica memory criteria also pass: narrow RSS is 22.50% /
+22.13% lower and wide is 15.21% / 15.39% lower.
+
+The separate controls retain losses. Against M9, wide Helvetica export time is
+**1.6953% / 15.9997% higher**. Minimal CSV time rises **5.3136% / 0.2873%**,
+with RSS **0.7821% / 1.1450% higher**. XLSX has a **6.9078% lower time mean but
+an 18.4316% higher median**; its CPU median is 3.4985% higher and RSS rises
+**0.4747% / 0.0195%**. Narrow quote-all CSV also retains higher RSS in the table.
+XLSX typed-value and schema checks pass; timestamp-dependent ZIP identity remains
+outside the changed PDF/CSV byte-equality criterion. None of these losses is waived.
+
+First delivery means the first accepted sink bytes, not the first useful page
+or record. The following public-baseline comparisons retain responsiveness
+losses even where export time improves; pairs are **mean / median** changes.
+
+| Workload | First-delivery change | Maximum timer-gap change |
+| --- | ---: | ---: |
+| Helvetica tagged PDF, 10,000 × 20 | -23.43% / -13.33% | -22.87% / +0.86% |
+| Carlito tagged PDF, 10,000 × 6 | +8.60% / +0.38% | +16.54% / +1.57% |
+| Minimal CSV, 100,000 × 6 | -11.80% / +1.65% | +7.38% / +3.54% |
+| Quote-all CSV, 100,000 × 6 | -12.81% / -2.71% | +34.00% / +8.39% |
+| Quote-all CSV, 100,000 × 20 | -6.97% / +21.21% | -5.24% / +4.05% |
+
+Against M8, narrow Helvetica first delivery is **138.80% / 134.14% higher**
+and maximum timer gap is **71.64% / 69.57% higher**. Against M9, wide Helvetica
+first-delivery median rises **13.01%** and maximum timer-gap median rises
+**24.04%**. Faster total export time or lower RSS does not replace these measures.
+
+| Criterion | Result |
+| --- | --- |
+| Independently validate all 120 actual outputs, including warmups | Pass |
+| Preserve exact public-0.1.2 bytes for changed PDF/CSV cases | Pass |
+| Lower selected PDF/quote-all CSV time by both mean and median | Pass |
+| PDF peak-RSS means and medians no higher than public 0.1.2 | Pass |
+| Preserve original Helvetica RSS means and medians against M8 | Pass |
+
+| Stage | Canonical run identity | Independently validated warmups / measured |
+| --- | --- | ---: |
+| Helvetica PDF | `20261025-164059-1cf22aca` | 8 / 40 |
+| CSV/XLSX | `20261025-165731-ad1c9096` | 8 / 40 |
+| Embedded Carlito PDF | `20261025-165903-cb4bc104` | 4 / 20 |
+
+Frozen inputs, raw samples, warmup measurements, output hashes, independent
+validation receipts and canonical reports remain retained. Successfully
+validated bulk output files are automatically deleted; not every binary
+remains. All ten earlier failed cohorts stay separate and unwaived. No sample
+is discarded, pooled across candidates or replayed to select favorable statistics.
+These shared-host, five-sample observations establish local cohort acceptance,
+not package/browser qualification, publication or completion of the broader work.
+They establish no universal fastest, no-regression or constant-memory guarantee,
+identify no causal explanation for earlier losses and qualify no later candidate.

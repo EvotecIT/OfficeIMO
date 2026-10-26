@@ -4,37 +4,42 @@ import { datetime } from "./dates.js";
 import { captureFields } from "../../internal/capture.js";
 import { copyColumns } from "../../internal/rows.js";
 import { copyCellPresentation } from "../../core/presentation.js";
+import { canopyDiagnostics } from "./diagnostics.js";
+import { canopyNumberFormat, canopyXlsxWidth } from "./presentation.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): CanopyExport {
+  return prepareCanopyExport(capture, format, options).source;
+}
+
+/** @internal Capture the input once before full-writer metadata mapping and asynchronous enumeration. */
+export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): {
+  readonly source: CanopyExport;
+  readonly request: CanopyCapture["request"];
+  readonly report: (diagnostic: CanopyDiagnostic) => void;
+  readonly tones: ReadonlyMap<string, Readonly<CellPresentation>>;
+} {
   options = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "signal", "onDiagnostic"]);
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
   if (!capture || typeof capture.rows !== "function" || !capture.request) throw new TypeError("A portable CanopyX capture with request and rows() is required.");
-  const { request } = capture, signal = options.signal, values = request.values;
+  const request = captureFields(capture.request, ["columns", "recordCount", "values", "presentation", "timeZone", "revision", "scope", "total", "matched", "selection", "query", "generatedAt", "grouping", "formatRules"]);
+  const signal = options.signal, values = request.values;
   if (!Array.isArray(request.columns) || !request.columns.length || (request.recordCount !== null && (!Number.isSafeInteger(request.recordCount) || request.recordCount < 0)) ||
     (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
     throw new TypeError("Invalid portable CanopyX capture metadata.");
-  const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), dateMode = options.datetime ?? "preserve", notify = options.onDiagnostic;
+  const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
   const clock = options.xlsx?.dateMode ?? request.timeZone;
   if (clock !== "utc" && clock !== "local") throw new TypeError("XLSX dateMode must be utc or local.");
-  if (policy !== "reject" && policy !== "text") throw new TypeError("unsupportedPresentation must be reject or text.");
   if (dateMode !== "preserve" && dateMode !== "typed" && dateMode !== "text") throw new TypeError("datetime must be preserve, typed or text.");
-  if (notify !== undefined && typeof notify !== "function") throw new TypeError("onDiagnostic must be a synchronous function.");
-  const report = (diagnostic: CanopyDiagnostic): void => {
-    if (policy === "reject") throw new TypeError("Unsupported Canopy presentation: " + diagnostic.code + (diagnostic.columnId ? " (" + diagnostic.columnId + ")" : ""));
-    const result: unknown = notify?.(Object.freeze(diagnostic));
-    if (result && typeof (result as { then?: unknown }).then === "function") { void Promise.resolve(result).catch(() => {}); throw new TypeError("onDiagnostic must be synchronous."); }
-  };
   const diagnostics = (items: readonly string[] | undefined, rowId?: string, columnId?: string): void => {
     if (items === undefined) return;
     if (!Array.isArray(items) || items.some(item => typeof item !== "string")) throw new TypeError("Canopy presentation diagnostics must be strings.");
     for (const code of items) report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
   };
-  if (request.presentation === "text") report({ code: "TEXT_ONLY_CAPTURE" });
-  else if (request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
+  if (request.presentation !== "text" && request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
   const tones = new Map(Object.entries(options.tones ?? {}).map(([name, style]) => {
     if (!style || typeof style !== "object" || Array.isArray(style)) throw new TypeError("Tone mappings must be portable presentation objects.");
     return [name, copyCellPresentation(style)] as const;
@@ -43,11 +48,15 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
     if (name === undefined) return undefined;
     if (typeof name !== "string") throw new TypeError("Canopy tones must be strings.");
     const style = tones.get(name);
-    if (!style) report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+    if (!style && name !== "neutral") report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
     return style;
   };
   const ids = new Set<string>();
-  const specs = request.columns.map(column => {
+  const specs = request.columns.map(input => {
+    const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
+    const column = Object.freeze({ ...fields,
+      ...(fields.width === undefined ? {} : { width: Object.freeze(captureFields(fields.width, ["unit", "preferred", "minimum", "maximum"])) }),
+      ...(fields.format === undefined ? {} : { format: Object.freeze(captureFields(fields.format, ["minimumFractionDigits", "maximumFractionDigits", "prefix", "suffix"])) }) });
     if (!column || typeof column.id !== "string" || !column.id || ids.has(column.id) || typeof column.title !== "string" ||
       !["text", "number", "datetime"].includes(column.kind) ||
       (column.wrap !== undefined && typeof column.wrap !== "boolean") || (column.alignment !== undefined && !["left", "right"].includes(column.alignment)) ||
@@ -60,14 +69,19 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
     const selected: NonNullable<CanopySourceOptions["columnOptions"]>[string] = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
     for (const key of Object.keys(selected)) if (!(columnFields as readonly string[]).includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
     const override = captureFields(selected, columnFields);
+    const numericFormat = format === "xlsx" && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
+      ? canopyNumberFormat(column.format, report, column.id) : undefined;
     const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
+      ...(format === "xlsx" && override.width === undefined && column.width !== undefined ? { width: canopyXlsxWidth(column.width.preferred) } : {}),
+      ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
+      ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
       ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
       ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
       ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
-    return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze(captured!) });
+    return Object.freeze({ id: column.id, kind: column.kind, input: column, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
-  return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
+  const source: CanopyExport = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
     checkAbort(signal); let count = 0;
     for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
       checkAbort(signal);
@@ -94,4 +108,5 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
     }
     if (rowCount !== null && count !== rowCount) throw new TypeError("Canopy capture did not produce its declared recordCount.");
   } });
+  return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones });
 }

@@ -1110,7 +1110,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1") ?? (() => {
+const _m0 = _modules.get("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1135,29 +1135,32 @@ const { captureCsvOptions } = _m15;
 
 
 
-function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
-    if (value == null && nullValue !== undefined)
-        value = nullValue;
+function csvField(value, delimiter, protect, quote, booleanText) {
+    const kind = typeof value;
     let text;
     if (value == null)
         text = "";
+    else if (kind === "string")
+        text = value;
+    else if (kind === "number") {
+        text = Number.isFinite(value) ? String(value) : "";
+        // Numeric text has no CSV delimiter, quote or line break to escape.
+        return quote === "all" ? '"' + text + '"' : text;
+    }
+    else if (kind === "boolean")
+        text = booleanText[value ? "true" : "false"];
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-    else if (typeof value === "boolean")
-        text = booleanText[value ? "true" : "false"];
-    else if (typeof value === "number")
-        text = Number.isFinite(value) ? String(value) : "";
-    else if (typeof value === "string")
-        text = value;
     else {
         if (typeof value.then === "function")
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
+    // Only ASCII spaces, controls and markers through @ can begin the protected prefix.
+    if (protect && (kind === "string" || kind === "boolean") && text.charCodeAt(0) <= 64 && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
-        ? '"' + text.replace(/"/g, '""') + '"' : text;
+    return quote === "all" || (quote === "strings" && kind === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+        ? '"' + (text.includes('"') ? text.replace(/"/g, '""') : text) + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
     const options = captureCsvOptions(configuration);
@@ -1209,7 +1212,7 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -1257,7 +1260,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("b6dbf755b495baef5c7d7651e6a55b2098f2ee304edca2c8b285a0bd7ec127a1", _exports);
+_modules.set("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });
