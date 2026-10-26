@@ -512,20 +512,22 @@ public class RtfMarkdownConverterTests {
         Assert.Contains(roundTripTable.Rows[1].Cells[2].Paragraphs[0].Runs, run => run.Text == "down" && run.VerticalPosition == RtfVerticalPosition.Subscript);
     }
 
-    [Fact]
-    public void RtfDocumentToMarkdownRoundTripPreservesLiteralEntityTextInTableCells() {
+    [Theory]
+    [InlineData("&lt; &#42;", "&amp;lt; &amp;#42;")]
+    [InlineData("&amp;", "&amp;amp;")]
+    public void RtfDocumentToMarkdownRoundTripPreservesLiteralEntityTextInTableCells(string literal, string encoded) {
         RtfDocument document = RtfDocument.Create();
         RtfTable table = document.AddTable(2, 1);
         table.Rows[0].RepeatHeader = true;
         table.Rows[0].Cells[0].AddParagraph("Value");
-        table.Rows[1].Cells[0].AddParagraph("&lt; &#42;");
+        table.Rows[1].Cells[0].AddParagraph(literal);
 
         string markdown = document.ToMarkdown();
         RtfDocument roundTrip = MarkdownReader.Parse(markdown).ToRtfDocument();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
 
-        Assert.Contains("| &lt; &#42; |", markdown, StringComparison.Ordinal);
-        Assert.Equal("&lt; &#42;", roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
+        Assert.Contains("| " + encoded + " |", markdown, StringComparison.Ordinal);
+        Assert.Equal(literal, roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
     }
 
     [Fact]

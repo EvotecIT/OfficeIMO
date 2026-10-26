@@ -83,6 +83,7 @@ public static partial class MarkdownReader {
         bool allowImages,
         InlineHtmlWrapperMatchIndex matches,
         int wrapperDepth,
+        TableCellHtmlMode tableCellHtmlMode,
         out int consumed,
         out IMarkdownInline htmlNode) {
         consumed = 0;
@@ -112,7 +113,8 @@ public static partial class MarkdownReader {
             allowImages,
             sourceMap?.Slice(start + openLength, inner.Length),
             matches.Slice(start + openLength),
-            wrapperDepth + 1);
+            wrapperDepth + 1,
+            tableCellHtmlMode: tableCellHtmlMode);
         DecodeHtmlEntitiesInTextRuns(inlines);
         consumed = (closingStart - start) + tagName.Length + 3;
         var htmlTag = new HtmlTagSequenceInline(tagName, inlines);
