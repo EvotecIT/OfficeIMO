@@ -2,7 +2,7 @@
 
 `OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer, and for projecting supported diagram semantics into native editable Visio. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
-The bridge uses ChartForgeX 2.0. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` only in applications that produce stories or animation. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
+The bridge uses ChartForgeX 3.1. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` when composing stories or animation scenes; GIF and APNG encoding is available in the ChartForgeX core package. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
@@ -86,6 +86,8 @@ The default `RasterizeWhenNeeded` policy preserves appearance with vector output
 Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
 
 Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. `OfficeVisualDocumentStyle.Default.CreateContext(widthPoints, heightPoints)` supplies readable document typography at that size; its font and point sizes are also available for surrounding headings and captions. A custom style can change that scale, while a supplied `VisualTheme` retains the shared palette and geometry. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
+
+Document contexts use 18-point padding for ordinary charts. For compact visuals such as a 64 × 18-point sparkline, padding scales down to a quarter of the shorter side so the plot retains usable space.
 
 ## SVG-producing surfaces
 
