@@ -41,8 +41,28 @@ public static partial class OfficeDiagnosticCodes {
     public const string AcroFormAppendOnly = "acro-form-append-only";
     /// <summary>Stable code: <c>active-content-detected</c>.</summary>
     public const string ActiveContentDetected = "active-content-detected";
+    /// <summary>Stable code: <c>ambiguous-label</c>.</summary>
+    public const string AmbiguousLabel = "ambiguous-label";
+    /// <summary>Stable code: <c>amipro-document-directive-unsupported</c>.</summary>
+    public const string AmiproDocumentDirectiveUnsupported = "amipro-document-directive-unsupported";
     /// <summary>Stable code: <c>amipro-embedded-object-inert</c>.</summary>
     public const string AmiproEmbeddedObjectInert = "amipro-embedded-object-inert";
+    /// <summary>Stable code: <c>amipro-inline-tag-malformed</c>.</summary>
+    public const string AmiproInlineTagMalformed = "amipro-inline-tag-malformed";
+    /// <summary>Stable code: <c>amipro-inline-tag-unsupported</c>.</summary>
+    public const string AmiproInlineTagUnsupported = "amipro-inline-tag-unsupported";
+    /// <summary>Stable code: <c>amipro-list-inferred</c>.</summary>
+    public const string AmiproListInferred = "amipro-list-inferred";
+    /// <summary>Stable code: <c>amipro-section-unsupported</c>.</summary>
+    public const string AmiproSectionUnsupported = "amipro-section-unsupported";
+    /// <summary>Stable code: <c>amipro-style-block-malformed</c>.</summary>
+    public const string AmiproStyleBlockMalformed = "amipro-style-block-malformed";
+    /// <summary>Stable code: <c>amipro-style-duplicate</c>.</summary>
+    public const string AmiproStyleDuplicate = "amipro-style-duplicate";
+    /// <summary>Stable code: <c>amipro-style-flags-unsupported</c>.</summary>
+    public const string AmiproStyleFlagsUnsupported = "amipro-style-flags-unsupported";
+    /// <summary>Stable code: <c>amipro-style-missing</c>.</summary>
+    public const string AmiproStyleMissing = "amipro-style-missing";
     /// <summary>Stable code: <c>anchored-image-page-bounds-clipped</c>.</summary>
     public const string AnchoredImagePageBoundsClipped = "anchored-image-page-bounds-clipped";
     /// <summary>Stable code: <c>artifact-creation-failed</c>.</summary>
@@ -189,6 +209,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string DocOleCustomDocumentPropertyUnsupported = "doc-ole-custom-document-property-unsupported";
     /// <summary>Stable code: <c>doc-ole-objects-present</c>.</summary>
     public const string DocOleObjectsPresent = "doc-ole-objects-present";
+    /// <summary>Stable code: <c>doc-ole-properties-unreadable</c>.</summary>
+    public const string DocOlePropertiesUnreadable = "doc-ole-properties-unreadable";
     /// <summary>Stable code: <c>doc-papx-invalid</c>.</summary>
     public const string DocPapxInvalid = "doc-papx-invalid";
     /// <summary>Stable code: <c>doc-picture-data-invalid</c>.</summary>
@@ -425,10 +447,14 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelXmlApproximation = "excel-xml-approximation";
     /// <summary>Stable code: <c>excel-xml-omitted</c>.</summary>
     public const string ExcelXmlOmitted = "excel-xml-omitted";
+    /// <summary>Stable code: <c>existing-annotation</c>.</summary>
+    public const string ExistingAnnotation = "existing-annotation";
     /// <summary>Stable code: <c>existing-package-signature-invalidation-blocked</c>.</summary>
     public const string ExistingPackageSignatureInvalidationBlocked = "existing-package-signature-invalidation-blocked";
     /// <summary>Stable code: <c>existing-package-signatures-will-be-invalidated</c>.</summary>
     public const string ExistingPackageSignaturesWillBeInvalidated = "existing-package-signatures-will-be-invalidated";
+    /// <summary>Stable code: <c>existing-widget</c>.</summary>
+    public const string ExistingWidget = "existing-widget";
     /// <summary>Stable code: <c>external-signed-info-reference</c>.</summary>
     public const string ExternalSignedInfoReference = "external-signed-info-reference";
     /// <summary>Stable code: <c>field-instructions-flattened</c>.</summary>

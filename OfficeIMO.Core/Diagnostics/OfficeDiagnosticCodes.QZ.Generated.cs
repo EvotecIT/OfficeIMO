@@ -31,10 +31,16 @@ public static partial class OfficeDiagnosticCodes {
     public const string RedactionPlanOptionalContentInspectionInconclusive = "redaction-plan-optional-content-inspection-inconclusive";
     /// <summary>Stable code: <c>redaction-plan-vector-intersection</c>.</summary>
     public const string RedactionPlanVectorIntersection = "redaction-plan-vector-intersection";
+    /// <summary>Stable code: <c>redaction-search-glyph-mapping-unsupported</c>.</summary>
+    public const string RedactionSearchGlyphMappingUnsupported = "redaction-search-glyph-mapping-unsupported";
     /// <summary>Stable code: <c>redaction-search-no-matches</c>.</summary>
     public const string RedactionSearchNoMatches = "redaction-search-no-matches";
+    /// <summary>Stable code: <c>redaction-search-partial-glyph</c>.</summary>
+    public const string RedactionSearchPartialGlyph = "redaction-search-partial-glyph";
     /// <summary>Stable code: <c>redaction-search-text-mapping-unsupported</c>.</summary>
     public const string RedactionSearchTextMappingUnsupported = "redaction-search-text-mapping-unsupported";
+    /// <summary>Stable code: <c>redaction-search-unselected-text-intersection</c>.</summary>
+    public const string RedactionSearchUnselectedTextIntersection = "redaction-search-unselected-text-intersection";
     /// <summary>Stable code: <c>redaction-source-text-mapping-unsupported</c>.</summary>
     public const string RedactionSourceTextMappingUnsupported = "redaction-source-text-mapping-unsupported";
     /// <summary>Stable code: <c>redline-shape-in-place-text-fallback</c>.</summary>
@@ -245,6 +251,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string TableClosedRulingGrid = "table-closed-ruling-grid";
     /// <summary>Stable code: <c>table-column-geometry</c>.</summary>
     public const string TableColumnGeometry = "table-column-geometry";
+    /// <summary>Stable code: <c>table-content</c>.</summary>
+    public const string TableContent = "table-content";
     /// <summary>Stable code: <c>table-detection-kind</c>.</summary>
     public const string TableDetectionKind = "table-detection-kind";
     /// <summary>Stable code: <c>table-geometry-confidence</c>.</summary>
@@ -327,6 +335,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string UnsupportedCssValue = "unsupported-css-value";
     /// <summary>Stable code: <c>unsupported-custom-geometry</c>.</summary>
     public const string UnsupportedCustomGeometry = "unsupported-custom-geometry";
+    /// <summary>Stable code: <c>unsupported-effect</c>.</summary>
+    public const string UnsupportedEffect = "unsupported-effect";
     /// <summary>Stable code: <c>unsupported-embedded-font</c>.</summary>
     public const string UnsupportedEmbeddedFont = "unsupported-embedded-font";
     /// <summary>Stable code: <c>unsupported-embedded-font-data</c>.</summary>
@@ -343,6 +353,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string UnsupportedMarkPositioningOrJoinerShaping = "unsupported-mark-positioning-or-joiner-shaping";
     /// <summary>Stable code: <c>unsupported-opentype-cff-font</c>.</summary>
     public const string UnsupportedOpentypeCffFont = "unsupported-opentype-cff-font";
+    /// <summary>Stable code: <c>unsupported-outline-dash</c>.</summary>
+    public const string UnsupportedOutlineDash = "unsupported-outline-dash";
     /// <summary>Stable code: <c>unsupported-picture</c>.</summary>
     public const string UnsupportedPicture = "unsupported-picture";
     /// <summary>Stable code: <c>unsupported-powerpoint-image-bounds</c>.</summary>
@@ -385,6 +397,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string VisualPagesNotEditable = "visual-pages-not-editable";
     /// <summary>Stable code: <c>visual-snapshot-failed</c>.</summary>
     public const string VisualSnapshotFailed = "visual-snapshot-failed";
+    /// <summary>Stable code: <c>wk-name-collision</c>.</summary>
+    public const string WkNameCollision = "wk-name-collision";
+    /// <summary>Stable code: <c>wk-name-invalid</c>.</summary>
+    public const string WkNameInvalid = "wk-name-invalid";
     /// <summary>Stable code: <c>word-baseline-projection</c>.</summary>
     public const string WordBaselineProjection = "word-baseline-projection";
     /// <summary>Stable code: <c>word-character-advance-projection</c>.</summary>
@@ -473,8 +489,24 @@ public static partial class OfficeDiagnosticCodes {
     public const string WordperfectTableLayout = "wordperfect-table-layout";
     /// <summary>Stable code: <c>wordperfect-watermark</c>.</summary>
     public const string WordperfectWatermark = "wordperfect-watermark";
+    /// <summary>Stable code: <c>wordstar-control-unsupported</c>.</summary>
+    public const string WordstarControlUnsupported = "wordstar-control-unsupported";
+    /// <summary>Stable code: <c>wordstar-dot-command</c>.</summary>
+    public const string WordstarDotCommand = "wordstar-dot-command";
     /// <summary>Stable code: <c>wordstar-graphics-reference-inert</c>.</summary>
     public const string WordstarGraphicsReferenceInert = "wordstar-graphics-reference-inert";
+    /// <summary>Stable code: <c>wordstar-header-footer-metadata-only</c>.</summary>
+    public const string WordstarHeaderFooterMetadataOnly = "wordstar-header-footer-metadata-only";
+    /// <summary>Stable code: <c>wordstar-list-inferred</c>.</summary>
+    public const string WordstarListInferred = "wordstar-list-inferred";
+    /// <summary>Stable code: <c>wordstar-note-anchor-approximated</c>.</summary>
+    public const string WordstarNoteAnchorApproximated = "wordstar-note-anchor-approximated";
+    /// <summary>Stable code: <c>wordstar-note-empty-omitted</c>.</summary>
+    public const string WordstarNoteEmptyOmitted = "wordstar-note-empty-omitted";
+    /// <summary>Stable code: <c>wordstar-sequence-partial</c>.</summary>
+    public const string WordstarSequencePartial = "wordstar-sequence-partial";
+    /// <summary>Stable code: <c>wordstar-sequence-unsupported</c>.</summary>
+    public const string WordstarSequenceUnsupported = "wordstar-sequence-unsupported";
     /// <summary>Stable code: <c>worksheet-bounded-read</c>.</summary>
     public const string WorksheetBoundedRead = "worksheet-bounded-read";
     /// <summary>Stable code: <c>worksheet-chart</c>.</summary>

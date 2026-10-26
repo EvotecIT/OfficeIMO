@@ -99,6 +99,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string InvalidSlideBackgroundImage = "invalid-slide-background-image";
     /// <summary>Stable code: <c>invalid-start-xref</c>.</summary>
     public const string InvalidStartXref = "invalid-start-xref";
+    /// <summary>Stable code: <c>invisible-outline</c>.</summary>
+    public const string InvisibleOutline = "invisible-outline";
     /// <summary>Stable code: <c>large-image-stream</c>.</summary>
     public const string LargeImageStream = "large-image-stream";
     /// <summary>Stable code: <c>large-stream</c>.</summary>
@@ -149,6 +151,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string LongTermValidationEvidenceDetected = "long-term-validation-evidence-detected";
     /// <summary>Stable code: <c>lotus-trailing-application-data</c>.</summary>
     public const string LotusTrailingApplicationData = "lotus-trailing-application-data";
+    /// <summary>Stable code: <c>low-confidence</c>.</summary>
+    public const string LowConfidence = "low-confidence";
     /// <summary>Stable code: <c>macro-content-binding-invalid</c>.</summary>
     public const string MacroContentBindingInvalid = "macro-content-binding-invalid";
     /// <summary>Stable code: <c>macro-content-binding-unsupported</c>.</summary>
@@ -335,6 +339,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string NoSignatures = "no-signatures";
     /// <summary>Stable code: <c>object-graph-parse-failed</c>.</summary>
     public const string ObjectGraphParseFailed = "object-graph-parse-failed";
+    /// <summary>Stable code: <c>occluded-outline</c>.</summary>
+    public const string OccludedOutline = "occluded-outline";
+    /// <summary>Stable code: <c>occupied-field</c>.</summary>
+    public const string OccupiedField = "occupied-field";
     /// <summary>Stable code: <c>odd-name-tree-pairs</c>.</summary>
     public const string OddNameTreePairs = "odd-name-tree-pairs";
     /// <summary>Stable code: <c>office-chart-axis-crossing-position-approximation</c>.</summary>
@@ -349,6 +357,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string OptimizationLimited = "optimization-limited";
     /// <summary>Stable code: <c>orphaned-semantic-objects</c>.</summary>
     public const string OrphanedSemanticObjects = "orphaned-semantic-objects";
+    /// <summary>Stable code: <c>overlapping-proposals</c>.</summary>
+    public const string OverlappingProposals = "overlapping-proposals";
     /// <summary>Stable code: <c>package-byte-limit-exceeded</c>.</summary>
     public const string PackageByteLimitExceeded = "package-byte-limit-exceeded";
     /// <summary>Stable code: <c>package-signatures-omitted</c>.</summary>

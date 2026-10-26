@@ -30,6 +30,12 @@ public class OfficeDiagnosticCatalogTests {
         Assert.Equal(OfficeDiagnosticCodes.PdfExcelTablesTruncated, mappings["PDF_EXCEL_TABLES_TRUNCATED"]);
         Assert.Equal(OfficeDiagnosticCodes.PdfPowerpointTablesTruncated, mappings["PDF_POWERPOINT_TABLES_TRUNCATED"]);
         Assert.Equal(OfficeDiagnosticCodes.PdfPowerpointEditableContentOmitted, mappings["PDF_POWERPOINT_EDITABLE_CONTENT_OMITTED"]);
+        Assert.Equal(OfficeDiagnosticCodes.DocOlePropertiesUnreadable, mappings["DOC-OLE-PROPERTIES-UNREADABLE"]);
+        foreach (string helperCode in new[] { "table-content", "unsupported-effect", "unsupported-outline-dash",
+            "invisible-outline", "occupied-field", "occluded-outline", "existing-widget", "existing-annotation",
+            "low-confidence", "overlapping-proposals", "ambiguous-label" }) {
+            Assert.Equal(helperCode, mappings[helperCode]);
+        }
         Assert.Contains(map.RootElement.GetProperty("entries").EnumerateArray(),
             entry => entry.GetProperty("oldCode").GetString() == "chart-projected"
                 && entry.GetProperty("catalogCode").GetString() == OfficeDiagnosticCodes.ChartFlattened);
