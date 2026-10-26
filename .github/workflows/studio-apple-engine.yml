@@ -42,10 +42,10 @@ jobs:
           ref: 5ec7e30460de47b9a804127806a42fd654d89833
           path: .powerforge-engine-build
           persist-credentials: false
-      - uses: EvotecIT/.github/actions/setup-dotnet@ec7a94defe85925f23fab68a44b4659ca71c3497
+      - uses: EvotecIT/.github/actions/setup-dotnet@6951a19318dbacbae020a2c1e0d4ffa300a95c6d
         with:
           global-json-file: .powerforge-engine-build/global.json
-      - uses: EvotecIT/.github/actions/setup-dotnet@ec7a94defe85925f23fab68a44b4659ca71c3497
+      - uses: EvotecIT/.github/actions/setup-dotnet@6951a19318dbacbae020a2c1e0d4ffa300a95c6d
         with:
           global-json-file: global.json
       - name: Build pinned packaging CLI and publisher
