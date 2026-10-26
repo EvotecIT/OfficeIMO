@@ -1,0 +1,4861 @@
+{
+  "schema": "officeimo.html-default-font-qualification/v1",
+  "capturedUtc": "2026-10-26T00:09:47.596911+00:00",
+  "qualifiedSourceHead": "6444485139a82accfe49044a57fc45a1b521c30a",
+  "productionHead": "38793578cecf6a6c2f71a15b0a5694ad81a5c0f4",
+  "masterBase": "9ba015295d534020b62d2bfb9e55d0f38d5f9403",
+  "sourceSeal": {
+    "utc": "2026-10-25T23:25:35.325632+00:00",
+    "sourceHead": "6444485139a82accfe49044a57fc45a1b521c30a",
+    "tree": "db84987db5cc9a586e6e1f98cbcf0b73d14f8ec2",
+    "trackedInputs": 58840,
+    "indexContentSha256": "01c1a9cc1175fa51d9303f678e54343ef7c5e56bdd9fcc94b1084759708d5378",
+    "cleanTrackedAndUntracked": true,
+    "inventory": "$TASK_ROOT/prep/finish-authorized/source-inputs-index.txt",
+    "method": "Git stage0 input object/mode/path inventory plus clean tracked/untracked readback. Git objects retained; generated outputs kept outside source."
+  },
+  "scope": [
+    "Permitted renderer default discovery and physical face selection",
+    "Atomic selected-target font retention for shared layout/paint",
+    "Typed retained width-estimate attribution, including accepted frame paint and immutable per-text provenance",
+    "Implicit marker/alternative text coverage and shared counter formatting",
+    "Resolved bidi contour groups retain complete logical SVG labels, including inkless slices"
+  ],
+  "testEvidence": [
+    {
+      "role": "full HTML",
+      "framework": "net10.0",
+      "counts": {
+        "total": "8252",
+        "executed": "8252",
+        "passed": "8252",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "$TASK_ROOT/trx/final-full-html-net10.0-v2.trx",
+        "bytes": 12892461,
+        "sha256": "ee73d5fe763e855fac0265296ea70b089d522efce8e6ee540822325175b3b988"
+      }
+    },
+    {
+      "role": "full HTML",
+      "framework": "net8.0",
+      "counts": {
+        "total": "8252",
+        "executed": "8252",
+        "passed": "8252",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "$TASK_ROOT/trx/final-full-html-net8.0-v2.trx",
+        "bytes": 12875956,
+        "sha256": "ea60c62ba411751db5bb628630dd04151bca7b14ecf7d45e6b6c58358be39321"
+      }
+    },
+    {
+      "role": "affected PDF/HTML/font/shaping",
+      "framework": "net10.0",
+      "counts": {
+        "total": "1067",
+        "executed": "1067",
+        "passed": "1067",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "$TASK_ROOT/trx/final-pdf-font-html-net10-v2.trx",
+        "bytes": 1662881,
+        "sha256": "e96ab3897517e92d08c4205b6057846d8ad39609f902436ac658c0f2044a596b"
+      }
+    }
+  ],
+  "executionEvidence": [
+    {
+      "id": "default-font-final-broad-v2",
+      "completedRoles": 3,
+      "roleNames": [
+        "final-full-html-net100-v2",
+        "final-full-html-net80-v2",
+        "final-pdf-font-html-focus-net10-v2"
+      ],
+      "allExitZero": true,
+      "allOwnedNumericGroupsClosed": true,
+      "receipt": {
+        "path": "$TASK_ROOT/default-font-final-broad-v2-closure.json",
+        "bytes": 2670,
+        "sha256": "97a94d0eaea4a6cc528c66396ef0dd4b559a2f11619f57558dfb318fc807a7c5"
+      }
+    },
+    {
+      "id": "default-font-source-qualified",
+      "completedRoles": 4,
+      "roleNames": [
+        "qualified-source-consumer-build-net80",
+        "qualified-source-consumer-run-net80",
+        "qualified-source-consumer-build-net100",
+        "qualified-source-consumer-run-net100"
+      ],
+      "allExitZero": true,
+      "allOwnedNumericGroupsClosed": true,
+      "receipt": {
+        "path": "$TASK_ROOT/default-font-source-qualified-closure.json",
+        "bytes": 3480,
+        "sha256": "c791880bdc3fb4030950310ec64d8cc742368f091487e501b4183fefc3f489cf"
+      }
+    },
+    {
+      "id": "default-font-private-package-final",
+      "completedRoles": 13,
+      "roleNames": [
+        "font-package-source-restore",
+        "font-package-source-build",
+        "font-package-pack-officeimo.core",
+        "font-package-pack-officeimo.pdf",
+        "font-package-pack-officeimo.html.core",
+        "font-package-pack-officeimo.html.anglesharp",
+        "font-package-pack-officeimo.html",
+        "font-package-publish-net8",
+        "font-package-run-net8",
+        "font-package-publish-net10",
+        "font-package-run-net10",
+        "font-package-publish-aot",
+        "font-package-run-aot"
+      ],
+      "allExitZero": true,
+      "allOwnedNumericGroupsClosed": true,
+      "receipt": {
+        "path": "$TASK_ROOT/default-font-private-package-final-closure.json",
+        "bytes": 10429,
+        "sha256": "dd8d66da36e02c0d4561b0758f97c75d6a8f4cc323f9e81008b7f80efb443ced"
+      }
+    }
+  ],
+  "renderAndNativeAcceptance": {
+    "schema": "officeimo.html-default-font-results/v1",
+    "sourceHead": "6444485139a82accfe49044a57fc45a1b521c30a",
+    "passed": true,
+    "actualEdge": {
+      "observations": 16,
+      "pages": 52,
+      "coveredSameFontInputControls": 8,
+      "nominalHostObservations": 8,
+      "manifest": {
+        "path": "$TASK_ROOT/native-ecf/execution.json",
+        "bytes": 195167,
+        "sha256": "0af890e242440d66c000f0993750b541959da39a3b926d434913fcf443572f0a"
+      },
+      "recapturedForFinalSource": false
+    },
+    "lanes": [
+      {
+        "lane": "source-net8",
+        "runtime": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "nativeAot": false,
+        "observations": 16,
+        "edgeBoundPairs": 52,
+        "additionalInklessPairs": 3,
+        "report": {
+          "path": "$TASK_ROOT/source-qualified/net8.0/observations.json",
+          "bytes": 226873,
+          "sha256": "b567d78838f5e14bf442696048a5532c5b5d2d1a19b6494e67ded6685471931d"
+        },
+        "pdfs": [
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-latin-normal/PrintPaged/actual.pdf",
+            "bytes": 20362,
+            "sha256": "ea73a26a0d405751aa1dc9bf29fbf2c72d280940aaed2d428d778d49db48b3e1"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-latin-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 20362,
+            "sha256": "ea73a26a0d405751aa1dc9bf29fbf2c72d280940aaed2d428d778d49db48b3e1"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-mixed-normal/PrintPaged/actual.pdf",
+            "bytes": 27980,
+            "sha256": "5307078d425d57d97f7cb2422be46728f976f063185193f2c58ec6e8407b8dbf"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-mixed-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 27980,
+            "sha256": "5307078d425d57d97f7cb2422be46728f976f063185193f2c58ec6e8407b8dbf"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20370,
+            "sha256": "9a9fe18c3d6c808f79083eb36ec34ca93ed93098e2144bb0e0a89d9c0d22d94e"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20370,
+            "sha256": "9a9fe18c3d6c808f79083eb36ec34ca93ed93098e2144bb0e0a89d9c0d22d94e"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-paged31/PrintPaged/actual.pdf",
+            "bytes": 181698,
+            "sha256": "3f847a04fd8456c63ec6e4ac98626c53b993754aa903c321a6c1ec446055ac23"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/nominal-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 181698,
+            "sha256": "3f847a04fd8456c63ec6e4ac98626c53b993754aa903c321a6c1ec446055ac23"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/pinned-line-height/PrintPaged/actual.pdf",
+            "bytes": 10385,
+            "sha256": "0efc258318622fb7d3fa2e3066c3d76064df16f7d7724c1944de47982596fcec"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/pinned-line-height/ScreenMediaPaged/actual.pdf",
+            "bytes": 10385,
+            "sha256": "0efc258318622fb7d3fa2e3066c3d76064df16f7d7724c1944de47982596fcec"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-typography/PrintPaged/actual.pdf",
+            "bytes": 26067,
+            "sha256": "08d07f68743d11511b40551fe95bae9a5c9de98fc6ccd120ae2bf57a2388adb5"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-typography/ScreenMediaPaged/actual.pdf",
+            "bytes": 26067,
+            "sha256": "08d07f68743d11511b40551fe95bae9a5c9de98fc6ccd120ae2bf57a2388adb5"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20436,
+            "sha256": "89b932c50ea618893238d4daf80f5ea1a4b03e492a9c402a126e61a9bfa181fe"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20436,
+            "sha256": "89b932c50ea618893238d4daf80f5ea1a4b03e492a9c402a126e61a9bfa181fe"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-paged31/PrintPaged/actual.pdf",
+            "bytes": 182358,
+            "sha256": "1be364eef90b0d26c9afb88af5863c937dcf1d07246127a4f82981785d099abb"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net8.0/selected-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 182358,
+            "sha256": "1be364eef90b0d26c9afb88af5863c937dcf1d07246127a4f82981785d099abb"
+          }
+        ]
+      },
+      {
+        "lane": "source-net10",
+        "runtime": ".NET 10.0.14",
+        "architecture": "Arm64",
+        "nativeAot": false,
+        "observations": 16,
+        "edgeBoundPairs": 52,
+        "additionalInklessPairs": 3,
+        "report": {
+          "path": "$TASK_ROOT/source-qualified/net10.0/observations.json",
+          "bytes": 226929,
+          "sha256": "a22ec54356875d0bc9507a9204b485991b90d8495557f184fdc9592b2b73658a"
+        },
+        "pdfs": [
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-latin-normal/PrintPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-latin-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-mixed-normal/PrintPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-mixed-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-paged31/PrintPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/nominal-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/pinned-line-height/PrintPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/pinned-line-height/ScreenMediaPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-typography/PrintPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-typography/ScreenMediaPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-paged31/PrintPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          },
+          {
+            "path": "$TASK_ROOT/source-qualified/net10.0/selected-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          }
+        ]
+      },
+      {
+        "lane": "package-net8",
+        "runtime": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "nativeAot": false,
+        "observations": 16,
+        "edgeBoundPairs": 52,
+        "additionalInklessPairs": 3,
+        "report": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/observations.json",
+          "bytes": 227337,
+          "sha256": "b80d4a3e13f04187bb3f9e0480bc053148aa51985dda05970d261f8ec6a95831"
+        },
+        "pdfs": [
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-latin-normal/PrintPaged/actual.pdf",
+            "bytes": 20362,
+            "sha256": "ea73a26a0d405751aa1dc9bf29fbf2c72d280940aaed2d428d778d49db48b3e1"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-latin-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 20362,
+            "sha256": "ea73a26a0d405751aa1dc9bf29fbf2c72d280940aaed2d428d778d49db48b3e1"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-mixed-normal/PrintPaged/actual.pdf",
+            "bytes": 27980,
+            "sha256": "5307078d425d57d97f7cb2422be46728f976f063185193f2c58ec6e8407b8dbf"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-mixed-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 27980,
+            "sha256": "5307078d425d57d97f7cb2422be46728f976f063185193f2c58ec6e8407b8dbf"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20370,
+            "sha256": "9a9fe18c3d6c808f79083eb36ec34ca93ed93098e2144bb0e0a89d9c0d22d94e"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20370,
+            "sha256": "9a9fe18c3d6c808f79083eb36ec34ca93ed93098e2144bb0e0a89d9c0d22d94e"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-paged31/PrintPaged/actual.pdf",
+            "bytes": 181698,
+            "sha256": "3f847a04fd8456c63ec6e4ac98626c53b993754aa903c321a6c1ec446055ac23"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/nominal-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 181698,
+            "sha256": "3f847a04fd8456c63ec6e4ac98626c53b993754aa903c321a6c1ec446055ac23"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/pinned-line-height/PrintPaged/actual.pdf",
+            "bytes": 10385,
+            "sha256": "0efc258318622fb7d3fa2e3066c3d76064df16f7d7724c1944de47982596fcec"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/pinned-line-height/ScreenMediaPaged/actual.pdf",
+            "bytes": 10385,
+            "sha256": "0efc258318622fb7d3fa2e3066c3d76064df16f7d7724c1944de47982596fcec"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-typography/PrintPaged/actual.pdf",
+            "bytes": 26067,
+            "sha256": "08d07f68743d11511b40551fe95bae9a5c9de98fc6ccd120ae2bf57a2388adb5"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-typography/ScreenMediaPaged/actual.pdf",
+            "bytes": 26067,
+            "sha256": "08d07f68743d11511b40551fe95bae9a5c9de98fc6ccd120ae2bf57a2388adb5"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20436,
+            "sha256": "89b932c50ea618893238d4daf80f5ea1a4b03e492a9c402a126e61a9bfa181fe"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20436,
+            "sha256": "89b932c50ea618893238d4daf80f5ea1a4b03e492a9c402a126e61a9bfa181fe"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-paged31/PrintPaged/actual.pdf",
+            "bytes": 182358,
+            "sha256": "1be364eef90b0d26c9afb88af5863c937dcf1d07246127a4f82981785d099abb"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net8/selected-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 182358,
+            "sha256": "1be364eef90b0d26c9afb88af5863c937dcf1d07246127a4f82981785d099abb"
+          }
+        ]
+      },
+      {
+        "lane": "package-net10",
+        "runtime": ".NET 10.0.14",
+        "architecture": "Arm64",
+        "nativeAot": false,
+        "observations": 16,
+        "edgeBoundPairs": 52,
+        "additionalInklessPairs": 3,
+        "report": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/observations.json",
+          "bytes": 227393,
+          "sha256": "c19ae2591650b96354d7461b16d75927b5bedb9ee04bf37b1e9c73671859eaf3"
+        },
+        "pdfs": [
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-latin-normal/PrintPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-latin-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-mixed-normal/PrintPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-mixed-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-paged31/PrintPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/nominal-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/pinned-line-height/PrintPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/pinned-line-height/ScreenMediaPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-typography/PrintPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-typography/ScreenMediaPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-paged31/PrintPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/net10/selected-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          }
+        ]
+      },
+      {
+        "lane": "package-aot",
+        "runtime": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "nativeAot": true,
+        "observations": 16,
+        "edgeBoundPairs": 52,
+        "additionalInklessPairs": 3,
+        "report": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/observations.json",
+          "bytes": 226701,
+          "sha256": "fc426a0cdf7e3f1b98dbaa32d3a7ca9af8f062546b26146f1c3d86c448e35424"
+        },
+        "pdfs": [
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-latin-normal/PrintPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-latin-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 20895,
+            "sha256": "6bac8a16b9b2ecf740b72e6548bdb9b6b9793533c49e247e430b855785fbcfad"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-mixed-normal/PrintPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-mixed-normal/ScreenMediaPaged/actual.pdf",
+            "bytes": 28699,
+            "sha256": "eb566970d910792ed77538ac443947f7f9bd88ac15154e5539c5752f5427d906"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20904,
+            "sha256": "2b1976cf7b1015dd54397303c2593a3ab77e1ca6f344f9087ce093ff8d3908b4"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-paged31/PrintPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/nominal-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 186984,
+            "sha256": "1f77e3af0df40295072e44db9caf5f3391a381114c2737f035725fa68cb129cd"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/pinned-line-height/PrintPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/pinned-line-height/ScreenMediaPaged/actual.pdf",
+            "bytes": 10490,
+            "sha256": "a95bc5bdf0b0a25a3cdf79f1ab622c5b67e5dd856cfc935bb2312efd183ac9ce"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-typography/PrintPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-typography/ScreenMediaPaged/actual.pdf",
+            "bytes": 26743,
+            "sha256": "e97ab7d68fcdc568ded4c6fff718eacbfef2a9b8264d69f01a74d8e6df381882"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-nearfit-172_3/PrintPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-nearfit-172_3/ScreenMediaPaged/actual.pdf",
+            "bytes": 20970,
+            "sha256": "58e521178d14d72dedab773160a671bef1f437073d750874c71306061486a6e2"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-paged31/PrintPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/selected-paged31/ScreenMediaPaged/actual.pdf",
+            "bytes": 187644,
+            "sha256": "a656e2be3475fb5a62213fb23c418fb58d60140bf937e195cb67465f1c3b7aa7"
+          }
+        ]
+      }
+    ],
+    "totalActualEncodedPairs": 275,
+    "advanceControls": [
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w400-normal",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w400-explicit",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w400-short",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w700-normal",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w700-explicit",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "PrintPaged",
+        "row": "w700-short",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-normal",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-explicit",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-short",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-normal",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-explicit",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "pinned-line-height",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-short",
+        "advanceDeltaCssPx": 0.0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w400-normal",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w400-explicit",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w400-short",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w700-normal",
+        "advanceDeltaCssPx": 0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w700-explicit",
+        "advanceDeltaCssPx": 0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "PrintPaged",
+        "row": "w700-short",
+        "advanceDeltaCssPx": 0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-normal",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-explicit",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w400-short",
+        "advanceDeltaCssPx": 0.0078125
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-normal",
+        "advanceDeltaCssPx": 0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-explicit",
+        "advanceDeltaCssPx": 0
+      },
+      {
+        "fixture": "selected-typography",
+        "profile": "ScreenMediaPaged",
+        "row": "w700-short",
+        "advanceDeltaCssPx": 0
+      }
+    ],
+    "maximumAdvanceDeltaCssPx": 0.0078125,
+    "limits": [
+      "Edge captures retain original ecf input/font/runtime bindings. Final consumers reuse those exact inputs and font bytes; no new capture claimed.",
+      "Eight same-font input controls bind native loaded faces to exact supplied bytes and current covering selected-program hashes. They do not expose browser internal glyph IDs. Nominal host-name observations do not prove identical browser-selected program bytes.",
+      "Atomic inline baseline-marker lines remain visibly unmatched; font advances and route parity do not establish universal native baseline, pixel or physical-print agreement.",
+      "Public SVG contour labels are logical metadata, not selectable SVG text or assistive-technology acceptance."
+    ]
+  },
+  "privatePackageInspection": {
+    "utc": "2026-10-25T23:42:28.536683+00:00",
+    "sourceHead": "6444485139a82accfe49044a57fc45a1b521c30a",
+    "passed": true,
+    "freshPackages": 5,
+    "frameworkAssets": 20,
+    "reusedProducerAssets": 0,
+    "packages": [
+      {
+        "package": "OfficeIMO.Core",
+        "version": "3.5.39",
+        "artifact": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/feed/OfficeIMO.Core.3.5.39.nupkg",
+          "bytes": 8903553,
+          "sha256": "b582ba8b6ea6cfc6ba7275bd6f9a1d7b0bff54142643a89706a8ba4f617e4825"
+        },
+        "repositoryCommit": "6444485139a82accfe49044a57fc45a1b521c30a",
+        "assets": [
+          {
+            "framework": "net472",
+            "entry": "lib/net472/OfficeIMO.Core.dll",
+            "bytes": 5050368,
+            "sha256": "2fc610f007b764b684cc03b405a0d192953fa91a91fb6446194be4355ca1f65b",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Core/release_net472/OfficeIMO.Core.dll"
+          },
+          {
+            "framework": "netstandard2.0",
+            "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
+            "bytes": 5049344,
+            "sha256": "0db750f7ccb3bc57f915150554d8cd3bf66471955e0d7bb70b3038bd11f1a5fa",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Core/release_netstandard2.0/OfficeIMO.Core.dll"
+          },
+          {
+            "framework": "net8.0",
+            "entry": "lib/net8.0/OfficeIMO.Core.dll",
+            "bytes": 5094400,
+            "sha256": "ebd317a302d609997a9f59e5a205e1f605d59ae7f33439bb1ed191c877fd406c",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll"
+          },
+          {
+            "framework": "net10.0",
+            "entry": "lib/net10.0/OfficeIMO.Core.dll",
+            "bytes": 5097472,
+            "sha256": "2da289000702891552d6caada58164667d5af12d9f07f014eb86b76835e6f6b9",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll"
+          }
+        ],
+        "dependencies": []
+      },
+      {
+        "package": "OfficeIMO.Pdf",
+        "version": "3.5.39",
+        "artifact": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/feed/OfficeIMO.Pdf.3.5.39.nupkg",
+          "bytes": 14258797,
+          "sha256": "73c4612f366acf749a52da812b6daaed3ccfdf12b1257f7e0c3cc5d90e746d13"
+        },
+        "repositoryCommit": "6444485139a82accfe49044a57fc45a1b521c30a",
+        "assets": [
+          {
+            "framework": "net472",
+            "entry": "lib/net472/OfficeIMO.Pdf.dll",
+            "bytes": 8966656,
+            "sha256": "79379d1e6d239708d0afa36383bb938732d56eff2696f2d92805e8924268e6f5",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Pdf/release_net472/OfficeIMO.Pdf.dll"
+          },
+          {
+            "framework": "netstandard2.0",
+            "entry": "lib/netstandard2.0/OfficeIMO.Pdf.dll",
+            "bytes": 8966144,
+            "sha256": "17ea3e57f18e79a32c69108b73595e30e57796fadedcabdfd0d126ea0bd65fcb",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Pdf/release_netstandard2.0/OfficeIMO.Pdf.dll"
+          },
+          {
+            "framework": "net8.0",
+            "entry": "lib/net8.0/OfficeIMO.Pdf.dll",
+            "bytes": 8973312,
+            "sha256": "b8f097d12131de26869976c4853a4841f470809dd0278232a7a41ba77ad8e71d",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll"
+          },
+          {
+            "framework": "net10.0",
+            "entry": "lib/net10.0/OfficeIMO.Pdf.dll",
+            "bytes": 8974848,
+            "sha256": "44686be43170a62e1c10995a2952adebe116138b76a2b01ea190ed62bbc72694",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll"
+          }
+        ],
+        "dependencies": [
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          }
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.Core",
+        "version": "3.5.39",
+        "artifact": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/feed/OfficeIMO.Html.Core.3.5.39.nupkg",
+          "bytes": 325278,
+          "sha256": "b8ec07f616cd9c63e800b06cca01db22b67bb816613c328c00ba55861d1a66a0"
+        },
+        "repositoryCommit": "6444485139a82accfe49044a57fc45a1b521c30a",
+        "assets": [
+          {
+            "framework": "net472",
+            "entry": "lib/net472/OfficeIMO.Html.Core.dll",
+            "bytes": 150528,
+            "sha256": "7af43b93e541c8654a3e379ae81d467fe093d917d22f99b75fa02f35f296440b",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.Core/release_net472/OfficeIMO.Html.Core.dll"
+          },
+          {
+            "framework": "netstandard2.0",
+            "entry": "lib/netstandard2.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150528,
+            "sha256": "44b155373d04b727b4af9e485c8ec96995bd8a2e4915409cb151d60c91527241",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.Core/release_netstandard2.0/OfficeIMO.Html.Core.dll"
+          },
+          {
+            "framework": "net8.0",
+            "entry": "lib/net8.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "b02688dfb44665d3d1cf5c401316e22e2580f0916cf300a5f7bbf5c821fb34b7",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.Core/release_net8.0/OfficeIMO.Html.Core.dll"
+          },
+          {
+            "framework": "net10.0",
+            "entry": "lib/net10.0/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "2c87795aa7551893d1ff20de8d98f3a2825fb272da60b8bc3bfcc8fea5175efa",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.Core/release_net10.0/OfficeIMO.Html.Core.dll"
+          }
+        ],
+        "dependencies": []
+      },
+      {
+        "package": "OfficeIMO.Html.AngleSharp",
+        "version": "3.5.39",
+        "artifact": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/feed/OfficeIMO.Html.AngleSharp.3.5.39.nupkg",
+          "bytes": 104171,
+          "sha256": "db191147b2797682193f7e47615f4a538de1f8239faa67381f10e6e00a92961b"
+        },
+        "repositoryCommit": "6444485139a82accfe49044a57fc45a1b521c30a",
+        "assets": [
+          {
+            "framework": "net472",
+            "entry": "lib/net472/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 49152,
+            "sha256": "537408c57797d4ce76efb1e3e2ef80fcbabda2f91ad1aab3bfc87400ea64ba11",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.AngleSharp/release_net472/OfficeIMO.Html.AngleSharp.dll"
+          },
+          {
+            "framework": "netstandard2.0",
+            "entry": "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 49152,
+            "sha256": "92fef7aa5f9c1ee8445ee3d4d434e1ffbaeda95f003c6205b2bcf12ddaa0f2bc",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.AngleSharp/release_netstandard2.0/OfficeIMO.Html.AngleSharp.dll"
+          },
+          {
+            "framework": "net8.0",
+            "entry": "lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "51d86fac8d3b5fd1277e724836f50153461e648065bff610f3b736cc30be4440",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.AngleSharp/release_net8.0/OfficeIMO.Html.AngleSharp.dll"
+          },
+          {
+            "framework": "net10.0",
+            "entry": "lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "09c5ce6bf52f830793e2204639382341fa19fe6d9693ea41460fb0a8aacf2179",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html.AngleSharp/release_net10.0/OfficeIMO.Html.AngleSharp.dll"
+          }
+        ],
+        "dependencies": [
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "System.Text.Encoding.CodePages",
+            "version": "8.0.0",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "System.Text.Encoding.CodePages",
+            "version": "8.0.0",
+            "exclude": "Build,Analyzers"
+          }
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html",
+        "version": "3.5.39",
+        "artifact": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/feed/OfficeIMO.Html.3.5.39.nupkg",
+          "bytes": 4896089,
+          "sha256": "10bbec75c4c88b6beeaf0544f616d960be70794b9341406d055d62065f161d20"
+        },
+        "repositoryCommit": "6444485139a82accfe49044a57fc45a1b521c30a",
+        "assets": [
+          {
+            "framework": "net472",
+            "entry": "lib/net472/OfficeIMO.Html.dll",
+            "bytes": 3069440,
+            "sha256": "4aad1e1f8371d1c4bfa60d6bc0fff74800d9b85b62ecfe0cdf43220191ab2671",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html/release_net472/OfficeIMO.Html.dll"
+          },
+          {
+            "framework": "netstandard2.0",
+            "entry": "lib/netstandard2.0/OfficeIMO.Html.dll",
+            "bytes": 3068928,
+            "sha256": "6486cc0a74b456850860f48dddd4e2b0dd1e4988f0f2f340c5014945265f03bf",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html/release_netstandard2.0/OfficeIMO.Html.dll"
+          },
+          {
+            "framework": "net8.0",
+            "entry": "lib/net8.0/OfficeIMO.Html.dll",
+            "bytes": 3069952,
+            "sha256": "dad6e54fdb4c9ccaf76ece6da6834f585dea21ee44d912cf29f6cc3c00ed430f",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html/release_net8.0/OfficeIMO.Html.dll"
+          },
+          {
+            "framework": "net10.0",
+            "entry": "lib/net10.0/OfficeIMO.Html.dll",
+            "bytes": 3070976,
+            "sha256": "2e85c5a757b28bf64adfb500f711288653560b513a125be1faabc62fef072977",
+            "producer": "$TASK_ROOT/qualified-font-3.5.39/source-graph/bin/OfficeIMO.Html/release_net10.0/OfficeIMO.Html.dll"
+          }
+        ],
+        "dependencies": [
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.AngleSharp",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Pdf",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp.Css",
+            "version": "1.1.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.AngleSharp",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Pdf",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp.Css",
+            "version": "1.1.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.AngleSharp",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Pdf",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp.Css",
+            "version": "1.1.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.AngleSharp",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "OfficeIMO.Pdf",
+            "version": "3.5.39",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp",
+            "version": "1.8.3",
+            "exclude": "Build,Analyzers"
+          },
+          {
+            "id": "AngleSharp.Css",
+            "version": "1.1.3",
+            "exclude": "Build,Analyzers"
+          }
+        ]
+      }
+    ],
+    "managedConsumers": [
+      {
+        "lane": "net8",
+        "framework": "net8.0",
+        "deployedExactAssets": [
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Core.dll",
+            "bytes": 5094400,
+            "sha256": "ebd317a302d609997a9f59e5a205e1f605d59ae7f33439bb1ed191c877fd406c"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Pdf.dll",
+            "bytes": 8973312,
+            "sha256": "b8f097d12131de26869976c4853a4841f470809dd0278232a7a41ba77ad8e71d"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "b02688dfb44665d3d1cf5c401316e22e2580f0916cf300a5f7bbf5c821fb34b7"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "51d86fac8d3b5fd1277e724836f50153461e648065bff610f3b736cc30be4440"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Html.dll",
+            "bytes": 3069952,
+            "sha256": "dad6e54fdb4c9ccaf76ece6da6834f585dea21ee44d912cf29f6cc3c00ed430f"
+          }
+        ],
+        "restoreGraph": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/consumer-graphs/net8/obj/FontMetricConsumer/project.assets.json",
+          "bytes": 11785,
+          "sha256": "c7307fe7bab8e7d61461c64015b7dca59e5809be021dd0be4976baf5e88a7b76"
+        },
+        "projectReferences": 0,
+        "observedTypedAssemblies": [
+          {
+            "name": "OfficeIMO.Html",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Html.dll",
+            "sha256": "dad6e54fdb4c9ccaf76ece6da6834f585dea21ee44d912cf29f6cc3c00ed430f"
+          },
+          {
+            "name": "OfficeIMO.Pdf",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Pdf.dll",
+            "sha256": "b8f097d12131de26869976c4853a4841f470809dd0278232a7a41ba77ad8e71d"
+          },
+          {
+            "name": "OfficeIMO.Core",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net8/OfficeIMO.Core.dll",
+            "sha256": "ebd317a302d609997a9f59e5a205e1f605d59ae7f33439bb1ed191c877fd406c"
+          }
+        ]
+      },
+      {
+        "lane": "net10",
+        "framework": "net10.0",
+        "deployedExactAssets": [
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Core.dll",
+            "bytes": 5097472,
+            "sha256": "2da289000702891552d6caada58164667d5af12d9f07f014eb86b76835e6f6b9"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Pdf.dll",
+            "bytes": 8974848,
+            "sha256": "44686be43170a62e1c10995a2952adebe116138b76a2b01ea190ed62bbc72694"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Html.Core.dll",
+            "bytes": 150016,
+            "sha256": "2c87795aa7551893d1ff20de8d98f3a2825fb272da60b8bc3bfcc8fea5175efa"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Html.AngleSharp.dll",
+            "bytes": 48640,
+            "sha256": "09c5ce6bf52f830793e2204639382341fa19fe6d9693ea41460fb0a8aacf2179"
+          },
+          {
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Html.dll",
+            "bytes": 3070976,
+            "sha256": "2e85c5a757b28bf64adfb500f711288653560b513a125be1faabc62fef072977"
+          }
+        ],
+        "restoreGraph": {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/consumer-graphs/net10/obj/FontMetricConsumer/project.assets.json",
+          "bytes": 29921,
+          "sha256": "33c1fdf5154a0fbc4a3830003d6026dda2f1578282c8667515c043dfe0f1bb5b"
+        },
+        "projectReferences": 0,
+        "observedTypedAssemblies": [
+          {
+            "name": "OfficeIMO.Html",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Html.dll",
+            "sha256": "2e85c5a757b28bf64adfb500f711288653560b513a125be1faabc62fef072977"
+          },
+          {
+            "name": "OfficeIMO.Pdf",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Pdf.dll",
+            "sha256": "44686be43170a62e1c10995a2952adebe116138b76a2b01ea190ed62bbc72694"
+          },
+          {
+            "name": "OfficeIMO.Core",
+            "path": "$TASK_ROOT/qualified-font-3.5.39/out/net10/OfficeIMO.Core.dll",
+            "sha256": "2da289000702891552d6caada58164667d5af12d9f07f014eb86b76835e6f6b9"
+          }
+        ]
+      }
+    ],
+    "nativeAot": {
+      "binary": {
+        "path": "$TASK_ROOT/qualified-font-3.5.39/out/aot/FontMetricConsumer",
+        "bytes": 35555856,
+        "sha256": "fab71f573648d05332273786f02ccb75105eec56bb2d87c4004499680fcc8679"
+      },
+      "file": "$TASK_ROOT/qualified-font-3.5.39/out/aot/FontMetricConsumer: Mach-O 64-bit executable arm64\n",
+      "dynamicLibraries": "$TASK_ROOT/qualified-font-3.5.39/out/aot/FontMetricConsumer:\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.0.0)\n\t/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)\n\t/usr/lib/swift/libswiftCore.dylib (compatibility version 0.0.0, current version 0.0.0)\n\t/usr/lib/swift/libswiftFoundation.dylib (compatibility version 1.0.0, current version 120.100.0)\n\t/usr/lib/libicucore.A.dylib (compatibility version 1.0.0, current version 78.1.0)\n\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 5027.0.69)\n\t/System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit (compatibility version 1.0.0, current version 1.0.0)\n\t/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 5027.0.69)\n\t/System/Library/Frameworks/Network.framework/Versions/A/Network (compatibility version 1.0.0, current version 6681.1.1)\n\t/System/Library/Frameworks/Security.framework/Versions/A/Security (compatibility version 1.0.0, current version 62460.1.2)\n\t/System/Library/Frameworks/GSS.framework/Versions/A/GSS (compatibility version 1.0.0, current version 1.0.0)\n",
+      "ilcResponse": {
+        "path": "$TASK_ROOT/qualified-font-3.5.39/consumer-graphs/aot/obj/FontMetricConsumer/release_osx-arm64/native/FontMetricConsumer.ilc.rsp",
+        "bytes": 45020,
+        "sha256": "15761c1221fcc7d7321b4795f941a2d5389547bb1a487b343e5a29000db6b4af"
+      },
+      "exactPrivateManagedPrelinkInputs": [
+        {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/candidate-cache/officeimo.core/3.5.39/lib/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5097472,
+          "sha256": "2da289000702891552d6caada58164667d5af12d9f07f014eb86b76835e6f6b9"
+        },
+        {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/candidate-cache/officeimo.pdf/3.5.39/lib/net10.0/OfficeIMO.Pdf.dll",
+          "bytes": 8974848,
+          "sha256": "44686be43170a62e1c10995a2952adebe116138b76a2b01ea190ed62bbc72694"
+        },
+        {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/candidate-cache/officeimo.html.core/3.5.39/lib/net10.0/OfficeIMO.Html.Core.dll",
+          "bytes": 150016,
+          "sha256": "2c87795aa7551893d1ff20de8d98f3a2825fb272da60b8bc3bfcc8fea5175efa"
+        },
+        {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/candidate-cache/officeimo.html.anglesharp/3.5.39/lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 48640,
+          "sha256": "09c5ce6bf52f830793e2204639382341fa19fe6d9693ea41460fb0a8aacf2179"
+        },
+        {
+          "path": "$TASK_ROOT/qualified-font-3.5.39/candidate-cache/officeimo.html/3.5.39/lib/net10.0/OfficeIMO.Html.dll",
+          "bytes": 3070976,
+          "sha256": "2e85c5a757b28bf64adfb500f711288653560b513a125be1faabc62fef072977"
+        }
+      ],
+      "restoreGraph": {
+        "path": "$TASK_ROOT/qualified-font-3.5.39/consumer-graphs/aot/obj/FontMetricConsumer/project.assets.json",
+        "bytes": 39061,
+        "sha256": "95c266a7c457d42e8d3d627e635c73cf6c47ed99cf76fc9d3ac445bde6f8752c"
+      },
+      "projectReferences": 0,
+      "executedReport": {
+        "path": "$TASK_ROOT/qualified-font-3.5.39/results/aot/observations.json",
+        "bytes": 226701,
+        "sha256": "fc426a0cdf7e3f1b98dbaa32d3a7ca9af8f062546b26146f1c3d86c448e35424"
+      },
+      "limit": "Prelink package inputs and actual Mach-O execution are proved; loaded managed DLL locations are not claimed for a native binary."
+    },
+    "publicPublication": false
+  },
+  "nativeInputs": {
+    "captureHead": "ecf55200bf8d424ed602b2601a49011000cd9939",
+    "recapturedForFinalSource": false,
+    "fontBytes": [
+      {
+        "path": "$TASK_ROOT/prep/native/inputs/pinned-regular.ttf",
+        "bytes": 105592,
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+        "family": "PinnedBaseline",
+        "weight": 400
+      },
+      {
+        "path": "$TASK_ROOT/prep/native/inputs/pinned-bold.ttf",
+        "bytes": 120288,
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c",
+        "family": "PinnedBaseline",
+        "weight": 700
+      },
+      {
+        "path": "$TASK_ROOT/native-ecf/bound-inputs/selected-regular.font",
+        "bytes": 773236,
+        "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9",
+        "family": "SelectedBaseline",
+        "weight": 400
+      },
+      {
+        "path": "$TASK_ROOT/native-ecf/bound-inputs/selected-bold.font",
+        "bytes": 750984,
+        "sha256": "d72db21f9242aedd6b917d8549ad5921766b24d5f8d0becfda2ff4c620b3c2e0",
+        "family": "SelectedBaseline",
+        "weight": 700
+      }
+    ],
+    "cases": [
+      {
+        "fixture": "nominal-latin-normal",
+        "input": {
+          "path": "$TASK_ROOT/prep/native/inputs/nominal-latin-normal.html",
+          "bytes": 466,
+          "sha256": "3339dbd37e76d16e7ad400177b770039b7787e637cedf41c09cc991822847611"
+        },
+        "fontMode": "nominal-host-family",
+        "originalFontClaim": false,
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/print.pdf",
+              "bytes": 23702,
+              "sha256": "dc3de2986a850c8c1a6dacbaa3a814cc732a7ca06d6587fede4e1070e55b8ea6"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/print-bbox.html",
+              "bytes": 1026,
+              "sha256": "d4e43c90f09a15fd33a1da8b01df35c83275eb050f1bf6d1f0f3a34b3b93e9c8"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/print.json",
+              "bytes": 912,
+              "sha256": "38583ab10ee09ae16d6c947509450399eea58a9d2ed53e3fe8143f2302d62e83"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/print-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  240.0,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  320,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/print-page-1.png",
+                  "bytes": 3339,
+                  "sha256": "dd0c250f616120360e98cbbada537d413194ee3e2cbbef8a39a1c355dac82ca4"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/screen.pdf",
+              "bytes": 23702,
+              "sha256": "dc3de2986a850c8c1a6dacbaa3a814cc732a7ca06d6587fede4e1070e55b8ea6"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/screen-bbox.html",
+              "bytes": 1026,
+              "sha256": "d4e43c90f09a15fd33a1da8b01df35c83275eb050f1bf6d1f0f3a34b3b93e9c8"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/screen.json",
+              "bytes": 913,
+              "sha256": "24303a7ea0b05a336bd50623f3a13a58153e4b94de5f5b2b55e0cba7273f5295"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/screen-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  240.0,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  320,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-latin-normal/screen-page-1.png",
+                  "bytes": 3339,
+                  "sha256": "dd0c250f616120360e98cbbada537d413194ee3e2cbbef8a39a1c355dac82ca4"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "nominal-mixed-normal",
+        "input": {
+          "path": "$TASK_ROOT/prep/native/inputs/nominal-mixed-normal.html",
+          "bytes": 539,
+          "sha256": "9ecb351448d946da6a90fc593bbabe54a222e93452cc6672a3b17bc71d63753d"
+        },
+        "fontMode": "nominal-host-family",
+        "originalFontClaim": false,
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/print.pdf",
+              "bytes": 25920,
+              "sha256": "15eb4e24d21458bdf42324169e559f8c49264067286b27e0ab99a2a404bf11ad"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/print-bbox.html",
+              "bytes": 1213,
+              "sha256": "7b1818a678593c4c7be0b4d768a37b9ac4fb7f90538213f535f0132ab2f24cd5"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/print.json",
+              "bytes": 1130,
+              "sha256": "eb76d9fd1dab028f21d8ded09f20c6563fd421b7ef01cd5f1ff6e553b69ff367"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/print-dom-debug.png",
+              "bytes": 5253,
+              "sha256": "f08d8eb84bf7ab9b5cf747dbf811bb80e1af7386ad8a5ae73201c020a0ee3052"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  240.0,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  320,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/print-page-1.png",
+                  "bytes": 4211,
+                  "sha256": "bc37635c5115a463a0f51f18303c01ef598402b350075b4ef6b46afe2ebe270f"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "123",
+                    "xMin": "198.527339",
+                    "yMin": "12.244628",
+                    "xMax": "216.046137",
+                    "yMax": "23.975097"
+                  },
+                  {
+                    "text": "םולש",
+                    "xMin": "218.964102",
+                    "yMin": "12.244628",
+                    "xMax": "239.989736",
+                    "yMax": "23.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/screen.pdf",
+              "bytes": 25920,
+              "sha256": "15eb4e24d21458bdf42324169e559f8c49264067286b27e0ab99a2a404bf11ad"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/screen-bbox.html",
+              "bytes": 1213,
+              "sha256": "7b1818a678593c4c7be0b4d768a37b9ac4fb7f90538213f535f0132ab2f24cd5"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/screen.json",
+              "bytes": 1131,
+              "sha256": "24ce98391ceba12e8764cd30dcd9cb647a6644c25329af3d8e062e5860e295c1"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/screen-dom-debug.png",
+              "bytes": 5253,
+              "sha256": "f08d8eb84bf7ab9b5cf747dbf811bb80e1af7386ad8a5ae73201c020a0ee3052"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  240.0,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  320,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-mixed-normal/screen-page-1.png",
+                  "bytes": 4211,
+                  "sha256": "bc37635c5115a463a0f51f18303c01ef598402b350075b4ef6b46afe2ebe270f"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "123",
+                    "xMin": "198.527339",
+                    "yMin": "12.244628",
+                    "xMax": "216.046137",
+                    "yMax": "23.975097"
+                  },
+                  {
+                    "text": "םולש",
+                    "xMin": "218.964102",
+                    "yMin": "12.244628",
+                    "xMax": "239.989736",
+                    "yMax": "23.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "nominal-nearfit-172_3",
+        "input": {
+          "path": "$TASK_ROOT/prep/native/inputs/nominal-nearfit-172_3.html",
+          "bytes": 470,
+          "sha256": "0428046962194c306c5096b9248ba3eb833b71cd9323be48a917d1f008428d12"
+        },
+        "fontMode": "nominal-host-family",
+        "originalFontClaim": false,
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/print.pdf",
+              "bytes": 23711,
+              "sha256": "334caf56ad9da9fb875f9977557b4e8a9f2ace1681e1e5346c59b5cc566886d6"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/print-bbox.html",
+              "bytes": 1027,
+              "sha256": "d24388d984b3dd5117544d430b0d4b80712fedadb952fd020c594a7c3ea95c99"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/print.json",
+              "bytes": 921,
+              "sha256": "c2831b6a89f41e39f5f1a25311e43a709b14329eeae1f0faac0e1a53bbb71afc"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/print-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  173,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/print-page-1.png",
+                  "bytes": 3156,
+                  "sha256": "24f7e2265b547a58ee49ca90e1f17bbdd12b9d894543bde45a1a5d24589ef56e"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/screen.pdf",
+              "bytes": 23711,
+              "sha256": "334caf56ad9da9fb875f9977557b4e8a9f2ace1681e1e5346c59b5cc566886d6"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/screen-bbox.html",
+              "bytes": 1027,
+              "sha256": "d24388d984b3dd5117544d430b0d4b80712fedadb952fd020c594a7c3ea95c99"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/screen.json",
+              "bytes": 922,
+              "sha256": "1eda7744cff0a84fbc700d8fc95989cb830dba64de8084ccbc4ad5e47283c6b7"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/screen-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  173,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-nearfit-172_3/screen-page-1.png",
+                  "bytes": 3156,
+                  "sha256": "24f7e2265b547a58ee49ca90e1f17bbdd12b9d894543bde45a1a5d24589ef56e"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "nominal-paged31",
+        "input": {
+          "path": "$TASK_ROOT/prep/native/inputs/nominal-paged31.html",
+          "bytes": 1438,
+          "sha256": "668b4ba5e382f6438dc9b9c707624217fdf80d775663e3a08558048ebf9381cb"
+        },
+        "fontMode": "nominal-host-family",
+        "originalFontClaim": false,
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 10,
+            "plannedPageCount": null,
+            "pageCountMatches": null,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/print.pdf",
+              "bytes": 28634,
+              "sha256": "70d996b4ca59c60a4601ac34a6d4fa5e1acb6dbae389410bd318b1b6a244d497"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-bbox.html",
+              "bytes": 4792,
+              "sha256": "6d7fcd3db5af391acbeba0f8b7a6a0d728614688190eb76355f82a3cff46f862"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/print.json",
+              "bytes": 4775,
+              "sha256": "9c515e612fff4b36ccf093c2f371ca2cf17cea89207c5589151b76a7d6b302ea"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-dom-debug.png",
+              "bytes": 4772,
+              "sha256": "9ae533d586ac207f71aa73a39bb9a61478b5ab5da2aa67eefad7772f48b99b9a"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-01.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 2,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-02.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 3,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-03.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 4,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-04.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 5,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-05.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 6,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-06.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 7,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-07.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 8,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-08.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 9,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-09.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 10,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/print-page-10.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 10,
+            "plannedPageCount": null,
+            "pageCountMatches": null,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen.pdf",
+              "bytes": 28634,
+              "sha256": "70d996b4ca59c60a4601ac34a6d4fa5e1acb6dbae389410bd318b1b6a244d497"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-bbox.html",
+              "bytes": 4792,
+              "sha256": "6d7fcd3db5af391acbeba0f8b7a6a0d728614688190eb76355f82a3cff46f862"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen.json",
+              "bytes": 4776,
+              "sha256": "8f8941fa8d8b3cee8be1e20e564c105b9db27d62607f99e838279023e9fd7ce8"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-dom-debug.png",
+              "bytes": 4772,
+              "sha256": "9ae533d586ac207f71aa73a39bb9a61478b5ab5da2aa67eefad7772f48b99b9a"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-01.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 2,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-02.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 3,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-03.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 4,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-04.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 5,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-05.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 6,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-06.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 7,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-07.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 8,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-08.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 9,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-09.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 10,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/nominal-paged31/screen-page-10.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "pinned-line-height",
+        "input": {
+          "path": "$TASK_ROOT/prep/native/inputs/pinned-line-height.html",
+          "bytes": 1856,
+          "sha256": "438ae92ceb4388afd8f15d66044b886adc8ce66e84692e2651988cae0afce68d"
+        },
+        "fontMode": "pinned-supplied-programs",
+        "originalFontClaim": "Exact pinned bytes supplied; real coverage/DOM/PDF adjudication remains required.",
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/print.pdf",
+              "bytes": 9504,
+              "sha256": "b4883f0f49a61d5d725ea62d45cca993f50a6d9132cf7ac755bd9b396ba90e07"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/print-bbox.html",
+              "bytes": 1197,
+              "sha256": "d345391541d9c1d424ab7cc0027439101acd69c48123c42c58094d42fc7041d2"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/print.json",
+              "bytes": 3675,
+              "sha256": "497edd3c603fb2f64e84a056ca185ff7e1def7076e23175e97266ce183b2b814"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/print-dom-debug.png",
+              "bytes": 3231,
+              "sha256": "cc6bd00de4f79ce5f3a44753563dd2420ee40b6289675cc3c2afa1086163b9ba"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  270.0,
+                  180.0
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.0
+                ],
+                "rasterPixels": [
+                  360,
+                  240
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/pinned-line-height/print-page-1.png",
+                  "bytes": 2455,
+                  "sha256": "e52e419efbe6be3c164904702543f8c4cdf54dfdfd29db43ddb18d1d2b90ee77"
+                },
+                "positionedWords": [
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "-0.175781",
+                    "xMax": "24.861327",
+                    "yMax": "14.472656"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "14.074218",
+                    "xMax": "24.861327",
+                    "yMax": "28.722655"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "24.574218",
+                    "xMax": "24.861327",
+                    "yMax": "39.222655"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "35.824217",
+                    "xMax": "25.382811",
+                    "yMax": "50.472654"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "50.074217",
+                    "xMax": "25.382811",
+                    "yMax": "64.722654"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "60.574216",
+                    "xMax": "25.382811",
+                    "yMax": "75.222653"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/screen.pdf",
+              "bytes": 9504,
+              "sha256": "b4883f0f49a61d5d725ea62d45cca993f50a6d9132cf7ac755bd9b396ba90e07"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/screen-bbox.html",
+              "bytes": 1197,
+              "sha256": "d345391541d9c1d424ab7cc0027439101acd69c48123c42c58094d42fc7041d2"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/screen.json",
+              "bytes": 3676,
+              "sha256": "bab59d55831c7cfae9c6cc94007b5b961f18409af92e52153966dacd1aa01f77"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/pinned-line-height/screen-dom-debug.png",
+              "bytes": 3231,
+              "sha256": "cc6bd00de4f79ce5f3a44753563dd2420ee40b6289675cc3c2afa1086163b9ba"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  270.0,
+                  180.0
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  0.0
+                ],
+                "rasterPixels": [
+                  360,
+                  240
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/pinned-line-height/screen-page-1.png",
+                  "bytes": 2455,
+                  "sha256": "e52e419efbe6be3c164904702543f8c4cdf54dfdfd29db43ddb18d1d2b90ee77"
+                },
+                "positionedWords": [
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "-0.175781",
+                    "xMax": "24.861327",
+                    "yMax": "14.472656"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "14.074218",
+                    "xMax": "24.861327",
+                    "yMax": "28.722655"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "24.574218",
+                    "xMax": "24.861327",
+                    "yMax": "39.222655"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "35.824217",
+                    "xMax": "25.382811",
+                    "yMax": "50.472654"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "50.074217",
+                    "xMax": "25.382811",
+                    "yMax": "64.722654"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "60.574216",
+                    "xMax": "25.382811",
+                    "yMax": "75.222653"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "selected-typography",
+        "input": {
+          "path": "$TASK_ROOT/native-ecf/bound-inputs/selected-typography.html",
+          "bytes": 2042,
+          "sha256": "22f18f498efc9b0e3ce6dfafae5d3834dbd5477e9c7531fb50b0e2fd90ecd555"
+        },
+        "fontMode": "conditional-exact-source-selected-programs",
+        "originalFontClaim": "Not available until selected bytes and source observer coverage are bound; exact supplied bytes alone do not prove per-character usage.",
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/print.pdf",
+              "bytes": 28425,
+              "sha256": "722652c916cf401007d248e99ba1c6959be82546b5667b8647e66ea2583d4ccd"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/print-bbox.html",
+              "bytes": 1751,
+              "sha256": "903317340f34a216956251fcf6d984ac8f529a6e6a7e60171e8a098213aef9ca"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/print.json",
+              "bytes": 4374,
+              "sha256": "409aaf582a094da51fca84d963a8906584b86d17be75a87fe3b1e1b3c5d3f474"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/print-dom-debug.png",
+              "bytes": 7069,
+              "sha256": "e2352f060355bbd71b5511d22f5ab335bede91629949f8635cf933b6d3551558"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  270.0,
+                  224.87999
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  -0.12001000000000772
+                ],
+                "rasterPixels": [
+                  360,
+                  300
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-typography/print-page-1.png",
+                  "bytes": 6974,
+                  "sha256": "3a01c4ecefc4fe054b0b3e89558a15c0d470b61ee4e55c2a656f24805a6a0b59"
+                },
+                "positionedWords": [
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "-0.363281",
+                    "xMax": "28.013671",
+                    "yMax": "13.042968"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "13.886718",
+                    "xMax": "28.013671",
+                    "yMax": "27.292968"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "24.386718",
+                    "xMax": "28.013671",
+                    "yMax": "37.792967"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "34.886717",
+                    "xMax": "29.999999",
+                    "yMax": "48.292967"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "49.136717",
+                    "xMax": "29.999999",
+                    "yMax": "62.542966"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "59.636716",
+                    "xMax": "29.999999",
+                    "yMax": "73.042966"
+                  },
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "70.744626",
+                    "xMax": "20.420653",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "70.744626",
+                    "xMax": "57.175779",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "70.744626",
+                    "xMax": "93.951412",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "70.744626",
+                    "xMax": "128.978754",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "123",
+                    "xMin": "228.527338",
+                    "yMin": "82.744625",
+                    "xMax": "246.046136",
+                    "yMax": "94.475094"
+                  },
+                  {
+                    "text": "םולש",
+                    "xMin": "248.964101",
+                    "yMin": "82.744625",
+                    "xMax": "269.989735",
+                    "yMax": "94.475094"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/screen.pdf",
+              "bytes": 28425,
+              "sha256": "722652c916cf401007d248e99ba1c6959be82546b5667b8647e66ea2583d4ccd"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/screen-bbox.html",
+              "bytes": 1751,
+              "sha256": "903317340f34a216956251fcf6d984ac8f529a6e6a7e60171e8a098213aef9ca"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/screen.json",
+              "bytes": 4375,
+              "sha256": "6b82ac928d876638f53f5a1afb80958d6192f08f680a210452971fd744260403"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-typography/screen-dom-debug.png",
+              "bytes": 7069,
+              "sha256": "e2352f060355bbd71b5511d22f5ab335bede91629949f8635cf933b6d3551558"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  270.0,
+                  224.87999
+                ],
+                "paperDeltaPoints": [
+                  0.0,
+                  -0.12001000000000772
+                ],
+                "rasterPixels": [
+                  360,
+                  300
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-typography/screen-page-1.png",
+                  "bytes": 6974,
+                  "sha256": "3a01c4ecefc4fe054b0b3e89558a15c0d470b61ee4e55c2a656f24805a6a0b59"
+                },
+                "positionedWords": [
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "-0.363281",
+                    "xMax": "28.013671",
+                    "yMax": "13.042968"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "13.886718",
+                    "xMax": "28.013671",
+                    "yMax": "27.292968"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "24.386718",
+                    "xMax": "28.013671",
+                    "yMax": "37.792967"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "34.886717",
+                    "xMax": "29.999999",
+                    "yMax": "48.292967"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "49.136717",
+                    "xMax": "29.999999",
+                    "yMax": "62.542966"
+                  },
+                  {
+                    "text": "Hgyp",
+                    "xMin": "0.000000",
+                    "yMin": "59.636716",
+                    "xMax": "29.999999",
+                    "yMax": "73.042966"
+                  },
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "70.744626",
+                    "xMax": "20.420653",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "70.744626",
+                    "xMax": "57.175779",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "70.744626",
+                    "xMax": "93.951412",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "70.744626",
+                    "xMax": "128.978754",
+                    "yMax": "82.475094"
+                  },
+                  {
+                    "text": "123",
+                    "xMin": "228.527338",
+                    "yMin": "82.744625",
+                    "xMax": "246.046136",
+                    "yMax": "94.475094"
+                  },
+                  {
+                    "text": "םולש",
+                    "xMin": "248.964101",
+                    "yMin": "82.744625",
+                    "xMax": "269.989735",
+                    "yMax": "94.475094"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "selected-nearfit-172_3",
+        "input": {
+          "path": "$TASK_ROOT/native-ecf/bound-inputs/selected-nearfit-172_3.html",
+          "bytes": 718,
+          "sha256": "22060e79c73a103b60755bc5ba7b495cbc0bee6b97f372e43c362498c5181960"
+        },
+        "fontMode": "conditional-exact-source-selected-programs",
+        "originalFontClaim": "Not available until selected bytes and source observer coverage are bound; exact supplied bytes alone do not prove per-character usage.",
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/print.pdf",
+              "bytes": 23715,
+              "sha256": "e603fb65592faa6405f5764ef3b9596f8b44ecec5bc3f712bb23d82fa0ba9d5f"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/print-bbox.html",
+              "bytes": 1028,
+              "sha256": "21250db8ce3d22714a2316ace26a98364677ae5882175fd212551b21e6b2241c"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/print.json",
+              "bytes": 1079,
+              "sha256": "241e5e09a8c67e2702798940745267329b12f3f6d147ec25976ea41a5807a3f9"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/print-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  173,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/print-page-1.png",
+                  "bytes": 3156,
+                  "sha256": "24f7e2265b547a58ee49ca90e1f17bbdd12b9d894543bde45a1a5d24589ef56e"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "plannedPageCount": 1,
+            "pageCountMatches": true,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/screen.pdf",
+              "bytes": 23715,
+              "sha256": "e603fb65592faa6405f5764ef3b9596f8b44ecec5bc3f712bb23d82fa0ba9d5f"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/screen-bbox.html",
+              "bytes": 1028,
+              "sha256": "21250db8ce3d22714a2316ace26a98364677ae5882175fd212551b21e6b2241c"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/screen.json",
+              "bytes": 1080,
+              "sha256": "c517e307eb8d47c323165c49474c42764219d6a591ebf9012754366905c2a845"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/screen-dom-debug.png",
+              "bytes": 4343,
+              "sha256": "93a742fde9e7d1ca0b987cfbf9b14ae6e4e0898b4484a4e0d1054b255cc2fae6"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  75.119995
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  0.11999500000000296
+                ],
+                "rasterPixels": [
+                  173,
+                  101
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-nearfit-172_3/screen-page-1.png",
+                  "bytes": 3156,
+                  "sha256": "24f7e2265b547a58ee49ca90e1f17bbdd12b9d894543bde45a1a5d24589ef56e"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fixture": "selected-paged31",
+        "input": {
+          "path": "$TASK_ROOT/native-ecf/bound-inputs/selected-paged31.html",
+          "bytes": 1785,
+          "sha256": "3e5a4a2c00a65780cb96f62b80b74f9a97719b9afbd2f98242e9e60429cb9cf1"
+        },
+        "fontMode": "conditional-exact-source-selected-programs",
+        "originalFontClaim": "Not available until selected bytes and source observer coverage are bound; exact supplied bytes alone do not prove per-character usage.",
+        "observations": [
+          {
+            "media": "print",
+            "profile": "PrintPaged",
+            "pages": 10,
+            "plannedPageCount": null,
+            "pageCountMatches": null,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/print.pdf",
+              "bytes": 28638,
+              "sha256": "ebdefa09dbccd007f6af6dd4fbd555ed6d5872a195532c77574f05c4a21c097d"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/print-bbox.html",
+              "bytes": 4793,
+              "sha256": "eed3e5b48ee4c6c1a14769357cfea62bea6ea6569ff8a6c131b3fb45dad0da64"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/print.json",
+              "bytes": 5131,
+              "sha256": "d087244110bdb77f9d1d50692c8fd4d599f4e085a259748cd56e7638e8c92b49"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/print-dom-debug.png",
+              "bytes": 4772,
+              "sha256": "9ae533d586ac207f71aa73a39bb9a61478b5ab5da2aa67eefad7772f48b99b9a"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-01.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 2,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-02.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 3,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-03.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 4,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-04.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 5,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-05.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 6,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-06.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 7,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-07.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 8,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-08.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 9,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-09.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 10,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/print-page-10.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "media": "screen",
+            "profile": "ScreenMediaPaged",
+            "pages": 10,
+            "plannedPageCount": null,
+            "pageCountMatches": null,
+            "pdf": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/screen.pdf",
+              "bytes": 28638,
+              "sha256": "ebdefa09dbccd007f6af6dd4fbd555ed6d5872a195532c77574f05c4a21c097d"
+            },
+            "bbox": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-bbox.html",
+              "bytes": 4793,
+              "sha256": "eed3e5b48ee4c6c1a14769357cfea62bea6ea6569ff8a6c131b3fb45dad0da64"
+            },
+            "dom": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/screen.json",
+              "bytes": 5132,
+              "sha256": "9b4731b907af996599838bd49ccc827a9cf01f83d1b50d7f96351c707c87f464"
+            },
+            "domScreenshot": {
+              "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-dom-debug.png",
+              "bytes": 4772,
+              "sha256": "9ae533d586ac207f71aa73a39bb9a61478b5ab5da2aa67eefad7772f48b99b9a"
+            },
+            "pageObservations": [
+              {
+                "page": 1,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-01.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 2,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-02.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 3,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-03.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 4,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-04.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 5,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-05.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 6,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-06.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 7,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-07.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 8,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-08.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 9,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-09.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              },
+              {
+                "page": 10,
+                "paperPoints": [
+                  129.119995,
+                  23.039999
+                ],
+                "paperDeltaPoints": [
+                  -0.10500500000003399,
+                  -0.21000099999999833
+                ],
+                "rasterPixels": [
+                  173,
+                  31
+                ],
+                "raster": {
+                  "path": "$TASK_ROOT/native-ecf/selected-paged31/screen-page-10.png",
+                  "bytes": 2958,
+                  "sha256": "fc5566e385cfc88150470a082ac16e2ef5db826e3f6b814405fb72ee121144d8"
+                },
+                "positionedWords": [
+                  {
+                    "text": "One",
+                    "xMin": "0.000000",
+                    "yMin": "0.244629",
+                    "xMax": "20.420653",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "model.",
+                    "xMin": "23.337890",
+                    "yMin": "0.244629",
+                    "xMax": "57.175779",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "Shared",
+                    "xMin": "60.093015",
+                    "yMin": "0.244629",
+                    "xMax": "93.951412",
+                    "yMax": "11.975097"
+                  },
+                  {
+                    "text": "output.",
+                    "xMin": "96.868648",
+                    "yMin": "0.244629",
+                    "xMax": "128.978754",
+                    "yMax": "11.975097"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actualCaptureReceipt": {
+      "path": "$TASK_ROOT/native-ecf/execution.json",
+      "bytes": 195167,
+      "sha256": "0af890e242440d66c000f0993750b541959da39a3b926d434913fcf443572f0a"
+    }
+  },
+  "visualAcceptance": {
+    "accepted": true,
+    "fourNativeComparisonContactsAndThreeRealFontBidiCasesViewed": true,
+    "currentScreenMediaPagedPngSequencesEqualPrintPaged": true,
+    "receipt": {
+      "path": "$TASK_ROOT/prep/finish-authorized/root-render-acceptance.json",
+      "bytes": 4698,
+      "sha256": "f995ce73702e365b7af81954981c957345f65b260e1b61c0694f491802dde5a4"
+    },
+    "nativeAtomicBaselineMarkers": "Unmatched leading/position retained in roadmap; no universal native appearance or physical-print claim."
+  },
+  "reviewEvidence": {
+    "fontDiscoveryAndMetricProvenance": {
+      "independentPasses": 1,
+      "targetedConfirmations": 1,
+      "reproducedFindingsAddressed": true
+    },
+    "newBidiVectorLogicalContract": {
+      "independentPasses": 1,
+      "targetedConfirmations": 1,
+      "threeWhitespaceBeforeFailuresReproducedAndAddressed": true
+    },
+    "unresolvedValidatedInScopeFindings": 0,
+    "boundary": "Risk-scoped local evidence; hosted PR checks and reviews remain separate."
+  },
+  "reproductionEvidence": [
+    {
+      "case": "initial marker/frame attribution",
+      "before": {
+        "path": "$TASK_ROOT/trx/review-reproductions-before-v2.trx",
+        "bytes": 11833,
+        "sha256": "20c3bb9ad9aef69e9776fd640c49ce077a2baa9fb4cf9052d80c13e817afbc30"
+      },
+      "expectedFailures": 3
+    },
+    {
+      "case": "covered body/uncovered marker prefix",
+      "before": {
+        "path": "$TASK_ROOT/trx/marker-prefix-before.trx",
+        "bytes": 8460,
+        "sha256": "3f7a362b76ab615ab4d1cae900dcfb0bf0277548dc6134f5d7919a401a411dc7"
+      },
+      "expectedFailures": 1
+    },
+    {
+      "case": "inkless bidi slices",
+      "before": {
+        "path": "$TASK_ROOT/trx/bidi-inkless-before-v2.trx",
+        "bytes": 12915,
+        "sha256": "4521b171d8fe5f87b8ee14e3bfaaf9d4f072c4cbee46852f75c9d52ba1698a73"
+      },
+      "expectedFailures": 3
+    },
+    {
+      "case": "bidi/reading-order/metadata repair",
+      "after": {
+        "path": "$TASK_ROOT/trx/bidi-inkless-repair.trx",
+        "bytes": 262474,
+        "sha256": "d8d66ddbcbada41b7041d5cf8d6837a824dc0e5cd29ff64395ba138a2989f87d"
+      },
+      "passes": 165
+    }
+  ],
+  "excludedAttempts": {
+    "freshGraphNoBuildInvocation": "Exited0 without running tests or creating TRX; explicitly excluded. Final broad invocations build and have actual TRX.",
+    "earlierFailedAndHarnessAttempts": "Preserved in task evidence, not included in the20completed final roles or final counts. Includes initial decoder/policy/duplicate-key/compile attempts and earlier regression failures."
+  },
+  "retention": {
+    "runtimeMetadataArchive": {
+      "path": "$TASK_ROOT/retained-runtime-metadata-font-final.zip",
+      "bytes": 556375841,
+      "sha256": "9e29450b5842f6b72882a63dc37683d27afedc57e26c9732b9f097d6f26753c3"
+    },
+    "pathMap": {
+      "path": "$TASK_ROOT/prep/finish-authorized/storage/path-map.json.gz",
+      "bytes": 678097,
+      "sha256": "54cbfe8d616a316dc6b5600447351239f36e3cb247edb73d38bf24e311f432b9"
+    },
+    "verifiedPaths": 10230,
+    "uniqueObjects": 4588,
+    "separateReadbackPassed": true,
+    "currentAndOriginalPhysicalFaceBindingAudit": {
+      "path": "$TASK_ROOT/prep/finish-authorized/storage/supplemental-binding-audit.json",
+      "bytes": 10605,
+      "sha256": "34a4450b25ff3413b4f3712e38daa5bad9be0c484d4e349ab2b1d2a87000b8bc"
+    },
+    "allDisposableGraphCacheTempTargetsAbsent": true,
+    "removedLogicalBytes": 6042945219,
+    "retainedLogicalBytesAtCloseout": 953225580,
+    "priorEvidenceAndActualOutputsRemainProtected": true
+  },
+  "limits": [
+    "Fonts selected by host name remain host-dependent; portable output needs supplied bytes and explicit policy.",
+    "Same-font input controls bind loaded native faces, supplied bytes and covering source programs; browser internal glyph IDs are not exposed.",
+    "Atomic inline baseline-marker lines remain visibly unmatched.",
+    "Contour SVG labels are logical metadata, not selectable text or assistive-technology acceptance.",
+    "Windows correctness remains a hosted gate; Windows profiling is outside this evidence.",
+    "Private qualification packages are not public package releases."
+  ]
+}
