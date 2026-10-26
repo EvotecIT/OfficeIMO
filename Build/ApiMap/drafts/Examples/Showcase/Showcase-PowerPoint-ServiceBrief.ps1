@@ -109,5 +109,4 @@ New-OfficePowerPoint -Path $path -Theme Boardroom -Accent '#008C95' -Purpose 'wo
     }
 }
 
-$deck = Open-OfficePowerPoint -Path $path
-try { Get-OfficePowerPointSlide -Document $deck -Summary } finally { Close-OfficePowerPoint -Document $deck }
+Get-OfficePowerPointSlide -Path $path -Summary

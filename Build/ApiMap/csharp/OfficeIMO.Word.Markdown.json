@@ -6,8 +6,7 @@
     "byAction": {
       "change": 5,
       "internalize": 4,
-      "merge": 11,
-      "move": 1,
+      "merge": 12,
       "rename": 11
     },
     "byCategory": {
@@ -68,8 +67,7 @@
     "readmeImpact": "README mentions ToHtmlViaMarkdown/ToHtmlFragmentViaMarkdown/SaveAsHtmlViaMarkdown, which are not in the current public API (stale README to fix with M4)."
   },
   "openQuestions": [
-    "Raw HTML blocks lose fidelity when only OfficeIMO.Word.Markdown is installed; acceptable default?",
-    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape."
+    "Raw HTML blocks lose fidelity when only OfficeIMO.Word.Markdown is installed; acceptable default?"
   ],
   "changes": [
     {
@@ -77,7 +75,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsMarkdown(string path, WordMarkdownExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns WordToMarkdownResult today."
@@ -87,7 +85,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsMarkdown(Stream stream, WordMarkdownExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns WordToMarkdownResult today."
@@ -97,7 +95,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsMarkdownAsync(string path, WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<WordToMarkdownResult> today."
@@ -107,7 +105,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsMarkdownAsync(Stream stream, WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<WordToMarkdownResult> today."
@@ -117,7 +115,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns string today; the string form becomes doc.ToMarkdown().ToMarkdown(). Breaks every caller that uses the string."
@@ -136,7 +134,7 @@
       "kind": "method",
       "action": "merge",
       "new": "WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion"
     },
@@ -144,7 +142,7 @@
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "WordDocument.FromMarkdown(markdown, WordMarkdownImportOptions options, out OfficeConversionReport report)",
+      "new": "MarkdownDocument.ToWord(WordMarkdownImportOptions options, out OfficeConversionReport report) : WordDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion"
@@ -153,18 +151,18 @@
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "MarkdownDocument.ToWord(WordMarkdownImportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Extension on MarkdownDoc today (md.ToWordDocument()); static WordDocument.FromMarkdown needs a C# 14 static extension member."
+      "notes": "Extension on MarkdownDoc today (md.ToWordDocument()). From text: MarkdownDocument.Parse(text).ToWord()."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions { Template = templateDocument }) : WordDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "MarkdownDocument.ToWord(new WordMarkdownImportOptions { Template = templateDocument }) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "MarkdownToWordTemplateOptions merges into WordMarkdownImportOptions."
@@ -216,7 +214,7 @@
       "category": "conversion"
     },
     {
-      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionResult`1",
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionResult<T>",
       "kind": "type",
       "action": "merge",
       "new": "OfficeIMO.OfficeConversionReport",
@@ -303,12 +301,12 @@
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",
       "kind": "type",
-      "action": "move",
-      "new": "OfficeIMO.MarkdownRenderer.IntelligenceX (or internal)",
-      "reason": "Product-specific preset (CreateIntelligenceXTranscript) in a general adapter.",
+      "action": "merge",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(...) : WordMarkdownImportOptions",
+      "reason": "Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages).",
       "file": "OfficeIMO.Word.Markdown/Presets/MarkdownToWordPresets.cs",
       "category": "visibility",
-      "notes": "Candidate."
+      "notes": "MarkdownToWordPresets holds one factory, CreateIntelligenceXTranscript. OfficeIMO.MarkdownRenderer.IntelligenceX does not reference Word, so moving the preset there would add a format engine to it."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownImageLayoutOptions",

@@ -95,7 +95,7 @@ $ConversionFormatNames = @(
     'Word', 'Excel', 'PowerPoint', 'Pdf', 'Markdown', 'Visio', 'Html', 'Rtf', 'OpenDocument', 'Csv', 'Email',
     'Project', 'Access', 'Epub', 'OneNote', 'IWork', 'AsciiDoc', 'Latex', 'Confluence', 'Image', 'Text', 'Xps'
 )
-$SlideLayouts = 'Title', 'Section', 'TitleAndContent', 'TwoContent', 'Comparison', 'Kpi', 'Cards', 'Process', 'Quote', 'ImageFull', 'Closing'
+$SlideLayouts = 'Title', 'Section', 'TitleAndContent', 'TwoContent', 'Comparison', 'Kpi', 'Cards', 'Process', 'Quote', 'ImageFull', 'Closing', 'CaseStudy', 'Logos', 'Coverage'
 $FrontDoorFrameworks = @('net10.0')
 $MaxJobExamples = 2
 

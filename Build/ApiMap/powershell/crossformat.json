@@ -32,9 +32,8 @@
               "name": "To",
               "type": "OfficeFormat",
               "mandatory": true,
-              "position": 1,
               "pipeline": "none",
-              "note": "Target format name or extension (see notes)."
+              "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
             },
             {
               "name": "OutputDirectory",
@@ -55,7 +54,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -205,7 +211,8 @@
               "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "note": "Ceiling on files selected from folders and wildcards (default 1000000; 0 = no limit). Same name on Read- and Search-OfficeDocument."
             },
             {
               "name": "ThrottleLimit",
@@ -317,7 +324,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -471,7 +485,7 @@
               "type": "OfficeFormat",
               "mandatory": true,
               "pipeline": "none",
-              "note": "Target format name or extension (see notes)."
+              "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
             },
             {
               "name": "OutputDirectory",
@@ -492,7 +506,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -642,7 +663,8 @@
               "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "note": "Ceiling on files selected from folders and wildcards (default 1000000; 0 = no limit). Same name on Read- and Search-OfficeDocument."
             },
             {
               "name": "ThrottleLimit",
@@ -756,7 +778,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -906,9 +935,8 @@
               "name": "To",
               "type": "OfficeFormat",
               "mandatory": true,
-              "position": 1,
               "pipeline": "none",
-              "note": "Target format name or extension (see notes)."
+              "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
             },
             {
               "name": "OutputPath",
@@ -928,7 +956,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -1091,9 +1126,8 @@
               "name": "To",
               "type": "OfficeFormat",
               "mandatory": true,
-              "position": 1,
               "pipeline": "none",
-              "note": "Target format name or extension (see notes)."
+              "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
             },
             {
               "name": "OutputPath",
@@ -1106,7 +1140,14 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format- and route-specific options objects from the New-Office{Format}...Options factories, routed by .NET type to the route that uses them. An options object that no selected route can use is an invalid argument."
+              "note": "Options objects from the New-Office{Format}...Options factories (or hashtables), routed by .NET type to the route that uses them. A hashtable is flat (@{ PageSize = 'A4' }: keys are option properties, applied to every selected route whose options have them) or format-keyed (@{ Word = @{...}; Excel = @{...} }: every key is a source format name and every value a hashtable or options object for that format's routes). An options object, format key or property that no selected route can use is an invalid argument."
+            },
+            {
+              "name": "Theme",
+              "type": "OfficeTheme",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
             },
             {
               "name": "Password",
@@ -1255,13 +1296,8 @@
               "name": "JobPath",
               "type": "string",
               "mandatory": true,
-              "position": 0,
-              "pipeline": "propertyName",
-              "aliases": [
-                "PSPath",
-                "FullName"
-              ],
-              "note": "A saved job file from -SaveJob, Studio or the officeimo CLI. Runs it; verified outputs from earlier runs are reused."
+              "pipeline": "none",
+              "note": "A saved job file from -SaveJob, Studio or the officeimo CLI. Runs it; verified outputs from earlier runs are reused. Named only and not bound from the pipeline, so piped Get-ChildItem output always binds -LiteralPath."
             },
             {
               "name": "Plan",
@@ -1296,12 +1332,17 @@
           ]
         }
       ],
-      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeConversionPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; route-specific .NET option types without a factory (OdgToPdfOptions, VisioToPdfOptions, XpsToPdfOptions, ChmConversionOptions, DjVuToPdfOptions, PublisherReadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfToWordOptions, New-OfficePdfToPowerPointOptions, New-OfficePdfExcelImportOptions, New-OfficeHtmlConversionOptions (whatever final names those areas choose). Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments.",
+      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeConversionPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; hashtables follow one rule: a hashtable whose keys are all source format names (Word, Excel, PowerPoint, Pdf, Markdown, Html, Rtf, Text, Visio, OpenDocument ...) and whose values are hashtables or options objects is format-keyed, so @{ Word = @{ PageSize = 'A4' }; Excel = @{ UseWorksheetPrintAreas = $true } } configures each source family of a multi-route run; any other hashtable is flat and its keys set the matching properties on every selected route's options; a key that no selected route can use is an invalid argument; route-specific .NET option types without a factory (OdgToPdfOptions, VisioToPdfOptions, XpsToPdfOptions, ChmConversionOptions, DjVuToPdfOptions, PublisherReadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeMarkdownWordOptions, New-OfficeMarkdownPowerPointOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfWordOptions, New-OfficePdfPowerPointOptions, New-OfficePdfExcelOptions, New-OfficeHtmlConversionOptions. Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments. Positional binding: -Path (or -Document, -Text) is position 0 and -To is always named, so Convert-OfficeDocument .\\a.docx .\\b.pdf binds .\\b.pdf to -OutputPath (PathFile set) and infers -To from its extension. -JobPath is named only and never binds PSPath/FullName from the pipeline. -Theme applies to routes that create a new document (Markdown, HTML or text to Word or PowerPoint), the same OfficeTheme values New-OfficeWord and New-OfficePowerPoint take.",
       "examples": [
         {
           "title": "Convert a document to PDF",
           "description": "Writes Q3-Sales.pdf next to the source and returns its conversion report.",
           "code": "Convert-OfficeDocument -Path .\\Reports\\Q3-Sales.docx -To Pdf"
+        },
+        {
+          "title": "Convert one file to a named output",
+          "description": "Binds the second positional value to -OutputPath and infers the PDF target from its extension.",
+          "code": "Convert-OfficeDocument .\\Reports\\Q3-Sales.docx .\\Pdf\\Q3-Sales.pdf"
         },
         {
           "title": "Convert a folder in parallel with a settings hashtable",
@@ -1317,6 +1358,16 @@
           "title": "Save a batch as a job and run it later",
           "description": "Saves a portable job file that Studio and the officeimo CLI also open, previews it, then runs it with the source password read from an environment variable.",
           "code": "Convert-OfficeDocument -Path .\\Contracts -Recurse -To Pdf -OutputDirectory .\\Contracts-Pdf -PasswordVariable CONTRACTS_PASSWORD -JobName 'Nightly contract archive' -SaveJob .\\Jobs\\contracts.officejob.json\n\nConvert-OfficeDocument -JobPath .\\Jobs\\contracts.officejob.json -Plan\nConvert-OfficeDocument -JobPath .\\Jobs\\contracts.officejob.json -RetryFailed -SummaryVariable nightly\n$nightly"
+        },
+        {
+          "title": "Configure each source format of a mixed folder with one hashtable",
+          "description": "Uses a format-keyed hashtable so Word and Excel sources each get their own PDF settings in one run.",
+          "code": "$pdf = @{\n    Word  = @{ PageSize = 'A4'; IncludePageNumbers = $true }\n    Excel = @{ PageSize = 'A4'; UseWorksheetPrintAreas = $true }\n}\nConvert-OfficeDocument -Path .\\Finance\\Month-End -Extension .docx, .xlsx -To Pdf -OutputDirectory .\\Archive\\Month-End -Options $pdf"
+        },
+        {
+          "title": "Turn a Markdown outline into a themed deck",
+          "description": "Creates a new PowerPoint presentation from Markdown with a built-in theme, then opens it.",
+          "code": "Convert-OfficeDocument -Path .\\Review.md -OutputPath .\\Review.pptx -Theme Boardroom -Show"
         }
       ]
     },
@@ -1529,11 +1580,18 @@
               "note": "A configured reader from New-OfficeDocumentReader."
             },
             {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Open password for encrypted sources (OOXML, legacy Office, PDF, ODF); used for every selected file. Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
               "name": "Options",
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "ReaderOptions and format read options (PdfReadOptions, PDF load/permission options, ...) routed by type; hashtables accepted. The flat parameters above override the matching fields."
+              "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options (New-OfficePdfReadOptions, New-OfficeMarkdownReaderOptions, ...) routed by type; hashtables accepted. The flat parameters above override the matching fields."
             },
             {
               "name": "Recurse",
@@ -1550,11 +1608,11 @@
               "note": "Source extensions to select from folders."
             },
             {
-              "name": "MaximumDocuments",
+              "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Document ceiling for folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments, NoDocumentLimit and MaxFiles)."
+              "note": "Ceiling on files selected from folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments, NoDocumentLimit and MaxFiles). Same name on Convert- and Search-OfficeDocument."
             },
             {
               "name": "MaximumTotalBytes",
@@ -1759,11 +1817,18 @@
               "note": "A configured reader from New-OfficeDocumentReader."
             },
             {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Open password for encrypted sources (OOXML, legacy Office, PDF, ODF); used for every selected file. Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
               "name": "Options",
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "ReaderOptions and format read options (PdfReadOptions, PDF load/permission options, ...) routed by type; hashtables accepted. The flat parameters above override the matching fields."
+              "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options (New-OfficePdfReadOptions, New-OfficeMarkdownReaderOptions, ...) routed by type; hashtables accepted. The flat parameters above override the matching fields."
             },
             {
               "name": "Recurse",
@@ -1780,11 +1845,11 @@
               "note": "Source extensions to select from folders."
             },
             {
-              "name": "MaximumDocuments",
+              "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Document ceiling for folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments, NoDocumentLimit and MaxFiles)."
+              "note": "Ceiling on files selected from folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments, NoDocumentLimit and MaxFiles). Same name on Convert- and Search-OfficeDocument."
             },
             {
               "name": "MaximumTotalBytes",
@@ -1845,7 +1910,7 @@
           ]
         }
       ],
-      "notes": "Formerly the alias of Get-OfficeDocument; now the command. Views: Document = OfficeDocumentReadResult; Text = plain text per document (new projection over blocks; replaces Get-OfficeImageText and the PDF text readers); Markdown = page-aware Markdown per document, or OfficeDocumentPageMarkdown per page with -ByPage (was Get-OfficeDocumentPageMarkdown); Json = the reader's versioned JSON (was -AsJson); Chunks (Get-OfficeDocumentChunk); Hierarchy (Get-OfficeDocumentHierarchy); Structure (Get-OfficeDocumentStructured); Tables (Get-OfficeDocumentTable); Visuals (Get-OfficeDocumentVisual); Assets (Get-OfficeDocumentAsset); Ingest = one ReaderIngestResult for the whole selection (Get-OfficeDocumentIngest); Ocr = recognition review with per-page words, confidence and reconstructed layout, which Convert-OfficeDocument -Document turns into Word, Excel, HTML or CSV (was Get-OfficeImageDocument). Writing tables, visuals or assets to disk is Export-OfficeDocumentAsset, so Read- has no file-system effect. Asset filters (Kind, MediaType, Extension) moved to Export-OfficeDocumentAsset; for listing use Where-Object. Multiple files, wildcards and folders read in parallel with -ThrottleLimit, results stream as each finishes, failures are non-terminating ReadError records (replaces Get-OfficeDocumentBatch, its -ContinueOnError and -BatchOptions). Candidate absorptions from other areas (decided by their agents): Read-OfficePdf and Get-OfficePdfText (design consolidation table), Get-OfficeWordText for plain extraction.",
+      "notes": "Formerly the alias of Get-OfficeDocument; now the command. Views: Document = OfficeDocumentReadResult; Text = plain text per document (new projection over blocks; replaces Get-OfficeImageText and the PDF text readers); Markdown = page-aware Markdown per document, or OfficeDocumentPageMarkdown per page with -ByPage (was Get-OfficeDocumentPageMarkdown); Json = the reader's versioned JSON (was -AsJson); Chunks (Get-OfficeDocumentChunk); Hierarchy (Get-OfficeDocumentHierarchy); Structure (Get-OfficeDocumentStructured); Tables (Get-OfficeDocumentTable); Visuals (Get-OfficeDocumentVisual); Assets (Get-OfficeDocumentAsset); Ingest = one ReaderIngestResult for the whole selection (Get-OfficeDocumentIngest); Ocr = recognition review with per-page words, confidence and reconstructed layout, which Convert-OfficeDocument -Document turns into Word, Excel, HTML or CSV (was Get-OfficeImageDocument). Writing tables, visuals or assets to disk is Export-OfficeDocumentAsset, so Read- has no file-system effect. Asset filters (Kind, MediaType, Extension) moved to Export-OfficeDocumentAsset; for listing use Where-Object. Multiple files, wildcards and folders read in parallel with -ThrottleLimit, results stream as each finishes, failures are non-terminating ReadError records (replaces Get-OfficeDocumentBatch, its -ContinueOnError and -BatchOptions). Candidate absorptions from other areas (decided by their agents): Read-OfficePdf and Get-OfficePdfText (design consolidation table), Get-OfficeWordText for plain extraction. Folder and wildcard selection stops at 500 files by default; -MaximumFiles raises the cap (0 = no limit), the same parameter Convert-OfficeDocument and Search-OfficeDocument use. -Password opens encrypted sources; per-format load options in -Options can still carry their own passwords.",
       "examples": [
         {
           "title": "Read a document as plain text",
@@ -1855,7 +1920,7 @@
         {
           "title": "Chunk a knowledge base for AI ingestion",
           "description": "Reads Word, PDF, PowerPoint and Excel files from a whole folder tree eight at a time and writes one JSON line per chunk for an embedding pipeline.",
-          "code": "Read-OfficeDocument -Path .\\Knowledge -Recurse -Extension .docx, .pdf, .pptx, .xlsx -MaximumDocuments 0 -As Chunks -MaximumChunkCharacters 1200 -ThrottleLimit 8 |\n    ForEach-Object { $_ | ConvertTo-Json -Depth 5 -Compress } |\n    Set-Content -Path .\\Index\\chunks.jsonl"
+          "code": "Read-OfficeDocument -Path .\\Knowledge -Recurse -Extension .docx, .pdf, .pptx, .xlsx -MaximumFiles 0 -As Chunks -MaximumChunkCharacters 1200 -ThrottleLimit 8 |\n    ForEach-Object { $_ | ConvertTo-Json -Depth 5 -Compress } |\n    Set-Content -Path .\\Index\\chunks.jsonl"
         },
         {
           "title": "Read once and project several views",
@@ -1866,6 +1931,11 @@
           "title": "Turn a scanned ledger into a workbook",
           "description": "Recognizes the text and table layout of a scanned page and converts the reviewed result into an Excel workbook.",
           "code": "$ocr = New-OfficeOcrOptions -Language English -MinimumConfidence 0.7\nRead-OfficeDocument -Path .\\Scans\\Ledger-2026-09.png -As Ocr -OcrOptions $ocr |\n    Convert-OfficeDocument -To Excel -OutputPath .\\Scans\\Ledger-2026-09.xlsx"
+        },
+        {
+          "title": "Read an encrypted workbook",
+          "description": "Prompts for the open password and reads the protected salary workbook as Markdown.",
+          "code": "$password = Read-Host -Prompt 'Workbook password' -AsSecureString\nRead-OfficeDocument -Path .\\HR\\Salaries-2027.xlsx -As Markdown -Password $password"
         }
       ]
     },
@@ -1937,11 +2007,11 @@
               "pipeline": "none"
             },
             {
-              "name": "MaximumDocuments",
+              "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Default 500; 0 = no limit (replaces MaxDocuments and NoDocumentLimit)."
+              "note": "Ceiling on files selected from folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments and NoDocumentLimit). Same name on Convert- and Read-OfficeDocument."
             },
             {
               "name": "MaximumStoreItems",
@@ -1968,6 +2038,13 @@
               "type": "OfficeDocumentReader",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Open password for encrypted sources (OOXML, legacy Office, PDF, ODF); used for every selected file. Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
             }
           ]
         },
@@ -2034,11 +2111,11 @@
               "pipeline": "none"
             },
             {
-              "name": "MaximumDocuments",
+              "name": "MaximumFiles",
               "type": "int",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Default 500; 0 = no limit (replaces MaxDocuments and NoDocumentLimit)."
+              "note": "Ceiling on files selected from folders and wildcards (default 500; 0 = no limit; replaces MaxDocuments and NoDocumentLimit). Same name on Convert- and Read-OfficeDocument."
             },
             {
               "name": "MaximumStoreItems",
@@ -2065,6 +2142,13 @@
               "type": "OfficeDocumentReader",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Open password for encrypted sources (OOXML, legacy Office, PDF, ODF); used for every selected file. Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
             }
           ]
         },
@@ -2116,7 +2200,7 @@
           ]
         }
       ],
-      "notes": "Every set writes OfficeDocumentSearchMatch objects (path, format, location, line text, matched value, index, pages, limit flags), so a read result searched again gives the same shape as a path search; the InputObject set no longer returns OfficeDocumentSearchResult. Unreadable files are non-terminating errors; -ErrorAction Stop replaces -StopOnError. Does not absorb Find-OfficeWord, Find-OfficeExcel and similar commands that return live, editable objects inside one open document; those stay with their formats.",
+      "notes": "Every set writes OfficeDocumentSearchMatch objects (path, format, location, line text, matched value, index, pages, limit flags), so a read result searched again gives the same shape as a path search; the InputObject set no longer returns OfficeDocumentSearchResult. Unreadable files are non-terminating errors; -ErrorAction Stop replaces -StopOnError. Does not absorb Find-OfficeWord, Find-OfficeExcel and similar commands that return live, editable objects inside one open document; those stay with their formats. -Password opens encrypted sources; -MaximumFiles caps folder and wildcard selection at 500 files by default (0 = no limit).",
       "examples": [
         {
           "title": "Search a folder for a word",
@@ -2500,8 +2584,7 @@
       "synopsis": "Renders pages, slides, sheets, ranges, charts or diagram pages to PNG, JPEG or SVG files.",
       "outputType": "OfficeImageExportResult",
       "outputTypes": [
-        "OfficeImageExportResult",
-        "OfficeImage"
+        "OfficeImageExportResult"
       ],
       "shouldProcess": true,
       "parameterSets": [
@@ -2520,10 +2603,10 @@
             {
               "name": "OutputDirectory",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. When neither -OutputDirectory nor -OutputPath is given, nothing is written: one OfficeImage object per rendered page, slide, sheet, range or chart goes to the pipeline."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2722,10 +2805,10 @@
             {
               "name": "OutputDirectory",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. When neither -OutputDirectory nor -OutputPath is given, nothing is written: one OfficeImage object per rendered page, slide, sheet, range or chart goes to the pipeline."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2924,10 +3007,10 @@
             {
               "name": "OutputDirectory",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. When neither -OutputDirectory nor -OutputPath is given, nothing is written: one OfficeImage object per rendered page, slide, sheet, range or chart goes to the pipeline."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3121,10 +3204,10 @@
             {
               "name": "OutputDirectory",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. When neither -OutputDirectory nor -OutputPath is given, nothing is written: one OfficeImage object per rendered page, slide, sheet, range or chart goes to the pipeline."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3304,7 +3387,7 @@
           ]
         }
       ],
-      "notes": "With -OutputDirectory or -OutputPath: one OfficeImageExportResult per input document (files written, page numbers, diagnostics). Without either (Path, LiteralPath, Document and Text sets): in-memory mode, no file-system effect, one OfficeImage per rendered unit with Format, Source, Page/Slide/Sheet (1-based), Name, Width, Height and Bytes (raster) or SvgText (SVG); Bytes is hidden from default views. This replaces the in-memory results of ConvertTo-OfficeVisioPng (byte[]), ConvertTo-OfficeVisioSvg (string) and the other Export-Office*Image commands. Absorbs (mapped by their agents): Export-OfficeWordImage, Export-OfficeExcelImage, Export-OfficeExcelRangeImage (-Sheet -Range), Export-OfficeExcelChartImage (-Sheet -Chart), Export-OfficePdfImage, Export-OfficePowerPointImage, Export-OfficeHtmlImage (-Text -From Html or -Document), Export-OfficeVisioImage, ConvertTo-OfficeVisioPng and ConvertTo-OfficeVisioSvg (-Format Png/Svg; Transparent, NoText, font and connector-label settings move to New-OfficeVisioImageOptions). New-OfficeExcelWorkbookImageOptions and New-OfficeExcelImageOptions overlap; the Excel agent decides whether they merge. Raster limits (MaximumRasterPixelCount, MaximumTotalRasterPixelCount, MaximumOutputCount, RenderTimeoutSeconds ...) stay in the format options factories. PDF input honors -Password; permission restrictions are handled by PdfLoadOptions inside New-OfficePdfImageOptions or by the PDF area's load options.",
+      "notes": "Always writes files: every set requires -OutputDirectory or -OutputPath and returns one OfficeImageExportResult per input document (files written, page numbers, diagnostics). For images as objects without a file-system effect, use ConvertTo-OfficeDocumentImage, which takes the same page, sheet, format, DPI and options parameters (PowerShell convention: Export- writes files, ConvertTo- returns objects). Absorbs (mapped by their agents): Export-OfficeWordImage, Export-OfficeExcelImage, Export-OfficeExcelRangeImage (-Sheet -Range), Export-OfficeExcelChartImage (-Sheet -Chart), Export-OfficePdfImage, Export-OfficePowerPointImage, Export-OfficeHtmlImage (-Text -From Html or -Document), Export-OfficeVisioImage (-Format Png/Svg; NoText, font and connector-label settings move to New-OfficeVisioImageOptions). ConvertTo-OfficeVisioPng and ConvertTo-OfficeVisioSvg move to ConvertTo-OfficeDocumentImage. New-OfficeExcelWorkbookImageOptions and New-OfficeExcelImageOptions overlap; the Excel agent decides whether they merge. Raster limits (MaximumRasterPixelCount, MaximumTotalRasterPixelCount, MaximumOutputCount, RenderTimeoutSeconds ...) stay in the format options factories. PDF input honors -Password; permission restrictions are handled by PdfLoadOptions inside New-OfficePdfImageOptions or by the PDF area's load options.",
       "examples": [
         {
           "title": "Render slides to PNG files",
@@ -3320,11 +3403,388 @@
           "title": "Make first-page thumbnails for a mixed folder",
           "description": "Renders the first page or slide of every PDF, Word and PowerPoint handout as a JPEG thumbnail, six files at a time.",
           "code": "$thumbnail = New-OfficePdfImageOptions -ThumbnailMaxDimension 320\nGet-ChildItem -Path .\\Handouts -Include *.pdf, *.docx, *.pptx -Recurse |\n    Export-OfficeDocumentImage -OutputDirectory .\\Thumbnails -Page 1 -Format Jpeg -Options $thumbnail -ThrottleLimit 6"
+        }
+      ]
+    },
+    {
+      "name": "ConvertTo-OfficeDocumentImage",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Renders pages, slides, sheets, ranges, charts or diagram pages to PNG, JPEG or SVG image objects without writing files.",
+      "outputType": "OfficeImage",
+      "outputTypes": [
+        "OfficeImage"
+      ],
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Png (default), Jpeg or Svg."
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageRange",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Range",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
+            },
+            {
+              "name": "Chart",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Png (default), Jpeg or Svg."
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageRange",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Range",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
+            },
+            {
+              "name": "Chart",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Png (default), Jpeg or Svg."
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageRange",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Range",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
+            },
+            {
+              "name": "Chart",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "Source markup, for example HTML."
+            },
+            {
+              "name": "From",
+              "type": "OfficeFormat",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Png (default), Jpeg or Svg."
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageRange",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Range",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
+            },
+            {
+              "name": "Chart",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            }
+          ]
+        }
+      ],
+      "notes": "Returns one OfficeImage per rendered page, slide, sheet, range, chart or diagram page, with Format, Source, Page/Slide/Sheet (1-based), Name, Width, Height and Bytes (raster) or SvgText (SVG); Bytes is hidden from default views. No file-system effect, so no -WhatIf; Export-OfficeDocumentImage writes the same images to files. Takes the same -Page, -Sheet, -Range, -Chart, -Format, -Dpi, -Scale, -BackgroundColor, -Options and -Password parameters as Export-OfficeDocumentImage. Replaces the in-memory results of ConvertTo-OfficeVisioPng (byte[]) and ConvertTo-OfficeVisioSvg (string), and the in-memory mode of Export-OfficeDocumentImage. Inputs: files (-Path, -LiteralPath), a live Word, Excel, PowerPoint, PDF, Visio or HTML document (-Document), or markup (-Text with -From).",
+      "examples": [
+        {
+          "title": "Get slide images as objects",
+          "description": "Renders the first three slides and lists their sizes without writing any files.",
+          "code": "ConvertTo-OfficeDocumentImage -Path .\\Decks\\Q3-Review.pptx -Page 1-3 | Select-Object Slide, Width, Height"
         },
         {
           "title": "Render in memory for an HTML report",
           "description": "Renders a dashboard range without writing image files and embeds each image in an HTML page as a data URI.",
-          "code": "$images = Export-OfficeDocumentImage -Path .\\Reports\\Weekly-Ops.xlsx -Sheet Dashboard -Range A1:H30\n$body = foreach ($image in $images) {\n    '<img alt=\"{0}\" src=\"data:image/png;base64,{1}\">' -f $image.Name, [Convert]::ToBase64String($image.Bytes)\n}\nSet-Content -Path .\\Reports\\Weekly-Ops.html -Value \"<html><body>$($body -join '')</body></html>\""
+          "code": "$images = ConvertTo-OfficeDocumentImage -Path .\\Reports\\Weekly-Ops.xlsx -Sheet Dashboard -Range A1:H30\n$body = foreach ($image in $images) {\n    '<img alt=\"{0}\" src=\"data:image/png;base64,{1}\">' -f $image.Name, [Convert]::ToBase64String($image.Bytes)\n}\nSet-Content -Path .\\Reports\\Weekly-Ops.html -Value \"<html><body>$($body -join '')</body></html>\""
+        },
+        {
+          "title": "Get a diagram as SVG text",
+          "description": "Renders the first Visio page as SVG markup and inlines it into a status page.",
+          "code": "$svg = ConvertTo-OfficeDocumentImage -Path .\\Diagrams\\Network.vsdx -Page 1 -Format Svg -BackgroundColor Transparent\nSet-Content -Path .\\Site\\network.html -Value \"<html><body>$($svg.SvgText)</body></html>\""
         }
       ]
     },
@@ -3456,7 +3916,7 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "ReaderOptions and format read options, routed by type; hashtables accepted."
+              "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options, routed by type; hashtables accepted."
             }
           ]
         },
@@ -3578,7 +4038,7 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "ReaderOptions and format read options, routed by type; hashtables accepted."
+              "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options, routed by type; hashtables accepted."
             }
           ]
         }
@@ -3982,10 +4442,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format protection options, for example PDF encryption options."
+              "note": "Format protection options routed by type (hashtables accepted): New-OfficeExcelProtectionOptions (legacy password hash, reservation) and New-OfficePdfEncryptionOptions (PDF encryption algorithm, metadata encryption)."
             },
             {
               "name": "PassThru",
@@ -4047,10 +4507,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format protection options, for example PDF encryption options."
+              "note": "Format protection options routed by type (hashtables accepted): New-OfficeExcelProtectionOptions (legacy password hash, reservation) and New-OfficePdfEncryptionOptions (PDF encryption algorithm, metadata encryption)."
             },
             {
               "name": "PassThru",
@@ -4101,10 +4561,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format protection options, for example PDF encryption options."
+              "note": "Format protection options routed by type (hashtables accepted): New-OfficeExcelProtectionOptions (legacy password hash, reservation) and New-OfficePdfEncryptionOptions (PDF encryption algorithm, metadata encryption)."
             },
             {
               "name": "PassThru",
@@ -4186,6 +4646,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format protection options routed by type (hashtables accepted), for example New-OfficeExcelProtectionOptions for legacy password hashes or PDF load options from New-OfficePdfReadOptions."
+            },
+            {
               "name": "PassThru",
               "type": "SwitchParameter",
               "mandatory": false,
@@ -4229,6 +4696,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format protection options routed by type (hashtables accepted), for example New-OfficeExcelProtectionOptions for legacy password hashes or PDF load options from New-OfficePdfReadOptions."
+            },
+            {
               "name": "PassThru",
               "type": "SwitchParameter",
               "mandatory": false,
@@ -4268,6 +4742,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format protection options routed by type (hashtables accepted), for example New-OfficeExcelProtectionOptions for legacy password hashes or PDF load options from New-OfficePdfReadOptions."
+            },
+            {
               "name": "PassThru",
               "type": "SwitchParameter",
               "mandatory": false,
@@ -4276,7 +4757,7 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Unprotect-OfficeExcelWorkbook; sheet-level Unprotect-OfficeExcelSheet stays with Excel.",
+      "notes": "Candidate absorptions from other areas: Unprotect-OfficeExcelWorkbook; sheet-level Unprotect-OfficeExcelSheet stays with Excel. -Options carries format protection options, as on Protect-OfficeDocument.",
       "examples": [
         {
           "title": "Remove a workbook password",
@@ -4338,10 +4819,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "WordComparisonOptions, PdfVisualComparisonOptions or Excel comparison options."
+              "note": "Comparison options routed by type (hashtables accepted): New-OfficeWordComparisonOptions, New-OfficePdfVisualComparisonOptions or New-OfficeExcelCompareOptions."
             },
             {
               "name": "MaximumDifferences",
@@ -4405,10 +4886,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "WordComparisonOptions, PdfVisualComparisonOptions or Excel comparison options."
+              "note": "Comparison options routed by type (hashtables accepted): New-OfficeWordComparisonOptions, New-OfficePdfVisualComparisonOptions or New-OfficeExcelCompareOptions."
             },
             {
               "name": "MaximumDifferences",
@@ -4478,10 +4959,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format merge options, for example PDF page size, resize and annotation flattening."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
             },
             {
               "name": "NoClobber",
@@ -4534,10 +5015,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format merge options, for example PDF page size, resize and annotation flattening."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
             },
             {
               "name": "NoClobber",
@@ -4595,10 +5076,10 @@
             },
             {
               "name": "Options",
-              "type": "object",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Format merge options, for example PDF page size, resize and annotation flattening."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
             },
             {
               "name": "NoClobber",
@@ -5158,10 +5639,10 @@
           "parameters": [
             {
               "name": "Options",
-              "type": "ReaderAllOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Was ReaderAllOptions."
+              "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options (New-OfficePdfReadOptions, New-OfficeMarkdownReaderOptions, ...) routed by type; hashtables accepted (was a single ReaderAllOptions)."
             },
             {
               "name": "Processor",
@@ -5218,6 +5699,133 @@
           "code": "$ocr = New-OfficeOcrOptions -Language English, Polish -MinimumConfidence 0.8\n$reader = New-OfficeDocumentReader -OcrOptions $ocr -MaximumStoreItems 5000 -MaximumConcurrentReads 4\nSearch-OfficeDocument -Path .\\Mailboxes -Recurse -Extension .pst, .eml -Pattern 'purchase order' -Reader $reader\nRead-OfficeDocument -Path .\\Mailboxes\\Finance.pst -As Ingest -Reader $reader"
         }
       ]
+    },
+    {
+      "name": "New-OfficeDocumentReaderOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates reader settings (projection, format detection, package and folder limits) for Read-OfficeDocument, New-OfficeDocumentReader and the other reader commands.",
+      "outputType": "ReaderOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Projection",
+              "type": "ReaderProjection",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Full (default) or TextAndMetadata, which skips the Markdown, asset, visual, form and OCR projections for faster text-only reads."
+            },
+            {
+              "name": "DetectionMode",
+              "type": "ReaderDetectionMode",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "ExtensionOnly, ContentWhenUnknown (default) or PreferContent."
+            },
+            {
+              "name": "MaximumDetectionProbeBytes",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumDetectionContainerEntries",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumPartUncompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Per OOXML package part (was OpenXmlMaxPartUncompressedBytes)."
+            },
+            {
+              "name": "MaximumTotalUncompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Per OOXML package (was OpenXmlMaxTotalUncompressedBytes)."
+            },
+            {
+              "name": "MaximumImageAssets",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumImageAssetBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTotalImageAssetBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumImagePlacementsPerRelationship",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTraversalEntries",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Folder entries examined while selecting files."
+            },
+            {
+              "name": "FollowSymlink",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Follow symbolic links and junctions (reparse points) when walking folders, as Get-ChildItem -FollowSymlink does; they are skipped by default."
+            },
+            {
+              "name": "NoDeterministicOrder",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Return folder results as they finish instead of in sorted path order."
+            },
+            {
+              "name": "Encoding",
+              "type": "Encoding",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Encoding of plain-text input without a byte-order mark (default UTF-8)."
+            },
+            {
+              "name": "FailOnInvalidTextBytes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Fail on invalid bytes in text input instead of replacing them."
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read text only, faster",
+          "description": "Skips the Markdown, asset and visual projections when only the text of an archive is needed.",
+          "code": "Read-OfficeDocument -Path .\\Archive -Recurse -As Text -Options (New-OfficeDocumentReaderOptions -Projection TextAndMetadata)"
+        },
+        {
+          "title": "Configure one reader for a file-share crawl",
+          "description": "Detects files by content, follows junctions and allows a large folder walk; the reader is reused for every read in the job.",
+          "code": "$readerOptions = New-OfficeDocumentReaderOptions -DetectionMode PreferContent -FollowSymlink -MaximumTraversalEntries 50000\n$reader = New-OfficeDocumentReader -Options $readerOptions -Ocr\nRead-OfficeDocument -Path .\\Shares\\Finance -Recurse -MaximumFiles 0 -As Chunks -Reader $reader"
+        }
+      ],
+      "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options. Carries the ReaderOptions fields that Read-OfficeDocument has no parameter for; the settings it does expose (-MaximumChunkCharacters, -MaximumTableRows, -MaximumInputBytes, -MaximumXmlCharactersInPart, -NoHashes, -Recurse, -Extension, -MaximumFiles, -MaximumTotalBytes, -Password) are not repeated, and for New-OfficeDocumentReader a hashtable in -Options (@{ MaxChars = 1200 }) sets them. OpenXml* limits drop the prefix and Max* becomes Maximum*. Skipping reparse points and sorted folder order are the defaults; -FollowSymlink and -NoDeterministicOrder change them."
     },
     {
       "name": "New-OfficeDocumentHierarchyOptions",
@@ -5490,9 +6098,10 @@
             },
             {
               "name": "Options",
-              "type": "OfficeProvenanceAssessmentOptions",
+              "type": "object[]",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "note": "OfficeProvenanceAssessmentOptions from New-OfficeDocumentProvenanceOptions (structural, text-integrity and verification settings); hashtables accepted."
             },
             {
               "name": "C2paToolPath",
@@ -5525,9 +6134,10 @@
             },
             {
               "name": "Options",
-              "type": "OfficeProvenanceAssessmentOptions",
+              "type": "object[]",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "note": "OfficeProvenanceAssessmentOptions from New-OfficeDocumentProvenanceOptions (structural, text-integrity and verification settings); hashtables accepted."
             },
             {
               "name": "C2paToolPath",
@@ -5557,6 +6167,151 @@
           "code": "Get-ChildItem -Path .\\Press\\Incoming -Include *.jpg, *.png, *.pdf -Recurse |\n    Get-OfficeDocumentProvenance -C2paToolPath /usr/local/bin/c2patool"
         }
       ]
+    },
+    {
+      "name": "New-OfficeDocumentProvenanceOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates provenance assessment settings (structural limits, text-integrity scan, content-credential verification) for Get-OfficeDocumentProvenance.",
+      "outputType": "OfficeProvenanceAssessmentOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "NoTextIntegrity",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Skip the hidden-character and text-integrity scan (on by default)."
+            },
+            {
+              "name": "NoEmbeddedAssets",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Do not inspect images and media embedded in containers (on by default)."
+            },
+            {
+              "name": "MaximumAssetBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumManifestBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumCarriers",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumContainerEntries",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumExpandedContainerBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumEmbeddedAssets",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTextCharacters",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Characters scanned by the text-integrity check."
+            },
+            {
+              "name": "MaximumFindings",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Text-integrity findings reported per document."
+            },
+            {
+              "name": "NoTypographicSpaces",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Do not report typographic spaces (reported by default)."
+            },
+            {
+              "name": "NoVariationSelectors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Do not report variation selectors (reported by default)."
+            },
+            {
+              "name": "VerificationTimeoutSeconds",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Time limit for the content-credential verifier (default 30)."
+            },
+            {
+              "name": "AllowNetworkAccess",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Let the verifier fetch remote manifests and certificate status."
+            },
+            {
+              "name": "IncludeRawReport",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Keep the verifier's JSON report on the result."
+            },
+            {
+              "name": "TrustAnchorsPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowedListPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrustConfigurationPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Check image credentials without the text scan",
+          "description": "Skips the text-integrity scan, which finds nothing in a photo.",
+          "code": "Get-OfficeDocumentProvenance -Path .\\Press\\Launch-Photo.jpg -Options (New-OfficeDocumentProvenanceOptions -NoTextIntegrity)"
+        },
+        {
+          "title": "Verify incoming press material against a trust list",
+          "description": "Checks content credentials against the newsroom trust anchors and lists the files without a verified credential.",
+          "code": "$provenance = New-OfficeDocumentProvenanceOptions -TrustAnchorsPath .\\Trust\\anchors.pem -AllowedListPath .\\Trust\\allowed.pem -VerificationTimeoutSeconds 60\nGet-ChildItem -Path .\\Press\\Incoming -Include *.jpg, *.png, *.pdf -Recurse |\n    Get-OfficeDocumentProvenance -C2paToolPath /usr/local/bin/c2patool -Options $provenance |\n    Where-Object { -not $_.HasVerifiedContentCredential }"
+        }
+      ],
+      "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options. Flattens the Structural, TextIntegrity and Verification groups of OfficeProvenanceAssessmentOptions; Max* limits are named Maximum*, and the verifier Timeout (TimeSpan) is -VerificationTimeoutSeconds. Text-integrity inspection, embedded-asset processing and the typographic-space and variation-selector findings are on by default; the No* switches turn them off. -C2paToolPath and -SignalDetector stay on Get-OfficeDocumentProvenance."
     },
     {
       "name": "ConvertTo-OfficeVisual",
@@ -5711,6 +6466,143 @@
           "title": "Print from a specific tray",
           "description": "Finds the letterhead tray of the finance printer and prints a statement from it.",
           "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePdfPrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeGoogleWorkspaceSession",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates a Google Workspace session from a desktop OAuth sign-in (PKCE) or a service account, for the Google Docs and Sheets exports.",
+      "outputType": "OfficeIMO.GoogleWorkspace.GoogleWorkspaceSession",
+      "outputTypes": [
+        "OfficeIMO.GoogleWorkspace.GoogleWorkspaceSession"
+      ],
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Desktop",
+          "default": true,
+          "parameters": [
+            {
+              "name": "ClientId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "OAuth desktop client id. Required unless -ClientSecret is given a PSCredential, whose user name is used."
+            },
+            {
+              "name": "ClientSecret",
+              "type": "SecureString",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Desktop client secret. Also accepts a PSCredential (client id and secret) or a plain string with a warning."
+            },
+            {
+              "name": "Account",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Expected Google account (login hint); the session fails if a different account signs in."
+            },
+            {
+              "name": "TokenCachePath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Folder for the refresh-token cache; default is the per-user OfficeIMO profile."
+            },
+            {
+              "name": "NoTokenCache",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Sign in every time and keep no refresh token."
+            },
+            {
+              "name": "Scope",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "OAuth scopes: full URLs or the short names Drive, DriveFile, DriveReadonly, Documents, Spreadsheets, Presentations (tab-completes). Default: Docs and Sheets authoring with DriveFile."
+            },
+            {
+              "name": "ApplicationName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RequestTimeoutSeconds",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxRetryCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "ServiceAccount",
+          "parameters": [
+            {
+              "name": "KeyPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "note": "Service-account JSON key file."
+            },
+            {
+              "name": "Subject",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "User to impersonate through domain-wide delegation; without it the service account acts as itself."
+            },
+            {
+              "name": "Scope",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "OAuth scopes: full URLs or the short names Drive, DriveFile, DriveReadonly, Documents, Spreadsheets, Presentations (tab-completes). Default: Docs and Sheets authoring with DriveFile."
+            },
+            {
+              "name": "ApplicationName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RequestTimeoutSeconds",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxRetryCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Mirrors New-OfficeConfluenceSession: one command, one set per sign-in kind, and the same ApplicationName, RequestTimeoutSeconds and MaxRetryCount parameters. Desktop runs the installed-application OAuth flow with PKCE in the default browser on a loopback redirect and caches the refresh token unless -NoTokenCache; ServiceAccount signs JWTs from the key file and needs no browser, so it suits scheduled jobs. -ClientSecret is SecureString; transformation also accepts a PSCredential (its user name becomes -ClientId) or a plain string with a warning. The session is passed to -Session on Export-OfficeWordGoogleDocument and Export-OfficeExcelGoogleSpreadsheet.",
+      "examples": [
+        {
+          "title": "Sign in with a desktop OAuth client",
+          "description": "Opens the browser once for consent and caches the refresh token for later runs.",
+          "code": "$client = Get-Credential -Message 'Google OAuth client id and secret'\n$googleSession = New-OfficeGoogleWorkspaceSession -ClientSecret $client -Account 'anna.nowak@example.com'"
+        },
+        {
+          "title": "Publish nightly with a service account",
+          "description": "Signs in without a browser by impersonating a reporting user and uploads the sales workbook to Google Sheets.",
+          "code": "$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\\Secrets\\reporting-sa.json -Subject 'reports@example.com' -Scope Spreadsheets, DriveFile\nExport-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -FailOnLoss"
         }
       ]
     }
@@ -5917,8 +6809,8 @@
       "parameters": {
         "MaxStoreItems": "MaximumStoreItems",
         "AllStoreItems": "MaximumStoreItems",
-        "MaxDocuments": "MaximumDocuments",
-        "NoDocumentLimit": "MaximumDocuments",
+        "MaxDocuments": "MaximumFiles",
+        "NoDocumentLimit": "MaximumFiles",
         "MaxDegreeOfParallelism": "ThrottleLimit",
         "ContinueOnError": null,
         "ReaderOptions": "Options",
@@ -5960,7 +6852,7 @@
         "AllStoreItems": "MaximumStoreItems",
         "FolderPath": "Path",
         "NoRecurse": "Recurse",
-        "MaxFiles": "MaximumDocuments",
+        "MaxFiles": "MaximumFiles",
         "MaxTotalBytes": "MaximumTotalBytes",
         "Extension": "Extension"
       },
@@ -6016,7 +6908,7 @@
         "AllStoreItems": "MaximumStoreItems",
         "FolderPath": "Path",
         "NoRecurse": "Recurse",
-        "MaxFiles": "MaximumDocuments",
+        "MaxFiles": "MaximumFiles",
         "MaxTotalBytes": "MaximumTotalBytes"
       },
       "hint": "Read-OfficeDocument -Path .\\Knowledge -Recurse -As Ingest",
@@ -6280,8 +7172,8 @@
         "Query": "Pattern",
         "MatchCase": "CaseSensitive",
         "AllResults": "MaximumResults",
-        "MaxDocuments": "MaximumDocuments",
-        "NoDocumentLimit": "MaximumDocuments",
+        "MaxDocuments": "MaximumFiles",
+        "NoDocumentLimit": "MaximumFiles",
         "MaxStoreItems": "MaximumStoreItems",
         "AllStoreItems": "MaximumStoreItems",
         "MaxDegreeOfParallelism": "ThrottleLimit",

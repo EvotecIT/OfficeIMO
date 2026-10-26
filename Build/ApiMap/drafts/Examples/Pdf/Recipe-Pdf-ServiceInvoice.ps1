@@ -34,12 +34,12 @@ New-OfficePdf -Path $path -Theme Modern -Force {
     PdfParagraph { PdfText 'Bill to: ' -Bold; PdfText 'Contoso Ltd., 1 Example Street, London' }
     PdfHorizontalRule -SpacingBefore 12pt -SpacingAfter 14pt
 
-    PdfTable $lines -Header 'Description', 'Qty', 'Unit price', 'Amount' -ColumnAlign Left, Right, Right, Right -AutoFit
+    PdfTable $lines -Header 'Description', 'Qty', 'Unit price', 'Amount' -ColumnAlignment Left, Right, Right, Right -AutoFit
 
     PdfSpacer 14pt
-    PdfParagraph -Align Right { PdfText 'Subtotal: ' -Bold; PdfText $subtotal.ToString('C2', $currency) }
-    PdfParagraph "Illustrative tax ($($taxRate.ToString('0.##%', $currency))): $($tax.ToString('C2', $currency))" -Align Right
-    PdfParagraph -Align Right { PdfText "Total due: $($total.ToString('C2', $currency))" -Bold -Size 14pt -Color Accent1 }
+    PdfParagraph -Alignment Right { PdfText 'Subtotal: ' -Bold; PdfText $subtotal.ToString('C2', $currency) }
+    PdfParagraph "Illustrative tax ($($taxRate.ToString('0.##%', $currency))): $($tax.ToString('C2', $currency))" -Alignment Right
+    PdfParagraph -Alignment Right { PdfText "Total due: $($total.ToString('C2', $currency))" -Bold -Size 14pt -Color Accent1 }
 
     PdfPanel 'Payment terms: 14 days. Include the invoice number with the transfer.'
     PdfHeading 'Questions' -Level 2

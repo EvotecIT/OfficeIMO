@@ -1335,7 +1335,7 @@
       ],
       "parameterSets": [
         {
-          "name": "Align",
+          "name": "Alignment",
           "default": true,
           "parameters": [
             {
@@ -1362,12 +1362,12 @@
               "mandatory": false
             },
             {
-              "name": "AlignHorizontal",
+              "name": "HorizontalAlignment",
               "type": "VisioHorizontalAlignment",
               "mandatory": false
             },
             {
-              "name": "AlignVertical",
+              "name": "VerticalAlignment",
               "type": "VisioVerticalAlignment",
               "mandatory": false
             },
@@ -1410,12 +1410,12 @@
               "mandatory": false
             },
             {
-              "name": "AlignHorizontal",
+              "name": "HorizontalAlignment",
               "type": "VisioHorizontalAlignment",
               "mandatory": false
             },
             {
-              "name": "AlignVertical",
+              "name": "VerticalAlignment",
               "type": "VisioVerticalAlignment",
               "mandatory": false
             },
@@ -1488,12 +1488,12 @@
               "mandatory": false
             },
             {
-              "name": "AlignHorizontal",
+              "name": "HorizontalAlignment",
               "type": "VisioHorizontalAlignment",
               "mandatory": false
             },
             {
-              "name": "AlignVertical",
+              "name": "VerticalAlignment",
               "type": "VisioVerticalAlignment",
               "mandatory": false
             },
@@ -1551,12 +1551,12 @@
               "mandatory": false
             },
             {
-              "name": "AlignHorizontal",
+              "name": "HorizontalAlignment",
               "type": "VisioHorizontalAlignment",
               "mandatory": false
             },
             {
-              "name": "AlignVertical",
+              "name": "VerticalAlignment",
               "type": "VisioVerticalAlignment",
               "mandatory": false
             },
@@ -1593,7 +1593,7 @@
         {
           "title": "Align shapes on one line",
           "description": "Lines up three keyed shapes on their vertical centers.",
-          "code": "New-OfficeVisio -Path .\\Aligned.vsdx {\n    VisioRectangle -Key a -Text 'Plan' -X 1.5in -Y 4in\n    VisioRectangle -Key b -Text 'Build' -X 4in -Y 4.3in\n    VisioRectangle -Key c -Text 'Run' -X 6.5in -Y 3.8in\n    VisioLayout -ShapeId a, b, c -AlignVertical Middle -Distribute Horizontal\n}"
+          "code": "New-OfficeVisio -Path .\\Aligned.vsdx {\n    VisioRectangle -Key a -Text 'Plan' -X 1.5in -Y 4in\n    VisioRectangle -Key b -Text 'Build' -X 4in -Y 4.3in\n    VisioRectangle -Key c -Text 'Run' -X 6.5in -Y 3.8in\n    VisioLayout -ShapeId a, b, c -VerticalAlignment Middle -Distribute Horizontal\n}"
         },
         {
           "title": "Arrange servers in a grid",
@@ -2261,17 +2261,6 @@
           "default": true,
           "parameters": [
             {
-              "name": "Page",
-              "type": "int",
-              "mandatory": false,
-              "notes": "1-based first page (G1); converted to the 0-based VisioImageExportOptions.PageIndex."
-            },
-            {
-              "name": "PageCount",
-              "type": "int",
-              "mandatory": false
-            },
-            {
               "name": "NoText",
               "type": "switch",
               "mandatory": false
@@ -2307,18 +2296,13 @@
               "mandatory": false
             },
             {
-              "name": "FontFaceName",
+              "name": "Font",
               "type": "string",
               "mandatory": false
             },
             {
               "name": "FontCollectionIndex",
               "type": "int",
-              "mandatory": false
-            },
-            {
-              "name": "Scale",
-              "type": "double",
               "mandatory": false
             },
             {
@@ -2329,17 +2313,6 @@
             {
               "name": "MaximumOutputHeight",
               "type": "int",
-              "mandatory": false
-            },
-            {
-              "name": "BackgroundColor",
-              "type": "OfficeColor",
-              "mandatory": false,
-              "notes": "Transparent replaces the old -Transparent switch."
-            },
-            {
-              "name": "TargetDpi",
-              "type": "double",
               "mandatory": false
             },
             {
@@ -2385,17 +2358,17 @@
           ]
         }
       ],
-      "notes": "Rendering features that are on by default become -No{Feature} switches, matching the old ConvertTo-OfficeVisioPng names. Font selection that only ConvertTo-OfficeVisioPng exposed (-FontFilePath, -FontFaceName, -FontCollectionIndex) moves here so it survives the move to Export-OfficeDocumentImage. MaximumRasterPixels and MaximumTotalRasterPixels gain a Count suffix because they are pixel counts, not lengths with a unit suffix. Shared image parameters (Scale … TextShapingLanguage) follow whatever the cross-format image options base settles on.",
+      "notes": "Rendering features that are on by default become -No{Feature} switches, matching the old ConvertTo-OfficeVisioPng names. Font selection that only ConvertTo-OfficeVisioPng exposed (-FontFilePath, -FontFaceName, -FontCollectionIndex) moves here as -FontPath, -Font and -FontCollectionIndex. Page selection, scale, background color and resolution are -Page, -Scale, -BackgroundColor and -Dpi on Export-/ConvertTo-OfficeDocumentImage, so the factory does not repeat them (G18). MaximumRasterPixels and MaximumTotalRasterPixels gain a Count suffix because they are pixel counts.",
       "examples": [
         {
           "title": "Render only the first page",
           "description": "Creates image options for page 1 without connector labels.",
-          "code": "Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputDirectory .\\Images -Format Png -Options (New-OfficeVisioImageOptions -Page 1 -PageCount 1 -NoConnectorLabels)"
+          "code": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Page 1 -OutputDirectory .\\Images -Format Png -Options (New-OfficeVisioImageOptions -NoConnectorLabels)"
         },
         {
           "title": "Render diagrams for documentation",
           "description": "Uses the documentation font, supersampling for smooth lines and a white background.",
-          "code": "$image = New-OfficeVisioImageOptions -FontPath .\\Fonts\\Inter.ttf -Supersampling 2 -BackgroundColor White -TargetDpi 192\nGet-ChildItem -Path .\\Diagrams -Filter *.vsdx | Export-OfficeDocumentImage -OutputDirectory .\\Docs\\images -Format Png -Options $image"
+          "code": "$image = New-OfficeVisioImageOptions -FontPath .\\Fonts\\Inter.ttf -Supersampling 2\nGet-ChildItem -Path .\\Diagrams -Filter *.vsdx | Export-OfficeDocumentImage -OutputDirectory .\\Docs\\images -Format Png -BackgroundColor White -Dpi 192 -Options $image"
         }
       ]
     },
@@ -2682,7 +2655,7 @@
         {
           "title": "Plan an office move",
           "description": "Adds tasks and finish-to-start links and saves the plan when the block ends.",
-          "code": "New-OfficeProject -Path .\\Plans\\Office-Move.mpp -Name 'Office move' -StartDate '2026-11-02' {\n    $plan = Add-OfficeProjectTask 'Plan the move' -DurationDays 5 -PassThru\n    $pack = Add-OfficeProjectTask 'Pack and label' -DurationDays 3 -PassThru\n    $move = Add-OfficeProjectTask 'Move day' -DurationDays 1 -PassThru\n    $live = Add-OfficeProjectTask 'Office open' -DurationDays 0 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $plan.Uid -SuccessorUid $pack.Uid\n    Add-OfficeProjectDependency -PredecessorUid $pack.Uid -SuccessorUid $move.Uid\n    Add-OfficeProjectDependency -PredecessorUid $move.Uid -SuccessorUid $live.Uid\n}"
+          "code": "New-OfficeProject -Path .\\Plans\\Office-Move.mpp -Name 'Office move' -StartDate '2026-11-02' {\n    ProjectTask 'Plan the move' -DurationDays 5\n    ProjectTask 'Pack and label' -DurationDays 3\n    ProjectTask 'Move day' -DurationDays 1\n    ProjectTask 'Office open' -DurationDays 0\n    ProjectDependency 'Plan the move' 'Pack and label'\n    ProjectDependency 'Pack and label' 'Move day'\n    ProjectDependency 'Move day' 'Office open'\n}"
         }
       ]
     },
@@ -2899,7 +2872,7 @@
     },
     {
       "name": "Add-OfficeProjectTask",
-      "alias": null,
+      "alias": "ProjectTask",
       "status": "existing",
       "synopsis": "Adds a task, summary or milestone (duration 0) in working days.",
       "outputType": [
@@ -2930,9 +2903,10 @@
               "notes": "Working days; a duration, not a length."
             },
             {
-              "name": "ParentUid",
-              "type": "int",
-              "mandatory": false
+              "name": "Parent",
+              "type": "OfficeProjectTaskSelector",
+              "mandatory": false,
+              "notes": "Parent summary task. A task object, its name (must be unique in the project) or its Uid."
             },
             {
               "name": "Summary",
@@ -2961,13 +2935,14 @@
         {
           "title": "Build phases with summary tasks",
           "description": "Adds a summary task per phase with child tasks and a milestone at the end.",
-          "code": "$phases = [ordered]@{\n    Discovery = @{ 'Stakeholder interviews' = 4; 'Requirements sign-off' = 1 }\n    Delivery = @{ 'Build' = 15; 'User acceptance testing' = 5 }\n}\nNew-OfficeProject -Path .\\Plans\\Website.mpp -Name 'Website redesign' -StartDate '2026-11-09' {\n    foreach ($phase in $phases.Keys) {\n        $summary = Add-OfficeProjectTask $phase -Summary -PassThru\n        foreach ($task in $phases[$phase].GetEnumerator()) {\n            Add-OfficeProjectTask $task.Key -DurationDays $task.Value -ParentUid $summary.Uid\n        }\n    }\n    Add-OfficeProjectTask 'Go live' -DurationDays 0\n}"
+          "code": "$phases = [ordered]@{\n    Discovery = @{ 'Stakeholder interviews' = 4; 'Requirements sign-off' = 1 }\n    Delivery = @{ 'Build' = 15; 'User acceptance testing' = 5 }\n}\nNew-OfficeProject -Path .\\Plans\\Website.mpp -Name 'Website redesign' -StartDate '2026-11-09' {\n    foreach ($phase in $phases.Keys) {\n        $summary = Add-OfficeProjectTask $phase -Summary -PassThru\n        foreach ($task in $phases[$phase].GetEnumerator()) {\n            Add-OfficeProjectTask $task.Key -DurationDays $task.Value -Parent $summary\n        }\n    }\n    Add-OfficeProjectTask 'Go live' -DurationDays 0\n}"
         }
-      ]
+      ],
+      "notes": "Alias ProjectTask inside New-/Open-OfficeProject content blocks. -Parent accepts the summary task object, its name or its Uid (was -ParentUid)."
     },
     {
       "name": "Add-OfficeProjectResource",
-      "alias": null,
+      "alias": "ProjectResource",
       "status": "existing",
       "synopsis": "Adds a work resource with an optional standard rate.",
       "outputType": [
@@ -3015,11 +2990,12 @@
           "description": "Adds one resource per team member with an hourly standard rate from a CSV.",
           "code": "$team = Import-OfficeCsv -Path .\\Data\\Team.csv\nNew-OfficeProject -Path .\\Plans\\Migration.mpp -Name 'Mail migration' {\n    foreach ($member in $team) {\n        Add-OfficeProjectResource $member.Name -StandardRate ([decimal]$member.HourlyRate)\n    }\n}"
         }
-      ]
+      ],
+      "notes": "Alias ProjectResource inside New-/Open-OfficeProject content blocks."
     },
     {
       "name": "Add-OfficeProjectAssignment",
-      "alias": null,
+      "alias": "ProjectAssignment",
       "status": "existing",
       "synopsis": "Assigns a resource to a task by UID.",
       "outputType": [
@@ -3038,14 +3014,18 @@
               "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
-              "name": "TaskUid",
-              "type": "int",
-              "mandatory": true
+              "name": "Task",
+              "type": "OfficeProjectTaskSelector",
+              "mandatory": true,
+              "position": 0,
+              "notes": "A task object, its name (must be unique in the project) or its Uid."
             },
             {
-              "name": "ResourceUid",
-              "type": "int",
-              "mandatory": true
+              "name": "Resource",
+              "type": "OfficeProjectResourceSelector",
+              "mandatory": true,
+              "position": 1,
+              "notes": "A resource object, its name (must be unique in the project) or its Uid."
             },
             {
               "name": "UnitsPercent",
@@ -3064,18 +3044,19 @@
         {
           "title": "Assign a resource to a task",
           "description": "Assigns the engineer to the build task full time.",
-          "code": "New-OfficeProject -Path .\\Plans\\Build.mpp -Name 'Build' {\n    $task = Add-OfficeProjectTask 'Build' -DurationDays 10 -PassThru\n    $engineer = Add-OfficeProjectResource 'Tomasz Kowalski' -PassThru\n    Add-OfficeProjectAssignment -TaskUid $task.Uid -ResourceUid $engineer.Uid\n}"
+          "code": "New-OfficeProject -Path .\\Plans\\Build.mpp -Name 'Build' {\n    $task = Add-OfficeProjectTask 'Build' -DurationDays 10 -PassThru\n    $engineer = Add-OfficeProjectResource 'Tomasz Kowalski' -PassThru\n    Add-OfficeProjectAssignment -Task $task -Resource $engineer\n}"
         },
         {
           "title": "Share a resource across tasks",
           "description": "Assigns one engineer at 50% to two parallel tasks.",
-          "code": "New-OfficeProject -Path .\\Plans\\Upgrade.mpp -Name 'SQL upgrade' -StartDate '2026-11-16' {\n    $dba = Add-OfficeProjectResource 'Database team' -StandardRate 85 -PassThru\n    $test = Add-OfficeProjectTask 'Test upgrade on staging' -DurationDays 4 -PassThru\n    $docs = Add-OfficeProjectTask 'Update runbooks' -DurationDays 4 -PassThru\n    Add-OfficeProjectAssignment -TaskUid $test.Uid -ResourceUid $dba.Uid -UnitsPercent 50\n    Add-OfficeProjectAssignment -TaskUid $docs.Uid -ResourceUid $dba.Uid -UnitsPercent 50\n}"
+          "code": "New-OfficeProject -Path .\\Plans\\Upgrade.mpp -Name 'SQL upgrade' -StartDate '2026-11-16' {\n    $dba = Add-OfficeProjectResource 'Database team' -StandardRate 85 -PassThru\n    $test = Add-OfficeProjectTask 'Test upgrade on staging' -DurationDays 4 -PassThru\n    $docs = Add-OfficeProjectTask 'Update runbooks' -DurationDays 4 -PassThru\n    Add-OfficeProjectAssignment -Task $test -Resource $dba -UnitsPercent 50\n    Add-OfficeProjectAssignment -Task $docs -Resource $dba -UnitsPercent 50\n}"
         }
-      ]
+      ],
+      "notes": "Alias ProjectAssignment inside content blocks. -Task and -Resource accept objects, names or Uids (were -TaskUid and -ResourceUid), so ProjectAssignment 'Build' 'Tomasz Kowalski' works without -PassThru variables."
     },
     {
       "name": "Add-OfficeProjectDependency",
-      "alias": null,
+      "alias": "ProjectDependency",
       "status": "existing",
       "synopsis": "Links two tasks (finish-to-start by default) with optional lag.",
       "outputType": [
@@ -3094,14 +3075,18 @@
               "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
-              "name": "PredecessorUid",
-              "type": "int",
-              "mandatory": true
+              "name": "Predecessor",
+              "type": "OfficeProjectTaskSelector",
+              "mandatory": true,
+              "position": 0,
+              "notes": "A task object, its name (must be unique in the project) or its Uid."
             },
             {
-              "name": "SuccessorUid",
-              "type": "int",
-              "mandatory": true
+              "name": "Successor",
+              "type": "OfficeProjectTaskSelector",
+              "mandatory": true,
+              "position": 1,
+              "notes": "A task object, its name (must be unique in the project) or its Uid."
             },
             {
               "name": "Type",
@@ -3125,14 +3110,20 @@
         {
           "title": "Link two tasks",
           "description": "Makes the second task start when the first finishes.",
-          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $test = Add-OfficeProjectTask 'Test' -DurationDays 3 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $test.Uid\n}"
+          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $test = Add-OfficeProjectTask 'Test' -DurationDays 3 -PassThru\n    Add-OfficeProjectDependency -Predecessor $build -Successor $test\n}"
         },
         {
           "title": "Overlap and delay tasks",
           "description": "Starts documentation two days after the build starts and waits one day after testing before release.",
-          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release 2.4' -StartDate '2026-11-02' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $docs = Add-OfficeProjectTask 'Write release notes' -DurationDays 3 -PassThru\n    $test = Add-OfficeProjectTask 'Regression test' -DurationDays 3 -PassThru\n    $ship = Add-OfficeProjectTask 'Release' -DurationDays 0 -PassThru\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $docs.Uid -Type StartToStart -LagDays 2\n    Add-OfficeProjectDependency -PredecessorUid $build.Uid -SuccessorUid $test.Uid\n    Add-OfficeProjectDependency -PredecessorUid $test.Uid -SuccessorUid $ship.Uid -LagDays 1\n}"
+          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release 2.4' -StartDate '2026-11-02' {\n    $build = Add-OfficeProjectTask 'Build' -DurationDays 5 -PassThru\n    $docs = Add-OfficeProjectTask 'Write release notes' -DurationDays 3 -PassThru\n    $test = Add-OfficeProjectTask 'Regression test' -DurationDays 3 -PassThru\n    $ship = Add-OfficeProjectTask 'Release' -DurationDays 0 -PassThru\n    Add-OfficeProjectDependency -Predecessor $build -Successor $docs -Type StartToStart -LagDays 2\n    Add-OfficeProjectDependency -Predecessor $build -Successor $test\n    Add-OfficeProjectDependency -Predecessor $test -Successor $ship -LagDays 1\n}"
+        },
+        {
+          "title": "Link tasks by name",
+          "description": "Builds a release chain inside the project block with the aliases and task names, without keeping task variables.",
+          "code": "New-OfficeProject -Path .\\Plans\\Release.mpp -Name 'Release 2.5' {\n    ProjectTask 'Build' -DurationDays 5\n    ProjectTask 'Test' -DurationDays 3\n    ProjectTask 'Release' -DurationDays 0\n    ProjectDependency 'Build' 'Test'\n    ProjectDependency 'Test' 'Release' -LagDays 1\n}"
         }
-      ]
+      ],
+      "notes": "Alias ProjectDependency inside content blocks. -Predecessor and -Successor accept task objects, task names or Uids (were -PredecessorUid and -SuccessorUid)."
     },
     {
       "name": "Get-OfficeProjectTask",
@@ -3150,8 +3141,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "Uid",
@@ -3171,6 +3163,11 @@
           "title": "Report unfinished tasks",
           "description": "Exports tasks that are not complete to a workbook for the weekly status meeting.",
           "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp -ReadOnly\nGet-OfficeProjectTask -Document $project |\n    Where-Object { $_.PercentComplete -lt 100 } |\n    Select-Object Uid, Name, Start, Finish, PercentComplete |\n    Export-OfficeExcel -Path .\\Reports\\Open-Tasks.xlsx -Sheet 'Open tasks'\nClose-OfficeProject -Document $project"
+        },
+        {
+          "title": "Check the plan before it is saved",
+          "description": "Schedules the project inside its content block and prints the calculated finish of each task before the block saves the file.",
+          "code": "New-OfficeProject -Path .\\Plans\\Migration.mpp -Name 'Mail migration' -StartDate '2026-11-16' {\n    ProjectTask 'Pilot' -DurationDays 5\n    ProjectTask 'Cutover' -DurationDays 2\n    ProjectDependency 'Pilot' 'Cutover'\n    Invoke-OfficeProjectSchedule -Apply\n    Get-OfficeProjectTask | Select-Object Name, Start, Finish\n}"
         }
       ]
     },
@@ -3190,8 +3187,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "Uid",
@@ -3230,8 +3228,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "Uid",
@@ -3270,8 +3269,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             }
           ]
         }
@@ -3376,8 +3376,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "CalculateAssignments",
@@ -3416,14 +3417,15 @@
       ],
       "parameterSets": [
         {
-          "name": "Kind",
+          "name": "Document",
           "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "Schedule",
@@ -3433,33 +3435,19 @@
             {
               "name": "Kind",
               "type": "ProjectViewKind",
-              "mandatory": false
-            }
-          ]
-        },
-        {
-          "name": "Options",
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
-            },
-            {
-              "name": "Schedule",
-              "type": "ProjectScheduleResult",
-              "mandatory": false
+              "mandatory": false,
+              "notes": "Layout: Gantt (default), TaskUsage, ResourceUsage, ResourceHistogram, Network, Timeline or Table. Overrides the Kind stored in an -Options object."
             },
             {
               "name": "Options",
-              "type": "ProjectViewOptions",
-              "mandatory": true
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "ProjectViewOptions from New-OfficeProjectViewOptions (hashtables accepted): selection, timescale, columns, page layout and limits."
             }
           ]
         }
       ],
-      "notes": "'Choose Options or Kind' becomes two parameter sets.",
+      "notes": "-Kind picks the layout and -Options (New-OfficeProjectViewOptions) the selection and page settings, so the former Kind and Options parameter sets become one set and the factory has no -Kind of its own.",
       "examples": [
         {
           "title": "Capture a Gantt view",
@@ -3470,6 +3458,183 @@
           "title": "Report resource load",
           "description": "Calculates the schedule once and captures resource usage and Gantt views from it.",
           "code": "$project = Open-OfficeProject -Path .\\Plans\\Migration.mpp -ReadOnly\n$schedule = Invoke-OfficeProjectSchedule -Document $project -CalculateAssignments\n$usage = Get-OfficeProjectView -Document $project -Schedule $schedule -Kind ResourceUsage\n$gantt = Get-OfficeProjectView -Document $project -Schedule $schedule -Kind Gantt\n$usage | Export-OfficeProjectReport -Path .\\Reports\\Resource-Usage.xlsx\n$gantt | Export-OfficeProjectReport -Path .\\Reports\\Gantt.pdf"
+        },
+        {
+          "title": "Report the critical path for one month",
+          "description": "Builds a weekly Gantt view of critical tasks in November with a status-date marker and exports it to PDF.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Website.mpp -ReadOnly\n$options = New-OfficeProjectViewOptions -CriticalOnly -Timescale Week -Start '2026-11-01' -Finish '2026-12-01' -StatusDate '2026-11-16'\nGet-OfficeProjectView -Document $project -Kind Gantt -Options $options | Export-OfficeProjectReport -Path .\\Reports\\Critical-November.pdf\nClose-OfficeProject -Document $project"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeProjectViewOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates selection, timescale and page settings for Get-OfficeProjectView -Options.",
+      "outputType": [
+        "OfficeIMO.Project.ProjectViewOptions"
+      ],
+      "parameterSets": [
+        {
+          "name": "Options",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Timescale",
+              "type": "ProjectViewTimescale",
+              "mandatory": false,
+              "notes": "Day, Week (default) or Month buckets; weeks begin on Monday."
+            },
+            {
+              "name": "Task",
+              "type": "OfficeProjectTaskSelector[]",
+              "mandatory": false,
+              "notes": "Tasks to include (objects, names or Uids); default all."
+            },
+            {
+              "name": "Resource",
+              "type": "OfficeProjectResourceSelector[]",
+              "mandatory": false,
+              "notes": "Resources to include (objects, names or Uids); default all."
+            },
+            {
+              "name": "Column",
+              "type": "ProjectViewColumn[]",
+              "mandatory": false,
+              "notes": "Uid, Name, Start, Finish, WorkHours, Cost, PercentComplete, Critical; default depends on the layout."
+            },
+            {
+              "name": "NameContains",
+              "type": "string",
+              "mandatory": false,
+              "notes": "Case-insensitive task name filter."
+            },
+            {
+              "name": "CriticalOnly",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoSummaries",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Omit summary task rows (shown by default)."
+            },
+            {
+              "name": "Grouping",
+              "type": "ProjectViewGrouping",
+              "mandatory": false,
+              "notes": "None (outline order, default) or ParentTask."
+            },
+            {
+              "name": "NetworkLayout",
+              "type": "ProjectNetworkLayout",
+              "mandatory": false,
+              "notes": "Network view: Dependency (default) or Compact."
+            },
+            {
+              "name": "StatusDate",
+              "type": "DateTime",
+              "mandatory": false,
+              "notes": "Status-date marker in Gantt and Timeline views."
+            },
+            {
+              "name": "Baseline",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Baseline number 0-10 to compare against."
+            },
+            {
+              "name": "Start",
+              "type": "DateTime",
+              "mandatory": false,
+              "notes": "First visible date (inclusive); default from the schedule."
+            },
+            {
+              "name": "Finish",
+              "type": "DateTime",
+              "mandatory": false,
+              "notes": "Last visible date (exclusive); default from the schedule."
+            },
+            {
+              "name": "NoProgress",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Do not fill task bars with completion (shown by default)."
+            },
+            {
+              "name": "NoLegend",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PageWidth",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default A4 landscape (842pt)."
+            },
+            {
+              "name": "PageHeight",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 595pt; the maximum height when pages fit their content."
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "notes": "Default 28pt."
+            },
+            {
+              "name": "NoFitToContent",
+              "type": "switch",
+              "mandatory": false,
+              "notes": "Keep the full -PageHeight instead of trimming unused space (trimmed by default)."
+            },
+            {
+              "name": "MaximumRows",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Default 10000."
+            },
+            {
+              "name": "MaximumBuckets",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Time buckets before pagination; default 1000."
+            },
+            {
+              "name": "MaximumCells",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Default 1000000."
+            },
+            {
+              "name": "MaximumIntervalVisits",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Default 2000000."
+            },
+            {
+              "name": "MaximumPages",
+              "type": "int",
+              "mandatory": false,
+              "notes": "Default 1000."
+            }
+          ]
+        }
+      ],
+      "notes": "Factory for ProjectViewOptions. The layout itself is Get-OfficeProjectView -Kind, so the factory has no -Kind (G18). Settings that are on by default (summaries, progress fill, legend, fit to content) are turned off with -No{Feature}; -Task and -Resource accept objects or names (map to TaskUids/ResourceUids); page sizes are OfficeLength values; Max* limits are Maximum*.",
+      "examples": [
+        {
+          "title": "Show monthly resource load",
+          "description": "Creates options for a monthly timescale and passes them to a resource usage view.",
+          "code": "$options = New-OfficeProjectViewOptions -Timescale Month\nGet-OfficeProjectView -Document $project -Kind ResourceUsage -Options $options"
+        },
+        {
+          "title": "Print one team's tasks on A3",
+          "description": "Selects the tasks assigned to the database team, lays them out on an A3 landscape page and exports the Gantt chart.",
+          "code": "$project = Open-OfficeProject -Path .\\Plans\\Upgrade.mpp -ReadOnly\n$options = New-OfficeProjectViewOptions -Resource 'Database team' -Column Name, Start, Finish, WorkHours -PageWidth 420mm -PageHeight 297mm -NoLegend\nGet-OfficeProjectView -Document $project -Kind Gantt -Options $options | Export-OfficeProjectReport -Path .\\Reports\\Database-Team.pdf\nClose-OfficeProject -Document $project"
         }
       ]
     },
@@ -3658,8 +3823,9 @@
             {
               "name": "Document",
               "type": "ProjectDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-/Open-OfficeProject content block; inside one the enclosing project is used."
             },
             {
               "name": "AllowLoss",
@@ -3786,7 +3952,7 @@
         {
           "title": "Build an asset database from CSV",
           "description": "Defines a typed table, loads the CSV rows and saves the database when the block ends.",
-          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv -InferSchema\nNew-OfficeAccess -Path .\\Data\\Assets.accdb -Title 'IT assets' {\n    $table = Add-OfficeAccessTable Assets -PassThru\n    $table | Add-OfficeAccessColumn Id -Type AutoNumber\n    $table | Add-OfficeAccessColumn AssetTag -MaxLength 20\n    $table | Add-OfficeAccessColumn Model -MaxLength 120\n    $table | Add-OfficeAccessColumn PurchaseDate -Type DateTime\n    $table | Add-OfficeAccessColumn Cost -Type Currency\n    $assets | Add-OfficeAccessRow -Table $table\n}"
+          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv -InferSchema\nNew-OfficeAccess -Path .\\Data\\Assets.accdb -Title 'IT assets' {\n    AccessTable Assets {\n        AccessColumn Id -Type AutoNumber\n        AccessColumn AssetTag -MaxLength 20\n        AccessColumn Model -MaxLength 120\n        AccessColumn PurchaseDate -Type DateTime\n        AccessColumn Cost -Type Currency\n        $assets | AccessRow\n    }\n}"
         }
       ]
     },
@@ -3968,7 +4134,7 @@
     },
     {
       "name": "Add-OfficeAccessTable",
-      "alias": null,
+      "alias": "AccessTable",
       "status": "existing",
       "synopsis": "Adds a table to a new database.",
       "outputType": [
@@ -3984,13 +4150,20 @@
               "type": "AccessDocument",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "Mandatory outside a New-OfficeAccess content block."
+              "notes": "Mandatory outside a New-OfficeAccess content block; inside one the enclosing database is used."
             },
             {
               "name": "Name",
               "type": "string",
               "mandatory": true,
               "position": 0
+            },
+            {
+              "name": "Content",
+              "type": "ScriptBlock",
+              "mandatory": false,
+              "position": 1,
+              "notes": "Content block: AccessColumn and AccessRow inside it target this table."
             },
             {
               "name": "PassThru",
@@ -4009,13 +4182,14 @@
         {
           "title": "Add related tables",
           "description": "Creates a customers table and an orders table with their fields.",
-          "code": "New-OfficeAccess -Path .\\Data\\Orders.accdb -Title 'Orders' {\n    $customers = Add-OfficeAccessTable Customers -PassThru\n    $customers | Add-OfficeAccessColumn CustomerId -Type AutoNumber\n    $customers | Add-OfficeAccessColumn Name -MaxLength 100\n    $orders = Add-OfficeAccessTable Orders -PassThru\n    $orders | Add-OfficeAccessColumn OrderId -Type AutoNumber -AutoNumberSeed 1000\n    $orders | Add-OfficeAccessColumn CustomerId -Type Int32\n    $orders | Add-OfficeAccessColumn Total -Type Currency\n}"
+          "code": "New-OfficeAccess -Path .\\Data\\Orders.accdb -Title 'Orders' {\n    AccessTable Customers {\n        AccessColumn CustomerId -Type AutoNumber\n        AccessColumn Name -MaxLength 100\n    }\n    AccessTable Orders {\n        AccessColumn OrderId -Type AutoNumber -AutoNumberSeed 1000\n        AccessColumn CustomerId -Type Int32\n        AccessColumn Total -Type Currency\n    }\n}"
         }
-      ]
+      ],
+      "notes": "Alias AccessTable inside a New-OfficeAccess content block. Gains a content block, so AccessColumn and AccessRow inside it need no -Table; -PassThru returns the table."
     },
     {
       "name": "Add-OfficeAccessColumn",
-      "alias": null,
+      "alias": "AccessColumn",
       "status": "existing",
       "synopsis": "Adds a typed field to a table.",
       "outputType": [
@@ -4029,8 +4203,9 @@
             {
               "name": "Table",
               "type": "AccessTable",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside an Add-OfficeAccessTable content block; inside one the enclosing table is used."
             },
             {
               "name": "Name",
@@ -4071,7 +4246,7 @@
           ]
         }
       ],
-      "notes": "MaxLength/AutoNumberSeed/Precision/Scale depend on the -Type value, which parameter sets cannot express; the run-time checks stay.",
+      "notes": "Alias AccessColumn. MaxLength/AutoNumberSeed/Precision/Scale depend on the -Type value, which parameter sets cannot express; the run-time checks stay.",
       "examples": [
         {
           "title": "Add a text field",
@@ -4081,13 +4256,13 @@
         {
           "title": "Define a typed price list",
           "description": "Adds an AutoNumber key, text, decimal and date fields.",
-          "code": "New-OfficeAccess -Path .\\Data\\Prices.accdb {\n    $prices = Add-OfficeAccessTable Prices -PassThru\n    $prices | Add-OfficeAccessColumn Id -Type AutoNumber\n    $prices | Add-OfficeAccessColumn Sku -MaxLength 30\n    $prices | Add-OfficeAccessColumn Description -Type LongText\n    $prices | Add-OfficeAccessColumn UnitPrice -Type Decimal -Precision 18 -Scale 4\n    $prices | Add-OfficeAccessColumn ValidFrom -Type DateTime\n}"
+          "code": "New-OfficeAccess -Path .\\Data\\Prices.accdb {\n    AccessTable Prices {\n        AccessColumn Id -Type AutoNumber\n        AccessColumn Sku -MaxLength 30\n        AccessColumn Description -Type LongText\n        AccessColumn UnitPrice -Type Decimal -Precision 18 -Scale 4\n        AccessColumn ValidFrom -Type DateTime\n    }\n}"
         }
       ]
     },
     {
       "name": "Add-OfficeAccessRow",
-      "alias": null,
+      "alias": "AccessRow",
       "status": "existing",
       "synopsis": "Appends objects or dictionaries as rows using the declared field types.",
       "outputType": [
@@ -4101,7 +4276,8 @@
             {
               "name": "Table",
               "type": "AccessTable",
-              "mandatory": true
+              "mandatory": false,
+              "notes": "Mandatory outside an Add-OfficeAccessTable content block; inside one the enclosing table is used."
             },
             {
               "name": "InputObject",
@@ -4127,9 +4303,10 @@
         {
           "title": "Load services into a table",
           "description": "Defines fields and appends one row per Windows service.",
-          "code": "New-OfficeAccess -Path .\\Data\\Services.accdb -Title 'Service inventory' {\n    $table = Add-OfficeAccessTable Services -PassThru\n    $table | Add-OfficeAccessColumn Name -MaxLength 128\n    $table | Add-OfficeAccessColumn DisplayName -MaxLength 255\n    $table | Add-OfficeAccessColumn Status -MaxLength 20\n    Get-Service | Select-Object Name, DisplayName, @{ Name = 'Status'; Expression = { \"$($_.Status)\" } } |\n        Add-OfficeAccessRow -Table $table\n}"
+          "code": "New-OfficeAccess -Path .\\Data\\Services.accdb -Title 'Service inventory' {\n    AccessTable Services {\n        AccessColumn Name -MaxLength 128\n        AccessColumn DisplayName -MaxLength 255\n        AccessColumn Status -MaxLength 20\n        Get-Service | Select-Object Name, DisplayName, @{ Name = 'Status'; Expression = { \"$($_.Status)\" } } | AccessRow\n    }\n}"
         }
-      ]
+      ],
+      "notes": "Alias AccessRow. Inside an Add-OfficeAccessTable content block the rows go to that table."
     },
     {
       "name": "Get-OfficeAccessTable",
@@ -4147,8 +4324,9 @@
             {
               "name": "Document",
               "type": "AccessDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-OfficeAccess content block; inside one the enclosing database is used."
             },
             {
               "name": "Name",
@@ -4188,8 +4366,9 @@
             {
               "name": "Document",
               "type": "AccessDocument",
-              "mandatory": true,
-              "pipeline": "value"
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "Mandatory outside a New-OfficeAccess content block; inside one the enclosing database is used."
             },
             {
               "name": "Table",
@@ -4243,8 +4422,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailReaderOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailReaderOptions (EmailReaderOptions), routed by type; hashtables accepted."
             },
             {
               "name": "StoreOptions",
@@ -4274,8 +4454,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailReaderOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailReaderOptions (EmailReaderOptions), routed by type; hashtables accepted."
             },
             {
               "name": "StoreOptions",
@@ -4334,8 +4515,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailMailboxReaderOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailMailboxReaderOptions (EmailMailboxReaderOptions), routed by type; hashtables accepted."
             },
             {
               "name": "AsResult",
@@ -4359,8 +4541,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailMailboxReaderOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailMailboxReaderOptions (EmailMailboxReaderOptions), routed by type; hashtables accepted."
             },
             {
               "name": "AsResult",
@@ -4417,8 +4600,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailWriterOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailWriterOptions (EmailWriterOptions), routed by type; hashtables accepted."
             },
             {
               "name": "PassThru",
@@ -4470,8 +4654,9 @@
             },
             {
               "name": "Options",
-              "type": "EmailMailboxWriterOptions",
-              "mandatory": false
+              "type": "object[]",
+              "mandatory": false,
+              "notes": "Options from New-OfficeEmailMailboxWriterOptions (EmailMailboxWriterOptions), routed by type; hashtables accepted."
             },
             {
               "name": "PassThru",
@@ -4927,13 +5112,13 @@
               "name": "UserName",
               "type": "string",
               "mandatory": false,
-              "notes": "Required unless -Password is given a PSCredential, whose user name is used."
+              "notes": "Atlassian account email for a SecureString or plain-string -Password. Omit it when -Password is a PSCredential, whose user name is used."
             },
             {
               "name": "Password",
               "type": "SecureString",
               "mandatory": true,
-              "notes": "API token. Also accepts a PSCredential (user name and token) or a plain string with a warning."
+              "notes": "API token: a SecureString (with -UserName), a PSCredential (user name and token; -UserName comes from it) or a plain string with a warning."
             },
             {
               "name": "ApplicationName",
@@ -4992,15 +5177,21 @@
       "examples": [
         {
           "title": "Connect with an API token",
-          "description": "Use your Atlassian email as the user name and the API token as the password.",
-          "code": "$credential = Get-Credential -Message 'Atlassian email and API token'\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -UserName $credential.UserName -Password $credential.Password"
+          "description": "Uses the email and API token from one PSCredential.",
+          "code": "$credential = Get-Credential -Message 'Atlassian email and API token'\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -Password $credential"
         },
         {
           "title": "Connect with an OAuth access token",
           "description": "The Bearer set uses an OAuth 2.0 token and the site's cloud ID.",
           "code": "$token = Read-Host -Prompt 'OAuth access token' -AsSecureString\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -AccessToken $token -CloudId $env:CONFLUENCE_CLOUD_ID -ApplicationName 'Status publisher'"
+        },
+        {
+          "title": "Connect from a stored token",
+          "description": "Reads the API token from an environment variable for a scheduled job and passes the account email separately.",
+          "code": "$token = ConvertTo-SecureString -String $env:CONFLUENCE_TOKEN -AsPlainText -Force\n$session = New-OfficeConfluenceSession -SiteUri 'https://example.atlassian.net/' -UserName 'reports@example.com' -Password $token"
         }
-      ]
+      ],
+      "notes": "-Password takes a PSCredential directly, so -Password (Get-Credential) supplies both the user name and the API token; -UserName stays for a SecureString or plain-string token, and a -UserName that differs from the credential's user name is an invalid argument."
     },
     {
       "name": "Get-OfficeConfluencePage",
@@ -5115,7 +5306,8 @@
           "description": "Lists pages in a space whose title matches exactly.",
           "code": "Get-OfficeConfluencePage -Session $session -SpaceId 98765 -Title 'On-call rota'"
         }
-      ]
+      ],
+      "notes": "OfficeConfluencePageOutput: Page, Markdown, Html."
     },
     {
       "name": "Publish-OfficeConfluencePage",
@@ -5191,7 +5383,8 @@
             {
               "name": "VersionNumber",
               "type": "int",
-              "mandatory": true
+              "mandatory": false,
+              "notes": "Omit it to publish the next version: the command reads the page's current version and adds one. Give it to fail with a conflict when someone else changed the page since you read it."
             },
             {
               "name": "VersionMessage",
@@ -5288,7 +5481,8 @@
             {
               "name": "VersionNumber",
               "type": "int",
-              "mandatory": true
+              "mandatory": true,
+              "notes": "Required: a plan has no session to read the current version from."
             },
             {
               "name": "VersionMessage",
@@ -5324,7 +5518,7 @@
           ]
         }
       ],
-      "notes": "-PlanOnly is kept rather than mapped to -WhatIf: it returns the exact request (ConfluencePageWritePlan) as an object and needs no session, which -WhatIf cannot do. -WhatIf still previews a live call. Live and plan calls become parameter sets, so -Session is mandatory where it is used and the 'Provide -Session or use -PlanOnly' run-time error disappears. ShouldProcess stays because the command changes remote content.",
+      "notes": "-PlanOnly is kept rather than mapped to -WhatIf: it returns the exact request (ConfluencePageWritePlan) as an object and needs no session, which -WhatIf cannot do. -WhatIf still previews a live call. Live and plan calls become parameter sets, so -Session is mandatory where it is used and the 'Provide -Session or use -PlanOnly' run-time error disappears. ShouldProcess stays because the command changes remote content. The Update set increments the version automatically when -VersionNumber is omitted (one extra read of the page); UpdatePlan still requires it. OfficeConfluenceContentFormat: Markdown, Html, AtlasDocFormat, Storage.",
       "examples": [
         {
           "title": "Create a page from Markdown",
@@ -5333,8 +5527,8 @@
         },
         {
           "title": "Update the daily status page",
-          "description": "Reads the current version and publishes the regenerated report as the next version.",
-          "code": "$page = Get-OfficeConfluencePage -Session $session -PageId 12345\n$report = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-OfficeMarkdown\n$update = @{\n    Session = $session\n    PageId = $page.Id\n    VersionNumber = $page.Version.Number + 1\n    VersionMessage = 'Automated refresh'\n    Title = $page.Title\n    Content = $report -join [Environment]::NewLine\n}\nPublish-OfficeConfluencePage @update"
+          "description": "Replaces the page body with a fresh service report; the next version number is read from the page.",
+          "code": "$report = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-OfficeMarkdown\n$update = @{\n    Session = $session\n    PageId = 12345\n    VersionMessage = 'Automated refresh'\n    Title = 'Daily status'\n    Content = $report -join [Environment]::NewLine\n}\nPublish-OfficeConfluencePage @update"
         },
         {
           "title": "Preview the request without a session",
@@ -5690,7 +5884,7 @@
         {
           "title": "Refresh one section of a hand-written page",
           "description": "Updates only the generated part of a page and leaves the rest of the authors' text intact.",
-          "code": "$page = Get-OfficeConfluencePage -Session $session -PageId 12345 -BodyFormat Storage\n$table = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-Html -Fragment\n$section = Set-OfficeConfluenceManagedSection -ExistingBody $page.Body.Storage.Value -SectionId stopped-services -Replacement ($table -join '') -AppendIfMissing\n$update = @{\n    Session = $session\n    PageId = $page.Id\n    VersionNumber = $page.Version.Number + 1\n    Title = $page.Title\n    Content = $section.UpdatedBody\n    ContentFormat = 'Storage'\n}\nPublish-OfficeConfluencePage @update"
+          "code": "$page = Get-OfficeConfluencePage -Session $session -PageId 12345 -BodyFormat Storage\n$table = Get-Service | Where-Object Status -eq 'Stopped' | Select-Object Name, DisplayName | ConvertTo-Html -Fragment\n$section = Set-OfficeConfluenceManagedSection -ExistingBody $page.Body.Storage.Value -SectionId stopped-services -Replacement ($table -join '') -AppendIfMissing\n$update = @{\n    Session = $session\n    PageId = $page.Id\n    Title = $page.Title\n    Content = $section.UpdatedBody\n    ContentFormat = 'Storage'\n}\nPublish-OfficeConfluencePage @update"
         }
       ]
     }
@@ -5831,8 +6025,12 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "Set-OfficeVisioShapeLayout",
-      "parameterSet": "Align",
-      "reason": "Grid/HorizontalStack/VerticalStack become parameter sets; spacing is OfficeLength."
+      "parameterSet": "Alignment",
+      "reason": "Grid/HorizontalStack/VerticalStack become parameter sets; spacing is OfficeLength; -AlignHorizontal/-AlignVertical become -HorizontalAlignment/-VerticalAlignment as on other commands.",
+      "parameters": {
+        "AlignHorizontal": "HorizontalAlignment",
+        "AlignVertical": "VerticalAlignment"
+      }
     },
     {
       "old": "Import-OfficeVisioStencil",
@@ -5891,12 +6089,16 @@
         "RenderStencilArtwork": "NoStencilArtwork",
         "RenderConnectorLabels": "NoConnectorLabels",
         "ResolveConnectorLabelOverlaps": "NoConnectorLabelOverlapResolution",
-        "PageIndex": "Page",
+        "PageIndex": "Export-OfficeDocumentImage -Page",
         "MaximumRasterPixels": "MaximumRasterPixelCount",
-        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount",
+        "PageCount": "Export-OfficeDocumentImage -Page",
+        "Scale": "Export-OfficeDocumentImage -Scale",
+        "BackgroundColor": "Export-OfficeDocumentImage -BackgroundColor",
+        "TargetDpi": "Export-OfficeDocumentImage -Dpi"
       },
-      "hint": "New-OfficeVisioImageOptions -Page 1 -PageCount 1 -NoConnectorLabels",
-      "reason": "Pages are 1-based (-Page replaces 0-based -PageIndex); features that are on by default are turned off with -No{Feature} switches; font selection from ConvertTo-OfficeVisioPng moves here."
+      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Page 1 -OutputDirectory .\\Images -Options (New-OfficeVisioImageOptions -NoConnectorLabels)",
+      "reason": "Features that are on by default are turned off with -No{Feature} switches; font selection from ConvertTo-OfficeVisioPng moves here. Page selection (1-based -Page), scale, background color and DPI are parameters of the image commands, so the factory no longer repeats them."
     },
     {
       "old": "ConvertTo-OfficeVisioVisual",
@@ -5920,10 +6122,10 @@
       "old": "ConvertTo-OfficeVisioPng",
       "kind": "cmdlet",
       "action": "cross-format",
-      "new": "Export-OfficeDocumentImage",
-      "parameterSet": "PathFile | DocumentFile",
+      "new": "ConvertTo-OfficeDocumentImage",
+      "parameterSet": "Path | Document",
       "parameters": {
-        "OutputPath": "OutputPath",
+        "OutputPath": "Export-OfficeDocumentImage -OutputPath",
         "PageIndex": "Page",
         "PixelsPerInch": "Dpi",
         "BackgroundColor": "BackgroundColor",
@@ -5935,20 +6137,20 @@
         "Open": null,
         "Supersampling": "New-OfficeVisioImageOptions -Supersampling",
         "FontFilePath": "New-OfficeVisioImageOptions -FontPath",
-        "FontFaceName": "New-OfficeVisioImageOptions -FontFaceName",
+        "FontFaceName": "New-OfficeVisioImageOptions -Font",
         "FontCollectionIndex": "New-OfficeVisioImageOptions -FontCollectionIndex"
       },
-      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Png -OutputPath .\\Map.png -Dpi 144",
-      "reason": "Page and slide image export is one cross-format command (-Format Png); Visio-only settings travel in -Options (New-OfficeVisioImageOptions). -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed because Export-OfficeDocumentImage has no -Show; open the written file with Invoke-Item. Output without -OutputPath (bytes or SVG text) is not part of the cross-format command; write to -OutputPath and read the file."
+      "hint": "ConvertTo-OfficeDocumentImage -Path .\\Map.vsdx -Format Png -Dpi 144   # to a file: Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputPath .\\Map.png",
+      "reason": "Image rendering is cross-format: ConvertTo-OfficeDocumentImage -Format Png returns the image as an object (Bytes), as this command did without -OutputPath, and Export-OfficeDocumentImage -OutputPath writes the file. Visio-only settings travel in -Options (New-OfficeVisioImageOptions). -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed; open a written file with Invoke-Item."
     },
     {
       "old": "ConvertTo-OfficeVisioSvg",
       "kind": "cmdlet",
       "action": "cross-format",
-      "new": "Export-OfficeDocumentImage",
-      "parameterSet": "PathFile | DocumentFile",
+      "new": "ConvertTo-OfficeDocumentImage",
+      "parameterSet": "Path | Document",
       "parameters": {
-        "OutputPath": "OutputPath",
+        "OutputPath": "Export-OfficeDocumentImage -OutputPath",
         "PageIndex": "Page",
         "PixelsPerInch": "Dpi",
         "BackgroundColor": "BackgroundColor",
@@ -5960,8 +6162,8 @@
         "Open": null,
         "IncludeXmlDeclaration": "New-OfficeVisioImageOptions -IncludeSvgXmlDeclaration"
       },
-      "hint": "Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg -OutputPath .\\Map.svg -BackgroundColor Transparent",
-      "reason": "Same as ConvertTo-OfficeVisioPng with -Format Svg. -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed because Export-OfficeDocumentImage has no -Show; open the written file with Invoke-Item. Output without -OutputPath (bytes or SVG text) is not part of the cross-format command; write to -OutputPath and read the file."
+      "hint": "ConvertTo-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg -BackgroundColor Transparent   # to a file: Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputPath .\\Map.svg",
+      "reason": "Image rendering is cross-format: ConvertTo-OfficeDocumentImage -Format Svg returns the image as an object (SvgText), as this command did without -OutputPath, and Export-OfficeDocumentImage -OutputPath writes the file. Visio-only settings travel in -Options (New-OfficeVisioImageOptions). -PageIndex (0-based) becomes the 1-based -Page; -PixelsPerInch becomes -Dpi; -Transparent becomes -BackgroundColor Transparent. -Open is removed; open a written file with Invoke-Item."
     },
     {
       "old": "Export-OfficeVisioImage",
@@ -6157,16 +6359,16 @@
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "Use Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Png -OutputPath .\\Map.png",
-      "reason": "Unprefixed verb-noun alias of a command that moved to Export-OfficeDocumentImage."
+      "hint": "Use ConvertTo-OfficeDocumentImage -Path .\\Map.vsdx -Format Png, or Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputPath .\\Map.png",
+      "reason": "Unprefixed verb-noun alias of a command that moved to ConvertTo-OfficeDocumentImage and Export-OfficeDocumentImage."
     },
     {
       "old": "ConvertTo-VisioSvg",
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "Use Export-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg -OutputPath .\\Map.svg",
-      "reason": "Unprefixed verb-noun alias of a command that moved to Export-OfficeDocumentImage."
+      "hint": "Use ConvertTo-OfficeDocumentImage -Path .\\Map.vsdx -Format Svg, or Export-OfficeDocumentImage -Path .\\Map.vsdx -OutputPath .\\Map.svg",
+      "reason": "Unprefixed verb-noun alias of a command that moved to ConvertTo-OfficeDocumentImage and Export-OfficeDocumentImage."
     },
     {
       "old": "New-OfficeProject",
@@ -6206,7 +6408,11 @@
       "action": "keep",
       "new": "Add-OfficeProjectTask",
       "parameterSet": "Document",
-      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block; -Parent accepts a task object or name instead of only its Uid.",
+      "parameters": {
+        "ParentUid": "Parent"
+      },
+      "hint": "ProjectTask 'Build' -DurationDays 5 -Parent 'Delivery'"
     },
     {
       "old": "Add-OfficeProjectResource",
@@ -6222,7 +6428,12 @@
       "action": "keep",
       "new": "Add-OfficeProjectAssignment",
       "parameterSet": "Document",
-      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block; -Task and -Resource accept objects or names instead of only Uids.",
+      "parameters": {
+        "TaskUid": "Task",
+        "ResourceUid": "Resource"
+      },
+      "hint": "ProjectAssignment 'Build' 'Tomasz Kowalski' -UnitsPercent 50"
     },
     {
       "old": "Add-OfficeProjectDependency",
@@ -6230,31 +6441,40 @@
       "action": "keep",
       "new": "Add-OfficeProjectDependency",
       "parameterSet": "Document",
-      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block; -Predecessor and -Successor accept task objects or names instead of only Uids.",
+      "parameters": {
+        "PredecessorUid": "Predecessor",
+        "SuccessorUid": "Successor"
+      },
+      "hint": "ProjectDependency 'Build' 'Test' -Type StartToStart"
     },
     {
       "old": "Get-OfficeProjectTask",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Get-OfficeProjectTask"
+      "new": "Get-OfficeProjectTask",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "Get-OfficeProjectResource",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Get-OfficeProjectResource"
+      "new": "Get-OfficeProjectResource",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "Get-OfficeProjectAssignment",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Get-OfficeProjectAssignment"
+      "new": "Get-OfficeProjectAssignment",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "Get-OfficeProjectDependency",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Get-OfficeProjectDependency"
+      "new": "Get-OfficeProjectDependency",
+      "reason": "-Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "ConvertTo-OfficeProjectTable",
@@ -6280,15 +6500,15 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "Invoke-OfficeProjectSchedule",
-      "reason": "-WhatIf/-Confirm removed: -Apply changes the in-memory project, not a file."
+      "reason": "-WhatIf/-Confirm removed: -Apply changes the in-memory project, not a file. -Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "Get-OfficeProjectView",
       "kind": "cmdlet",
       "action": "keep",
       "new": "Get-OfficeProjectView",
-      "parameterSet": "Kind",
-      "reason": "-Kind and -Options become separate parameter sets."
+      "parameterSet": "Document",
+      "reason": "-Kind and -Options combine in one set: -Kind picks the layout, -Options (New-OfficeProjectViewOptions) carries selection and page settings. -Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "Export-OfficeProjectReport",
@@ -6312,7 +6532,7 @@
         "AllowLossyProjection": "AllowLoss"
       },
       "hint": "Get-OfficeProjectTable -Document $project -AllowLoss",
-      "reason": "It writes no file, so Export- (and its -WhatIf promise) does not fit; Get- reads content out of a document. -AllowLossyProjection becomes the shared -AllowLoss."
+      "reason": "It writes no file, so Export- (and its -WhatIf promise) does not fit; Get- reads content out of a document. -AllowLossyProjection becomes the shared -AllowLoss. -Document becomes optional inside a New-/Open-OfficeProject content block."
     },
     {
       "old": "New-OfficeAccess",
@@ -6357,25 +6577,28 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "Add-OfficeAccessTable",
-      "reason": "-Document becomes optional inside a New-OfficeAccess content block."
+      "reason": "-Document becomes optional inside a New-OfficeAccess content block, and the command gains a content block whose AccessColumn and AccessRow calls target the new table."
     },
     {
       "old": "Add-OfficeAccessColumn",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Add-OfficeAccessColumn"
+      "new": "Add-OfficeAccessColumn",
+      "reason": "-Table becomes optional inside an Add-OfficeAccessTable content block."
     },
     {
       "old": "Add-OfficeAccessRow",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Add-OfficeAccessRow"
+      "new": "Add-OfficeAccessRow",
+      "reason": "-Table becomes optional inside an Add-OfficeAccessTable content block."
     },
     {
       "old": "Get-OfficeAccessTable",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Get-OfficeAccessTable"
+      "new": "Get-OfficeAccessTable",
+      "reason": "-Document becomes optional inside a New-OfficeAccess content block."
     },
     {
       "old": "Get-OfficeAccessRow",
@@ -6386,7 +6609,7 @@
         "TableName": "Table"
       },
       "hint": "Get-OfficeAccessRow -Document $database -Table Contacts",
-      "reason": "-TableName becomes -Table, matching Open-OfficeAccess and Add-OfficeAccessRow."
+      "reason": "-TableName becomes -Table, matching Open-OfficeAccess and Add-OfficeAccessRow. -Document becomes optional inside a New-OfficeAccess content block."
     },
     {
       "old": "Get-OfficeEmail",
@@ -6503,7 +6726,7 @@
       "new": "Publish-OfficeConfluencePage",
       "parameterSet": "Create",
       "hint": "Publish-OfficeConfluencePage -PlanOnly -SpaceId 42 -Title 'Daily status' -Content $markdown",
-      "reason": "Live and -PlanOnly calls become parameter sets, so -Session is mandatory for live calls instead of a run-time error."
+      "reason": "Live and -PlanOnly calls become parameter sets, so -Session is mandatory for live calls instead of a run-time error. The Update set reads and increments the page version when -VersionNumber is omitted."
     },
     {
       "old": "Remove-OfficeConfluencePage",

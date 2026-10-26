@@ -601,7 +601,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -1010,12 +1010,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "ExcelDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
@@ -1082,7 +1082,7 @@
             {
               "name": "Document",
               "type": "ExcelDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
@@ -1136,7 +1136,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Get-OfficeExcelData, Get-OfficeExcelRange and Get-OfficeExcelUsedRange. -Sheet takes a name, 1-based position or object, and * (or any wildcard) imports several sheets with a WorksheetName property on each row (replaces -AllSheets). Without -Range the used range is read; -Range takes an A1 range, a whole-row/column range (5:200, B:F) or a single top-left cell (A5) meaning from there to the end of the used range (replaces -StartRow/-EndRow/-StartColumn/-EndColumn). -As Object (default), Hashtable, DataTable, DataReader or Column replaces the four mutually exclusive switches. Writes a warning when the process runs in globalization-invariant mode and -Culture parsing would be affected (absorbs Get-OfficeExcelRuntimePreflight).",
+      "notes": "Absorbs Get-OfficeExcelData, Get-OfficeExcelRange and Get-OfficeExcelUsedRange. -Sheet takes a name, 1-based position or object, and * (or any wildcard) imports several sheets with a WorksheetName property on each row (replaces -AllSheets). Without -Range the used range is read; -Range takes an A1 range, a whole-row/column range (5:200, B:F) or a single top-left cell (A5) meaning from there to the end of the used range (replaces -StartRow/-EndRow/-StartColumn/-EndColumn). -As Object (default), Hashtable, DataTable, DataReader or Column replaces the four mutually exclusive switches. Writes a warning when the process runs in globalization-invariant mode and -Culture parsing would be affected (absorbs Get-OfficeExcelRuntimePreflight). Inside a New-/Open-OfficeExcel block the Document set takes the block's workbook, so -Document can be left out.",
       "examples": [
         {
           "title": "Read the first sheet as objects",
@@ -1800,7 +1800,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -1893,12 +1893,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "ExcelDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
@@ -1935,7 +1935,7 @@
           ]
         }
       ],
-      "notes": "Path and LiteralPath save in place; Document leaves saving to the caller.",
+      "notes": "Path and LiteralPath save in place; Document leaves saving to the caller. Inside a New-/Open-OfficeExcel block the Document set takes the block's workbook, so -Document can be left out. Path and LiteralPath stay the way to edit a file without opening it first.",
       "examples": [
         {
           "title": "Update rows in place",
@@ -1946,6 +1946,11 @@
           "title": "Recalculate renewal dates in an open workbook",
           "description": "Sets the renewal date of each active licence to one year after its start date in a live workbook, which the script then saves.",
           "code": "$book = Open-OfficeExcel -Path .\\Contracts\\Licences.xlsx\nEdit-OfficeExcelRow -Document $book -Sheet Licences -Range A1:F400 -ScriptBlock {\n    param($row)\n    if ($row['State'].Value -eq 'Active') {\n        $row.Set('RenewalDate', $row.Get[datetime]('StartDate').AddYears(1))\n    }\n}\nSave-OfficeExcel -Document $book -PassThru | Close-OfficeExcel"
+        },
+        {
+          "title": "Edit rows while building a workbook",
+          "description": "Writes imported rows and then fixes up their status inside the same block, without a -Document variable.",
+          "code": "$tickets = Import-OfficeCsv -Path .\\Data\\Tickets.csv\nNew-OfficeExcel -Path .\\Reports\\Tickets.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelTable $tickets -Name Tickets\n    }\n    Edit-OfficeExcelRow -Sheet Tickets -ScriptBlock {\n        param($row)\n        if (-not $row['Owner'].Value) { $row.Set('Owner', 'Unassigned') }\n    }\n}"
         }
       ]
     },
@@ -3048,7 +3053,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3061,7 +3066,7 @@
           ]
         }
       ],
-      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size). Excel rich-text runs cannot carry their own hyperlink, so there is no -Link; -VerticalAlignment gives superscript and subscript. -Size is in points.",
+      "notes": "Shared Text vocabulary (-Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size). Excel rich-text runs cannot carry their own hyperlink, so there is no -Link; -VerticalAlignment gives superscript and subscript. -Size is an OfficeLength; a bare number means points.",
       "examples": [
         {
           "title": "Add a bold run to a cell",
@@ -3071,7 +3076,7 @@
         {
           "title": "Highlight a status and add a footnote marker",
           "description": "Colours the risk word by its theme role and adds a superscript reference to the notes below.",
-          "code": "Open-OfficeExcel -Path .\\Reports\\Migration.xlsx {\n    ExcelSheet 'Overview' {\n        ExcelCell B3 {\n            ExcelText 'Cutover risk: '\n            ExcelText 'High' -Bold -Color Danger\n            ExcelText '1' -VerticalAlignment Superscript\n        }\n        ExcelCell B20 '1 Vendor patch not yet certified for production.'\n    }\n}"
+          "code": "Open-OfficeExcel -Path .\\Reports\\Migration.xlsx {\n    ExcelSheet 'Overview' {\n        ExcelCell B3 {\n            ExcelText 'Cutover risk: '\n            ExcelText 'High' -Bold -Color Danger -Size 12pt\n            ExcelText '1' -VerticalAlignment Superscript\n        }\n        ExcelCell B20 '1 Vendor patch not yet certified for production.'\n    }\n}"
         }
       ]
     },
@@ -3221,6 +3226,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Formula",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Write strings that start with '=' as formulas."
+            },
+            {
               "name": "Height",
               "type": "ExcelColumnWidth",
               "mandatory": false,
@@ -3301,7 +3313,7 @@
           ]
         }
       ],
-      "notes": "bool? parameters become switches; -Bold:$false clears bold and -Hidden:$false unhides. -Height takes ExcelColumnWidth: a bare number is points (Excel's native row unit) and a unit value such as 0.8cm is converted. Column arguments take an index or letter.",
+      "notes": "bool? parameters become switches; -Bold:$false clears bold and -Hidden:$false unhides. -Height takes ExcelColumnWidth: a bare number is points (Excel's native row unit) and a unit value such as 0.8cm is converted. Column arguments take an index or letter. -Values are written as values: a string starting with '=' stays text unless -Formula is given, so imported data cannot inject formulas. With -Formula, every '='-prefixed string becomes a formula.",
       "examples": [
         {
           "title": "Write a header row",
@@ -3312,6 +3324,11 @@
           "title": "Write a header band under a title",
           "description": "Writes the quarter labels into row 3 below the sheet title, with a light fill and a taller row so the band stands apart from the data.",
           "code": "New-OfficeExcel -Path .\\Reports\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelCell A1 'Budget 2027 by department'\n        ExcelRow 3 'Department', 'Q1', 'Q2', 'Q3', 'Q4', 'Total' -Bold -BackgroundColor '#F1F5F9' -Height 22\n    }\n}"
+        },
+        {
+          "title": "Write a totals row with formulas",
+          "description": "Adds a totals row whose cells are formulas; without -Formula the same strings would be stored as text.",
+          "code": "Open-OfficeExcel -Path .\\Finance\\Budget-2027.xlsx {\n    ExcelSheet 'Departments' {\n        ExcelRow 20 'Total', '=SUM(B4:B19)', '=SUM(C4:C19)', '=SUM(D4:D19)', '=SUM(E4:E19)' -Formula -Bold\n    }\n}"
         }
       ]
     },
@@ -3427,6 +3444,12 @@
             {
               "name": "Alignment",
               "type": "ExcelColumnAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WrapText",
+              "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3587,6 +3610,12 @@
               "pipeline": "none"
             },
             {
+              "name": "WrapText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "BackgroundByText",
               "type": "hashtable",
               "mandatory": false,
@@ -3619,12 +3648,12 @@
           ]
         }
       ],
-      "notes": "Absorbs Set-OfficeExcelColumnStyleByHeader as the Header set. -Column takes a 1-based index or a letter (replaces -ColumnName). -Width takes ExcelColumnWidth: characters of the default font, or a length converted through it.",
+      "notes": "Absorbs Set-OfficeExcelColumnStyleByHeader as the Header set. -Column takes a 1-based index or a letter (replaces -ColumnName). -Width takes ExcelColumnWidth: characters of the default font, or a length converted through it. -WrapText:$false turns wrapping off.",
       "examples": [
         {
           "title": "Set a column width",
           "description": "Makes column B wide enough for long descriptions and wraps nothing else.",
-          "code": "Open-OfficeExcel -Path .\\Reports\\Changes.xlsx {\n    ExcelSheet 'Changes' {\n        ExcelColumn B -Width 60\n    }\n}"
+          "code": "Open-OfficeExcel -Path .\\Reports\\Changes.xlsx {\n    ExcelSheet 'Changes' {\n        ExcelColumn B -Width 60 -WrapText\n    }\n}"
         },
         {
           "title": "Style table columns by header",
@@ -3981,7 +4010,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -4114,12 +4143,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "ExcelDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
@@ -4176,7 +4205,7 @@
           ]
         }
       ],
-      "notes": "-Pattern is a regular expression, as in Search-OfficeDocument and Select-String; -SimpleMatch matches literally (the old default). Inside a block, pass the live -Document. Path and LiteralPath save in place.",
+      "notes": "-Pattern is a regular expression, as in Search-OfficeDocument and Select-String; -SimpleMatch matches literally (the old default). Inside a New-/Open-OfficeExcel block the Document set takes the block's workbook, so -Document can be left out. Path and LiteralPath save in place.",
       "examples": [
         {
           "title": "Replace text across a workbook",
@@ -4187,6 +4216,11 @@
           "title": "Rename hosts after a migration",
           "description": "Uses a regular expression to rename the old SRV hosts to the new naming scheme on the inventory sheets and reports how many cells changed.",
           "code": "$changed = Update-OfficeExcelText -Path .\\Reports\\Inventory.xlsx -Sheet Servers, Services -Pattern '^SRV-(\\d+)$' -Replacement 'NW-APP-$1' -PassThru\n\"Renamed $changed cells\""
+        },
+        {
+          "title": "Replace placeholders inside a block",
+          "description": "Fills a template and replaces its placeholder text in the same Open-OfficeExcel block.",
+          "code": "Open-OfficeExcel -Path .\\Templates\\Quote.xlsx {\n    Update-OfficeExcelText -Pattern '{{Customer}}' -Replacement 'Northwind Traders' -SimpleMatch\n    Update-OfficeExcelText -Pattern '{{Date}}' -Replacement (Get-Date -Format 'yyyy-MM-dd') -SimpleMatch\n}"
         }
       ]
     },
@@ -4891,7 +4925,8 @@
               "name": "Criteria",
               "type": "hashtable",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Keys are header names in the filter range; values are allowed values (string or string[])."
             }
           ]
         },
@@ -4993,7 +5028,7 @@
           ]
         }
       ],
-      "notes": "Merges Add-OfficeExcelAutoFilter (Range set) and Set-OfficeExcelAutoFilter (Condition set).",
+      "notes": "Merges Add-OfficeExcelAutoFilter (Range set) and Set-OfficeExcelAutoFilter (Condition set). -Criteria is keyed by header name, not by 0-based column offset: @{ Status = 'Open', 'On hold'; Region = 'EMEA' } shows only matching rows. Use the Condition set for comparisons such as -GreaterThanOrEqual.",
       "examples": [
         {
           "title": "Add filter buttons to a range",
@@ -5004,6 +5039,11 @@
           "title": "Open a sheet filtered to the open work",
           "description": "Filters the ticket list to the Open and On hold statuses with at least three days of age, so the sheet opens on the work that needs attention.",
           "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelAutoFilter -Header Status -Value 'Open', 'On hold'\n        ExcelAutoFilter -Header AgeDays -GreaterThanOrEqual 3\n    }\n}"
+        },
+        {
+          "title": "Filter a new range by header names",
+          "description": "Adds filter buttons and immediately shows only open EMEA tickets.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Helpdesk.xlsx {\n    ExcelSheet 'Tickets' {\n        ExcelAutoFilter A1:H900 -Criteria @{ Status = 'Open', 'On hold'; Region = 'EMEA' }\n    }\n}"
         }
       ]
     },
@@ -5161,6 +5201,20 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none"
+            },
+            {
+              "name": "Category",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Table column for the categories; default the first column."
+            },
+            {
+              "name": "Value",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Table columns to plot; default every numeric column."
             },
             {
               "name": "Document",
@@ -5333,12 +5387,12 @@
           ]
         }
       ],
-      "notes": "Shared Chart vocabulary (-InputObject -Category -Value -Type -Title). The Data set writes the rows into the sheet as a table and charts it. Absorbs Add-OfficeExcelDashboardChart (-Preset, -Style, -ColorStyle). -Address is the top-left anchor cell (replaces -Row/-Column); -Width/-Height take lengths (default 640x360 px). -Type uses the Core OfficeChartType; Excel-only variants (clustered, stacked, 100%) map to OfficeChartType members or an Excel subtype parameter decided in M2. Charts use the theme palette, sans-serif text and light gridlines.",
+      "notes": "Shared Chart vocabulary (-InputObject -Category -Value -Type -Title). The Data set writes the rows into the sheet as a table and charts it. Absorbs Add-OfficeExcelDashboardChart (-Preset, -Style, -ColorStyle). -Address is the top-left anchor cell (replaces -Row/-Column); -Width/-Height take lengths (default 640x360 px). -Type uses the Core OfficeChartType; Excel-only variants (clustered, stacked, 100%) map to OfficeChartType members or an Excel subtype parameter decided in M2. Charts use the theme palette, sans-serif text and light gridlines. In the Table set, -Category and -Value pick table columns by header, as in ExcelReportChart.",
       "examples": [
         {
           "title": "Chart a table",
           "description": "Adds a themed column chart of the RegionSummary table, anchored at F2.",
-          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Address F2 -Type Column -Title 'Revenue by region'\n    }\n}"
+          "code": "New-OfficeExcel -Path .\\Reports\\Regions.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelTable (Import-OfficeCsv -Path .\\Data\\Region-Revenue.csv) -Name RegionSummary\n        ExcelChart -Table RegionSummary -Category Region -Value Revenue -Address F2 -Type Column -Title 'Revenue by region'\n    }\n}"
         },
         {
           "title": "Chart pipeline data directly",
@@ -5648,7 +5702,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5768,7 +5822,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6769,7 +6823,7 @@
       "shouldProcess": false,
       "parameterSets": [
         {
-          "name": "Default",
+          "name": "Range",
           "default": true,
           "parameters": [
             {
@@ -6789,6 +6843,603 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none"
+            },
+            {
+              "name": "SourceSheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Sheet that holds -Range; default the destination sheet."
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RowField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataFunction",
+              "type": "ExcelPivotDataFunction[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataDisplayName",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataNumberFormat",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoRowGrandTotals",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoColumnGrandTotals",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Style",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Layout",
+              "type": "ExcelPivotLayout",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataOnRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowHeaders",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowEmptyRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowEmptyColumns",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDrill",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EnableDrill",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RowHeaderCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnHeaderCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "GrandTotalCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MissingCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ErrorCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDataDropDown",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDropZones",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDataTips",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowMemberPropertyTips",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldListSort",
+              "type": "System.ComponentModel.ListSortDirection",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CustomListSort",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldSort",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldHiddenItems",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldVisibleItems",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageFieldSelection",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldNoDefaultSubtotal",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldSubtotalTop",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldInsertBlankRow",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldInsertPageBreak",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldCompact",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldOutline",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldHideDropDowns",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RefreshOnOpen",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SaveSourceData",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PreserveFormatting",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Table",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ExcelDocument",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Table",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Name of an Excel table anywhere in the workbook; its header row names the fields."
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RowField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataField",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataFunction",
+              "type": "ExcelPivotDataFunction[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataDisplayName",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataNumberFormat",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoRowGrandTotals",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoColumnGrandTotals",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Style",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Layout",
+              "type": "ExcelPivotLayout",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DataOnRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowHeaders",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowEmptyRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowEmptyColumns",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDrill",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EnableDrill",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RowHeaderCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnHeaderCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "GrandTotalCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MissingCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ErrorCaption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDataDropDown",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDropZones",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowDataTips",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ShowMemberPropertyTips",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldListSort",
+              "type": "System.ComponentModel.ListSortDirection",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CustomListSort",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldSort",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldHiddenItems",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldVisibleItems",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageFieldSelection",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldNoDefaultSubtotal",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldSubtotalTop",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldInsertBlankRow",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldInsertPageBreak",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldCompact",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldOutline",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FieldHideDropDowns",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RefreshOnOpen",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SaveSourceData",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PreserveFormatting",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "SourceSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "ExcelDocument",
+              "mandatory": false,
+              "pipeline": "value"
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SourceSheet",
+              "type": "OfficeSheetSelector",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Source sheet; its used range, with the first row as headers, is the pivot source."
             },
             {
               "name": "Address",
@@ -7063,7 +7714,7 @@
           ]
         }
       ],
-      "notes": "Each Show*/Hide*, Enable*/Disable*, X/NoX pair becomes one switch read through BoundParameters: -ShowHeaders:$false hides headers, -DataOnRows:$false puts data on columns, -RefreshOnOpen:$false writes the explicit off value. Omitted means Excel's default. -Range is the source range with headers, -Address the destination cell.",
+      "notes": "Each Show*/Hide*, Enable*/Disable*, X/NoX pair becomes one switch read through BoundParameters: -ShowHeaders:$false hides headers, -DataOnRows:$false puts data on columns, -RefreshOnOpen:$false writes the explicit off value. Omitted means Excel's default. The source is -Range (an A1 range with headers, on -SourceSheet or the destination sheet), -Table (an Excel table by name) or -SourceSheet alone (that sheet's used range). -Sheet is the destination sheet (the current block sheet by default) and -Address the destination cell.",
       "examples": [
         {
           "title": "Summarise sales in a pivot table",
@@ -7073,7 +7724,12 @@
         {
           "title": "Pivot revenue by region and quarter",
           "description": "Writes a year of orders and pivots them by region and quarter with a product filter, naming the pivot so a slicer and conditional formats can refer to it.",
-          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Orders-2026.csv\nNew-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelTable $orders -Name Orders\n        ExcelPivotTable -Range A1:G2400 -Address J3 -Name SalesPivot -RowField Region -ColumnField Quarter -PageField Product -DataField Amount -DataFunction Sum -DataDisplayName 'Revenue' -DataNumberFormat '#,##0' -Layout Tabular -RefreshOnOpen\n    }\n}"
+          "code": "$orders = Import-OfficeCsv -Path .\\Data\\Orders-2026.csv\nNew-OfficeExcel -Path .\\Reports\\Sales-2026.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelTable $orders -Name Orders\n        ExcelPivotTable -Table Orders -Address J3 -Name SalesPivot -RowField Region -ColumnField Quarter -PageField Product -DataField Amount -DataFunction Sum -DataDisplayName 'Revenue' -DataNumberFormat '#,##0' -Layout Tabular -RefreshOnOpen\n    }\n}"
+        },
+        {
+          "title": "Put the pivot on its own sheet",
+          "description": "Builds a summary sheet whose pivot reads all the data on the Orders sheet.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Summary' {\n        ExcelPivotTable -SourceSheet Orders -Address A3 -RowField Region -ColumnField Product -DataField Amount -DataFunction Sum\n    }\n}"
         }
       ]
     },
@@ -8627,6 +9283,18 @@
               "pipeline": "none"
             },
             {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -8743,6 +9411,18 @@
               "pipeline": "none"
             },
             {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -8843,6 +9523,18 @@
             {
               "name": "StopIfTrue",
               "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9362,7 +10054,7 @@
           ]
         }
       ],
-      "notes": "Replaces the four Add-OfficeExcelConditional* commands with rule, color-scale, data-bar and icon-set sets, each targeting a range, a header column or a pivot table. -MidColor adds a three-color scale (new; two colors as before when omitted). Colors default to theme roles (Success, Warning, Danger). -NoValue replaces -ShowValue $false.",
+      "notes": "Replaces the four Add-OfficeExcelConditional* commands with rule, color-scale, data-bar and icon-set sets, each targeting a range, a header column or a pivot table. -MidColor adds a three-color scale (new; two colors as before when omitted). Rule sets format matching cells with -BackgroundColor (fill) and -Color (font); when both are omitted the rule uses the theme Danger role (a light Danger fill with Danger text). Color scales default to Danger, Warning and Success; data bars to Accent1. -NoValue replaces -ShowValue $false.",
       "examples": [
         {
           "title": "Add data bars to a column",
@@ -9376,8 +10068,8 @@
         },
         {
           "title": "Flag negative margins with a rule",
-          "description": "Adds a cell rule that marks margins below zero in E2:E500.",
-          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat E2:E500 -Rule CellIs -Operator LessThan -Value 0\n    }\n}"
+          "description": "Highlights negative margins with a light red fill and red text.",
+          "code": "Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx {\n    ExcelSheet 'Orders' {\n        ExcelConditionalFormat E2:E500 -Rule CellIs -Operator LessThan -Value 0 -BackgroundColor '#FEE2E2' -Color Danger\n    }\n}"
         }
       ]
     },
@@ -11876,6 +12568,12 @@
               "pipeline": "none"
             },
             {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "AllowTableEditing",
               "type": "switch",
               "mandatory": false,
@@ -11968,7 +12666,7 @@
           ]
         }
       ],
-      "notes": "bool Allow* parameters become switches; selecting cells stays allowed unless -NoSelectLockedCells/-NoSelectUnlockedCells. No DSL alias (the alias rule gives ExcelSheet to Add-OfficeExcelSheet).",
+      "notes": "bool Allow* parameters become switches; selecting cells stays allowed unless -NoSelectLockedCells/-NoSelectUnlockedCells. No DSL alias (the alias rule gives ExcelSheet to Add-OfficeExcelSheet). -Password is SecureString (optional; without it the sheet is protected without a password); its transformation also accepts a plain string (with a warning) or a PSCredential, as on every -Password parameter.",
       "examples": [
         {
           "title": "Protect a sheet",
@@ -11979,6 +12677,11 @@
           "title": "Protect a shared list but keep it usable",
           "description": "Protects the staff list while still letting colleagues sort, filter and resize columns.",
           "code": "Open-OfficeExcel -Path .\\HR\\Staff-Directory.xlsx {\n    ExcelSheet 'Directory' {\n        Protect-OfficeExcelSheet -AllowSort -AllowAutoFilter -AllowFormatColumns\n    }\n}"
+        },
+        {
+          "title": "Protect a sheet with a password",
+          "description": "Locks the input sheet with a password read from the console, still allowing sorting and filtering.",
+          "code": "$password = Read-Host -Prompt 'Sheet password' -AsSecureString\nOpen-OfficeExcel -Path .\\Finance\\Pricing-Model.xlsx {\n    Protect-OfficeExcelSheet -Sheet Inputs -Password $password -AllowSort -AllowAutoFilter\n}"
         }
       ]
     },
@@ -13391,6 +14094,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Name",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Excel table name; referenced by ExcelReportChart -Table and formulas."
+            },
+            {
               "name": "TableStyle",
               "type": "ExcelTableStyle",
               "mandatory": false,
@@ -13405,6 +14115,12 @@
             {
               "name": "ExcludeProperty",
               "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnFormat",
+              "type": "hashtable",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13480,9 +14196,10 @@
         {
           "title": "Choose the columns to show",
           "description": "Shows only the columns readers need from a wide asset export and leaves the internal identifiers out.",
-          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv\nNew-OfficeExcel -Path .\\Reports\\Asset-Review.xlsx {\n    ExcelReportSheet 'Assets' {\n        ExcelReportTitle 'Laptops due for replacement'\n        ExcelReportTable ($assets | Where-Object AgeYears -ge 4) 'Due this year' -Property AssetTag, User, Model, Purchased, AgeYears\n    }\n}"
+          "code": "$assets = Import-OfficeCsv -Path .\\Data\\Assets.csv\nNew-OfficeExcel -Path .\\Reports\\Asset-Review.xlsx {\n    ExcelReportSheet 'Assets' {\n        ExcelReportTitle 'Laptops due for replacement'\n        ExcelReportTable ($assets | Where-Object AgeYears -ge 4) 'Due this year' -Property AssetTag, User, Model, Purchased, AgeYears -Name DueLaptops -ColumnFormat @{ Purchased = 'Date'; AgeYears = '0.0' }\n    }\n}"
         }
-      ]
+      ],
+      "notes": "-Name names the Excel table (default generated from -Title). -ColumnFormat has the shape of Export-OfficeExcel -ColumnFormat: headers mapped to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format codes, with optional per-entry Decimals and IncludeHeader keys."
     },
     {
       "name": "Add-OfficeExcelReportChart",
@@ -13572,7 +14289,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Compares two worksheets or ranges cell by cell.",
-      "outputType": "OfficeIMO.Excel.ExcelRangeDifference",
+      "outputType": "PSWriteOffice.Models.Excel.ExcelRangeDifferenceInfo",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -13698,12 +14415,12 @@
           ]
         }
       ],
-      "notes": "Reference/difference naming as in Compare-Object and Compare-OfficeDocument; without -DifferencePath/-DifferenceDocument both ranges come from the reference workbook. Whole-workbook comparison is Compare-OfficeDocument.",
+      "notes": "Reference/difference naming as in Compare-Object and Compare-OfficeDocument; without -DifferencePath/-DifferenceDocument both ranges come from the reference workbook. Whole-workbook comparison is Compare-OfficeDocument. Each result has Kind, ReferenceCell, DifferenceCell, ReferenceValue, DifferenceValue, ReferenceRow, ReferenceColumn, DifferenceRow and DifferenceColumn (the engine's Left*/Right* members follow the parameter names).",
       "examples": [
         {
           "title": "Compare a sheet in two versions",
           "description": "Lists the cells of the Budget sheet that differ between two versions of the workbook.",
-          "code": "Compare-OfficeExcelRange -ReferencePath .\\Finance\\Budget-v1.xlsx -DifferencePath .\\Finance\\Budget-v2.xlsx -Sheet Budget"
+          "code": "Compare-OfficeExcelRange -ReferencePath .\\Finance\\Budget-v1.xlsx -DifferencePath .\\Finance\\Budget-v2.xlsx -Sheet Budget |\n    Select-Object Kind, ReferenceCell, ReferenceValue, DifferenceValue"
         },
         {
           "title": "Reconcile two lists in one workbook",
@@ -13722,7 +14439,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -13734,7 +14451,7 @@
             },
             {
               "name": "Options",
-              "type": "GoogleSheetsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13742,7 +14459,8 @@
               "name": "Session",
               "type": "GoogleWorkspaceSession",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "From New-OfficeGoogleWorkspaceSession."
             },
             {
               "name": "Mode",
@@ -13775,7 +14493,7 @@
             },
             {
               "name": "Options",
-              "type": "GoogleSheetsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13783,7 +14501,8 @@
               "name": "Session",
               "type": "GoogleWorkspaceSession",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "From New-OfficeGoogleWorkspaceSession."
             },
             {
               "name": "Mode",
@@ -13801,17 +14520,17 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "ExcelDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
               "name": "Options",
-              "type": "GoogleSheetsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -13819,7 +14538,8 @@
               "name": "Session",
               "type": "GoogleWorkspaceSession",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "From New-OfficeGoogleWorkspaceSession."
             },
             {
               "name": "Mode",
@@ -13836,7 +14556,7 @@
           ]
         }
       ],
-      "notes": "-Mode Export (default) | Plan | Batch replaces -PlanOnly and -AsBatch. Stays an Excel command: the target is an online service with a session, not a file conversion.",
+      "notes": "-Mode Export (default) | Plan | Batch replaces -PlanOnly and -AsBatch. Stays an Excel command: the target is an online service with a session, not a file conversion. Inside a New-/Open-OfficeExcel block the Document set takes the block's workbook, so -Document can be left out. -Session comes from New-OfficeGoogleWorkspaceSession and is required for -Mode Export; Plan and Batch work offline. -Options takes New-OfficeExcelGoogleSheetsOptions. Export-OfficeWordGoogleDocument uses the same -Session and -Mode.",
       "examples": [
         {
           "title": "Preview a Google Sheets export",
@@ -13846,12 +14566,17 @@
         {
           "title": "Publish a workbook to Google Sheets",
           "description": "Uploads the sales workbook through an authenticated Google Workspace session and stops if any content would be lost.",
-          "code": "Export-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -FailOnLoss"
+          "code": "$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\\Secrets\\reporting-sa.json -Scope Spreadsheets, DriveFile\nExport-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -FailOnLoss"
         },
         {
           "title": "Build the request batch for your own client",
           "description": "Returns the provider-neutral request batch for an open workbook, for an integration that sends the requests itself.",
           "code": "$book = Open-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -ReadOnly\n$batch = Export-OfficeExcelGoogleSpreadsheet -Document $book -Mode Batch\nClose-OfficeExcel -Document $book"
+        },
+        {
+          "title": "Replace an existing spreadsheet in a shared folder",
+          "description": "Exports the workbook over an existing Google spreadsheet with a fixed title and preserved unsupported formulas.",
+          "code": "$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\\Secrets\\reporting-sa.json -Scope Spreadsheets, DriveFile\n$google = New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId -SpreadsheetId $spreadsheetId -UnsupportedFormula UseCachedValue\nExport-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -Options $google"
         }
       ]
     },
@@ -13914,7 +14639,7 @@
               "pipeline": "none"
             },
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -14127,7 +14852,7 @@
       "name": "New-OfficeExcelImageOptions",
       "alias": null,
       "status": "existing",
-      "synopsis": "Creates Excel rendering settings for Export-OfficeDocumentImage.",
+      "synopsis": "Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage.",
       "outputType": "OfficeIMO.Excel.ExcelImageExportOptions",
       "shouldProcess": false,
       "parameterSets": [
@@ -14190,12 +14915,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Scale",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaximumOutputWidth",
               "type": "int",
               "mandatory": false,
@@ -14204,18 +14923,6 @@
             {
               "name": "MaximumOutputHeight",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BackgroundColor",
-              "type": "OfficeColor",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "TargetDpi",
-              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -14288,7 +14995,7 @@
           ]
         }
       ],
-      "notes": "Merges New-OfficeExcelWorkbookImageOptions. Sheet, range and chart selection are -Sheet, -Range and -Chart on Export-OfficeDocumentImage. The two C# options types merge in M2.",
+      "notes": "Merges New-OfficeExcelWorkbookImageOptions. Sheet, range and chart selection are -Sheet, -Range and -Chart, and scale, background color and resolution are -Scale, -BackgroundColor and -Dpi, on Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage, so this factory does not repeat them. The two C# options types merge in M2.",
       "examples": [
         {
           "title": "Render a sheet with gridlines",
@@ -14298,7 +15005,7 @@
         {
           "title": "Render dashboard sheets for a status page",
           "description": "Renders the dashboard at double scale with charts and images, so the PNG stays sharp when embedded in a web page.",
-          "code": "$image = New-OfficeExcelImageOptions -Scale 2 -IncludeCharts -IncludeImages -IncludeConditionalFormatting\nExport-OfficeDocumentImage -Path .\\Reports\\Operations.xlsx -Sheet Dashboard -OutputDirectory .\\Site\\Images -Options $image"
+          "code": "$image = New-OfficeExcelImageOptions -IncludeCharts -IncludeImages -IncludeConditionalFormatting\nExport-OfficeDocumentImage -Path .\\Reports\\Operations.xlsx -Sheet Dashboard -OutputDirectory .\\Site\\Images -Scale 2 -Options $image"
         }
       ]
     },
@@ -14609,7 +15316,7 @@
           "parameters": [
             {
               "name": "Sheet",
-              "type": "string[]",
+              "type": "OfficeSheetSelector[]",
               "mandatory": false,
               "pipeline": "none",
               "wildcards": true
@@ -14635,7 +15342,7 @@
           ]
         }
       ],
-      "notes": "Carries the settings of Join-OfficeExcelWorkbook.",
+      "notes": "Carries the settings of Join-OfficeExcelWorkbook. -Sheet takes names (wildcards allowed), 1-based positions or sheet objects, like -Sheet on every Excel command.",
       "examples": [
         {
           "title": "Merge workbooks into one",
@@ -14646,6 +15353,133 @@
           "title": "Collect one sheet from every branch",
           "description": "Copies only the Sales sheet of each branch workbook as values, cleaning sheet names Excel would reject.",
           "code": "$merge = New-OfficeExcelMergeOptions -Sheet Sales -CopyMode Values -ValidationMode Sanitize\nMerge-OfficeDocument -Path .\\Branches\\*.xlsx -OutputPath .\\Reports\\Branch-Sales.xlsx -Options $merge -Show"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeExcelGoogleSheetsOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates destination, formula and spreadsheet settings for Export-OfficeExcelGoogleSpreadsheet.",
+      "outputType": "OfficeIMO.Excel.GoogleSheets.GoogleSheetsSaveOptions",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Spreadsheet title; default the workbook name."
+            },
+            {
+              "name": "FolderId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Drive folder for a new spreadsheet."
+            },
+            {
+              "name": "DriveId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Shared drive that holds -FolderId."
+            },
+            {
+              "name": "SpreadsheetId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Existing spreadsheet to replace."
+            },
+            {
+              "name": "ExpectedDriveVersion",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Replace only when the spreadsheet is still at this Drive version."
+            },
+            {
+              "name": "UnsupportedFormula",
+              "type": "GoogleSheetsUnsupportedFormulaMode",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Error, PreserveWithWarning (default) or UseCachedValue."
+            },
+            {
+              "name": "FunctionMapping",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Excel function name to Google Sheets function name."
+            },
+            {
+              "name": "Charts",
+              "type": "UnsupportedFeatureMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PivotTables",
+              "type": "UnsupportedFeatureMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PrintLayout",
+              "type": "UnsupportedFeatureMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Locale",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TimeZone",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RecalculationInterval",
+              "type": "GoogleSheetsRecalculationInterval",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Editor",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Email addresses allowed to edit protected ranges."
+            },
+            {
+              "name": "DomainUsersCanEdit",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Carries the GoogleSheetsSaveOptions settings that are not parameters of Export-OfficeExcelGoogleSpreadsheet: -Mode, -Session and -FailOnLoss stay on the command. Fidelity, request batching and developer metadata keep their defaults.",
+      "examples": [
+        {
+          "title": "Name the exported spreadsheet",
+          "description": "Exports a workbook to a Drive folder under a fixed title.",
+          "code": "$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\\Secrets\\reporting-sa.json -Scope Spreadsheets, DriveFile\nExport-OfficeExcelGoogleSpreadsheet -Path .\\Reports\\Q3-Sales.xlsx -Session $googleSession -Options (New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId)"
+        },
+        {
+          "title": "Keep charts out of a strict export",
+          "description": "Plans an export that skips charts and pivot tables with a warning and maps a custom function name.",
+          "code": "$google = New-OfficeExcelGoogleSheetsOptions -Charts WarnAndSkip -PivotTables WarnAndSkip -FunctionMapping @{ 'XLOOKUP' = 'XLOOKUP'; 'CONCAT' = 'CONCATENATE' } -Locale 'en_GB' -TimeZone 'Europe/London'\n$plan = Export-OfficeExcelGoogleSpreadsheet -Path .\\Finance\\Budget-2027.xlsx -Options $google -Mode Plan\n$plan | Format-List"
         }
       ]
     }
@@ -15325,7 +16159,7 @@
         "SheetIndex": "Sheet"
       },
       "hint": "ExcelAutoFilter -Range A1:D200",
-      "reason": "Adding a filter range and applying filter conditions are one AutoFilter command with Range and Condition sets."
+      "reason": "Adding a filter range and applying filter conditions are one AutoFilter command with Range and Condition sets. -Criteria keys are header names instead of 0-based column offsets."
     },
     {
       "old": "Set-OfficeExcelAutoFilter",
@@ -15583,7 +16417,8 @@
         "SheetIndex": "Sheet"
       },
       "hint": "ExcelPivotTable -Range A1:D200 -Address F2 -RowField Region -DataField Revenue",
-      "reason": "Thirteen on/off switch pairs collapse to single switches read through BoundParameters (-ShowHeaders:$false); -Range/-Address/-Style follow the shared names."
+      "reason": "Thirteen on/off switch pairs collapse to single switches read through BoundParameters (-ShowHeaders:$false); -Range/-Address/-Style follow the shared names. The source can also be a table (-Table) or a whole sheet (-SourceSheet).",
+      "parameterSet": "Range"
     },
     {
       "old": "Get-OfficeExcelPivotTable",
@@ -16736,7 +17571,7 @@
         "RightRange": "DifferenceRange"
       },
       "hint": "Compare-OfficeExcelRange -ReferencePath .\\Old.xlsx -DifferencePath .\\New.xlsx -Sheet Data",
-      "reason": "Reference/difference naming as in Compare-Object replaces Left/Right; whole-workbook comparison moves to Compare-OfficeDocument."
+      "reason": "Reference/difference naming as in Compare-Object replaces Left/Right in parameters and in the result (ReferenceCell/DifferenceCell, ReferenceValue/DifferenceValue); whole-workbook comparison moves to Compare-OfficeDocument."
     },
     {
       "old": "Compare-OfficeExcelWorkbook",
@@ -16894,10 +17729,11 @@
       "action": "keep",
       "new": "New-OfficeExcelPdfOptions",
       "parameters": {
-        "SheetName": "Sheet"
+        "SheetName": "Sheet",
+        "FontFamily": "Font"
       },
       "hint": "New-OfficeExcelPdfOptions -UseWorksheetPageSetup -MarginTop 1cm",
-      "reason": "Margins take lengths; -Sheet replaces -SheetName. Used with Convert-OfficeDocument -To Pdf -Options."
+      "reason": "Margins take lengths; -Sheet replaces -SheetName and -Font replaces -FontFamily. Used with Convert-OfficeDocument -To Pdf -Options."
     },
     {
       "old": "New-OfficeExcelImageOptions",
@@ -16906,10 +17742,13 @@
       "new": "New-OfficeExcelImageOptions",
       "parameters": {
         "MaximumRasterPixels": "MaximumRasterPixelCount",
-        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount",
+        "Scale": "Export-OfficeDocumentImage -Scale",
+        "BackgroundColor": "Export-OfficeDocumentImage -BackgroundColor",
+        "TargetDpi": "Export-OfficeDocumentImage -Dpi"
       },
-      "hint": "New-OfficeExcelImageOptions -ShowGridlines -TargetDpi 192",
-      "reason": "Absorbs the workbook image options; used with Export-OfficeDocumentImage -Options. Pixel limits are counts, named ...PixelCount."
+      "hint": "Export-OfficeDocumentImage -Path .\\Book.xlsx -Sheet Data -OutputDirectory .\\Png -Dpi 192 -Options (New-OfficeExcelImageOptions -ShowGridlines)",
+      "reason": "Absorbs the workbook image options; used with Export-/ConvertTo-OfficeDocumentImage -Options. Scale, background color and DPI are parameters of those commands. Pixel limits are counts, named ...PixelCount."
     },
     {
       "old": "New-OfficeExcelWorkbookImageOptions",
@@ -16917,12 +17756,15 @@
       "action": "merge",
       "new": "New-OfficeExcelImageOptions",
       "parameters": {
-        "SheetName": "Export-OfficeDocumentImage -Sheet",
+        "SheetName": "ConvertTo-OfficeDocumentImage -Sheet",
+        "Scale": "ConvertTo-OfficeDocumentImage -Scale",
+        "BackgroundColor": "ConvertTo-OfficeDocumentImage -BackgroundColor",
+        "TargetDpi": "ConvertTo-OfficeDocumentImage -Dpi",
         "MaximumRasterPixels": "MaximumRasterPixelCount",
         "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
       },
-      "hint": "Export-OfficeDocumentImage -Path .\\Book.xlsx -Sheet Data, Summary -Options (New-OfficeExcelImageOptions -IncludeHiddenSheets)",
-      "reason": "One options command for Excel image export covers whole sheets, ranges and charts."
+      "hint": "ConvertTo-OfficeDocumentImage -Path .\\Book.xlsx -Sheet Data, Summary -Options (New-OfficeExcelImageOptions -UseWorksheetPrintAreas)",
+      "reason": "One options command for Excel image export covers whole sheets, ranges and charts. Workbook images returned in memory come from ConvertTo-OfficeDocumentImage; Export-OfficeDocumentImage writes files."
     },
     {
       "old": "New-OfficeExcelOpenDocumentOptions",

@@ -45,7 +45,6 @@
     "No OfficeIMO.Core ProjectReference; it arrives transitively through OfficeIMO.Html and OfficeIMO.Markdown."
   ],
   "openQuestions": [
-    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape.",
     "The package is one-directional (HTML -> Markdown); Markdown -> HTML lives in OfficeIMO.Markdown."
   ],
   "changes": [
@@ -53,47 +52,47 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Returns string today."
+      "notes": "Returns string today; the string and ToMarkdownDocument forms merge into one To{Target} that returns the target model. From text: HtmlDocument.Parse(html).ToMarkdown()."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Returns string today."
+      "notes": "Returns string today; the string and ToMarkdownDocument forms merge into one To{Target} that returns the target model. From text: HtmlDocument.Parse(html).ToMarkdown()."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "rename",
-      "new": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Static FromHtml from an adapter needs a C# 14 static extension member."
+      "notes": "Extension on HtmlConversionDocument today (html.ToMarkdownDocument()). From text: HtmlDocument.Parse(html).ToMarkdown()."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "rename",
-      "new": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Static FromHtml from an adapter needs a C# 14 static extension member."
+      "notes": "Extension on HtmlConversionDocument today (html.ToMarkdownDocument()). From text: HtmlDocument.Parse(html).ToMarkdown()."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "MarkdownDocument.FromHtml(html, MarkdownHtmlImportOptions options, out OfficeConversionReport report)",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options, out OfficeConversionReport report) : MarkdownDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion"
@@ -102,7 +101,7 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "MarkdownDocument.FromHtml(html, MarkdownHtmlImportOptions options, out OfficeConversionReport report)",
+      "new": "HtmlDocument.ToMarkdown(MarkdownHtmlImportOptions options, out OfficeConversionReport report) : MarkdownDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion"
@@ -111,8 +110,8 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdown(string path, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.SaveAsMarkdown(string path, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Encoding parameter moves into options; returns void today."
@@ -121,8 +120,8 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdown(Stream stream, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.SaveAsMarkdown(Stream stream, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Encoding parameter moves into options; returns void today."
@@ -131,8 +130,8 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(string path, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.SaveAsMarkdownAsync(string path, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Encoding parameter moves into options; returns void today."
@@ -141,8 +140,8 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(Stream stream, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.SaveAsMarkdownAsync(Stream stream, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Encoding parameter moves into options; returns void today."

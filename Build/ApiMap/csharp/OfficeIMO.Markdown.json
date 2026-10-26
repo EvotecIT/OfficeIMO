@@ -243,10 +243,7 @@
     "packageReferences": []
   },
   "openQuestions": [
-    "Prefix the ~70 AST node types (*Block/*Inline) or record an exception.",
-    "MarkdownDocument and IDisposable.",
-    "Markdown->HTML rendering stays in OfficeIMO.Markdown (string renderer, no engine) - record as an explicit exception to \"conversions live in adapters\".",
-    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss."
+    "Markdown->HTML rendering stays in OfficeIMO.Markdown (string renderer, no engine) - record as an explicit exception to \"conversions live in adapters\"."
   ],
   "changes": [
     {
@@ -345,7 +342,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtml(string path | Stream stream, MarkdownHtmlExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload."
@@ -355,7 +352,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtmlAsync(string path | Stream stream, MarkdownHtmlExportOptions options = null) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload."

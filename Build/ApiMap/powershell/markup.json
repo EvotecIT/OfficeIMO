@@ -177,67 +177,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Profile",
-              "type": "MarkdownDialectProfile",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BaseUri",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "MaxInputCharacters",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NormalizeInput",
-              "type": "MarkdownInputNormalizationPreset",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DisallowFileUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowDataUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowMailtoUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowProtocolRelativeUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "RestrictUrlSchemes",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowedUrlScheme",
-              "type": "string[]",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -285,67 +225,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Profile",
-              "type": "MarkdownDialectProfile",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BaseUri",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "MaxInputCharacters",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NormalizeInput",
-              "type": "MarkdownInputNormalizationPreset",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DisallowFileUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowDataUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowMailtoUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowProtocolRelativeUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "RestrictUrlSchemes",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowedUrlScheme",
-              "type": "string[]",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -381,74 +261,14 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Profile",
-              "type": "MarkdownDialectProfile",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BaseUri",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "MaxInputCharacters",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NormalizeInput",
-              "type": "MarkdownInputNormalizationPreset",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DisallowFileUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowDataUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowMailtoUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowProtocolRelativeUrls",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "RestrictUrlSchemes",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowedUrlScheme",
-              "type": "string[]",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Path/LiteralPath with a content block saves back to the file when the block ends. The Text set only parses and returns the document (no file to save).",
+      "notes": "Path/LiteralPath with a content block saves back to the file when the block ends. The Text set only parses and returns the document (no file to save). Reader settings (dialect profile, URL policy, input limits, normalization) come from New-OfficeMarkdownReaderOptions in -Options; they are no longer repeated as parameters. -Options takes New-OfficeMarkdownReaderOptions.",
       "examples": [
         {
           "title": "Open a Markdown file",
@@ -843,7 +663,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "Options",
+              "name": "BaseOptions",
               "type": "HtmlToMarkdownOptions",
               "mandatory": false,
               "pipeline": "byValue"
@@ -947,7 +767,7 @@
           ]
         }
       ],
-      "notes": "Carries every conversion parameter of the former ConvertFrom-OfficeMarkdownHtml, including the Markdown writer settings. -Options copies and adjusts an existing options object.",
+      "notes": "Carries every conversion parameter of the former ConvertFrom-OfficeMarkdownHtml, including the Markdown writer settings. -BaseOptions copies and adjusts an existing options object.",
       "examples": [
         {
           "title": "Convert a web page to portable Markdown",
@@ -974,7 +794,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "Options",
+              "name": "BaseOptions",
               "type": "MarkdownToPdfOptions",
               "mandatory": false,
               "pipeline": "byValue"
@@ -992,7 +812,7 @@
               "pipeline": "none"
             },
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -1102,7 +922,7 @@
           ]
         }
       ],
-      "notes": "Defaults that are on (default theme, base-directory image restriction, front-matter theme and metadata, first heading as title, outline) are turned off with -No switches. IncludeLocalImages/IncludeDataUriImages stay opt-in resource-policy switches.",
+      "notes": "Defaults that are on (default theme, base-directory image restriction, front-matter theme and metadata, first heading as title, outline) are turned off with -No switches. IncludeLocalImages/IncludeDataUriImages stay opt-in resource-policy switches. -BaseOptions (or a piped options object) is copied and adjusted; it is named BaseOptions because -Options is the routed object[] list on the commands these options serve.",
       "examples": [
         {
           "title": "Convert Markdown to PDF with a title",
@@ -1115,6 +935,125 @@
           "code": "$pdf = New-OfficeMarkdownPdfOptions -Theme Boardroom -Author 'IT Operations' -IncludeLocalImages -BaseDirectory .\\Runbooks -FrontMatterRenderMode Table\nConvert-OfficeDocument -Path .\\Runbooks\\*.md -To Pdf -OutputDirectory .\\Runbooks\\Pdf -Options $pdf"
         }
       ]
+    },
+    {
+      "name": "New-OfficeMarkdownPowerPointOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates Markdown-to-PowerPoint settings (slide breaks, title headings, speaker notes, images) for Convert-OfficeDocument -To PowerPoint.",
+      "outputType": "MarkdownToPowerPointOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "SlideBreak",
+              "type": "MarkdownSlideBreak",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Where a new slide starts: ThematicBreakOrHeading (default: a --- line or a heading at -TitleHeadingLevel), ThematicBreak (--- lines only) or Heading (headings only)."
+            },
+            {
+              "name": "TitleHeadingLevel",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Heading level (1-6, default 1) that becomes the slide title and, with Heading breaks, starts a slide. Deeper headings stay as slide content."
+            },
+            {
+              "name": "NoBlockquoteNotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Keep blockquotes on the slide as quotes; by default they become the speaker notes of their slide."
+            },
+            {
+              "name": "NoFrontMatter",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Ignore YAML front matter; by default its title, subtitle and author fill the first slide."
+            },
+            {
+              "name": "SlideSize",
+              "type": "PowerPointSlideSizePreset",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Same values as New-OfficePowerPoint -SlideSize."
+            },
+            {
+              "name": "BaseDirectory",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Folder for relative image paths; default: the folder of the Markdown file."
+            },
+            {
+              "name": "AllowLocalImages",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowedImageDirectory",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowRemoteImages",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoDataUriImages",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumDataUriImageBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoMermaidDiagrams",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Keep Mermaid blocks as code instead of rendering them as diagrams."
+            },
+            {
+              "name": "Profile",
+              "type": "MarkdownReaderProfile",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ReaderOptions",
+              "type": "MarkdownReaderOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Start slides only at --- lines",
+          "description": "Keeps headings inside a section on the same slide; a new slide starts only at a thematic break.",
+          "code": "Convert-OfficeDocument -Path .\\Notes\\Kickoff.md -To PowerPoint -OutputPath .\\Decks\\Kickoff.pptx -Options (New-OfficeMarkdownPowerPointOptions -SlideBreak ThematicBreak)"
+        },
+        {
+          "title": "Turn a folder of runbooks into themed decks",
+          "description": "Each level-2 heading becomes a slide title, local images are read from one folder and every deck uses the Boardroom theme from Convert-OfficeDocument -Theme.",
+          "code": "$deck = New-OfficeMarkdownPowerPointOptions -SlideBreak Heading -TitleHeadingLevel 2 -AllowLocalImages -AllowedImageDirectory .\\docs\\images\nGet-ChildItem -Path .\\docs -Filter *.md |\n    Convert-OfficeDocument -To PowerPoint -OutputDirectory .\\Decks -Theme Boardroom -Options $deck"
+        }
+      ],
+      "notes": "Used by Convert-OfficeDocument -To PowerPoint for Markdown sources. -Theme is not repeated here: Convert-OfficeDocument -Theme styles the new deck. Blockquotes become speaker notes and front matter fills the first slide by default; -NoBlockquoteNotes and -NoFrontMatter turn them off. Image and reader settings use the names of New-OfficeMarkdownWordOptions. New enum MarkdownSlideBreak: ThematicBreakOrHeading, ThematicBreak, Heading. MarkdownToPowerPointOptions is a new options type for the Markdown-to-PowerPoint route; OfficeIMO Markup keeps its own MarkupToPowerPointOptions."
     },
     {
       "name": "New-OfficeMarkdownRtfOptions",
@@ -1408,7 +1347,7 @@
         {
           "title": "Document commands inline",
           "description": "Uses inline code and strikethrough runs inside numbered list items of an upgrade guide.",
-          "code": "New-OfficeMarkdown -Path .\\Docs\\Upgrade.md {\n    MarkdownHeading 'Upgrade steps'\n    MarkdownList -Ordered {\n        MarkdownListItem {\n            MarkdownText 'Stop the service with '\n            MarkdownText 'Stop-Service -Name Spooler' -Code\n        }\n        MarkdownListItem {\n            MarkdownText 'Skip the old '\n            MarkdownText 'setup.exe /legacy' -Code -Strikethrough\n            MarkdownText ' step; it is '\n            MarkdownText 'no longer needed' -Italic\n        }\n    }\n}"
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Upgrade.md {\n    MarkdownHeading 'Upgrade steps'\n    MarkdownList -Numbered {\n        MarkdownListItem {\n            MarkdownText 'Stop the service with '\n            MarkdownText 'Stop-Service -Name Spooler' -Code\n        }\n        MarkdownListItem {\n            MarkdownText 'Skip the old '\n            MarkdownText 'setup.exe /legacy' -Code -Strikethrough\n            MarkdownText ' step; it is '\n            MarkdownText 'no longer needed' -Italic\n        }\n    }\n}"
         }
       ]
     },
@@ -1432,7 +1371,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -1463,7 +1402,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -1500,7 +1439,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -1537,7 +1476,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -1557,7 +1496,7 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Items stays as the one-line form; the content block form takes MarkdownListItem children (styled items, nested lists).",
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -Items stays as the one-line form; the content block form takes MarkdownListItem children (styled items, nested lists). -Numbered writes a numbered list starting at -Start (replaces -Ordered).",
       "examples": [
         {
           "title": "Add a bulleted list",
@@ -1567,7 +1506,7 @@
         {
           "title": "List failed services and the next steps",
           "description": "Adds a bulleted list from Get-Service and a numbered list built from list items.",
-          "code": "$failed = Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }\nNew-OfficeMarkdown -Path .\\Reports\\Service-Check.md {\n    MarkdownHeading 'Automatic services that are not running'\n    MarkdownList -Items $failed.DisplayName\n    MarkdownHeading 'Next steps' -Level 2\n    MarkdownList -Ordered {\n        MarkdownListItem 'Check the System event log for each service'\n        MarkdownListItem 'Restart the service and confirm it stays running'\n        MarkdownListItem 'Open a ticket if it stops again'\n    }\n}"
+          "code": "$failed = Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }\nNew-OfficeMarkdown -Path .\\Reports\\Service-Check.md {\n    MarkdownHeading 'Automatic services that are not running'\n    MarkdownList -Items $failed.DisplayName\n    MarkdownHeading 'Next steps' -Level 2\n    MarkdownList -Numbered {\n        MarkdownListItem 'Check the System event log for each service'\n        MarkdownListItem 'Restart the service and confirm it stays running'\n        MarkdownListItem 'Open a ticket if it stops again'\n    }\n}"
         }
       ]
     },
@@ -2602,7 +2541,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -2651,7 +2590,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -2705,7 +2644,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -2760,7 +2699,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Ordered",
+              "name": "Numbered",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -2786,7 +2725,7 @@
           ]
         }
       ],
-      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -PlaceAtTop/-ForPreviousHeading/-ForSection were mutually exclusive at run time; they become -Placement and a separate -Section set.",
+      "notes": "DSL content command: inside New-/Open-OfficeMarkdown it writes to the enclosing document; the Document set appends to a document passed explicitly or from the pipeline. -PassThru returns the document. No ShouldProcess. -PlaceAtTop/-ForPreviousHeading/-ForSection were mutually exclusive at run time; they become -Placement and a separate -Section set. -Numbered writes the contents as a numbered list (replaces -Ordered). MarkdownTocPlacement: Current (default, where the command runs), Top (replaces -PlaceAtTop), PreviousHeading (replaces -ForPreviousHeading).",
       "examples": [
         {
           "title": "Add a table of contents at the top",
@@ -2796,7 +2735,7 @@
         {
           "title": "Number the contents of a runbook",
           "description": "Adds a titled, numbered table of contents covering levels 2 and 3.",
-          "code": "New-OfficeMarkdown -Path .\\Docs\\Runbook.md {\n    MarkdownHeading 'Payroll service runbook'\n    MarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -Ordered -Placement Top\n    MarkdownHeading 'Start and stop' -Level 2\n    MarkdownHeading 'Health checks' -Level 2\n    MarkdownHeading 'Database' -Level 3\n    MarkdownHeading 'Queues' -Level 3\n    MarkdownHeading 'Escalation' -Level 2\n}"
+          "code": "New-OfficeMarkdown -Path .\\Docs\\Runbook.md {\n    MarkdownHeading 'Payroll service runbook'\n    MarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -Numbered -Placement Top\n    MarkdownHeading 'Start and stop' -Level 2\n    MarkdownHeading 'Health checks' -Level 2\n    MarkdownHeading 'Database' -Level 3\n    MarkdownHeading 'Queues' -Level 3\n    MarkdownHeading 'Escalation' -Level 2\n}"
         },
         {
           "title": "Add contents for one section",
@@ -2820,7 +2759,7 @@
             {
               "name": "Document",
               "type": "MarkdownDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -2871,7 +2810,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2926,7 +2865,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2976,7 +2915,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3031,7 +2970,8 @@
           "description": "Finds the link anchor for the Installation heading in Markdown text.",
           "code": "$readme = Get-Content -Path .\\README.md -Raw\n(Get-OfficeMarkdownHeading -Text $readme -HeadingText 'Installation').Anchor"
         }
-      ]
+      ],
+      "notes": "-Options takes New-OfficeMarkdownReaderOptions. Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "Get-OfficeMarkdownTable",
@@ -3048,7 +2988,7 @@
             {
               "name": "Document",
               "type": "MarkdownDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -3073,7 +3013,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3102,7 +3042,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3126,7 +3066,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3150,7 +3090,8 @@
           "description": "Reads the server table maintained in Markdown and exports the production rows to Excel.",
           "code": "Get-OfficeMarkdownTable -Path .\\Docs\\Inventory.md -AsObject |\n    Where-Object Environment -eq 'Production' |\n    Export-OfficeExcel -Path .\\Reports\\Production-Servers.xlsx -Sheet Servers"
         }
-      ]
+      ],
+      "notes": "-Options takes New-OfficeMarkdownReaderOptions. Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "Get-OfficeMarkdownFrontMatter",
@@ -3167,7 +3108,7 @@
             {
               "name": "Document",
               "type": "MarkdownDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -3199,7 +3140,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3235,7 +3176,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3266,7 +3207,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3297,7 +3238,8 @@
           "description": "Prints the posts whose front matter marks them as drafts.",
           "code": "Get-ChildItem -Path .\\Site\\content\\posts -Filter *.md | Where-Object {\n    (Get-OfficeMarkdownFrontMatter -LiteralPath $_.FullName -Key draft).Value -eq $true\n} | Select-Object Name, LastWriteTime"
         }
-      ]
+      ],
+      "notes": "-Options takes New-OfficeMarkdownReaderOptions. Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "Get-OfficeMarkdownNode",
@@ -3314,7 +3256,7 @@
             {
               "name": "Document",
               "type": "MarkdownDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -3358,7 +3300,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3406,7 +3348,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3449,7 +3391,7 @@
             },
             {
               "name": "Options",
-              "type": "MarkdownReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3492,7 +3434,8 @@
           "description": "Uses a wildcard on the node type to report where each table starts.",
           "code": "Get-ChildItem -Path .\\Docs -Filter *.md | ForEach-Object {\n    $file = $_.Name\n    Get-OfficeMarkdownNode -LiteralPath $_.FullName -NodeType '*Table*' -MaxDepth 2 |\n        Select-Object @{ Name = 'File'; Expression = { $file } }, Type, StartLine\n}"
         }
-      ]
+      ],
+      "notes": "-Options takes New-OfficeMarkdownReaderOptions. Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "ConvertTo-OfficeMarkdown",
@@ -3625,6 +3568,44 @@
           ]
         },
         {
+          "name": "Content",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
           "name": "Live",
           "default": false,
           "parameters": [
@@ -3645,7 +3626,7 @@
           ]
         }
       ],
-      "notes": "-Text (or piped strings) is RTF's content: in the Text set -Path is required and the file is written when input ends. The Live set (no -Text, -Path optional) returns the live RtfDocument for Save-OfficeRtf [-Path] (replaces -NoSave). Refuses an existing file unless -Force. RTF keeps its paragraph-list authoring; no DSL is added (Tier 2).",
+      "notes": "-Text (or piped strings) writes one paragraph per string: in the Text set -Path is required and the file is written when input ends. The Content set runs a block of RtfParagraph commands and saves the file when the block ends. The Live set (no -Text, -Path optional) returns the live RtfDocument; fill it with Add-OfficeRtfParagraph -Document and save it with Save-OfficeRtf [-Path] (replaces -NoSave). Refuses an existing file unless -Force.",
       "examples": [
         {
           "title": "Create an RTF note",
@@ -3656,6 +3637,11 @@
           "title": "Turn a handover text file into RTF",
           "description": "Each line becomes a paragraph; the file is replaced and opened in the default editor.",
           "code": "Get-Content -Path .\\Notes\\handover.txt | New-OfficeRtf -Path .\\Notes\\Handover.rtf -Force -Show"
+        },
+        {
+          "title": "Write styled paragraphs",
+          "description": "A content block of RtfParagraph commands, saved when the block ends.",
+          "code": "New-OfficeRtf -Path .\\Notes\\Change-Notice.rtf {\n    RtfParagraph 'Change notice' -Bold -Alignment Center\n    RtfParagraph 'The file servers restart on Saturday at 22:00.'\n    RtfParagraph 'Save your work before you leave.' -Italic\n}"
         }
       ]
     },
@@ -3664,7 +3650,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Reads an RTF file or RTF text into a read result with the document, embedded payloads and diagnostics.",
-      "outputType": "OfficeIMO.Rtf.RtfReadResult",
+      "outputType": "OfficeIMO.Rtf.RtfDocument, OfficeIMO.Rtf.RtfReadResult",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -3678,6 +3664,12 @@
               "position": 0,
               "pipeline": "byValue",
               "wildcards": true
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -3695,6 +3687,12 @@
                 "PSPath",
                 "FullName"
               ]
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -3707,11 +3705,17 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none"
+            },
+            {
+              "name": "AsResult",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "No content block: RTF has no PowerShell DSL. The result's Document can be passed to Save-OfficeRtf; lossless in-place edits stay on Update-OfficeRtfText.",
+      "notes": "Returns the RtfDocument, ready for Add-OfficeRtfParagraph and Save-OfficeRtf; -AsResult returns the RtfReadResult (document plus read diagnostics and lossless-save support), as Open-OfficeAsciiDoc and Open-OfficeEmail do. No content block; lossless in-place edits stay on Update-OfficeRtfText.",
       "examples": [
         {
           "title": "Read an RTF file",
@@ -3721,12 +3725,12 @@
         {
           "title": "Extract the first paragraph of each letter",
           "description": "Reads every RTF letter in a folder and returns its first paragraph as plain text.",
-          "code": "Get-ChildItem -Path .\\Letters -Filter *.rtf | Open-OfficeRtf | ForEach-Object {\n    $_.Document.Paragraphs[0].ToPlainText()\n}"
+          "code": "Get-ChildItem -Path .\\Letters -Filter *.rtf | Open-OfficeRtf | ForEach-Object {\n    $_.Paragraphs[0].ToPlainText()\n}"
         },
         {
           "title": "Parse RTF stored in a database",
           "description": "Reads RTF text from a variable rather than a file.",
-          "code": "$rtf = Open-OfficeRtf -Text $ticket.DescriptionRtf\n$rtf.Document.Paragraphs | ForEach-Object { $_.ToPlainText() }"
+          "code": "$rtf = Open-OfficeRtf -Text $ticket.DescriptionRtf\n$rtf.Paragraphs | ForEach-Object { $_.ToPlainText() }"
         }
       ]
     },
@@ -3764,7 +3768,7 @@
           ]
         }
       ],
-      "notes": "Needed by the lifecycle now that New-OfficeRtf without -Text returns a live document. Also accepts the Document of an Open-OfficeRtf result.",
+      "notes": "Needed by the lifecycle now that New-OfficeRtf without -Text returns a live document. Also saves the document returned by Open-OfficeRtf.",
       "examples": [
         {
           "title": "Save an RTF document",
@@ -3810,6 +3814,108 @@
           "title": "Read a document and discard it",
           "description": "Counts the paragraphs of a contract and releases the document.",
           "code": "$rtf = Open-OfficeRtf -Path .\\Contracts\\Lease.rtf\n\"Paragraphs: $($rtf.Document.Paragraphs.Count)\"\nClose-OfficeRtf -Document $rtf.Document"
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeRtfParagraph",
+      "alias": "RtfParagraph",
+      "status": "new",
+      "synopsis": "Adds a paragraph to an RTF document.",
+      "outputType": "OfficeIMO.Rtf.RtfParagraph",
+      "parameterSets": [
+        {
+          "name": "Context",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Italic",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "RtfDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Italic",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Inside a New-OfficeRtf block it writes to that document; otherwise pass the live document from New-/Open-OfficeRtf with -Document or the pipeline. -Bold and -Italic format the whole paragraph; -Alignment takes the shared OfficeAlignment. -PassThru returns the RtfParagraph. No ShouldProcess.",
+      "examples": [
+        {
+          "title": "Add a paragraph to a live document",
+          "description": "Fill a document returned by New-OfficeRtf, then save it.",
+          "code": "$rtf = New-OfficeRtf\nAdd-OfficeRtfParagraph -Document $rtf -Text 'Maintenance completed.'\nSave-OfficeRtf -Document $rtf -Path .\\Notes\\Maintenance.rtf"
+        },
+        {
+          "title": "Append a sign-off to an existing letter",
+          "description": "Open the letter, add closing lines and save it back.",
+          "code": "$letter = Open-OfficeRtf -Path .\\Letters\\Renewal.rtf\n$letter | Add-OfficeRtfParagraph -Text 'Kind regards,'\n$letter | Add-OfficeRtfParagraph -Text 'Service Desk' -Bold\nSave-OfficeRtf -Document $letter"
         }
       ]
     },
@@ -4089,7 +4195,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -4143,7 +4249,7 @@
         {
           "title": "Publish help-desk articles as HTML",
           "description": "Writes class-based HTML with a site font so the knowledge base stylesheet controls the look.",
-          "code": "$html = New-OfficeRtfHtmlOptions -FontFamily 'Segoe UI' -IncludeParagraphClasses -IncludeRunClasses -IncludeListStyles -UseImagePaths\nGet-ChildItem -Path .\\HelpDesk -Filter *.rtf | Convert-OfficeDocument -To Html -OutputDirectory .\\KnowledgeBase -Options $html"
+          "code": "$html = New-OfficeRtfHtmlOptions -Font 'Segoe UI' -IncludeParagraphClasses -IncludeRunClasses -IncludeListStyles -UseImagePaths\nGet-ChildItem -Path .\\HelpDesk -Filter *.rtf | Convert-OfficeDocument -To Html -OutputDirectory .\\KnowledgeBase -Options $html"
         }
       ]
     },
@@ -4200,7 +4306,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -4231,12 +4337,12 @@
         {
           "title": "Set the RTF font for HTML input",
           "description": "Uses Calibri for text that has no font in the HTML.",
-          "code": "Convert-OfficeDocument -Path .\\Notice.html -To Rtf -OutputPath .\\Notice.rtf -Options (New-OfficeHtmlRtfOptions -FontFamily Calibri)"
+          "code": "Convert-OfficeDocument -Path .\\Notice.html -To Rtf -OutputPath .\\Notice.rtf -Options (New-OfficeHtmlRtfOptions -Font Calibri)"
         },
         {
           "title": "Convert email templates with their stylesheet",
           "description": "Resolves images relative to the template folder and applies the shared CSS before writing RTF.",
-          "code": "$rtf = New-OfficeHtmlRtfOptions -FontFamily Calibri -BasePath .\\Templates -StylesheetPath .\\Templates\\mail.css\nGet-ChildItem -Path .\\Templates -Filter *.html | Convert-OfficeDocument -To Rtf -OutputDirectory .\\Templates\\Rtf -Options $rtf"
+          "code": "$rtf = New-OfficeHtmlRtfOptions -Font Calibri -BasePath .\\Templates -StylesheetPath .\\Templates\\mail.css\nGet-ChildItem -Path .\\Templates -Filter *.html | Convert-OfficeDocument -To Rtf -OutputDirectory .\\Templates\\Rtf -Options $rtf"
         }
       ]
     },
@@ -4369,12 +4475,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Options",
-              "type": "OdfLoadOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "Password",
               "type": "SecureString",
               "mandatory": false,
@@ -4471,12 +4571,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Options",
-              "type": "OdfLoadOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "Password",
               "type": "SecureString",
               "mandatory": false,
@@ -4551,7 +4645,7 @@
           ]
         }
       ],
-      "notes": "Returns OdtDocument, OdsDocument, OdpPresentation or OdgDocument. -Password takes a SecureString; argument transformation also accepts a plain string (with a warning) or a PSCredential (its password). Package limits stay as parameters for untrusted input.",
+      "notes": "Returns OdtDocument, OdsDocument, OdpPresentation or OdgDocument. -Password takes a SecureString; argument transformation also accepts a plain string (with a warning) or a PSCredential (its password). Package limits stay as parameters for untrusted input. Every OdfLoadOptions setting is a parameter here, so the command has no -Options.",
       "examples": [
         {
           "title": "Open an OpenDocument file",
@@ -4597,7 +4691,7 @@
             },
             {
               "name": "Options",
-              "type": "OdfSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4616,7 +4710,7 @@
           ]
         }
       ],
-      "notes": "-Path is optional for documents from New-/Open-. -PassThru returns the save result with its loss report.",
+      "notes": "-Path is optional for documents from New-/Open-. -PassThru returns the save result with its loss report. -Options takes New-OfficeOpenDocumentSaveOptions.",
       "examples": [
         {
           "title": "Save an OpenDocument file",
@@ -4662,6 +4756,58 @@
           "title": "Inspect a file and close it",
           "description": "Reads document information and releases the file without writing.",
           "code": "$doc = Open-OfficeOpenDocument -Path .\\Reports\\Budget.ods\nGet-OfficeDocumentInfo -Document $doc\nClose-OfficeOpenDocument -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeOpenDocumentSaveOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the save options for Save-OfficeOpenDocument.",
+      "outputType": "OfficeIMO.OpenDocument.OdfSaveOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "CompatibilityProfile",
+              "type": "OdfCompatibilityProfile",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SignatureHandling",
+              "type": "OdfSignatureHandling",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EncryptionHandling",
+              "type": "OdfEncryptionHandling",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoDeterministic",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Output is deterministic (stable entry order and timestamps) by default; -NoDeterministic turns that off (G19). Passwords and encryption are set with Protect-OfficeDocument.",
+      "examples": [
+        {
+          "title": "Save for an older ODF consumer",
+          "description": "Write the ODF 1.3 profile for an application that cannot read ODF 1.4.",
+          "code": "$options = New-OfficeOpenDocumentSaveOptions -CompatibilityProfile Odf13\nSave-OfficeOpenDocument -Document $doc -Path .\\Exports\\Budget.ods -Options $options"
+        },
+        {
+          "title": "Keep a signed document valid",
+          "description": "Refuse saves that would invalidate an existing signature.",
+          "code": "$doc = Open-OfficeOpenDocument -Path .\\Contracts\\Signed.odt\n$options = New-OfficeOpenDocumentSaveOptions -SignatureHandling RejectInvalidation\nSave-OfficeOpenDocument -Document $doc -Path .\\Contracts\\Signed-Copy.odt -Options $options -FailOnLoss"
         }
       ]
     },
@@ -4841,9 +4987,40 @@
               "pipeline": "byValue"
             },
             {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
               "name": "Name",
               "type": "string",
               "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Named",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OdpPresentation",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
               "position": 0,
               "pipeline": "none"
             },
@@ -4863,7 +5040,7 @@
           ]
         }
       ],
-      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess.",
+      "notes": "DSL content command inside New-/Open-OfficeOpenDocument; outside a block pass the target object with -Document/-Sheet/-Slide or the pipeline. No ShouldProcess. A lone block binds to -Content (OpenDocumentSlide { ... }); a leading string is the slide name (OpenDocumentSlide 'Agenda' { ... }).",
       "examples": [
         {
           "title": "Add a slide",
@@ -5617,7 +5794,7 @@
             {
               "name": "Document",
               "type": "EpubPublication",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -5634,7 +5811,8 @@
           "description": "Finds the chapters that mention retention.",
           "code": "$book = Open-OfficeEpub -Path .\\Library\\Policies.epub\nGet-OfficeEpubChapter -Document $book |\n    Where-Object Text -match 'retention' |\n    Select-Object Order, Title"
         }
-      ]
+      ],
+      "notes": "Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "Set-OfficeEpubMetadata",
@@ -5651,7 +5829,7 @@
             {
               "name": "Document",
               "type": "EpubPublication",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -5692,7 +5870,8 @@
           "description": "Sets the language and author on every book in a folder and saves each one.",
           "code": "Get-ChildItem -Path .\\Library -Filter *.epub | ForEach-Object {\n    $book = Open-OfficeEpub -LiteralPath $_.FullName\n    Set-OfficeEpubMetadata -Document $book -Language en-GB -Author 'Evotec Documentation'\n    Save-OfficeEpub -Document $book\n}"
         }
-      ]
+      ],
+      "notes": "Without -Document (or -Path/-Text) it uses the document of the enclosing New-/Open- block."
     },
     {
       "name": "Open-OfficeAsciiDoc",
@@ -5716,7 +5895,7 @@
             },
             {
               "name": "Options",
-              "type": "AsciiDocParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5745,7 +5924,7 @@
             },
             {
               "name": "Options",
-              "type": "AsciiDocParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5769,7 +5948,7 @@
             },
             {
               "name": "Options",
-              "type": "AsciiDocParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5782,7 +5961,7 @@
           ]
         }
       ],
-      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-.",
+      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-. -Options takes New-OfficeAsciiDocReadOptions.",
       "examples": [
         {
           "title": "Open an AsciiDoc file",
@@ -5822,12 +6001,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Options",
-              "type": "AsciiDocWriterOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "Mode",
               "type": "AsciiDocWriterMode",
               "mandatory": false,
@@ -5848,7 +6021,7 @@
           ]
         }
       ],
-      "notes": "-Path is optional for a document opened from a file.",
+      "notes": "-Path is optional for a document opened from a file. -Mode and -LineEnding are the whole writer options, so the command has no -Options.",
       "examples": [
         {
           "title": "Save an AsciiDoc document",
@@ -5859,6 +6032,82 @@
           "title": "Normalize AsciiDoc formatting",
           "description": "Rewrites every file in canonical form with LF line endings.",
           "code": "Get-ChildItem -Path .\\docs -Filter *.adoc | ForEach-Object {\n    $doc = Open-OfficeAsciiDoc -LiteralPath $_.FullName\n    Save-OfficeAsciiDoc -Document $doc -Mode Canonical -LineEnding LF\n}"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeAsciiDocReadOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the parse options for Open-OfficeAsciiDoc.",
+      "outputType": "OfficeIMO.AsciiDoc.AsciiDocParseOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Profile",
+              "type": "AsciiDocDocumentProfile",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumInputLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumBlockCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumInlineNestingDepth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumInlineNodeCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTableCellCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTableColumnCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTableSpan",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Parse profile and resource limits for untrusted AsciiDoc input; the defaults suit trusted repository content.",
+      "examples": [
+        {
+          "title": "Parse with tighter limits",
+          "description": "Bound the work done for an uploaded file.",
+          "code": "$options = New-OfficeAsciiDocReadOptions -MaximumInputLength 2000000 -MaximumBlockCount 50000\n$doc = Open-OfficeAsciiDoc -Path .\\Uploads\\guide.adoc -Options $options"
+        },
+        {
+          "title": "Check uploaded docs before publishing",
+          "description": "Report parse diagnostics for each file under the same limits.",
+          "code": "$options = New-OfficeAsciiDocReadOptions -MaximumTableCellCount 100000\nGet-ChildItem -Path .\\Uploads -Filter *.adoc | ForEach-Object {\n    $result = Open-OfficeAsciiDoc -LiteralPath $_.FullName -Options $options -AsResult\n    [pscustomobject]@{ File = $_.Name; Diagnostics = $result.Diagnostics.Count }\n}"
         }
       ]
     },
@@ -5884,7 +6133,7 @@
             },
             {
               "name": "Options",
-              "type": "LatexParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5913,7 +6162,7 @@
             },
             {
               "name": "Options",
-              "type": "LatexParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5937,7 +6186,7 @@
             },
             {
               "name": "Options",
-              "type": "LatexParseOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5950,7 +6199,7 @@
           ]
         }
       ],
-      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-.",
+      "notes": "-AsResult returns the parse result with diagnostics. No content block or New-: PSWriteOffice has no DSL for this format; documents are edited through the object model and written with Save-. -Options takes New-OfficeLatexReadOptions.",
       "examples": [
         {
           "title": "Open a LaTeX file",
@@ -5990,12 +6239,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Options",
-              "type": "LatexWriterOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "Mode",
               "type": "LatexWriterMode",
               "mandatory": false,
@@ -6016,7 +6259,7 @@
           ]
         }
       ],
-      "notes": "-Path is optional for a document opened from a file.",
+      "notes": "-Path is optional for a document opened from a file. -Mode and -LineEnding are the whole writer options, so the command has no -Options.",
       "examples": [
         {
           "title": "Save a LaTeX document",
@@ -6027,6 +6270,94 @@
           "title": "Write a canonical copy for review",
           "description": "Saves a normalized copy next to the source with LF line endings.",
           "code": "$doc = Open-OfficeLatex -Path .\\paper.tex\nSave-OfficeLatex -Document $doc -Path .\\review\\paper.tex -Mode Canonical -LineEnding LF -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeLatexReadOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the parse options for Open-OfficeLatex.",
+      "outputType": "OfficeIMO.Latex.LatexParseOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Profile",
+              "type": "LatexDocumentProfile",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MacroExpansion",
+              "type": "LatexMacroExpansion",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumInputLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTokenCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumNestingDepth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumExpansionDepth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumExpansionLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumExpansionInputLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumExpansionTokenCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Macro expansion is off by default (-MacroExpansion None); the expansion limits bound it when it is turned on.",
+      "examples": [
+        {
+          "title": "Expand document macros",
+          "description": "Expand simple \\newcommand definitions so converted text shows their results.",
+          "code": "$options = New-OfficeLatexReadOptions -MacroExpansion SafeSimpleDefinitions\n$doc = Open-OfficeLatex -Path .\\paper.tex -Options $options"
+        },
+        {
+          "title": "Bound untrusted LaTeX",
+          "description": "Cap tokens and expansion for files submitted through a portal.",
+          "code": "$options = New-OfficeLatexReadOptions -MaximumTokenCount 500000 -MaximumExpansionDepth 8\nOpen-OfficeLatex -Path .\\Submissions\\abstract.tex -Options $options -AsResult"
         }
       ]
     },
@@ -6058,7 +6389,7 @@
             },
             {
               "name": "Options",
-              "type": "IWorkReadOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -6087,14 +6418,14 @@
             },
             {
               "name": "Options",
-              "type": "IWorkReadOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Read-only: iWork files are converted, not saved, so there is no New-/Save-/Close-.",
+      "notes": "Read-only: iWork files are converted, not saved, so there is no New-/Save-/Close-. -Options takes New-OfficeIWorkReadOptions.",
       "examples": [
         {
           "title": "Open a Numbers file",
@@ -6105,6 +6436,88 @@
           "title": "List sheets and convert to Excel",
           "description": "Shows the sheet names of a Numbers file, then converts it to .xlsx.",
           "code": "$source = Open-OfficeIWork -Path .\\Finance\\Quarterly.numbers\n$source.ReadNumbers().Sheets | Select-Object Name\nConvert-OfficeDocument -Path .\\Finance\\Quarterly.numbers -To Excel -OutputPath .\\Finance\\Quarterly.xlsx"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeIWorkReadOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the read options for Open-OfficeIWork.",
+      "outputType": "OfficeIMO.IWork.IWorkReadOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "NoSourceRecords",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumPackageBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumEntryCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumEntryBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTotalEntryBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTableRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumTableColumns",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumMaterializedCells",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaximumProjectedImageBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Source records are kept by default; -NoSourceRecords drops them to save memory (G19). The package, table and image limits are the ones most often tuned; the remaining IWorkReadOptions limits keep their defaults.",
+      "examples": [
+        {
+          "title": "Read a large Numbers file",
+          "description": "Raise the cell limit for a big export.",
+          "code": "$options = New-OfficeIWorkReadOptions -MaximumMaterializedCells 50000000\n$source = Open-OfficeIWork -Path .\\Finance\\Ledger.numbers -Options $options"
+        },
+        {
+          "title": "Open untrusted Keynote files lean",
+          "description": "Lower the package limits and drop source records for files from email.",
+          "code": "$options = New-OfficeIWorkReadOptions -NoSourceRecords -MaximumPackageBytes 52428800 -MaximumProjectedImageBytes 20971520\nGet-ChildItem -Path .\\Inbox -Filter *.key | ForEach-Object { Open-OfficeIWork -LiteralPath $_.FullName -Options $options }"
         }
       ]
     },
@@ -6130,13 +6543,7 @@
             },
             {
               "name": "Options",
-              "type": "OneNoteReaderOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NotebookOptions",
-              "type": "OneNoteNotebookReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -6159,20 +6566,14 @@
             },
             {
               "name": "Options",
-              "type": "OneNoteReaderOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NotebookOptions",
-              "type": "OneNoteNotebookReaderOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Read-only model; OneNote output goes through Convert-OfficeDocument.",
+      "notes": "Read-only model; OneNote output goes through Convert-OfficeDocument. -Options takes New-OfficeOneNoteReadOptions and, for notebooks, New-OfficeOneNoteNotebookOptions in the same list (-NotebookOptions is merged into -Options; objects are routed by type).",
       "examples": [
         {
           "title": "Open a OneNote section",
@@ -6183,6 +6584,140 @@
           "title": "Find recently changed pages",
           "description": "Lists the pages edited in the last week, then exports the section to Markdown.",
           "code": "$section = Open-OfficeOneNote -Path .\\Notebooks\\Operations.one\n$section.Pages | Where-Object LastModifiedUtc -gt (Get-Date).ToUniversalTime().AddDays(-7) | Select-Object Title, LastModifiedUtc\nConvert-OfficeDocument -Path .\\Notebooks\\Operations.one -To Markdown -OutputPath .\\Notebooks\\Operations.md"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeOneNoteReadOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the section read options for Open-OfficeOneNote.",
+      "outputType": "OfficeIMO.OneNote.OneNoteReaderOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxObjects",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxAssetBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxTotalAssetBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoStrictHeaderValidation",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoChecksumValidation",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoUnknownData",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Header and transaction checksum validation and unknown-data preservation are on by default; the -No switches turn them off (G19).",
+      "examples": [
+        {
+          "title": "Read a damaged section",
+          "description": "Relax validation to recover what can be read.",
+          "code": "$options = New-OfficeOneNoteReadOptions -NoStrictHeaderValidation -NoChecksumValidation\n$section = Open-OfficeOneNote -Path .\\Recovered\\Projects.one -Options $options"
+        },
+        {
+          "title": "Limit embedded files",
+          "description": "Cap embedded asset sizes when reading sections from a shared drive.",
+          "code": "$options = New-OfficeOneNoteReadOptions -MaxAssetBytes 20971520 -MaxTotalAssetBytes 209715200\nOpen-OfficeOneNote -Path \\\\files\\Team\\Notebook\\Meetings.one -Options $options"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeOneNoteNotebookOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the notebook read options for Open-OfficeOneNote.",
+      "outputType": "OfficeIMO.OneNote.OneNoteNotebookReaderOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "NoSectionContent",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StopOnSectionError",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSectionGroupRecursion",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IncludeRecycleBin",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxSectionGroupDepth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxNotebookEntries",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Section content is loaded, section groups are recursed and a failing section is skipped by default; -NoSectionContent, -NoSectionGroupRecursion and -StopOnSectionError change that (G19). Section-level limits come from New-OfficeOneNoteReadOptions in the same -Options list.",
+      "examples": [
+        {
+          "title": "List the sections of a notebook",
+          "description": "Read the notebook structure without loading page content.",
+          "code": "$options = New-OfficeOneNoteNotebookOptions -NoSectionContent\n$notebook = Open-OfficeOneNote -Path .\\Notebooks\\Operations -Options $options"
+        },
+        {
+          "title": "Read a whole notebook strictly",
+          "description": "Stop at the first unreadable section and include the recycle bin.",
+          "code": "$options = New-OfficeOneNoteNotebookOptions -StopOnSectionError -IncludeRecycleBin\nOpen-OfficeOneNote -Path .\\Notebooks\\Operations -Options $options, (New-OfficeOneNoteReadOptions -MaxObjects 2000000)"
         }
       ]
     },
@@ -8100,7 +8635,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Get-OfficeCsv (-As Document) and ConvertFrom-OfficeCsv (-Text sets). The four exclusive output switches become -As. Delimiter choice stays a parameter-set dimension (explicit -Delimiter, -UseCulture, -DetectDelimiter). Files stream by default; compressed input is detected or set with -CompressionType. bool parameters with on defaults became -No switches.",
+      "notes": "Absorbs Get-OfficeCsv (-As Document) and ConvertFrom-OfficeCsv (-Text sets). The four exclusive output switches become -As. Delimiter choice stays a parameter-set dimension (explicit -Delimiter, -UseCulture, -DetectDelimiter). Files stream by default; compressed input is detected or set with -CompressionType. bool parameters with on defaults became -No switches. OfficeCsvOutput: Object (default, PSCustomObject rows), Hashtable, DataTable, DataReader, Document (a CsvDocument; replaces Get-OfficeCsv).",
       "examples": [
         {
           "title": "Import a CSV file",
@@ -9636,14 +10171,14 @@
               "pipeline": "none"
             },
             {
-              "name": "DefaultFontFamily",
+              "name": "DefaultFont",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
             },
             {
-              "name": "DefaultFontSize",
-              "type": "double",
+              "name": "DefaultSize",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9690,12 +10225,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Scale",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaximumOutputWidth",
               "type": "int",
               "mandatory": false,
@@ -9704,18 +10233,6 @@
             {
               "name": "MaximumOutputHeight",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BackgroundColor",
-              "type": "OfficeColor",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "TargetDpi",
-              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9770,7 +10287,7 @@
           ]
         }
       ],
-      "notes": "Viewport size takes lengths (816px stays the default; a bare number now means points). Output pixel limits stay integers because they count raster pixels. -BackgroundColor takes OfficeColor.",
+      "notes": "Viewport size takes lengths (816px stays the default; a bare number now means points). Output pixel limits stay integers because they count raster pixels. -DefaultFont and -DefaultSize (a length) are the fallback text font and size (were -DefaultFontFamily/-DefaultFontSize). DPI, scale and background color are parameters of Export-OfficeDocumentImage (-Dpi, -Scale, -BackgroundColor), not of these options.",
       "examples": [
         {
           "title": "Render a page at a wider viewport",
@@ -9780,7 +10297,7 @@
         {
           "title": "Capture a status page for a report",
           "description": "Renders the page continuously at high resolution on white and refuses diagnosed loss.",
-          "code": "$render = New-OfficeHtmlRenderOptions -Mode Continuous -ViewportWidth 1440px -TargetDpi 192 -BackgroundColor White -FidelityPolicy RequireNoLoss -ResourceTimeoutSeconds 10\nExport-OfficeDocumentImage -Path .\\Exports\\status.html -Format Png -OutputPath .\\Reports\\status.png -Options $render"
+          "code": "$render = New-OfficeHtmlRenderOptions -Mode Continuous -ViewportWidth 1440px -FidelityPolicy RequireNoLoss -ResourceTimeoutSeconds 10\nExport-OfficeDocumentImage -Path .\\Exports\\status.html -Format Png -Dpi 192 -BackgroundColor White -OutputPath .\\Reports\\status.png -Options $render"
         }
       ]
     },
@@ -9797,7 +10314,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "Options",
+              "name": "BaseOptions",
               "type": "HtmlToPdfOptions",
               "mandatory": false,
               "pipeline": "byValue"
@@ -9809,7 +10326,7 @@
               "pipeline": "none"
             },
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -9844,9 +10361,10 @@
         {
           "title": "Print a generated HTML report",
           "description": "Includes local images and stylesheets, uses the house font and leaves form fields out.",
-          "code": "$pdf = New-OfficeHtmlPdfOptions -FontFamily 'Segoe UI' -Margin 18mm -IncludeLocalResources -NoInteractiveFormControls\nConvert-OfficeDocument -Path .\\Reports\\Weekly-Status.html -To Pdf -OutputPath .\\Reports\\Weekly-Status.pdf -Options $pdf"
+          "code": "$pdf = New-OfficeHtmlPdfOptions -Font 'Segoe UI' -Margin 18mm -IncludeLocalResources -NoInteractiveFormControls\nConvert-OfficeDocument -Path .\\Reports\\Weekly-Status.html -To Pdf -OutputPath .\\Reports\\Weekly-Status.pdf -Options $pdf"
         }
-      ]
+      ],
+      "notes": "-BaseOptions (or a piped options object) is copied and adjusted; it is named BaseOptions because -Options is the routed object[] list on the commands these options serve."
     },
     {
       "name": "New-OfficeTextPdfOptions",
@@ -9949,7 +10467,17 @@
         "FilePath": "Path",
         "FullName": "LiteralPath",
         "LiteralPath": "LiteralPath",
-        "ReaderOptions": "Options"
+        "ReaderOptions": "Options",
+        "Profile": "New-OfficeMarkdownReaderOptions -Profile",
+        "BaseUri": "New-OfficeMarkdownReaderOptions -BaseUri",
+        "MaxInputCharacters": "New-OfficeMarkdownReaderOptions -MaxInputCharacters",
+        "NormalizeInput": "New-OfficeMarkdownReaderOptions -NormalizeInput",
+        "DisallowFileUrls": "New-OfficeMarkdownReaderOptions -DisallowFileUrls",
+        "AllowDataUrls": "New-OfficeMarkdownReaderOptions -AllowDataUrls",
+        "AllowMailtoUrls": "New-OfficeMarkdownReaderOptions -AllowMailtoUrls",
+        "AllowProtocolRelativeUrls": "New-OfficeMarkdownReaderOptions -AllowProtocolRelativeUrls",
+        "RestrictUrlSchemes": "New-OfficeMarkdownReaderOptions -RestrictUrlSchemes",
+        "AllowedUrlScheme": "New-OfficeMarkdownReaderOptions -AllowedUrlScheme"
       },
       "hint": "$md = Open-OfficeMarkdown -Path .\\README.md",
       "reason": "Get- commands that open a file become Open-. Path aliases became the Path/LiteralPath sets; bool? reader parameters became switches."
@@ -9975,7 +10503,9 @@
         "UseFrontMatterVisualTheme": "NoFrontMatterTheme",
         "UseFrontMatterMetadata": "NoFrontMatterMetadata",
         "UseFirstHeadingAsTitle": "NoFirstHeadingTitle",
-        "CreateOutlineFromHeadings": "NoOutline"
+        "CreateOutlineFromHeadings": "NoOutline",
+        "FontFamily": "Font",
+        "Options": "BaseOptions"
       }
     },
     {
@@ -10013,7 +10543,10 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "Add-OfficeMarkdownList",
-      "parameterSet": "Items"
+      "parameterSet": "Items",
+      "parameters": {
+        "Ordered": "Numbered"
+      }
     },
     {
       "old": "MarkdownList",
@@ -10179,7 +10712,8 @@
       "parameters": {
         "PlaceAtTop": "Placement",
         "ForPreviousHeading": "Placement",
-        "ForSection": "Section"
+        "ForSection": "Section",
+        "Ordered": "Numbered"
       },
       "hint": "MarkdownTableOfContents -Placement Top -MinLevel 2"
     },
@@ -10504,7 +11038,7 @@
         "FilePath": "Path",
         "OutPath": "OutputPath",
         "Text": "Text",
-        "FontFamily": "New-OfficeRtfHtmlOptions -FontFamily",
+        "FontFamily": "New-OfficeRtfHtmlOptions -Font",
         "IncludeFontStyles": "New-OfficeRtfHtmlOptions -IncludeFontStyles",
         "IncludeListStyles": "New-OfficeRtfHtmlOptions -IncludeListStyles",
         "IncludeParagraphClasses": "New-OfficeRtfHtmlOptions -IncludeParagraphClasses",
@@ -10546,7 +11080,7 @@
         "Html": "Text",
         "Markdown": "Text",
         "OutPath": "OutputPath",
-        "FontFamily": "New-OfficeHtmlRtfOptions -FontFamily",
+        "FontFamily": "New-OfficeHtmlRtfOptions -Font",
         "BasePath": "New-OfficeHtmlRtfOptions -BasePath",
         "StylesheetPath": "New-OfficeHtmlRtfOptions -StylesheetPath",
         "StylesheetContent": "New-OfficeHtmlRtfOptions -StylesheetContent",
@@ -10884,7 +11418,8 @@
       "parameters": {
         "FilePath": "Path",
         "FullName": "LiteralPath",
-        "LiteralPath": "LiteralPath"
+        "LiteralPath": "LiteralPath",
+        "NotebookOptions": "Options"
       },
       "hint": "$section = Open-OfficeOneNote -Path .\\Notes.one",
       "reason": "Get- commands that open a file become Open-."
@@ -11026,9 +11561,13 @@
         "HonorCssPageRules": "NoCssPageRules",
         "ViewportWidth": "ViewportWidth",
         "ViewportHeight": "ViewportHeight",
-        "BackgroundColor": "BackgroundColor",
+        "BackgroundColor": "Export-OfficeDocumentImage -BackgroundColor",
         "MaximumRasterPixels": "MaximumRasterPixelCount",
-        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount",
+        "DefaultFontFamily": "DefaultFont",
+        "DefaultFontSize": "DefaultSize",
+        "Scale": "Export-OfficeDocumentImage -Scale",
+        "TargetDpi": "Export-OfficeDocumentImage -Dpi"
       },
       "reason": "On-by-default switch becomes -NoCssPageRules; viewport geometry becomes OfficeLength; color becomes OfficeColor; pixel-count limits are named ...PixelCount."
     },
@@ -11039,7 +11578,9 @@
       "new": "New-OfficeHtmlPdfOptions",
       "parameters": {
         "Margin": "Margin",
-        "InteractiveFormControls": "NoInteractiveFormControls"
+        "InteractiveFormControls": "NoInteractiveFormControls",
+        "FontFamily": "Font",
+        "Options": "BaseOptions"
       },
       "reason": "-Margin takes a length; the bool? form-controls parameter (default on) becomes -NoInteractiveFormControls."
     },

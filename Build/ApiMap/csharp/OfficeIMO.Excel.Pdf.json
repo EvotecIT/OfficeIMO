@@ -50,7 +50,7 @@
       "kind": "method",
       "action": "rename",
       "new": "ExcelDocument.ToPdf(ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -79,7 +79,7 @@
       "kind": "method",
       "action": "change",
       "new": "ExcelDocument.SaveAsPdf(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure."
@@ -99,7 +99,7 @@
       "kind": "method",
       "action": "change",
       "new": "ExcelDocument.SaveAsPdf(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure."
@@ -119,7 +119,7 @@
       "kind": "method",
       "action": "change",
       "new": "ExcelDocument.SaveAsPdfAsync(string path, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -128,7 +128,7 @@
       "kind": "method",
       "action": "change",
       "new": "ExcelDocument.SaveAsPdfAsync(Stream stream, ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -204,7 +204,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PdfDocument.ToExcel(ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : ExcelDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
       "category": "conversion",
       "notes": "Table import is today's only mode; keep it as ExcelPdfImportOptions.Mode = Tables."
@@ -223,7 +223,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PdfDocument.SaveAsExcel(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
       "category": "conversion"
     },
@@ -232,7 +232,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PdfDocument.SaveAsExcel(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
       "category": "conversion"
     },
@@ -241,7 +241,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PdfDocument.SaveAsExcelAsync(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
       "category": "conversion"
     },
@@ -250,7 +250,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PdfDocument.SaveAsExcelAsync(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableConverterExtensions.cs",
       "category": "conversion"
     },

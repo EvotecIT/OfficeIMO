@@ -51,7 +51,7 @@ New-OfficeWord -Path $docxPath -Theme Modern -Force {
     WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending -Title 'Patched and pending by site' -Legend -Height 7cm
 
     WordHeading 'Next steps'
-    WordList -Style Numbered {
+    WordList -Numbered {
         WordListItem 'Frankfurt: patch the eight pending servers in the Thursday window.'
         WordListItem 'Singapore: confirm the maintenance slot with the regional owner.'
     }

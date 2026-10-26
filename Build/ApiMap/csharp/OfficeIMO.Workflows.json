@@ -101,13 +101,12 @@
       "netstandard2.0",
       "net10.0"
     ],
-    "change": "Today net8.0;net10.0 only (no netstandard2.0, so PSWriteOffice excludes it on net472). Moving to netstandard2.0 needs polyfills for: ArgumentNullException.ThrowIfNull (235 uses), SHA256.HashData (23), Convert.ToHexString (29), Path.GetRelativePath (11), File.Move(..., overwrite) (12), File.*Async (5), Parallel.ForEachAsync (1), range/index syntax (8), init/required/records (C# features work with polyfill attributes), ImplicitUsings. If OfficeConverter moves to the netstandard2.0 front door, the batch engine must be ported; otherwise OfficeConverter is net10.0-only and Windows PowerShell 5.1 loses it."
+    "change": "Today net8.0;net10.0 only (no netstandard2.0, so PSWriteOffice excludes it on net472). Moving to netstandard2.0 needs polyfills for: ArgumentNullException.ThrowIfNull (235 uses), SHA256.HashData (23), Convert.ToHexString (29), Path.GetRelativePath (11), File.Move(..., overwrite) (12), File.*Async (5), Parallel.ForEachAsync (1), range/index syntax (8), init/required/records (C# features work with polyfill attributes), ImplicitUsings. OfficeConverter and the batch engine move to the OfficeIMO front door, which targets net10.0 only (design: Packages), so the batch engine needs no netstandard2.0 port; .NET Framework callers use the format and adapter packages directly."
   },
   "notes": [
     "Workflows references 35 projects (Invoicing, Project, Visio, OCR, DjVu, CHM, Email, EPUB, ...). OfficeConverter cannot absorb Workflows wholesale into the front door without pulling all of them in; see OfficeIMO.json."
   ],
   "openQuestions": [
-    "OfficeConverter in the netstandard2.0 front door requires porting the Workflows batch engine to netstandard2.0 (polyfills listed under frameworks), or OfficeConverter is net10.0-only.",
     "Where BookOnix/publishing types live."
   ],
   "changes": [
@@ -125,7 +124,7 @@
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",
@@ -135,7 +134,7 @@
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>",
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion",

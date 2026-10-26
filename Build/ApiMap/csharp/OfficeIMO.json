@@ -18,7 +18,6 @@
     "path": "OfficeIMO/OfficeIMO.csproj (new)",
     "packageId": "OfficeIMO",
     "targetFrameworks": [
-      "netstandard2.0",
       "net10.0"
     ],
     "projectReferences": [
@@ -34,6 +33,7 @@
       "OfficeIMO.Pdf.Word",
       "OfficeIMO.Pdf.Excel",
       "OfficeIMO.Pdf.PowerPoint",
+      "OfficeIMO.Pdf.Markdown (new, PDF -> Markdown)",
       "OfficeIMO.Word.Markdown",
       "OfficeIMO.Word.Html",
       "OfficeIMO.Markdown.Html",
@@ -42,14 +42,14 @@
     ],
     "notes": [
       "Word.Html and Markdown.Html bring OfficeIMO.Html + AngleSharp; include them so the front door keeps HTML import and Markdown raw-HTML fidelity (Word.Markdown no longer references Word.Html).",
-      "Reader.All brings 31 reader handlers; confirm that is wanted (the design lists \"Reader\" without scope).",
-      "Workflows is not referenced: it brings Invoicing, Project, OCR, Visio, DjVu, CHM, EPUB, Email and is net8/net10 only."
+      "Reader.All brings 31 reader handlers; the design's front door includes Reader with its format handlers (design: Packages).",
+      "Workflows is not referenced: it brings Invoicing, Project, OCR, Visio, DjVu, CHM, EPUB, Email and stays a Tier 2 package; its conversion and batch core moves into the front door."
     ]
   },
   "namespaceOfficeIMO": {
     "publicTypes": [
-      "OfficeConverter (static): Convert(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport; Convert(Stream source, OfficeFormat sourceFormat, Stream destination, OfficeFormat target, OfficeConversionOptions options = null); ConvertAsync(...) twins; ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>; Analyze(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport (proposed); Register(IOfficeConversionRoute route) (proposed, for Tier 2 routes)",
-      "OfficeFormat (enum): Docx, Doc, Dotx, Docm, Xlsx, Xls, Xlsb, Xlsm, Pptx, Ppt, Pdf, Md, Html, Png, Jpeg, Svg, Tiff, Webp, ... (one value per file format; Core already has OfficeDocumentFormat - see openQuestions)",
+      "OfficeConverter (static): Convert(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport; Convert(Stream source, OfficeDocumentFormat sourceFormat, Stream destination, OfficeDocumentFormat target, OfficeConversionOptions options = null); ConvertAsync(...) twins; ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>; Analyze(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport (proposed); Register(IOfficeConversionRoute route) (proposed, for Tier 2 routes)",
+      "OfficeDocumentFormat (existing Core enum: Word, Excel, PowerPoint, Markdown, Pdf, Html, ...) names formats; there is no new OfficeDocumentFormat enum (design: Packages)",
       "OfficeConversionOptions: target-specific option bags (Word = WordPdfExportOptions, ...), FailOnLoss, conflict policy, limits; replaces OfficeWorkflowConversionOptions and Word/Excel/PowerPoint *DocumentConversionOptions",
       "OfficeBatchOptions: MaxParallelism, ResumeFrom, OutputDirectory, Recursive, Extensions, ConflictPolicy, limits, Load/Save (JSON job file); replaces OfficeConversionJob, OfficeConversionBatchRequest and builder state",
       "OfficeBatchReport / OfficeBatchItemReport: per-item OfficeConversionReport, totals, elapsed, resume state; replaces OfficeConversionBatchResult/Report and OfficeConversionJobRunReport",
@@ -57,24 +57,19 @@
     ],
     "absorbs": [
       "OfficeIMO.Workflows.OfficeWorkflow.Convert / ConvertDirectory / ConvertFiles and OfficeConversionBatchBuilder",
-      "OfficeIMO.Workflows Batches/ and ConversionJobs/ (checkpointing, resume, publication guard) - port to netstandard2.0",
+      "OfficeIMO.Workflows Batches/ and ConversionJobs/ (checkpointing, resume, publication guard) - net10.0 only, no netstandard2.0 port (design: Packages)",
       "OfficeIMO.Reader.All.OfficeDocumentPdfConverter (EmailToPdf*, EpubToPdf*, VisioToPdf*)",
       "*ToPdfBytes helpers in Word, PowerPoint, Excel.Pdf (and Tier 2 *.Pdf adapters: 400 files call ToPdfBytes, mostly tests)",
       "WordDocument/ExcelDocument/PowerPointPresentation static Convert/ConvertAsync/AnalyzeConversion(Async) (legacy binary <-> Open XML)"
     ]
   },
   "conflicts": [
-    "OfficeIMO.Core already declares 101 public types in the OfficeIMO namespace (OfficeConversionResult<,>, OfficeOutputResult<>, OfficeDocumentFormat, OfficeDocumentModel, OfficePageOrientation, OfficeConversionLossPolicy, IOfficeConversionReport, ...). The rule \"the OfficeIMO namespace holds only OfficeConverter, OfficeFormat and the batch types\" conflicts with Core unless Core moves to OfficeIMO.Core (a repo-wide break) or the rule is relaxed to \"OfficeIMO namespace = Core shared types + the converter\".",
-    "OfficeColor and the drawing types live in OfficeIMO.Drawing (374 Core types), not OfficeIMO.",
-    "OfficeDocumentFormat (Core) and the planned OfficeFormat overlap; keep one."
+    "Resolved (design: Packages): the OfficeIMO namespace holds Core's shared types plus OfficeConverter and the batch types; Core does not move to OfficeIMO.Core.",
+    "Resolved (design: Packages): OfficeColor and OfficeColorRole move from OfficeIMO.Drawing into the OfficeIMO namespace with the other shared foundations.",
+    "Resolved (design: Packages): the existing Core OfficeDocumentFormat enum names formats; no OfficeDocumentFormat enum is added."
   ],
   "openQuestions": [
-    "OfficeIMO.Core already places 101 public types in the OfficeIMO namespace; see OfficeIMO.json conflicts.",
-    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
-    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape.",
-    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss.",
-    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs.",
-    "Word image export is built on the PDF writer+reader+renderer (WordPageImageExport). Keeping image export in OfficeIMO.Word without the PDF engine requires splitting OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) and a PDF writer. That is a large engine refactor; the cheaper option is to move Word image export to OfficeIMO.Word.Pdf (or a new OfficeIMO.Word.Imaging that references Pdf) and accept that Word image export needs the PDF engine. PowerPoint does not have this problem (its scene renderer already targets OfficeIMO.Drawing)."
+    "Decided (design: Packages): the OfficeIMO front door targets net10.0 only; .NET Framework applications reference the format and adapter packages, which target netstandard2.0 and net10.0. Still open: each #if NETFRAMEWORK workaround in those packages needs a runtime-check replacement proved on .NET Framework 4.7.2."
   ],
   "changes": [
     {
@@ -90,7 +85,7 @@
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)",
       "kind": "method",
       "action": "move",
-      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null)",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)",
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion"
@@ -99,7 +94,7 @@
       "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)",
       "kind": "method",
       "action": "move",
-      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null)",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)",
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
       "category": "conversion"

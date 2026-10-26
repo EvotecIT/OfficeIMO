@@ -86,7 +86,7 @@ New-OfficeWord -Path $docx -Theme Modern -Force {
         WordParagraph 'No matching events were returned. The workbook records that empty result.'
     }
     WordHeading 'Investigation handoff' -Level 2
-    WordList -Style Numbered {
+    WordList -Numbered {
         WordListItem 'Review source computers, logs, timestamps and full messages in the attached event register.'
         WordListItem 'Confirm user impact and correlate the events with recent changes.'
         WordListItem 'Assign an owner, record the findings and agree a follow-up time.'

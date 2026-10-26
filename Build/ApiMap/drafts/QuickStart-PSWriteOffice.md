@@ -76,8 +76,8 @@ Build a deck without coordinates or layout names. Each slide's layout follows it
 New-OfficePowerPoint -Path .\Review.pptx -Theme Boardroom {
     PptSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
     PptSlide -Title 'Quarter at a glance' {
-        PptKpi '5.7m' 'Revenue (USD)' -Change '+12%' -Color Success
-        PptKpi '36%' 'Operating margin' -Change '+1 pt' -Color Success
+        PptKpi '5.7m' 'Revenue (USD)' -Change '+12%' -Trend Up
+        PptKpi '36%' 'Operating margin' -Change '+1 pt' -Trend Up
         PptKpi '3' 'Decisions needed'
     }
     PptSlide -Title 'Next steps' {

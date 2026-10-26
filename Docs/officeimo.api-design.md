@@ -306,7 +306,7 @@ The DSL is the same tree in every format, and shares names with C#. Inside a blo
 - The same concept takes the same parameters in every format. `WordText`, `PptText`, `PdfText` and `MarkdownText` share `-Text`, `-Bold`, `-Italic`, `-Strikethrough`, `-Color`, `-Font`, `-Size` and `-Link`; `-Underline` takes the shared underline style where the format supports it. A list item takes `-Text` or a content block.
 - Styled runs are written as child commands. The `-Run @{ Text = …; Bold = $true, $true, $false }` hashtables of parallel arrays are removed.
 - Every DSL command has exactly one alias: the format prefix plus the noun, singular unless the Office term itself is plural (`PptNotes`). `Ppt` is the only PowerPoint prefix.
-- Aliases exist only for commands used inside a content block. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
+- Aliases exist only for commands that add content inside a content block. Commands that change the current element (`Set-OfficeWordParagraph`) and deck- or document-level settings are called by their full name inside a block; their natural alias would collide with the command that creates the element. Plural twins (`WordCheckBoxes`), spelling twins (`PdfHr` / `PdfHorizontalRule`), verb-last forms (`ExcelAutoFilterSet`), and unprefixed or verb-noun aliases (`ConvertTo-Rtf`, `TextRun`, `Edit-ExcelRow`, `Replace-OfficeWordText`) are removed.
 - A test rejects aliases that break these rules or collide with commands in PowerShell itself.
 
 ### Consolidation
@@ -383,6 +383,9 @@ Slides are built from theme layouts with designed placeholders:
 | `Cards` | Three to six cards (today's card grid) |
 | `Process` | Three to six steps (today's process slide) |
 | `Quote`, `ImageFull`, `Closing` | Statement, full-bleed image and closing slides |
+| `CaseStudy` | Challenge, approach and result with two or three metrics |
+| `Logos` | A wall of four to twelve logos or product images |
+| `Coverage` | A map or diagram with pinned locations |
 
 - `-Layout` is optional. By default the layout is chosen from the content: a title only gives a section slide; one list, table, chart or image gives `TitleAndContent`; two blocks give `TwoContent`; `PptKpi` items give `Kpi`. The first slide of a deck uses `Title`.
 - Content that is too long for a slide is handled rather than overflowing: lists shrink to the theme's minimum size, then continue on a new slide; tables split across slides with the header repeated.

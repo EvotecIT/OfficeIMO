@@ -308,9 +308,7 @@
     ]
   },
   "openQuestions": [
-    "Word image export is built on the PDF writer+reader+renderer (WordPageImageExport). Keeping image export in OfficeIMO.Word without the PDF engine requires splitting OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) and a PDF writer. That is a large engine refactor; the cheaper option is to move Word image export to OfficeIMO.Word.Pdf (or a new OfficeIMO.Word.Imaging that references Pdf) and accept that Word image export needs the PDF engine. PowerPoint does not have this problem (its scene renderer already targets OfficeIMO.Drawing).",
-    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
-    "WordDocument.ToMarkdown() string -> MarkdownDocument (Word.Markdown) changes the return type of a widely used call; consider whether the string form keeps a name (ToMarkdownText).",
+    "Decided (design: Packages): libraries target netstandard2.0 and net10.0, and the netstandard2.0 build keeps a .NET Framework test run on Windows for PSWriteOffice on Windows PowerShell 5.1. Still open: each #if NETFRAMEWORK workaround (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) needs a runtime-check replacement proved on .NET Framework 4.7.2.",
     "Save(path) vs SaveCopy semantics (see lifecycle entry)."
   ],
   "changes": [
@@ -1007,6 +1005,55 @@
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.References.cs",
       "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordFieldFormat.Roman",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFieldFormat.UpperRoman",
+      "reason": "PowerShell compares enum names case-insensitively",
+      "file": "OfficeIMO.Word/WordField.cs",
+      "category": "naming",
+      "notes": "Writes the same field switch as before (\\* Roman); only the member name changes."
+    },
+    {
+      "old": "OfficeIMO.Word.WordFieldFormat.roman",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFieldFormat.LowerRoman",
+      "reason": "PowerShell compares enum names case-insensitively",
+      "file": "OfficeIMO.Word/WordField.cs",
+      "category": "naming",
+      "notes": "Writes the same field switch as before (\\* roman); only the member name changes."
+    },
+    {
+      "old": "OfficeIMO.Word.WordFieldFormat.ALPHABETICAL",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFieldFormat.UpperLetter",
+      "reason": "PowerShell compares enum names case-insensitively",
+      "file": "OfficeIMO.Word/WordField.cs",
+      "category": "naming",
+      "notes": "Writes the same field switch as before (\\* ALPHABETICAL); only the member name changes."
+    },
+    {
+      "old": "OfficeIMO.Word.WordFieldFormat.Alphabetical",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFieldFormat.LowerLetter",
+      "reason": "PowerShell compares enum names case-insensitively",
+      "file": "OfficeIMO.Word/WordField.cs",
+      "category": "naming",
+      "notes": "Writes the same field switch as before (\\* Alphabetical); only the member name changes."
+    },
+    {
+      "old": "OfficeIMO.Word.WordFieldFormat.Mergeformat",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFieldFormat.MergeFormat",
+      "reason": "Enum members use PascalCase; PowerShell scripts are unaffected because PowerShell compares enum names case-insensitively.",
+      "file": "OfficeIMO.Word/WordField.cs",
+      "category": "naming"
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldBuilder builder, bool advanced = False)",
@@ -2600,7 +2647,7 @@
       "kind": "method",
       "action": "rename",
       "new": "WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -2619,7 +2666,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter."
@@ -2639,7 +2686,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter."
@@ -2669,7 +2716,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -2687,7 +2734,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion"
     },
@@ -2704,11 +2751,12 @@
       "old": "OfficeIMO.Word.Pdf.LegacyDocPdfConverter.ToPdfDocumentResult(Stream source, WordToPdfOptions pdfOptions = null, LegacyDocImportOptions importOptions = null, OfficeConversionLossPolicy lossPolicy = Block, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.OfficeConverter.Convert(Stream source, OfficeFormat.Doc, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null)",
+      "new": "OfficeIMO.OfficeConverter.Convert(Stream source, OfficeDocumentFormat.Word, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null)",
       "replacement": "Or WordDocument.Load(stream).SaveAsPdf(...) with the OfficeIMO.Word.Pdf adapter.",
       "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
       "file": "OfficeIMO.Word/Layout/LegacyDocPdfConverter.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "notes": "OfficeDocumentFormat has no Doc value: legacy .doc input is OfficeDocumentFormat.Word."
     },
     {
       "old": "OfficeIMO.Word.Pdf.LegacyDocPdfConverter",
@@ -3500,10 +3548,10 @@
     },
     {
       "from": "OfficeIMO.Word",
-      "to": "OfficeIMO.Word.Pdf (or OfficeIMO.Word.Imaging, see notes)",
+      "to": "OfficeIMO.Word.Pdf",
       "scope": "Imaging/ (WordDocument.Imaging*.cs, WordPageImageExport, WordImageExportOptions, WordDocumentVisualSnapshot, WordImageExportBuilder)",
       "reason": "Word image export renders by calling document.ToPdfDocumentResult(), re-reading the bytes with PdfReadDocument.Open and rasterising through the internal PdfImageExportEngine. It depends on the PDF writer, reader and renderer, not just a layout engine.",
-      "notes": "The design keeps image export in the format package only on its own rendering code. Word has no own paginating layout: pagination and line breaking are done by the PDF composition engine (PdfParagraphBuilder, PdfTableStyle, PdfPageBuilder: 193 PdfCore references across Layout/). A lower-level shared package would have to split OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) plus the PDF writer/reader. Until that split exists, the honest placement is the adapter."
+      "notes": "Design (Packages): Word paginates through the PDF layout engine, so Word page images live in OfficeIMO.Word.Pdf together with PDF export. There is no OfficeIMO.Word.Imaging package. Pagination and line breaking come from the PDF composition engine (PdfParagraphBuilder, PdfTableStyle, PdfPageBuilder: 193 PdfCore references across Layout/)."
     },
     {
       "from": "OfficeIMO.Word",

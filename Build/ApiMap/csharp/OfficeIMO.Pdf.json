@@ -4,12 +4,12 @@
   "summary": {
     "changes": 148,
     "byAction": {
-      "change": 39,
+      "change": 43,
       "internalize": 3,
       "merge": 57,
       "move": 3,
       "remove": 15,
-      "rename": 31
+      "rename": 27
     },
     "byCategory": {
       "authoring": 4,
@@ -20,7 +20,7 @@
       "package": 1,
       "units": 18
     },
-    "packageMoves": 1
+    "packageMoves": 2
   },
   "lifecycle": [
     {
@@ -333,9 +333,8 @@
   ],
   "openQuestions": [
     "PdfReadDocument/PdfDocumentReadResult internalization requires moving the reading API (pages, text, forms, outlines, structured extraction) onto PdfDocument - the largest single PDF change.",
-    "27 PdfOperationResult<PdfDocument> *Result operations: apply the throwing/Result merge rule to operations too?",
     "Create(Action<PdfDocumentBuilder>) is a compose-callback API; confirm it is the PDF object model rather than a second authoring style.",
-    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer)."
+    "Decided (design: Packages): libraries target netstandard2.0 and net10.0, and the netstandard2.0 build keeps a .NET Framework test run on Windows for PSWriteOffice on Windows PowerShell 5.1. Still open: each #if NETFRAMEWORK workaround (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) needs a runtime-check replacement proved on .NET Framework 4.7.2."
   ],
   "changes": [
     {
@@ -391,38 +390,42 @@
     {
       "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options = null)",
       "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options = null)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options = null) : PdfDocument",
+      "reason": "Images are inputs, not a source document model, so this stays a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). Options are {Format}{Source}ImportOptions.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
-      "category": "lifecycle"
+      "category": "lifecycle",
+      "notes": "Name unchanged; PdfImageDocumentOptions becomes PdfImageImportOptions."
     },
     {
       "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
       "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options, CancellationToken cancellationToken)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<string> imagePaths, PdfImageImportOptions options, CancellationToken cancellationToken) : PdfDocument",
+      "reason": "Images are inputs, not a source document model, so this stays a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). Options are {Format}{Source}ImportOptions.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
-      "category": "lifecycle"
+      "category": "lifecycle",
+      "notes": "Name unchanged; PdfImageDocumentOptions becomes PdfImageImportOptions."
     },
     {
       "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options = null)",
       "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options = null)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options = null) : PdfDocument",
+      "reason": "Images are inputs, not a source document model, so this stays a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). Options are {Format}{Source}ImportOptions.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
-      "category": "lifecycle"
+      "category": "lifecycle",
+      "notes": "Name unchanged; PdfImageDocumentOptions becomes PdfImageImportOptions."
     },
     {
       "old": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageDocumentOptions options, CancellationToken cancellationToken)",
       "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options, CancellationToken cancellationToken)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromImages(IEnumerable<PdfImageDocumentSource> images, PdfImageImportOptions options, CancellationToken cancellationToken) : PdfDocument",
+      "reason": "Images are inputs, not a source document model, so this stays a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). Options are {Format}{Source}ImportOptions.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
-      "category": "lifecycle"
+      "category": "lifecycle",
+      "notes": "Name unchanged; PdfImageDocumentOptions becomes PdfImageImportOptions."
     },
     {
       "old": "OfficeIMO.Pdf.PdfDocument.ToBytes()",
@@ -1092,8 +1095,8 @@
       "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(Stream source, PdfPlainTextOptions options = null, long maximumInputBytes = 67108864, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromText(Stream source, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromText(Stream source, PdfTextImportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Plain text has no source document model, so text to PDF is a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). The throwing and …Result pairs merge: failures throw.",
       "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
       "category": "conversion",
       "notes": "maximumInputBytes moves into PdfTextImportOptions."
@@ -1102,8 +1105,8 @@
       "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(byte[] bytes, PdfPlainTextOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromText(byte[] bytes, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromText(byte[] bytes, PdfTextImportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Plain text has no source document model, so text to PDF is a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). The throwing and …Result pairs merge: failures throw.",
       "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
       "category": "conversion",
       "notes": "maximumInputBytes moves into PdfTextImportOptions."
@@ -1112,8 +1115,8 @@
       "old": "OfficeIMO.Pdf.PdfPlainTextConverter.ToPdfDocumentResult(string text, PdfPlainTextOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.FromText(string text, PdfTextImportOptions options = null, CancellationToken cancellationToken = null) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "OfficeIMO.Pdf.PdfDocument.CreateFromText(string text, PdfTextImportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Plain text has no source document model, so text to PDF is a PdfDocument creation factory beside Create (design: Lifecycle); there are no static From… factories (design: Conversion). The throwing and …Result pairs merge: failures throw.",
       "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
       "category": "conversion",
       "notes": "maximumInputBytes moves into PdfTextImportOptions."
@@ -1123,8 +1126,8 @@
       "kind": "type",
       "action": "remove",
       "new": null,
-      "replacement": "PdfDocument.FromText(...)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "replacement": "PdfDocument.CreateFromText(...)",
+      "reason": "Static converter classes merge into the document type: text to PDF becomes PdfDocument.CreateFromText (design: Lifecycle, Conversion).",
       "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
       "category": "conversion"
     },
@@ -1143,21 +1146,21 @@
       "old": "OfficeIMO.Pdf.PdfLogicalMarkdownExtensions.ToMarkdown(PdfDocumentReadResult document, PdfLogicalMarkdownOptions options = null)",
       "kind": "method",
       "action": "move",
-      "new": "OfficeIMO.Markdown.MarkdownDocument.FromPdf(PdfDocument pdf, MarkdownPdfImportOptions options = null) in a new OfficeIMO.Pdf.Markdown adapter, or keep as PdfDocument.ExtractMarkdown() : string",
-      "reason": "To{Target} returns the target model; a MarkdownDocument needs the Markdown package, which PDF must not reference.",
+      "new": "OfficeIMO.Pdf.Markdown: PdfDocument.ToMarkdown(MarkdownPdfImportOptions options = null) : MarkdownDocument",
+      "reason": "To{Target} returns the target model and is called on the source (PdfDocument.Load(path).ToMarkdown()); a MarkdownDocument needs the Markdown package, which PDF must not reference, so the method lives in a new OfficeIMO.Pdf.Markdown adapter (design: Conversion, Packages).",
       "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalMarkdown.cs",
       "category": "conversion",
-      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage. Decide between a new adapter and a text-extraction name."
+      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage; page selection moves into MarkdownPdfImportOptions, and the text comes from the returned MarkdownDocument."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLogicalMarkdownExtensions.ToMarkdown(PdfLogicalPage page, PdfLogicalMarkdownOptions options = null)",
       "kind": "method",
       "action": "move",
-      "new": "OfficeIMO.Markdown.MarkdownDocument.FromPdf(PdfDocument pdf, MarkdownPdfImportOptions options = null) in a new OfficeIMO.Pdf.Markdown adapter, or keep as PdfDocument.ExtractMarkdown() : string",
-      "reason": "To{Target} returns the target model; a MarkdownDocument needs the Markdown package, which PDF must not reference.",
+      "new": "OfficeIMO.Pdf.Markdown: PdfDocument.ToMarkdown(MarkdownPdfImportOptions options = null) : MarkdownDocument",
+      "reason": "To{Target} returns the target model and is called on the source (PdfDocument.Load(path).ToMarkdown()); a MarkdownDocument needs the Markdown package, which PDF must not reference, so the method lives in a new OfficeIMO.Pdf.Markdown adapter (design: Conversion, Packages).",
       "file": "OfficeIMO.Pdf/Reading/Logical/PdfLogicalMarkdown.cs",
       "category": "conversion",
-      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage. Decide between a new adapter and a text-extraction name."
+      "notes": "Returns string today and takes PdfDocumentReadResult/PdfLogicalPage; page selection moves into MarkdownPdfImportOptions, and the text comes from the returned MarkdownDocument."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(PdfReadDocument document, OfficeImageExportFormat format, PdfImageExportOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = null)",
@@ -1776,7 +1779,7 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
       "category": "options",
-      "notes": "Options of PdfDocument.FromImages."
+      "notes": "Options of PdfDocument.CreateFromImages."
     },
     {
       "old": "OfficeIMO.Pdf.PdfOptions",
@@ -1796,7 +1799,7 @@
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Pdf/Options/PdfPlainTextOptions.cs",
       "category": "options",
-      "notes": "Options of PdfDocument.FromText."
+      "notes": "Options of PdfDocument.CreateFromText."
     },
     {
       "old": "OfficeIMO.Pdf.PdfReadOptions",
@@ -1811,11 +1814,17 @@
   ],
   "packageMoves": [
     {
-      "from": "OfficeIMO.Pdf",
+      "from": "OfficeIMO.Word.Pdf",
       "to": "(new) OfficeIMO.Pdf.Word",
-      "scope": "Reconstruction to Word now in OfficeIMO.Word.Pdf (PdfWordConverterExtensions, PdfToWordOptions, PdfWord*)",
+      "scope": "All current OfficeIMO.Word.Pdf content: PdfWordConverterExtensions, PdfToWordOptions, PdfWordImportMode, PdfWord* (PDF -> Word reconstruction)",
       "reason": "Reconstruction from PDF lives in the matching OfficeIMO.Pdf.{Target} adapter.",
       "notes": "Listed here for completeness; see OfficeIMO.Word.Pdf.json."
+    },
+    {
+      "from": "OfficeIMO.Pdf",
+      "to": "(new) OfficeIMO.Pdf.Markdown",
+      "scope": "PdfLogicalMarkdownExtensions (PDF -> Markdown)",
+      "reason": "Conversions live in OfficeIMO.{Source}.{Target} adapters; a format package never depends on another format engine."
     }
   ]
 }

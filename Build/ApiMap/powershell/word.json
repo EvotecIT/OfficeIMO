@@ -26,7 +26,7 @@
               "pipeline": "none"
             },
             {
-              "name": "TemplatePath",
+              "name": "Template",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -70,7 +70,7 @@
               "pipeline": "none"
             },
             {
-              "name": "TemplatePath",
+              "name": "Template",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -109,7 +109,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Keeping a document open means leaving out the block: the Document set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -TemplatePath clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force.",
+      "notes": "Keeping a document open means leaving out the block: the Document set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -Template clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force.",
       "examples": [
         {
           "title": "Create a one-paragraph document",
@@ -572,13 +572,13 @@
             },
             {
               "name": "Level",
-              "type": "int",
+              "type": "WordHeadingLevel",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -609,13 +609,13 @@
             },
             {
               "name": "Level",
-              "type": "int",
+              "type": "WordHeadingLevel",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -634,7 +634,7 @@
           ]
         }
       ],
-      "notes": "-Level 1-9 (default 1) maps to the built-in Heading1-Heading9 styles, so headings feed the table of contents and navigation pane. The Content set takes WordText runs. WordParagraph -Style Heading1 stays valid for custom flows.",
+      "notes": "-Level takes 1-9 (default 1) for the built-in Heading1-Heading9 styles, so headings feed the table of contents and navigation pane, or Title / Subtitle for the built-in Title and Subtitle styles (document title lines that stay out of the table of contents). WordHeadingLevel: Title, Subtitle, Heading1-Heading9; the integers 1-9 convert to Heading1-Heading9. The Content set takes WordText runs. WordParagraph -Style Heading1 stays valid for custom flows.",
       "examples": [
         {
           "title": "Add a heading",
@@ -645,6 +645,11 @@
           "title": "Build a heading hierarchy for the navigation pane",
           "description": "Uses heading levels so the table of contents and navigation pane follow the structure, with a styled count in one heading.",
           "code": "New-OfficeWord -Path .\\Reports\\Incident-Review.docx {\n    WordHeading 'October incident review'\n    WordHeading 'Summary' -Level 2\n    WordParagraph 'Three priority 1 incidents were raised; two are resolved.'\n    WordHeading -Level 2 {\n        WordText 'Open incidents '\n        WordText '(1)' -Color Danger\n    }\n    WordHeading 'INC-4821: VPN gateway failover' -Level 3\n}"
+        },
+        {
+          "title": "Open a report with a title and subtitle",
+          "description": "Title and Subtitle use the built-in Word styles, so the cover lines do not appear in the table of contents.",
+          "code": "New-OfficeWord -Path .\\Reports\\Q3-Status.docx {\n    WordHeading 'Q3 2026 status report' -Level Title\n    WordHeading 'Infrastructure and operations' -Level Subtitle\n    WordTableOfContents\n    WordHeading 'Summary'\n    WordParagraph 'All services met their availability targets.'\n}"
         }
       ]
     },
@@ -674,7 +679,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -717,7 +722,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -760,7 +765,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -803,7 +808,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -828,7 +833,7 @@
           ]
         }
       ],
-      "notes": "-Run is removed: runs are WordText child commands. The untyped -Target (Document/Section) becomes -Document and -Section in their own sets. -Text together with -Content is no longer allowed; put the leading text in a WordText inside the block. Spacing, indentation and pagination of the current paragraph are set with Set-OfficeWordParagraph inside the block.",
+      "notes": "-Run is removed: runs are WordText child commands. The untyped -Target (Document/Section) becomes -Document and -Section in their own sets. -Text together with -Content is no longer allowed; put the leading text in a WordText inside the block. Spacing, indentation and pagination of the current paragraph are set with Set-OfficeWordParagraph inside the block. -Alignment takes the shared OfficeAlignment (Left, Center, Right, Justify, Start, End), as on every text command.",
       "examples": [
         {
           "title": "Add a paragraph of text",
@@ -904,7 +909,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -995,7 +1000,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1086,7 +1091,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1099,7 +1104,7 @@
           ]
         }
       ],
-      "notes": "The single styled-run command: shared run vocabulary -Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link. Absorbs Add-OfficeWordHyperlink (-Link for URLs, -Anchor for bookmarks) and the WordBold/WordItalic aliases. Hyperlinks use the theme Hyperlink style unless -NoLinkStyle. -PassThru returns the paragraph, or the hyperlink in the Link/Anchor sets. Outside a paragraph it creates one, as today.",
+      "notes": "The single styled-run command: shared run vocabulary -Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link. Absorbs Add-OfficeWordHyperlink (-Link for URLs, -Anchor for bookmarks) and the WordBold/WordItalic aliases. Hyperlinks use the theme Hyperlink style unless -NoLinkStyle. -PassThru returns the paragraph, or the hyperlink in the Link/Anchor sets. Outside a paragraph it creates one, as today. -Size is a length (11pt; a bare number means points).",
       "examples": [
         {
           "title": "Add bold and colored runs",
@@ -1283,7 +1288,7 @@
       "outputType": "WordField",
       "parameterSets": [
         {
-          "name": "Default",
+          "name": "Type",
           "default": true,
           "parameters": [
             {
@@ -1330,6 +1335,114 @@
               "pipeline": "none"
             }
           ]
+        },
+        {
+          "name": "MergeField",
+          "default": false,
+          "parameters": [
+            {
+              "name": "MergeField",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Format",
+              "type": "WordFieldFormat",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CustomFormat",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Paragraph",
+              "type": "WordParagraph",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentProperty",
+          "default": false,
+          "parameters": [
+            {
+              "name": "DocumentProperty",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Format",
+              "type": "WordFieldFormat",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CustomFormat",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Paragraph",
+              "type": "WordParagraph",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Bookmark",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Bookmark",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Format",
+              "type": "WordFieldFormat",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CustomFormat",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Paragraph",
+              "type": "WordParagraph",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
         }
       ],
       "examples": [
@@ -1341,9 +1454,10 @@
         {
           "title": "Build a mail-merge template",
           "description": "Writes a welcome letter whose MERGEFIELD fields Invoke-OfficeWordMailMerge fills later.",
-          "code": "New-OfficeWord -Path .\\Templates\\Welcome.docx {\n    WordParagraph {\n        WordText 'Dear '\n        WordField -Type MergeField -Parameters '\"FirstName\"'\n        WordText ','\n    }\n    WordParagraph {\n        WordText 'Your first day is '\n        WordField -Type MergeField -Parameters '\"StartDate\"'\n        WordText ' in the '\n        WordField -Type MergeField -Parameters '\"Department\"'\n        WordText ' team.'\n    }\n}"
+          "code": "New-OfficeWord -Path .\\Templates\\Welcome.docx {\n    WordParagraph {\n        WordText 'Dear '\n        WordField -MergeField FirstName\n        WordText ','\n    }\n    WordParagraph {\n        WordText 'Your first day is '\n        WordField -MergeField StartDate\n        WordText ' in the '\n        WordField -MergeField Department\n        WordText ' team.'\n    }\n}"
         }
-      ]
+      ],
+      "notes": "-MergeField <name> writes MERGEFIELD name, -DocumentProperty <name> writes DOCPROPERTY name and -Bookmark <name> writes REF name: the command quotes the name, so no field code is typed by hand. The Type set covers every other field (Date, Page, NumPages, Author, ...); -Parameters there takes extra field arguments as plain values, quoted by the command when they contain spaces. -Format adds the general \\* switch; -CustomFormat adds a date/number picture (\\@ or \\#). WordFieldFormat: Lower, Upper, FirstCap, Caps, MergeFormat, Arabic, UpperRoman, LowerRoman, UpperLetter, LowerLetter, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat (UpperRoman/LowerRoman and UpperLetter/LowerLetter replace the case twins Roman/roman and ALPHABETICAL/Alphabetical, which PowerShell cannot tell apart)."
     },
     {
       "name": "Add-OfficeWordFootnote",
@@ -1517,7 +1631,7 @@
       "outputType": "WordList",
       "parameterSets": [
         {
-          "name": "Default",
+          "name": "Content",
           "default": true,
           "parameters": [
             {
@@ -1528,10 +1642,46 @@
               "pipeline": "none"
             },
             {
+              "name": "Numbered",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Style",
               "type": "WordListStyle",
               "mandatory": false,
-              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Items",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Items",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Numbered",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Style",
+              "type": "WordListStyle",
+              "mandatory": false,
               "pipeline": "none"
             },
             {
@@ -1543,7 +1693,7 @@
           ]
         }
       ],
-      "notes": "The -Type alias of -Style is removed. Declares [OutputType].",
+      "notes": "-Items writes one plain item per string; the content block takes WordListItem children for styled or nested items. -Numbered writes a numbered list (replaces -Style Numbered); -Style keeps the other WordListStyle values, and a bulleted list is the default. The -Type alias of -Style is removed and -Style is no longer positional, so the block is the only positional argument. Declares [OutputType].",
       "examples": [
         {
           "title": "Add a bulleted list",
@@ -1553,7 +1703,12 @@
         {
           "title": "Write numbered steps from data",
           "description": "Turns a runbook step list into a numbered list with the system name in bold.",
-          "code": "$steps = Import-Csv -Path .\\Data\\Failover-Steps.csv\n\nNew-OfficeWord -Path .\\Runbooks\\SQL-Failover.docx {\n    WordHeading 'SQL failover runbook'\n    WordList -Style Numbered {\n        foreach ($step in $steps) {\n            WordListItem {\n                WordText \"$($step.Action) on \"\n                WordText $step.Server -Bold\n            }\n        }\n    }\n}"
+          "code": "$steps = Import-Csv -Path .\\Data\\Failover-Steps.csv\n\nNew-OfficeWord -Path .\\Runbooks\\SQL-Failover.docx {\n    WordHeading 'SQL failover runbook'\n    WordList -Numbered {\n        foreach ($step in $steps) {\n            WordListItem {\n                WordText \"$($step.Action) on \"\n                WordText $step.Server -Bold\n            }\n        }\n    }\n}"
+        },
+        {
+          "title": "Write a quick checklist from strings",
+          "description": "-Items takes plain strings when the items need no formatting.",
+          "code": "New-OfficeWord -Path .\\Change-Window.docx {\n    WordHeading 'Change window checklist'\n    WordList -Numbered -Items 'Announce the window', 'Fail over SQL01', 'Patch and reboot', 'Fail back and verify'\n}"
         }
       ]
     },
@@ -1627,7 +1782,7 @@
           ]
         }
       ],
-      "notes": "New Content set so an item can hold styled WordText runs, per the shared List/ListItem vocabulary.",
+      "notes": "New Content set so an item can hold styled WordText runs, per the shared List/ListItem vocabulary. -Level is 1-based (it was zero-based): 1, the default, is the top level, 2 the first nested level, up to 9.",
       "examples": [
         {
           "title": "Add list items",
@@ -1859,6 +2014,18 @@
               "pipeline": "none"
             },
             {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "TableStyle",
               "type": "WordTableStyle",
               "mandatory": false,
@@ -1873,12 +2040,12 @@
           ]
         }
       ],
-      "notes": "-FilterScript becomes positional (WordTableCondition { $_.Status -eq 'At risk' } -BackgroundColor Danger). Theme roles (Danger, Warning, Success) resolve from the document theme.",
+      "notes": "-FilterScript becomes positional (WordTableCondition { $_.Status -eq 'At risk' } -BackgroundColor Danger). Theme roles (Danger, Warning, Success) resolve from the document theme. -BackgroundColor shades the matching rows; -Color and -Bold format their text.",
       "examples": [
         {
           "title": "Highlight matching rows",
           "description": "Colors every row whose status is At risk with the theme Danger color.",
-          "code": "New-OfficeWord -Path .\\Milestones.docx {\n    WordTable -InputObject $milestones {\n        WordTableCondition { $_.Status -eq 'At risk' } -BackgroundColor Danger\n    }\n}"
+          "code": "New-OfficeWord -Path .\\Milestones.docx {\n    WordTable -InputObject $milestones {\n        WordTableCondition { $_.Status -eq 'At risk' } -BackgroundColor Danger -Color White -Bold\n    }\n}"
         },
         {
           "title": "Grade sales by target",
@@ -1975,7 +2142,7 @@
           ]
         }
       ],
-      "notes": "-Run is removed; styled text goes in the block as WordParagraph/WordText. -Row and -Column are 1-based, as Word numbers rows and columns.",
+      "notes": "-Run is removed; styled text goes in the block as WordParagraph/WordText. -Row and -Column are 1-based, as Word numbers rows and columns. In a table built from -InputObject, row 1 is the header row, so the first data row is row 2; with -NoHeader row 1 is the first data row.",
       "examples": [
         {
           "title": "Replace the text of a cell",
@@ -2080,7 +2247,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2128,7 +2295,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -2165,7 +2332,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2768,6 +2935,12 @@
               "pipeline": "none"
             },
             {
+              "name": "Paragraph",
+              "type": "WordParagraph",
+              "mandatory": false,
+              "pipeline": "byValue"
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -2776,7 +2949,7 @@
           ]
         }
       ],
-      "notes": "-Left/-Top become -X/-Y; omitting them keeps the shape inline.",
+      "notes": "-Left/-Top become -X/-Y; omitting them keeps the shape inline. -Paragraph anchors the shape in that paragraph, like the other inline commands (WordImage, WordField, WordBookmark); inside a WordParagraph block the current paragraph is used.",
       "examples": [
         {
           "title": "Add an inline shape",
@@ -3124,7 +3297,7 @@
           ]
         }
       ],
-      "notes": "-IncludeTotalPages becomes -IncludeTotal. Inside a paragraph it appends PAGE (and ' of ' NUMPAGES) fields to that paragraph, so WordFooter { WordText 'Page '; WordPageNumber -IncludeTotal } stays on one line; directly in WordHeader/WordFooter it adds one paragraph aligned per the theme. -Format and -Separator exist in the source but were not exposed as parameters; they become real parameters.",
+      "notes": "-IncludeTotalPages becomes -IncludeTotal. The command writes only fields and the separator, never a label: the PAGE field gives \"3\"; with -IncludeTotal it writes PAGE, the -Separator text (default ' of ') and NUMPAGES, giving \"3 of 12\". Alone directly in WordHeader/WordFooter (no paragraph open) it adds one new paragraph holding just those fields, aligned per the theme. After WordText or inside a WordParagraph it appends the fields to that same paragraph, so WordFooter { WordText 'Page '; WordPageNumber -IncludeTotal } writes \"Page 3 of 12\" on one line. -Format takes WordFieldFormat (for example UpperRoman for \"III\"); -Format and -Separator exist in the source but were not exposed as parameters; they become real parameters.",
       "examples": [
         {
           "title": "Number pages in the footer",
@@ -3688,7 +3861,7 @@
           "parameters": [
             {
               "name": "PageSize",
-              "type": "WordPageSize",
+              "type": "OfficePageSize",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3790,7 +3963,7 @@
             },
             {
               "name": "PageSize",
-              "type": "WordPageSize",
+              "type": "OfficePageSize",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3898,7 +4071,7 @@
             },
             {
               "name": "PageSize",
-              "type": "WordPageSize",
+              "type": "OfficePageSize",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3989,7 +4162,7 @@
           ]
         }
       ],
-      "notes": "-Index is 1-based. Twip integers become lengths. The WordMargin preset moves to -MarginPreset so -Margin is the shared all-sides length; side margins get the Margin prefix and header/footer distances a Distance suffix to read unambiguously.",
+      "notes": "-Index is 1-based. Twip integers become lengths. The WordMargin preset moves to -MarginPreset so -Margin is the shared all-sides length; side margins get the Margin prefix and header/footer distances a Distance suffix to read unambiguously. -PageSize takes the shared OfficePageSize (A4, Letter, Legal, ... or a size), as in New-OfficeWordPdfOptions and PdfPageSetup.",
       "examples": [
         {
           "title": "Switch to landscape",
@@ -4183,7 +4356,7 @@
             },
             {
               "name": "Alignment",
-              "type": "WordParagraphAlignment",
+              "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4374,7 +4547,7 @@
             },
             {
               "name": "Size",
-              "type": "double",
+              "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5033,7 +5206,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5111,12 +5284,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -5182,7 +5355,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Find-OfficeWord: -Pattern is a regular expression unless -SimpleMatch (Select-String vocabulary, as Search-OfficeDocument). -AsResult returns WordSearchResult match details instead of paragraphs. For searching many files use Search-OfficeDocument.",
+      "notes": "Absorbs Find-OfficeWord: -Pattern is a regular expression unless -SimpleMatch (Select-String vocabulary, as Search-OfficeDocument). -AsResult returns WordSearchResult match details instead of paragraphs. For searching many files use Search-OfficeDocument. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "List the paragraphs of a document",
@@ -5210,7 +5383,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5240,12 +5413,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -5275,7 +5448,7 @@
           ]
         }
       ],
-      "notes": "The Paragraph set stays the pipeline default for Get-OfficeWordParagraph | Get-OfficeWordText.",
+      "notes": "The Paragraph set stays the pipeline default for Get-OfficeWordParagraph | Get-OfficeWordText. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Read the text runs of a document",
@@ -5298,7 +5471,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5340,12 +5513,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -5357,7 +5530,7 @@
           ]
         }
       ],
-      "notes": "-Index is 1-based (it was zero-based).",
+      "notes": "-Index is 1-based (it was zero-based). Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Get the sections of a document",
@@ -5380,7 +5553,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5458,12 +5631,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -5529,7 +5702,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Find-OfficeWordList.",
+      "notes": "Absorbs Find-OfficeWordList. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Get the lists of a document",
@@ -5552,7 +5725,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5630,12 +5803,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -5701,7 +5874,7 @@
           ]
         }
       ],
-      "notes": "Absorbs Find-OfficeWordTable.",
+      "notes": "Absorbs Find-OfficeWordTable. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Get the tables of a document",
@@ -5748,7 +5921,7 @@
           ]
         }
       ],
-      "notes": "-Row and -Column are 1-based.",
+      "notes": "-Row and -Column are 1-based. In a table built from -InputObject, row 1 is the header row, so the first data row is row 2; with -NoHeader row 1 is the first data row.",
       "examples": [
         {
           "title": "Get every cell of a table",
@@ -5771,7 +5944,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5801,12 +5974,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -5847,7 +6020,8 @@
           "description": "Lists images without a description in every guide, so they can be fixed before publishing.",
           "code": "foreach ($file in Get-ChildItem -Path .\\Guides -Filter *.docx) {\n    Get-OfficeWordImage -LiteralPath $file.FullName |\n        Where-Object { -not $_.Description } |\n        Select-Object -Property @{ Name = 'Document'; Expression = { $file.Name } }, FileName\n}"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordShape",
@@ -5858,7 +6032,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -5888,12 +6062,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -5934,7 +6108,8 @@
           "description": "Reads each section of an opened document and reports how many shapes it holds.",
           "code": "$doc = Open-OfficeWord -Path .\\Reports\\Service-Health.docx -ReadOnly\n$index = 0\nforeach ($section in Get-OfficeWordSection -Document $doc) {\n    $index++\n    [pscustomobject]@{ Section = $index; Shapes = @(Get-OfficeWordShape -Section $section).Count }\n}\nClose-OfficeWord -Document $doc"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordHyperlink",
@@ -5945,7 +6120,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6011,12 +6186,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -6100,7 +6275,7 @@
           ]
         }
       ],
-      "notes": "The Uri/Bookmark parameter aliases are removed.",
+      "notes": "The Uri/Bookmark parameter aliases are removed. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "List the links in a document",
@@ -6123,7 +6298,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6165,12 +6340,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -6193,7 +6368,8 @@
           "description": "Looks up bookmarks by wildcard before a script links to them.",
           "code": "$bookmarks = Get-OfficeWordBookmark -Path .\\Reports\\Infrastructure-Review.docx -Name 'Appendix*'\nif (-not $bookmarks) {\n    Write-Warning 'The review has no appendix bookmarks.'\n}"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordField",
@@ -6204,7 +6380,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6270,12 +6446,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -6310,7 +6486,8 @@
           "description": "Lists the MERGEFIELD fields of a template before running a mail merge.",
           "code": "Get-OfficeWordField -Path .\\Templates\\Welcome.docx -FieldType MergeField"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordFootnote",
@@ -6321,7 +6498,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6351,12 +6528,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -6385,7 +6562,8 @@
           "description": "Collects footnote numbers and text into a CSV for the editor.",
           "code": "Get-OfficeWordFootnote -Path .\\Reports\\Q3-Summary.docx |\n    Select-Object -Property ReferenceId, Text |\n    Export-Csv -Path .\\Reports\\Q3-Sources.csv -NoTypeInformation"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordEndnote",
@@ -6396,7 +6574,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6426,12 +6604,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -6460,7 +6638,8 @@
           "description": "Lists the endnote text of every policy in a folder to check the cited standards.",
           "code": "Get-ChildItem -Path .\\Policies -Filter *.docx |\n    Get-OfficeWordEndnote |\n    Select-Object -Property ReferenceId, Text"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordContentControl",
@@ -6471,7 +6650,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6561,12 +6740,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -6602,7 +6781,7 @@
           ]
         }
       ],
-      "notes": "Absorbs the six per-kind Get- commands. -Type takes Text, CheckBox, ComboBox, DatePicker, DropDownList, Picture, RepeatingSection (default: all). -State Checked|Unchecked replaces the -Checked/-Unchecked pair and implies -Type CheckBox. Each kind keeps its own output type.",
+      "notes": "Absorbs the six per-kind Get- commands. -Type takes Text, CheckBox, ComboBox, DatePicker, DropDownList, Picture, RepeatingSection (default: all). -State Checked|Unchecked replaces the -Checked/-Unchecked pair and implies -Type CheckBox. Each kind keeps its own output type. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "List the content controls of a form",
@@ -6630,7 +6809,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6696,12 +6875,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -6725,7 +6904,7 @@
           ]
         }
       ],
-      "notes": "Generic metadata also appears in Get-OfficeDocumentInfo; this command stays for custom properties and the Set- pair.",
+      "notes": "Generic metadata also appears in Get-OfficeDocumentInfo; this command stays for custom properties and the Set- pair. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Read document properties",
@@ -6748,7 +6927,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6778,12 +6957,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -6800,7 +6979,8 @@
           "description": "Checks each guide and refreshes the table of contents only in the guides that have one.",
           "code": "foreach ($file in Get-ChildItem -Path .\\Guides -Filter *.docx) {\n    $doc = Open-OfficeWord -LiteralPath $file.FullName\n    if (Get-OfficeWordTableOfContents -Document $doc) {\n        Update-OfficeWordTableOfContents -Document $doc\n    }\n    Close-OfficeWord -Document $doc -Save\n}"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Get-OfficeWordReview",
@@ -6811,7 +6991,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -6841,12 +7021,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             }
           ]
@@ -6863,7 +7043,8 @@
           "description": "Counts the tracked revisions per reviewer before the policy goes to sign-off.",
           "code": "$review = Get-OfficeWordReview -Path .\\Drafts\\Remote-Access-Policy.docx\n$review.Revisions |\n    Group-Object -Property Author |\n    Sort-Object -Property Count -Descending |\n    Select-Object -Property Name, Count"
         }
-      ]
+      ],
+      "notes": "Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default."
     },
     {
       "name": "Update-OfficeWordText",
@@ -7343,7 +7524,7 @@
         {
           "title": "Write one welcome letter per new starter",
           "description": "Clones the template for each CSV row, fills its merge fields and saves a letter named after the employee ID.",
-          "code": "foreach ($starter in Import-Csv -Path .\\Data\\New-Starters.csv) {\n    New-OfficeWord -Path \".\\Letters\\Welcome-$($starter.EmployeeId).docx\" -TemplatePath .\\Templates\\Welcome.docx {\n        Invoke-OfficeWordMailMerge -InputObject $starter\n    }\n}"
+          "code": "foreach ($starter in Import-Csv -Path .\\Data\\New-Starters.csv) {\n    New-OfficeWord -Path \".\\Letters\\Welcome-$($starter.EmployeeId).docx\" -Template .\\Templates\\Welcome.docx {\n        Invoke-OfficeWordMailMerge -InputObject $starter\n    }\n}"
         }
       ]
     },
@@ -7356,7 +7537,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -7422,12 +7603,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -7452,7 +7633,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Word-specific review job; kept. -OutputPath never replaces the input implicitly.",
+      "notes": "Word-specific review job; kept. -OutputPath never replaces the input implicitly. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Accept all tracked changes",
@@ -7586,7 +7767,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -7598,7 +7779,7 @@
             },
             {
               "name": "Options",
-              "type": "GoogleDocsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7609,14 +7790,8 @@
               "pipeline": "none"
             },
             {
-              "name": "PlanOnly",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AsBatch",
-              "type": "switch",
+              "name": "Mode",
+              "type": "GoogleDocsExportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7644,7 +7819,7 @@
             },
             {
               "name": "Options",
-              "type": "GoogleDocsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7655,14 +7830,8 @@
               "pipeline": "none"
             },
             {
-              "name": "PlanOnly",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AsBatch",
-              "type": "switch",
+              "name": "Mode",
+              "type": "GoogleDocsExportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7676,17 +7845,17 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "WordDocument",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
               "name": "Options",
-              "type": "GoogleDocsSaveOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7697,14 +7866,8 @@
               "pipeline": "none"
             },
             {
-              "name": "PlanOnly",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AsBatch",
-              "type": "switch",
+              "name": "Mode",
+              "type": "GoogleDocsExportMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7718,17 +7881,105 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Not a file-to-file conversion (it targets a Google Workspace service), so it stays a Word command like Export-OfficeExcelGoogleSpreadsheet.",
+      "notes": "Not a file-to-file conversion (it targets a Google Workspace service), so it stays a Word command like Export-OfficeExcelGoogleSpreadsheet, with the same parameters: -Mode Export (default) | Plan | Batch replaces -PlanOnly and -AsBatch; -Session takes the session from New-OfficeGoogleWorkspaceSession and is required by -Mode Export; -Options takes New-OfficeWordGoogleDocsOptions. GoogleDocsExportMode: Export, Plan, Batch. Plan returns GoogleDocsTranslationPlan, Batch the GoogleDocsBatch requests, Export the created GoogleDocumentReference. Without -Path or -Document it reads the document of the enclosing New-/Open-OfficeWord block, so the Document set is the default.",
       "examples": [
         {
           "title": "Preview a Google Docs export",
-          "description": "Returns the translation plan, including fidelity warnings, without contacting Google.",
-          "code": "Export-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -PlanOnly"
+          "description": "Plan mode translates the document and reports what Google Docs cannot represent, without signing in.",
+          "code": "Export-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -Mode Plan"
         },
         {
           "title": "Upload a report as a Google document",
-          "description": "Checks the plan first, then uploads with a title and stops if anything would be lost; $session is a configured GoogleWorkspaceSession.",
-          "code": "$plan = Export-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -PlanOnly\n$plan.Report\nExport-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -Session $session -Options @{ Title = 'Q3 2026 status report' } -FailOnLoss"
+          "description": "Review the plan, then upload with a session and a title, failing if content would be lost.",
+          "code": "$plan = Export-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -Mode Plan\n$plan.Report\n$session = New-OfficeGoogleWorkspaceSession -KeyPath .\\Secrets\\reports-service.json\n$options = New-OfficeWordGoogleDocsOptions -Title 'Q3 2026 status report' -FolderId $env:REPORTS_FOLDER_ID\nExport-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -Session $session -Options $options -FailOnLoss"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeWordGoogleDocsOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates the Google Docs export options for Export-OfficeWordGoogleDocument.",
+      "outputType": "GoogleDocsSaveOptions",
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FolderId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DriveId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ExistingFileId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InlineImageMode",
+              "type": "GoogleDocsInlineImageMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Comments",
+              "type": "GoogleDocsCommentMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TabStrategy",
+              "type": "GoogleDocsTabStrategy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TabId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ConflictMode",
+              "type": "GoogleDocsRevisionConflictMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ExpectedRevisionId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Factory for the -Options of Export-OfficeWordGoogleDocument (G18); -Mode, -Session and -FailOnLoss stay on the command. -ExistingFileId with -ConflictMode/-ExpectedRevisionId replaces an existing document instead of creating one. GoogleDocsInlineImageMode: Placeholder (default), TemporaryPublicDriveLease. GoogleDocsCommentMode: Skip, UnanchoredDriveComments (default). GoogleDocsTabStrategy: FirstTab (default), SelectedTab, ReplaceEveryTab. GoogleDocsRevisionConflictMode: RequireRevision (default), MergeAgainstTargetRevision, OverwriteLatest.",
+      "examples": [
+        {
+          "title": "Name the Google document",
+          "description": "The title of the created document; other settings keep their defaults.",
+          "code": "$options = New-OfficeWordGoogleDocsOptions -Title 'Q3 2026 status report'\nExport-OfficeWordGoogleDocument -Path .\\Reports\\Q3-Status.docx -Session $session -Options $options"
+        },
+        {
+          "title": "Refresh an existing shared document",
+          "description": "Replace the content of a document that colleagues already have open, but only if nobody changed it since the last export.",
+          "code": "$options = New-OfficeWordGoogleDocsOptions -ExistingFileId $fileId -ConflictMode RequireRevision -ExpectedRevisionId $lastRevision -Comments Skip\nExport-OfficeWordGoogleDocument -Path .\\Reports\\Weekly-Status.docx -Session $session -Options $options -FailOnLoss"
         }
       ]
     },
@@ -7750,31 +8001,19 @@
               "pipeline": "none"
             },
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "PageSize",
-              "type": "PageSize",
+              "type": "OfficePageSize",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Orientation",
-              "type": "OfficePageOrientation",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DefaultPageSize",
-              "type": "WordPageSize",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DefaultOrientation",
               "type": "OfficePageOrientation",
               "mandatory": false,
               "pipeline": "none"
@@ -7860,7 +8099,7 @@
           ]
         }
       ],
-      "notes": "Margins in PDF points become lengths. Moves with the Word-to-PDF adapter (OfficeIMO.Word.Pdf).",
+      "notes": "Margins in PDF points become lengths. Moves with the Word-to-PDF adapter (OfficeIMO.Word.Pdf). -PageSize and -Orientation are the page used for sections that do not set their own page setup (the former -DefaultPageSize/-DefaultOrientation); the overriding -PageSize/-Orientation pair is removed. -PageSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm. -FontFamily becomes -Font.",
       "examples": [
         {
           "title": "Number PDF pages",
@@ -7870,7 +8109,7 @@
         {
           "title": "Publish a folder of reports as PDF",
           "description": "Converts every report with A4 defaults and PDF metadata, one report object per file.",
-          "code": "$options = New-OfficeWordPdfOptions -DefaultPageSize A4 -Author 'Contoso IT' -Subject 'Q3 2026 reporting' -IncludePageNumbers\nGet-ChildItem -Path .\\Reports\\Q3 -Filter *.docx |\n    Convert-OfficeDocument -To Pdf -OutputDirectory .\\Pdf\\Q3 -Options $options"
+          "code": "$options = New-OfficeWordPdfOptions -PageSize A4 -Author 'Contoso IT' -Subject 'Q3 2026 reporting' -IncludePageNumbers\nGet-ChildItem -Path .\\Reports\\Q3 -Filter *.docx |\n    Convert-OfficeDocument -To Pdf -OutputDirectory .\\Pdf\\Q3 -Options $options"
         }
       ]
     },
@@ -7886,24 +8125,6 @@
           "default": true,
           "parameters": [
             {
-              "name": "PageIndex",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PageCount",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Scale",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaximumOutputWidth",
               "type": "int",
               "mandatory": false,
@@ -7912,18 +8133,6 @@
             {
               "name": "MaximumOutputHeight",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BackgroundColor",
-              "type": "OfficeColor",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "TargetDpi",
-              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7978,17 +8187,17 @@
           ]
         }
       ],
-      "notes": "Inner numeric types follow WordImageExportOptions. Resource limits are API-enforced and stay; pixel limits are counts (...PixelCount). -PageIndex is 1-based.",
+      "notes": "Inner numeric types follow WordImageExportOptions. Resource limits are API-enforced and stay; pixel limits are counts (...PixelCount). Pages, DPI, scale and background color are parameters of Export-OfficeDocumentImage (-Page, -Dpi, -Scale, -BackgroundColor), so this factory carries only the Word rendering limits.",
       "examples": [
         {
           "title": "Render the first page only",
-          "description": "Exports page 1 of a document as an image.",
-          "code": "$options = New-OfficeWordImageOptions -PageIndex 1 -PageCount 1\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Status.docx -OutputDirectory .\\Previews -Options $options"
+          "description": "Export-OfficeDocumentImage selects the page; the options cap the output width.",
+          "code": "$options = New-OfficeWordImageOptions -MaximumOutputWidth 1600\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Status.docx -Page 1 -OutputDirectory .\\Previews -Options $options"
         },
         {
           "title": "Make bounded thumbnails for a document library",
           "description": "Renders capped-size previews of each document with a render timeout, so a bad file cannot stall the batch.",
-          "code": "$options = New-OfficeWordImageOptions -PageCount 1 -MaximumOutputWidth 800 -RenderTimeoutSeconds 30\nGet-ChildItem -Path .\\Library -Filter *.docx |\n    Export-OfficeDocumentImage -OutputDirectory .\\Library\\Thumbnails -Options $options"
+          "code": "$options = New-OfficeWordImageOptions -MaximumOutputWidth 800 -RenderTimeoutSeconds 30\nGet-ChildItem -Path .\\Library -Filter *.docx |\n    Export-OfficeDocumentImage -Page 1 -OutputDirectory .\\Library\\Thumbnails -Options $options"
         }
       ]
     },
@@ -8206,13 +8415,13 @@
               "pipeline": "none"
             },
             {
-              "name": "IncludeImages",
+              "name": "NoImages",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             },
             {
-              "name": "IncludeHeadersAndFooters",
+              "name": "NoHeadersAndFooters",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -8220,7 +8429,7 @@
           ]
         }
       ],
-      "notes": "LossPolicy should collapse into the shared -FailOnLoss once OdfConversionLossPolicy migrates to OfficeConversionReport (C# map).",
+      "notes": "LossPolicy should collapse into the shared -FailOnLoss once OdfConversionLossPolicy migrates to OfficeConversionReport (C# map). Images and headers/footers are converted by default; -NoImages and -NoHeadersAndFooters leave them out (the Include* switches only restated the defaults).",
       "examples": [
         {
           "title": "Convert to OpenDocument with default settings",
@@ -8246,7 +8455,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -8301,7 +8510,7 @@
         {
           "title": "Convert to HTML with a font",
           "description": "Converts a document to HTML using the given font family.",
-          "code": "$options = New-OfficeWordHtmlOptions -FontFamily 'Segoe UI'\nConvert-OfficeDocument -Path .\\Guides\\IT-Handbook.docx -To Html -OutputPath .\\Site\\it-handbook.html -Options $options"
+          "code": "$options = New-OfficeWordHtmlOptions -Font 'Segoe UI'\nConvert-OfficeDocument -Path .\\Guides\\IT-Handbook.docx -To Html -OutputPath .\\Site\\it-handbook.html -Options $options"
         },
         {
           "title": "Publish guides to the intranet",
@@ -8322,7 +8531,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -8380,7 +8589,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -8442,12 +8651,12 @@
           ]
         }
       ],
-      "notes": "Source-target naming as New-OfficeHtmlPdfOptions and New-OfficePdfToWordOptions. Listed in the Word map because it replaces ConvertFrom-OfficeWordHtml; the markup map should reference, not duplicate, it.",
+      "notes": "Source-target naming as New-OfficeHtmlPdfOptions and New-OfficePdfWordOptions. Listed in the Word map because it replaces ConvertFrom-OfficeWordHtml; the markup map should reference, not duplicate, it.",
       "examples": [
         {
           "title": "Convert HTML to Word with a font",
           "description": "Converts an HTML page to .docx using the given font family.",
-          "code": "$options = New-OfficeHtmlWordOptions -FontFamily 'Aptos'\nConvert-OfficeDocument -Path .\\Site\\release-notes.html -To Word -OutputPath .\\Docs\\Release-Notes.docx -Options $options"
+          "code": "$options = New-OfficeHtmlWordOptions -Font 'Aptos'\nConvert-OfficeDocument -Path .\\Site\\release-notes.html -To Word -OutputPath .\\Docs\\Release-Notes.docx -Options $options"
         },
         {
           "title": "Turn intranet pages into Word documents",
@@ -8468,7 +8677,7 @@
           "default": true,
           "parameters": [
             {
-              "name": "TemplatePath",
+              "name": "Template",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -8498,13 +8707,13 @@
               "pipeline": "none"
             },
             {
-              "name": "RenderFrontMatter",
+              "name": "NoFrontMatter",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             },
             {
-              "name": "FontFamily",
+              "name": "Font",
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
@@ -8558,7 +8767,7 @@
               "pipeline": "none"
             },
             {
-              "name": "AllowDataUriImages",
+              "name": "NoDataUriImages",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -8608,7 +8817,7 @@
           ]
         }
       ],
-      "notes": "Carries every format-specific parameter of ConvertFrom-OfficeWordMarkdown, including inserting the Markdown into a template at a bookmark or content control. bool? NormalizeInput (default on) becomes -NoNormalizeInput; AllowDataUriImages bool? becomes a switch. Pixel image limits become lengths. -Theme takes the shared OfficeTheme instead of the Markdown-specific theme enum. Inner enum names follow the C# options.",
+      "notes": "Carries every format-specific parameter of ConvertFrom-OfficeWordMarkdown, including inserting the Markdown into a template at a bookmark or content control. bool? NormalizeInput (default on) becomes -NoNormalizeInput; Front matter is rendered and data-URI images are allowed by default; -NoFrontMatter and -NoDataUriImages turn them off. -TemplatePath becomes -Template. Pixel image limits become lengths. -Theme takes the shared OfficeTheme instead of the Markdown-specific theme enum. Inner enum names follow the C# options.",
       "examples": [
         {
           "title": "Convert Markdown with local images",
@@ -8618,7 +8827,7 @@
         {
           "title": "Insert Markdown into a branded template",
           "description": "Places the converted runbook at the Body bookmark of the company template and only reads images from the docs folder.",
-          "code": "$options = New-OfficeMarkdownWordOptions -TemplatePath .\\Templates\\Runbook.dotx -BookmarkName Body -AllowLocalImages -AllowedImageDirectory .\\docs\\images -FitImagesToPageContentWidth\nConvert-OfficeDocument -Path .\\docs\\sql-failover.md -To Word -OutputPath .\\Runbooks\\SQL-Failover.docx -Options $options"
+          "code": "$options = New-OfficeMarkdownWordOptions -Template .\\Templates\\Runbook.dotx -BookmarkName Body -AllowLocalImages -AllowedImageDirectory .\\docs\\images -FitImagesToPageContentWidth\nConvert-OfficeDocument -Path .\\docs\\sql-failover.md -To Word -OutputPath .\\Runbooks\\SQL-Failover.docx -Options $options"
         }
       ]
     }
@@ -8702,7 +8911,8 @@
       "old": "Add-OfficeWordField",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Add-OfficeWordField"
+      "new": "Add-OfficeWordField",
+      "hint": "WordField -MergeField FirstName"
     },
     {
       "old": "Add-OfficeWordFooter",
@@ -8786,7 +8996,8 @@
       "old": "Add-OfficeWordList",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Add-OfficeWordList"
+      "new": "Add-OfficeWordList",
+      "hint": "WordList -Numbered -Items 'Back up SQL01', 'Apply patches'"
     },
     {
       "old": "Add-OfficeWordListItem",
@@ -8941,7 +9152,7 @@
       "parameters": {
         "Html": "Text",
         "Open": "Show",
-        "FontFamily": "New-OfficeHtmlWordOptions -FontFamily",
+        "FontFamily": "New-OfficeHtmlWordOptions -Font",
         "BasePath": "New-OfficeHtmlWordOptions -BasePath",
         "StylesheetPath": "New-OfficeHtmlWordOptions -StylesheetPath",
         "StylesheetContent": "New-OfficeHtmlWordOptions -StylesheetContent",
@@ -8962,13 +9173,13 @@
       "new": "Convert-OfficeDocument",
       "parameterSet": "PathFile | Text | Document",
       "parameters": {
-        "TemplatePath": "New-OfficeMarkdownWordOptions -TemplatePath",
+        "TemplatePath": "New-OfficeMarkdownWordOptions -Template",
         "BookmarkName": "New-OfficeMarkdownWordOptions -BookmarkName",
         "ContentControlTag": "New-OfficeMarkdownWordOptions -ContentControlTag",
         "ContentControlAlias": "New-OfficeMarkdownWordOptions -ContentControlAlias",
         "KeepPlaceholder": "New-OfficeMarkdownWordOptions -KeepPlaceholder",
-        "RenderFrontMatter": "New-OfficeMarkdownWordOptions -RenderFrontMatter",
-        "FontFamily": "New-OfficeMarkdownWordOptions -FontFamily",
+        "RenderFrontMatter": "New-OfficeMarkdownWordOptions -NoFrontMatter",
+        "FontFamily": "New-OfficeMarkdownWordOptions -Font",
         "BaseUri": "New-OfficeMarkdownWordOptions -BaseUri",
         "AllowLocalImages": "New-OfficeMarkdownWordOptions -AllowLocalImages",
         "AllowedImageDirectory": "New-OfficeMarkdownWordOptions -AllowedImageDirectory",
@@ -8976,7 +9187,7 @@
         "ReaderOptions": "New-OfficeMarkdownWordOptions -ReaderOptions",
         "Profile": "New-OfficeMarkdownWordOptions -Profile",
         "Theme": "New-OfficeMarkdownWordOptions -Theme",
-        "AllowDataUriImages": "New-OfficeMarkdownWordOptions -AllowDataUriImages",
+        "AllowDataUriImages": "New-OfficeMarkdownWordOptions -NoDataUriImages",
         "MaxDataUriImageBytes": "New-OfficeMarkdownWordOptions -MaxDataUriImageBytes",
         "PreferNarrativeSingleLineDefinitions": "New-OfficeMarkdownWordOptions -PreferNarrativeSingleLineDefinitions",
         "FitImagesToPageContentWidth": "New-OfficeMarkdownWordOptions -FitImagesToPageContentWidth",
@@ -8988,7 +9199,7 @@
         "Markdown": "Text",
         "Open": "Show"
       },
-      "hint": "Convert-OfficeDocument -Path .\\SOP.md -To Word -OutputPath .\\SOP.docx -Options (New-OfficeMarkdownWordOptions -TemplatePath .\\Template.docx -BookmarkName MainContent)",
+      "hint": "Convert-OfficeDocument -Path .\\SOP.md -To Word -OutputPath .\\SOP.docx -Options (New-OfficeMarkdownWordOptions -Template .\\Template.docx -BookmarkName MainContent)",
       "reason": "File-to-file conversion; Markdown-to-Word settings, including template insertion, move to New-OfficeMarkdownWordOptions. Markdown text uses -Text -From Markdown and a MarkdownDocument the Document set. Without -OutputPath it returned a live document; convert to a file and open it with Open-OfficeWord."
     },
     {
@@ -9002,7 +9213,7 @@
         "Force": null,
         "AllowLossyLegacyConversion": null
       },
-      "hint": "Convert-OfficeDocument -Path .\\legacy.doc -To Docx -OutputPath .\\converted.docx",
+      "hint": "Convert-OfficeDocument -Path .\\legacy.doc -To Word -OutputPath .\\converted.docx",
       "reason": "The .doc/.docx conversion is a file-to-file conversion. Loss is reported in OfficeConversionReport and rejected with -FailOnLoss, so the opt-in lossy switch goes; Convert- replaces outputs by default and -NoClobber refuses."
     },
     {
@@ -9012,7 +9223,7 @@
       "new": "Convert-OfficeDocument",
       "parameterSet": "PathFile | Document",
       "parameters": {
-        "FontFamily": "New-OfficeWordHtmlOptions -FontFamily",
+        "FontFamily": "New-OfficeWordHtmlOptions -Font",
         "IncludeFontStyles": "New-OfficeWordHtmlOptions -IncludeFontStyles",
         "IncludeListStyles": "New-OfficeWordHtmlOptions -IncludeListStyles",
         "IncludeParagraphClasses": "New-OfficeWordHtmlOptions -IncludeParagraphClasses",
@@ -9031,7 +9242,7 @@
       "new": "Convert-OfficeDocument",
       "parameterSet": "PathFile | Document",
       "parameters": {
-        "FontFamily": "New-OfficeWordMarkdownOptions -FontFamily",
+        "FontFamily": "New-OfficeWordMarkdownOptions -Font",
         "EnableUnderline": "New-OfficeWordMarkdownOptions -EnableUnderline",
         "EnableHighlight": "New-OfficeWordMarkdownOptions -EnableHighlight",
         "ImageExportMode": "New-OfficeWordMarkdownOptions -ImageExportMode",
@@ -9044,7 +9255,11 @@
       "old": "Export-OfficeWordGoogleDocument",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "Export-OfficeWordGoogleDocument"
+      "new": "Export-OfficeWordGoogleDocument",
+      "parameters": {
+        "PlanOnly": "Mode",
+        "AsBatch": "Mode"
+      }
     },
     {
       "old": "Export-OfficeWordImage",
@@ -9302,7 +9517,8 @@
       "new": "New-OfficeWord",
       "parameters": {
         "NoSave": null,
-        "Open": "Show"
+        "Open": "Show",
+        "TemplatePath": "Template"
       },
       "hint": "$doc = New-OfficeWord -Path .\\Report.docx   # no block = live document",
       "reason": "Parameter names follow the shared vocabulary: -NoSave -> removed, -Open -> -Show."
@@ -9348,21 +9564,35 @@
       "new": "New-OfficeWordImageOptions",
       "parameters": {
         "MaximumRasterPixels": "MaximumRasterPixelCount",
-        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount",
+        "PageIndex": "Export-OfficeDocumentImage -Page",
+        "PageCount": "Export-OfficeDocumentImage -Page",
+        "TargetDpi": "Export-OfficeDocumentImage -Dpi",
+        "BackgroundColor": "Export-OfficeDocumentImage -BackgroundColor",
+        "Scale": "Export-OfficeDocumentImage -Scale"
       },
-      "reason": "Pixel limits are counts and are named ...PixelCount; -PageIndex becomes 1-based."
+      "reason": "Pixel limits are counts and are named ...PixelCount; page, DPI, scale and background color move to Export-OfficeDocumentImage."
     },
     {
       "old": "New-OfficeWordOpenDocumentOptions",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "New-OfficeWordOpenDocumentOptions"
+      "new": "New-OfficeWordOpenDocumentOptions",
+      "parameters": {
+        "IncludeImages": "NoImages",
+        "IncludeHeadersAndFooters": "NoHeadersAndFooters"
+      }
     },
     {
       "old": "New-OfficeWordPdfOptions",
       "kind": "cmdlet",
       "action": "keep",
-      "new": "New-OfficeWordPdfOptions"
+      "new": "New-OfficeWordPdfOptions",
+      "parameters": {
+        "FontFamily": "Font",
+        "DefaultPageSize": "PageSize",
+        "DefaultOrientation": "Orientation"
+      }
     },
     {
       "old": "New-OfficeWordRevisionFilter",

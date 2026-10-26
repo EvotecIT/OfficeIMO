@@ -49,9 +49,7 @@
     "Has a direct DocumentFormat.OpenXml package reference in addition to OfficeIMO.Word; check whether it is still needed."
   ],
   "openQuestions": [
-    "To{Target} returns \"the target document model\", but HTML and Markdown->HTML currently return strings and HtmlConversionDocument is the HTML engine model. Decide whether ToHtml returns string or an HTML document type.",
-    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape.",
-    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss."
+    "The design names the HTML model HtmlDocument (HtmlDocument.Parse, design: Conversion), but no change-map entry renames OfficeIMO.Html's HtmlConversionDocument yet; the conversion entries here already use HtmlDocument."
   ],
   "changes": [
     {
@@ -59,7 +57,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsHtml(string path, WordHtmlExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns void today."
@@ -69,7 +67,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsHtml(Stream stream, WordHtmlExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns void today."
@@ -78,11 +76,11 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(WordDocument document, WordToHtmlOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordDocument.ToHtml(WordHtmlExportOptions options = null) : HtmlDocument (OfficeIMO.Html model) or string - see openQuestions",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "WordDocument.ToHtml(WordHtmlExportOptions options = null) : string",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Returns string today; To{Target} is defined as returning the target document model."
+      "notes": "Returns string today and keeps it: ToHtml() returns a string, and HtmlDocument.Parse gives the HTML model when needed (design: Conversion)."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtmlResult(WordDocument document, WordToHtmlOptions options = null)",
@@ -98,21 +96,21 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocument(HtmlConversionDocument document, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "rename",
-      "new": "WordDocument.FromHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : WordDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToWord(WordHtmlImportOptions options = null) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Extension today on HtmlConversionDocument (html.ToWordDocument()). A static WordDocument.FromHtml defined in the adapter needs a C# 14 static extension member (see openQuestions). A string overload is new."
+      "notes": "Extension on HtmlConversionDocument today (html.ToWordDocument()). From text: HtmlDocument.Parse(html).ToWord()."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "WordDocument.FromHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : Task<WordDocument>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "HtmlDocument.ToWordAsync(WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<WordDocument>>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Extension today on HtmlConversionDocument (html.ToWordDocument()). A static WordDocument.FromHtml defined in the adapter needs a C# 14 static extension member (see openQuestions). A string overload is new."
+      "notes": "Returns Task<WordDocument> today. Async forms return OfficeConversionResult<T>, which carries the document and its report, because async methods cannot have out parameters (design: Conversion)."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBody(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",
@@ -173,7 +171,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsHtmlAsync(string path, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns void today."
@@ -183,7 +181,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsHtmlAsync(Stream stream, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns void today."
@@ -192,7 +190,7 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResult(HtmlConversionDocument document, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "WordDocument.FromHtml(html, WordHtmlImportOptions options, out OfficeConversionReport report)",
+      "new": "HtmlDocument.ToWord(WordHtmlImportOptions options, out OfficeConversionReport report) : WordDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.Results.cs",
       "category": "conversion"
@@ -201,10 +199,11 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResultAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "WordDocument.FromHtml(html, WordHtmlImportOptions options, out OfficeConversionReport report) (async form: see openQuestions)",
+      "new": "HtmlDocument.ToWordAsync(WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<WordDocument>>",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.Results.cs",
-      "category": "conversion"
+      "category": "conversion",
+      "notes": "Async forms return OfficeConversionResult<T>, which carries the document and its report, because async methods cannot have out parameters (design: Conversion)."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtml(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",

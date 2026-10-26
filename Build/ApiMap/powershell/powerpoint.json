@@ -42,11 +42,11 @@
               "notes": "Brand color; derives the deck palette over the chosen theme (was Add-OfficePowerPointDesignerDeck -AccentColor)."
             },
             {
-              "name": "Direction",
-              "type": "PowerPointCreativeDirectionPack",
+              "name": "Style",
+              "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Auto, Boardroom, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
             },
             {
               "name": "Purpose",
@@ -136,11 +136,11 @@
               "notes": "Brand color; derives the deck palette over the chosen theme (was Add-OfficePowerPointDesignerDeck -AccentColor)."
             },
             {
-              "name": "Direction",
-              "type": "PowerPointCreativeDirectionPack",
+              "name": "Style",
+              "type": "PowerPointDeckStyle",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Auto, Boardroom, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
+              "notes": "Advanced designer-engine tuning: Auto (default, follows -Theme), FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix."
             },
             {
               "name": "Purpose",
@@ -185,7 +185,7 @@
           ]
         }
       ],
-      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PptList, tables/images flow, blockquotes become notes); nothing in this area maps to it.",
+      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PptList, tables/images flow, blockquotes become notes); nothing in this area maps to it. -Theme is the one user-facing design choice; -Style (renamed from -Direction) is optional designer-engine tuning layered on it. The Boardroom creative direction is selected by -Theme Boardroom, so PowerPointDeckStyle has no Boardroom value: Auto, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix.",
       "examples": [
         {
           "title": "Create a one-slide deck",
@@ -195,7 +195,7 @@
         {
           "title": "Build a quarterly review without coordinates",
           "description": "Builds a themed deck whose layouts are chosen from the content: a cover, a KPI slide, a two-chart slide and a table slide, with a deck footer and speaker notes.",
-          "code": "$sales = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$priorities = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'Priorities'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Theme Boardroom -Show {\n    PptFooter {\n        PptText 'Contoso | Internal | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Q3 business review' -Subtitle 'Performance, decisions and priorities'\n    PptSlide -Title 'Quarter at a glance' {\n        PptKpi '$4.2M' 'Revenue' -Change '+12% vs Q2'\n        PptKpi '38%' 'Gross margin' -Change '+2 pt'\n        PptKpi '1,284' 'New customers' -Change '+9%'\n    }\n    PptSlide -Title 'Revenue and margin by region' {\n        PptChart -InputObject $sales -Category Region -Value Revenue -Type Column -Title 'Revenue (USD k)'\n        PptChart -InputObject $sales -Category Region -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Start with EMEA: margin grew faster than revenue.'\n    }\n    PptSlide -Title 'Next-quarter priorities' {\n        PptTable -InputObject $priorities -Property Priority, Owner, Due\n    }\n}"
+          "code": "$sales = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$priorities = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'Priorities'\nNew-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Theme Boardroom -Show {\n    PptFooter {\n        PptText 'Contoso | Internal | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Q3 business review' -Subtitle 'Performance, decisions and priorities'\n    PptSlide -Title 'Quarter at a glance' {\n        PptKpi '$4.2M' 'Revenue' -Change '+12% vs Q2' -Trend Up\n        PptKpi '38%' 'Gross margin' -Change '+2 pt' -Trend Up\n        PptKpi '1,284' 'New customers' -Change '+9%' -Trend Up\n    }\n    PptSlide -Title 'Revenue and margin by region' {\n        PptChart -InputObject $sales -Category Region -Value Revenue -Type Column -Title 'Revenue (USD k)'\n        PptChart -InputObject $sales -Category Region -Value Margin -Type Line -Title 'Margin (%)'\n        PptNotes 'Start with EMEA: margin grew faster than revenue.'\n    }\n    PptSlide -Title 'Next-quarter priorities' {\n        PptTable -InputObject $priorities -Property Priority, Owner, Due\n    }\n}"
         },
         {
           "title": "Build a deck step by step and save it later",
@@ -764,6 +764,13 @@
               "pipeline": "none"
             },
             {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Paragraph alignment when the run starts its own paragraph directly inside PptSlide; inside PptParagraph the paragraph alignment applies."
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -772,7 +779,7 @@
           ]
         }
       ],
-      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PptSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PptTextRun) should point here.",
+      "notes": "Shared run vocabulary with WordText/PdfText/MarkdownText. Replaces the -Run hashtables of Add-OfficePowerPointTextBox, Set-OfficePowerPointShapeText and Set-OfficePowerPointTableCell. Directly inside PptSlide it starts a paragraph in the content area. The markup area's New-OfficeTextRun aliases (PptTextRun) should point here. -Size is an OfficeLength (a bare number means points) and -Alignment an OfficeAlignment, as on PptParagraph.",
       "examples": [
         {
           "title": "Mix bold and colored text in a paragraph",
@@ -1007,12 +1014,12 @@
           ]
         }
       ],
-      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block).",
+      "notes": "Placement parameters apply only when the paragraph is a direct slide child (it then becomes its own text block). Text parameters match PptText: -Size is an OfficeLength (a bare number means points), -Alignment an OfficeAlignment.",
       "examples": [
         {
           "title": "Add a paragraph to a slide",
           "description": "Adds a sentence to the slide content area in the theme body style.",
-          "code": "PptSlide -Title 'Why now' {\n    PptParagraph 'Support for the legacy CRM ends in March 2027.'\n}"
+          "code": "PptSlide -Title 'Why now' {\n    PptParagraph 'Support for the legacy CRM ends in March 2027.' -Size 24pt -Alignment Center\n}"
         },
         {
           "title": "Explain a decision in short paragraphs",
@@ -1200,7 +1207,7 @@
           ]
         }
       ],
-      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide.",
+      "notes": "Replaces Add-OfficePowerPointBullets. Theme list style by default; long lists shrink to the theme minimum, then continue on a new slide. -Numbered makes a numbered list; -Numbering picks the number scheme and implies -Numbered. -Items are written at -Level (1-based); rich and nested items use a PptListItem block.",
       "examples": [
         {
           "title": "Add a bulleted list",
@@ -1916,7 +1923,7 @@
             },
             {
               "name": "MaximumSvgViewportDimension",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2057,16 +2064,30 @@
               "notes": "Change indicator text such as '+12%'."
             },
             {
+              "name": "Trend",
+              "type": "PowerPointKpiTrend",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Up, Down or Flat; draws the change arrow."
+            },
+            {
+              "name": "GoodDirection",
+              "type": "PowerPointKpiDirection",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Up (default) or Down; which trend counts as good."
+            },
+            {
               "name": "Color",
               "type": "OfficeColor",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Indicator color, e.g. Success or Danger."
+              "notes": "Indicator color; overrides the color derived from -Trend and -GoodDirection."
             }
           ]
         }
       ],
-      "notes": "Replaces the -Metrics hashtables of Add-OfficePowerPointPlanCaseStudy. Two to six per slide.",
+      "notes": "Replaces the -Metrics hashtables of Add-OfficePowerPointPlanCaseStudy. Two to six per slide. -Trend and -GoodDirection color the change semantically: a trend in the good direction uses Success, against it Danger, and Flat the neutral text color; -Color overrides. PowerPointKpiTrend: Up, Down, Flat. PowerPointKpiDirection: Up, Down.",
       "examples": [
         {
           "title": "Show two metrics",
@@ -2076,7 +2097,7 @@
         {
           "title": "Report support metrics with change indicators",
           "description": "Calculates this month's support metrics from ticket data and shows them with changes, marking the worsening one with the warning color.",
-          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PptSlide -Title 'Support review' -Subtitle 'October 2026'\n    PptSlide -Title 'October at a glance' {\n        PptKpi $tickets.Count 'Tickets opened' -Change '+6% vs September'\n        PptKpi $closed.Count 'Tickets closed' -Change '+11%'\n        PptKpi '4.6 / 5' 'Satisfaction' -Change '+0.1'\n        PptKpi $breached.Count 'SLA breaches' -Change '+3' -Color Warning\n    }\n}"
+          "code": "$tickets = Import-Csv -Path .\\Data\\Tickets-October.csv\n$closed = @($tickets | Where-Object Status -eq 'Closed')\n$breached = @($tickets | Where-Object SlaBreached -eq 'True')\nNew-OfficePowerPoint -Path .\\Reports\\Support-October.pptx {\n    PptSlide -Title 'Support review' -Subtitle 'October 2026'\n    PptSlide -Title 'October at a glance' {\n        PptKpi $tickets.Count 'Tickets opened' -Change '+6% vs September' -Trend Up -GoodDirection Down\n        PptKpi $closed.Count 'Tickets closed' -Change '+11%' -Trend Up\n        PptKpi '4.6 / 5' 'Satisfaction' -Change '+0.1' -Trend Up\n        PptKpi $breached.Count 'SLA breaches' -Change '+3' -Trend Up -GoodDirection Down\n    }\n}"
         }
       ]
     },
@@ -2789,7 +2810,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "Existing slide where the section starts: a slide object or 1-based number. Inside a slide block the current slide is used; directly in a deck block the section starts at the next slide added."
             },
             {
               "name": "PassThru",
@@ -2807,15 +2828,21 @@
           "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSection 'Appendix' -Slide 9\n}"
         },
         {
+          "title": "Group new slides into sections",
+          "description": "Each PptSection covers the slides added after it, until the next PptSection.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    PptSection 'Results'\n    PptSlide -Title 'Revenue'\n    PptSlide -Title 'Margin'\n    PptSection 'Plans'\n    PptSlide -Title 'Next-quarter priorities'\n}"
+        },
+        {
           "title": "Organize a long deck into sections",
           "description": "Groups an existing deck into named sections so presenters can collapse and reorder them in PowerPoint.",
           "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Annual-Review.pptx\nAdd-OfficePowerPointSection -Document $deck -Name 'Introduction' -Slide 1\nAdd-OfficePowerPointSection -Document $deck -Name 'Results' -Slide 3\nAdd-OfficePowerPointSection -Document $deck -Name 'Plans' -Slide 11\nAdd-OfficePowerPointSection -Document $deck -Name 'Appendix' -Slide 18\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
-      ]
+      ],
+      "notes": "A section starts at its first slide and covers every following slide until the next section starts. In a deck block, PptSection placed between PptSlide calls covers the slides added after it until the next PptSection; inside a PptSlide block it starts at that slide. Slides added before the first section belong to the default (unnamed) section. With -Slide it starts at an existing slide, which suits Open-OfficePowerPoint and -Document scripts."
     },
     {
       "name": "Set-OfficePowerPointSlideSize",
-      "alias": "PptSlideSize",
+      "alias": null,
       "status": "existing",
       "synopsis": "Sets the slide size from a preset or explicit lengths.",
       "outputType": "PowerPointSlideSize (with -PassThru)",
@@ -2882,7 +2909,7 @@
           ]
         }
       ],
-      "notes": "The Centimeters, Inches, Points and Emus sets become one OfficeLength set (-Width 25.4cm).",
+      "notes": "The Centimeters, Inches, Points and Emus sets become one OfficeLength set (-Width 25.4cm). No DSL alias: a new deck takes New-OfficePowerPoint -SlideSize, and resizing an existing deck is a deck setting called by its full name, inside blocks too.",
       "examples": [
         {
           "title": "Switch a deck to 4:3",
@@ -2892,7 +2919,7 @@
         {
           "title": "Make a portrait deck for a lobby screen",
           "description": "Turns an existing 16:9 deck into portrait for a vertical display.",
-          "code": "Open-OfficePowerPoint -Path .\\Signage\\Lobby-Welcome.pptx {\n    PptSlideSize Screen16x9 -Portrait\n}"
+          "code": "Open-OfficePowerPoint -Path .\\Signage\\Lobby-Welcome.pptx {\n    Set-OfficePowerPointSlideSize Screen16x9 -Portrait\n}"
         },
         {
           "title": "Set an exact slide size",
@@ -2909,7 +2936,7 @@
       "outputType": "PowerPointShape (with -PassThru)",
       "parameterSets": [
         {
-          "name": "Align",
+          "name": "Alignment",
           "default": true,
           "parameters": [
             {
@@ -2927,7 +2954,7 @@
               "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
             },
             {
-              "name": "Align",
+              "name": "Alignment",
               "type": "PowerPointShapeAlignment",
               "mandatory": true,
               "pipeline": "none"
@@ -2977,7 +3004,7 @@
               "pipeline": "none"
             },
             {
-              "name": "CrossAxisAlign",
+              "name": "CrossAxisAlignment",
               "type": "PowerPointShapeAlignment",
               "mandatory": false,
               "pipeline": "none"
@@ -3105,12 +3132,12 @@
         {
           "title": "Align shapes along their top edge",
           "description": "Aligns all auto shapes on a slide to the top of their selection.",
-          "code": "Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind AutoShape | Set-OfficePowerPointShapeLayout -Align Top"
+          "code": "Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind AutoShape | Set-OfficePowerPointShapeLayout -Alignment Top"
         },
         {
           "title": "Space shapes evenly across the slide",
           "description": "Distributes the named status shapes horizontally with equal spacing and centers them vertically.",
-          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx\nGet-OfficePowerPointShape -Document $deck -Slide 1 -Kind AutoShape |\n    Set-OfficePowerPointShapeLayout -Distribute Horizontal -CrossAxisAlign Middle -ToSlide -Margin 2cm\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Status-Board.pptx\nGet-OfficePowerPointShape -Document $deck -Slide 1 -Kind AutoShape |\n    Set-OfficePowerPointShapeLayout -Distribute Horizontal -CrossAxisAlignment Middle -ToSlide -Margin 2cm\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         },
         {
           "title": "Arrange pictures in a grid",
@@ -3319,13 +3346,72 @@
       "outputType": "PowerPointSlide, PowerPointSlideSummaryInfo (-Summary)",
       "parameterSets": [
         {
+          "name": "Path",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Slide",
+              "type": "int[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "1-based slide numbers; default all."
+            },
+            {
+              "name": "Summary",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Required with a path: a file is read for its summary and closed again."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "property",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Slide",
+              "type": "int[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "1-based slide numbers; default all."
+            },
+            {
+              "name": "Summary",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none",
+              "notes": "Required with a path: a file is read for its summary and closed again."
+            }
+          ]
+        },
+        {
           "name": "Document",
           "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "value"
             },
@@ -3354,10 +3440,16 @@
         },
         {
           "title": "Find slides without speaker notes",
-          "description": "Reads slide summaries before a presentation and lists the slides that still need notes.",
-          "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\nGet-OfficePowerPointSlide -Document $deck -Summary |\n    Where-Object { -not $_.HasNotes } |\n    Select-Object SlideIndex, Title, LayoutName\nClose-OfficePowerPoint -Document $deck"
+          "description": "Reads the slide summary straight from the file and lists the slides that still need speaker notes.",
+          "code": "Get-OfficePowerPointSlide -Path .\\Reports\\Q3-Review.pptx -Summary |\n    Where-Object { -not $_.HasNotes } |\n    Select-Object SlideIndex, Title, LayoutName"
+        },
+        {
+          "title": "Count slides in every deck in a folder",
+          "description": "Pipes files into the LiteralPath set and counts the slides of each deck.",
+          "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx |\n    Get-OfficePowerPointSlide -Summary |\n    Group-Object Path |\n    Select-Object Name, Count"
         }
-      ]
+      ],
+      "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used. The Path and LiteralPath sets return summaries (-Summary is required there) and close the file; slide objects need an open presentation. Summaries from several files carry a Path property."
     },
     {
       "name": "Copy-OfficePowerPointSlide",
@@ -3374,7 +3466,7 @@
               "name": "Document",
               "type": "PowerPointPresentation",
               "mandatory": false,
-              "pipeline": "value"
+              "pipeline": "none"
             },
             {
               "name": "Slide",
@@ -3410,7 +3502,8 @@
           "description": "Copies a template slide for each region, fills its tokens and removes the template slide.",
           "code": "$regions = Import-OfficeExcel -Path .\\Reports\\Q3-Sales.xlsx -Sheet 'By region'\n$deck = Open-OfficePowerPoint -Path .\\Templates\\Region-Template.pptx\nforeach ($region in $regions) {\n    $slide = Copy-OfficePowerPointSlide -Document $deck -Slide 2 -PassThru\n    Update-OfficePowerPointText -Slide $slide -OldValue '{{Region}}' -NewValue $region.Region\n    Update-OfficePowerPointText -Slide $slide -OldValue '{{Revenue}}' -NewValue $region.Revenue\n}\nRemove-OfficePowerPointSlide -Document $deck -Slide 2\nSave-OfficePowerPoint -Document $deck -Path .\\Reports\\Q3-Regions.pptx\nClose-OfficePowerPoint -Document $deck"
         }
-      ]
+      ],
+      "notes": "Slides come from -Slide or the pipeline; -Document is never bound from the pipeline."
     },
     {
       "name": "Import-OfficePowerPointSlide",
@@ -3440,9 +3533,9 @@
             {
               "name": "SourceSlide",
               "type": "int[]",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "none",
-              "notes": "1-based."
+              "notes": "1-based; default all slides."
             },
             {
               "name": "Position",
@@ -3481,8 +3574,9 @@
             {
               "name": "SourceSlide",
               "type": "int[]",
-              "mandatory": true,
-              "pipeline": "none"
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "1-based; default all slides."
             },
             {
               "name": "Position",
@@ -3517,8 +3611,9 @@
             {
               "name": "SourceSlide",
               "type": "int[]",
-              "mandatory": true,
-              "pipeline": "none"
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "1-based; default all slides."
             },
             {
               "name": "Position",
@@ -3535,7 +3630,7 @@
           ]
         }
       ],
-      "notes": "-Path is the source file because Import- reads it; -Document is the target (DSL context by default).",
+      "notes": "-Path is the source file because Import- reads it; -Document is the target (DSL context by default). -SourceSlide is optional; without it every slide of the source is imported in order.",
       "examples": [
         {
           "title": "Import a slide from another deck",
@@ -3551,6 +3646,11 @@
           "title": "Import from a presentation that is already open",
           "description": "Copies selected slides from one live presentation into another at a given position.",
           "code": "$library = Open-OfficePowerPoint -Path .\\Library\\Standard-Slides.pptx\nImport-OfficePowerPointSlide -Document $deck -SourceDocument $library -SourceSlide 3, 4 -Position 2\nClose-OfficePowerPoint -Document $library"
+        },
+        {
+          "title": "Append a whole deck",
+          "description": "Imports every slide of the standard appendix at the end of the deck being built.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Customer-Proposal.pptx {\n    PptSlide -Title 'Managed services proposal' -Subtitle 'Northwind Traders'\n    Import-OfficePowerPointSlide -Path .\\Library\\Standard-Appendix.pptx\n}"
         }
       ]
     },
@@ -3570,7 +3670,7 @@
               "name": "Document",
               "type": "PowerPointPresentation",
               "mandatory": false,
-              "pipeline": "value"
+              "pipeline": "none"
             },
             {
               "name": "Slide",
@@ -3578,12 +3678,6 @@
               "mandatory": true,
               "position": 0,
               "pipeline": "value"
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
             }
           ]
         }
@@ -3599,7 +3693,8 @@
           "description": "Finds the slides titled Backup and removes them, previewing first with -WhatIf.",
           "code": "$deck = Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx\n$backup = Get-OfficePowerPointSlide -Document $deck -Summary | Where-Object Title -like 'Backup*'\nRemove-OfficePowerPointSlide -Document $deck -Slide $backup.SlideIndex -WhatIf\nRemove-OfficePowerPointSlide -Document $deck -Slide $backup.SlideIndex\nSave-OfficePowerPoint -Document $deck -Path .\\Reports\\Q3-Review-Shared.pptx\nClose-OfficePowerPoint -Document $deck"
         }
-      ]
+      ],
+      "notes": "Returns nothing. Slides come from -Slide or the pipeline; -Document is never bound from the pipeline."
     },
     {
       "name": "Get-OfficePowerPointSection",
@@ -3615,7 +3710,7 @@
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "value"
             },
@@ -3646,7 +3741,8 @@
           "description": "Looks up the Appendix section and removes its slides before saving a copy for customers.",
           "code": "$deck = Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx\n$appendix = Get-OfficePowerPointSection -Document $deck -Name 'Appendix'\nRemove-OfficePowerPointSlide -Document $deck -Slide $appendix.SlideIndices\nSave-OfficePowerPoint -Document $deck -Path .\\Sales\\Managed-Services-Customer.pptx\nClose-OfficePowerPoint -Document $deck"
         }
-      ]
+      ],
+      "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used."
     },
     {
       "name": "Rename-OfficePowerPointSection",
@@ -3662,7 +3758,7 @@
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
@@ -3704,8 +3800,14 @@
           "title": "Rename a section in every deck in a folder",
           "description": "Applies the new section name across a folder of decks and saves each one.",
           "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    $deck = Open-OfficePowerPoint -LiteralPath $_.FullName\n    Rename-OfficePowerPointSection -Document $deck -Name 'Next steps' -NewName 'Decisions'\n    Save-OfficePowerPoint -Document $deck\n    Close-OfficePowerPoint -Document $deck\n}"
+        },
+        {
+          "title": "Rename a section while editing a deck",
+          "description": "Renames a section inside an Open-OfficePowerPoint block, which saves the deck when it ends.",
+          "code": "Open-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx {\n    Rename-OfficePowerPointSection -Name 'Backup' -NewName 'Appendix'\n}"
         }
-      ]
+      ],
+      "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used."
     },
     {
       "name": "Get-OfficePowerPointNotes",
@@ -4327,7 +4429,7 @@
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "value"
             },
@@ -4352,7 +4454,8 @@
           "description": "Lists the decks in a folder whose theme is not the current corporate theme.",
           "code": "Get-ChildItem -Path .\\Decks -Filter *.pptx | ForEach-Object {\n    $deck = Open-OfficePowerPoint -LiteralPath $_.FullName\n    $theme = Get-OfficePowerPointTheme -Document $deck\n    Close-OfficePowerPoint -Document $deck\n    if ($theme.ThemeName -ne 'Contoso 2026') {\n        [pscustomobject]@{ Deck = $_.Name; Theme = $theme.ThemeName }\n    }\n}"
         }
-      ]
+      ],
+      "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used."
     },
     {
       "name": "Set-OfficePowerPointTheme",
@@ -4488,7 +4591,7 @@
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "value"
             },
@@ -4513,7 +4616,8 @@
           "description": "Lists a template's layout names to use with PptSlide -TemplateLayout.",
           "code": "$template = Open-OfficePowerPoint -Path .\\Templates\\Contoso-2026.potx\nGet-OfficePowerPointLayout -Document $template | Select-Object LayoutIndex, Name, Type\nClose-OfficePowerPoint -Document $template"
         }
-      ]
+      ],
+      "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used."
     },
     {
       "name": "Get-OfficePowerPointLayoutBox",
@@ -4731,7 +4835,7 @@
             },
             {
               "name": "Underline",
-              "type": "switch",
+              "type": "OfficeUnderline",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4768,7 +4872,7 @@
           ]
         }
       ],
-      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly.",
+      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly. -Underline takes the shared OfficeUnderline style, as on PptText; -Underline None removes it.",
       "examples": [
         {
           "title": "Change a layout title style",
@@ -4791,7 +4895,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -4803,7 +4907,7 @@
             },
             {
               "name": "Options",
-              "type": "PowerPointInspectionOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4831,7 +4935,7 @@
             },
             {
               "name": "Options",
-              "type": "PowerPointInspectionOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4845,24 +4949,24 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "PowerPointPresentation",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "value"
             },
             {
               "name": "Options",
-              "type": "PowerPointInspectionOptions",
+              "type": "object[]",
               "mandatory": false,
               "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Renamed from Get-OfficePowerPointInspection. Test-OfficeDocument on a .pptx should return this same report (cross-format owner to confirm).",
+      "notes": "Renamed from Get-OfficePowerPointInspection. Test-OfficeDocument on a .pptx should return this same report (cross-format owner to confirm). Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used. -Options takes New-OfficePowerPointInspectionOptions.",
       "examples": [
         {
           "title": "Inspect a deck",
@@ -4872,12 +4976,101 @@
         {
           "title": "Check every deck before publishing",
           "description": "Inspects each deck in a folder, including visual checks, and lists the decks with package errors.",
-          "code": "Get-ChildItem -Path .\\Publish -Filter *.pptx | ForEach-Object {\n    $report = Test-OfficePowerPoint -LiteralPath $_.FullName -Options @{ InspectVisuals = $true }\n    if ($report.PackageErrors.Count -gt 0) {\n        [pscustomobject]@{ Deck = $_.Name; Errors = $report.PackageErrors.Count }\n    }\n}"
+          "code": "Get-ChildItem -Path .\\Publish -Filter *.pptx | ForEach-Object {\n    $report = Test-OfficePowerPoint -LiteralPath $_.FullName -Options (New-OfficePowerPointInspectionOptions -Visuals)\n    if ($report.PackageErrors.Count -gt 0) {\n        [pscustomobject]@{ Deck = $_.Name; Errors = $report.PackageErrors.Count }\n    }\n}"
         },
         {
           "title": "Inspect a deck before saving it",
           "description": "Inspects a live presentation so accessibility findings can be fixed before the file is written.",
           "code": "$report = Test-OfficePowerPoint -Document $deck\n$report.Accessibility"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficePowerPointInspectionOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Chooses which checks Test-OfficePowerPoint runs.",
+      "outputType": "OfficeIMO.PowerPoint.PowerPointInspectionOptions",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "NoPackageValidation",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skip Open XML package validation (on by default)."
+            },
+            {
+              "name": "NoPreflight",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skip layout, text-fit, collision and asset preflight (on by default)."
+            },
+            {
+              "name": "NoAccessibility",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skip the accessibility inspection (on by default)."
+            },
+            {
+              "name": "Features",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Inventory editable, preserved and unsupported features."
+            },
+            {
+              "name": "ReviewComments",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Animations",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Signatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Visuals",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Create PNG, SVG and snapshot proof of each slide."
+            },
+            {
+              "name": "FileFormatVersion",
+              "type": "OfficeOpenXmlFileFormatVersion",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Validation target; default Microsoft365."
+            }
+          ]
+        }
+      ],
+      "notes": "Maps to PowerPointInspectionOptions. Checks that are on by default are turned off with -No*; the others are opt-in switches. Path, LiteralPath, Document and Password stay on Test-OfficePowerPoint.",
+      "examples": [
+        {
+          "title": "Run only the accessibility check",
+          "description": "Skips package validation and preflight so the report covers accessibility alone.",
+          "code": "$accessibility = New-OfficePowerPointInspectionOptions -NoPackageValidation -NoPreflight\n(Test-OfficePowerPoint -Path .\\Reports\\Q3-Review.pptx -Options $accessibility).Accessibility"
+        },
+        {
+          "title": "Run every check before release",
+          "description": "Adds the feature inventory, review comments, animations, signatures and visual proof to the default checks.",
+          "code": "$full = New-OfficePowerPointInspectionOptions -Features -ReviewComments -Animations -Signatures -Visuals\nGet-ChildItem -Path .\\Release -Filter *.pptx |\n    ForEach-Object { Test-OfficePowerPoint -LiteralPath $_.FullName -Options $full }"
         }
       ]
     },
@@ -5033,20 +5226,13 @@
       "name": "New-OfficePowerPointImageOptions",
       "alias": null,
       "status": "existing",
-      "synopsis": "Creates slide selection and rendering settings for Export-OfficeDocumentImage -Options.",
+      "synopsis": "Creates slide rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage -Options.",
       "outputType": "PowerPointPresentationImageExportOptions",
       "parameterSets": [
         {
           "name": "Default",
           "default": true,
           "parameters": [
-            {
-              "name": "Slide",
-              "type": "int[]",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "1-based slide numbers."
-            },
             {
               "name": "IncludeHiddenSlides",
               "type": "switch",
@@ -5102,12 +5288,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Scale",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaximumOutputWidth",
               "type": "int",
               "mandatory": false,
@@ -5116,18 +5296,6 @@
             {
               "name": "MaximumOutputHeight",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "BackgroundColor",
-              "type": "OfficeColor",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "TargetDpi",
-              "type": "double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5182,17 +5350,17 @@
           ]
         }
       ],
-      "notes": "Common image-option parameters come from the shared image-options base used by every New-Office*ImageOptions command; keep them identical across formats.",
+      "notes": "Slide selection, scale, background color and resolution are -Page, -Scale, -BackgroundColor and -Dpi on Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage, so this factory does not repeat them. The remaining common image-option parameters come from the shared image-options base used by every New-Office*ImageOptions command; keep them identical across formats.",
       "examples": [
         {
-          "title": "Render selected slides",
-          "description": "Renders only the first two slides of a deck to images.",
-          "code": "$options = New-OfficePowerPointImageOptions -Slide 1, 2\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Review.pptx -OutputDirectory .\\Reports\\Images -Options $options"
+          "title": "Render selected slides without backgrounds",
+          "description": "Export-OfficeDocumentImage selects slides 1 and 2; the options leave out the slide backgrounds.",
+          "code": "$options = New-OfficePowerPointImageOptions -NoSlideBackground\nExport-OfficeDocumentImage -Path .\\Reports\\Q3-Review.pptx -Page 1-2 -OutputDirectory .\\Reports\\Images -Options $options"
         },
         {
           "title": "Make intranet thumbnails",
-          "description": "Renders every slide as a PNG no wider than 1280 pixels on a white background.",
-          "code": "$options = New-OfficePowerPointImageOptions -MaximumOutputWidth 1280 -BackgroundColor White\nExport-OfficeDocumentImage -Path .\\Reports\\All-Hands.pptx -OutputDirectory .\\Intranet\\All-Hands -Format Png -Options $options"
+          "description": "Caps every slide image at 1280 pixels wide on a white background, including hidden appendix slides.",
+          "code": "$options = New-OfficePowerPointImageOptions -MaximumOutputWidth 1280 -IncludeHiddenSlides\nExport-OfficeDocumentImage -Path .\\Reports\\All-Hands.pptx -OutputDirectory .\\Intranet\\All-Hands -Format Png -BackgroundColor White -Options $options"
         }
       ]
     },
@@ -5413,7 +5581,7 @@
         "Eyebrow": "Add-OfficePowerPointSlide -Eyebrow",
         "FooterLeft": "Add-OfficePowerPointFooter -Alignment Left",
         "FooterRight": "Add-OfficePowerPointFooter -Alignment Right",
-        "CreativeDirectionPack": "New-OfficePowerPoint -Direction",
+        "CreativeDirectionPack": "New-OfficePowerPoint -Style",
         "LayoutStrategy": "New-OfficePowerPoint -LayoutStrategy",
         "AlternativeCount": null,
         "NoApplyTheme": null,
@@ -5698,8 +5866,8 @@
         "Options": "Options",
         "PassThru": null
       },
-      "hint": "Export-OfficeDocumentImage -Path .\\Deck.pptx -OutputDirectory .\\Slides -Format Png -Options (New-OfficePowerPointImageOptions -Slide 1,3)",
-      "reason": "Slide image export is one cross-format command. Several slides are several files, so the output is -OutputDirectory, never an -OutputPath that silently becomes a folder; one result per slide is always written, so -PassThru goes. Slide selection and rendering settings stay in New-OfficePowerPointImageOptions via -Options."
+      "hint": "Export-OfficeDocumentImage -Path .\\Deck.pptx -Page 1,3 -OutputDirectory .\\Slides -Format Png",
+      "reason": "Slide image export is one cross-format command. Several slides are several files, so the output is -OutputDirectory, never an -OutputPath that silently becomes a folder; one result per slide is always written, so -PassThru goes. Slide selection is -Page; rendering settings stay in New-OfficePowerPointImageOptions via -Options."
     },
     {
       "old": "Find-OfficePowerPointShape",
@@ -5842,13 +6010,13 @@
       "kind": "cmdlet",
       "action": "merge",
       "new": "Get-OfficePowerPointSlide",
-      "parameterSet": "Document",
+      "parameterSet": "Document | Path",
       "parameters": {
         "Presentation": "Document",
         "Index": "Slide",
         "Slide": "Slide"
       },
-      "hint": "Get-OfficePowerPointSlide -Document $ppt -Summary",
+      "hint": "Get-OfficePowerPointSlide -Path .\\Deck.pptx -Summary",
       "reason": "A slide summary is another view of the same slides; -Summary returns it, now including the chosen design layout."
     },
     {
@@ -5911,7 +6079,7 @@
       "new": "New-OfficePowerPointImageOptions",
       "parameterSet": "Default",
       "parameters": {
-        "SlideNumber": "Slide",
+        "SlideNumber": "Export-OfficeDocumentImage -Page",
         "IncludeSlideBackground": "NoSlideBackground",
         "IncludeSlideContent": "NoSlideContent",
         "IncludePictures": "NoPictures",
@@ -5920,9 +6088,12 @@
         "IncludeTables": "NoTables",
         "IncludeCharts": "NoCharts",
         "MaximumRasterPixels": "MaximumRasterPixelCount",
-        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount"
+        "MaximumTotalRasterPixels": "MaximumTotalRasterPixelCount",
+        "Scale": "Export-OfficeDocumentImage -Scale",
+        "BackgroundColor": "Export-OfficeDocumentImage -BackgroundColor",
+        "TargetDpi": "Export-OfficeDocumentImage -Dpi"
       },
-      "reason": "Switches whose default is on become No*; -Slide replaces -SlideNumber; -BackgroundColor is OfficeColor; pixel-count limits are named ...PixelCount so they are not read as lengths."
+      "reason": "Switches whose default is on become No*; slide selection, scale, background color and DPI are -Page, -Scale, -BackgroundColor and -Dpi on Export-/ConvertTo-OfficeDocumentImage; pixel-count limits are named ...PixelCount so they are not read as lengths."
     },
     {
       "old": "New-OfficePowerPointOpenDocumentOptions",
@@ -5964,9 +6135,10 @@
       "parameterSet": "Slide",
       "parameters": {
         "Presentation": "Document",
-        "Index": "Slide"
+        "Index": "Slide",
+        "PassThru": null
       },
-      "reason": "-Slide (1-based numbers or slide objects from the pipeline) replaces the zero-based -Index."
+      "reason": "-Slide (1-based numbers or slide objects from the pipeline) replaces the zero-based -Index. -PassThru is removed: a removed slide has nothing left to pass on."
     },
     {
       "old": "Rename-OfficePowerPointSection",
@@ -6081,14 +6253,16 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "Set-OfficePowerPointShapeLayout",
-      "parameterSet": "Align",
+      "parameterSet": "Alignment",
       "parameters": {
         "MarginPoints": "Margin",
         "SpacingPoints": "Spacing",
         "GutterXPoints": "GutterX",
-        "GutterYPoints": "GutterY"
+        "GutterYPoints": "GutterY",
+        "Align": "Alignment",
+        "CrossAxisAlign": "CrossAxisAlignment"
       },
-      "reason": "Point-suffixed doubles become OfficeLength parameters; the PptArrange twin alias is removed."
+      "reason": "Point-suffixed doubles become OfficeLength parameters; -Align and -CrossAxisAlign become -Alignment and -CrossAxisAlignment as everywhere else; the PptArrange twin alias is removed."
     },
     {
       "old": "Set-OfficePowerPointShapeText",
@@ -6266,7 +6440,7 @@
       "kind": "alias",
       "action": "remove",
       "new": null,
-      "hint": "PptShapeLayout -Align Left",
+      "hint": "PptShapeLayout -Alignment Left",
       "reason": "Twin of PptShapeLayout; one alias per command."
     },
     {
@@ -6458,8 +6632,10 @@
     {
       "old": "PptSlideSize",
       "kind": "alias",
-      "action": "keep",
-      "new": "PptSlideSize"
+      "action": "rename",
+      "new": "Set-OfficePowerPointSlideSize",
+      "hint": "New-OfficePowerPoint -Path .\\Deck.pptx -SlideSize Screen4x3 { ... }  or  Set-OfficePowerPointSlideSize Screen4x3",
+      "reason": "Slide size is a deck setting, not slide content: New-OfficePowerPoint -SlideSize sets it for a new deck and Set-OfficePowerPointSlideSize is called by its full name for an existing one."
     },
     {
       "old": "PptTable",

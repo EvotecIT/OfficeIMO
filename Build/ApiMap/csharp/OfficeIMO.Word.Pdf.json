@@ -56,7 +56,7 @@
         "OfficeIMO.Pdf",
         "OfficeIMO.Word"
       ],
-      "publicApi": "PdfDocument.ToWord / SaveAsWord (or WordDocument.FromPdf), WordPdfImportOptions"
+      "publicApi": "PdfDocument.ToWord / SaveAsWord, WordPdfImportOptions"
     }
   },
   "incomingFromOfficeIMO.Word": [
@@ -72,26 +72,23 @@
     "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
     "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>"
   ],
-  "openQuestions": [
-    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs.",
-    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape."
-  ],
+  "openQuestions": [],
   "changes": [
     {
       "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "PdfDocument.ToWord(WordPdfImportOptions options = null, CancellationToken cancellationToken = default)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "PdfDocument.ToWord(WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Alternative spelling per design: WordDocument.FromPdf(pdf, options). Provide one of the two, not both."
+      "notes": "From a file: PdfDocument.Load(path).ToWord(). There is no WordDocument.FromPdf (design: Conversion)."
     },
     {
       "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report)",
+      "new": "PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report) : WordDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion"
@@ -101,7 +98,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsWord(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns OfficeOutputResult<PdfWordConversionReport> today."
@@ -111,7 +108,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsWord(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns OfficeOutputResult<PdfWordConversionReport> today."
@@ -121,7 +118,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsWordAsync(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<OfficeOutputResult<PdfWordConversionReport>> today."
@@ -131,7 +128,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsWordAsync(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<OfficeOutputResult<PdfWordConversionReport>> today."
@@ -256,7 +253,7 @@
     {
       "from": "OfficeIMO.Word",
       "to": "OfficeIMO.Word.Pdf",
-      "scope": "OfficeIMO.Word/Layout/ (Word -> PDF exporter, 123 files) and possibly Imaging/",
+      "scope": "OfficeIMO.Word/Layout/ (Word -> PDF exporter, 123 files) and Imaging/ (page image export)",
       "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
       "notes": "See OfficeIMO.Word.json packageMoves."
     }

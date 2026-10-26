@@ -413,7 +413,7 @@
     ]
   },
   "openQuestions": [
-    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
+    "Decided (design: Packages): libraries target netstandard2.0 and net10.0, and the netstandard2.0 build keeps a .NET Framework test run on Windows for PSWriteOffice on Windows PowerShell 5.1. Still open: each #if NETFRAMEWORK workaround (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) needs a runtime-check replacement proved on .NET Framework 4.7.2.",
     "ExcelReadOptions has 35 properties and drives both the streaming reader and CreateInspectionSnapshot; split reader options from inspection options.",
     "InsertObjects<T> writes a plain range; decide whether AddTable<T> covers that (AsRange option) or a SetValues<T> stays."
   ],

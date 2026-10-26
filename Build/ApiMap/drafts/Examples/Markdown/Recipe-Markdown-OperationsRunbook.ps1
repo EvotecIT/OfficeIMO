@@ -26,6 +26,6 @@ Get-Service -Name 'ExampleService'
 
     MarkdownHeading 'Rollback' -Level 2
     MarkdownDetails 'Show rollback steps' {
-        MarkdownList -Ordered 'Stop the new service version', 'Restore the previous configuration', 'Start the previous version', 'Repeat validation checks'
+        MarkdownList -Numbered 'Stop the new service version', 'Restore the previous configuration', 'Start the previous version', 'Repeat validation checks'
     }
 }

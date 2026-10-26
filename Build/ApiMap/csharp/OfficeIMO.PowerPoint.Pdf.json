@@ -54,25 +54,23 @@
     "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, string path, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
     "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfResultAsync(PowerPointPresentation presentation, Stream stream, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null) -> PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>"
   ],
-  "openQuestions": [
-    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs."
-  ],
+  "openQuestions": [],
   "changes": [
     {
       "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default)",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : PowerPointPresentation",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion",
-      "notes": "Alternative spelling per design: PowerPointDocument.FromPdf(pdf, options). Provide one of the two, not both."
+      "notes": "From a file: PdfDocument.Load(path).ToPowerPoint(). There is no PowerPointPresentation.FromPdf (design: Conversion)."
     },
     {
       "old": "OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options, out OfficeConversionReport report)",
+      "new": "PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options, out OfficeConversionReport report) : PowerPointPresentation",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion"
@@ -82,7 +80,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsPowerPoint(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns OfficeOutputResult<PdfPowerPointConversionReport> today."
@@ -92,7 +90,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsPowerPoint(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns OfficeOutputResult<PdfPowerPointConversionReport> today."
@@ -102,7 +100,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsPowerPointAsync(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<OfficeOutputResult<PdfPowerPointConversionReport>> today."
@@ -112,7 +110,7 @@
       "kind": "method",
       "action": "change",
       "new": "PdfDocument.SaveAsPowerPointAsync(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint.Pdf/PdfPowerPointConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns Task<OfficeOutputResult<PdfPowerPointConversionReport>> today."

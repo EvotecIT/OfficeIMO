@@ -8,14 +8,14 @@ foreach ($recipient in $recipients) {
         WordHeading 'Order confirmation'
         WordParagraph {
             WordText 'Hello '
-            WordField MergeField -Parameters '"FirstName"'
+            WordField -MergeField FirstName
             WordText ','
         }
         WordParagraph {
             WordText 'Order '
-            WordField MergeField -Parameters '"OrderId"'
+            WordField -MergeField OrderId
             WordText ' is scheduled for '
-            WordField MergeField -Parameters '"DeliveryDate"'
+            WordField -MergeField DeliveryDate
             WordText '.'
         }
         Invoke-OfficeWordMailMerge $recipient

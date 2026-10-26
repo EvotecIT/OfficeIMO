@@ -271,7 +271,7 @@
     ]
   },
   "openQuestions": [
-    "PowerPoint image export can drop the PDF engine by rendering through PowerPointSlideImageRenderer -> OfficeDrawing -> Core rasteriser (as Excel does), but parity must be re-proved visually.",
+    "Decided (design: Packages): slide image export stays in OfficeIMO.PowerPoint and renders through PowerPointSlideImageRenderer -> OfficeIMO.Drawing -> Core rasteriser, as Excel does. Still open: visual parity with today's PDF-based path must be re-proved before the OfficeIMO.Pdf reference is dropped.",
     "PowerPointLayoutBox vs a Core OfficeRect for all formats."
   ],
   "changes": [
@@ -2601,34 +2601,34 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsPoints(... OfficeLength ...)"
     },
     {
-      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthCm(double widthCm)",
+      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthCm(double widthCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthCm(... OfficeLength ...)"
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthCm(... OfficeLength ...)"
     },
     {
-      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthInches(double widthInches)",
+      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthInches(double widthInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthInches(... OfficeLength ...)"
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthInches(... OfficeLength ...)"
     },
     {
-      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthPoints(double widthPoints)",
+      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthPoints(double widthPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthPoints(... OfficeLength ...)"
+      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthPoints(... OfficeLength ...)"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm)",
@@ -4171,10 +4171,10 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints"
     },
     {
-      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidth(long widthEmus)",
+      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(long widthEmus)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
@@ -5055,10 +5055,10 @@
       "category": "units"
     },
     {
-      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.WidthEmus",
+      "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WidthEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn`1.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs, OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units"
@@ -5289,7 +5289,7 @@
       "kind": "method",
       "action": "rename",
       "new": "PowerPointPresentation.ToPdf(PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion"
     },
@@ -5318,7 +5318,7 @@
       "kind": "method",
       "action": "change",
       "new": "PowerPointPresentation.SaveAsPdf(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.PowerPoint.Pdf adapter."
@@ -5338,7 +5338,7 @@
       "kind": "method",
       "action": "change",
       "new": "PowerPointPresentation.SaveAsPdf(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.PowerPoint.Pdf adapter."
@@ -5358,7 +5358,7 @@
       "kind": "method",
       "action": "change",
       "new": "PowerPointPresentation.SaveAsPdfAsync(string path, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion"
     },
@@ -5367,7 +5367,7 @@
       "kind": "method",
       "action": "change",
       "new": "PowerPointPresentation.SaveAsPdfAsync(Stream stream, PowerPointPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}.",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfConverterExtensions.Api.cs",
       "category": "conversion"
     },
