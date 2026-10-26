@@ -55,7 +55,7 @@ jobs:
           ref: 9e7d940d6a107e83d1d2a65a16ead0b2dc3a6979
           path: .powerforge-agent-plugin-build
           persist-credentials: false
-      - uses: actions/setup-dotnet@v6
+      - uses: EvotecIT/PSPublishModule/.github/actions/setup-dotnet@6d2eef9cb69e2d93f89e7f22e9c39fa294260d19
         with:
           global-json-file: .powerforge-agent-plugin-build/global.json
       - name: Build the shared CLI
@@ -71,7 +71,7 @@ jobs:
           python Build/validate_mcp_registry.py metadata
       - name: Install the product SDK for release verification
         if: ${{ github.event_name == 'release' }}
-        uses: actions/setup-dotnet@v6
+        uses: EvotecIT/PSPublishModule/.github/actions/setup-dotnet@6d2eef9cb69e2d93f89e7f22e9c39fa294260d19
         with:
           global-json-file: global.json
       - name: Verify the published launcher before distributing the plugin
