@@ -1,0 +1,495 @@
+{
+  "$comment": "OfficeIMO 3.6 PowerPoint layout system. Geometry is owned here; colours, fonts and the base type scale come from the theme (Build/Visual/themes.json, provisional values in OfficeIMO.Core/Themes/OfficeTheme.BuiltIns.cs). 'abs' boxes are generated from 'grid' by Build/Visual/powerpoint-mockups.py --write-abs and verified on every run.",
+  "version": "3.6.0-design.1",
+  "units": "Lengths carry units (pt, in). 1in = 72pt. Grid references are 1-based like every OfficeIMO position.",
+
+  "slideSizes": {
+    "Screen16x9": {
+      "width": "13.333in", "height": "7.5in", "widthPt": 960, "heightPt": 540, "default": true,
+      "grid": {
+        "columns": 12, "column": "48pt", "gutter": "24pt",
+        "rows": 12, "row": "26pt", "rowGutter": "12pt",
+        "margin": { "left": { "token": "spacing.slideMarginLeft", "default": "60pt" }, "right": { "token": "spacing.slideMarginRight", "default": "60pt" }, "top": { "token": "spacing.slideMarginTop", "default": "44pt" }, "bottom": "52pt" },
+        "$comment": "Side and top margins come from the theme (Modern 48/36pt, Boardroom 60/44pt, Minimal 40/32pt). The bottom edge of the live area is fixed at 488pt so the footer band never moves. Row height = (488pt - top - 11 x rowGutter) / 12. The abs boxes in this file use the defaults (60pt/44pt).",
+        "liveArea": { "x": "margin.left", "y": "margin.top", "w": "960pt - margin.left - margin.right", "h": "488pt - margin.top", "default": { "x": "60pt", "y": "44pt", "w": "840pt", "h": "444pt" } },
+        "formulas": {
+          "x(col)": "margin.left + (col - 1) * (column + gutter)  = 60 + 72(col-1) pt",
+          "w(span)": "span * column + (span - 1) * gutter       = 72span - 24 pt",
+          "y(row)": "margin.top + (row - 1) * (row + rowGutter)   = 44 + 38(row-1) pt",
+          "h(rows)": "rows * row + (rows - 1) * rowGutter        = 38rows - 12 pt"
+        }
+      },
+      "footerBand": { "y": "506pt", "h": "16pt", "$comment": "Inside the bottom margin, 18pt below the live area." }
+    },
+    "Screen4x3": {
+      "width": "10in", "height": "7.5in", "widthPt": 720, "heightPt": 540,
+      "grid": {
+        "columns": 12, "column": "36.5pt", "gutter": "18pt",
+        "rows": 12, "row": "26pt", "rowGutter": "12pt",
+        "margin": { "left": "42pt", "right": "42pt", "top": "44pt", "bottom": "52pt" },
+        "liveArea": { "x": "42pt", "y": "44pt", "w": "636pt", "h": "444pt" }
+      },
+      "footerBand": { "y": "506pt", "h": "16pt" },
+      "adaptation": [
+        "Rows, vertical positions and every grid reference are unchanged; boxes are recomputed from the 4:3 column and gutter, so a placeholder keeps its column span.",
+        "Text styles keep their sizes except display (x0.86) and sectionTitle (x0.9), rounded by the size rule.",
+        "Tile rows hold at most 3 items (Kpi, Cards, Process, Logos 4 per row instead of 6); a 4-item set becomes 2 x 2.",
+        "TwoContent text + visual uses text cols 1-5, visual cols 6-12 (instead of 1-4 / 6-12).",
+        "Tables allow 6 columns at tableBody size (8 on 16:9) before shrinking.",
+        "The Section numeral and the Title meta panel use cols 9-12 and 9-12; full-bleed images are re-cropped around the focal point."
+      ]
+    }
+  },
+
+  "tokens": {
+    "$comment": "Every colour and font in a layout is one of these names. Derived roles are computed from theme tokens, never stored as literals.",
+    "palette": ["palette.background", "palette.text", "palette.textMuted", "palette.accent1", "palette.accent2", "palette.accent3", "palette.accent4", "palette.accent5", "palette.accent6", "palette.success", "palette.warning", "palette.danger"],
+    "derived": {
+      "surface": "extensions.surface, else tableStyle.bandFill (tinted panel behind cards, quote slides and maps)",
+      "hairline": "extensions.rule, else tableStyle.borderColor (rules, tile borders, connectors)",
+      "ink": "the darker of palette.text and palette.background (Section background, image scrim)",
+      "onInk": "the lighter of palette.text and palette.background",
+      "onAccent": "#FFFFFF when its contrast with palette.accent1 is >= 4.5:1, otherwise ink",
+      "onAccentMuted": "onAccent at 72% opacity",
+      "onInkMuted": "onInk at 64% opacity"
+    },
+    "fonts": ["fonts.heading", "fonts.body"],
+    "typeScale": ["typeScale.title", "typeScale.heading1", "typeScale.heading3", "typeScale.heading4", "typeScale.body", "typeScale.caption"],
+    "spacing": ["spacing.paragraphAfter", "spacing.listIndent"],
+    "sizeRounding": "size = theme token x factor; results >= 18pt round to the nearest even point, smaller results to the nearest whole point.",
+    "themeMarginNote": "Colour roles written as names in themes.json (Text, Accent1, Background) resolve through the palette before use. Table header fill, header text and the optional header rule (extensions.table.headerRule) come from the theme unchanged."
+  },
+
+  "textStyles": {
+    "$comment": "Slide sizes are theme tokens scaled for viewing distance and rounded by tokens.sizeRounding. resolvedPt shows the result for the themes.json values current when this file was generated; the factor is the contract.",
+    "display": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 1.9}, "weight": 700, "lineHeight": 1.0, "tracking": "-0.02em", "color": "onAccent", "min": "40pt", "resolvedPt": {"Modern": 54, "Boardroom": 60, "Minimal": 46}},
+    "sectionTitle": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 1.5}, "weight": 700, "lineHeight": 1.04, "tracking": "-0.015em", "color": "onInk", "min": "32pt", "resolvedPt": {"Modern": 42, "Boardroom": 48, "Minimal": 36}},
+    "sectionNumeral": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 8.0}, "weight": 700, "lineHeight": 0.8, "tracking": "-0.04em", "color": "onInk @ 9%", "min": "160pt", "resolvedPt": {"Modern": 224, "Boardroom": 256, "Minimal": 192}},
+    "title": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 1.143}, "weight": 700, "lineHeight": 1.05, "tracking": "-0.01em", "color": "palette.text", "min": "26pt", "resolvedPt": {"Modern": 32, "Boardroom": 36, "Minimal": 28}},
+    "subtitle": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.818}, "weight": 400, "lineHeight": 1.25, "color": "palette.textMuted", "min": "16pt", "resolvedPt": {"Modern": 20, "Boardroom": 20, "Minimal": 18}},
+    "lede": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.818}, "weight": 400, "lineHeight": 1.3, "color": "palette.text", "min": "16pt", "resolvedPt": {"Modern": 20, "Boardroom": 20, "Minimal": 18}},
+    "eyebrow": {"font": "fonts.body", "size": {"token": "typeScale.caption", "factor": 1.333}, "weight": 700, "lineHeight": 1.2, "tracking": "0.12em", "case": "upper", "color": "palette.accent1", "min": "10pt", "resolvedPt": {"Modern": 12, "Boardroom": 12, "Minimal": 11}},
+    "heading": {"font": "fonts.heading", "size": {"token": "typeScale.body", "factor": 1.818}, "weight": 600, "lineHeight": 1.15, "color": "palette.text", "min": "16pt", "resolvedPt": {"Modern": 20, "Boardroom": 20, "Minimal": 18}},
+    "body": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.636}, "weight": 400, "lineHeight": 1.3, "color": "palette.text", "min": "16pt", "paragraphAfter": "spacing.paragraphAfter x size / body size", "resolvedPt": {"Modern": 18, "Boardroom": 18, "Minimal": 16}},
+    "bodySmall": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.364}, "weight": 400, "lineHeight": 1.35, "color": "palette.textMuted", "min": "12pt", "resolvedPt": {"Modern": 15, "Boardroom": 15, "Minimal": 14}},
+    "kpiValue": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 1.714}, "weight": 700, "lineHeight": 1.0, "tracking": "-0.02em", "color": "palette.text", "numerals": "tabular", "min": "32pt", "resolvedPt": {"Modern": 48, "Boardroom": 54, "Minimal": 42}},
+    "kpiLabel": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.364}, "weight": 400, "lineHeight": 1.3, "color": "palette.textMuted", "min": "12pt", "resolvedPt": {"Modern": 15, "Boardroom": 15, "Minimal": 14}},
+    "quote": {"font": "fonts.heading", "size": {"token": "typeScale.title", "factor": 1.286}, "weight": 500, "lineHeight": 1.2, "tracking": "-0.01em", "color": "palette.text", "min": "24pt", "resolvedPt": {"Modern": 36, "Boardroom": 42, "Minimal": 30}},
+    "tableHeader": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.182}, "weight": 700, "lineHeight": 1.2, "color": "tableStyle.headerText", "min": "11pt", "resolvedPt": {"Modern": 13, "Boardroom": 13, "Minimal": 12}},
+    "tableBody": {"font": "fonts.body", "size": {"token": "typeScale.body", "factor": 1.273}, "weight": 400, "lineHeight": 1.2, "color": "palette.text", "numerals": "tabular", "min": "11pt", "resolvedPt": {"Modern": 14, "Boardroom": 14, "Minimal": 13}},
+    "caption": {"font": "fonts.body", "size": {"token": "typeScale.caption", "factor": 1.222}, "weight": 400, "lineHeight": 1.3, "color": "palette.textMuted", "min": "9pt", "resolvedPt": {"Modern": 11, "Boardroom": 11, "Minimal": 10}},
+    "footer": {"font": "fonts.body", "size": {"token": "typeScale.caption", "factor": 1.111}, "weight": 400, "lineHeight": 1.0, "color": "palette.textMuted", "min": "9pt", "resolvedPt": {"Modern": 10, "Boardroom": 10, "Minimal": 9}}
+  },
+
+  "blocks": {
+    "$comment": "A block is one unit of slide content. Layout selection counts blocks, not commands.",
+    "list": "PptList with its PptListItem children (max 2 levels on a slide; deeper levels flatten to level 2 with diagnostic list-level-flattened).",
+    "text": "PptParagraph / PptText run that is not followed by another block. Consecutive paragraphs merge into one text block.",
+    "lede": "A PptParagraph immediately followed by a list, table, chart or image becomes that block's lede (lede style, max 2 lines above the block) and does not count as a block.",
+    "table": "PptTable.",
+    "chart": "PptChart.",
+    "image": "PptImage (Path or Visual set).",
+    "column": "PptColumn: its children form one block; a -Title becomes the column heading.",
+    "semantic": "PptKpi, PptCard, PptStep and PptLocation items; all items of one kind on a slide form one set.",
+    "ignored": "PptNotes and PptFooter/PptSlideNumber inside a slide do not count."
+  },
+
+  "chrome": {
+    "header": {
+      "$comment": "Shared by every content layout (TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, CaseStudy, Logos, Coverage).",
+      "placeholders": [
+        { "name": "eyebrow", "kind": "text", "grid": { "col": 1, "span": 8, "row": 1, "rows": 1 }, "abs": { "x": "60pt", "y": "44pt", "w": "552pt", "h": "26pt" }, "style": "eyebrow", "align": "left", "anchor": "top", "maxLines": 1, "minSize": "10pt",
+          "source": "PptSlide -Eyebrow; otherwise the title of the nearest preceding Section slide; otherwise empty (the accent mark remains)." },
+        { "name": "title", "kind": "text", "grid": { "col": 1, "span": 10, "row": 2, "rows": 2 }, "abs": { "x": "60pt", "y": "82pt", "w": "696pt", "h": "64pt" }, "style": "title", "align": "left", "anchor": "top", "maxLines": 2, "minSize": "26pt", "source": "PptSlide -Title" },
+        { "name": "subtitle", "kind": "text", "grid": { "col": 1, "span": 9, "row": 4, "rows": 1 }, "abs": { "x": "60pt", "y": "158pt", "w": "624pt", "h": "26pt" }, "style": "subtitle", "align": "left", "anchor": "top", "maxLines": 1, "minSize": "16pt", "optional": true,
+          "source": "PptSlide -Subtitle", "flow": "Placed 10pt below the title's last line rather than at a fixed row, so it always reads as part of the title. The grid box is its one-line-title position." }
+      ],
+      "accentMark": { "grid": { "col": 1, "row": 1 }, "w": "28pt", "h": "3pt", "fill": "palette.accent1", "offsetY": "-12pt", "$comment": "Short rule 12pt above the eyebrow line; constant on every content slide so the deck has one visual signature." },
+      "contentZone": {
+        "rule": "The content zone starts on the first row whose top is at least 36pt below the last header line (title or subtitle) and ends at row 12. Every slide therefore keeps the same 36-48pt gap under its header, and content tops always sit on a row line.",
+        "examples": { "oneLineTitle": { "col": 1, "span": 12, "row": 4, "rows": 9 }, "oneLineTitleAndSubtitle": { "col": 1, "span": 12, "row": 5, "rows": 8 }, "twoLineTitle": { "col": 1, "span": 12, "row": 5, "rows": 8 }, "twoLineTitleAndSubtitle": { "col": 1, "span": 12, "row": 6, "rows": 7 } }
+      },
+      "typesetting": [
+        "Titles, subtitles and display text balance their line lengths (no single-word last line); the engine chooses break points, PowerPoint receives explicit line breaks only when balancing changed them.",
+        "A title never ends a line with a dangling short word ('a', 'of', 'to') when the next line can take it.",
+        "Hyphenation is off on slides."
+      ]
+    },
+    "footer": {
+      "placeholders": [
+        { "name": "footerText", "kind": "text", "box": { "col": 1, "span": 8 }, "y": "506pt", "h": "16pt", "style": "footer", "align": "left", "anchor": "bottom", "maxLines": 1,
+          "source": "PptFooter (deck or slide); default the deck title (first slide's -Title); Export-OfficePowerPoint uses -Title." },
+        { "name": "slideNumber", "kind": "text", "box": { "col": 9, "span": 4 }, "y": "506pt", "h": "16pt", "style": "footer", "align": "right", "anchor": "bottom", "maxLines": 1,
+          "source": "PptSlideNumber; on by default; format 'n' (no total)." }
+      ],
+      "visibility": {
+        "Title": "none", "Section": "none", "Closing": "none", "ImageFull": "both (onImage colour)", "Quote": "slideNumber", "default": "both"
+      },
+      "rules": [
+        "Footer and slide number are on by default; PptFooter -Text '' in the New-OfficePowerPoint block turns the text off, and a deck-level PptFooter without PptSlideNumber still keeps the default number unless -NoSlideNumber is given (see gaps).",
+        "Footer text is truncated with an ellipsis at one line; it never wraps.",
+        "Footer content is written to the native footer and slide-number placeholders so PowerPoint's Header & Footer dialog can edit it."
+      ]
+    }
+  },
+
+  "layouts": {
+    "Title": {
+      "use": "Cover slide.",
+      "background": "palette.accent1",
+      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PptImage": { "max": 1, "use": "brand mark, top-left, max 120 x 40pt" }, "PptParagraph": { "max": 1, "use": "meta line (date, author) in the meta panel" } } },
+      "placeholders": [
+        { "name": "brand", "kind": "text", "grid": { "col": 1, "span": 8, "row": 1, "rows": 1 }, "abs": { "x": "60pt", "y": "44pt", "w": "552pt", "h": "26pt" }, "style": "eyebrow", "color": "onAccentMuted", "align": "left", "anchor": "top", "maxLines": 1, "source": "deck footer text, or a PptImage brand mark" },
+        { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 9, "row": 3, "rows": 8 }, "abs": { "x": "60pt", "y": "120pt", "w": "624pt", "h": "292pt" }, "anchor": "bottom",
+          "items": [
+            { "name": "eyebrow", "style": "eyebrow", "color": "onAccentMuted", "maxLines": 1, "gapAfter": "18pt", "source": "-Eyebrow" },
+            { "name": "title", "style": "display", "maxLines": 3, "minSize": "40pt", "gapAfter": "22pt", "source": "-Title" },
+            { "name": "subtitle", "style": "subtitle", "color": "onAccentMuted", "maxLines": 2, "minSize": "16pt", "source": "-Subtitle" }
+          ] },
+        { "name": "meta", "kind": "text", "grid": { "col": 10, "span": 3, "row": 9, "rows": 2 }, "abs": { "x": "708pt", "y": "348pt", "w": "192pt", "h": "64pt" }, "style": "caption", "color": "onAccentMuted", "align": "left", "anchor": "bottom", "maxLines": 3,
+          "source": "PptParagraph in the slide, else the deck date (long date in -Culture)." }
+      ],
+      "decoration": [
+        { "kind": "rule", "orientation": "vertical", "x": "col 10 start - 12pt", "fromRow": 3, "toRow": 10, "weight": "1pt", "color": "onAccent @ 28%" }
+      ]
+    },
+    "Section": {
+      "use": "Section divider; its title becomes the eyebrow of following content slides.",
+      "background": "ink",
+      "accepts": { "blocks": { "min": 0, "max": 0 }, "commands": {} },
+      "placeholders": [
+        { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 8, "row": 4, "rows": 7 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "254pt" }, "anchor": "bottom",
+          "items": [
+            { "name": "eyebrow", "style": "eyebrow", "color": "palette.accent1 (onInkMuted when contrast with ink < 3:1)", "maxLines": 1, "gapAfter": "16pt", "source": "-Eyebrow, else 'Section n' where n counts Section slides" },
+            { "name": "title", "style": "sectionTitle", "maxLines": 3, "minSize": "32pt", "gapAfter": "18pt", "source": "-Title" },
+            { "name": "subtitle", "style": "subtitle", "color": "onInkMuted", "maxLines": 2, "source": "-Subtitle" }
+          ] },
+        { "name": "numeral", "kind": "text", "grid": { "col": 8, "span": 5, "row": 1, "rows": 12 }, "abs": { "x": "564pt", "y": "44pt", "w": "336pt", "h": "444pt" }, "style": "sectionNumeral", "align": "right", "anchor": "bottom", "maxLines": 1, "bleed": "bottom 28pt",
+          "source": "two-digit section number; decorative, excluded from reading order" }
+      ],
+      "decoration": []
+    },
+    "TitleAndContent": {
+      "use": "Title with one list, text, table, chart or image.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptList": { "max": 1 }, "PptParagraph": { "max": "any (one text block)" }, "PptTable": { "max": 1 }, "PptChart": { "max": 1 }, "PptImage": { "max": 1 } } },
+      "placeholders": [
+        { "name": "lede", "kind": "text", "grid": { "col": 1, "span": 8, "row": 4, "rows": 2 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true, "$comment": "When present the block starts 2 rows lower." },
+        { "name": "content", "kind": "content", "grid": { "col": 1, "span": 12, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "840pt", "h": "330pt" }, "anchor": "top",
+          "measure": { "list": { "col": 1, "span": 8 }, "text": { "col": 1, "span": 8 }, "table": { "col": 1, "span": 12 }, "chart": { "col": 1, "span": 12 }, "image": { "col": 1, "span": 12, "fit": "contain, top-left" } },
+          "style": "body", "minSize": "16pt",
+          "$comment": "Lists and text keep a 60-70 character measure (cols 1-8); cols 9-12 stay empty on purpose. Tables, charts and images use the full width." }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "TwoContent": {
+      "use": "Two side-by-side blocks.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptColumn": { "max": 2 }, "PptList": { "max": 2 }, "PptParagraph": { "max": "2 text blocks" }, "PptTable": { "max": 2 }, "PptChart": { "max": 2 }, "PptImage": { "max": 2 } } },
+      "variants": {
+        "equal":       { "when": "both blocks are visuals (chart/table/image) or both are text/list", "left": { "col": 1, "span": 6 }, "right": { "col": 7, "span": 6 } },
+        "textVisual":  { "when": "one text/list block and one visual, in either order; the text side keeps its source position", "text": { "span": 4 }, "visual": { "span": 7 }, "gap": "one empty column", "left": { "col": 1, "span": 4 }, "right": { "col": 6, "span": 7 } }
+      },
+      "placeholders": [
+        { "name": "left",  "kind": "content", "grid": { "col": 1, "span": 6, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "408pt", "h": "330pt" }, "style": "body", "anchor": "top", "minSize": "14pt" },
+        { "name": "right", "kind": "content", "grid": { "col": 7, "span": 6, "row": 4, "rows": 9 }, "abs": { "x": "492pt", "y": "158pt", "w": "408pt", "h": "330pt" }, "style": "body", "anchor": "top", "minSize": "14pt" }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "Comparison": {
+      "use": "Two titled columns: before/after, options, risks/mitigations.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptColumn": { "min": 2, "max": 2, "requires": "-Title on both" } } },
+      "placeholders": [
+        { "name": "leftHeading",  "kind": "text", "grid": { "col": 1, "span": 6, "row": 4, "rows": 1 }, "abs": { "x": "60pt", "y": "158pt", "w": "408pt", "h": "26pt" }, "style": "heading", "align": "left", "anchor": "bottom", "maxLines": 1, "minSize": "16pt" },
+        { "name": "rightHeading", "kind": "text", "grid": { "col": 7, "span": 6, "row": 4, "rows": 1 }, "abs": { "x": "492pt", "y": "158pt", "w": "408pt", "h": "26pt" }, "style": "heading", "align": "left", "anchor": "bottom", "maxLines": 1, "minSize": "16pt" },
+        { "name": "left",  "kind": "content", "grid": { "col": 1, "span": 6, "row": 5, "rows": 8 }, "abs": { "x": "60pt", "y": "196pt", "w": "408pt", "h": "292pt" }, "style": "body", "anchor": "top", "minSize": "14pt", "insetTop": "8pt" },
+        { "name": "right", "kind": "content", "grid": { "col": 7, "span": 6, "row": 5, "rows": 8 }, "abs": { "x": "492pt", "y": "196pt", "w": "408pt", "h": "292pt" }, "style": "body", "anchor": "top", "minSize": "14pt", "insetTop": "8pt" }
+      ],
+      "decoration": [
+        "chrome.header.accentMark",
+        { "kind": "rule", "under": "leftHeading", "offsetY": "8pt", "weight": "3pt", "color": "palette.accent1", "span": "full column" },
+        { "kind": "rule", "under": "rightHeading", "offsetY": "8pt", "weight": "3pt", "color": "palette.accent2", "span": "full column" }
+      ]
+    },
+    "Kpi": {
+      "use": "Two to six metrics with labels and change indicators.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptKpi": { "min": 1, "max": 6, "perSlide": 6 }, "PptParagraph": { "max": 1, "use": "takeaway under the tiles" } } },
+      "tiling": {
+        "$comment": "Tiles are equal width. 5 tiles divide the live width into fifths (148.8pt) instead of snapping to columns.",
+        "1": { "spans": [6], "valueStyleFactor": 1.5 },
+        "2": { "spans": [6, 6] },
+        "3": { "spans": [4, 4, 4] },
+        "4": { "spans": [3, 3, 3, 3] },
+        "5": { "spans": "fifths" },
+        "6": { "spans": [4, 4, 4], "rows": 2 }
+      },
+      "placeholders": [
+        { "name": "tiles", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 5 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "178pt" }, "rowsWhenTwoTileRows": { "row": 4, "rows": 8 }, "anchor": "top", "tileGap": "24pt",
+          "tile": [
+            { "part": "rule", "h": "2pt", "color": "hairline; the first tile uses palette.accent1" },
+            { "part": "value", "style": "kpiValue", "offsetY": "18pt", "maxLines": 1, "minSize": "32pt", "source": "PptKpi -Value" },
+            { "part": "label", "style": "kpiLabel", "gapBefore": "10pt", "maxLines": 2, "source": "PptKpi -Label" },
+            { "part": "change", "style": "caption", "weight": 700, "gapBefore": "12pt", "maxLines": 1, "source": "PptKpi -Change",
+              "color": "PptKpi -Color, else palette.success for a leading '+', palette.danger for a leading '-' or U+2212, palette.textMuted otherwise", "glyph": "up/down triangle before the text" }
+          ] },
+        { "name": "takeaway", "kind": "text", "grid": { "col": 1, "span": 8, "row": 11, "rows": 2 }, "abs": { "x": "60pt", "y": "424pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "Cards": {
+      "use": "Three to six parallel ideas (capabilities, service areas, options).",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptCard": { "min": 2, "max": 6, "perSlide": 6 } } },
+      "tiling": {
+        "2": { "spans": [6, 6] }, "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] },
+        "5": { "rows": [[4, 4, 4], [6, 6]] }, "6": { "rows": [[4, 4, 4], [4, 4, 4]] }
+      },
+      "placeholders": [
+        { "name": "cards", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "840pt", "h": "330pt" }, "tileGap": "24pt", "rowGap": "24pt",
+          "height": "One row of cards fills the content zone. Two rows split it equally (153pt each).",
+          "tile": [
+            { "part": "panel", "fill": "surface", "radius": "0pt", "padding": "20pt" },
+            { "part": "rule", "h": "3pt", "color": "PptCard -Color, else palette.accent1", "position": "top edge" },
+            { "part": "index", "style": "eyebrow", "color": "palette.textMuted", "source": "two-digit card number", "position": "top" },
+            { "part": "title", "style": "heading", "maxLines": 2, "minSize": "16pt", "position": "bottom group", "source": "PptCard -Title" },
+            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 4, "position": "bottom group", "source": "PptCard -Text" },
+            { "part": "items", "style": "bodySmall", "bullet": "en dash in palette.accent1", "gapBefore": "8pt", "max": 4, "position": "bottom group", "source": "PptCard -Items" }
+          ],
+          "$comment": "The index sits at the top of the card and the title/body group is anchored to the bottom, so tall cards read as deliberate rather than half-empty. Today's cards top-aligned short text in full-height boxes." }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "Process": {
+      "use": "Three to six sequential steps.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptStep": { "min": 2, "max": 8, "perSlide": "5 on one row; 6-8 as two rows of up to 4" }, "PptParagraph": { "max": 1, "use": "takeaway" } } },
+      "tiling": { "2": { "spans": [6, 6] }, "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] }, "5": { "spans": "fifths" }, "6": { "rows": [[3, 3, 3], [3, 3, 3]] }, "7": { "rows": [[3, 3, 3, 3], [3, 3, 3]] }, "8": { "rows": [[3, 3, 3, 3], [3, 3, 3, 3]] } },
+      "placeholders": [
+        { "name": "steps", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 6 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "216pt" }, "tileGap": "24pt",
+          "tile": [
+            { "part": "marker", "shape": "circle", "d": "40pt", "stroke": "palette.accent1 2pt", "fill": "palette.background (first step: palette.accent1)", "text": "PptStep -Number, else two-digit index", "textStyle": "heading 16pt, palette.accent1 (first: onAccent)" },
+            { "part": "connector", "h": "2pt", "color": "hairline", "from": "marker right + 8pt", "to": "next marker left - 8pt", "y": "marker centre" },
+            { "part": "title", "style": "heading", "gapBefore": "22pt", "maxLines": 2, "minSize": "16pt", "source": "PptStep -Title" },
+            { "part": "text", "style": "bodySmall", "gapBefore": "8pt", "maxLines": 5, "source": "PptStep -Text" }
+          ] },
+        { "name": "takeaway", "kind": "text", "grid": { "col": 1, "span": 8, "row": 11, "rows": 2 }, "abs": { "x": "60pt", "y": "424pt", "w": "552pt", "h": "64pt" }, "style": "lede", "align": "left", "anchor": "top", "maxLines": 2, "optional": true }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "Quote": {
+      "use": "A statement or customer quote.",
+      "background": "surface",
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptParagraph": { "max": 1, "use": "the quote" } } },
+      "placeholders": [
+        { "name": "mark", "kind": "text", "grid": { "col": 1, "span": 1, "row": 2, "rows": 3 }, "abs": { "x": "60pt", "y": "82pt", "w": "48pt", "h": "102pt" }, "style": "display", "sizeOverride": "120pt", "color": "palette.accent1", "text": "U+201C", "decorative": true },
+        { "name": "quote", "kind": "text", "grid": { "col": 2, "span": 9, "row": 4, "rows": 6 }, "abs": { "x": "132pt", "y": "158pt", "w": "624pt", "h": "216pt" }, "style": "quote", "align": "left", "anchor": "top", "maxLines": 5, "minSize": "24pt", "source": "the PptParagraph, quote marks stripped" },
+        { "name": "attribution", "kind": "text", "grid": { "col": 2, "span": 7, "row": 10, "rows": 2 }, "abs": { "x": "132pt", "y": "386pt", "w": "480pt", "h": "64pt" }, "style": "bodySmall", "align": "left", "anchor": "top", "maxLines": 2, "source": "-Subtitle, prefixed with an em dash" }
+      ],
+      "decoration": [ { "kind": "rule", "x": "col 2", "row": 10, "w": "48pt", "h": "2pt", "color": "palette.accent1", "offsetY": "-14pt" } ]
+    },
+    "ImageFull": {
+      "use": "Full-bleed photograph with a short title.",
+      "background": "ink",
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptImage": { "min": 1, "max": 1 } } },
+      "placeholders": [
+        { "name": "image", "kind": "image", "box": "full slide 960 x 540pt", "fit": "cover", "focus": "centre (rule of thirds when the image carries a focal point)", "treatment": "natural" },
+        { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 8, "row": 7, "rows": 5 }, "abs": { "x": "60pt", "y": "272pt", "w": "552pt", "h": "178pt" }, "anchor": "bottom",
+          "items": [
+            { "name": "eyebrow", "style": "eyebrow", "color": "onInkMuted", "maxLines": 1, "gapAfter": "12pt" },
+            { "name": "title", "style": "title", "sizeOverride": { "token": "typeScale.heading1", "factor": 1.5 }, "color": "onInk", "maxLines": 2, "minSize": "28pt", "gapAfter": "12pt" },
+            { "name": "subtitle", "style": "subtitle", "color": "onInkMuted", "maxLines": 2 }
+          ] }
+      ],
+      "decoration": [ { "kind": "scrim", "gradient": "ink 0% at 35% height to ink 78% at the bottom edge, plus ink 40% from the left edge to col 8", "$comment": "Keeps text >= 4.5:1 on any photo." } ]
+    },
+    "Closing": {
+      "use": "Final slide: next steps, decision or contact.",
+      "background": "palette.accent1",
+      "accepts": { "blocks": { "min": 0, "max": 1 }, "commands": { "PptList": { "max": 1, "use": "numbered next steps" }, "PptParagraph": { "max": 1, "use": "contact line" } } },
+      "placeholders": [
+        { "name": "stack", "kind": "stack", "grid": { "col": 1, "span": 6, "row": 3, "rows": 8 }, "abs": { "x": "60pt", "y": "120pt", "w": "408pt", "h": "292pt" }, "anchor": "bottom",
+          "items": [
+            { "name": "eyebrow", "style": "eyebrow", "color": "onAccentMuted", "maxLines": 1, "gapAfter": "18pt" },
+            { "name": "title", "style": "display", "sizeOverride": { "token": "typeScale.title", "factor": 1.5 }, "maxLines": 3, "minSize": "36pt", "gapAfter": "20pt" },
+            { "name": "subtitle", "style": "subtitle", "color": "onAccentMuted", "maxLines": 3 }
+          ] },
+        { "name": "steps", "kind": "content", "grid": { "col": 8, "span": 5, "row": 3, "rows": 8 }, "abs": { "x": "564pt", "y": "120pt", "w": "336pt", "h": "292pt" }, "anchor": "bottom", "style": "body", "color": "onAccent", "numbering": "two-digit index in eyebrow style, onAccentMuted, with a 1pt onAccent @ 28% rule above each item", "max": 4, "optional": true }
+      ],
+      "decoration": []
+    },
+    "CaseStudy": {
+      "use": "A narrative (challenge, approach, outcome) with up to three result metrics.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 2, "max": 2 }, "commands": { "PptCard": { "min": 1, "max": 3, "use": "narrative sections" }, "PptKpi": { "min": 1, "max": 3, "use": "results" } } },
+      "placeholders": [
+        { "name": "narrative", "kind": "stackList", "grid": { "col": 1, "span": 7, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "480pt", "h": "330pt" }, "anchor": "top",
+          "item": [
+            { "part": "label", "style": "eyebrow", "source": "PptCard -Title" },
+            { "part": "text", "style": "body", "gapBefore": "6pt", "maxLines": 3, "source": "PptCard -Text or -Items joined" },
+            { "part": "rule", "h": "1pt", "color": "hairline", "gapBefore": "16pt", "gapAfter": "16pt", "between": true }
+          ] },
+        { "name": "results", "kind": "panel", "grid": { "col": 9, "span": 4, "row": 4, "rows": 9 }, "abs": { "x": "636pt", "y": "158pt", "w": "264pt", "h": "330pt" }, "fill": "surface", "padding": "24pt", "anchor": "top",
+          "item": [ { "part": "value", "style": "kpiValue", "sizeFactor": 0.84 }, { "part": "label", "style": "kpiLabel", "gapBefore": "6pt" }, { "part": "change", "style": "caption", "weight": 700 } ],
+          "itemGap": "24pt" }
+      ],
+      "decoration": [ "chrome.header.accentMark", { "kind": "rule", "edge": "results top", "h": "3pt", "color": "palette.accent1" } ]
+    },
+    "Logos": {
+      "use": "Customer, partner or technology logos.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 1 }, "commands": { "PptCard": { "min": 3, "max": 12, "requires": "-Image and no -Text/-Items", "perSlide": 12 } } },
+      "tiling": { "3": { "spans": [4, 4, 4] }, "4": { "spans": [3, 3, 3, 3] }, "5-8": { "rows": "2 rows of 4 (span 3)" }, "9-12": { "rows": "2 rows of 6 (span 2)" } },
+      "placeholders": [
+        { "name": "logos", "kind": "tiles", "grid": { "col": 1, "span": 12, "row": 5, "rows": 7 }, "abs": { "x": "60pt", "y": "196pt", "w": "840pt", "h": "254pt" }, "tileGap": "24pt", "rowGap": "24pt", "tileHeight": "96pt",
+          "tile": [
+            { "part": "frame", "stroke": "hairline 1pt", "fill": "palette.background" },
+            { "part": "image", "fit": "contain", "maxW": "62%", "maxH": "44%", "treatment": "grayscale, 80% opacity; full colour with -Color", "alt": "PptCard -Title" }
+          ] }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    },
+    "Coverage": {
+      "use": "Locations, sites or regions on a map surface.",
+      "background": "palette.background",
+      "header": "chrome.header",
+      "accepts": { "blocks": { "min": 1, "max": 2 }, "commands": { "PptLocation": { "min": 1, "max": 18, "perSlide": 18 }, "PptImage": { "max": 1, "use": "map picture replacing the drawn map surface" } } },
+      "placeholders": [
+        { "name": "map", "kind": "panel", "grid": { "col": 1, "span": 8, "row": 4, "rows": 9 }, "abs": { "x": "60pt", "y": "158pt", "w": "552pt", "h": "330pt" }, "fill": "surface", "pattern": "dot grid, hairline, 12pt pitch", "image": "PptImage, cover",
+          "pin": { "shape": "circle", "d": "22pt", "fill": "palette.accent1", "stroke": "palette.background 2pt", "text": "index, caption 10pt bold onAccent", "position": "MapLeft/MapTop as fractions of the panel" } },
+        { "name": "list", "kind": "stackList", "grid": { "col": 9, "span": 4, "row": 4, "rows": 9 }, "abs": { "x": "636pt", "y": "158pt", "w": "264pt", "h": "330pt" }, "anchor": "top", "max": 7,
+          "item": [ { "part": "index", "style": "caption", "weight": 700, "color": "palette.accent1" }, { "part": "name", "style": "heading", "sizeOverride": "16pt" }, { "part": "detail", "style": "bodySmall", "maxLines": 2 } ],
+          "itemGap": "14pt", "overflow": "Beyond 7 locations the list shows the first 6 and 'and n more'; pins stay numbered." }
+      ],
+      "decoration": [ "chrome.header.accentMark" ]
+    }
+  },
+
+  "selection": {
+    "$comment": "Applied in order; the first matching rule wins. -Layout always wins. -TemplateLayout bypasses selection entirely.",
+    "rules": [
+      { "id": "explicit",      "when": "-Layout given", "layout": "(given)", "note": "Content the layout does not accept raises diagnostic layout-content-mismatch and the slide falls back to automatic selection." },
+      { "id": "first",         "when": "first slide of the deck and no blocks", "layout": "Title" },
+      { "id": "coverage",      "when": "any PptLocation", "layout": "Coverage" },
+      { "id": "caseStudy",     "when": "PptKpi and PptCard on the same slide", "layout": "CaseStudy" },
+      { "id": "kpi",           "when": "any PptKpi", "layout": "Kpi" },
+      { "id": "logos",         "when": "PptCard items that all have -Image and none has -Text or -Items", "layout": "Logos" },
+      { "id": "cards",         "when": "any PptCard", "layout": "Cards" },
+      { "id": "process",       "when": "any PptStep", "layout": "Process" },
+      { "id": "comparison",    "when": "two PptColumn, both with -Title", "layout": "Comparison" },
+      { "id": "imageFull",     "when": "exactly one block, a PptImage whose aspect ratio is within 15% of the slide's and whose width is >= 1600px", "layout": "ImageFull" },
+      { "id": "quote",         "when": "no -Title and exactly one text block of <= 240 characters", "layout": "Quote" },
+      { "id": "closing",       "when": "last slide of a deck with >= 5 slides, with no blocks or only one list of <= 4 items", "layout": "Closing", "note": "Evaluated when the deck is saved, because 'last' is known only then." },
+      { "id": "section",       "when": "no blocks (title only)", "layout": "Section" },
+      { "id": "two",           "when": "exactly two blocks (two PptColumn, or any two blocks)", "layout": "TwoContent" },
+      { "id": "one",           "when": "exactly one block", "layout": "TitleAndContent" },
+      { "id": "many",          "when": "three or more blocks", "layout": "TwoContent + continuation", "note": "Blocks 1-2 stay; blocks 3+ move to a continuation slide with the same title and '(continued)'. Diagnostic slide-content-split." }
+    ],
+    "rhythm": {
+      "$comment": "Reused from PowerPointDeckRhythm; reported by Test-OfficePowerPoint and Get-OfficePowerPointSlide -Summary, never applied silently.",
+      "maximumRepeatedLayout": 3, "maximumDenseStreak": 3, "maximumSlidesBetweenSections": 7, "closingExpectedAtSlideCount": 8
+    }
+  },
+
+  "overflow": {
+    "measure": "Text is measured with the resolved font's advance widths (fallback: 0.52em average for proportional fonts) against the placeholder width minus insets.",
+    "order": ["title", "list", "text", "table", "tiles", "chart"],
+    "title": {
+      "steps": [
+        "Fits in maxLines at the style size: done.",
+        "Contains ': ' or ' - ' / ' -- ' / U+2014 and no -Subtitle was given: split there; the left part stays the title and the right part becomes the subtitle.",
+        "Shrink in 2pt steps to minSize (title 26pt, display 40pt, sectionTitle 32pt).",
+        "At minSize allow one extra line (3 lines for title): the header grows by one row and the content zone starts one row lower (chrome.header.contentZone.withLongTitle). Diagnostic title-long.",
+        "Never truncate a title; beyond the extra line diagnostic title-too-long (warning) and the text is set at minSize."
+      ],
+      "continuedSuffix": " (continued)",
+      "continuedSuffixWithCount": " (continued {n}/{count})",
+      "suffixStyle": "fonts.body at the subtitle size, palette.textMuted, regular weight, on the title's last line",
+      "suffixPlacement": "If the suffix would add a title line, it moves to the eyebrow line ('CHANGE ADVISORY BOARD \u00B7 CONTINUED 2/3') so continuation slides keep the first slide's header geometry and capacity.",
+      "$comment": "'(continued)' when the run has two slides, '(continued 2/3)' when three or more."
+    },
+    "list": {
+      "steps": [
+        "Fits in the content box at body size: done.",
+        "Shrink in 2pt steps (18 -> 16pt for Modern), paragraph spacing scaled with the size, down to body.minSize (16pt). If it now fits: done.",
+        "Otherwise split into the fewest slides that fit at the ORIGINAL body size, balancing item counts (14 items -> 7 + 7, never 12 + 2). Shrinking is discarded once a split is needed, so every slide in the run uses one size.",
+        "Splits happen only between level-1 items; a level-2 item stays with its parent.",
+        "Continuation slides repeat the title with the continued suffix, keep the eyebrow, omit the subtitle and lede, and continue numbering for -Numbered lists."
+      ],
+      "capacity": { "TitleAndContent": "~10 single-line items at 18pt, ~11 at 16pt", "TwoContent": "~8 per column at 18pt" }
+    },
+    "text": {
+      "steps": ["Shrink to body.minSize.", "Split between paragraphs onto a continuation slide.", "A single paragraph longer than the box at minSize is split between sentences; diagnostic text-split-paragraph."]
+    },
+    "table": {
+      "rowHeight": "tableBody line height + 2 x tableStyle.cellPadding; header row the same with tableHeader",
+      "maxDataRows": { "rule": "floor((content zone height - header row - 22pt caption allowance) / row height), computed for the continuation slide so every slide in the run uses the same limit", "typical16x9": { "TitleAndContent": 9, "TitleAndContentWithLede": 6, "TwoContent": 9, "Comparison": 7 } },
+      "maxColumns": { "TitleAndContent": 8, "TwoContent": 4 },
+      "steps": [
+        "-MaxRows wins when given (and -NoSplit keeps everything on one slide, shrinking to tableBody.minSize, then diagnostic table-overflow).",
+        "Rows that fit at tableBody size: done.",
+        "Otherwise split into ceil(rows / maxDataRows) slides with balanced row counts (30 rows at 9 -> 8 + 8 + 7 + 7; 24 rows -> 8 + 8 + 8). The header row repeats on every slide.",
+        "Cells wrap to at most 2 lines; a row that would need 3 lines counts as 2 rows toward the limit.",
+        "More columns than maxColumns: shrink to tableBody.minSize; still too wide, diagnostic table-too-wide naming -Property as the fix. Columns are never split across slides.",
+        "Numbers, dates and percentages right-align; text left-aligns; header alignment follows its column."
+      ],
+      "continuation": "Same title with the continued suffix; the caption row 'Rows 11-20 of 30' in caption style sits under the table, right-aligned."
+    },
+    "tiles": {
+      "perSlide": { "PptKpi": 6, "PptCard": 6, "PptStep": 8, "PptCard (Logos)": 12, "PptLocation": 18 },
+      "steps": ["Tile text shrinks to its minSize.", "Above perSlide the set splits into balanced slides (7 cards -> 4 + 3) with the continued suffix.", "PptStep numbering continues across the split."]
+    },
+    "chart": { "steps": ["Charts never split. More than 12 categories on a Column/Bar chart switch to Bar (horizontal) when -Type was not given; more than 24 raise chart-dense."] }
+  },
+
+  "export": {
+    "command": "Export-OfficePowerPoint",
+    "deck": [
+      { "slide": "Title", "layout": "Title", "title": "-Title, else the file name without extension", "subtitle": "-Subtitle, else '{rowCount} items' ", "meta": "date in -Culture" },
+      { "slide": "Summary", "layout": "Kpi", "when": "rowCount >= 2", "title": "At a glance",
+        "metrics": [
+          "Total rows ('{rowCount}', label = the singular noun of -Title when it ends in a plural, else 'Items')",
+          "Up to three groups of the group property: -Category if given, else the first string property with 2-6 distinct values; value = count, label = group value, ordered by count",
+          "Sum of the first -Value property when it is numeric (label 'Total {Value}')"
+        ], "max": 5,
+        "change": "Group tiles show '{share}% of {noun}' coloured by the group value (Outage/Failed -> danger, Degraded/Warning -> warning, otherwise success).",
+        "takeaway": "Names the members of groups with three or fewer rows, e.g. 'Outage: Printing. Degraded: VPN, Monitoring, Wi-Fi.'" },
+      { "slide": "Table", "layout": "TitleAndContent", "title": "-Title", "rows": "split per overflow.table; -MaxRows overrides", "columns": "-Property order, else all properties", "when": "not -NoTable" },
+      { "slide": "Chart", "layout": "TitleAndContent", "when": "-Category and -Value", "title": "-ChartTitle, else '{Value} by {Category}'", "type": "-ChartType, default Column (Bar above 12 categories)", "categories": "More than 12 categories: the top 12 by the first -Value, then one 'Other (n)' bar in hairline colour, sorted descending" }
+    ],
+    "footer": "-Title on the left, slide number on the right.",
+    "notes": "Each table slide gets speaker notes 'Rows a-b of n. Source: {pipeline type name}, exported {timestamp}.' so the deck carries its own provenance.",
+    "noClosing": "Data exports do not add a Closing slide."
+  },
+
+  "notes": {
+    "rules": [
+      "PptNotes sets the notes of its slide; it never changes the layout.",
+      "Continuation slides inherit no notes by default; the first slide's notes stay on the first slide.",
+      "Outline conversion (Convert-OfficeDocument -To PowerPoint) maps blockquotes to notes.",
+      "Notes pages use fonts.body at typeScale.body x 1.09 (12pt Modern) on the theme's notes master."
+    ]
+  },
+
+  "template": {
+    "$comment": "How a corporate .potx/.pptx given to -Theme overrides the built-in layouts.",
+    "mapping": [
+      { "step": 1, "rule": "A template layout whose name equals the OfficeIMO layout name (case-insensitive, also 'OfficeIMO {Name}') is used as-is." },
+      { "step": 2, "rule": "Otherwise by layout type: Title -> title, Section -> secHead, TitleAndContent -> obj, TwoContent -> twoObj, Comparison -> twoTxTwoObj, Quote/ImageFull/Closing/Kpi/Cards/Process/CaseStudy/Logos/Coverage -> titleOnly, falling back to obj." },
+      { "step": 3, "rule": "Placeholders bind by type (title, ctrTitle, subTitle, body, obj, pic, dt, ftr, sldNum) and then by index; the template's geometry, fonts and colours replace the built-in grid and theme for those placeholders." },
+      { "step": 4, "rule": "Designed compositions without a template placeholder (Kpi tiles, Cards, Process, Coverage map, Logos) are drawn inside the bounds of the mapped layout's body/obj placeholder (or the title-only layout's free area below the title), using the template theme's fonts and colour scheme mapped to palette roles (dk1 -> text, lt1 -> background, accent1-6 -> accents)." },
+      { "step": 5, "rule": "The 12-column grid is re-derived from the body placeholder's left/right edges with the gutter scaled to 2.5% of its width, so -Column/-Span still work." },
+      { "step": 6, "rule": "Overflow limits are recomputed from the template placeholder size; minimum sizes stay as defined here." },
+      { "step": 7, "rule": "Missing layouts are reported once per deck as template-layout-missing (information), never as a failure." }
+    ]
+  }
+}

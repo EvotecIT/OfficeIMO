@@ -28,6 +28,20 @@
               "pipeline": "none"
             },
             {
+              "name": "Author",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Shown on the Title slide and written to the document properties."
+            },
+            {
+              "name": "Date",
+              "type": "datetime",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+            },
+            {
               "name": "Theme",
               "type": "OfficeTheme",
               "mandatory": false,
@@ -75,6 +89,27 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Screen16x9 by default."
+            },
+            {
+              "name": "NoFooter",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No footer on any slide."
+            },
+            {
+              "name": "NoSlideNumber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No slide numbers on any slide."
+            },
+            {
+              "name": "ContinuationFormat",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Title wording for continuation slides. {0} is the title, {1} the part and {2} the number of parts. Default: '{0} (continued {1}/{2})', shortened to '(continued)' for two parts."
             },
             {
               "name": "Password",
@@ -122,6 +157,20 @@
               "notes": "Optional without a block; give it later with Save-OfficePowerPoint -Path."
             },
             {
+              "name": "Author",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Shown on the Title slide and written to the document properties."
+            },
+            {
+              "name": "Date",
+              "type": "datetime",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Shown on the Title slide, formatted for -Culture of the theme; defaults to no date."
+            },
+            {
               "name": "Theme",
               "type": "OfficeTheme",
               "mandatory": false,
@@ -169,6 +218,27 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Screen16x9 by default."
+            },
+            {
+              "name": "NoFooter",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No footer on any slide."
+            },
+            {
+              "name": "NoSlideNumber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No slide numbers on any slide."
+            },
+            {
+              "name": "ContinuationFormat",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Title wording for continuation slides. {0} is the title, {1} the part and {2} the number of parts. Default: '{0} (continued {1}/{2})', shortened to '(continued)' for two parts."
             },
             {
               "name": "Password",
@@ -502,6 +572,20 @@
               "pipeline": "none"
             },
             {
+              "name": "GroupBy",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Property whose groups the At a glance slide counts. Defaults to -Category, then the first text property with two to six distinct values."
+            },
+            {
+              "name": "NoSummary",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No At a glance slide."
+            },
+            {
               "name": "NoTable",
               "type": "switch",
               "mandatory": false,
@@ -554,7 +638,7 @@
           ]
         }
       ],
-      "notes": "Streams rows; long tables split across slides with the header repeated (TitleAndContent layout). First slide uses the Title layout. Replaces an existing file unless -NoClobber.",
+      "notes": "Streams rows. Deck: Title slide, an At a glance Kpi slide (unless -NoSummary), table slides split with the header repeated, and a chart slide when -Category and -Value are given. Replaces an existing file unless -NoClobber.",
       "examples": [
         {
           "title": "Turn pipeline output into a deck",
@@ -614,7 +698,14 @@
               "type": "string",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Small label above the title (Title and Section layouts)."
+              "notes": "Small label above the title on every layout. Content slides default to the title of the nearest preceding Section slide."
+            },
+            {
+              "name": "MapLabel",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Caption on the map of a Coverage slide. A PptImage on a Coverage slide is used as the map."
             },
             {
               "name": "Layout",
@@ -661,6 +752,20 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Overrides the deck seed for this slide's design variant."
+            },
+            {
+              "name": "NoFooter",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No footer on this slide."
+            },
+            {
+              "name": "NoSlideNumber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "No slide number on this slide."
             },
             {
               "name": "PassThru",
@@ -1840,6 +1945,13 @@
               "notes": "Number of theme grid columns to span; default 12 with -Column, otherwise the layout decides."
             },
             {
+              "name": "FocalPoint",
+              "type": "PowerPointFocalPoint",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Point kept in view when the image is cropped to fill its box: Center, Top, Bottom, Left, Right, or 'x,y' fractions such as '0.4,0.3'. Default Center."
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -1950,6 +2062,13 @@
               "type": "string",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "FocalPoint",
+              "type": "PowerPointFocalPoint",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Point kept in view when the image is cropped to fill its box: Center, Top, Bottom, Left, Right, or 'x,y' fractions such as '0.4,0.3'. Default Center."
             },
             {
               "name": "PassThru",
@@ -2272,6 +2391,49 @@
       ]
     },
     {
+      "name": "Add-OfficePowerPointQuote",
+      "alias": "PptQuote",
+      "status": "new",
+      "synopsis": "Adds a quotation with its attribution; the slide gets the Quote layout.",
+      "outputType": "None",
+      "parameterSets": [
+        {
+          "name": "Text",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Attribution",
+              "type": "string",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none",
+              "notes": "Who said it, shown under a short rule."
+            }
+          ]
+        }
+      ],
+      "notes": "Replaces the Quote layout's use of -Subtitle as the attribution.",
+      "examples": [
+        {
+          "title": "Add a customer quote",
+          "description": "A slide with only a quote gets the Quote layout.",
+          "code": "PptSlide {\n    PptQuote 'The new intake form cut our wait time in half.' 'Anna Nowak, East depot'\n}"
+        },
+        {
+          "title": "Close a review with feedback",
+          "description": "Puts the top-rated survey comment on its own slide before the closing slide.",
+          "code": "$comments = Import-OfficeExcel -Path .\\Survey\\Results.xlsx -Sheet 'Comments'\n$best = $comments | Sort-Object -Property Rating -Descending | Select-Object -First 1\nNew-OfficePowerPoint -Path .\\Survey\\Review.pptx -Author 'Service desk' -Date (Get-Date) {\n    PptSlide -Title 'Service desk survey' -Subtitle 'October 2026'\n    PptSlide {\n        PptQuote $best.Comment \"$($best.Name), $($best.Site)\"\n    }\n    PptSlide -Title 'Thank you'\n}"
+        }
+      ]
+    },
+    {
       "name": "Add-OfficePowerPointColumn",
       "alias": "PptColumn",
       "status": "new",
@@ -2384,7 +2546,15 @@
         {
           "name": "Default",
           "default": true,
-          "parameters": []
+          "parameters": [
+            {
+              "name": "IncludeTotal",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Prints the number with the slide count, as in 9 / 24."
+            }
+          ]
         }
       ],
       "examples": [
@@ -2398,7 +2568,8 @@
           "description": "Combines footer text and the slide-number field for every slide of the deck.",
           "code": "New-OfficePowerPoint -Path .\\Reports\\Board-Pack.pptx -Theme Boardroom {\n    PptFooter {\n        PptText 'Board pack, November 2026 | Slide '\n        PptSlideNumber\n    }\n    PptSlide -Title 'Board pack' -Subtitle 'November 2026'\n    PptSlide -Title 'Agenda' {\n        PptList 'Financial results', 'Risk register', 'Approvals'\n    }\n}"
         }
-      ]
+      ],
+      "notes": "Used inside PptFooter. Writes to the native slide-number placeholder."
     },
     {
       "name": "Add-OfficePowerPointTextBox",
