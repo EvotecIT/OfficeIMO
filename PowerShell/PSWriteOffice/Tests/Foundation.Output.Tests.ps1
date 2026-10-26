@@ -22,13 +22,18 @@ Describe 'Foundation output views' {
             $paragraph = $word.AddParagraph('Visible paragraph')
             $sheet = $excel.AddWorksheet('Visible sheet')
             $slide = $deck.AddSlide()
-            foreach ($value in @($word,$excel,$deck,$paragraph,$sheet,$slide)) {
+            $table = $sheet.Table('A1:B2')
+            $png = [OfficeIMO.Drawing.OfficePngWriter]::EncodeRgba(1,1,[byte[]]@(255,0,0,255))
+            $image = [OfficeIMO.Drawing.OfficeImageExportResult]::new('Png',1,1,$png,'Small image')
+            foreach ($value in @($word,$excel,$deck,$paragraph,$sheet,$slide,$table,$image)) {
                 $output = $value | Out-String
                 $output | Should -Not -Match '\bBytes\b|System.Byte\[\]'
                 $output.Trim().Length | Should -BeGreaterThan 0
             }
             $paragraph | Out-String | Should -Match 'Visible paragraph'
             $sheet | Out-String | Should -Match 'Visible sheet'
+            $table | Out-String | Should -Match 'A1:B2'
+            $image | Out-String | Should -Match 'Small image'
         } finally { $word.Dispose(); $excel.Dispose(); $deck.Dispose() }
     }
 }

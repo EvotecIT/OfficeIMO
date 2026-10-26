@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 
@@ -12,10 +13,22 @@ public static class OfficeError {
     public static ErrorRecord Create(Exception exception, string diagnosticCode, object? input, ErrorCategory? category = null) {
         if (exception == null) throw new ArgumentNullException(nameof(exception));
         if (string.IsNullOrWhiteSpace(diagnosticCode)) throw new ArgumentException("A diagnostic code is required.", nameof(diagnosticCode));
+        if (exception is OfficeConversionException conversion) diagnosticCode = ConversionCode(conversion) ?? diagnosticCode;
         return new ErrorRecord(exception, diagnosticCode, category ?? Category(exception), input);
     }
     /// <summary>Maps a Core diagnostic to an error without losing its stable code.</summary>
     public static ErrorRecord Create(OfficeDiagnostic diagnostic, object? input) => Create(new InvalidOperationException(diagnostic.Message), diagnostic.Code, input);
+    /// <summary>Translates a failed native save using the report's actual diagnostic code and the requested destination.</summary>
+    public static ErrorRecord NativeSave(OfficeConversionException exception, object? input) =>
+        Create(exception, "native-save-failed", input, ErrorCategory.InvalidData);
+
+    private static string? ConversionCode(OfficeConversionException exception) {
+        if (exception.Report is OfficeConversionReport report) {
+            return (report.Diagnostics.FirstOrDefault(d => d.LossKind != OfficeConversionLossKind.None)
+                ?? report.Diagnostics.FirstOrDefault(d => d.Severity == OfficeDiagnosticSeverity.Error))?.Code;
+        }
+        return exception.Report.FidelityDiagnostics.FirstOrDefault(d => d.LossKind != OfficeConversionLossKind.None)?.Code;
+    }
     /// <summary>Classifies reachable argument, permission, I/O and cancellation failures.</summary>
     public static ErrorCategory Category(Exception exception) => exception switch {
         ArgumentException or FormatException => ErrorCategory.InvalidArgument,

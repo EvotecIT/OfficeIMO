@@ -51,6 +51,16 @@ public sealed class FoundationBatchTests {
         Assert.Empty(pipeline.Output);
         Assert.Empty(pipeline.Errors);
     }
+    [Fact]
+    public async Task ConversionFailuresPreserveReportDiagnosticCodesInBatches() {
+        var pipeline = new RecordingPipeline();
+        var report = new OfficeIMO.OfficeConversionReport("source", "target", diagnostics: new[] {
+            new OfficeIMO.OfficeDiagnostic("chart-flattened", OfficeIMO.OfficeDiagnosticSeverity.Warning, "Chart flattened", lossKind: OfficeIMO.OfficeConversionLossKind.Approximation)
+        });
+        await OfficeBatch.RunAsync(new[] { "input.docx" }, (_, _) => Task.FromException<object?>(new OfficeIMO.OfficeConversionException("Loss", report)),
+            1, CancellationToken.None, pipeline, "Batch", "conversion-failed");
+        Assert.Equal("chart-flattened", Assert.Single(pipeline.Errors).FullyQualifiedErrorId);
+    }
     private sealed class RecordingPipeline : IAsyncCmdletPipeline {
         internal List<object?> Output { get; } = new();
         internal List<ProgressRecord> Progress { get; } = new();

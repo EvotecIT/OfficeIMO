@@ -7,8 +7,8 @@ namespace PSWriteOffice.Foundation;
 
 /// <summary>Resolves filesystem provider paths without interpreting literal bracket characters as wildcards.</summary>
 public static class OfficePath {
-    /// <summary>Resolves existing input items through the current PowerShell provider.</summary>
-    public static IReadOnlyList<string> ResolveInput(SessionState session, string path, bool literal, bool allowDirectory = false) {
+    /// <summary>Resolves existing input items through the current PowerShell provider; an optional reporter retains valid wildcard matches when other items are rejected.</summary>
+    public static IReadOnlyList<string> ResolveInput(SessionState session, string path, bool literal, bool allowDirectory = false, Action<Exception, string>? reportItemError = null) {
         if (session == null) throw new ArgumentNullException(nameof(session));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An input path is required.", nameof(path));
         var result = new List<string>();
@@ -19,8 +19,11 @@ public static class OfficePath {
         } else {
             var paths = session.Path.GetResolvedProviderPathFromPSPath(path, out var provider);
             CheckProvider(provider);
-            foreach (string full in paths) { CheckInput(full, allowDirectory); result.Add(full); }
-            if (result.Count == 0) throw new FileNotFoundException("No input files matched the path.", path);
+            foreach (string full in paths) {
+                try { CheckInput(full, allowDirectory); result.Add(full); }
+                catch (FileNotFoundException error) when (reportItemError != null) { reportItemError(error, full); }
+            }
+            if (paths.Count == 0) throw new FileNotFoundException("No input files matched the path.", path);
         }
         return result;
     }

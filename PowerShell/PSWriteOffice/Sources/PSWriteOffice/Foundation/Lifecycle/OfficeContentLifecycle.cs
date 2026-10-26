@@ -15,7 +15,7 @@ internal static class OfficeContentLifecycle {
     /// </remarks>
     internal static FileInfo Run<T>(string path, bool isNew, bool refuseExisting, bool allowLoss,
         Func<string, T> createOrLoad, Action<T> content, Func<T, string, bool, OfficeConversionReport?> save,
-        CancellationToken cancellationToken = default) where T : class, IDisposable {
+        CancellationToken cancellationToken = default, Action<OfficeConversionException>? nativeSaveFailure = null) where T : class, IDisposable {
         OfficePath.ValidateDestination(path, refuseExisting);
         string directory = Path.GetDirectoryName(path)!;
         if (!Directory.Exists(directory)) throw new DirectoryNotFoundException("The output directory does not exist: " + directory);
@@ -25,8 +25,13 @@ internal static class OfficeContentLifecycle {
             using (T document = createOrLoad(isNew ? stage : path)) {
                 using (OfficeDocumentContext.Push(document)) content(document);
                 cancellationToken.ThrowIfCancellationRequested();
-                var report = save(document, stage, allowLoss);
-                if (!allowLoss) report?.ThrowIfLoss();
+                try {
+                    var report = save(document, stage, allowLoss);
+                    if (!allowLoss) report?.ThrowIfLoss();
+                } catch (OfficeConversionException error) {
+                    nativeSaveFailure?.Invoke(error);
+                    throw;
+                }
             }
             cancellationToken.ThrowIfCancellationRequested();
             OfficePath.ValidateDestination(path, refuseExisting);

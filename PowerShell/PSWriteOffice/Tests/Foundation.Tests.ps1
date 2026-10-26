@@ -1,3 +1,5 @@
+# The test-only cmdlet assembly targets net8.0; native Desktop qualification uses its own supported payload.
+Describe 'PowerShell 7 foundation fixture' -Skip:($PSEdition -ne 'Core') {
 BeforeAll {
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $PSScriptRoot '../PSWriteOffice.psd1' }
     Import-Module $moduleManifest -Global -ErrorAction Stop
@@ -82,6 +84,16 @@ Describe 'Provider paths, output policy and errors' {
         { Test-OfficeFoundationPath -Path $path -LiteralPath $path } | Should -Throw
         @(Test-OfficeFoundationPath -LiteralPath $path,$TestDrive -IncludeDirectory) | Should -Be @($path,$TestDrive)
     }
+    It 'keeps valid wildcard matches when another matching item is a directory' {
+        $folder = Join-Path $TestDrive 'mixed'; $null = New-Item -ItemType Directory -Path $folder
+        $valid = Join-Path $folder 'valid.txt'; Set-Content -LiteralPath $valid -Value fixture
+        $invalid = Join-Path $folder 'nested'; $null = New-Item -ItemType Directory -Path $invalid
+        $errors = @()
+        @(Test-OfficeFoundationPath -Path (Join-Path $folder '*') -ErrorAction SilentlyContinue -ErrorVariable errors) | Should -Be @($valid)
+        $errors.Count | Should -Be 1
+        $errors[0].TargetObject | Should -Be $invalid
+        $errors[0].FullyQualifiedErrorId | Should -Match '^input-unreadable,'
+    }
     It 'rejects a directory OutputPath and mutually exclusive output inputs' {
         { Export-OfficeFoundation -OutputPath $TestDrive -ErrorAction Stop } | Should -Throw
         { Export-OfficeFoundation -OutputPath a.txt -OutputDirectory $TestDrive } | Should -Throw
@@ -148,6 +160,19 @@ Describe 'Content lifecycle and implicit document binding' {
         New-OfficeFoundationDocument -Path $path -Force -AllowLoss { Add-OfficeFoundationText 'accepted' -Loss }
         Get-Content -LiteralPath $path -Raw | Should -Be accepted
     }
+    It 'reports native loss by diagnostic code while preserving block failures' {
+        $path = Join-Path $TestDrive 'coded-loss.txt'
+        try {
+            New-OfficeFoundationDocument -Path $path -ErrorAction Stop { Add-OfficeFoundationText 'loss' -Loss }
+            throw 'Expected a native-save loss failure'
+        } catch {
+            $_.FullyQualifiedErrorId | Should -Match '^chart-flattened,'
+            $_.CategoryInfo.Category | Should -Be InvalidData
+            $_.TargetObject | Should -Be $path
+        }
+        Test-Path -LiteralPath $path | Should -BeFalse
+        { New-OfficeFoundationDocument -Path $path { throw 'original authoring failure' } } | Should -Throw '*original authoring failure*'
+    }
     It 'does not invoke content under WhatIf and does not prompt per content item' {
         $path = Join-Path $TestDrive 'skip.txt'
         New-OfficeFoundationDocument -Path $path -WhatIf { throw 'must not run' }
@@ -169,4 +194,6 @@ Describe 'Bounded background execution' {
         $errors[0].TargetObject | Should -Be $bad
         $errors[0].FullyQualifiedErrorId | Should -Match '^input-invalid,'
     }
+}
+
 }

@@ -1,10 +1,15 @@
-param([Parameter(Mandatory)][string] $ModulePath, [Parameter(Mandatory)][string] $ConflictPath)
+param([Parameter(Mandatory)][string] $ModulePath, [Parameter(Mandatory)][string] $ConflictPath, [switch] $WithoutLoaderAssembly)
 $ErrorActionPreference = 'Stop'
 $priorCalls = [Collections.Generic.List[string]]::new()
 $prior = [System.EventHandler[System.Management.Automation.CommandLookupEventArgs]]{ param($name,$eventArgs) $priorCalls.Add($name) }.GetNewClosure()
 $ExecutionContext.InvokeCommand.CommandNotFoundAction = $prior
 $conflict = [Reflection.Assembly]::LoadFrom($ConflictPath)
 Import-Module $ModulePath -Force
+if ($WithoutLoaderAssembly) {
+    $module = Get-Module PSWriteOffice
+    $registrationPath = Join-Path (Split-Path $ModulePath) 'Private/Register-OfficeCommandHints.ps1'
+    & $module { param($path) $script:ModuleAssembly = $null; . $path } $registrationPath
+}
 $command = Get-Command New-OfficeWord -ErrorAction Stop
 $context = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext($command.ImplementingType.Assembly)
 $wordType = [OfficeIMO.Word.WordDocument]

@@ -1,7 +1,7 @@
 BeforeAll {
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $PSScriptRoot '../PSWriteOffice.psd1' }
     $conflictPath = $env:PSWRITEOFFICE_CONFLICT_OPENXML_PATH
-    if (!$conflictPath) {
+    if (!$conflictPath -and $PSEdition -eq 'Core') {
         $cache = ((& dotnet nuget locals global-packages --list) -replace '^global-packages:\s*','').Trim()
         $conflictPath = Join-Path $cache 'documentformat.openxml/3.1.1/lib/net8.0/DocumentFormat.OpenXml.dll'
     }
@@ -22,4 +22,13 @@ Describe 'Foundation assembly isolation and module lifetime' {
         $result.PriorWasCalled | Should -BeTrue
         $result.HandlerRestored | Should -BeTrue
     }
+    It 'registers and removes hints when the loader does not supply its Core-only assembly variable' {
+        if ($PSEdition -ne 'Core') { Set-ItResult -Skipped -Because 'This fixture uses the net8 test payload'; return }
+        $output = & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Foundation.Loading.Smoke.ps1') -ModulePath $moduleManifest -ConflictPath $conflictPath -WithoutLoaderAssembly 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+        $result = ($output | Where-Object { $_ -is [string] -and $_.StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
+        ($result.Hint -join ' ') | Should -BeLike '*ExcelNew was replaced by New-OfficeExcel*'
+        $result.HandlerRestored | Should -BeTrue
+    }
+
 }

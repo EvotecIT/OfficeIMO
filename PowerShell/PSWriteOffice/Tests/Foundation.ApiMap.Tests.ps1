@@ -18,7 +18,9 @@ Describe 'Command map foundations' {
     It 'matches the compiled hint resource to every retired entry hint' {
         $assembly = (Get-Command New-OfficeWord).ImplementingType.Assembly
         $reader = [IO.StreamReader]::new($assembly.GetManifestResourceStream('PSWriteOffice.CommandHints.json'))
-        try { $hints = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable } finally { $reader.Dispose() }
+        try { $data = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+        $hints = @{}
+        foreach ($property in $data.PSObject.Properties) { $hints[$property.Name] = $property.Value }
         $expected = @($maps.map | Where-Object { $_.action -ne 'keep' -and $_.hint })
         $hints.Count | Should -Be $expected.Count
         foreach ($entry in $expected) { $hints[$entry.old] | Should -Be $entry.hint }

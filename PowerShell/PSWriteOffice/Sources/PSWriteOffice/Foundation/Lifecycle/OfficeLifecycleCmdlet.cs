@@ -47,7 +47,7 @@ public abstract class OfficeLifecycleCmdlet<TDocument> : OfficeCmdlet, IDisposab
         if (!ShouldProcess(resolved!, isNew ? "Create document" : "Save document")) return;
         try {
             FileInfo result = OfficeContentLifecycle.Run(resolved!, isNew, isNew && !force, AllowLoss,
-                p => factory(p), _ => Content.Invoke(), save, _stop.Token);
+                p => factory(p), _ => Content.Invoke(), save, _stop.Token, error => ThrowTerminatingError(OfficeError.NativeSave(error, resolved)));
             if (Show) OfficeShow.Open(result.FullName);
             if (PassThru) WriteObject(result);
         } catch (PipelineStoppedException) { throw; }

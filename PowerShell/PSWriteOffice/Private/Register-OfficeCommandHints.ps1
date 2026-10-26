@@ -1,5 +1,7 @@
 # Runs in the module scope after its binary has loaded. Preserve unrelated lookup hooks.
-$officeHintStream = $ModuleAssembly.GetManifestResourceStream('PSWriteOffice.CommandHints.json')
+# Import-Module registers the binary module's own types on both editions. Avoid Core-only loader variables.
+$officeHintAssembly = [PSWriteOffice.Initialize].Assembly
+$officeHintStream = $officeHintAssembly.GetManifestResourceStream('PSWriteOffice.CommandHints.json')
 if ($null -eq $officeHintStream) { throw 'The PSWriteOffice command-hint resource is missing. Rebuild the module.' }
 $officeHintReader = [IO.StreamReader]::new($officeHintStream)
 try { $officeHintData = $officeHintReader.ReadToEnd() | ConvertFrom-Json } finally { $officeHintReader.Dispose() }
