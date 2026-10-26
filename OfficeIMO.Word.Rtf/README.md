@@ -47,6 +47,8 @@ Each result contains the normalized RTF document, the workflow-specific result, 
 
 Common paragraphs, rich runs, tables, nested tables, images, notes, headers/footers, sections, styles, numbering, links, bookmarks, revisions, and comments map through the bridge. Unsupported Word elements and unsupported RTF objects/shapes are reported as omissions. Use `RequireNoLoss()` when those omissions must stop the workflow.
 
+Ordinary uncropped inline RTF pictures in headers and footers retain the legacy VML picture carrier when written to Word. The carrier preserves their exact-line overhang through saving, reopening and subsequent PDF conversion. The destination's modern compatibility mode is unchanged. Body, note, cell, text-box and cropped-picture paths retain their existing DrawingML mapping.
+
 Paragraph mapping retains minimum, exact, and multiple line spacing, including the sign and units described in the [RTF paragraph contract](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). The same effective-formatting path applies supported spacing, indentation, alignment, and tab stops to body paragraphs, table cells, notes, and running stories. Parsed RTF retains its active spacing and tab state; API-authored RTF paragraphs can inherit those properties from their styles. Missing non-auto before/after gaps in parsed paragraphs map to explicit zero, so the destination document's paragraph defaults do not add spacing. Explicit source values and automatic spacing remain in effect.
 
 An RTF paragraph's active tab list replaces inherited tab lists. The bridge adds Word tab clears for unused positions declared anywhere in the associated paragraph-style chain, while retaining active positions and their alignment and leaders.

@@ -12,7 +12,7 @@ public class RtfPdfSectionRegressionTests {
         document.Settings.FacingPages = true;
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes(new RtfToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions { ShowPageNumbers = true, FooterFormat = "Caller page {page}" }
         }));
         Assert.Equal(2, read.Pages.Count);
@@ -33,7 +33,7 @@ public class RtfPdfSectionRegressionTests {
         RtfSection third = document.AddSection();
         third.AddHeader().AddParagraph("RTF third header");
         third.AddParagraph("Fifth body");
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes(new RtfToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 ShowHeader = true,
                 ShowPageNumbers = true,
@@ -71,7 +71,7 @@ public class RtfPdfSectionRegressionTests {
         second.AddHeader().AddParagraph("Second header");
         second.AddParagraph("Second body");
 
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes());
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes());
         Assert.Equal(pageCount, read.Pages.Count);
         Assert.Contains("Second header", read.Pages[pageCount - 1].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Second body", read.Pages[pageCount - 1].ExtractText(), StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public class RtfPdfSectionRegressionTests {
         document.PageSetup.SetPageNumbering(start: 7);
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes(new RtfToPdfOptions {
             PdfOptions = new PdfCore.PdfOptions { ShowPageNumbers = true, FooterFormat = "{page}/{pages}" }
         }));
         Assert.Equal(2, read.Pages.Count);
@@ -122,7 +122,7 @@ public class RtfPdfSectionRegressionTests {
         fourth.AddParagraph("Fourth body").AddPageBreak();
         fourth.AddParagraph("Fifth body");
 
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes());
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes());
         Assert.Equal(6, read.Pages.Count);
         Assert.Contains("Odd A", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Even B", read.Pages[1].ExtractText(), StringComparison.Ordinal);
@@ -180,7 +180,7 @@ public class RtfPdfSectionRegressionTests {
         document.AddParagraph("First body").AddPageBreak();
         document.AddParagraph("Second body");
 
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes());
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes());
         Assert.Equal(2, read.Pages.Count);
         Assert.All(read.Pages, page => {
             string text = page.ExtractText();
@@ -209,7 +209,7 @@ public class RtfPdfSectionRegressionTests {
         third.AddParagraph("Third body").AddPageBreak();
         third.AddParagraph("Fourth body");
 
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes());
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText(document.ToPdfBytes());
         Assert.Equal(4, read.Pages.Count);
         Assert.Contains("First title header", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Second default header", read.Pages[1].ExtractText(), StringComparison.Ordinal);
@@ -217,4 +217,8 @@ public class RtfPdfSectionRegressionTests {
         Assert.Contains("Third title header", read.Pages[2].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Third default header", read.Pages[3].ExtractText(), StringComparison.Ordinal);
     }
+
+    private static PdfCore.PdfReadDocument ReadIncludingRunningText(byte[] bytes) =>
+        PdfCore.PdfReadDocument.Open(bytes,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
 }

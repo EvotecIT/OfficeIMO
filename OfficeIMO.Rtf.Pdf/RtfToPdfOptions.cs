@@ -31,6 +31,7 @@ public sealed class RtfToPdfOptions {
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
     internal HashSet<RtfParagraph> DiagnosedFrameParagraphs { get; } = new HashSet<RtfParagraph>();
     internal HashSet<RtfParagraph> DiagnosedBarTabParagraphs { get; } = new HashSet<RtfParagraph>();
+    internal HashSet<RtfParagraph> DiagnosedRunningParagraphs { get; } = new HashSet<RtfParagraph>();
 
     /// <summary>When true, RTF hidden runs are included in PDF output. Hidden text is skipped by default.</summary>
     public bool IncludeHiddenText { get; set; }
@@ -56,7 +57,7 @@ public sealed class RtfToPdfOptions {
     /// <summary>When true, RTF tables are converted to PDF tables.</summary>
     public bool IncludeTables { get; set; } = true;
 
-    /// <summary>When true, semantic RTF header and footer text is mapped to PDF running header/footer text.</summary>
+    /// <summary>When true, semantic RTF header and footer paragraphs are mapped to PDF running content.</summary>
     public bool IncludeHeaderFooters { get; set; } = true;
 
     /// <summary>When true, footnote, endnote, and annotation bodies referenced by runs are appended to PDF output.</summary>

@@ -517,7 +517,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
                 W.TextBoxContent? currentTextBox = paragraph._paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault();
                 foreach (WordImage image in imageRun.EnumerateImages()) {
-                    DocumentFormat.OpenXml.OpenXmlElement imageElement = image._vmlShape ?? (DocumentFormat.OpenXml.OpenXmlElement)image._Image;
+                    DocumentFormat.OpenXml.OpenXmlElement imageElement = image.OccurrenceElement;
                     if (ReferenceEquals(imageElement.Ancestors<W.TextBoxContent>().FirstOrDefault(), currentTextBox))
                         yield return image;
                 }
@@ -699,7 +699,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (run.IsImage && run.Image != null) {
                         if (inlineImages != null) {
                             foreach (WordImage image in run.EnumerateImages())
-                                if (image._Image != null && inlineImages.TryGetValue(image._Image, out PdfCore.PdfTextRun? inline))
+                                if (inlineImages.TryGetValue(image.OccurrenceElement, out PdfCore.PdfTextRun? inline))
                                     builder.Runs(new[] { inline });
                         }
                         continue;
@@ -773,8 +773,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (image._vmlShape?.Ancestors<DocumentFormat.OpenXml.Vml.Group>().Any() == true) return;
                 if (groupedImageCount + images.Count >= imageLimit)
                     throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
-                // DrawingML images retain their exact position; VML wrappers use their containing run.
-                int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition
+                // Both image carriers retain their actual source occurrence order.
+                int position = positions.TryGetValue(image.OccurrenceElement, out int drawingPosition) ? drawingPosition
                     : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
                 images.Add((image, position));
             }
@@ -792,7 +792,7 @@ namespace OfficeIMO.Word.Pdf {
             if (anchorStyle.AnchoredCanvas != null) anchoredCanvas.AddItems(anchorStyle.AnchoredCanvas.Items);
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                if (image.Image._Image != null && inlineImages?.ContainsKey(image.Image._Image) == true) continue;
+                if (inlineImages?.ContainsKey(image.Image.OccurrenceElement) == true) continue;
                 renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing, paragraph, anchorSection);
             }
             if (anchoredCanvas.Items.Count > 0)

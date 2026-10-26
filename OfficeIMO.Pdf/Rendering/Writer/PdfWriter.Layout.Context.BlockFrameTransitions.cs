@@ -28,12 +28,12 @@ internal static partial class PdfWriter {
         private bool ReservesWholeKeepGroup() => !IsBalancedColumnFrame() || IsPartialPhysicalColumnFrame();
 
         /// <summary>Preserves the unrendered block and its ancestor siblings when a block starts on a later page.</summary>
-        private void NewBlockFrame(bool forcePhysicalPage = false) {
+        private void NewBlockFrame(bool forcePhysicalPage = false, bool preserveEmptyPage = false) {
             if (activeBlockSequences.Count > 0) {
                 BlockSequenceScope sequence = activeBlockSequences[activeBlockSequences.Count - 1];
                 QueueColumnBalanceRemainder(sequence.Blocks[sequence.Index], sequence.Blocks, sequence.Index);
             }
-            NewPage(forcePhysicalPage: forcePhysicalPage);
+            NewPage(preserveEmptyPage: preserveEmptyPage, forcePhysicalPage: forcePhysicalPage);
         }
     }
 }

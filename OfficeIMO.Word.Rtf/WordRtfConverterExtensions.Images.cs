@@ -3,6 +3,7 @@ namespace OfficeIMO.Word.Rtf;
 using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 public static partial class WordRtfConverterExtensions {
     private const double PixelsPerTwip = 96D / 1440D;
@@ -131,6 +132,11 @@ public static partial class WordRtfConverterExtensions {
 
         using var stream = new MemoryStream(payload);
         if (!TryGetWordImageLayout(image, payload, fileName, out RtfImageLayout? layout)) return;
+        if (UsesOrdinaryRunningVmlImage(paragraph, image, layout!)) {
+            paragraph.InsertImageVml(stream, fileName, layout!.VisibleWidthTwips / 20D,
+                layout.VisibleHeightTwips / 20D, image.Description ?? string.Empty);
+            return;
+        }
         WordImage output = paragraph.InsertImage(
             stream,
             fileName,
@@ -142,6 +148,18 @@ public static partial class WordRtfConverterExtensions {
         output.CropRight = ToWordCrop(image.CropRightTwips, layout.WidthTwips);
         output.CropTop = ToWordCrop(image.CropTopTwips, layout.HeightTwips);
         output.CropBottom = ToWordCrop(image.CropBottomTwips, layout.HeightTwips);
+    }
+
+    /// <summary>Retains the native RTF inline-picture carrier only in the qualified ordinary running-story profile.</summary>
+    private static bool UsesOrdinaryRunningVmlImage(WordParagraph paragraph, RtfImage image, RtfImageLayout layout) {
+        if (paragraph._paragraph == null ||
+            !paragraph._paragraph.Ancestors().Any(story => story is W.Header or W.Footer) ||
+            paragraph._paragraph.Ancestors<W.TableCell>().Any() ||
+            paragraph._paragraph.Ancestors<W.TextBoxContent>().Any() ||
+            (image.CropLeftTwips ?? 0) != 0 || (image.CropRightTwips ?? 0) != 0 ||
+            (image.CropTopTwips ?? 0) != 0 || (image.CropBottomTwips ?? 0) != 0) return false;
+        return layout.VisibleWidthTwips is double width && width > 0D && !double.IsNaN(width) && !double.IsInfinity(width) &&
+            layout.VisibleHeightTwips is double height && height > 0D && !double.IsNaN(height) && !double.IsInfinity(height);
     }
 
     private static int? ToCropTwips(int? fraction, int? goal) => fraction.HasValue && goal.HasValue ? checked((int)Math.Round(fraction.Value / 100000d * goal.Value, MidpointRounding.AwayFromZero)) : null;
