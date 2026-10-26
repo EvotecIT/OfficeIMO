@@ -1296,7 +1296,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryResolveNativeMappedFont(string? familyName, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
             (nativeFontMap != null && nativeFontMap.TryGetFontSlot(familyName, out font)) ||
-            PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out font);
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(
+                familyName == null ? null : OfficeFontFamilyParser.Quote(familyName), out font);
 
         private static string? ResolveNativeTextRunFontFamily(
             WordParagraph paragraph,

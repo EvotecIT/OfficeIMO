@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -6,7 +7,6 @@ namespace OfficeIMO.Pdf;
 /// Maps common office font family names to dependency-free PDF standard fonts.
 /// </summary>
 public static class PdfStandardFontMapper {
-    private static readonly char[] FamilySeparators = { ',', ';' };
     private static readonly char[] FamilyTrimChars = { ' ', '\t', '"', '\'' };
 
     /// <summary>
@@ -18,6 +18,7 @@ public static class PdfStandardFontMapper {
     /// <summary>
     /// Attempts to map an office font family name and style flags to the nearest PDF standard font variant.
     /// </summary>
+    /// <remarks>Family lists use the shared bounded Office parser, preserving quoted names and escapes.</remarks>
     public static bool TryMapFontFamily(string? fontFamily, bool bold, bool italic, out PdfStandardFont font) {
         font = PdfStandardFont.Helvetica;
         if (string.IsNullOrWhiteSpace(fontFamily)) {
@@ -105,7 +106,7 @@ public static class PdfStandardFontMapper {
     }
 
     private static IEnumerable<string> EnumerateNormalizedFamilies(string fontFamily) {
-        foreach (string family in fontFamily.Split(FamilySeparators)) {
+        foreach (string family in OfficeFontFamilyParser.Parse(fontFamily, allowSemicolonSeparators: true)) {
             string normalized = NormalizeSingleFontFamily(family);
             if (normalized.Length > 0) {
                 yield return normalized;

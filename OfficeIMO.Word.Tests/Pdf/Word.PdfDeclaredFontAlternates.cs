@@ -95,11 +95,22 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         Assert.Equal(7.2D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
     }
 
-    [Fact]
-    public void DeclaredLiteralPrimaryIsNotReinterpretedAsACandidateList() {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void DeclaredLiteralPrimaryIsNotReinterpretedAsACandidateList(bool declaredAlternate, bool documentDefault) {
         const string literalPrimary = "OfficeIMO Declared, Literal";
         using WordDocument document = CreateDocument(FirstAlternate, literalPrimary);
-        AddFontOwner(document, "body", literalPrimary);
+        if (!declaredAlternate) document._wordprocessingDocument.MainDocumentPart!.FontTablePart!.Fonts!
+            .Elements<W.Font>().Last().RemoveAllChildren<W.AltName>();
+        if (documentDefault) {
+            document.Settings.FontFamily = literalPrimary;
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+                .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(literalPrimary);
+            document.AddParagraph("AAAA").FontSize = 12;
+        } else AddFontOwner(document, "body", literalPrimary);
         var fonts = CreateFonts().RegisterNamedFontFamily(Family(literalPrimary, 300));
         PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(fonts));
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -185,6 +196,71 @@ public sealed class WordPdfDeclaredFontAlternateTests {
     }
 
     [Theory]
+    [InlineData("alternate-default-slot")]
+    [InlineData("alternate-relocated-slot")]
+    [InlineData("inherited-relocated-slot")]
+    [InlineData("primary-relocated-slot")]
+    public void DeclaredAlternateReusesCallerEmbeddedFamilyBeforeLaterCandidates(string scenario) {
+        bool primary = scenario == "primary-relocated-slot";
+        bool inherited = scenario == "inherited-relocated-slot";
+        string sourceFamily = primary ? FirstAlternate : MissingFamily;
+        using WordDocument document = CreateDocument(primary ? "Courier" : FirstAlternate + ",Courier", sourceFamily);
+        if (inherited) {
+            document.Settings.FontFamily = sourceFamily;
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+                .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(sourceFamily);
+            document.AddParagraph("AAAA").FontSize = 12;
+        } else AddFontOwner(document, "body", sourceFamily);
+        PdfStandardFont slot = scenario == "alternate-default-slot" ? PdfStandardFont.Helvetica : PdfStandardFont.TimesRoman;
+        var caller = new PdfOptions().RegisterFontFamily(slot, Family(FirstAlternate, 300));
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(caller);
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(caller));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
+        Assert.Equal(4, word.Letters.Count);
+        Assert.All(word.Letters, letter => Assert.Contains("OfficeIMODeclaredFirst", letter.FontName, StringComparison.Ordinal));
+        Assert.Equal(3.6D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
+        var sourceWarnings = result.Warnings.Where(warning => warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Details.TryGetValue("fontFamily", out string? family) && family == sourceFamily).ToArray();
+        if (primary) Assert.Empty(sourceWarnings);
+        else Assert.Equal(FirstAlternate, Assert.Single(sourceWarnings).Details["resolvedFontFamily"]);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(caller));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DeclaredAlternateListKeepsNamedCandidateBeforeStandardFallback(bool documentDefault) {
+        using WordDocument document = CreateDocument(FirstAlternate + ",Courier");
+        if (documentDefault) {
+            document.Settings.FontFamily = MissingFamily;
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+                .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
+            document.AddParagraph("AAAA").FontSize = 12;
+        } else AddFontOwner(document, "body");
+        var caller = new PdfOptions().RegisterNamedFontFamily(Family(FirstAlternate, 300));
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(caller);
+
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(caller));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
+        Assert.Equal(4, word.Letters.Count);
+        Assert.All(word.Letters, letter => Assert.Contains("OfficeIMODeclaredFirst", letter.FontName, StringComparison.Ordinal));
+        Assert.Equal(3.6D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
+        var warning = Assert.Single(result.Warnings, warning => warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Details.TryGetValue("fontFamily", out string? family) && family == MissingFamily);
+        Assert.Equal(FirstAlternate, warning.Details["resolvedFontFamily"]);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(caller));
+    }
+
+    [Theory]
     [InlineData("empty-options", "Courier", 7.2D, true)]
     [InlineData("unrelated-mapping", "Courier", 7.2D, true)]
     [InlineData("explicit-default", "Times-Roman", 8.664D, false)]
@@ -261,6 +337,8 @@ public sealed class WordPdfDeclaredFontAlternateTests {
     };
     private static string CallerFontState(PdfOptions options) =>
         options.DefaultFont + "|" + options.HeaderFont + "|" + options.FooterFont + "|" +
+        string.Join(";", options.EmbeddedFonts.OrderBy(pair => pair.Key).Select(pair =>
+            pair.Key + ":" + pair.Value.FontName + ":" + Convert.ToBase64String(pair.Value.Data))) + "|" +
         string.Join(";", options.NamedFontFamilies.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair =>
             pair.Key + ":" + Convert.ToBase64String(pair.Value.Regular))) + "|" +
         string.Join(";", options.FontFamilySubstitutions.Select(substitution =>

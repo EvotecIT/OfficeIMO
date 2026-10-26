@@ -50,6 +50,59 @@ public sealed class RtfPdfNamedFontTests {
     }
 
     [Theory]
+    [InlineData("usual-slot-known-control")]
+    [InlineData("relocated-known")]
+    [InlineData("relocated-custom")]
+    [InlineData("literal-comma")]
+    public void CallerEmbeddedFamilyRetainsItsRegisteredSlotForNonDefaultRuns(string scenario) {
+        (string familyName, PdfCore.PdfStandardFont slot) = scenario switch {
+            "usual-slot-known-control" => ("Times New Roman", PdfCore.PdfStandardFont.TimesRoman),
+            "relocated-known" => ("Times New Roman", PdfCore.PdfStandardFont.Courier),
+            "relocated-custom" => ("Portable Registered", PdfCore.PdfStandardFont.TimesRoman),
+            "literal-comma" => ("Portable, Courier", PdfCore.PdfStandardFont.TimesRoman),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+        };
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.SetDefaultFont(document.AddFont("Helvetica"));
+        RtfRun run = document.AddParagraph().AddText("AAAA");
+        run.FontId = document.AddFont(familyName);
+        run.FontSize = 12;
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300,
+            Enumerable.Range(32, 95).ToArray());
+        var caller = new PdfCore.PdfOptions().RegisterFontFamily(slot,
+            new PdfCore.PdfEmbeddedFontFamily(familyName, font));
+        string resourceName = caller.EmbeddedFonts[slot].FontName!.Replace(" ", string.Empty).Replace(",", string.Empty);
+        var embeddedBefore = caller.EmbeddedFonts.ToDictionary(entry => entry.Key,
+            entry => new { entry.Value.FontName, Data = entry.Value.Data.ToArray() });
+        byte[] sourceBefore = document.ToBytes();
+
+        byte[] bytes = document.ToPdfDocumentResult(ConvertOptions(caller)).ToBytes();
+        using PdfPigDocument actual = PdfPigDocument.Open(bytes);
+        Assert.Equal(1, actual.NumberOfPages);
+        var letters = actual.GetPage(1).Letters;
+        Assert.Equal(4, letters.Count);
+        Assert.Equal("AAAA", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.All(letters, letter => {
+            Assert.EndsWith(resourceName, letter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(12D, letter.PointSize, 3);
+        });
+        var painted = PdfCore.PdfReadDocument.Open(bytes);
+        var spans = Assert.Single(painted.Pages).GetTextSpans();
+        var glyphs = spans.SelectMany(span => {
+            Assert.True(span.TryGetGlyphs(out IReadOnlyList<PdfCore.PdfTextGlyph> values));
+            return values;
+        }).ToArray();
+        Assert.Equal(4, glyphs.Length);
+        Assert.All(glyphs, glyph => Assert.Equal(3.6D, glyph.PaintedAdvance, 3));
+        Assert.Equal(sourceBefore, document.ToBytes());
+        Assert.Equal(embeddedBefore.Keys.OrderBy(key => key), caller.EmbeddedFonts.Keys.OrderBy(key => key));
+        foreach (var entry in embeddedBefore) {
+            Assert.Equal(entry.Value.FontName, caller.EmbeddedFonts[entry.Key].FontName);
+            Assert.Equal(entry.Value.Data, caller.EmbeddedFonts[entry.Key].Data);
+        }
+    }
+
+    [Theory]
     [InlineData(false, false, 5D, "Regular")]
     [InlineData(true, false, 8D, "Bold")]
     [InlineData(false, true, 6D, "Italic")]
@@ -168,13 +221,16 @@ public sealed class RtfPdfNamedFontTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void UnresolvedSecondaryFamilyUsesTheConfiguredDocumentDefault(bool explicitDefault) {
+    [InlineData(false, "plain")]
+    [InlineData(true, "plain")]
+    [InlineData(false, "literal-comma")]
+    [InlineData(true, "literal-comma")]
+    public void UnresolvedSecondaryFamilyUsesTheConfiguredDocumentDefault(bool explicitDefault, string scenario) {
         RtfDocument document = CreateDocument(out int sourceId);
         document.Settings.SetDefaultFont(sourceId);
         RtfRun run = document.AddParagraph().AddText("AB");
-        run.FontId = document.AddFont("Unavailable Secondary");
+        string unavailableFamily = scenario == "literal-comma" ? "Unavailable, Courier" : "Unavailable Secondary";
+        run.FontId = document.AddFont(unavailableFamily);
         run.FontSize = 10;
         PdfCore.PdfOptions caller = CreateOptions(Target, substitute: true);
         if (explicitDefault) caller.DefaultFont = PdfCore.PdfStandardFont.Courier;
@@ -188,7 +244,7 @@ public sealed class RtfPdfNamedFontTests {
         Assert.Equal(explicitDefault ? 6D : 5D,
             word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
-            warning => warning.Details.TryGetValue("fontFamily", out string? source) && source == "Unavailable Secondary");
+            warning => warning.Details.TryGetValue("fontFamily", out string? source) && source == unavailableFamily);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         if (explicitDefault) Assert.Equal("Courier", warning.Details["fallbackSlot"]);
         else Assert.Equal(Target, warning.Details["resolvedFontFamily"]);

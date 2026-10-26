@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (TryGetFontSlot(familyName, out PdfCore.PdfStandardFont fontSlot) ||
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out fontSlot)) {
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(OfficeFontFamilyParser.Quote(familyName!), out fontSlot)) {
                     return TryResolveSlotLineSpacingRatio(_resolvedOptions, fontSlot, out ratio);
                 }
 

@@ -246,7 +246,7 @@ internal static partial class RtfPdfConverter {
         out PdfFontBinding binding) {
         string literalFamily = OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName);
         if (pdfOptions.TryResolveNamedOfficeFontFamily(literalFamily, out string? namedFamily) && namedFamily != null) {
-            PdfCore.PdfStandardFont fallback = PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mapped)
+            PdfCore.PdfStandardFont fallback = PdfCore.PdfStandardFontMapper.TryMapFontFamily(literalFamily, out PdfCore.PdfStandardFont mapped)
                 ? PdfCore.PdfStandardFontMapper.GetFontFamily(mapped) : pdfOptions.DefaultFont;
             binding = new PdfFontBinding(fallback, namedFamily);
             if (pdfOptions.TryResolveFontFamilySubstitution(literalFamily, out _)) {
@@ -277,7 +277,12 @@ internal static partial class RtfPdfConverter {
         bool allowSystemFontEmbedding,
         RtfToPdfOptions options,
         out PdfCore.PdfStandardFont fontSlot) {
-        if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+        if (pdfOptions.TryResolveEmbeddedFontFamilySlot(familyName, out fontSlot)) {
+            registeredFontSlots.Add(fontSlot);
+            return true;
+        }
+        if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(
+                OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName), out PdfCore.PdfStandardFont mappedFont)) {
             PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
             if (!registeredFontSlots.Contains(mappedFamily)) {
                 pdfOptions.RegisterOfficeFontFamily(familyName, mappedFamily, allowSystemFontEmbedding);
