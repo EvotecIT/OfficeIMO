@@ -7,7 +7,14 @@ internal static partial class RtfSemanticReader {
         private bool TryApplySectionControl(RtfControlWord control, CharacterState state) {
             switch (control.Name) {
                 case "sect":
-                    FlushParagraphIfNeeded(force: false, state);
+                    // An otherwise empty body section still owns one paragraph.
+                    // A populated section's terminator does not add another line
+                    // after an explicit par, even after paragraph-format controls.
+                    bool needsEmptyBodyParagraph = _currentSection?.Blocks.Count == 0 &&
+                        _currentHeaderFooter == null && _currentNote == null && _currentShape == null &&
+                        _inlineCaptureDepth == 0 && !_currentParagraphIsInTable &&
+                        _currentRow == null && _nestedTableContexts.Count == 0;
+                    FlushParagraphIfNeeded(force: needsEmptyBodyParagraph, state);
                     _hasSemanticSections = true;
                     CompleteCurrentSection();
                     return true;

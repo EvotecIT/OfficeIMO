@@ -77,6 +77,114 @@ public class RtfContinuousRunningStoryTests {
         Assert.DoesNotContain(converted.Result.Warnings, warning => warning.Code == "ContinuousSectionPageSettingsFlattened");
     }
 
+    [Theory]
+    [InlineData(@"\linex0")]
+    [InlineData(@"\linemod0\linex360\linestarts7\linecont")]
+    public void ImportedInactiveLineNumberSettingsDoNotBlockContinuousHeaders(string lineNumberSettings) {
+        // Word writes a line-number distance even when numbering is inactive.
+        // These syntax controls must survive while the visible header follows
+        // the same physical-page ownership as an authored document model.
+        string source = ImportedContinuousInput(lineNumberSettings,
+            @"\pard\fs20\sl-240\slmult0 FIRSTBODY\par\sect", bodyPageBreak: true);
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        RtfReadResult read = RtfDocument.LoadResult(bytes);
+        Assert.Equal(2, read.Document.Sections.Count);
+        Assert.All(read.Document.Sections, section => {
+            Assert.True(section.LineNumbering.HasAnyValue);
+            Assert.Equal(0, section.LineNumbering.CountBy.GetValueOrDefault());
+        });
+
+        Converted converted = Convert(read.Document, "rtf-continuous-imported-inactive-numbering");
+
+        Assert.Equal(2, converted.Pages.Length);
+        Assert.Contains("HEADERA", converted.Pages[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("HEADERB", converted.Pages[0], StringComparison.Ordinal);
+        Assert.Contains("HEADERB", converted.Pages[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("HEADERA", converted.Pages[1], StringComparison.Ordinal);
+        AssertBodyOnce(converted.Pages, "FIRSTBODY", "BEFOREBREAK", "FOLLOWINGPAGE");
+        Assert.DoesNotContain(converted.Result.Warnings, warning => warning.Code == "ContinuousSectionPageSettingsFlattened");
+        Assert.Equal(bytes, read.ToBytesLossless());
+    }
+
+    [Fact]
+    public void ImportedEmptySectionTerminatingParagraphKeepsItsLineAndInitialPageHeader() {
+        // Native Word's own RTF terminates this authored empty paragraph
+        // with a grouped section control, without an intervening par.
+        string source = ImportedContinuousInput(@"\linex0",
+            @"\pard\fs20\sl-240\slmult0 {\b0\sect}", bodyPageBreak: false);
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        RtfReadResult read = RtfDocument.LoadResult(bytes);
+        RtfParagraph empty = Assert.IsType<RtfParagraph>(Assert.Single(read.Document.Sections[0].Blocks));
+        Assert.Empty(empty.Inlines);
+        Assert.Equal(-240, empty.LineSpacingTwips);
+        Assert.False(empty.LineSpacingMultiple);
+
+        Converted converted = Convert(read.Document, "rtf-continuous-imported-empty-section");
+
+        string page = Assert.Single(converted.Pages);
+        Assert.Contains("HEADERA", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("HEADERB", page, StringComparison.Ordinal);
+        Assert.Contains("FOOTERFIXED", page, StringComparison.Ordinal);
+        AssertBodyOnce(converted.Pages, "BEFOREBREAK", "FOLLOWINGPAGE");
+        Assert.Equal(bytes, read.ToBytesLossless());
+    }
+
+    [Theory]
+    [InlineData(@"\par\sect", 1, 12D)]
+    [InlineData(@"\par\pard\sl-480\slmult0{\sect}", 1, 12D)]
+    [InlineData(@"\par\par\sect", 2, 24D)]
+    public void ImportedSectionBoundaryPreservesNativeParagraphAdvance(
+        string boundary, int firstSectionParagraphs, double expectedAdvance) {
+        // Independent native RTF exports establish that a section marker
+        // does not add a second paragraph after par, even after pard. An
+        // explicit additional par retains its own source-defined line.
+        string source = ImportedContinuousInput(@"\linex0",
+            @"\pard\fs20\sl-240\slmult0 FIRSTBODY" + boundary, bodyPageBreak: false);
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        RtfReadResult read = RtfDocument.LoadResult(bytes);
+        Assert.Equal(firstSectionParagraphs, read.Document.Sections[0].Blocks.Count);
+
+        Converted converted = Convert(read.Document, "rtf-continuous-imported-section-boundary");
+
+        Assert.Single(converted.Pages);
+        AssertBodyOnce(converted.Pages, "FIRSTBODY", "BEFOREBREAK", "FOLLOWINGPAGE");
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(converted.Bytes);
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        double first = Assert.Single(words, word => word.Text == "FIRSTBODY").Letters[0].StartBaseLine.Y;
+        double second = Assert.Single(words, word => word.Text == "BEFOREBREAK").Letters[0].StartBaseLine.Y;
+        Assert.Equal(expectedAdvance, first - second, 3);
+        Assert.Equal(bytes, read.ToBytesLossless());
+    }
+
+    [Fact]
+    public void ImportedEmptyMiddleSectionRetainsItsParagraphWithoutPaintingItsPendingHeader() {
+        // The native e04 control reserves one exact line for a genuinely
+        // empty middle section. It keeps header A on the shared page.
+        string source = ImportedContinuousInput(@"\linex0",
+            @"\pard\fs20\sl-240\slmult0 FIRSTBODY\par\sect\sectd\sbknone\linex0" +
+            @"{\header\pard\fs20 HEADERMID\par}\sect", bodyPageBreak: false);
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        RtfReadResult read = RtfDocument.LoadResult(bytes);
+        Assert.Equal(3, read.Document.Sections.Count);
+        RtfParagraph empty = Assert.IsType<RtfParagraph>(Assert.Single(read.Document.Sections[1].Blocks));
+        Assert.Empty(empty.Inlines);
+        Assert.Equal(-240, empty.LineSpacingTwips);
+
+        Converted converted = Convert(read.Document, "rtf-continuous-imported-empty-middle-section");
+
+        string page = Assert.Single(converted.Pages);
+        Assert.Contains("HEADERA", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("HEADERMID", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("HEADERB", page, StringComparison.Ordinal);
+        AssertBodyOnce(converted.Pages, "FIRSTBODY", "BEFOREBREAK", "FOLLOWINGPAGE");
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(converted.Bytes);
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        double first = Assert.Single(words, word => word.Text == "FIRSTBODY").Letters[0].StartBaseLine.Y;
+        double second = Assert.Single(words, word => word.Text == "BEFOREBREAK").Letters[0].StartBaseLine.Y;
+        Assert.Equal(24D, first - second, 3);
+        Assert.Equal(bytes, read.ToBytesLossless());
+    }
+
     [Fact]
     public void ContinuousHeaderReplacementWorksInsideALaterPageStartingSection() {
         RtfDocument source = CreateDocument(out RtfSection first);
@@ -156,6 +264,7 @@ public class RtfContinuousRunningStoryTests {
     [InlineData("footer", "Footers")]
     [InlineData("first", "StorySelection")]
     [InlineData("note", "Headers")]
+    [InlineData("line-numbering", "Headers")]
     public void UnsupportedContinuousStoryReplacementRetainsItsWarning(string unsupported, string expectedProperty) {
         RtfDocument source = CreateDocument(out RtfSection first);
         RtfParagraph firstBody = first.AddParagraph("FIRSTBODY");
@@ -166,7 +275,8 @@ public class RtfContinuousRunningStoryTests {
         else if (unsupported == "first") {
             continuous.PageSetup.DifferentFirstPageHeaderFooter = true;
             continuous.AddHeader(RtfHeaderFooterKind.FirstHeader).AddParagraph("FIRSTVARIANT");
-        } else firstBody.AddFootnote("1", "NOTEBODY");
+        } else if (unsupported == "line-numbering") first.LineNumbering.Set(countBy: 2);
+        else firstBody.AddFootnote("1", "NOTEBODY");
 
         Converted converted = Convert(source, "rtf-continuous-unsupported-" + unsupported);
 
@@ -193,6 +303,14 @@ public class RtfContinuousRunningStoryTests {
         first.AddFooter().AddParagraph("FOOTERFIXED");
         return source;
     }
+
+    private static string ImportedContinuousInput(string lineNumberSettings, string firstBody, bool bodyPageBreak) =>
+        @"{\rtf1\ansi\deff0{\fonttbl{\f0\fswiss Arial;}}" +
+        @"\paperw4800\paperh6400\margl480\margr480\margt640\margb640\headery360\footery360" +
+        @"\sectd" + lineNumberSettings + @"{\header\pard\fs20 HEADERA\par}{\footer\pard\fs20 FOOTERFIXED\par}" +
+        firstBody + @"\sectd\sbknone" + lineNumberSettings +
+        @"{\header\pard\fs20 HEADERB\par}\pard\fs20\sl-240\slmult0 BEFOREBREAK\par" +
+        (bodyPageBreak ? @"\pagebb " : " ") + @"FOLLOWINGPAGE\par}";
 
     private static Converted Convert(RtfDocument source, string artifactName) {
         string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });

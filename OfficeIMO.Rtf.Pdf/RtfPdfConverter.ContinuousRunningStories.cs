@@ -33,7 +33,9 @@ internal static partial class RtfPdfConverter {
             section.Columns.Count == 0 && !section.ColumnSeparator &&
             section.Direction != RtfTextDirection.RightToLeft &&
             section.VerticalAlignment is null or RtfSectionVerticalAlignment.Top &&
-            !section.LineNumbering.HasAnyValue &&
+            // A stored distance/start/restart does not enable line numbers.
+            // Word commonly writes linex0 even while numbering is inactive.
+            section.LineNumbering.CountBy is null or 0 &&
             !document.GetPageSetup(section).DifferentFirstPageHeaderFooter) &&
         document.Blocks.All(block => block is RtfParagraph paragraph &&
             !document.GetParagraphFormatting(paragraph).Frame.HasAnyValue &&
