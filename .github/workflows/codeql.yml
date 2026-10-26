@@ -45,7 +45,7 @@ jobs:
 
       - name: Setup .NET SDK
         if: matrix.build-mode == 'manual'
-        uses: EvotecIT/PSPublishModule/.github/actions/setup-dotnet@6d2eef9cb69e2d93f89e7f22e9c39fa294260d19
+        uses: EvotecIT/.github/actions/setup-dotnet@ec7a94defe85925f23fab68a44b4659ca71c3497
         with:
           dotnet-version: |
             8.0.426
