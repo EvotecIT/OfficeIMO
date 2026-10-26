@@ -193,11 +193,12 @@ public sealed partial class PdfOptions {
                 return _renderingProfileOwnedNamedFamilyNames?.Contains(
                     directFamily.FamilyName) != true;
             }
-            if (HasRenderingProfileFamilyPlanner(candidate)) {
+            string literalCandidate = OfficeFontFamilyParser.Quote(candidate);
+            if (HasRenderingProfileFamilyPlanner(literalCandidate)) {
                 return false;
             }
             if (TryGetFontFamilySubstitution(
-                    candidate,
+                    literalCandidate,
                     out PdfFontFamilySubstitution? substitution)
                 && substitution != null
                 && TryGetNamedFontFamilyDirect(
