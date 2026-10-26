@@ -75,7 +75,10 @@ namespace OfficeIMO.Word.Pdf {
                 !pdfOptions.HasExplicitDefaultFont &&
                 !pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont) &&
                 EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies).Any(family =>
-                    pdfOptions.TryResolveNamedOfficeFontFamily(family, out _));
+                    nativeFontMap.TryGetNamedFontFamily(family, out _) || nativeFontMap.TryGetFontSlot(family, out _) ||
+                    pdfOptions.TryResolveNamedOfficeFontFamily(family, out _) ||
+                    nativeFontMap.GetDeclaredFontAlternates(family).Any(alternate =>
+                        pdfOptions.TryResolveNamedOfficeFontFamily(OfficeFontFamilyParser.Quote(alternate), out _)));
             if (hasConfiguredPdfOptions &&
                 !appliedNativeDefaultFont &&
                 !hasResolvedDocumentDefaultSubstitution &&
@@ -172,6 +175,10 @@ namespace OfficeIMO.Word.Pdf {
                 // Keep an available named source family on the run-resolution path.
                 // Mapping it to a standard slot would suppress inherited named text.
                 if (pdfOptions.TryResolveNamedOfficeFontFamily(family, out _)) {
+                    return false;
+                }
+                if (!string.IsNullOrWhiteSpace(family) && TryRegisterNativeDeclaredFontCandidate(
+                        family!, pdfOptions, allowDocumentFontEmbedding, nativeFontMap)) {
                     return false;
                 }
                 if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: allowDocumentFontEmbedding)) {
@@ -510,6 +517,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (TryRegisterNativeDeclaredFontCandidate(trimmedFamilyName, pdfOptions, allowSystemFontEmbedding, nativeFontMap)) {
+                return;
+            }
+
             if (allowSystemFontEmbedding &&
                 pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out string? registeredFamilyName) &&
                 registeredFamilyName != null) {
@@ -572,6 +583,43 @@ namespace OfficeIMO.Word.Pdf {
                 fallback,
                 GetEmbeddedFontFamilyName(pdfOptions, fallback),
                 sourceFontEmbeddingAllowed: allowSystemFontEmbedding);
+        }
+
+        /// <summary>Tries exact declared font names before the shared implicit substitution policy.</summary>
+        private static bool TryRegisterNativeDeclaredFontCandidate(string sourceFamily, PdfCore.PdfOptions pdfOptions,
+            bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
+            IReadOnlyList<string> alternates = nativeFontMap.GetDeclaredFontAlternates(sourceFamily);
+            if (alternates.Count == 0) return false;
+            foreach (string candidate in new[] { sourceFamily }.Concat(alternates)) {
+                string quoted = OfficeFontFamilyParser.Quote(candidate);
+                string? named = null;
+                if (pdfOptions.HasRenderingProfileFamilyPlanner(candidate)) named = candidate;
+                else if (pdfOptions.TryResolveNamedOfficeFontFamily(quoted, out string? registered)) named = registered;
+                else if (allowSystemFontEmbedding &&
+                         PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfCore.PdfEmbeddedFontFamily? installed) &&
+                         installed != null && pdfOptions.TryRegisterNamedFontFamily(installed)) named = installed.FamilyName;
+                if (named != null) {
+                    nativeFontMap.RegisterNamed(sourceFamily, named);
+                    if (!string.Equals(NormalizeNativeFontFamily(sourceFamily), NormalizeNativeFontFamily(named),
+                            StringComparison.OrdinalIgnoreCase)) {
+                        nativeFontMap.ReportFontSubstitution(pdfOptions, sourceFamily, null, named,
+                            sourceFontEmbeddingAllowed: allowSystemFontEmbedding);
+                    }
+                    return true;
+                }
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(candidate, out PdfCore.PdfStandardFont standard) &&
+                    PdfCore.PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(candidate, standard) &&
+                    (!pdfOptions.HasEmbeddedStandardFontFamily(standard) || EmbeddedFontSlotMatchesFamily(pdfOptions, standard, candidate))) {
+                    nativeFontMap.Register(sourceFamily, standard);
+                    if (!string.Equals(NormalizeNativeFontFamily(sourceFamily), NormalizeNativeFontFamily(candidate),
+                            StringComparison.OrdinalIgnoreCase)) {
+                        nativeFontMap.ReportFontSubstitution(pdfOptions, sourceFamily, standard, candidate,
+                            sourceFontEmbeddingAllowed: allowSystemFontEmbedding);
+                    }
+                    return true;
+                }
+            }
+            return false;
         }
 
         internal static bool EmbeddedFontSlotMatchesFamily(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot, string familyName) {

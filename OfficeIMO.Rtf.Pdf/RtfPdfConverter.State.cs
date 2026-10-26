@@ -1,15 +1,26 @@
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
+    private readonly struct PdfFontBinding {
+        public PdfFontBinding(OfficeIMO.Pdf.PdfStandardFont font, string? namedFamily = null) {
+            Font = font;
+            NamedFamily = namedFamily;
+        }
+        public OfficeIMO.Pdf.PdfStandardFont Font { get; }
+        public string? NamedFamily { get; }
+    }
+
     private sealed class PdfRenderState {
-        private readonly IReadOnlyDictionary<int, OfficeIMO.Pdf.PdfStandardFont> _fontSlots;
+        private readonly IReadOnlyDictionary<int, PdfFontBinding> _fontSlots;
+        private readonly int? _defaultFontId;
         private readonly RtfListNumbering _numbering;
         private readonly List<PdfNoteReference> _noteReferences = new List<PdfNoteReference>();
 
-        public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, OfficeIMO.Pdf.PdfStandardFont> fontSlots,
+        public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, PdfFontBinding> fontSlots,
             OfficeIMO.Pdf.PdfOptions fontOptions) {
             _numbering = new RtfListNumbering(document);
             _fontSlots = fontSlots;
+            _defaultFontId = document.Settings.DefaultFontId;
             FontOptions = fontOptions;
         }
 
@@ -35,12 +46,28 @@ internal static partial class RtfPdfConverter {
             new PdfRenderState(document, _fontSlots, fontOptions);
 
         public OfficeIMO.Pdf.PdfStandardFont? ResolveFont(int? fontId, bool bold, bool italic) {
-            if (!fontId.HasValue || !_fontSlots.TryGetValue(fontId.Value, out OfficeIMO.Pdf.PdfStandardFont font)) {
+            if (!TryResolveFontBinding(fontId, out PdfFontBinding binding)) {
                 return null;
             }
 
-            return OfficeIMO.Pdf.PdfStandardFontMapper.GetStyledFont(font, bold, italic);
+            return OfficeIMO.Pdf.PdfStandardFontMapper.GetStyledFont(binding.Font, bold, italic);
         }
+
+        public string? ResolveFontFamily(int? fontId) {
+            return TryResolveFontBinding(fontId, out PdfFontBinding binding) && binding.NamedFamily != null
+                ? OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(binding.NamedFamily) : null;
+        }
+
+        private bool TryResolveFontBinding(int? fontId, out PdfFontBinding binding) {
+            if (fontId.HasValue && _fontSlots.TryGetValue(fontId.Value, out binding)) return true;
+            if (_defaultFontId.HasValue && _fontSlots.TryGetValue(_defaultFontId.Value, out binding)) return true;
+            binding = default;
+            return false;
+        }
+
+        public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, double? fontSize = null) =>
+            new OfficeIMO.Pdf.PdfTextRun(text, bold: bold, fontSize: fontSize,
+                font: ResolveFont(null, bold, italic: false), fontFamily: ResolveFontFamily(null));
 
         public void AddNote(RtfNote note, string marker) {
             _noteReferences.Add(new PdfNoteReference(note, marker, _noteReferences.Count + 1));

@@ -140,6 +140,10 @@ Run kerning (`w:kern`) inherits through document, paragraph, character, and tabl
 
 Balanced conversion embeds subsets of installed document fonts by default. Word, Excel and PowerPoint use the same policy. On macOS, discovery includes fonts supplied by installed Microsoft Office applications. Missing Calibri and Cambria prefer Carlito and Caladea; Arial, Times New Roman and Courier New prefer the corresponding Liberation family. Aptos uses a close installed sans-serif alternative. Further installed alternatives precede the final PDF standard-font fallback. Substitution diagnostics name the requested and selected families; compatible-family selection expresses intent, not proof of identical font-version metrics.
 
+The Word font table can declare ordered alternate names through `w:altName`. When the requested family is unavailable, conversion tries its available declared alternatives before the general substitution policy. Explicit caller mappings and an available primary family retain precedence. The report keeps the original requested family and identifies the selected replacement.
+
+For repeatable Windows/Linux typography, supply the same font files through [`PdfOptions` named families and substitutions](../OfficeIMO.Pdf/README.md#supply-document-font-families). Register every family needed by the document, including the required bold and italic faces, and pass those options through `WordToPdfOptions.PdfOptions`. A missing font can change title widths, line wrapping, header clearance and page count even when an image anchor or right-aligned tab remains at the same position.
+
 The conversion report's `font-embedding-cost` entries record each emitted font program's original, subset and compressed stream sizes. These are font-program payload bytes; PDF dictionaries and character maps add further overhead. No font files are bundled with this package.
 
 For host-independent conversion, provide a fixed rendering profile or select the portable policy:

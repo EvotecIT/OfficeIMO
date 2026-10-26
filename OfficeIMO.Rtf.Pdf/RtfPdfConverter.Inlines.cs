@@ -56,11 +56,11 @@ internal static partial class RtfPdfConverter {
                     break;
                 case RtfObject rtfObject:
                     AddConversionWarning(options, "ObjectFlattened", "Paragraph/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);
-                    AppendPlainText(rtfObject.ToPlainText(), pendingRuns);
+                    AppendPlainText(rtfObject.ToPlainText(), pendingRuns, state);
                     break;
                 case RtfShape shape:
                     AddConversionWarning(options, "ShapeFlattened", "Paragraph/Shape", "RTF shape was flattened to its visible text result.", RtfConversionAction.Flattened);
-                    AppendPlainText(shape.ToPlainText(), pendingRuns);
+                    AppendPlainText(shape.ToPlainText(), pendingRuns, state);
                     break;
                 case RtfBookmarkMarker marker when marker.Kind == RtfBookmarkMarkerKind.Start:
                     FlushParagraph(document, paragraph, pdf, pendingRuns, align, state);
@@ -110,7 +110,8 @@ internal static partial class RtfPdfConverter {
                 UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
             });
             strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
-                fontSize: inherited.FontSize, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic));
+                fontSize: inherited.FontSize, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
+                fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
         strut.IsLineBoxStrut = true;
         if (strut.FontSize is double sourceSize && sourceSize > 0D &&
@@ -171,11 +172,11 @@ internal static partial class RtfPdfConverter {
                     break;
                 case RtfObject rtfObject:
                     AddConversionWarning(options, "ObjectFlattened", "Inline/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);
-                    AppendPlainText(rtfObject.ToPlainText(), runs);
+                    AppendPlainText(rtfObject.ToPlainText(), runs, state);
                     break;
                 case RtfShape shape:
                     AddConversionWarning(options, "ShapeFlattened", "Inline/Shape", "RTF shape was flattened to its visible text result.", RtfConversionAction.Flattened);
-                    AppendPlainText(shape.ToPlainText(), runs);
+                    AppendPlainText(shape.ToPlainText(), runs, state);
                     break;
             }
         }
@@ -222,6 +223,7 @@ internal static partial class RtfPdfConverter {
             strike: run.Strike || run.DoubleStrike,
             fontSize: run.FontSize,
             font: font,
+            fontFamily: state.ResolveFontFamily(run.FontId),
             linkUri: linkUri,
             linkContents: linkContents,
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
@@ -278,9 +280,9 @@ internal static partial class RtfPdfConverter {
         return field.HyperlinkField!.SubAddress;
     }
 
-    private static void AppendPlainText(string text, List<PdfCore.PdfTextRun> runs) {
+    private static void AppendPlainText(string text, List<PdfCore.PdfTextRun> runs, PdfRenderState state) {
         if (!string.IsNullOrEmpty(text)) {
-            runs.Add(PdfCore.PdfTextRun.Normal(text));
+            runs.Add(state.CreateDefaultRun(text));
         }
     }
 
@@ -290,7 +292,7 @@ internal static partial class RtfPdfConverter {
             state.AddNote(generatedText.Note, text);
         }
 
-        AppendPlainText(text, runs);
+        AppendPlainText(text, runs, state);
     }
 
     private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
@@ -299,7 +301,7 @@ internal static partial class RtfPdfConverter {
         if (!marker.IsNumberFormatSupported) AddConversionWarning(options, "ListNumberFormatFlattened", "Paragraph/List", "The requested numbering format was represented by decimal marker text.", RtfConversionAction.Flattened);
         if (marker.Formatting.Level.PictureIndex.HasValue) AddConversionWarning(options, "ListPictureFlattened", "Paragraph/List", "The picture bullet was represented by its text marker.", RtfConversionAction.Flattened);
         if (marker.Text.Length > 0) {
-            runs.Add(PdfCore.PdfTextRun.Normal(marker.Text + marker.Separator));
+            runs.Add(state.CreateDefaultRun(marker.Text + marker.Separator));
         }
     }
 }

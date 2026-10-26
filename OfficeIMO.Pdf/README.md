@@ -2862,6 +2862,28 @@ ICC profile. Each accepted fixup is applied to the inspected PDF snapshot and
 the result is reopened for a new engine inspection. A qualified external
 validator is still required for a PDF/X conformance claim.
 
+### Supply document font families
+
+Applications can supply a font family independently of the host's installed fonts. Provide every face needed by the document, then register any source-family replacement explicitly:
+
+```csharp
+using OfficeIMO.Pdf;
+
+var fonts = new PdfOptions().RegisterNamedFontFamily(
+    PdfEmbeddedFontFamily.FromFiles("Carlito",
+        "Fonts/Carlito-Regular.ttf",
+        "Fonts/Carlito-Bold.ttf",
+        "Fonts/Carlito-Italic.ttf",
+        "Fonts/Carlito-BoldItalic.ttf"));
+
+fonts.RegisterFontFamilySubstitution("Calibri", "Carlito",
+    PdfFontFamilySubstitutionImpact.LayoutSensitive);
+```
+
+Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfToPdfOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
+
+These files are supplied by the application and are not bundled with the PDF package. Use fonts whose licensing permits the intended embedding and distribution. `LayoutSensitive` records that replacement can affect layout. `Compatible` expresses the caller's compatibility intent; registration does not verify identical glyph advances, line metrics or pagination for the source and replacement font versions. Inspect the conversion report and representative output when choosing a substitute.
+
 ### Choose converter-friendly text fallbacks
 
 ```csharp

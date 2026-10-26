@@ -10,14 +10,34 @@ namespace OfficeIMO.Word.Pdf {
             private readonly Dictionary<string, PdfCore.PdfStandardFont> _fontSlots = new(StringComparer.OrdinalIgnoreCase);
             private readonly Dictionary<string, string> _namedFontFamilies = new(StringComparer.OrdinalIgnoreCase);
             private readonly HashSet<string> _reportedFontSubstitution = new(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, IReadOnlyList<string>> _declaredFontAlternates = new(StringComparer.OrdinalIgnoreCase);
             private readonly PdfCore.PdfConversionReport? _report;
             private PdfCore.PdfOptions? _resolvedOptions;
 
             public NativeFontMap() : this(null) { }
 
-            public NativeFontMap(PdfCore.PdfConversionReport? report) {
+            public NativeFontMap(PdfCore.PdfConversionReport? report, WordDocument? document = null) {
                 _report = report;
+                if (document?._wordprocessingDocument?.MainDocumentPart?.FontTablePart?.Fonts is W.Fonts fonts) {
+                    foreach (W.Font font in fonts.Elements<W.Font>()) {
+                        string? primary = font.Name?.Value;
+                        string? alternateNames = font.GetFirstChild<W.AltName>()?.Val?.Value;
+                        if (string.IsNullOrWhiteSpace(primary) || string.IsNullOrWhiteSpace(alternateNames)) continue;
+                        string key = NormalizeNativeFontFamily(primary!);
+                        if (_declaredFontAlternates.ContainsKey(key)) continue;
+                        List<string> alternates = OfficeFontFamilyParser.Parse(alternateNames,
+                            maximumCandidates: OfficeFontFamilyParser.DefaultMaximumCandidates - 1);
+                        alternates.RemoveAll(alternate => string.Equals(NormalizeNativeFontFamily(alternate), key,
+                            StringComparison.OrdinalIgnoreCase));
+                        if (alternates.Count > 0) _declaredFontAlternates[key] = alternates;
+                    }
+                }
             }
+
+            public IReadOnlyList<string> GetDeclaredFontAlternates(string? familyName) =>
+                !string.IsNullOrWhiteSpace(familyName) &&
+                _declaredFontAlternates.TryGetValue(NormalizeNativeFontFamily(familyName!), out IReadOnlyList<string>? alternates)
+                    ? alternates : Array.Empty<string>();
 
             public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
 
@@ -84,8 +104,12 @@ namespace OfficeIMO.Word.Pdf {
 
             public bool TryGetNamedFontFamily(string? familyName, out string? registeredFamilyName) {
                 registeredFamilyName = null;
-                return !string.IsNullOrWhiteSpace(familyName) &&
-                       _namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out registeredFamilyName);
+                if (string.IsNullOrWhiteSpace(familyName) ||
+                    !_namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out string? rawFamilyName)) return false;
+                // PDF font-family properties accept lists; a resolved document
+                // family remains one literal name even when it contains a comma.
+                registeredFamilyName = OfficeFontFamilyParser.Quote(rawFamilyName);
+                return true;
             }
 
             public bool TryResolveLineSpacingRatio(string? familyName, out double ratio) {
@@ -94,7 +118,7 @@ namespace OfficeIMO.Word.Pdf {
                     return false;
                 }
 
-                if (TryGetNamedFontFamily(familyName, out string? registeredFamilyName) &&
+                if (_namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out string? registeredFamilyName) &&
                     TryResolveNamedLineSpacingRatio(_resolvedOptions, registeredFamilyName, out ratio)) {
                     return true;
                 }
@@ -131,7 +155,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (!options.TryGetRenderingProfileFamilyFallbacks(
-                        registeredFamilyName,
+                        OfficeFontFamilyParser.Quote(registeredFamilyName!),
                         out PdfCore.PdfEmbeddedFontFallbackSet? planner)
                     || planner == null) {
                     return false;

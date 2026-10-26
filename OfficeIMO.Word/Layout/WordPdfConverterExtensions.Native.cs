@@ -198,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
             cancellationToken.ThrowIfCancellationRequested();
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
-            var nativeFontMap = new NativeFontMap(options?.Report);
+            var nativeFontMap = new NativeFontMap(options?.Report, document);
             Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
                 WordDocumentTraversal.BuildResolvedListMarkers(document, cancellationToken);
             using IDisposable listInfoScope = WordDocumentTraversal.UseResolvedListMarkers(document, resolvedMarkers);
