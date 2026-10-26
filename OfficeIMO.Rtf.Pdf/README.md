@@ -42,6 +42,8 @@ Rich running stories are PDF pagination artifacts. Read them with `PdfReadDocume
 
 In continuous, single-column paragraph flow, a change between existing ordinary default headers retains the current physical page's header and selects the resolved replacement on the next physical page. The new header uses its source fonts and reserves its own measured body space. This profile requires unchanged page geometry, running-story distances, page numbering and footer, without active line numbering, first/even variants, notes, tables, paragraph frames or complex body/story content. Other continuous-story changes retain the reported approximation path.
 
+An empty body section retains its implicit RTF paragraph in both direct model conversion and saved/reloaded input. Rendering that paragraph leaves the source section's block collection unchanged.
+
 Running content is bounded: page and column controls cannot create new pages, note bodies are not appended from a running story, and fields use cached result text rather than per-page evaluation. Unsupported controls and source formatting retain operation diagnostics.
 
 ## Import PDF with diagnostics

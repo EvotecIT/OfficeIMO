@@ -39,16 +39,22 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void RenderSectionBlocks(RtfDocument document, RtfSection section, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        // A section terminator owns an implicit paragraph even when an
+        // authored model has no explicit body blocks. Resolve that paragraph
+        // through normal RTF defaults without changing the source collection.
+        IEnumerable<IRtfBlock> blocks = section.Blocks.Count == 0
+            ? new[] { new RtfParagraph { UseParsedParagraphDefaults = true } }
+            : section.Blocks;
         int count = section.ColumnCount ?? Math.Max(1, section.Columns.Count);
         if (count <= 1) {
-            RenderBlocks(document, section.Blocks, pdf, options, state);
+            RenderBlocks(document, blocks, pdf, options, state);
             return;
         }
         if (section.Columns.Count > 0 || count > 12 || section.ColumnSpaceTwips < 0 ||
             (section.Direction ?? document.Settings.Direction) == RtfTextDirection.RightToLeft) {
             AddConversionWarning(options, "SectionColumnsFlattened", "Section/Columns",
                 "Unequal, right-to-left, or unsupported RTF section columns were flattened to ordinary flow.", RtfConversionAction.Flattened);
-            RenderBlocks(document, section.Blocks, pdf, options, state);
+            RenderBlocks(document, blocks, pdf, options, state);
             return;
         }
         var columns = new PdfCore.PdfMultiColumnOptions {
@@ -60,7 +66,7 @@ internal static partial class RtfPdfConverter {
         pdf.Columns(_ => {
             state.InColumns = true;
             try {
-                RenderBlocks(document, section.Blocks, pdf, options, state);
+                RenderBlocks(document, blocks, pdf, options, state);
             } finally {
                 state.InColumns = false;
             }
