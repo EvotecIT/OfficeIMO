@@ -62,8 +62,11 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
+        ApplyPageSetup(document, section, page.Options, inheritedOptions);
+    }
+
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfOptions options, PdfCore.PdfOptions inheritedOptions) {
         RtfPageSetup setup = document.GetPageSetup(section);
-        PdfCore.PdfOptions options = page.Options;
         options.PageWidth = inheritedOptions.PageWidth;
         options.PageHeight = inheritedOptions.PageHeight;
         options.MarginLeft = inheritedOptions.MarginLeft;

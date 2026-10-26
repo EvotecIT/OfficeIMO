@@ -15,7 +15,7 @@ internal static partial class RtfPdfConverter {
         var familySlots = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
         var unresolvedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var systemFontFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options);
+        HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options, pdfOptions);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
         if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
         if (pdfOptions.HasExplicitHeaderFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.HeaderFont);
@@ -114,7 +114,8 @@ internal static partial class RtfPdfConverter {
         return false;
     }
 
-    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options) {
+    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options, PdfCore.PdfOptions pdfOptions) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         var fontIds = new HashSet<int>();
         if (document.Settings.DefaultFontId.HasValue) {
             fontIds.Add(document.Settings.DefaultFontId.Value);
@@ -139,9 +140,26 @@ internal static partial class RtfPdfConverter {
             if (document.Sections.Count == 0) {
                 CollectStories(document.PageSetup, document.HeaderFooters);
             } else {
+                PdfCore.PdfOptions defaults = pdfOptions.Clone();
+                ApplyPageSetup(document, document.PageSetup, defaults);
+                PdfCore.PdfOptions current = defaults.Clone();
+                RtfSection currentSection = document.Sections[0];
+                ApplyPageSetup(document, document.GetPageSetup(currentSection), current);
+                bool canContinueRunningStories = SupportsContinuousRunningStoryDocument(document);
                 for (int index = 0; index < document.Sections.Count; index++) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     RtfSection section = document.Sections[index];
-                    if (index == 0 || StartsNewPdfPage(section.BreakKind)) {
+                    if (index == 0) {
+                        CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
+                    } else if (StartsNewPdfPage(section.BreakKind)) {
+                        current = defaults.Clone();
+                        ApplyPageSetup(document, section, current, defaults);
+                        currentSection = section;
+                        CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
+                    } else if (canContinueRunningStories && TryPrepareContinuousRunningStoryOptions(document, section,
+                        currentSection, current, defaults, options, out PdfCore.PdfOptions? requested)) {
+                        current = requested!;
+                        currentSection = section;
                         CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
                     }
                 }

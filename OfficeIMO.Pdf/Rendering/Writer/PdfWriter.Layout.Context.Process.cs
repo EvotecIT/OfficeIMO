@@ -32,6 +32,8 @@ internal static partial class PdfWriter {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
                     FinishFootnoteContinuations();
+                    // An explicit page section owns its setup and parity padding.
+                    nextRunningPageOptions = null;
                     PadSectionStart(pageBlock.Options);
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
@@ -46,6 +48,7 @@ internal static partial class PdfWriter {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(force: true);
                     FinishFootnoteContinuations();
+                    nextRunningPageOptions = null;
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
                     currentOpts = optionsStack.Peek();
@@ -57,6 +60,8 @@ internal static partial class PdfWriter {
 
                 if (block is RunningContentSectionBlock runningSection) {
                     currentRunningSectionId = runningSection.SectionId;
+                    if (runningSection.ContinuationOptions != null)
+                        nextRunningPageOptions = runningSection.ContinuationOptions;
                     continue;
                 }
 
