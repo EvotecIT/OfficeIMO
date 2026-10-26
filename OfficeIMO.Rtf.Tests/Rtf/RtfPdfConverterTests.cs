@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.TestAssets;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -141,26 +142,56 @@ public class RtfPdfConverterTests {
 
     [Fact]
     public void RtfDocument_ToPdfDocument_ReportsFontSlotExhaustionAndUsesDefaultRunSlot() {
-        var pdfOptions = new PdfCore.PdfOptions();
-        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, new PdfCore.PdfEmbeddedFontFamily("Caller Sans", new byte[] { 1 }));
-        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.TimesRoman, new PdfCore.PdfEmbeddedFontFamily("Caller Serif", new byte[] { 2 }));
-        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Courier, new PdfCore.PdfEmbeddedFontFamily("Caller Mono", new byte[] { 3 }));
+        int[] scalars = Enumerable.Range(32, 95).ToArray();
+        var pdfOptions = new PdfCore.PdfOptions {
+            DefaultFont = PdfCore.PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, new PdfCore.PdfEmbeddedFontFamily("Caller Sans",
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, scalars)));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.TimesRoman, new PdfCore.PdfEmbeddedFontFamily("Caller Serif",
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, scalars)));
+        pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Courier, new PdfCore.PdfEmbeddedFontFamily("Caller Mono",
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, scalars)));
+        var callerFontsBefore = pdfOptions.EmbeddedFonts.ToDictionary(entry => entry.Key,
+            entry => new { entry.Value.Data, entry.Value.FontName });
 
         RtfDocument document = RtfDocument.Create();
         document.Settings.SetDefaultFont(0);
         int runFontId = document.AddFont("Arial");
-        RtfRun run = document.AddParagraph().AddText("RTF exhausted font marker");
+        RtfRun run = document.AddParagraph().AddText("AB");
         run.FontId = runFontId;
+        run.FontSize = 10;
+        byte[] sourceBefore = document.ToBytes();
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfToPdfOptions {
             PdfOptions = pdfOptions,
-            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         });
 
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "FontFamilySlotExhausted");
-        Assert.Equal("Arial", warning.Details["fontFamily"]);
-        PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(result.Value.Blocks));
-        Assert.Null(Assert.Single(paragraph.Runs).Font);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
+            item.Details.TryGetValue("fontFamily", out string? family) && family == "Arial");
+        Assert.Equal("FontFamilySlotExhausted", warning.Code);
+        Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+        byte[] bytes = result.ToBytes();
+        using PdfPigDocument actual = PdfPigDocument.Open(bytes);
+        Assert.Equal(1, actual.NumberOfPages);
+        var letters = actual.GetPage(1).Letters;
+        Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.All(letters, letter => {
+            Assert.Contains("CallerSans", letter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(10D, letter.PointSize, 3);
+        });
+        Assert.Equal(5D, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
+        Assert.Equal(sourceBefore, document.ToBytes());
+        Assert.Equal(PdfCore.PdfStandardFont.Helvetica, pdfOptions.DefaultFont);
+        Assert.Equal(10D, pdfOptions.DefaultFontSize);
+        Assert.Equal(callerFontsBefore.Count, pdfOptions.EmbeddedFonts.Count);
+        foreach (var callerFont in callerFontsBefore) {
+            Assert.Equal(callerFont.Value.Data, pdfOptions.EmbeddedFonts[callerFont.Key].Data);
+            Assert.Equal(callerFont.Value.FontName, pdfOptions.EmbeddedFonts[callerFont.Key].FontName);
+        }
     }
 
     [Fact]

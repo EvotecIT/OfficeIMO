@@ -123,6 +123,43 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         Assert.Equal(7.2D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
     }
 
+    [Theory]
+    [InlineData("empty-options", "Courier", 7.2D, true)]
+    [InlineData("unrelated-mapping", "Courier", 7.2D, true)]
+    [InlineData("explicit-default", "Times-Roman", 8.664D, false)]
+    public void StandardDeclaredDefaultDoesNotDependOnUnrelatedCallerConfiguration(
+        string configuration, string expectedFont, double expectedAdvance, bool expectSourceWarning) {
+        using WordDocument document = CreateDocument("Courier");
+        document.Settings.FontFamily = MissingFamily;
+        document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
+            .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
+        document.AddParagraph("AAAA").FontSize = 12;
+        var fonts = new PdfOptions();
+        if (configuration != "empty-options") {
+            fonts.RegisterNamedFontFamily(Family(FirstAlternate, 600));
+            fonts.RegisterFontFamilySubstitution("OfficeIMO Unused Caller Source", FirstAlternate);
+        }
+        if (configuration == "explicit-default") fonts.DefaultFont = PdfStandardFont.TimesRoman;
+        string sourceBefore = SourceXml(document);
+        string callerBefore = CallerFontState(fonts);
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options(fonts));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
+        Assert.Equal(4, word.Letters.Count);
+        Assert.All(word.Letters, letter => Assert.Equal(expectedFont, letter.FontName));
+        Assert.Equal(expectedAdvance, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
+        var sourceWarnings = result.Warnings.Where(warning => warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Details.TryGetValue("fontFamily", out string? family) && family == MissingFamily).ToArray();
+        if (expectSourceWarning) {
+            var warning = Assert.Single(sourceWarnings);
+            Assert.Equal("Courier", warning.Details["resolvedFontFamily"]);
+            Assert.Equal("word:font[" + MissingFamily + "]", warning.Source);
+        } else Assert.Empty(sourceWarnings);
+        Assert.Equal(sourceBefore, SourceXml(document));
+        Assert.Equal(callerBefore, CallerFontState(fonts));
+    }
+
     private static WordDocument CreateDocument(string alternateNames, string primaryFamily = MissingFamily) {
         WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Helvetica";
@@ -161,9 +198,17 @@ public sealed class WordPdfDeclaredFontAlternateTests {
     private static WordToPdfOptions Options(PdfOptions fonts) => new() {
         IncludePageNumbers = false, PdfOptions = fonts, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
+    private static string CallerFontState(PdfOptions options) =>
+        options.DefaultFont + "|" + options.HeaderFont + "|" + options.FooterFont + "|" +
+        string.Join(";", options.NamedFontFamilies.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair =>
+            pair.Key + ":" + Convert.ToBase64String(pair.Value.Regular))) + "|" +
+        string.Join(";", options.FontFamilySubstitutions.Select(substitution =>
+            substitution.SourceFontFamily + ":" + substitution.TargetFontFamily + ":" + substitution.Impact));
+
     private static string SourceXml(WordDocument document) {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         return main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.FontTablePart!.Fonts!.OuterXml +
+            main.DocumentSettingsPart!.Settings!.OuterXml +
             string.Concat(main.HeaderParts.Select(part => part.Header.OuterXml)) +
             string.Concat(main.FooterParts.Select(part => part.Footer.OuterXml));
     }

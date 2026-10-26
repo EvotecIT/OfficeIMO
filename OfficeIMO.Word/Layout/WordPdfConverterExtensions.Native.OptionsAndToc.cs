@@ -77,8 +77,7 @@ namespace OfficeIMO.Word.Pdf {
                 EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies).Any(family =>
                     nativeFontMap.TryGetNamedFontFamily(family, out _) || nativeFontMap.TryGetFontSlot(family, out _) ||
                     pdfOptions.TryResolveNamedOfficeFontFamily(family, out _) ||
-                    nativeFontMap.GetDeclaredFontAlternates(family).Any(alternate =>
-                        pdfOptions.TryResolveNamedOfficeFontFamily(OfficeFontFamilyParser.Quote(alternate), out _)));
+                    TryRegisterNativeDeclaredFontCandidate(family, pdfOptions, allowDocumentFontEmbedding, nativeFontMap));
             if (hasConfiguredPdfOptions &&
                 !appliedNativeDefaultFont &&
                 !hasResolvedDocumentDefaultSubstitution &&
