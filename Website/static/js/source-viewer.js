@@ -9,6 +9,8 @@
   var status = dialog.querySelector("[data-source-status]");
   var request;
   var source = "";
+  var downloadUrl = "";
+  var downloadFilename = "";
 
   document.addEventListener("click", async function (event) {
     var link = event.target.closest("a[href]");
@@ -28,8 +30,9 @@
     var filename = decodeURIComponent(url.pathname.split("/").pop()).replace(/\.txt$/i, "");
     if (!csharp) filename = filename.replace(/\.source$/i, ".html");
     dialog.querySelector("[data-source-filename]").textContent = filename;
-    download.href = url.href;
-    download.download = filename;
+    downloadUrl = url.href;
+    downloadFilename = filename;
+    download.disabled = false;
     pre.className = code.className = "language-" + (csharp ? "csharp" : "markup");
     status.textContent = "Loading source…";
     dialog.showModal();
@@ -63,6 +66,17 @@
     if (request) request.abort();
     source = "";
     copy.disabled = true;
+    download.disabled = true;
+    downloadUrl = downloadFilename = "";
+  });
+  download.addEventListener("click", function () {
+    if (!downloadUrl) return;
+    var link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = downloadFilename;
+    dialog.appendChild(link);
+    link.click();
+    link.remove();
   });
   copy.addEventListener("click", async function () {
     var current = request;
