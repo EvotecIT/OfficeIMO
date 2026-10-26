@@ -45,7 +45,7 @@ The API map records how the public PowerShell and C# API changes in the 3.6 rede
 }
 ```
 
-`commands` lists every command the area has after the redesign, with its complete parameter sets. Common parameters (`-Verbose`, `-WhatIf`, …) are not listed; a command that supports `-WhatIf` says so with `"shouldProcess": true`.
+`commands` lists every command the area has after the redesign, with its complete parameter sets. Each command also carries `examples`: a list of `{ "title", "description", "code" }` objects, at least two per command (the smallest useful call and a realistic job). Help pages are generated from them, and the validator parses each one and checks every OfficeIMO command and parameter it uses against the target surface. Common parameters (`-Verbose`, `-WhatIf`, …) are not listed; a command that supports `-WhatIf` says so with `"shouldProcess": true`.
 
 Each `map` entry covers one current command or alias:
 

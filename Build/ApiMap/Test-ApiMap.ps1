@@ -9,12 +9,18 @@ Docs/officeimo.api-design.md. Run it with the module source built, or pass a met
 
 .EXAMPLE
 ./Build/ApiMap/Test-ApiMap.ps1 -ModulePath ./PowerShell/PSWriteOffice/PSWriteOffice.psd1
+
+.EXAMPLE
+./Build/ApiMap/Test-ApiMap.ps1 -MetadataPath ./metadata.json -ScriptPath ./Build/ApiMap/drafts
+
+Also checks that draft scripts use only target commands and parameters.
 #>
 [CmdletBinding()]
 param(
     [string] $ModulePath,
     [string] $MetadataPath,
-    [string] $MapDirectory = (Join-Path $PSScriptRoot 'powershell')
+    [string] $MapDirectory = (Join-Path $PSScriptRoot 'powershell'),
+    [string[]] $ScriptPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -186,6 +192,51 @@ foreach ($name in $commands.Keys) {
     }
 }
 
+# Examples and draft scripts: every OfficeIMO command and parameter they use must exist in the target surface.
+$aliasTargets = @{}
+foreach ($alias in $aliasOwners.Keys) { $aliasTargets[$alias] = $aliasOwners[$alias] }
+$commonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
+$testCode = {
+    param([string] $Code, [string] $Label)
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput($Code, [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { $errors.Add("$Label does not parse: $($parseErrors[0].Message)"); return }
+    foreach ($commandAst in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true)) {
+        $used = $commandAst.GetCommandName()
+        if (-not $used) { continue }
+        $resolved = if ($aliasTargets.ContainsKey($used)) { $aliasTargets[$used] } else { $used }
+        if (-not $commands.ContainsKey($resolved)) {
+            if ($used -match '-Office' -or $used -cmatch '^(Word|Excel|Ppt|Pdf|Markdown|Visio|Rtf|OpenDocument|Epub)[A-Z]') {
+                $errors.Add("$Label uses $used, which is not a target command or alias.")
+            }
+            continue
+        }
+        $known = @($commands[$resolved].Definition.parameterSets | ForEach-Object { @($_.parameters) } | ForEach-Object { $_.name; @($_.aliases) }) + $commonParameters + 'WhatIf', 'Confirm'
+        foreach ($element in $commandAst.CommandElements) {
+            if ($element -isnot [System.Management.Automation.Language.CommandParameterAst]) { continue }
+            $matchesParameter = @($known | Where-Object { $_ -and $_.StartsWith($element.ParameterName, [StringComparison]::OrdinalIgnoreCase) })
+            if ($matchesParameter.Count -eq 0) {
+                $errors.Add("$Label passes -$($element.ParameterName) to $resolved, which does not define it.")
+            }
+        }
+    }
+}
+
+$exampleCount = 0
+$commandsWithTooFewExamples = 0
+foreach ($name in $commands.Keys) {
+    $examples = @($commands[$name].Definition.examples | Where-Object { $_ })
+    if ($examples.Count -lt 2) { $commandsWithTooFewExamples++ }
+    foreach ($example in $examples) {
+        $exampleCount++
+        . $testCode -Code ([string]$example.code) -Label "$($commands[$name].File): $name example '$($example.title)'"
+    }
+}
+foreach ($script in @($ScriptPath | Where-Object { $_ } | ForEach-Object { Get-ChildItem -Path $_ -Recurse -Include '*.ps1', '*.psm1' })) {
+    . $testCode -Code (Get-Content -LiteralPath $script.FullName -Raw) -Label $script.Name
+}
+
 $summary = [pscustomobject]@{
     MapFiles        = $files.Count
     CurrentCommands = $currentCommands.Count
@@ -194,6 +245,8 @@ $summary = [pscustomobject]@{
     TargetCommands  = $commands.Count
     TargetAliases   = $aliasOwners.Count
     Actions         = ($entries | Group-Object action | Sort-Object Name | ForEach-Object { "$($_.Name)=$($_.Count)" }) -join ', '
+    Examples        = $exampleCount
+    CommandsUnder2Examples = $commandsWithTooFewExamples
     Errors          = $errors.Count
     Warnings        = $warnings.Count
 }
