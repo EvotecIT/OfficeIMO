@@ -234,6 +234,9 @@ namespace OfficeIMO.Word.Pdf {
             };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             nativeDefaults = nativeDefaults with { NoteNumbering = footnoteNumbersById };
+            nativeDefaults = nativeDefaults with {
+                BookmarkTargets = CreateNativeBookmarkTargets(document, options, nativeDefaults, nativeFontMap, footnoteNumbersById)
+            };
             IReadOnlyList<WordSection> sections = document.Sections;
             bool canContinueRunningStories = SupportsNativeContinuousRunningStoryDocument(document, sections);
             string? pageFootnoteBodyProfileGap = null;

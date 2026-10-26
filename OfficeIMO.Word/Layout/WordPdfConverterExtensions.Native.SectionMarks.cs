@@ -9,10 +9,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryRenderNativeEmptySectionMark(INativePdfFlow flow, WordSection section,
         IReadOnlyList<WordElement> elements, NativeDocumentDefaults defaults, NativeFontMap fonts,
         WordToPdfOptions? options = null) {
-        if (elements.Any(element => element is not WordParagraph paragraph ||
-                !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) ||
-            section._sectionProperties.Parent is not W.ParagraphProperties properties ||
-            properties.Parent is not W.Paragraph source || !WordParagraph.IsSectionMarkOnly(source)) return false;
+        if (GetNativeEmptySectionMarkSource(section, elements) is not { } source) return false;
 
         // Wrap the original paragraph without adding a run or detaching its
         // section context. The normal empty-paragraph owner resolves the mark's
@@ -24,5 +21,14 @@ public static partial class WordPdfConverterExtensions {
         RecordNativeParagraphBarTabDiagnostics(mark, options, "empty section paragraph");
         RenderNativeEmptyParagraph(flow, mark, CreateNativeParagraphStyle(mark, defaults, fonts), defaults, fonts);
         return true;
+    }
+
+    /// <summary>Shares the exact otherwise-empty section admission between paint and navigation projection.</summary>
+    private static W.Paragraph? GetNativeEmptySectionMarkSource(WordSection section, IReadOnlyList<WordElement> elements) {
+        if (elements.Any(element => element is not WordParagraph paragraph ||
+                !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) ||
+            section._sectionProperties.Parent is not W.ParagraphProperties properties ||
+            properties.Parent is not W.Paragraph source || !WordParagraph.IsSectionMarkOnly(source)) return null;
+        return source;
     }
 }

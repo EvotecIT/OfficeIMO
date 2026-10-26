@@ -209,7 +209,7 @@ public static partial class WordPdfConverterExtensions {
         (control.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(control.SdtProperties));
 
     private static bool CanProjectNativePageNote(W.FootnoteEndnoteType note, WordSection section,
-        NativeDocumentDefaults defaults, NativeFontMap fonts, WordToPdfOptions? options = null) {
+        NativeDocumentDefaults defaults, NativeFontMap fonts, WordToPdfOptions? options = null, bool recordDiagnostics = true) {
         // Ordinary paragraph and qualified inline-table flow share their existing
         // owners. Floating objects, recursive notes and active fields retain the
         // explicitly reported section-flow fallback.
@@ -240,8 +240,9 @@ public static partial class WordPdfConverterExtensions {
         }
         // Definitions can be painted after the operation report is captured.
         // Record admitted note decoration now, after all profile checks pass.
-        foreach (W.Paragraph source in note.Descendants<W.Paragraph>())
-            RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, source), options, "note paragraph");
+        if (recordDiagnostics)
+            foreach (W.Paragraph source in note.Descendants<W.Paragraph>())
+                RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, source), options, "note paragraph");
         return true;
     }
 
