@@ -12,6 +12,7 @@ public class OfficeDiagnosticCatalogTests {
         var fields = typeof(OfficeDiagnosticCodes).GetFields(BindingFlags.Public | BindingFlags.Static)
             .ToDictionary(field => field.Name, field => (string)field.GetRawConstantValue()!);
         var oldCodes = new HashSet<string>(StringComparer.Ordinal);
+        var mappings = new Dictionary<string, string>(StringComparer.Ordinal);
         var mappedCodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonElement entry in map.RootElement.GetProperty("entries").EnumerateArray()) {
             string oldCode = entry.GetProperty("oldCode").GetString()!;
@@ -20,10 +21,15 @@ public class OfficeDiagnosticCatalogTests {
             Assert.True(oldCodes.Add(oldCode), "Duplicate old code: " + oldCode);
             Assert.Equal(code, fields[member]);
             mappedCodes.Add(code);
+            mappings.Add(oldCode, code);
         }
         Assert.Equal(fields.Count, fields.Values.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(fields.Count, mappedCodes.Count);
         Assert.Equal("chart-flattened", OfficeDiagnosticCodes.ChartFlattened);
+        Assert.Equal(OfficeDiagnosticCodes.PdfExcelPageContentOmitted, mappings["PDF_EXCEL_PAGE_CONTENT_OMITTED"]);
+        Assert.Equal(OfficeDiagnosticCodes.PdfExcelTablesTruncated, mappings["PDF_EXCEL_TABLES_TRUNCATED"]);
+        Assert.Equal(OfficeDiagnosticCodes.PdfPowerpointTablesTruncated, mappings["PDF_POWERPOINT_TABLES_TRUNCATED"]);
+        Assert.Equal(OfficeDiagnosticCodes.PdfPowerpointEditableContentOmitted, mappings["PDF_POWERPOINT_EDITABLE_CONTENT_OMITTED"]);
         Assert.Contains(map.RootElement.GetProperty("entries").EnumerateArray(),
             entry => entry.GetProperty("oldCode").GetString() == "chart-projected"
                 && entry.GetProperty("catalogCode").GetString() == OfficeDiagnosticCodes.ChartFlattened);

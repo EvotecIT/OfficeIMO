@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Small immutable RGBA color value used by OfficeIMO packages without external image dependencies.
+/// Immutable literal RGBA color or theme-role reference shared by OfficeIMO packages.
 /// </summary>
 public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
     private static readonly Dictionary<string, OfficeColor> NamedColors = new Dictionary<string, OfficeColor>(StringComparer.OrdinalIgnoreCase) {

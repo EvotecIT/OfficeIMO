@@ -52,5 +52,5 @@ public sealed class OfficeConversionReport : IOfficeConversionReport {
     void IOfficeConversionReport.RequireNoLoss() => ThrowIfLoss();
     IReadOnlyList<OfficeConversionFidelityDiagnostic> IOfficeConversionReport.FidelityDiagnostics =>
         Array.AsReadOnly(Diagnostics.Select(d => new OfficeConversionFidelityDiagnostic(d.Code, d.Message,
-            d.LossKind, d.Format ?? Source, d.Location)).ToArray());
+            d.LossKind, string.IsNullOrWhiteSpace(d.Format) ? Source : d.Format!, d.Location)).ToArray());
 }

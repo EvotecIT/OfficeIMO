@@ -385,6 +385,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfEditableLayoutReconstructed = "pdf-editable-layout-reconstructed";
     /// <summary>Stable code: <c>pdf-editable-object-limit-reached</c>.</summary>
     public const string PdfEditableObjectLimitReached = "pdf-editable-object-limit-reached";
+    /// <summary>Stable code: <c>pdf-excel-page-content-omitted</c>.</summary>
+    public const string PdfExcelPageContentOmitted = "pdf-excel-page-content-omitted";
+    /// <summary>Stable code: <c>pdf-excel-tables-truncated</c>.</summary>
+    public const string PdfExcelTablesTruncated = "pdf-excel-tables-truncated";
     /// <summary>Stable code: <c>pdf-form-definitions-not-reconstructed</c>.</summary>
     public const string PdfFormDefinitionsNotReconstructed = "pdf-form-definitions-not-reconstructed";
     /// <summary>Stable code: <c>pdf-form-widget-placeholder</c>.</summary>
@@ -475,6 +479,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string PdfPageLabelsNotReconstructed = "pdf-page-labels-not-reconstructed";
     /// <summary>Stable code: <c>pdf-paragraphs-not-imported</c>.</summary>
     public const string PdfParagraphsNotImported = "pdf-paragraphs-not-imported";
+    /// <summary>Stable code: <c>pdf-powerpoint-editable-content-omitted</c>.</summary>
+    public const string PdfPowerpointEditableContentOmitted = "pdf-powerpoint-editable-content-omitted";
+    /// <summary>Stable code: <c>pdf-powerpoint-tables-truncated</c>.</summary>
+    public const string PdfPowerpointTablesTruncated = "pdf-powerpoint-tables-truncated";
     /// <summary>Stable code: <c>pdf-projection-analysis-truncated</c>.</summary>
     public const string PdfProjectionAnalysisTruncated = "pdf-projection-analysis-truncated";
     /// <summary>Stable code: <c>pdf-projection-asset-animation-frame-selected</c>.</summary>
@@ -551,6 +559,30 @@ public static partial class OfficeDiagnosticCodes {
     public const string PictureAspectDistortion = "picture-aspect-distortion";
     /// <summary>Stable code: <c>picture-bullet-text-fallback</c>.</summary>
     public const string PictureBulletTextFallback = "picture-bullet-text-fallback";
+    /// <summary>Stable code: <c>power-point-destination-feature-unsupported</c>.</summary>
+    public const string PowerPointDestinationFeatureUnsupported = "power-point-destination-feature-unsupported";
+    /// <summary>Stable code: <c>power-point-digital-signature-invalidated</c>.</summary>
+    public const string PowerPointDigitalSignatureInvalidated = "power-point-digital-signature-invalidated";
+    /// <summary>Stable code: <c>power-point-legacy-destination-not-writable</c>.</summary>
+    public const string PowerPointLegacyDestinationNotWritable = "power-point-legacy-destination-not-writable";
+    /// <summary>Stable code: <c>power-point-source-carrier-embedded</c>.</summary>
+    public const string PowerPointSourceCarrierEmbedded = "power-point-source-carrier-embedded";
+    /// <summary>Stable code: <c>power-point-source-carrier-not-embedded</c>.</summary>
+    public const string PowerPointSourceCarrierNotEmbedded = "power-point-source-carrier-not-embedded";
+    /// <summary>Stable code: <c>power-point-source-extension-mismatch</c>.</summary>
+    public const string PowerPointSourceExtensionMismatch = "power-point-source-extension-mismatch";
+    /// <summary>Stable code: <c>power-point-vba-project-removed</c>.</summary>
+    public const string PowerPointVbaProjectRemoved = "power-point-vba-project-removed";
+    /// <summary>Stable code: <c>powerpoint-character-spacing-approximated</c>.</summary>
+    public const string PowerpointCharacterSpacingApproximated = "powerpoint-character-spacing-approximated";
+    /// <summary>Stable code: <c>powerpoint-text-layout-limit</c>.</summary>
+    public const string PowerpointTextLayoutLimit = "powerpoint-text-layout-limit";
+    /// <summary>Stable code: <c>powerpoint-text-overflow</c>.</summary>
+    public const string PowerpointTextOverflow = "powerpoint-text-overflow";
+    /// <summary>Stable code: <c>powerpoint-text-padding</c>.</summary>
+    public const string PowerpointTextPadding = "powerpoint-text-padding";
+    /// <summary>Stable code: <c>powerpoint-text-scale-approximated</c>.</summary>
+    public const string PowerpointTextScaleApproximated = "powerpoint-text-scale-approximated";
     /// <summary>Stable code: <c>powerpoint-wavy-double-underline-approximated</c>.</summary>
     public const string PowerpointWavyDoubleUnderlineApproximated = "powerpoint-wavy-double-underline-approximated";
     /// <summary>Stable code: <c>ppt-action-atom</c>.</summary>
@@ -813,6 +845,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PptPictureFormatUnsupported = "ppt-picture-format-unsupported";
     /// <summary>Stable code: <c>ppt-placeholder-invalid</c>.</summary>
     public const string PptPlaceholderInvalid = "ppt-placeholder-invalid";
+    /// <summary>Stable code: <c>ppt-projection-failed</c>.</summary>
+    public const string PptProjectionFailed = "ppt-projection-failed";
     /// <summary>Stable code: <c>ppt-roundtrip-color-map-invalid</c>.</summary>
     public const string PptRoundtripColorMapInvalid = "ppt-roundtrip-color-map-invalid";
     /// <summary>Stable code: <c>ppt-roundtrip-theme-invalid</c>.</summary>
@@ -951,6 +985,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string PptTransitionTruncated = "ppt-transition-truncated";
     /// <summary>Stable code: <c>ppt-unknown</c>.</summary>
     public const string PptUnknown = "ppt-unknown";
+    /// <summary>Stable code: <c>ppt-unsupported-shapes</c>.</summary>
+    public const string PptUnsupportedShapes = "ppt-unsupported-shapes";
     /// <summary>Stable code: <c>ppt-vba-info-malformed</c>.</summary>
     public const string PptVbaInfoMalformed = "ppt-vba-info-malformed";
     /// <summary>Stable code: <c>ppt-vba-storage-malformed</c>.</summary>

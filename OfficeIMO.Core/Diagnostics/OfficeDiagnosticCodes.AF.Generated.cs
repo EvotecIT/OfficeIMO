@@ -201,6 +201,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string DocPieceTableInvalid = "doc-piece-table-invalid";
     /// <summary>Stable code: <c>doc-plcfhdd-invalid</c>.</summary>
     public const string DocPlcfhddInvalid = "doc-plcfhdd-invalid";
+    /// <summary>Stable code: <c>doc-projection-failed</c>.</summary>
+    public const string DocProjectionFailed = "doc-projection-failed";
     /// <summary>Stable code: <c>doc-quick-save-history-present</c>.</summary>
     public const string DocQuickSaveHistoryPresent = "doc-quick-save-history-present";
     /// <summary>Stable code: <c>doc-revision-authors-invalid</c>.</summary>
@@ -241,6 +243,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string EncryptionDetected = "encryption-detected";
     /// <summary>Stable code: <c>endnotes-omitted</c>.</summary>
     public const string EndnotesOmitted = "endnotes-omitted";
+    /// <summary>Stable code: <c>excel-binary-writer-cell-raster-fallback</c>.</summary>
+    public const string ExcelBinaryWriterCellRasterFallback = "excel-binary-writer-cell-raster-fallback";
+    /// <summary>Stable code: <c>excel-binary-writer-unsupported</c>.</summary>
+    public const string ExcelBinaryWriterUnsupported = "excel-binary-writer-unsupported";
+    /// <summary>Stable code: <c>excel-binary-writer-visual-fallback-unavailable</c>.</summary>
+    public const string ExcelBinaryWriterVisualFallbackUnavailable = "excel-binary-writer-visual-fallback-unavailable";
     /// <summary>Stable code: <c>excel-cell-comment-body-approximation</c>.</summary>
     public const string ExcelCellCommentBodyApproximation = "excel-cell-comment-body-approximation";
     /// <summary>Stable code: <c>excel-cell-comment-unsupported</c>.</summary>
@@ -329,6 +337,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelConditionalTimePeriodUnsupported = "excel-conditional-time-period-unsupported";
     /// <summary>Stable code: <c>excel-conditional-top-bottom-unsupported</c>.</summary>
     public const string ExcelConditionalTopBottomUnsupported = "excel-conditional-top-bottom-unsupported";
+    /// <summary>Stable code: <c>excel-destination-feature-unsupported</c>.</summary>
+    public const string ExcelDestinationFeatureUnsupported = "excel-destination-feature-unsupported";
+    /// <summary>Stable code: <c>excel-digital-signature-invalidated</c>.</summary>
+    public const string ExcelDigitalSignatureInvalidated = "excel-digital-signature-invalidated";
     /// <summary>Stable code: <c>excel-drawing-shape-anchor-hidden</c>.</summary>
     public const string ExcelDrawingShapeAnchorHidden = "excel-drawing-shape-anchor-hidden";
     /// <summary>Stable code: <c>excel-drawing-shape-text-auto-fit-unsupported</c>.</summary>
@@ -361,6 +373,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelImageFormatUnknown = "excel-image-format-unknown";
     /// <summary>Stable code: <c>excel-image-hyperlink-unsupported</c>.</summary>
     public const string ExcelImageHyperlinkUnsupported = "excel-image-hyperlink-unsupported";
+    /// <summary>Stable code: <c>excel-legacy-destination-not-writable</c>.</summary>
+    public const string ExcelLegacyDestinationNotWritable = "excel-legacy-destination-not-writable";
     /// <summary>Stable code: <c>excel-manual-page-breaks-single-image-unsupported</c>.</summary>
     public const string ExcelManualPageBreaksSingleImageUnsupported = "excel-manual-page-breaks-single-image-unsupported";
     /// <summary>Stable code: <c>excel-manual-page-breaks-split</c>.</summary>
@@ -371,6 +385,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelPageSetupPaperSizeUnsupported = "excel-page-setup-paper-size-unsupported";
     /// <summary>Stable code: <c>excel-page-setup-unsupported</c>.</summary>
     public const string ExcelPageSetupUnsupported = "excel-page-setup-unsupported";
+    /// <summary>Stable code: <c>excel-password-encryption-removed</c>.</summary>
+    public const string ExcelPasswordEncryptionRemoved = "excel-password-encryption-removed";
     /// <summary>Stable code: <c>excel-pdf-warning</c>.</summary>
     public const string ExcelPdfWarning = "excel-pdf-warning";
     /// <summary>Stable code: <c>excel-print-area-missing</c>.</summary>
@@ -383,6 +399,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelPrintAreaUnsupported = "excel-print-area-unsupported";
     /// <summary>Stable code: <c>excel-print-titles-unsupported</c>.</summary>
     public const string ExcelPrintTitlesUnsupported = "excel-print-titles-unsupported";
+    /// <summary>Stable code: <c>excel-source-carrier-embedded</c>.</summary>
+    public const string ExcelSourceCarrierEmbedded = "excel-source-carrier-embedded";
+    /// <summary>Stable code: <c>excel-source-carrier-not-embedded</c>.</summary>
+    public const string ExcelSourceCarrierNotEmbedded = "excel-source-carrier-not-embedded";
+    /// <summary>Stable code: <c>excel-source-extension-mismatch</c>.</summary>
+    public const string ExcelSourceExtensionMismatch = "excel-source-extension-mismatch";
     /// <summary>Stable code: <c>excel-sparkline-data-missing</c>.</summary>
     public const string ExcelSparklineDataMissing = "excel-sparkline-data-missing";
     /// <summary>Stable code: <c>excel-sparkline-external-range-unsupported</c>.</summary>
@@ -397,6 +419,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelThreadedCommentBodyApproximation = "excel-threaded-comment-body-approximation";
     /// <summary>Stable code: <c>excel-threaded-comment-unsupported</c>.</summary>
     public const string ExcelThreadedCommentUnsupported = "excel-threaded-comment-unsupported";
+    /// <summary>Stable code: <c>excel-vba-project-removed</c>.</summary>
+    public const string ExcelVbaProjectRemoved = "excel-vba-project-removed";
+    /// <summary>Stable code: <c>excel-xml-approximation</c>.</summary>
+    public const string ExcelXmlApproximation = "excel-xml-approximation";
+    /// <summary>Stable code: <c>excel-xml-omitted</c>.</summary>
+    public const string ExcelXmlOmitted = "excel-xml-omitted";
     /// <summary>Stable code: <c>existing-package-signature-invalidation-blocked</c>.</summary>
     public const string ExistingPackageSignatureInvalidationBlocked = "existing-package-signature-invalidation-blocked";
     /// <summary>Stable code: <c>existing-package-signatures-will-be-invalidated</c>.</summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Numerics;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO;
@@ -86,7 +87,7 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
     /// <summary>Subtracts lengths, throwing on overflow.</summary>
     public static OfficeLength operator -(OfficeLength left, OfficeLength right) => Emus(checked(left._emus - right._emus));
     /// <summary>Multiplies a length by a finite scalar and rounds to whole EMUs.</summary>
-    public static OfficeLength operator *(OfficeLength length, double scalar) => Emus(Round(length._emus * Finite(scalar)));
+    public static OfficeLength operator *(OfficeLength length, double scalar) => Emus(Scale(length._emus, scalar));
     /// <summary>Multiplies a length by a finite scalar and rounds to whole EMUs.</summary>
     public static OfficeLength operator *(double scalar, OfficeLength length) => length * scalar;
     /// <summary>Compares lengths for equality.</summary>
@@ -102,11 +103,26 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
     /// <summary>Compares signed lengths.</summary>
     public static bool operator >=(OfficeLength left, OfficeLength right) => left._emus >= right._emus;
 
-    private static OfficeLength From(double value, decimal factor) => Emus(Round(Finite(value) * factor));
+    private static OfficeLength From(double value, long factor) => Emus(Scale(factor, value));
     private static long Round(decimal value) => checked((long)decimal.Round(value, 0, MidpointRounding.AwayFromZero));
-    private static decimal Finite(double value) {
-        if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value), "Length and scalar values must be finite.");
-        return checked((decimal)value);
+    // Decode the finite IEEE-754 value rather than narrowing it to decimal before rounding.
+    // The numerator/denominator stay exact even next to a half EMU or the Int64 boundary.
+    private static long Scale(long emus, double scalar) {
+        if (double.IsNaN(scalar) || double.IsInfinity(scalar))
+            throw new ArgumentOutOfRangeException(nameof(scalar), "Length and scalar values must be finite.");
+        if (emus == 0 || scalar == 0) return 0;
+        long bits = BitConverter.DoubleToInt64Bits(scalar);
+        int exponentBits = (int)((bits >> 52) & 0x7ff);
+        long significand = bits & 0x000fffffffffffffL;
+        if (exponentBits != 0) significand |= 1L << 52;
+        int shift = exponentBits == 0 ? -1074 : exponentBits - 1023 - 52;
+        BigInteger numerator = (BigInteger)emus * significand;
+        if (bits < 0) numerator = -numerator;
+        if (shift >= 0) return checked((long)(numerator << shift));
+        BigInteger denominator = BigInteger.One << -shift;
+        BigInteger rounded = BigInteger.DivRem(BigInteger.Abs(numerator), denominator, out BigInteger remainder);
+        if (remainder * 2 >= denominator) rounded++;
+        return checked((long)(numerator.Sign < 0 ? -rounded : rounded));
     }
     private static decimal Factor(string unit) {
         switch (unit.ToLowerInvariant()) {

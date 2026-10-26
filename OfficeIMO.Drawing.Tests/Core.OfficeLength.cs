@@ -94,6 +94,20 @@ public class OfficeLengthTests {
         Assert.Throws<FormatException>(() => a.ToString("bogus", null));
     }
 
+    [Fact]
+    public void ScalarRoundingPreservesTheExactFiniteDoubleAtBoundaries() {
+        Assert.Equal(OfficeLength.Zero, OfficeLength.Emus(1) * 0.49999999999999994);
+        Assert.Equal(OfficeLength.Zero, OfficeLength.Emus(1) * -0.49999999999999994);
+        Assert.Equal(OfficeLength.Emus(1), OfficeLength.Emus(1) * 0.5);
+        Assert.Equal(OfficeLength.Emus(-1), OfficeLength.Emus(1) * -0.5);
+        Assert.Equal(OfficeLength.Zero, OfficeLength.Zero * double.MaxValue);
+        Assert.Equal(OfficeLength.Zero, OfficeLength.Emus(1) * double.Epsilon);
+        Assert.Equal(OfficeLength.Emus(long.MinValue), OfficeLength.Emus(long.MinValue) * 1);
+        Assert.Throws<OverflowException>(() => OfficeLength.Emus(long.MaxValue) * 1.0000000000000002);
+        Assert.Throws<OverflowException>(() => OfficeLength.Emus(long.MinValue) * -1);
+        Assert.Throws<OverflowException>(() => OfficeLength.Inches(double.MaxValue));
+    }
+
     [Theory]
     [InlineData(0.025, 1, 0)]
     [InlineData(-0.025, -1, 0)]

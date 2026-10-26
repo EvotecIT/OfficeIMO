@@ -3,8 +3,6 @@ namespace OfficeIMO;
 
 /// <summary>Stable diagnostic codes shared by document formats and converters.</summary>
 public static partial class OfficeDiagnosticCodes {
-    /// <summary>Stable code: <c>readback-einvoice-profile-consistency</c>.</summary>
-    public const string ReadbackEinvoiceProfileConsistency = "readback-einvoice-profile-consistency";
     /// <summary>Stable code: <c>reading-order-canonical-understanding</c>.</summary>
     public const string ReadingOrderCanonicalUnderstanding = "reading-order-canonical-understanding";
     /// <summary>Stable code: <c>reading-order-column-band</c>.</summary>
@@ -185,6 +183,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string SkippedBlock = "skipped-block";
     /// <summary>Stable code: <c>small-caps-approximation</c>.</summary>
     public const string SmallCapsApproximation = "small-caps-approximation";
+    /// <summary>Stable code: <c>source-conversion-diagnostic-contract-mismatch</c>.</summary>
+    public const string SourceConversionDiagnosticContractMismatch = "source-conversion-diagnostic-contract-mismatch";
     /// <summary>Stable code: <c>source-package-changed-during-signing</c>.</summary>
     public const string SourcePackageChangedDuringSigning = "source-package-changed-during-signing";
     /// <summary>Stable code: <c>speaker-notes-omitted</c>.</summary>
@@ -395,6 +395,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string WordChartRenderedAsImage = "word-chart-rendered-as-image";
     /// <summary>Stable code: <c>word-chart-rendering-approximation</c>.</summary>
     public const string WordChartRenderingApproximation = "word-chart-rendering-approximation";
+    /// <summary>Stable code: <c>word-destination-feature-unsupported</c>.</summary>
+    public const string WordDestinationFeatureUnsupported = "word-destination-feature-unsupported";
+    /// <summary>Stable code: <c>word-digital-signature-invalidated</c>.</summary>
+    public const string WordDigitalSignatureInvalidated = "word-digital-signature-invalidated";
     /// <summary>Stable code: <c>word-element-limit-exceeded</c>.</summary>
     public const string WordElementLimitExceeded = "word-element-limit-exceeded";
     /// <summary>Stable code: <c>word-equation-depth-limit-exceeded</c>.</summary>
@@ -407,12 +411,26 @@ public static partial class OfficeDiagnosticCodes {
     public const string WordImageTotalSizeLimitExceeded = "word-image-total-size-limit-exceeded";
     /// <summary>Stable code: <c>word-kerned-fragment-join</c>.</summary>
     public const string WordKernedFragmentJoin = "word-kerned-fragment-join";
+    /// <summary>Stable code: <c>word-legacy-writer-unsupported</c>.</summary>
+    public const string WordLegacyWriterUnsupported = "word-legacy-writer-unsupported";
+    /// <summary>Stable code: <c>word-legacy-writer-visual-fallback</c>.</summary>
+    public const string WordLegacyWriterVisualFallback = "word-legacy-writer-visual-fallback";
+    /// <summary>Stable code: <c>word-legacy-writer-visual-fallback-unavailable</c>.</summary>
+    public const string WordLegacyWriterVisualFallbackUnavailable = "word-legacy-writer-visual-fallback-unavailable";
     /// <summary>Stable code: <c>word-ocr-bounds</c>.</summary>
     public const string WordOcrBounds = "word-ocr-bounds";
+    /// <summary>Stable code: <c>word-source-carrier-embedded</c>.</summary>
+    public const string WordSourceCarrierEmbedded = "word-source-carrier-embedded";
+    /// <summary>Stable code: <c>word-source-carrier-not-embedded</c>.</summary>
+    public const string WordSourceCarrierNotEmbedded = "word-source-carrier-not-embedded";
+    /// <summary>Stable code: <c>word-source-extension-mismatch</c>.</summary>
+    public const string WordSourceExtensionMismatch = "word-source-extension-mismatch";
     /// <summary>Stable code: <c>word-to-markdown-warning</c>.</summary>
     public const string WordToMarkdownWarning = "word-to-markdown-warning";
     /// <summary>Stable code: <c>word-underline-style-approximated</c>.</summary>
     public const string WordUnderlineStyleApproximated = "word-underline-style-approximated";
+    /// <summary>Stable code: <c>word-vba-project-removed</c>.</summary>
+    public const string WordVbaProjectRemoved = "word-vba-project-removed";
     /// <summary>Stable code: <c>wordperfect-attribute</c>.</summary>
     public const string WordperfectAttribute = "wordperfect-attribute";
     /// <summary>Stable code: <c>wordperfect-box-content</c>.</summary>
@@ -761,6 +779,10 @@ public static partial class OfficeDiagnosticCodes {
     public const string XlsOleCustomDocumentPropertyUnsupported = "xls-ole-custom-document-property-unsupported";
     /// <summary>Stable code: <c>xls-ole-properties-unreadable</c>.</summary>
     public const string XlsOlePropertiesUnreadable = "xls-ole-properties-unreadable";
+    /// <summary>Stable code: <c>xls-projection-failed</c>.</summary>
+    public const string XlsProjectionFailed = "xls-projection-failed";
+    /// <summary>Stable code: <c>xls-unsupported-sheet</c>.</summary>
+    public const string XlsUnsupportedSheet = "xls-unsupported-sheet";
     /// <summary>Stable code: <c>xls-workbook-stream-missing</c>.</summary>
     public const string XlsWorkbookStreamMissing = "xls-workbook-stream-missing";
     /// <summary>Stable code: <c>xls-workbook-stream-too-large</c>.</summary>

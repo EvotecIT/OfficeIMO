@@ -40,6 +40,18 @@ public class OfficeConversionReportTests {
         Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void MissingFormatMetadataFallsBackToTheReportSource(string? format) {
+        var diagnostic = new OfficeDiagnostic("feature-affected", OfficeDiagnosticSeverity.Information,
+            "Content affected.", format: format, lossKind: OfficeConversionLossKind.Omission);
+        IOfficeConversionReport report = new OfficeConversionReport("Word", "Pdf", diagnostics: new[] { diagnostic });
+        Assert.Equal("Word", Assert.Single(report.FidelityDiagnostics).Source);
+        Assert.True(report.HasLoss);
+    }
+
     [Fact]
     public void EmptyAndMalformedReportsHaveExplicitBehavior() {
         var report = new OfficeConversionReport("Markdown", "Word");
