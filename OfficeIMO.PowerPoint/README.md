@@ -203,7 +203,8 @@ supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation
 - Keeps generated output as editable PowerPoint content instead of screenshots.
 - Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
 - Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.
-- Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
+- Composes semantic slides from fourteen theme layouts on a 12-column grid: Title, Section, TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, Quote, ImageFull, Closing, CaseStudy, Logos and Coverage. Long titles, lists, tables and tile sets continue on balanced slides instead of overflowing.
+- Gives new presentations theme text styles, title and body placeholders and native footer and slide-number placeholders, so unformatted text uses the theme fonts and sizes everywhere.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
 - Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
 - Authors bounded semantic SmartArt, shared custom geometry, classic and modern threaded comments, custom shows, embedded OLE objects, and opaque VBA projects through the normal presentation model.
@@ -667,6 +668,12 @@ composition.AlternativeIndex = 0;
 PowerPointCompositionResult result = presentation.Compose(plan, composition);
 presentation.Save();
 ```
+
+New presentations take their colours, fonts, type scale and slide margins from an `OfficeTheme`
+(`PowerPointCreateOptions.Theme`, `OfficeTheme.Modern` by default). Every semantic slide is composed from the
+same theme layouts: a shared header with the section title as eyebrow, content on a 12-column grid, and the deck
+title and slide number in the footer. A brief or design contributes its brand accent and fonts. The visual
+contract is in [`Docs/officeimo.visual-design.md`](../Docs/officeimo.visual-design.md#powerpoint-layouts).
 
 Use a semantic plan when the whole story should stay reusable. Story slides render as native charts, tables,
 pictures, shapes, and connectors rather than flattened artwork. Oversized appendix tables continue across slides,
