@@ -56,6 +56,11 @@ internal static class SurfaceInventory {
         foreach (var type in catalog.Types) {
             var docs = documentation[type.ContainingAssembly];
             var typeEvidence = docs.Find(type.Name);
+            bool syntaxNode = type.ContainingNamespace.ToDisplayString() == "OfficeIMO.Markdown"
+                && type.AllInterfaces.Any(contract => contract.Name is "IMarkdownBlock" or "IMarkdownInline");
+            bool externalContract = Inherits(type, "System.Exception") || Inherits(type, "System.Attribute");
+            if (syntaxNode || externalContract)
+                KeepType(type, syntaxNode ? "Public Markdown syntax tree" : "Caller exception or attribute contract");
             if (typeEvidence.Count > 0) {
                 KeepType(type, "Documented type", typeEvidence);
                 Follow(type);
@@ -75,12 +80,17 @@ internal static class SurfaceInventory {
         while (pending.Count > 0) {
             var type = pending.Dequeue();
             Follow(type);
+            if (type.IsAbstract && type.TypeKind == TypeKind.Class) {
+                foreach (var subtype in catalog.Types.Where(candidate =>
+                    SymbolEqualityComparer.Default.Equals(candidate.BaseType?.OriginalDefinition, type.OriginalDefinition)))
+                    KeepModel(subtype, "Concrete model exposed through " + Id(type));
+            }
             var implementations = type.AllInterfaces.SelectMany(contract => contract.GetMembers())
                 .Select(type.FindImplementationForInterfaceMember).Where(member => member != null)
                 .ToHashSet(SymbolEqualityComparer.Default);
             foreach (var member in PublicMembers(type)) {
                 bool data = member is IPropertySymbol or IFieldSymbol or IEventSymbol;
-                bool contract = type.TypeKind is TypeKind.Interface or TypeKind.Delegate || member.IsOverride || implementations.Contains(member);
+                bool contract = type.TypeKind is TypeKind.Interface or TypeKind.Delegate || member.IsOverride || member.IsVirtual || member.IsAbstract || implementations.Contains(member);
                 // Referenced models need their constructors even when their names do not end
                 // in Options/Info (for example, theme palettes and font definitions).
                 bool modelConstructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor } constructor
@@ -118,6 +128,12 @@ internal static class SurfaceInventory {
                 reasons.Where(item => SymbolEqualityComparer.Default.Equals(item.Key.ContainingAssembly, assembly))
                     .Select(item => item.Value).OrderBy(reference => reference.Id, StringComparer.Ordinal).ToArray());
         }).ToArray();
+    }
+
+    private static bool Inherits(INamedTypeSymbol type, string baseName) {
+        for (var current = type.BaseType; current != null; current = current.BaseType)
+            if (current.ToDisplayString() == baseName) return true;
+        return false;
     }
 
     private static bool IsDocumentOwner(ITypeSymbol type) => type.ToDisplayString() is

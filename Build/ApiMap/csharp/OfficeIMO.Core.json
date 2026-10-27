@@ -58,6 +58,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Visibility analysis distinguishes immutable model construction from attachment plumbing: an undocumented constructor requiring a format document remains a candidate. Explicit construction examples still retain their constructors. The generated Word image constructor candidates are reviewed against the canonical AddImage entry points; foundation model construction stays public."
+    },
+    {
+      "change": "Visibility analysis follows cross-format C# and PowerShell examples, Markdown syntax nodes, exceptions, attributes, virtual contracts and concrete subclasses of exposed abstract models.",
+      "reason": "Documentation and public model closure determine candidates. Concrete field/drawing/syntax nodes remain usable when returned through an abstract base; caller catch/attribute/override contracts are not private implementation plumbing.",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ApiMap/SurfaceAnalysis/DocumentationIndex.cs",
+        "Build/ApiMap/SurfaceAnalysis/SurfaceInventory.cs",
+        "Build/ApiMap/SurfaceAnalysis/README.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

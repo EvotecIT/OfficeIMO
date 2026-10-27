@@ -1,9 +1,12 @@
 # Public surface inventory
 
 This tool proposes accessibility candidates for the Tier 1 libraries. It reads
-built Release assemblies, user guides, package READMEs and C# examples. One model
+built Release assemblies, user guides, package READMEs and C# and PowerShell examples. One model
 signature closure spans the selected packages, so a documented Word API can retain
-its Core options and result models. Public interfaces, overrides, operators and
+its Core options and result models. Concrete Markdown syntax nodes, caller-visible
+exception types, attribute contracts, virtual extension points and concrete
+subtypes of exposed abstract model classes also remain public. Examples count across
+format directories because conversion examples use more than one package. Public interfaces, overrides, operators and
 exposed model data retain their contracts. Public constructors, value-type members
 and immutable `With...` copies that return the same model type also survive the
 signature closure.

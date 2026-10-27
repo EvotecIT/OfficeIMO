@@ -18,7 +18,8 @@ internal sealed class DocumentationIndex {
                 if (!_identifiers.TryGetValue(identifier, out var evidence)) _identifiers[identifier] = evidence = [];
                 evidence.Add(file);
             }
-            foreach (Match match in Regex.Matches(text, @"\bnew\s+(?:global::)?(?:[A-Za-z_]\w*\.)*(?<type>[A-Za-z_]\w*)\b")) {
+            foreach (Match match in Regex.Matches(text,
+                @"\bnew\s+(?:global::)?(?:[A-Za-z_]\w*\.)*(?<type>[A-Za-z_]\w*)\b|\[(?:[A-Za-z_]\w*\.)*(?<type>[A-Za-z_]\w*)\]::new\b")) {
                 string name = match.Groups["type"].Value;
                 if (!_construction.TryGetValue(name, out var evidence)) _construction[name] = evidence = [];
                 if (!evidence.Contains(file)) evidence.Add(file);
@@ -34,9 +35,9 @@ internal sealed class DocumentationIndex {
 
     private static bool IsEvidence(string file, string package, string format) {
         if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-            return file.StartsWith("OfficeIMO.Examples/Showcase/", StringComparison.Ordinal) || (package == "OfficeIMO.Core" ? file.StartsWith("OfficeIMO.Examples/", StringComparison.Ordinal)
-                : package == "OfficeIMO" ? file.StartsWith("OfficeIMO.Examples/Showcase/Workflows/", StringComparison.Ordinal)
-                : file.StartsWith($"OfficeIMO.Examples/{format}/", StringComparison.Ordinal));
+            return file.StartsWith("OfficeIMO.Examples/", StringComparison.Ordinal);
+        if (file.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
+            return file.StartsWith("PowerShell/PSWriteOffice/Examples/", StringComparison.Ordinal);
         if (!file.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) return false;
         if (package == "OfficeIMO.Core" && file.StartsWith("OfficeIMO", StringComparison.Ordinal) && file.EndsWith("/README.md", StringComparison.Ordinal)) return true;
         if (file.Equals("README.md", StringComparison.Ordinal) || file.Equals($"{package}/README.md", StringComparison.Ordinal)) return true;
