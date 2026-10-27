@@ -40,7 +40,9 @@ public partial class Word {
         source.AddHyperLink("Go to second target", "SecondEmptyTarget");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeBookmarkTarget", StringComparison.Ordinal));
+        byte[] bytes = result.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var logical = PdfDocumentReadResult.Load(bytes);
         var destination = Assert.Single(logical.NamedDestinations, d => d.Name == "EmptySectionTarget");
@@ -49,6 +51,7 @@ public partial class Word {
         Assert.Equal(pdf.GetPage(1).Height - 72D, destination.DestinationTop!.Value, 3);
         Assert.Single(logical.GetLinksByDestinationName("EmptySectionTarget"));
         var second = Assert.Single(logical.NamedDestinations, d => d.Name == "SecondEmptyTarget");
+        Assert.Single(logical.GetLinksByDestinationName("SecondEmptyTarget"));
         Assert.Equal(destination.PageNumber, second.PageNumber);
         Assert.Equal(destination.DestinationTop, second.DestinationTop);
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);

@@ -21,7 +21,7 @@ internal static partial class RtfPdfConverter {
         }
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
-        IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
+        IReadOnlyDictionary<int, PdfFontBinding> fontSlots = ConfigureDocumentFonts(
             document,
             pdfOptions,
             normalized);

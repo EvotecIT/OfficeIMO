@@ -11,6 +11,13 @@ internal static class OfficeFontFamilyParser {
     internal static string Quote(string familyName) =>
         "\"" + familyName.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
+    /// <summary>Preserves one literal family at a CSS/list boundary without rewriting an equivalent plain name.</summary>
+    internal static string SerializeLiteral(string familyName) {
+        List<string> parsed = Parse(familyName, allowSemicolonSeparators: true);
+        return parsed.Count == 1 && string.Equals(parsed[0], familyName, StringComparison.Ordinal)
+            ? familyName : Quote(familyName);
+    }
+
     internal static List<string> Parse(
         string? familyNames,
         int maximumCandidates = DefaultMaximumCandidates,

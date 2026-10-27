@@ -73,6 +73,12 @@ public sealed partial class PdfOptions {
         }
 
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(sourceFontFamily!)) {
+            // Keep diagnostic resolution consistent with named-family selection:
+            // a profile-owned source face wins over a configured substitute.
+            if (_renderingProfileOwnedNamedFamilyNames?.Contains(candidate) == true &&
+                TryGetNamedFontFamilyDirect(candidate, out _)) {
+                return false;
+            }
             if (_fontFamilySubstitutions.TryGetValue(
                     NormalizeOfficeFontFamilyKey(candidate),
                     out PdfFontFamilySubstitution? configured) &&
@@ -91,6 +97,8 @@ public sealed partial class PdfOptions {
         return false;
     }
 
+    /// <summary>Creates a diagnostic while retaining the source label separately from its lookup request.</summary>
+    /// <remarks>A literal lookup request preserves family identity without changing displayed source text.</remarks>
     internal PdfConversionWarning CreateFontFamilySubstitutionWarning(
         string converter,
         string code,
@@ -99,7 +107,8 @@ public sealed partial class PdfOptions {
         PdfStandardFont? fallbackSlot,
         string? resolvedFontFamily,
         IReadOnlyDictionary<string, string>? additionalDetails = null,
-        bool sourceFontEmbeddingAllowed = true) {
+        bool sourceFontEmbeddingAllowed = true,
+        string? sourceFontFamilyRequest = null) {
         var details = new Dictionary<string, string>(StringComparer.Ordinal);
         if (additionalDetails != null) {
             foreach (KeyValuePair<string, string> detail in additionalDetails) {
@@ -118,7 +127,7 @@ public sealed partial class PdfOptions {
             details["resolvedFontFamily"] = resolvedFontFamily!;
         }
 
-        if (TryResolveFontFamilySubstitution(sourceFontFamily, out PdfFontFamilySubstitution? substitution) &&
+        if (TryResolveFontFamilySubstitution(sourceFontFamilyRequest ?? sourceFontFamily, out PdfFontFamilySubstitution? substitution) &&
             substitution != null &&
             !string.IsNullOrWhiteSpace(resolvedFontFamily) &&
             string.Equals(

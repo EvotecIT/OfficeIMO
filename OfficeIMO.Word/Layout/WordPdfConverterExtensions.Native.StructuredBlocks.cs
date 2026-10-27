@@ -403,7 +403,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdfWatermark.FontSize = fontSize.Value;
             }
 
-            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(watermark.FontFamily, out PdfCore.PdfStandardFont mappedFont)) {
+            if (TryResolveNativeMappedFont(watermark.FontFamily, nativeFontMap: null, out PdfCore.PdfStandardFont mappedFont)) {
                 pdfWatermark.Font = mappedFont;
             }
 

@@ -137,6 +137,19 @@ public sealed partial class PdfOptions {
             StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Finds an embedded family in its actual logical slot, independent of its usual standard alias.</summary>
+    internal bool TryResolveEmbeddedFontFamilySlot(string familyName, out PdfStandardFont fontFamily) {
+        if (_embeddedFonts != null) {
+            foreach (PdfStandardFont slot in _embeddedFonts.Keys) {
+                if (!EmbeddedFontFamilySlotMatches(slot, familyName)) continue;
+                fontFamily = PdfStandardFontMapper.GetFontFamily(slot);
+                return true;
+            }
+        }
+        fontFamily = PdfStandardFont.Helvetica;
+        return false;
+    }
+
     internal string? GetEmbeddedFontFamilyName(PdfStandardFont slot) {
         PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
         if (_embeddedFonts == null ||
@@ -170,9 +183,7 @@ public sealed partial class PdfOptions {
         fontFamily = PdfStandardFont.Helvetica;
         // An embedded family can occupy a different slot from its usual alias
         // when another document family already owns that slot.
-        foreach (PdfStandardFont slot in EmbeddedFonts.Keys) {
-            if (!EmbeddedFontFamilySlotMatches(slot, familyName)) continue;
-            fontFamily = PdfStandardFontMapper.GetFontFamily(slot);
+        if (TryResolveEmbeddedFontFamilySlot(familyName, out fontFamily)) {
             registeredFontSlots.Add(fontFamily);
             return true;
         }
