@@ -105,6 +105,11 @@ namespace OfficeIMO.PowerPoint {
         internal static HeaderGeometry RenderHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutSlide slide) {
             PowerPointLayoutGrid grid = context.Grid;
+            if (!context.Document.OwnsLayoutTheme &&
+                writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)?.Bounds is PowerPointLayoutBox templateTitle) {
+                return RenderTemplateHeader(context, writer, slide, templateTitle);
+            }
+
             HeaderGeometry header = MeasureHeader(context, slide);
             writer.Rect("Accent Mark", new PowerPointLayoutRect(grid.X(1), grid.Y(1) - 12D, 28D, 3D), context.Theme.Accent1);
             string? eyebrow = Eyebrow(context, slide, header);
@@ -134,6 +139,66 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return header;
+        }
+
+        /// <summary>
+        ///     The header on a template's layout: the title placeholder keeps the template's position, font, size and
+        ///     colour; the eyebrow sits above it when there is room; content starts below the template title.
+        /// </summary>
+        private static HeaderGeometry RenderTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
+            PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
+            PowerPointLayoutGrid grid = context.Grid;
+            var title = new PowerPointLayoutRect(titleBox.LeftPoints, titleBox.TopPoints, titleBox.WidthPoints, titleBox.HeightPoints);
+            string? eyebrow = Eyebrow(context, slide, null);
+            PowerPointTextStyleSpec eyebrowStyle = context.Style(PowerPointTextRole.Eyebrow);
+            if (!string.IsNullOrWhiteSpace(eyebrow) && title.Y >= eyebrowStyle.Size * 2.4D) {
+                writer.Text("Eyebrow", new PowerPointLayoutRect(title.X, title.Y - eyebrowStyle.Size * 1.8D, title.Width, eyebrowStyle.Size * 1.4D),
+                    context.Paragraph(eyebrow!, PowerPointTextRole.Eyebrow));
+            }
+
+            string text = (slide.Title ?? string.Empty) + (slide.ContinuedSuffix ?? string.Empty);
+            if (!string.IsNullOrWhiteSpace(text)) {
+                PowerPointTextBox shape = writer.Text("Title", title, context.Paragraph(text, PowerPointTextRole.Title),
+                    placeholder: "<p:ph type=\"title\"/>");
+                // Inherit geometry and character formatting from the template's title placeholder.
+                var element = (DocumentFormat.OpenXml.Presentation.Shape)shape.Element;
+                element.ShapeProperties?.RemoveAllChildren();
+                foreach (DocumentFormat.OpenXml.Drawing.RunProperties run in element.Descendants<DocumentFormat.OpenXml.Drawing.RunProperties>()) {
+                    run.RemoveAllChildren();
+                    run.FontSize = null;
+                    run.Bold = null;
+                    run.Spacing = null;
+                }
+
+                DocumentFormat.OpenXml.Drawing.BodyProperties? body = element.TextBody?.BodyProperties;
+                if (body != null) {
+                    body.RemoveAllChildren();
+                    body.RemoveAttribute("lIns", string.Empty);
+                    body.RemoveAttribute("tIns", string.Empty);
+                    body.RemoveAttribute("rIns", string.Empty);
+                    body.RemoveAttribute("bIns", string.Empty);
+                    body.RemoveAttribute("anchor", string.Empty);
+                    body.RemoveAttribute("wrap", string.Empty);
+                }
+
+                element.TextBody?.Descendants<DocumentFormat.OpenXml.Drawing.ParagraphProperties>().ToList().ForEach(p => p.Remove());
+            }
+
+            double bottom = title.Bottom;
+            if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
+                PowerPointTextStyleSpec subtitle = context.Style(PowerPointTextRole.Subtitle);
+                double height = context.Height(slide.Subtitle!, subtitle, title.Width) + 4D;
+                writer.Text("Subtitle", new PowerPointLayoutRect(title.X, bottom + 6D, title.Width, height), context.Paragraph(slide.Subtitle!, PowerPointTextRole.Subtitle));
+                bottom += 6D + height;
+            }
+
+            return new HeaderGeometry {
+                TitleY = title.Y,
+                TitleSize = context.Style(PowerPointTextRole.Title).Size,
+                TitleLines = 1,
+                Bottom = bottom,
+                ContentRow = Math.Max(1, Math.Min(PowerPointLayoutGrid.Rows - 3, grid.FirstRowBelow(bottom, 12D)))
+            };
         }
 
         /// <summary>Footer text and slide number in native footer placeholders.</summary>
@@ -169,17 +234,26 @@ namespace OfficeIMO.PowerPoint {
                 string fitted = Ellipsize(footerText!, footer.Size, grid.W(8), context.Theme.BodyFont);
                 PowerPointLayoutParagraph p = context.Paragraph(fitted, PowerPointTextRole.Footer, color);
                 p.Runs[0].Alpha = alpha;
-                writer.Text("Footer", new PowerPointLayoutRect(grid.X(1), grid.FooterY, grid.W(8), PowerPointLayoutGrid.FooterHeight), p,
+                PowerPointTextBox footerShape = writer.Text("Footer", new PowerPointLayoutRect(grid.X(1), grid.FooterY, grid.W(8), PowerPointLayoutGrid.FooterHeight), p,
                     anchor: "b", placeholder: "<p:ph type=\"ftr\" sz=\"quarter\" idx=\"" + PowerPointLayoutMasterWriter.FooterIndex + "\"/>");
+                InheritTemplatePlaceholder(context, writer, footerShape, PowerPointPlaceholderType.Footer);
             }
 
             if (number) {
                 int index = writer.Slide.OwnerPresentation?.Slides.Count ?? 1;
                 var run = new PowerPointLayoutRun(index.ToString(CultureInfo.InvariantCulture), footer, color: color) { Field = true, Alpha = alpha };
                 var p = new PowerPointLayoutParagraph(run) { Align = "r", LineHeight = footer.LineHeight };
-                writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(9), grid.FooterY, grid.W(4), PowerPointLayoutGrid.FooterHeight), p,
+                PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(9), grid.FooterY, grid.W(4), PowerPointLayoutGrid.FooterHeight), p,
                     anchor: "b", placeholder: "<p:ph type=\"sldNum\" sz=\"quarter\" idx=\"" + PowerPointLayoutMasterWriter.SlideNumberIndex + "\"/>");
+                InheritTemplatePlaceholder(context, writer, numberShape, PowerPointPlaceholderType.SlideNumber);
             }
+        }
+
+        /// <summary>On a template's layout, a footer placeholder keeps the template's own position.</summary>
+        private static void InheritTemplatePlaceholder(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointTextBox shape,
+            PowerPointPlaceholderType type) {
+            if (context.Document.OwnsLayoutTheme || writer.Slide.GetLayoutPlaceholder(type)?.Bounds == null) return;
+            ((DocumentFormat.OpenXml.Presentation.Shape)shape.Element).ShapeProperties?.RemoveAllChildren();
         }
 
         private static string Ellipsize(string text, double size, double width, string font) {

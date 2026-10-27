@@ -46,12 +46,16 @@ namespace OfficeIMO.PowerPoint {
 
         internal List<OfficeDiagnostic> Diagnostics { get; } = new();
 
+        /// <summary>Zero-based index of the slide being composed when each diagnostic was raised.</summary>
+        internal List<int> DiagnosticSlides { get; } = new();
+
         internal string? EffectiveFooterText => FooterText ?? DeckTitle;
 
         internal void Report(string code, OfficeDiagnosticSeverity severity, string message, string? location = null,
             bool oncePerDeck = false) {
             if (oncePerDeck && !_onceCodes.Add(code)) return;
             Diagnostics.Add(new OfficeDiagnostic(code, severity, message, location, "PowerPoint"));
+            DiagnosticSlides.Add(Document.Slides.Count);
         }
     }
 }

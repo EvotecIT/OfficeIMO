@@ -383,5 +383,39 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(presentation.ValidateDocument());
         }
+    
+        [Fact]
+        public void TemplateDeck_KeepsTheTemplateTitleAndStartsContentBelowIt() {
+            byte[] template;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                source.AddSlide();
+                template = source.ToBytes();
+            }
+
+            using var input = new MemoryStream(template);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            var slide = new PowerPointLayoutSlide { Title = "Quarter at a glance" };
+            slide.Blocks.Add(new PowerPointLayoutKpi("$4.2M", "Revenue", "+12%"));
+            slide.Blocks.Add(new PowerPointLayoutKpi("38%", "Margin", "+2 pt"));
+            PowerPointSlide added = PowerPointLayoutEngine.AddSlides(presentation, slide).Single();
+
+            P.Shape title = Shapes(added).Single(s => Placeholder(s)?.Type?.Value == P.PlaceholderValues.Title);
+            Assert.Null(title.ShapeProperties!.Transform2D); // position, font and size come from the template layout
+            Assert.Null(title.Descendants<A.RunProperties>().First().FontSize);
+            double titleBottom = added.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)!.Value.Bounds!.Value.BottomPoints;
+            foreach (P.Shape shape in Shapes(added).Where(s => s.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value!.StartsWith("Metric"))) {
+                Assert.True(Points(shape.ShapeProperties!.Transform2D!.Offset!.Y!.Value) >= titleBottom, "Content overlaps the template title.");
+            }
+        }
+
+        [Fact]
+        public void Compose_ReportsLayoutDiagnosticsInThePreflight() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            var plan = new PowerPointDeckPlan().AddLogoWall("Partners", null, new[] { new PowerPointLogoItem("Contoso") },
+                configure: options => options.FeaturedImagePath = "certificate.png");
+            PowerPointCompositionResult result = presentation.Compose(plan,
+                PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2463EB", "diagnostics")));
+            Assert.Contains(result.Preflight.Findings, f => f.Code == "Layout.designer-option-ignored");
+        }
     }
 }

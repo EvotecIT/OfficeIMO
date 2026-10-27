@@ -26,8 +26,10 @@ namespace OfficeIMO.PowerPoint {
                 items.Add(Stacked(context, "Eyebrow", slide.Eyebrow!, PowerPointTextRole.Eyebrow, stack.Width, 18D, onAccentMuted, balance: false));
             }
 
+            // On 4:3 the display size steps down (x0.86) so the title stack keeps its line count.
+            double? displaySize = grid.IsNarrow ? PowerPointLayoutTheme.RoundSize(context.Style(PowerPointTextRole.Display).Size * 0.86D) : null;
             items.Add(Stacked(context, "Title", slide.Title ?? string.Empty, PowerPointTextRole.Display, stack.Width, 22D, theme.OnAccent,
-                placeholder: "<p:ph type=\"ctrTitle\"/>", maxLines: 3));
+                displaySize, placeholder: "<p:ph type=\"ctrTitle\"/>", maxLines: 3));
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
                 items.Add(Stacked(context, "Subtitle", slide.Subtitle!, PowerPointTextRole.Subtitle, grid.W(7), 0D, onAccentMuted,
                     placeholder: "<p:ph type=\"subTitle\" idx=\"1\"/>", maxLines: 2));
@@ -63,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
                 Stacked(context, "Eyebrow", !string.IsNullOrWhiteSpace(slide.Eyebrow) ? slide.Eyebrow! : "Section " + number, PowerPointTextRole.Eyebrow,
                     stack.Width, 16D, eyebrowColor, balance: false),
                 Stacked(context, "Title", slide.Title ?? string.Empty, PowerPointTextRole.SectionTitle, stack.Width, 18D, theme.OnInk,
+                    grid.IsNarrow ? PowerPointLayoutTheme.RoundSize(context.Style(PowerPointTextRole.SectionTitle).Size * 0.9D) : null,
                     placeholder: "<p:ph type=\"title\"/>", maxLines: 3)
             };
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {

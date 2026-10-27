@@ -27,9 +27,29 @@ namespace OfficeIMO.PowerPoint {
             }
             PowerPointDeckDesign design = options.ResolveDesign(resolvedPlan);
             var composer = new PowerPointDeckComposer(this, design, options.ApplyTheme, options.TemplateLayouts);
+            int diagnosticStart = LayoutDeck.Diagnostics.Count;
             IReadOnlyList<PowerPointSlide> slides = composer.AddSlides(resolvedPlan, validate: false);
-            PowerPointDeckPreflightReport preflight = InspectPreflight(options.Preflight);
+            PowerPointDeckPreflightReport preflight = WithLayoutDiagnostics(InspectPreflight(options.Preflight), diagnosticStart);
             return new PowerPointCompositionResult(resolvedPlan, design, slides.ToList(), preflight);
+        }
+
+        /// <summary>Adds what the layout system reported while composing (splits, overflow, ignored options) to the preflight report.</summary>
+        private PowerPointDeckPreflightReport WithLayoutDiagnostics(PowerPointDeckPreflightReport preflight, int start) {
+            PowerPointLayoutDeck deck = LayoutDeck;
+            if (deck.Diagnostics.Count <= start) return preflight;
+            var findings = new List<PowerPointDeckPreflightFinding>(preflight.Findings);
+            for (int i = start; i < deck.Diagnostics.Count; i++) {
+                OfficeDiagnostic diagnostic = deck.Diagnostics[i];
+                PowerPointDeckPreflightSeverity severity = diagnostic.Severity switch {
+                    OfficeDiagnosticSeverity.Error => PowerPointDeckPreflightSeverity.Error,
+                    OfficeDiagnosticSeverity.Warning => PowerPointDeckPreflightSeverity.Warning,
+                    _ => PowerPointDeckPreflightSeverity.Info
+                };
+                findings.Add(new PowerPointDeckPreflightFinding(severity, "Layout." + diagnostic.Code, diagnostic.Message,
+                    Math.Min(deck.DiagnosticSlides[i], Math.Max(0, Slides.Count - 1))));
+            }
+
+            return new PowerPointDeckPreflightReport(preflight.SlideCount, findings);
         }
 
         /// <summary>
