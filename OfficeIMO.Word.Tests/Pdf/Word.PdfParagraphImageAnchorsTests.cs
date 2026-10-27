@@ -13,7 +13,7 @@ public sealed class PdfParagraphImageAnchorsTests {
         var paragraph = word.AddParagraph("First line\nAnchor line");
         using var source = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(16, 16, OfficeColor.Red), OfficeImageExportFormat.Png));
-        var image = paragraph.InsertImage(source, "line-anchor.png", 32, 32, WordImageTextWrapping.InFrontOfText);
+        var image = paragraph.AddImage(source, "line-anchor.png", 32, 32, WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.HorizontalPositionOffset = 30 * 12700;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Line;
@@ -36,7 +36,7 @@ public sealed class PdfParagraphImageAnchorsTests {
         var anchor = word.AddParagraph("Anchor text");
         using var source = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(16, 16, OfficeColor.Red), OfficeImageExportFormat.Png));
-        var image = anchor.InsertImage(source, "anchor.png", 40, 40,
+        var image = anchor.AddImage(source, "anchor.png", 40, 40,
             behind ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Margin;
         image.HorizontalPositionOffset = null;

@@ -15,7 +15,7 @@ public partial class Word {
         double displayScale, double storedDpiX, double storedDpiY) {
         using WordDocument document = WordDocument.Create();
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage(dpiX, dpiY));
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 360D * displayScale, 240D * displayScale);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 360D * displayScale, 240D * displayScale);
         // PNG pHYs stores integer pixels per metre: 11811 and 5906 encode these exact DPIs.
         // The physical crop follows the stored source resolution, rather than the encoder's requested nominal DPI.
         double originalWidth = 360D / storedDpiX * 2.54D;
@@ -47,7 +47,7 @@ public partial class Word {
     public void PhysicalImageCropNegativeEdgesAndClearingRetainTheOriginalImageScale() {
         using WordDocument document = WordDocument.Create();
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 360, 240);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 360, 240);
         image.CropLeftCentimeters = -.9525D;
         image.CropRightCentimeters = 1.905D;
         using var input = new MemoryStream(document.ToBytes());
@@ -70,7 +70,7 @@ public partial class Word {
     public void PhysicalImageCropEditsImportedPercentagesWithoutChangingRawCropSemantics() {
         using WordDocument document = WordDocument.Create();
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 100, 80);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 100, 80);
         image.CropLeft = 25000;
         image.CropRight = 12500;
         Assert.Equal(100D, image.Width!.Value, 3);
@@ -86,19 +86,19 @@ public partial class Word {
     }
 
     [Fact]
-    public void FluentImageCropValidatesTheWholeReplacementBeforeChangingTheDocument() {
+    public void ImageCropValidatesTheWholeReplacementBeforeChangingTheDocument() {
         // The old right crop and new left crop would conflict if four setters were applied sequentially.
-        OfficeIMO.Word.Fluent.ImageBuilder? cropBuilder = null;
         using WordDocument document = WordDocument.Create();
-        document.AsFluent().Image(i => { i.Add(CreatePhysicalCropTestImage(), "crop.png"); cropBuilder = i; });
-        cropBuilder!.Crop(0D, 0D, 7.62D, 0D);
-        cropBuilder.Crop(7.62D, 0D, 0D, 0D);
-        var image = Assert.Single(document.Images);
+        using var source = new MemoryStream(CreatePhysicalCropTestImage());
+        var image = document.AddParagraph().AddImage(source, "crop.png");
+        image.SetCropCentimeters(0D, 0D, 7.62D, 0D);
+        image.SetCropCentimeters(7.62D, 0D, 0D, 0D);
+        Assert.Same(image._Image, Assert.Single(document.Images)._Image);
         Assert.Equal(80000, image.CropLeft);
         Assert.Equal(0, image.CropRight);
         Assert.Equal(72D, image.Width!.Value, 3);
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        Assert.Throws<ArgumentOutOfRangeException>(() => cropBuilder.Crop(7.62D, 6.35D, 0D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => image.SetCropCentimeters(7.62D, 6.35D, 0D, 0D));
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         Assert.Throws<ArgumentOutOfRangeException>(() => image.CropLeftCentimeters = double.NaN);
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
@@ -114,7 +114,7 @@ public partial class Word {
         bool flipV, bool cropTop, double leftPoints, double topPoints) {
         using WordDocument document = WordDocument.Create();
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 360, 240);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 360, 240);
         image.WrapText = WordImageTextWrapping.InFrontOfText;
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
@@ -143,7 +143,7 @@ public partial class Word {
         document.Sections[0].Margins.Left = 1080U;
         document.Sections[0].Margins.Right = 1080U;
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 360, 240);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 360, 240);
         image.WrapText = WordImageTextWrapping.InFrontOfText;
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Margin;
         image.horizontalPosition.RemoveAllChildren();
@@ -167,7 +167,7 @@ public partial class Word {
     public void PhysicalImageCropRejectsUnresolvedOrMalformedAnchorsWithoutChangingThePackage() {
         using WordDocument document = WordDocument.Create();
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
-        var image = document.AddParagraph().InsertImage(pixels, "crop.png", 360, 240);
+        var image = document.AddParagraph().AddImage(pixels, "crop.png", 360, 240);
         image.WrapText = WordImageTextWrapping.InFrontOfText;
         image.HorizontalPositionOffset = 0L;
         image.VerticalPositionOffset = 0L;

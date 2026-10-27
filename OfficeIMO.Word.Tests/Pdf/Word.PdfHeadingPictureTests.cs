@@ -100,7 +100,7 @@ public partial class Word {
         if (content == "whitespace") paragraph.AddText(" \t ");
         byte[] picture = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png);
         using (var image = new MemoryStream(picture)) {
-            WordImage inserted = paragraph.InsertImage(image, "heading-picture.png", 64, 32);
+            WordImage inserted = paragraph.AddImage(image, "heading-picture.png", 64, 32);
             if (content == "picture-control") {
                 // Exercise the separately owned picture-SDT path with the same
                 // valid inline image, without a temporary filesystem asset.
@@ -114,7 +114,7 @@ public partial class Word {
         if (content == "anchor") {
             byte[] pictureBytes = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(16, 16, OfficeColor.Blue), OfficeImageExportFormat.Png);
             using var image = new MemoryStream(pictureBytes);
-            WordImage anchored = paragraph.InsertImage(image, "heading-anchor.png", 16, 16, WordImageTextWrapping.InFrontOfText);
+            WordImage anchored = paragraph.AddImage(image, "heading-anchor.png", 16, 16, WordImageTextWrapping.InFrontOfText);
             anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
             anchored.HorizontalPositionOffset = 240 * 12700;

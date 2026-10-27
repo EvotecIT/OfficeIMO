@@ -25,20 +25,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FluentSectionBuilderAcceptsOfficeIMOSectionBreakType() {
-            string filePath = Path.Combine(_directoryWithFiles, "FluentContinuousSectionBreak.docx");
-
-            using WordDocument document = WordDocument.Create(filePath);
-            WordSection previousSection = document.Sections[0];
-            document.AsFluent().Section(section => section.New(WordSectionBreakType.Continuous)).End();
-
-            Assert.Equal(2, document.Sections.Count);
-            Assert.Equal(WordSectionBreakType.NextPage, previousSection.BreakType);
-            SectionType sectionType = Assert.IsType<SectionType>(document.Sections[1]._sectionProperties.GetFirstChild<SectionType>());
-            Assert.Equal(SectionMarkValues.Continuous, sectionType.Val?.Value);
-        }
-
-        [Fact]
         public void Test_AddSectionDoesNotExposeOpenXmlValueStructOverload() {
             var openXmlOverload = typeof(WordDocument).GetMethod(nameof(WordDocument.AddSection), new[] { typeof(SectionMarkValues?) });
             Assert.Null(openXmlOverload);
@@ -50,7 +36,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(filePath);
             document.AddSection(default);
-            document.AsFluent().Section(section => section.New(default)).End();
+            document.AddSection(default);
 
             Assert.Equal(3, document.Sections.Count);
         }

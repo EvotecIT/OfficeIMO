@@ -18,7 +18,7 @@ public sealed class PdfVisualPageImportTests {
         using OfficeWordDocument word = OfficeWordDocument.Create();
         word.Sections[0].PageSettings.Width = 4800; word.Sections[0].PageSettings.Height = 6400;
         using var stream = new MemoryStream(png);
-        var image = word.AddParagraph().InsertImage(stream, "foreground.png", 320, 426.6666666667, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
+        var image = word.AddParagraph().AddImage(stream, "foreground.png", 320, 426.6666666667, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 0; image.VerticalPositionOffset = 0;
@@ -26,7 +26,7 @@ public sealed class PdfVisualPageImportTests {
         else if (contentKind == 2) {
             byte[] colored = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(new OfficeIMO.Drawing.OfficeRasterImage(20,20,OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
             using var coloredStream = new MemoryStream(colored);
-            word.AddParagraph().InsertImage(coloredStream, "later.png", 20, 20);
+            word.AddParagraph().AddImage(coloredStream, "later.png", 20, 20);
             word.AddParagraph("Covered content");
         }
         else word.AddParagraph("Covered content");
@@ -140,7 +140,7 @@ public sealed class PdfVisualPageImportTests {
         word.Sections[0].PageSettings.Width = 4800;
         word.Sections[0].PageSettings.Height = 6400;
         using var source = new MemoryStream(png);
-        var image = word.AddParagraph().InsertImage(source, "page.png", 60, 80, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
+        var image = word.AddParagraph().AddImage(source, "page.png", 60, 80, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 30 * 12700;

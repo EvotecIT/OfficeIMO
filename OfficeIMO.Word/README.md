@@ -141,16 +141,18 @@ the file. Package findings describe bounded structure and policy, not signature
 validity or a guarantee that content is safe. Capture is opt-in and does not replace
 the load policy or native import limits.
 
-`AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
-direct object-model work:
+Create and edit content through the document object model:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
 using var document = WordDocument.Create("report.docx");
 
-document.AsFluent()
-    .H1("Quarterly report")
-    .Paragraph(paragraph => paragraph.Text("Created with OfficeIMO.Word."))
-    .End();
+document.AddParagraph("Quarterly report").SetStyle(WordParagraphStyles.Heading1);
+document.AddParagraph("Created with OfficeIMO.Word.");
+document.AddCallout(OfficeCalloutKind.Info, "Review", "Check the quarterly totals.");
+document.AddCodeBlock("return total;", "csharp");
 
 document.Save();
 ```
@@ -222,7 +224,7 @@ section.ColumnDefinitions = new[] {
 int firstWidth = section.ColumnDefinitions[0].WidthTwips;
 ```
 
-The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing. The fluent section builder accepts the same definitions through `Columns(definitions)`.
+The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing.
 
 An omitted `SpaceAfterTwips` has an effective gap of zero for unequal columns. `ColumnsSpace` applies to equal-width columns. DOCX retains the omitted individual value; native DOC writes its effective zero explicitly.
 
@@ -287,7 +289,7 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Creates and validates cross-platform OPC XML package signatures and managed VBA legacy, agile, and V3 signatures through an explicitly supplied `IOfficeSecurityProvider`; structural inspection remains provider-free.
 - Exports document page ranges as managed PNG, JPEG, TIFF, WebP or SVG pages through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
-- Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
+- Uses one object model for paragraphs, tables, lists, charts, images, and content blocks.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
 
 Native `.doc` lists retain supported numbering definitions, marker formatting, abstract starts and per-instance restarts through the normal load/save API. Missing or malformed native list definitions appear in `LegacyDocUnsupportedFeatures` as `Numbering` losses and block normal saving. The [DOC compatibility contract](../Docs/officeimo.word.legacy-doc-compatibility.md) describes supported levels and numbering limits.
@@ -387,7 +389,7 @@ paragraph.Image.CropLeftCentimeters = 0.5;
 paragraph.Image.CropRightCentimeters = 0.25;
 ```
 
-The centimeter properties use the source image's pixel dimensions and horizontal or vertical resolution. They keep the displayed image scale and resize its frame, so the same crop selects the same source area after resizing. Floating pictures also adjust their anchor to keep the original picture in place, including rotation and mirrors. Assign `null` to restore an edge. The fluent `.Crop(left, top, right, bottom)` method applies all four centimeter values together.
+The centimeter properties use the source image's pixel dimensions and horizontal or vertical resolution. They keep the displayed image scale and resize its frame, so the same crop selects the same source area after resizing. Floating pictures also adjust their anchor to keep the original picture in place, including rotation and mirrors. Assign `null` to restore an edge. `SetCropCentimeters(left, top, right, bottom)` applies all four values together.
 
 The raw `CropLeft`, `CropTop`, `CropRight` and `CropBottom` properties use DrawingML percentages: `10000` means 10% of the original dimension. They leave the displayed frame unchanged. Negative centimeter crops expand the DOCX frame with empty margins; Word-to-PDF currently reports `NativeImageCropApproximated` for these source outsets. Physical cropping requires a readable embedded source and a floating position that can be resolved without pagination; use raw percentages when only the source selection should change.
 
@@ -992,7 +994,7 @@ Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.docx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Core`. The fluent model, native OMML adapter, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`. The object model, native OMML adapter, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 - **Optional security:** install `OfficeIMO.Security` and pass `OfficeSecurityProvider.Default` only for OPC/VBA signing or cryptographic validation. It is not a transitive Word dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

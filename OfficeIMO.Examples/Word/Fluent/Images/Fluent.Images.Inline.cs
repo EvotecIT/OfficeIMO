@@ -1,25 +1,30 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class FluentDocument {
-        public static void Example_FluentImagesInline(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class FluentDocument
+    {
+        public static void Example_FluentImagesInline(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Creating document with inline image");
             string filePath = Path.Combine(folderPath, "FluentInlineImage.docx");
             string imagesPath = Path.Combine(Directory.GetCurrentDirectory(), "Images");
+            using (WordDocument document = WordDocument.Create(filePath))
+            {
+                {
+                    var paragraph1 = document.AddParagraph();
+                    paragraph1 = paragraph1.AddText("Here is an inline icon ");
+                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), 16, 16, description: "icon");
+                    paragraph1 = paragraph1.AddText(" followed by text.");
+                }
 
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Paragraph(p => p
-                        .Text("Here is an inline icon ")
-                        .InlineImage(Path.Combine(imagesPath, "EvotecLogo.png"), widthPx: 16, heightPx: 16, alt: "icon")
-                        .Text(" followed by text."))
-                    .End();
                 document.Save();
             }
-            if (openWord) ExampleFileLauncher.Open(filePath);
+
+            if (openWord)
+                ExampleFileLauncher.Open(filePath);
         }
     }
 }

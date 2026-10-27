@@ -280,7 +280,7 @@ public sealed class WordPdfRunningPictureWrapTests {
             : story.AddParagraph();
         ConfigureParagraph(paragraph, string.Join(" ", FlowTokens));
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        image = paragraph.AddText(string.Empty).InsertImage(png, "wrapped.png", PictureWidth / .75D, PictureHeight / .75D, wrapping);
+        image = paragraph.AddText(string.Empty).AddImage(png, "wrapped.png", PictureWidth / .75D, PictureHeight / .75D, wrapping);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
         image.HorizontalPositionOffset = (long)((PictureLeft - 72D) * 12700D);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;

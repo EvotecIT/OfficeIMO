@@ -106,7 +106,7 @@ public class WordImageOptimizationTests {
         byte[] originalJpeg = jpeg.ToBytes();
         byte[] originalBmp = CreateBmp();
         using var stream = new MemoryStream(originalBmp);
-        var bmp = word.AddParagraph().InsertImage(stream, "source.bmp", 96, 48);
+        var bmp = word.AddParagraph().AddImage(stream, "source.bmp", 96, 48);
         string id = bmp.RelationshipId!;
         var originalPart = word._wordprocessingDocument.MainDocumentPart!.GetPartById(id);
         word._wordprocessingDocument.AddPartEventsFeature();
@@ -133,7 +133,7 @@ public class WordImageOptimizationTests {
         using WordDocument word = WordDocument.Create();
         byte[] bytes = format == "gif" ? Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=") : CreateBmp();
         using var stream = new MemoryStream(bytes);
-        var image = word.AddParagraph("Converted media").InsertImage(stream, "source." + format, 96, 48);
+        var image = word.AddParagraph("Converted media").AddImage(stream, "source." + format, 96, 48);
         string id = image.RelationshipId!;
         word.AddHeadersAndFooters();
         var headerPart = word._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single();
@@ -330,7 +330,7 @@ public class WordImageOptimizationTests {
             Metadata = new OfficeJpegMetadata(xmp: withMetadata ? System.Text.Encoding.UTF8.GetBytes("private image metadata") : null)
         });
         using var stream = new MemoryStream(bytes);
-        return paragraph.InsertImage(stream, "picture.jpg", width, height);
+        return paragraph.AddImage(stream, "picture.jpg", width, height);
     }
 
     private static byte[] CreateBmp() {

@@ -1,39 +1,43 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class FluentDocument {
-        public static void Example_FluentHeadersAndFooters(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class FluentDocument
+    {
+        public static void Example_FluentHeadersAndFooters(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Creating document with fluent headers and footers");
             string filePath = Path.Combine(folderPath, "FluentHeadersAndFooters.docx");
             string imagesPath = Path.Combine(Directory.GetCurrentDirectory(), "Images");
-
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AsFluent()
-                    .PageSetup(p => p.DifferentFirstPage().DifferentOddAndEvenPages())
-                    .Header(h => h
-                        .Default(d => d
-                            .Paragraph("Default header")
-                            .Paragraph(pb => pb.Text("Second header paragraph"))
-                            .Image(Path.Combine(imagesPath, "Kulek.jpg"), 50, 50)
-                            .Table(2, 2))
-                        .First(f => f.Paragraph("First page header"))
-                        .Even(e => e.Paragraph("Even page header")))
-                    .Footer(f => f
-                        .Default(d => d.Paragraph("Default footer"))
-                        .First(ft => ft.Paragraph("First page footer"))
-                        .Even(ev => ev.Paragraph("Even page footer")))
-                    .Paragraph(p => p.Text("Body paragraph"))
-                    .Section(s => s.New())
-                    .Paragraph(p => p.Text("Second section paragraph"))
-                    .End()
-                    .Save();
+            using (WordDocument document = WordDocument.Create(filePath))
+            {
+                {
+                    document.DifferentFirstPage = true;
+                    document.DifferentOddAndEvenPages = true;
+                    document.HeaderDefaultOrCreate.AddParagraph("Default header");
+                    var paragraph1 = document.HeaderDefaultOrCreate.AddParagraph();
+                    paragraph1 = paragraph1.AddText("Second header paragraph");
+                    document.HeaderDefaultOrCreate.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"), 50, 50);
+                    document.HeaderDefaultOrCreate.AddTable(2, 2);
+                    document.HeaderFirstOrCreate.AddParagraph("First page header");
+                    document.HeaderEvenOrCreate.AddParagraph("Even page header");
+                    document.FooterDefaultOrCreate.AddParagraph("Default footer");
+                    document.FooterFirstOrCreate.AddParagraph("First page footer");
+                    document.FooterEvenOrCreate.AddParagraph("Even page footer");
+                    var paragraph2 = document.AddParagraph();
+                    paragraph2 = paragraph2.AddText("Body paragraph");
+                    var section3 = document.Sections.Last();
+                    section3 = document.AddSection();
+                    var paragraph4 = document.AddParagraph();
+                    paragraph4 = paragraph4.AddText("Second section paragraph");
+                    document.Save();
+                }
             }
 
-            if (openWord) ExampleFileLauncher.Open(filePath);
+            if (openWord)
+                ExampleFileLauncher.Open(filePath);
         }
     }
 }
-

@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
         public void WordImage_RotationNullClearsInlineAndFloatingTransforms() {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             using WordDocument document = WordDocument.Create();
-            WordImage inline = document.AddParagraph().InsertImage(imagePath, 50, 50);
-            WordImage floating = document.AddParagraph().InsertImage(
+            WordImage inline = document.AddParagraph().AddImage(imagePath, 50, 50);
+            WordImage floating = document.AddParagraph().AddImage(
                 imagePath,
                 50,
                 50,
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Images[0].WrapText == WordImageTextWrapping.InLineWithText);
 
-            var inlineImage = imageParagraph.Image;
+            var inlineImage = imageParagraph;
             Assert.NotNull(inlineImage);
             Assert.True(inlineImage!.WrapText == WordImageTextWrapping.InLineWithText);
 

@@ -226,6 +226,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Gets or sets the numbering format of this list level.</summary>
+        public WordNumberFormat NumberFormat {
+            get => _level.NumberingFormat?.Val?.Value.ToOfficeEnum() ?? WordNumberFormat.Decimal;
+            set => _level.NumberingFormat = new NumberingFormat { Val = value.ToOpenXml() };
+        }
+
         /// <summary>
         /// Sets the starting number for this level.
         /// </summary>

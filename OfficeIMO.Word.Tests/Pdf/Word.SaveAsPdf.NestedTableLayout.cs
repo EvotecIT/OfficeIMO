@@ -193,7 +193,7 @@ public partial class Word {
         WordParagraph anchorParagraph = document.AddParagraph();
         ConfigureNestedLayoutParagraph(anchorParagraph, "PICTUREANCHOR");
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = anchorParagraph.AddText(string.Empty).InsertImage(
+        WordImage image = anchorParagraph.AddText(string.Empty).AddImage(
             pixels, "nested-wrap.png", 80D, 200D, WordImageTextWrapping.Square);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
         image.HorizontalPositionOffset = 120L * 12700L;

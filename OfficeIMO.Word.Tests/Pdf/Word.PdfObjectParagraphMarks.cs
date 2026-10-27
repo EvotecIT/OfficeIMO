@@ -163,7 +163,7 @@ public partial class Word {
             : new W.ParagraphProperties(new W.KeepNext());
         using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
-        p.InsertImage(image, "boundary.png", wide ? 1000D * 96D / 72D : 64D, wide ? 100D * 96D / 72D : 32D);
+        p.AddImage(image, "boundary.png", wide ? 1000D * 96D / 72D : 64D, wide ? 100D * 96D / 72D : 32D);
         document.AddParagraph("B");
         return document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
@@ -222,7 +222,7 @@ public partial class Word {
             } else {
                 using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(
                     new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
-                WordImage inserted = p.InsertImage(image, "mark.png", 64, kind == "image-short" ? 8 : 32,
+                WordImage inserted = p.AddImage(image, "mark.png", 64, kind == "image-short" ? 8 : 32,
                     kind == "anchored-image" ? WordImageTextWrapping.InFrontOfText : WordImageTextWrapping.InLineWithText);
                 if (kind == "anchored-image") {
                     inserted.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -232,7 +232,7 @@ public partial class Word {
                 }
                 if (mixedAnchor) {
                     image.Position = 0;
-                    WordImage anchored = p.InsertImage(image, "anchor.png", 64, 32, WordImageTextWrapping.InFrontOfText);
+                    WordImage anchored = p.AddImage(image, "anchor.png", 64, 32, WordImageTextWrapping.InFrontOfText);
                     anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     anchored.HorizontalPositionOffset = 140 * 12700;

@@ -471,13 +471,22 @@ namespace OfficeIMO.Word {
         /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
         /// <param name="minLevel">Minimum heading level to include (1..9).</param>
         /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
+        /// <param name="title">Optional title replacing the template title.</param>
+        /// <param name="insertAtTop">Places the table of contents before existing body content.</param>
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(
             WordTableOfContentsStyle tableOfContentStyle = WordTableOfContentsStyle.Template1,
             int minLevel = 1,
-            int maxLevel = 3) {
+            int maxLevel = 3,
+            string? title = null,
+            bool insertAtTop = false) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            if (title != null) wordTableContent.Text = title;
+            if (insertAtTop) {
+                wordTableContent.SdtBlock.Remove();
+                body.PrependChild(wordTableContent.SdtBlock);
+            }
             _tableOfContentIndex = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;

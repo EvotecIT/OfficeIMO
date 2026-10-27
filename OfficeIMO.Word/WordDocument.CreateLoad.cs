@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;

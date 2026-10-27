@@ -3,16 +3,18 @@ using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class Images {
-        internal static void Example_ImageNewFeatures(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class Images
+    {
+        internal static void Example_ImageNewFeatures(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Demonstrating image fill modes and external images");
             string filePath = System.IO.Path.Combine(folderPath, "ImageNewFeatures.docx");
             string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
-
             using var document = WordDocument.Create(filePath);
             var paragraph1 = document.AddParagraph("Tiled image with local DPI");
-            var paragraph1Image = paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
+            var paragraph1Image = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
             paragraph1Image.FillMode = WordImageFillMode.Tile;
             paragraph1Image.UseLocalDpi = true;
             paragraph1Image.Title = "Sample image";
@@ -34,18 +36,15 @@ namespace OfficeIMO.Examples.Word {
             paragraph1Image.LuminanceContrast = 30;
             paragraph1Image.TintAmount = 50;
             paragraph1Image.TintHue = 300;
-
             var paragraph2 = document.AddParagraph("Fit image");
-            paragraph2.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Fit;
-
+            paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Fit;
             var paragraph3 = document.AddParagraph("Centered image");
-            paragraph3.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Center;
-
+            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = WordImageFillMode.Center;
             var paragraph4 = document.AddParagraph("Linked image from web");
-            paragraph4.InsertImage(new Uri("http://example.com/logo.png"), 100, 100);
-
+            paragraph4.AddImage(new Uri("http://example.com/logo.png"), 100, 100);
             document.Save();
-            if (openWord) document.OpenInApplication();
+            if (openWord)
+                document.OpenInApplication();
         }
     }
 }

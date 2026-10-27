@@ -93,14 +93,14 @@ public sealed class PdfAnchoredImagePaginationTests {
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
             new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(bytes);
-        var image = anchor.InsertImage(stream, "anchored.png", 24, 24, WordImageTextWrapping.InFrontOfText);
+        var image = anchor.AddImage(stream, "anchored.png", 24, 24, WordImageTextWrapping.InFrontOfText);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
         image.HorizontalPositionOffset = 10 * 12700;
         image.VerticalPositionOffset = 10 * 12700;
         if (kind == "multiple") {
             using var secondStream = new MemoryStream(bytes);
-            var second = anchor.AddText(string.Empty).InsertImage(secondStream, "second.png", 24, 24, WordImageTextWrapping.InFrontOfText);
+            var second = anchor.AddText(string.Empty).AddImage(secondStream, "second.png", 24, 24, WordImageTextWrapping.InFrontOfText);
             second.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             second.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
             second.HorizontalPositionOffset = 40 * 12700;
@@ -136,8 +136,8 @@ public sealed class PdfAnchoredImagePaginationTests {
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
             new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Black),
             OfficeIMO.Drawing.OfficeImageExportFormat.Png);
-        using (var first = new MemoryStream(bytes)) paragraph.InsertImage(first, "first.png", 10, 10);
-        using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).InsertImage(second, "second.png", 10, 10);
+        using (var first = new MemoryStream(bytes)) paragraph.AddImage(first, "first.png", 10, 10);
+        using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).AddImage(second, "second.png", 10, 10);
 
         Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));

@@ -1,7 +1,6 @@
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
@@ -20,15 +19,6 @@ public sealed class WordAllSeverityBatch16SecurityTests {
 
         Assert.Null(cell.MarginTopWidth);
         Assert.Null(cell.MarginBottomWidth);
-    }
-
-    [Fact]
-    public void FluentCustomPropertyTreatsNullAsEmptyText() {
-        using WordDocument document = WordDocument.Create();
-
-        document.AsFluent().Info(info => info.Custom("Optional", null));
-
-        Assert.Equal(string.Empty, document.CustomDocumentProperties["Optional"].Value);
     }
 
     [Fact]

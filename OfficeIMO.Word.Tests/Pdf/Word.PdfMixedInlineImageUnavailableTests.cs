@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             using WordDocument word = WordDocument.Create();
             WordParagraph paragraph = word.AddParagraph("Before");
             using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-            WordImage image = paragraph.AddText("").InsertImage(pixels, "image.png", 80, 40);
+            WordImage image = paragraph.AddText("").AddImage(pixels, "image.png", 80, 40);
             image.CropLeft = -5000;
             paragraph.AddText("After");
 

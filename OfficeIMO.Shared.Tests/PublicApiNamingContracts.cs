@@ -10,7 +10,6 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -400,22 +399,6 @@ public sealed class PublicApiNamingContracts {
             .ToArray();
 
         Assert.Empty(collisions);
-    }
-
-    [Fact]
-    public void FormatOwnedBuilderAndTextRunTypesAreUnambiguous() {
-        Type[] canonicalTypes = {
-            typeof(WordParagraphBuilder),
-            typeof(OfficeIMO.Markdown.MarkdownParagraphBuilder),
-            typeof(PdfTextRun),
-            typeof(OfficeIMO.Markdown.MarkdownTextRun)
-        };
-
-        Assert.Equal(4, canonicalTypes.Select(static type => type.Name).Distinct(StringComparer.Ordinal).Count());
-        Assert.DoesNotContain(typeof(WordDocument).Assembly.GetExportedTypes(), static type => type.Name == "ParagraphBuilder");
-        Assert.DoesNotContain(typeof(OfficeIMO.Markdown.MarkdownDocument).Assembly.GetExportedTypes(),
-            static type => type.Name is "ParagraphBuilder" or "TextRun");
-        Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), static type => type.Name == "TextRun");
     }
 
     [Fact]

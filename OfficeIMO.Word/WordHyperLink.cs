@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
             return ResolveRelationshipPart(_document, _paragraph);
         }
 
-        private static OpenXmlPart? ResolveRelationshipPart(WordDocument document, OpenXmlElement paragraph) {
+        internal static OpenXmlPart? ResolveRelationshipPart(WordDocument document, OpenXmlElement paragraph) {
             OpenXmlElement? parent = paragraph.Parent;
             while (parent != null && parent is not Body && parent is not Header && parent is not Footer && parent is not Footnote && parent is not Endnote) {
                 parent = parent.Parent;

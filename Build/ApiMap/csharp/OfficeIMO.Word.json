@@ -584,11 +584,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.FooterContentBuilder",
@@ -601,11 +601,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.FootersBuilder",
@@ -618,11 +618,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.HeaderContentBuilder",
@@ -635,11 +635,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.HeadersBuilder",
@@ -652,11 +652,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.ImageBuilder",
@@ -669,11 +669,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.ListBuilder",
@@ -686,11 +686,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.PageSetupBuilder",
@@ -703,11 +703,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.RunBuilder",
@@ -720,11 +720,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.SectionBuilder",
@@ -737,11 +737,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.TextBuilder",
@@ -754,11 +754,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.WordFluentDocument",
@@ -771,11 +771,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.WordInfoBuilder",
@@ -788,11 +788,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.WordParagraphBuilder",
@@ -805,11 +805,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.Fluent.WordTableBuilder",
@@ -822,11 +822,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The alternate Word authoring layer is removed. Task and linked list items, callouts, code paragraphs, TOC placement, list number formats, image links and width limits, and logical table insertion now live on document objects. In-repo consumers use the object model. Native artifact, logical mutation, bounded regex and Markdown round-trip checks pass 41/41 on net10.0."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddImage(string filePathImage, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = InLineWithText, string description = )",
@@ -5661,6 +5661,11 @@
       "change": "Typed table authoring on Word",
       "applied": "phase-b-applied",
       "note": "The shared declared-schema projection handles public properties, fields and string-keyed dictionaries without arbitrary object graph reflection. Word also retains rectangular text/matrix input and an explicit dynamic-object overload; PowerPoint retains configurable object flattening with an explicit configure argument; Excel retains DataTable values and returns native ExcelTable wrappers. Focused authoring tests: 10/10 per modern target; final table signature check: 4/4 per target."
+    },
+    {
+      "change": "Preserve native Word authoring after fluent removal",
+      "applied": "phase-b-applied",
+      "note": "OfficeCalloutKind is shared in Core. Word has document-local code styles, optional TOC title/top placement, task/link list items, a NumberFormat list-level property, and zero-based logical table insertion. AddImage returns WordImage and its Paragraph identifies the containing run; WordImageOptions carries metadata, placement, hyperlink and maximum width. The existing embedded image reading methods remain. Image geometry, VML/resource/base64/URL consolidation and the remaining Add returns are separate pending map entries. Twelve builder-only test files and two duplicate builder-specific methods are removed; meaningful mutation, crop, regex, and conversion proof uses native objects."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

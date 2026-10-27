@@ -18,7 +18,7 @@ public sealed class WordImageCloneResourcesTests {
     public void Clone_RemapsImageLayerExtensionAcrossStories() {
         using var source = WordDocument.Create();
         using var destination = WordDocument.Create();
-        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20)!;
         var layerPart = source.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
         layerPart.FeedData(new MemoryStream(Gif));
         var layer = new OpenXmlUnknownElement("a14", "imgLayer", "http://schemas.microsoft.com/office/drawing/2010/main");
@@ -95,7 +95,7 @@ public sealed class WordImageCloneResourcesTests {
     public void Clone_RemapsDrawingClickAndHoverLinksAcrossStories() {
         using var source = WordDocument.Create();
         using var destination = WordDocument.Create();
-        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20)!;
         var click = source.MainDocumentPartRoot.AddHyperlinkRelationship(new Uri("https://example.test/click"), true);
         var hover = source.MainDocumentPartRoot.AddHyperlinkRelationship(new Uri("https://example.test/hover"), true);
         image._Image.Descendants<PIC.NonVisualDrawingProperties>().Single().Append(
@@ -124,7 +124,7 @@ public sealed class WordImageCloneResourcesTests {
     public void Clone_AllocatesDrawingIdentifiersAcrossStoriesAndPackages(bool otherDocument) {
         using var source = WordDocument.Create();
         using var destination = WordDocument.Create();
-        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20)!;
         var targetDocument = otherDocument ? destination : source;
         targetDocument.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", 20, 20);
         var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
@@ -168,7 +168,7 @@ public sealed class WordImageCloneResourcesTests {
     public void Clone_RemapsSvgExtensionToDestinationImagePart(string svgNamespace) {
         using var source = WordDocument.Create();
         using var destination = WordDocument.Create();
-        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20)!;
         var svgBytes = System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><rect width='20' height='20'/></svg>");
         var svgPart = source.MainDocumentPartRoot.AddImagePart(ImagePartType.Svg);
         svgPart.FeedData(new MemoryStream(svgBytes));

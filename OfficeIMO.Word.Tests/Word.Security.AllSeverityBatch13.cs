@@ -5,7 +5,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -106,12 +105,12 @@ public sealed class WordAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
-    public void FluentRegexSearchHonorsPerMatchTimeout() {
+    public void RegexSearchHonorsPerMatchTimeout() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph(new string('a', 50_000) + "!");
 
         Assert.Throws<RegexMatchTimeoutException>(() =>
-            document.AsFluent().FindRegex("^(a+)+$", TimeSpan.FromMilliseconds(1), _ => { }));
+            document.Find(new Regex("^(a+)+$", RegexOptions.None, TimeSpan.FromMilliseconds(1))));
     }
 
     [Fact]

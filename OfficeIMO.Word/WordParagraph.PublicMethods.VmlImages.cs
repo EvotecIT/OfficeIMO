@@ -9,11 +9,10 @@ public partial class WordParagraph {
     /// <param name="filePathImage">Image file to embed in the paragraph's document story.</param>
     /// <param name="width">Optional width in points. An omitted value leaves the VML width declaration absent.</param>
     /// <param name="height">Optional height in points. An omitted value leaves the VML height declaration absent.</param>
-    /// <returns>The paragraph containing the new image.</returns>
-    public WordParagraph AddImageVml(string filePathImage, double? width = null, double? height = null) {
+    /// <returns>The created image occurrence.</returns>
+    public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
         using var stream = File.OpenRead(filePathImage);
-        InsertImageVml(stream, Path.GetFileName(filePathImage), width, height);
-        return this;
+        return InsertImageVml(stream, Path.GetFileName(filePathImage), width, height);
     }
 
     /// <summary>Embeds a VML image in the current run, returning its attached occurrence without disposing the caller's stream.</summary>

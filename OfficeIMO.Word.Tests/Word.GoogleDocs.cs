@@ -3685,7 +3685,7 @@ namespace OfficeIMO.Tests {
             intro.AddHyperLink(" Portal", new Uri("https://example.com"));
 
             var imageParagraph = document.AddParagraph("Image ");
-            var image = imageParagraph.InsertImage(imagePath, width: 2, height: 1, description: "Logo");
+            var image = imageParagraph.AddImage(imagePath, width: 2, height: 1, description: "Logo");
             image.Title = "Brand";
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
@@ -4025,7 +4025,7 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-            var image = paragraph.InsertImage(imagePath, width: 1, height: 1, description: "CellLogo");
+            var image = paragraph.AddImage(imagePath, width: 1, height: 1, description: "CellLogo");
             image.Title = "CellBrand";
 
             return document;
