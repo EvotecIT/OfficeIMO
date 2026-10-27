@@ -553,7 +553,12 @@ namespace OfficeIMO.Word.Pdf {
                     W.Hyperlink? nestedHyperlink = frame.Hyperlink;
                     if (element is W.Run sourceRun) {
                         W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
-                        if (visibleRun != null)
+                        W.Run markupRun = visibleRun == null ? sourceRun : ApplyNativeTrackedChangeMarkup(sourceRun);
+                        if (visibleRun != null && !ReferenceEquals(markupRun, sourceRun))
+                            AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, markupRun) {
+                                _hyperlink = frame.Hyperlink
+                            });
+                        else if (visibleRun != null)
                             AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
                                 _hyperlink = frame.Hyperlink,
                                 _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
@@ -588,6 +593,8 @@ namespace OfficeIMO.Word.Pdf {
                         }
                     } else if (element is W.CustomXmlRun customXml) {
                         nested = customXml;
+                    } else if (GetNativeVisibleRevisionContainer(element) is { } revision) {
+                        nested = revision;
                     }
                     if (nested == null) continue;
                     if (frame.Depth >= maxDepth)

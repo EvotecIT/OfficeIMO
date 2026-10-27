@@ -71,4 +71,39 @@ public static partial class WordPdfConverterExtensions {
             return (GetNativeFrameSide(border, top: null, right: right)?.PaintThickness ?? 0D) / 2D;
         return style.BorderColor.HasValue ? style.BorderWidth / 2D : 0D;
     }
+
+    // Word never lays a column out narrower than its cell margins: the margins
+    // stay and the column grows to keep a minimal text area. A column must keep
+    // at least this much text width beside its left and right margins.
+    private const double NativeMinimumCellTextWidth = 1D;
+
+    private static void ApplyNativeCellMarginMinimumWidths(TableLayout layout, PdfCore.PdfTableStyle style) {
+        int columns = layout.ColumnWidths.Length;
+        if (columns == 0) return;
+        var required = new double[columns];
+        foreach (var cell in EnumerateNativeTableCellPositions(layout)) {
+            if (cell.ColumnSpan != 1 || cell.Column < 0 || cell.Column >= columns) continue;
+            double margins = GetNativeTableCellHorizontalMargin(style, cell.Row, cell.Column, right: false) +
+                GetNativeTableCellHorizontalMargin(style, cell.Row, cell.Column, right: true);
+            required[cell.Column] = Math.Max(required[cell.Column], margins + NativeMinimumCellTextWidth);
+        }
+        for (int column = 0; column < columns; column++) {
+            if (required[column] <= 0D) continue;
+            style.ColumnMinWidthPoints ??= new List<double?>();
+            while (style.ColumnMinWidthPoints.Count < columns) style.ColumnMinWidthPoints.Add(null);
+            if ((style.ColumnMinWidthPoints[column] ?? 0D) < required[column])
+                style.ColumnMinWidthPoints[column] = required[column];
+            if (style.ColumnMaxWidthPoints != null && column < style.ColumnMaxWidthPoints.Count &&
+                style.ColumnMaxWidthPoints[column] is double maximum && maximum < required[column])
+                style.ColumnMaxWidthPoints[column] = required[column];
+            if (style.ColumnWidthPoints != null && column < style.ColumnWidthPoints.Count &&
+                style.ColumnWidthPoints[column] is double width && width < required[column])
+                style.ColumnWidthPoints[column] = required[column];
+        }
+        if (style.MaxWidth is double maxWidth) {
+            double minimumTotal = style.ColumnMinWidthPoints?.Sum(width => width ?? 0D) ?? 0D;
+            double gaps = Math.Max(0, columns - 1) * style.CellSpacing;
+            if (maxWidth < minimumTotal + gaps) style.MaxWidth = minimumTotal + gaps;
+        }
+    }
 }

@@ -151,6 +151,12 @@ namespace OfficeIMO.Word.Pdf {
         public bool DefaultTableBorders { get; set; } = false;
 
         /// <summary>
+        /// Selects how tracked insertions and deletions are shown. Defaults to <see cref="WordPdfTrackedChangeView.Final"/>,
+        /// which renders insertions as current text and omits deletions; the conversion report says when a document has tracked changes.
+        /// </summary>
+        public WordPdfTrackedChangeView TrackedChanges { get; set; } = WordPdfTrackedChangeView.Final;
+
+        /// <summary>
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Word pagination and layout settings remain owned by this converter.
         /// </summary>
@@ -270,7 +276,8 @@ namespace OfficeIMO.Word.Pdf {
                 Keywords = Keywords,
                 IncludePageNumbers = IncludePageNumbers,
                 PageNumberFormat = PageNumberFormat,
-                DefaultTableBorders = DefaultTableBorders
+                DefaultTableBorders = DefaultTableBorders,
+                TrackedChanges = TrackedChanges
             };
             clone._pdfOptionsCreatedByRenderingProfile =
                 _pdfOptionsCreatedByRenderingProfile;

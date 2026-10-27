@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithIntegralEquation() {
             var filePath = Path.Combine(_directoryWithFiles, "CreatedWithIntegralEquation.docx");
             using (var document = WordDocument.Create(filePath)) {
-                const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:int><m:intPr/><m:e><m:r><m:t>x</m:t></m:r></m:e></m:int></m:oMath></m:oMathPara>";
+                const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:nary><m:naryPr><m:chr m:val=\"\u222B\"/></m:naryPr><m:sub/><m:sup/><m:e><m:r><m:t>x</m:t></m:r></m:e></m:nary></m:oMath></m:oMathPara>";
                 document.AddEquation(omml);
                 document.Save();
             }
@@ -55,6 +55,15 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 Assert.Single(document.Equations);
             }
+        }
+
+        [Fact]
+        public void AddEquation_RejectsElementsOutsideOfficeMath() {
+            using var document = WordDocument.Create();
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:int><m:e><m:r><m:t>x</m:t></m:r></m:e></m:int></m:oMath></m:oMathPara>";
+            ArgumentException error = Assert.Throws<ArgumentException>(() => document.AddEquation(omml));
+            Assert.Contains("<m:int>", error.Message);
+            Assert.Empty(document.Equations);
         }
 
         [Fact]

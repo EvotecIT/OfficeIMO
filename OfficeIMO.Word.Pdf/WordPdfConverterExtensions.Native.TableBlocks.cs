@@ -223,6 +223,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeFixedPercentageColumnPreferences(layout, style);
             ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
+            ApplyNativeCellMarginMinimumWidths(layout, style);
             style = CreateNativeNoteTableStyle(table, style, nativeDefaults);
 
             if (horizontalAlignments != null) {

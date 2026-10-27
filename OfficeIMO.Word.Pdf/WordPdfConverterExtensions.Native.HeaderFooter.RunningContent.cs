@@ -53,7 +53,8 @@ public static partial class WordPdfConverterExtensions {
             hasParagraph |= !story.ChildElements.Any();
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
-            ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
+            ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph ||
+                element is W.SdtBlock block && IsNativeParagraphOnlyRunningBlock(block));
             // Without a required table/field story, retain the established simple
             // projection. It preserves its distinct presentation override contract.
             if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
@@ -101,6 +102,13 @@ public static partial class WordPdfConverterExtensions {
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
     }
+
+    // Word's page-number galleries wrap the footer paragraph in a block content
+    // control. Its paragraphs flow like direct story paragraphs.
+    private static bool IsNativeParagraphOnlyRunningBlock(W.SdtBlock block) =>
+        block.SdtContentBlock is { } content && content.ChildElements.Any() &&
+        content.ChildElements.All(child => child is W.Paragraph ||
+            child is W.SdtBlock nested && IsNativeParagraphOnlyRunningBlock(nested));
 
     private static bool IsNativeRunningPictureDrawing(W.Drawing drawing, WordSection section,
         WordPdfExportOptions? options, PdfCore.PdfPageMargins margins) {
@@ -205,8 +213,16 @@ public static partial class WordPdfConverterExtensions {
         bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
             GetNativeHeaderFooterText(story, listMarkers, fontMap) is { HasPageTokens: false };
         WordHeaderFooterResolutionSnapshot? resolutionSnapshot = WordHeaderFooterResolutionSnapshot.Current(section._document);
+        WordDocument sourceDocument = section._document;
+        WordPdfTrackedChangeView trackedChangeView = CurrentNativeTrackedChangeView;
         return context => content => {
+            // Running stories materialize while the PDF is written. Their source
+            // document must still be open; report that contract plainly.
+            if (sourceDocument.IsDisposed)
+                throw new ObjectDisposedException(nameof(WordDocument),
+                    "The source Word document was disposed before its PDF was written. Save or write the PDF before disposing the document.");
             using IDisposable? resolutionScope = resolutionSnapshot?.Use();
+            using IDisposable trackedChangeScope = UseNativeTrackedChangeView(trackedChangeView);
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);

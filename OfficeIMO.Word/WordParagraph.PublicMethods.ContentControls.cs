@@ -304,7 +304,7 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(escapedTag)) xml += $"<w:tag w:val='{escapedTag}'/>";
             xml += "<w15:repeatingSection" + (string.IsNullOrEmpty(escapedSectionTitle) ? string.Empty : $" w15:sectionTitle='{escapedSectionTitle}'") + "/>";
             xml += "</w:sdtPr>";
-            xml += "<w:sdtContent><w15:repeatingSectionItem><w:sdt><w:sdtContent><w:r/></w:sdtContent></w:sdt></w15:repeatingSectionItem></w:sdtContent>";
+            xml += "<w:sdtContent><w:sdt><w:sdtPr><w15:repeatingSectionItem/></w:sdtPr><w:sdtContent><w:r/></w:sdtContent></w:sdt></w:sdtContent>";
             xml += "</w:sdt>";
 
             var newSdt = new SdtRun(xml);

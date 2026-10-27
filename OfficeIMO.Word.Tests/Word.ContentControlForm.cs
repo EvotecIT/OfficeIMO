@@ -83,8 +83,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("High", textValues);
                 Assert.Contains("Phone", textValues);
 
-                var repeatingItems = wordDocument.MainDocumentPart!.Document.Body!.Descendants()
-                    .Where(element => element.LocalName == "repeatingSectionItem")
+                // Word writes each item as a content control whose properties carry
+                // w15:repeatingSectionItem; the item text lives in that control.
+                var repeatingItems = wordDocument.MainDocumentPart!.Document.Body!.Descendants<SdtRun>()
+                    .Where(sdt => sdt.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2013.Word.SdtRepeatedSectionItem>().Any() == true)
                     .ToList();
                 Assert.True(repeatingItems.Count >= 3);
                 Assert.Contains(repeatingItems, item => item.InnerText.Contains("First"));

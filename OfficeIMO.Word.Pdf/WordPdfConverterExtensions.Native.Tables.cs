@@ -656,6 +656,13 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
+            // Word's Normal Table has no borders and no conditional formatting:
+            // its first row is never emphasized, whatever tblLook says.
+            if (PdfCore.PdfTableStyles.TryGetCanonicalWordStyleName(wordStyle!, out string? canonicalStyleName) &&
+                string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
             return PdfCore.PdfTableStyles.TryFromWordTableStyle(wordStyle!, out PdfCore.PdfTableStyle? style)
                 ? style
                 : null;

@@ -24,11 +24,12 @@ public static class OdtPdfConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         OdfConversionResult<OfficeIMO.Word.WordDocument> conversion =
             source.ToWordDocumentResult(conversionOptions);
-        using (conversion.Value) {
-            PdfCore.PdfDocumentConversionResult result =
-                WordPdf.WordPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
-            return result.WithSourceConversionReport(conversion.Report);
-        }
+        // The PDF model renders headers and footers from the intermediate Word
+        // document when it is written, so that in-memory document must stay open
+        // for the lifetime of the returned result.
+        PdfCore.PdfDocumentConversionResult result =
+            WordPdf.WordPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
+        return result.WithSourceConversionReport(conversion.Report);
     }
 
     /// <summary>Converts an ODT document to PDF bytes.</summary>

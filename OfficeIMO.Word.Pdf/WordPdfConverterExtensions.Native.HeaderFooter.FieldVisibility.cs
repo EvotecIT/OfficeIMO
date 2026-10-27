@@ -64,7 +64,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static OpenXmlElement? NextNativeHeaderFooterFieldElement(OpenXmlElement element, OpenXmlElement story) {
             // Stay within this story and mirror the visible-run reader's revision exclusions.
-            if (element is not (W.TextBoxContent or W.DeletedRun or W.MoveFromRun or W.InsertedRun or W.MoveToRun) && element.FirstChild != null)
+            if (element is not (W.TextBoxContent or W.DeletedRun or W.MoveFromRun) && element.FirstChild != null)
                 return element.FirstChild;
             for (OpenXmlElement? current = element; current != null && !ReferenceEquals(current, story); current = current.Parent) {
                 if (current.NextSibling() is OpenXmlElement next) return next;
