@@ -82,13 +82,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a native SmartArt diagram to the slide using a layout box.
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, PowerPointLayoutBox layout) {
-            return AddSmartArt(type, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddSmartArt(type, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>Adds populated native SmartArt using a layout box.</summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts,
             PowerPointLayoutBox layout) {
-            return AddSmartArt(type, nodeTexts, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddSmartArt(type, nodeTexts, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId) AddSmartArtParts(

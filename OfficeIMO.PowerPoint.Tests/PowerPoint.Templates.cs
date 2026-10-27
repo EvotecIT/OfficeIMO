@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, inventory.SourceSlideCount);
 
                 PowerPointTemplateLayoutInfo layout = inventory.ResolveLayout(master.Layouts[0].Name);
-                Assert.True(layout.SafeArea.Width > 0);
+                Assert.True(layout.SafeArea.Width.ToEmus() > 0);
                 PowerPointTemplatePlaceholderInfo body = layout.ResolvePlaceholder("Executive Summary Body");
                 Assert.Equal(PowerPointTemplatePlaceholderRole.Body, body.Role);
                 Assert.True(body.Bounds.HasValue);
@@ -99,10 +99,10 @@ namespace OfficeIMO.Tests {
                     candidate => candidate.Name == "Grouped Logo" &&
                                  candidate.Kind == PowerPointTemplateAssetKind.Logo);
                 PowerPointLayoutBox bounds = Assert.IsType<PowerPointLayoutBox>(asset.Bounds);
-                Assert.Equal(2200000L, bounds.Left);
-                Assert.Equal(1100000L, bounds.Top);
-                Assert.Equal(400000L, bounds.Width);
-                Assert.Equal(200000L, bounds.Height);
+                Assert.Equal(2200000L, bounds.Left.ToEmus());
+                Assert.Equal(1100000L, bounds.Top.ToEmus());
+                Assert.Equal(400000L, bounds.Width.ToEmus());
+                Assert.Equal(200000L, bounds.Height.ToEmus());
                 Assert.Null(Assert.Single(
                     inventory.Assets,
                     candidate => candidate.Name == "Long Boundary Logo").Bounds);
@@ -331,11 +331,11 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeLatinFonts("Aptos Display", "Aptos");
 
             PowerPointTextBox primary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PowerPointPlaceholderType.Body, 20, PowerPointLayoutBox.FromCentimeters(1.5, 3.0, 18, 7),
+                PowerPointPlaceholderType.Body, 20, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.0),OfficeIMO.OfficeLength.Centimeters(18),OfficeIMO.OfficeLength.Centimeters(7)),
                 "Executive Summary Body");
             primary.Name = "Executive Summary Body";
             PowerPointTextBox secondary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PowerPointPlaceholderType.Body, 21, PowerPointLayoutBox.FromCentimeters(20, 3.0, 5, 7),
+                PowerPointPlaceholderType.Body, 21, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20),OfficeIMO.OfficeLength.Centimeters(3.0),OfficeIMO.OfficeLength.Centimeters(5),OfficeIMO.OfficeLength.Centimeters(7)),
                 "Supporting Body");
             secondary.Name = "Supporting Body";
             presentation.EnsureLayoutFooterPlaceholderTextBox(0, 0, "CONFIDENTIAL");

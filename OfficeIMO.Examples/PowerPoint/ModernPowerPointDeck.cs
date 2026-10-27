@@ -136,7 +136,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             rail.OutlineColor = Teal;
 
             PowerPointTextBox list = slide.AddTextBox("",
-                PowerPointLayoutBox.FromCentimeters(2.25, 4.25, 13.4, 5.4));
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.25),OfficeIMO.OfficeLength.Centimeters(4.25),OfficeIMO.OfficeLength.Centimeters(13.4),OfficeIMO.OfficeLength.Centimeters(5.4)));
             list.SetBullets(new[] {
                 "Build a reusable visual system",
                 "Use grids for predictable placement",
@@ -157,9 +157,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             note.OutlineColor = Linen;
             AddBody(slide, "The main lesson: charts and tables are only useful when the surrounding layout makes the story obvious.", 2.75, 11.05, 10.7, 0.75, 12);
 
-            PowerPointLayoutBox[,] cards = PowerPointLayoutBox
-                .FromCentimeters(17.0, 4.15, 13.6, 8.15)
-                .SplitGridCm(3, 1, 0.55, 0);
+            PowerPointLayoutBox[,] cards = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(17.0),OfficeIMO.OfficeLength.Centimeters(4.15),OfficeIMO.OfficeLength.Centimeters(13.6),OfficeIMO.OfficeLength.Centimeters(8.15))
+                .SplitGrid(3,1,OfficeIMO.OfficeLength.Centimeters(0.55),OfficeIMO.OfficeLength.Centimeters(0));
             AddNumberedAgendaCard(slide, cards[0, 0], "01", "Composition", "Shared margins and rhythm");
             AddNumberedAgendaCard(slide, cards[1, 0], "02", "Content blocks", "Lists, cards, tables, and notes");
             AddNumberedAgendaCard(slide, cards[2, 0], "03", "Native charts", "Readable visuals that stay editable");
@@ -176,9 +175,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             AddLabel(slide, "Reusable sections", 2.1, 3.25, 7.5, 0.55, Teal, 16, bold: true);
             AddBody(slide, "The same grid can drive service cards, checklist panels, logos, and table-adjacent commentary without hand tuning every element.", 2.1, 4.0, 15.0, 1.0, 13);
 
-            PowerPointLayoutBox[,] serviceGrid = PowerPointLayoutBox
-                .FromCentimeters(2.1, 6.0, 28.3, 4.5)
-                .SplitGridCm(1, 4, 0, 0.55);
+            PowerPointLayoutBox[,] serviceGrid = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.1),OfficeIMO.OfficeLength.Centimeters(6.0),OfficeIMO.OfficeLength.Centimeters(28.3),OfficeIMO.OfficeLength.Centimeters(4.5))
+                .SplitGrid(1,4,OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(0.55));
             AddServiceCard(slide, serviceGrid[0, 0], "Device Management", Teal,
                 new[] { "Microsoft Intune", "Autopilot", "SCCM / MECM" });
             AddServiceCard(slide, serviceGrid[0, 1], "Microsoft Ecosystem", Indigo,
@@ -193,9 +191,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             band.OutlineColor = "D8DDE3";
             AddLabel(slide, "Additional areas we can model", 2.7, 12.0, 9.0, 0.55, Ink, 15, bold: true);
 
-            PowerPointLayoutBox[,] pillGrid = PowerPointLayoutBox
-                .FromCentimeters(2.7, 13.0, 26.8, 1.7)
-                .SplitGridCm(2, 3, 0.35, 0.55);
+            PowerPointLayoutBox[,] pillGrid = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.7),OfficeIMO.OfficeLength.Centimeters(13.0),OfficeIMO.OfficeLength.Centimeters(26.8),OfficeIMO.OfficeLength.Centimeters(1.7))
+                .SplitGrid(2,3,OfficeIMO.OfficeLength.Centimeters(0.35),OfficeIMO.OfficeLength.Centimeters(0.55));
             string[] pills = {
                 "Application Packaging",
                 "OS / application patching",
@@ -245,9 +242,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             titleRule.FillColor = "D7F3FA";
             titleRule.OutlineColor = "D7F3FA";
 
-            PowerPointLayoutBox[,] steps = PowerPointLayoutBox
-                .FromCentimeters(2.0, 6.75, 29.0, 6.3)
-                .SplitGridCm(1, 3, 0, 1.65);
+            PowerPointLayoutBox[,] steps = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.0),OfficeIMO.OfficeLength.Centimeters(6.75),OfficeIMO.OfficeLength.Centimeters(29.0),OfficeIMO.OfficeLength.Centimeters(6.3))
+                .SplitGrid(1,3,OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(1.65));
 
             AddProcessLane(slide, steps[0, 0], "Process Collect Lane", "1B7194");
             AddProcessLane(slide, steps[0, 1], "Process Analyze Lane", "0E5572");
@@ -400,30 +396,30 @@ namespace OfficeIMO.Examples.PowerPoint {
 
         private static void AddNumberedAgendaCard(PowerPointSlide slide, PowerPointLayoutBox box, string number,
             string title, string detail) {
-            PowerPointAutoShape card = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, title + " Agenda Card");
+            PowerPointAutoShape card = AddPanel(slide, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(), title + " Agenda Card");
             card.FillColor = "FFFFFF";
             card.OutlineColor = Linen;
             card.SetShadow("000000", blurPoints: 5, distancePoints: 1, angleDegrees: 90, transparencyPercent: 88);
 
-            AddLabel(slide, number, box.LeftCm + 0.55, box.TopCm + 0.36, 2.0, 0.8, Orange, 20, bold: true);
-            AddLabel(slide, title, box.LeftCm + 2.25, box.TopCm + 0.38, 6.5, 0.5, Ink, 14, bold: true);
-            AddBody(slide, detail, box.LeftCm + 2.25, box.TopCm + 1.02, 9.8, 0.45, 10);
+            AddLabel(slide, number, box.Left.ToCentimeters() + 0.55, box.Top.ToCentimeters() + 0.36, 2.0, 0.8, Orange, 20, bold: true);
+            AddLabel(slide, title, box.Left.ToCentimeters() + 2.25, box.Top.ToCentimeters() + 0.38, 6.5, 0.5, Ink, 14, bold: true);
+            AddBody(slide, detail, box.Left.ToCentimeters() + 2.25, box.Top.ToCentimeters() + 1.02, 9.8, 0.45, 10);
         }
 
         private static void AddServiceCard(PowerPointSlide slide, PowerPointLayoutBox box, string title, string color,
             IEnumerable<string> bullets) {
-            PowerPointAutoShape card = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, title + " Service Card");
+            PowerPointAutoShape card = AddPanel(slide, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(), title + " Service Card");
             card.FillColor = "FFFFFF";
             card.OutlineColor = "D8DDE3";
             card.OutlineWidthPoints = 1.0;
 
-            PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, 0.18, title + " Accent");
+            PowerPointAutoShape accent = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), 0.18, title + " Accent");
             accent.FillColor = color;
             accent.OutlineColor = color;
 
-            AddLabel(slide, title, box.LeftCm + 0.45, box.TopCm + 0.65, box.WidthCm - 0.9, 0.55, color, 14, bold: true);
+            AddLabel(slide, title, box.Left.ToCentimeters() + 0.45, box.Top.ToCentimeters() + 0.65, box.Width.ToCentimeters() - 0.9, 0.55, color, 14, bold: true);
             PowerPointTextBox list = slide.AddTextBox("",
-                PowerPointLayoutBox.FromCentimeters(box.LeftCm + 0.55, box.TopCm + 1.55, box.WidthCm - 0.95, box.HeightCm - 1.9));
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + 0.55),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 1.55),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 0.95),OfficeIMO.OfficeLength.Centimeters(box.Height.ToCentimeters() - 1.9)));
             list.SetBullets(bullets, configure: paragraph => {
                 paragraph.SetFontSize(10)
                     .SetColor("626B75")
@@ -436,12 +432,12 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void AddPill(PowerPointSlide slide, PowerPointLayoutBox box, string text) {
-            PowerPointAutoShape pill = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, text + " Pill");
+            PowerPointAutoShape pill = AddPanel(slide, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(), text + " Pill");
             pill.FillColor = "FDFBF7";
             pill.OutlineColor = "D8DDE3";
 
-            PowerPointTextBox label = AddLabel(slide, text, box.LeftCm + 0.25, box.TopCm + 0.17, box.WidthCm - 0.5,
-                box.HeightCm - 0.3, "4A4F55", 10, bold: false);
+            PowerPointTextBox label = AddLabel(slide, text, box.Left.ToCentimeters() + 0.25, box.Top.ToCentimeters() + 0.17, box.Width.ToCentimeters() - 0.5,
+                box.Height.ToCentimeters() - 0.3, "4A4F55", 10, bold: false);
             label.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             foreach (PowerPointParagraph paragraph in label.Paragraphs) {
                 paragraph.Alignment = PowerPointTextAlignment.Center;
@@ -449,8 +445,8 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void AddProcessLane(PowerPointSlide slide, PowerPointLayoutBox box, string name, string fillColor) {
-            PowerPointAutoShape lane = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, box.LeftCm - 0.55, box.TopCm + 0.15,
-                box.WidthCm + 1.0, box.HeightCm + 0.8, name);
+            PowerPointAutoShape lane = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, box.Left.ToCentimeters() - 0.55, box.Top.ToCentimeters() + 0.15,
+                box.Width.ToCentimeters() + 1.0, box.Height.ToCentimeters() + 0.8, name);
             lane.FillColor = fillColor;
             lane.FillTransparency = 72;
             lane.OutlineColor = fillColor;
@@ -469,17 +465,17 @@ namespace OfficeIMO.Examples.PowerPoint {
 
         private static void AddProcessStep(PowerPointSlide slide, PowerPointLayoutBox box, string number, string title,
             IEnumerable<string> bullets, string accentColor) {
-            PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm, box.TopCm + 2.72, 1.45, 0.08, title + " Step Accent");
+            PowerPointAutoShape accent = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters() + 2.72, 1.45, 0.08, title + " Step Accent");
             accent.FillColor = accentColor;
             accent.OutlineColor = accentColor;
 
-            PowerPointTextBox numberBox = AddLabel(slide, number, box.LeftCm, box.TopCm + 0.05, 3.25, 1.75,
+            PowerPointTextBox numberBox = AddLabel(slide, number, box.Left.ToCentimeters(), box.Top.ToCentimeters() + 0.05, 3.25, 1.75,
                 "FFFFFF", 46, bold: true);
             numberBox.TextAutoFit = PowerPointTextAutoFit.Normal;
 
-            AddLabel(slide, title, box.LeftCm, box.TopCm + 2.0, box.WidthCm, 0.6, "FFFFFF", 15, bold: true);
+            AddLabel(slide, title, box.Left.ToCentimeters(), box.Top.ToCentimeters() + 2.0, box.Width.ToCentimeters(), 0.6, "FFFFFF", 15, bold: true);
             PowerPointTextBox list = slide.AddTextBox("",
-                PowerPointLayoutBox.FromCentimeters(box.LeftCm, box.TopCm + 3.15, box.WidthCm, 1.85));
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 3.15),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.85)));
             list.SetParagraphs(bullets, paragraph => {
                 paragraph.SetFontSize(11)
                     .SetColor("D7F3FA")
@@ -490,8 +486,8 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void AddArrowBetween(PowerPointSlide slide, PowerPointLayoutBox left, PowerPointLayoutBox right) {
-            double y = left.TopCm + 1.15;
-            PowerPointAutoShape arrow = slide.AddLineCm(left.RightCm + 0.06, y, right.LeftCm - 0.22, y, "Process Arrow");
+            double y = left.Top.ToCentimeters() + 1.15;
+            PowerPointAutoShape arrow = slide.AddLineCm(left.Right.ToCentimeters() + 0.06, y, right.Left.ToCentimeters() - 0.22, y, "Process Arrow");
             arrow.OutlineColor = "D7F3FA";
             arrow.OutlineWidthPoints = 2.8;
             arrow.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);

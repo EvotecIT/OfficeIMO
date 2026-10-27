@@ -84,10 +84,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(rendered.Succeeded);
             string svg = System.Text.Encoding.UTF8.GetString(rendered.Bytes!);
             var target = reopened.Slides[0].Tables.First();
-            double right = target.LeftPoints + Enumerable.Range(0, columns).Sum(target.GetColumnWidthPoints);
-            double bottom = target.TopPoints + Enumerable.Range(0, rows).Sum(target.GetRowHeightPoints);
-            AssertRenderedBorder(svg, right, target.TopPoints, right, bottom, columns == 2 ? 2d : 1d);
-            AssertRenderedBorder(svg, target.LeftPoints, bottom, right, bottom, rows == 3 ? 2d : 1d);
+            double right = target.Left.ToPoints() + Enumerable.Range(0, columns).Sum(target.GetColumnWidthPoints);
+            double bottom = target.Top.ToPoints() + Enumerable.Range(0, rows).Sum(target.GetRowHeightPoints);
+            AssertRenderedBorder(svg, right, target.Top.ToPoints(), right, bottom, columns == 2 ? 2d : 1d);
+            AssertRenderedBorder(svg, target.Left.ToPoints(), bottom, right, bottom, rows == 3 ? 2d : 1d);
             saved.Position = 0; using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
             using var xmlStream = zip.Entries.Single(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.Ordinal)
                 && entry.FullName.EndsWith(".xml", StringComparison.Ordinal)).Open();

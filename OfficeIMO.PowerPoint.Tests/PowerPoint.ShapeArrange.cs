@@ -22,10 +22,10 @@ namespace OfficeIMO.Tests {
                 PowerPointShape duplicate = slide.DuplicateShape(original, 500, 600);
 
                 Assert.Equal(2, slide.Shapes.Count);
-                Assert.Equal(original.Width, duplicate.Width);
-                Assert.Equal(original.Height, duplicate.Height);
-                Assert.Equal(original.Left + 500, duplicate.Left);
-                Assert.Equal(original.Top + 600, duplicate.Top);
+                Assert.Equal(original.Width.ToEmus(), duplicate.Width.ToEmus());
+                Assert.Equal(original.Height.ToEmus(), duplicate.Height.ToEmus());
+                Assert.Equal(original.Left.ToEmus() + 500, duplicate.Left.ToEmus());
+                Assert.Equal(original.Top.ToEmus() + 600, duplicate.Top.ToEmus());
                 Assert.NotEqual(original.Name, duplicate.Name);
             } finally {
                 if (File.Exists(filePath)) {

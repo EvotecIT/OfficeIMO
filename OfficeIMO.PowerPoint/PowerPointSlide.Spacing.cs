@@ -261,87 +261,87 @@ namespace OfficeIMO.PowerPoint {
 
         private static void DistributeHorizontalWithSpacing(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, bool center) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left).ToList();
-            long totalWidth = ordered.Sum(s => s.Width);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left.ToEmus()).ToList();
+            long totalWidth = ordered.Sum(s => s.Width.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockWidth = totalWidth + totalSpacing;
-            double start = bounds.Left;
+            double start = bounds.Left.ToEmus();
 
-            if (center && blockWidth < bounds.Width) {
-                start = bounds.Left + (bounds.Width - blockWidth) / 2d;
+            if (center && blockWidth < bounds.Width.ToEmus()) {
+                start = bounds.Left.ToEmus() + (bounds.Width.ToEmus() - blockWidth) / 2d;
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Left = (long)Math.Round(current);
-                current += shape.Width + spacingEmus;
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Width.ToEmus() + spacingEmus;
             }
         }
 
         private static void DistributeVerticalWithSpacing(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, bool center) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top).ToList();
-            long totalHeight = ordered.Sum(s => s.Height);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top.ToEmus()).ToList();
+            long totalHeight = ordered.Sum(s => s.Height.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockHeight = totalHeight + totalSpacing;
-            double start = bounds.Top;
+            double start = bounds.Top.ToEmus();
 
-            if (center && blockHeight < bounds.Height) {
-                start = bounds.Top + (bounds.Height - blockHeight) / 2d;
+            if (center && blockHeight < bounds.Height.ToEmus()) {
+                start = bounds.Top.ToEmus() + (bounds.Height.ToEmus() - blockHeight) / 2d;
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Top = (long)Math.Round(current);
-                current += shape.Height + spacingEmus;
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Height.ToEmus() + spacingEmus;
             }
         }
 
         private static void DistributeHorizontalWithSpacingAligned(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, PowerPointShapeAlignment alignment) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left).ToList();
-            long totalWidth = ordered.Sum(s => s.Width);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left.ToEmus()).ToList();
+            long totalWidth = ordered.Sum(s => s.Width.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockWidth = totalWidth + totalSpacing;
 
-            double start = bounds.Left;
-            if (blockWidth <= bounds.Width) {
+            double start = bounds.Left.ToEmus();
+            if (blockWidth <= bounds.Width.ToEmus()) {
                 start = alignment switch {
-                    PowerPointShapeAlignment.Left => bounds.Left,
-                    PowerPointShapeAlignment.Center => bounds.Left + (bounds.Width - blockWidth) / 2d,
-                    PowerPointShapeAlignment.Right => bounds.Right - blockWidth,
+                    PowerPointShapeAlignment.Left => bounds.Left.ToEmus(),
+                    PowerPointShapeAlignment.Center => bounds.Left.ToEmus() + (bounds.Width.ToEmus() - blockWidth) / 2d,
+                    PowerPointShapeAlignment.Right => bounds.Right.ToEmus() - blockWidth,
                     _ => throw new ArgumentOutOfRangeException(nameof(alignment))
                 };
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Left = (long)Math.Round(current);
-                current += shape.Width + spacingEmus;
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Width.ToEmus() + spacingEmus;
             }
         }
 
         private static void DistributeHorizontalWithSpacingAligned(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left).ToList();
-            long totalWidth = ordered.Sum(s => s.Width);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Left.ToEmus()).ToList();
+            long totalWidth = ordered.Sum(s => s.Width.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockWidth = totalWidth + totalSpacing;
 
-            double start = bounds.Left;
-            if (blockWidth <= bounds.Width) {
+            double start = bounds.Left.ToEmus();
+            if (blockWidth <= bounds.Width.ToEmus()) {
                 start = alignment switch {
-                    PowerPointShapeAlignment.Left => bounds.Left,
-                    PowerPointShapeAlignment.Center => bounds.Left + (bounds.Width - blockWidth) / 2d,
-                    PowerPointShapeAlignment.Right => bounds.Right - blockWidth,
+                    PowerPointShapeAlignment.Left => bounds.Left.ToEmus(),
+                    PowerPointShapeAlignment.Center => bounds.Left.ToEmus() + (bounds.Width.ToEmus() - blockWidth) / 2d,
+                    PowerPointShapeAlignment.Right => bounds.Right.ToEmus() - blockWidth,
                     _ => throw new ArgumentOutOfRangeException(nameof(alignment))
                 };
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Left = (long)Math.Round(current);
-                current += shape.Width + spacingEmus;
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Width.ToEmus() + spacingEmus;
             }
 
             ApplyCrossAxisAlignment(ordered, PowerPointShapeDistribution.Horizontal, bounds, crossAxisAlignment);
@@ -349,25 +349,25 @@ namespace OfficeIMO.PowerPoint {
 
         private static void DistributeVerticalWithSpacingAligned(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, PowerPointShapeAlignment alignment) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top).ToList();
-            long totalHeight = ordered.Sum(s => s.Height);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top.ToEmus()).ToList();
+            long totalHeight = ordered.Sum(s => s.Height.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockHeight = totalHeight + totalSpacing;
 
-            double start = bounds.Top;
-            if (blockHeight <= bounds.Height) {
+            double start = bounds.Top.ToEmus();
+            if (blockHeight <= bounds.Height.ToEmus()) {
                 start = alignment switch {
-                    PowerPointShapeAlignment.Top => bounds.Top,
-                    PowerPointShapeAlignment.Middle => bounds.Top + (bounds.Height - blockHeight) / 2d,
-                    PowerPointShapeAlignment.Bottom => bounds.Bottom - blockHeight,
+                    PowerPointShapeAlignment.Top => bounds.Top.ToEmus(),
+                    PowerPointShapeAlignment.Middle => bounds.Top.ToEmus() + (bounds.Height.ToEmus() - blockHeight) / 2d,
+                    PowerPointShapeAlignment.Bottom => bounds.Bottom.ToEmus() - blockHeight,
                     _ => throw new ArgumentOutOfRangeException(nameof(alignment))
                 };
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Top = (long)Math.Round(current);
-                current += shape.Height + spacingEmus;
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Height.ToEmus() + spacingEmus;
             }
         }
 
@@ -421,11 +421,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += distribution == PowerPointShapeDistribution.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (distribution == PowerPointShapeDistribution.Horizontal ? bounds.Width : bounds.Height) - totalSize;
+            long available = (distribution == PowerPointShapeDistribution.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus()) - totalSize;
             if (available <= 0) {
                 return 0;
             }
@@ -453,11 +453,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += distribution == PowerPointShapeDistribution.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (distribution == PowerPointShapeDistribution.Horizontal ? bounds.Width : bounds.Height)
+            long available = (distribution == PowerPointShapeDistribution.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus())
                 - spacingEmus * Math.Max(0, shapes.Count - 1);
             if (totalSize <= 0 || available >= totalSize) {
                 return;
@@ -469,25 +469,25 @@ namespace OfficeIMO.PowerPoint {
 
         private static void DistributeVerticalWithSpacingAligned(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top).ToList();
-            long totalHeight = ordered.Sum(s => s.Height);
+            List<PowerPointShape> ordered = shapes.OrderBy(s => s.Top.ToEmus()).ToList();
+            long totalHeight = ordered.Sum(s => s.Height.ToEmus());
             long totalSpacing = spacingEmus * (ordered.Count - 1);
             double blockHeight = totalHeight + totalSpacing;
 
-            double start = bounds.Top;
-            if (blockHeight <= bounds.Height) {
+            double start = bounds.Top.ToEmus();
+            if (blockHeight <= bounds.Height.ToEmus()) {
                 start = alignment switch {
-                    PowerPointShapeAlignment.Top => bounds.Top,
-                    PowerPointShapeAlignment.Middle => bounds.Top + (bounds.Height - blockHeight) / 2d,
-                    PowerPointShapeAlignment.Bottom => bounds.Bottom - blockHeight,
+                    PowerPointShapeAlignment.Top => bounds.Top.ToEmus(),
+                    PowerPointShapeAlignment.Middle => bounds.Top.ToEmus() + (bounds.Height.ToEmus() - blockHeight) / 2d,
+                    PowerPointShapeAlignment.Bottom => bounds.Bottom.ToEmus() - blockHeight,
                     _ => throw new ArgumentOutOfRangeException(nameof(alignment))
                 };
             }
 
             double current = start;
             foreach (PowerPointShape shape in ordered) {
-                shape.Top = (long)Math.Round(current);
-                current += shape.Height + spacingEmus;
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                current += shape.Height.ToEmus() + spacingEmus;
             }
 
             ApplyCrossAxisAlignment(ordered, PowerPointShapeDistribution.Vertical, bounds, crossAxisAlignment);

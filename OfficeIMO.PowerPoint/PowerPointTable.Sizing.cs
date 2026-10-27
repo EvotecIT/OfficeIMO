@@ -133,7 +133,7 @@ namespace OfficeIMO.PowerPoint {
                 totalRatio += ratios[i];
             }
 
-            long totalWidth = Width;
+            long totalWidth = Width.ToEmus();
             if (totalWidth <= 0) {
                 totalWidth = TableElement.TableGrid?.Elements<A.GridColumn>()
                     .Sum(c => c.Width?.Value ?? 0) ?? 0;
@@ -277,7 +277,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            long totalHeight = Height;
+            long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
                 totalHeight = TableElement.Elements<A.TableRow>()
                     .Sum(r => r.Height?.Value ?? 0L);
@@ -320,7 +320,7 @@ namespace OfficeIMO.PowerPoint {
                 totalRatio += ratios[i];
             }
 
-            long totalHeight = Height;
+            long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
                 totalHeight = TableElement.Elements<A.TableRow>()
                     .Sum(r => r.Height?.Value ?? 0L);

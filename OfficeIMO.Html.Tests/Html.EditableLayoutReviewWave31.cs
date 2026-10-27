@@ -73,8 +73,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
 
         PowerPointPicture nativeImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         Assert.Equal("image/svg+xml", nativeImage.ContentType);
-        Assert.Equal(18D, nativeImage.WidthPoints, precision: 3);
-        Assert.Equal(13.5D, nativeImage.HeightPoints, precision: 3);
+        Assert.Equal(18D, nativeImage.Width.ToPoints(), precision: 3);
+        Assert.Equal(13.5D, nativeImage.Height.ToPoints(), precision: 3);
         Assert.Equal("Vector marker", nativeImage.AltText);
     }
 
@@ -98,8 +98,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
         PowerPointPicture powerPointImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
-        Assert.Equal(15D, powerPointImage.WidthPoints, precision: 3);
-        Assert.Equal(15D, powerPointImage.HeightPoints, precision: 3);
+        Assert.Equal(15D, powerPointImage.Width.ToPoints(), precision: 3);
+        Assert.Equal(15D, powerPointImage.Height.ToPoints(), precision: 3);
         Assert.Equal(0.25D, powerPointImage.CropLeftRatio, precision: 3);
         Assert.Equal(0.25D, powerPointImage.CropRightRatio, precision: 3);
     }

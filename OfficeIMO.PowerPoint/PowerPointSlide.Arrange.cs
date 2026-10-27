@@ -39,8 +39,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (offsetX != 0 || offsetY != 0) {
-                duplicate.Left += offsetX;
-                duplicate.Top += offsetY;
+                duplicate.Left+= OfficeIMO.OfficeLength.Emus(offsetX);
+                duplicate.Top+= OfficeIMO.OfficeLength.Emus(offsetY);
             }
 
             parent.InsertAfter(clone, shape.Element);

@@ -14,16 +14,16 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 4000);
 
                 PowerPointLayoutBox bounds = shape.Bounds;
-                Assert.Equal(1000, bounds.Left);
-                Assert.Equal(2000, bounds.Top);
-                Assert.Equal(3000, bounds.Width);
-                Assert.Equal(4000, bounds.Height);
+                Assert.Equal(1000, bounds.Left.ToEmus());
+                Assert.Equal(2000, bounds.Top.ToEmus());
+                Assert.Equal(3000, bounds.Width.ToEmus());
+                Assert.Equal(4000, bounds.Height.ToEmus());
 
-                shape.Bounds = new PowerPointLayoutBox(2000, 3000, 4000, 5000);
-                Assert.Equal(2000, shape.Left);
-                Assert.Equal(3000, shape.Top);
-                Assert.Equal(4000, shape.Width);
-                Assert.Equal(5000, shape.Height);
+                shape.Bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(2000),OfficeIMO.OfficeLength.Emus(3000),OfficeIMO.OfficeLength.Emus(4000),OfficeIMO.OfficeLength.Emus(5000));
+                Assert.Equal(2000, shape.Left.ToEmus());
+                Assert.Equal(3000, shape.Top.ToEmus());
+                Assert.Equal(4000, shape.Width.ToEmus());
+                Assert.Equal(5000, shape.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(1000, 1000, 500, 600);
 
-                shape.Right = 4000;
-                shape.Bottom = 5000;
+                shape.Right= OfficeIMO.OfficeLength.Emus(4000);
+                shape.Bottom= OfficeIMO.OfficeLength.Emus(5000);
 
-                Assert.Equal(3500, shape.Left);
-                Assert.Equal(4400, shape.Top);
+                Assert.Equal(3500, shape.Left.ToEmus());
+                Assert.Equal(4400, shape.Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -59,11 +59,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(0, 0, 1000, 2000);
 
-                shape.CenterX = 3000;
-                shape.CenterY = 4000;
+                shape.CenterX= OfficeIMO.OfficeLength.Emus(3000);
+                shape.CenterY= OfficeIMO.OfficeLength.Emus(4000);
 
-                Assert.Equal(2500, shape.Left);
-                Assert.Equal(3000, shape.Top);
+                Assert.Equal(2500, shape.Left.ToEmus());
+                Assert.Equal(3000, shape.Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
                 PowerPointAutoShape c = slide.AddRectangle(4000, 0, 1000, 1000);
 
-                PowerPointLayoutBox bounds = new PowerPointLayoutBox(0, 0, 2500, 1500);
+                PowerPointLayoutBox bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(2500),OfficeIMO.OfficeLength.Emus(1500));
                 var intersects = slide.GetShapesInBounds(bounds);
                 Assert.Contains(a, intersects);
                 Assert.Contains(b, intersects);

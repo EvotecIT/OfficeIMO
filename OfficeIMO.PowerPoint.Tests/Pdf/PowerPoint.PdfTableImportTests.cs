@@ -418,10 +418,10 @@ public class PowerPointPdfTableImportTests {
             Assert.InRange(primaryFontSize, 1, 3);
             foreach (OfficeIMO.PowerPoint.PowerPointSlide slide in result.Value.Slides.Skip(1)) {
                 OfficeIMO.PowerPoint.PowerPointTable table = Assert.Single(slide.Tables);
-                Assert.InRange(table.LeftPoints, 0D, slideWidth);
-                Assert.InRange(table.TopPoints, 0D, slideHeight);
-                Assert.True(table.LeftPoints + table.WidthPoints <= slideWidth + 0.01D);
-                Assert.True(table.TopPoints + table.HeightPoints <= slideHeight + 0.01D);
+                Assert.InRange(table.Left.ToPoints(), 0D, slideWidth);
+                Assert.InRange(table.Top.ToPoints(), 0D, slideHeight);
+                Assert.True(table.Left.ToPoints() + table.Width.ToPoints() <= slideWidth + 0.01D);
+                Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= slideHeight + 0.01D);
                 Assert.InRange(table.GetCell(0, 0).FontSize ?? 0, 10, 18);
             }
         }

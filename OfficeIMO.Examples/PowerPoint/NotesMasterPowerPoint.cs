@@ -15,14 +15,14 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
 
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox title = slide.AddTitleCm("Speaker Notes", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+            PowerPointTextBox title = slide.AddTitleCm("Speaker Notes", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
 
             PowerPointTextBox body = slide.AddTextBoxCm(
                 "This slide includes speaker notes that remain hidden during presentation.",
-                content.LeftCm, content.TopCm + 1.9, content.WidthCm, 1.6);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.6);
             body.ApplyTextStyle(PowerPointTextStyle.Body);
             body.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
 

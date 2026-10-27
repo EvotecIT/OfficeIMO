@@ -105,14 +105,14 @@ namespace OfficeIMO.Tests {
                         new PowerPointCardContent("Card " + index, new[] { "One", "Two" })),
                     options: new PowerPointCardGridSlideOptions { MaxColumns = 3 });
 
-                PowerPointLayoutBox slideBounds = new(0, 0, presentation.SlideSize.WidthEmus, presentation.SlideSize.HeightEmus);
+                PowerPointLayoutBox slideBounds = new(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.WidthEmus),OfficeIMO.OfficeLength.Emus(presentation.SlideSize.HeightEmus));
                 for (int i = 1; i <= 7; i++) {
                     PowerPointShape? card = slide.GetShape("Designer Card " + i);
                     Assert.NotNull(card);
-                    Assert.True(card!.Left >= slideBounds.Left, "Card is left of the slide.");
-                    Assert.True(card.Top >= slideBounds.Top, "Card is above the slide.");
-                    Assert.True(card.Right <= slideBounds.Right, "Card is right of the slide.");
-                    Assert.True(card.Bottom <= slideBounds.Bottom, "Card is below the slide.");
+                    Assert.True(card!.Left.ToEmus() >= slideBounds.Left.ToEmus(), "Card is left of the slide.");
+                    Assert.True(card.Top.ToEmus() >= slideBounds.Top.ToEmus(), "Card is above the slide.");
+                    Assert.True(card.Right.ToEmus() <= slideBounds.Right.ToEmus(), "Card is right of the slide.");
+                    Assert.True(card.Bottom.ToEmus() <= slideBounds.Bottom.ToEmus(), "Card is below the slide.");
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -171,9 +171,9 @@ namespace OfficeIMO.Tests {
 
                     Assert.NotNull(resolvedLayout);
                     Assert.Equal(PowerPointCompositionPreset.MetricStory, resolvedLayout!.Preset);
-                    Assert.True(resolvedLayout.Primary.Right <= resolvedLayout.Content.Right);
-                    Assert.True(resolvedLayout.Visual.Right <= resolvedLayout.Content.Right);
-                    Assert.True(resolvedLayout.Metrics.Bottom <= resolvedLayout.Content.Bottom);
+                    Assert.True(resolvedLayout.Primary.Right.ToEmus() <= resolvedLayout.Content.Right.ToEmus());
+                    Assert.True(resolvedLayout.Visual.Right.ToEmus() <= resolvedLayout.Content.Right.ToEmus());
+                    Assert.True(resolvedLayout.Metrics.Bottom.ToEmus() <= resolvedLayout.Content.Bottom.ToEmus());
 
                     List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -284,18 +284,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointCompositionVariant.Mirrored, mirrored!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.VisualLead, visualLead!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.EvidenceLead, evidenceLead!.Variant);
-                Assert.True(standard.Visual.LeftCm > standard.Primary.LeftCm);
-                Assert.True(mirrored.Visual.LeftCm < mirrored.Primary.LeftCm);
-                Assert.True(visualLead.Visual.WidthCm > standard.Visual.WidthCm);
-                Assert.Equal(evidenceLead.Content.TopCm, evidenceLead.Metrics.TopCm);
+                Assert.True(standard.Visual.Left.ToCentimeters() > standard.Primary.Left.ToCentimeters());
+                Assert.True(mirrored.Visual.Left.ToCentimeters() < mirrored.Primary.Left.ToCentimeters());
+                Assert.True(visualLead.Visual.Width.ToCentimeters() > standard.Visual.Width.ToCentimeters());
+                Assert.Equal(evidenceLead.Content.Top.ToCentimeters(), evidenceLead.Metrics.Top.ToCentimeters());
 
                 foreach (PowerPointCompositionLayout layout in new[] { standard, mirrored, visualLead, evidenceLead }) {
-                    Assert.True(layout.Primary.Left >= layout.Content.Left);
-                    Assert.True(layout.Primary.Right <= layout.Content.Right);
-                    Assert.True(layout.Visual.Left >= layout.Content.Left);
-                    Assert.True(layout.Visual.Right <= layout.Content.Right);
-                    Assert.True(layout.Metrics.Top >= layout.Content.Top);
-                    Assert.True(layout.Metrics.Bottom <= layout.Content.Bottom);
+                    Assert.True(layout.Primary.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Primary.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Visual.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Visual.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Metrics.Top.ToEmus() >= layout.Content.Top.ToEmus());
+                    Assert.True(layout.Metrics.Bottom.ToEmus() <= layout.Content.Bottom.ToEmus());
                 }
 
                 foreach (PowerPointCompositionLayout layout in dashboardLayouts) {
@@ -1137,7 +1137,7 @@ namespace OfficeIMO.Tests {
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("6", "steps"),
                             new PowerPointMetric("3", "regions")
-                        }, composer.ContentArea().TakeTopCm(1.8));
+                        }, composer.ContentArea().TakeTop(OfficeIMO.OfficeLength.Centimeters(1.8)));
                     }, seed: "raw-proof");
 
                 IReadOnlyList<PowerPointDeckPlanAlternativeSummary> described =
@@ -1433,7 +1433,7 @@ namespace OfficeIMO.Tests {
                         }, columns[0]);
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("2", "modes")
-                        }, columns[1].TakeTopCm(1.6));
+                        }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.6)));
                     }, "custom");
 
                 IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
@@ -1477,7 +1477,7 @@ namespace OfficeIMO.Tests {
                                 "Regional delivery model",
                                 "Reusable plan rendered through design choices"
                             })
-                    }, columns[0].TakeTopCm(4.2), new PowerPointCardGridSlideOptions {
+                    }, columns[0].TakeTop(OfficeIMO.OfficeLength.Centimeters(4.2)), new PowerPointCardGridSlideOptions {
                         MaxColumns = 2,
                         Variant = PowerPointCardGridLayoutVariant.SoftTiles
                     });
@@ -1485,7 +1485,7 @@ namespace OfficeIMO.Tests {
                         new PowerPointMetric("SplitComplementary", "palette strategy"),
                         new PowerPointMetric("ContentFirst", "layout strategy"),
                         new PowerPointMetric("21", "slides")
-                    }, columns[1].TakeTopCm(2.2));
+                    }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(2.2)));
                 }, "adaptive-primitives");
 
                 PowerPointTextBox cardTitle = slide.TextBoxes.First(textBox =>
@@ -2099,8 +2099,8 @@ namespace OfficeIMO.Tests {
                     slide.GetShape("Process Node 2"));
                 Assert.Equal(OfficePresetShapeType.Ellipse, firstNode.ShapeType);
                 Assert.Equal(OfficePresetShapeType.Ellipse, secondNode.ShapeType);
-                Assert.True(rail.LeftCm < firstNode.RightCm);
-                Assert.True(rail.RightCm > secondNode.LeftCm);
+                Assert.True(rail.Left.ToCentimeters() < firstNode.Right.ToCentimeters());
+                Assert.True(rail.Right.ToCentimeters() > secondNode.Left.ToCentimeters());
                 Assert.Null(slide.GetShape("Process Arrow 1"));
                 Assert.Null(slide.GetShape("Process Marker 1"));
                 Assert.Null(slide.GetShape("Process Arrow Accent 1"));
@@ -2407,8 +2407,8 @@ namespace OfficeIMO.Tests {
 
                 PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
                 Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm < 0.25);
-                Assert.True(accent.HeightCm > 1.0);
+                Assert.True(accent!.Width.ToCentimeters() < 0.25);
+                Assert.True(accent.Height.ToCentimeters() > 1.0);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2433,8 +2433,8 @@ namespace OfficeIMO.Tests {
 
                 PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
                 Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm > 1.0);
-                Assert.True(accent.HeightCm < 0.3);
+                Assert.True(accent!.Width.ToCentimeters() > 1.0);
+                Assert.True(accent.Height.ToCentimeters() < 0.3);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2461,8 +2461,8 @@ namespace OfficeIMO.Tests {
 
                 PowerPointShape? accent = slide.GetShape("Designer Card Accent 1");
                 Assert.NotNull(accent);
-                Assert.True(accent!.WidthCm < 0.25);
-                Assert.True(accent.HeightCm > 1.0);
+                Assert.True(accent!.Width.ToCentimeters() < 0.25);
+                Assert.True(accent.Height.ToCentimeters() > 1.0);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2527,7 +2527,7 @@ namespace OfficeIMO.Tests {
                         }, new PowerPointCardGridSlideOptions {
                             Variant = PowerPointCardGridLayoutVariant.SoftTiles
                         });
-                        composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0));
+                        composer.AddVisualFrame(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20.5),OfficeIMO.OfficeLength.Centimeters(9.6),OfficeIMO.OfficeLength.Centimeters(5.6),OfficeIMO.OfficeLength.Centimeters(3.0)));
                     }, theme, new PowerPointDesignerSlideOptions {
                         Eyebrow = "OfficeIMO.PowerPoint",
                         FooterLeft = "OFFICEIMO",
@@ -2562,7 +2562,7 @@ namespace OfficeIMO.Tests {
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0), imagePath,
+                    composer.AddVisualFrame(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20.5),OfficeIMO.OfficeLength.Centimeters(9.6),OfficeIMO.OfficeLength.Centimeters(5.6),OfficeIMO.OfficeLength.Centimeters(3.0)), imagePath,
                         PowerPointVisualFrameVariant.DeviceMockup);
                 }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
 
@@ -2570,10 +2570,10 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
 
                 Assert.NotNull(screen);
-                Assert.True(picture.LeftCm >= screen!.LeftCm);
-                Assert.True(picture.TopCm >= screen.TopCm);
-                Assert.True(picture.RightCm <= screen.RightCm);
-                Assert.True(picture.BottomCm <= screen.BottomCm);
+                Assert.True(picture.Left.ToCentimeters() >= screen!.Left.ToCentimeters());
+                Assert.True(picture.Top.ToCentimeters() >= screen.Top.ToCentimeters());
+                Assert.True(picture.Right.ToCentimeters() <= screen.Right.ToCentimeters());
+                Assert.True(picture.Bottom.ToCentimeters() <= screen.Bottom.ToCentimeters());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2591,7 +2591,7 @@ namespace OfficeIMO.Tests {
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
-                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 10.8, 5.6, 1.2), imagePath,
+                    composer.AddVisualFrame(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20.5),OfficeIMO.OfficeLength.Centimeters(10.8),OfficeIMO.OfficeLength.Centimeters(5.6),OfficeIMO.OfficeLength.Centimeters(1.2)), imagePath,
                         PowerPointVisualFrameVariant.DeviceMockup);
                 }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
 
@@ -2599,10 +2599,10 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
 
                 Assert.NotNull(screen);
-                Assert.True(picture.LeftCm >= screen!.LeftCm);
-                Assert.True(picture.TopCm >= screen.TopCm);
-                Assert.True(picture.RightCm <= screen.RightCm);
-                Assert.True(picture.BottomCm <= screen.BottomCm);
+                Assert.True(picture.Left.ToCentimeters() >= screen!.Left.ToCentimeters());
+                Assert.True(picture.Top.ToCentimeters() >= screen.Top.ToCentimeters());
+                Assert.True(picture.Right.ToCentimeters() <= screen.Right.ToCentimeters());
+                Assert.True(picture.Bottom.ToCentimeters() <= screen.Bottom.ToCentimeters());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2640,18 +2640,18 @@ namespace OfficeIMO.Tests {
                             Variant = PowerPointProcessLayoutVariant.Rail
                         });
 
-                        PowerPointLayoutBox[] lower = composer.ContentRows(2)[1].SplitColumnsCm(2, 0.55);
+                        PowerPointLayoutBox[] lower = composer.ContentRows(2)[1].SplitColumns(2, OfficeIMO.OfficeLength.Centimeters(0.55));
                         composer.AddCalloutBand("Use regions when a full recipe is too rigid.",
-                            lower[0].TakeTopCm(1.35));
+                            lower[0].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.35)));
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("2", "regions")
-                        }, lower[1].TakeTopCm(1.35).InsetCm(0.05));
+                        }, lower[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.35)).Inset(OfficeIMO.OfficeLength.Centimeters(0.05)));
                     });
 
                     PowerPointShape? firstCard = slide.GetShape("Designer Card 1");
                     Assert.NotNull(firstCard);
-                    Assert.True(firstCard!.Left >= leftColumn.Left);
-                    Assert.True(firstCard.Right <= leftColumn.Right);
+                    Assert.True(firstCard!.Left.ToEmus() >= leftColumn.Left.ToEmus());
+                    Assert.True(firstCard.Right.ToEmus() <= leftColumn.Right.ToEmus());
                     Assert.NotNull(slide.GetShape("Process Rail"));
                     Assert.NotNull(slide.GetShape("Composer Callout Band"));
                     Assert.NotNull(slide.GetShape("Composer Metric Band"));

@@ -159,8 +159,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     OdpShape converted;
                     if (autoShape.ShapeType == OfficePresetShapeType.Ellipse) converted = targetSlide.AddEllipse(ToOdfRect(autoShape), autoShape.Name);
                     else if (autoShape.ShapeType == OfficePresetShapeType.Line) {
-                        converted = targetSlide.AddLine(OdfLength.Points(autoShape.LeftPoints), OdfLength.Points(autoShape.TopPoints),
-                            OdfLength.Points(autoShape.RightPoints), OdfLength.Points(autoShape.BottomPoints), autoShape.Name);
+                        converted = targetSlide.AddLine(OdfLength.Points(autoShape.Left.ToPoints()), OdfLength.Points(autoShape.Top.ToPoints()),
+                            OdfLength.Points(autoShape.Right.ToPoints()), OdfLength.Points(autoShape.Bottom.ToPoints()), autoShape.Name);
                     } else {
                         converted = targetSlide.AddRectangle(ToOdfRect(autoShape), autoShape.Name);
                         if (autoShape.ShapeType != OfficePresetShapeType.Rectangle) transformedShapes++;
@@ -168,8 +168,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyShapeAppearance(autoShape, converted, effective);
                     autoShapes++;
                 } else if (shape is PowerPointConnectionShape connection) {
-                    OdpLine converted = targetSlide.AddLine(OdfLength.Points(connection.LeftPoints), OdfLength.Points(connection.TopPoints),
-                        OdfLength.Points(connection.RightPoints), OdfLength.Points(connection.BottomPoints), connection.Name);
+                    OdpLine converted = targetSlide.AddLine(OdfLength.Points(connection.Left.ToPoints()), OdfLength.Points(connection.Top.ToPoints()),
+                        OdfLength.Points(connection.Right.ToPoints()), OdfLength.Points(connection.Bottom.ToPoints()), connection.Name);
                     CopyShapeAppearance(connection, converted, effective);
                     autoShapes++;
                     transformedShapes++;
@@ -845,15 +845,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static OdfRect ToOdfRect(PowerPointShape shape) => new OdfRect(
-        OdfLength.Points(shape.LeftPoints), OdfLength.Points(shape.TopPoints),
-        OdfLength.Points(Math.Max(0.01D, shape.WidthPoints)), OdfLength.Points(Math.Max(0.01D, shape.HeightPoints)));
+        OdfLength.Points(shape.Left.ToPoints()), OdfLength.Points(shape.Top.ToPoints()),
+        OdfLength.Points(Math.Max(0.01D, shape.Width.ToPoints())), OdfLength.Points(Math.Max(0.01D, shape.Height.ToPoints())));
 
     private static bool TryToPowerPointBox(OdfRect bounds, out PowerPointLayoutBox box) {
         if (!TryGetRectPoints(bounds, out double x, out double y, out double width, out double height)) {
             box = default;
             return false;
         }
-        box = PowerPointLayoutBox.FromPoints(x, y, width, height);
+        box = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(x),OfficeIMO.OfficeLength.Points(y),OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         return true;
     }
 

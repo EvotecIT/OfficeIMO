@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
             double height = string.IsNullOrWhiteSpace(options.SupportingText)
                 ? slideHeightCm - 6.0
                 : slideHeightCm - 8.7;
-            PowerPointLayoutBox bounds = PowerPointLayoutBox.FromCentimeters(1.5, top, slideWidthCm - 3.0, height);
+            PowerPointLayoutBox bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(top),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(height));
             AddCardGrid(slide, theme, cards, options, variant, bounds);
 
             if (!string.IsNullOrWhiteSpace(options.SupportingText)) {
@@ -36,9 +36,8 @@ namespace OfficeIMO.PowerPoint {
             int rows = (int)Math.Ceiling(cards.Count / (double)columns);
             double columnGap = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.42 : 0.65;
             double rowGap = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.42 : 0.55;
-            PowerPointLayoutBox[,] grid = PowerPointLayoutBox
-                .FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm)
-                .SplitGridCm(rows, columns, rowGap, columnGap);
+            PowerPointLayoutBox[,] grid = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters()))
+                .SplitGrid(rows,columns,OfficeIMO.OfficeLength.Centimeters(rowGap),OfficeIMO.OfficeLength.Centimeters(columnGap));
             PowerPointCardSurfaceStyle surfaceStyle = ResolveCardSurfaceStyle(options, variant);
 
             for (int i = 0; i < cards.Count; i++) {
@@ -52,34 +51,34 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant,
             PowerPointCardSurfaceStyle surfaceStyle) {
             string accent = card.AccentColor ?? GetAccent(theme, index);
-            PowerPointAutoShape panel = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+            PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                 "Designer Card " + (index + 1));
             ApplyDesignerCardSurface(panel, theme, accent, variant, surfaceStyle);
 
             if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
-                PowerPointAutoShape accentStrip = slide.AddRectangleCm(box.LeftCm, box.TopCm, 0.13, box.HeightCm,
+                PowerPointAutoShape accentStrip = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), 0.13, box.Height.ToCentimeters(),
                     "Designer Card Accent " + (index + 1));
                 accentStrip.FillColor = accent;
                 accentStrip.OutlineColor = accent;
             } else {
-                PowerPointAutoShape accentBar = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, 0.18,
+                PowerPointAutoShape accentBar = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), 0.18,
                     "Designer Card Accent " + (index + 1));
                 accentBar.FillColor = accent;
                 accentBar.OutlineColor = accent;
             }
 
-            double titleLeft = variant == PowerPointCardGridLayoutVariant.SoftTiles ? box.LeftCm + 0.6 : box.LeftCm + 0.45;
-            double titleWidth = Math.Max(0.5, box.WidthCm - 0.9);
+            double titleLeft = variant == PowerPointCardGridLayoutVariant.SoftTiles ? box.Left.ToCentimeters() + 0.6 : box.Left.ToCentimeters() + 0.45;
+            double titleWidth = Math.Max(0.5, box.Width.ToCentimeters() - 0.9);
             int titleFontSize = ResolveCardTitleFontSize(card.Title, titleWidth);
-            double titleHeight = ResolveCardTitleHeight(card.Title, titleWidth, titleFontSize, box.HeightCm);
-            AddText(slide, card.Title, titleLeft, box.TopCm + 0.65, titleWidth, titleHeight,
+            double titleHeight = ResolveCardTitleHeight(card.Title, titleWidth, titleFontSize, box.Height.ToCentimeters());
+            AddText(slide, card.Title, titleLeft, box.Top.ToCentimeters() + 0.65, titleWidth, titleHeight,
                 titleFontSize, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
-            double bodyTop = box.TopCm + 0.65 + titleHeight + 0.28;
-            double bodyHeight = Math.Max(0.42, box.HeightCm - (bodyTop - box.TopCm) - 0.35);
+            double bodyTop = box.Top.ToCentimeters() + 0.65 + titleHeight + 0.28;
+            double bodyHeight = Math.Max(0.42, box.Height.ToCentimeters() - (bodyTop - box.Top.ToCentimeters()) - 0.35);
             int bodyFontSize = ResolveCardBodyFontSize(card.Items, titleWidth, bodyHeight);
-            PowerPointTextBox body = slide.AddTextBox("", PowerPointLayoutBox.FromCentimeters(
-                titleLeft + 0.1, bodyTop, box.WidthCm - 1.05, bodyHeight));
+            PowerPointTextBox body = slide.AddTextBox("", new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(titleLeft + 0.1),OfficeIMO.OfficeLength.Centimeters(bodyTop),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 1.05),OfficeIMO.OfficeLength.Centimeters(bodyHeight)));
             body.SetTextMarginsCm(0, 0, 0, 0);
             body.TextAutoFit = PowerPointTextAutoFit.Normal;
 

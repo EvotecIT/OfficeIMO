@@ -25,8 +25,8 @@ public sealed class IWorkKeynoteImageWritingTests {
             PowerPointPicture oracle = Assert.Single(apple.Slides[i].Pictures);
             Assert.Equal(oracle.GetImageBytes(), actual.GetImageBytes());
             Assert.Equal(oracle.AltText, actual.AltText);
-            Assert.Equal(oracle.Left, actual.Left); Assert.Equal(oracle.Top, actual.Top);
-            Assert.Equal(oracle.Width, actual.Width); Assert.Equal(oracle.Height, actual.Height);
+            Assert.Equal(oracle.Left.ToEmus(), actual.Left.ToEmus()); Assert.Equal(oracle.Top.ToEmus(), actual.Top.ToEmus());
+            Assert.Equal(oracle.Width.ToEmus(), actual.Width.ToEmus()); Assert.Equal(oracle.Height.ToEmus(), actual.Height.ToEmus());
         }
     }
 
@@ -54,7 +54,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
-        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left);
+        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left.ToEmus());
     }
 
     [Theory]

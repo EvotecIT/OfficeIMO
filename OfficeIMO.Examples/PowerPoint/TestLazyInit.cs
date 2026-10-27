@@ -17,13 +17,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 Console.WriteLine($"  Initial slides: {presentation.Slides.Count} (expected: 0)");
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-                PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-                PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm,
-                    content.TopCm + titleHeightCm + bodyGapCm,
-                    content.WidthCm,
-                    content.HeightCm - titleHeightCm - bodyGapCm);
+                PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+                PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
 
                 PowerPointSlide intro = presentation.AddSlide();
                 intro.AddTitle("Lifecycle Example", titleBox);
@@ -50,13 +47,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Reopen and append more content
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-                PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-                PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm,
-                    content.TopCm + titleHeightCm + bodyGapCm,
-                    content.WidthCm,
-                    content.HeightCm - titleHeightCm - bodyGapCm);
+                PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+                PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
                 Console.WriteLine($"  Reopened slides: {presentation.Slides.Count} (expected: 2)");
 
                 PowerPointSlide step2 = presentation.AddSlide();

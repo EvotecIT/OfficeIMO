@@ -299,11 +299,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += direction == PowerPointShapeStackDirection.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width : bounds.Height)
+            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus())
                 - spacingEmus * Math.Max(0, shapes.Count - 1);
             if (totalSize <= 0 || available >= totalSize) {
                 return;
@@ -322,11 +322,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += direction == PowerPointShapeStackDirection.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width : bounds.Height) - totalSize;
+            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus()) - totalSize;
             if (available <= 0) {
                 return 0;
             }
@@ -343,25 +343,25 @@ namespace OfficeIMO.PowerPoint {
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
             long totalWidth = 0;
             for (int i = 0; i < shapes.Count; i++) {
-                totalWidth += shapes[i].Width;
+                totalWidth += shapes[i].Width.ToEmus();
             }
             long totalSpacing = spacingEmus * Math.Max(0, shapes.Count - 1);
             double blockWidth = totalWidth + totalSpacing;
-            double current = bounds.Left;
+            double current = bounds.Left.ToEmus();
 
-            if (blockWidth <= bounds.Width) {
+            if (blockWidth <= bounds.Width.ToEmus()) {
                 current = justify switch {
-                    PowerPointShapeStackJustify.Start => bounds.Left,
-                    PowerPointShapeStackJustify.Center => bounds.Left + (bounds.Width - blockWidth) / 2d,
-                    PowerPointShapeStackJustify.End => bounds.Right - blockWidth,
-                    _ => bounds.Left
+                    PowerPointShapeStackJustify.Start => bounds.Left.ToEmus(),
+                    PowerPointShapeStackJustify.Center => bounds.Left.ToEmus() + (bounds.Width.ToEmus() - blockWidth) / 2d,
+                    PowerPointShapeStackJustify.End => bounds.Right.ToEmus() - blockWidth,
+                    _ => bounds.Left.ToEmus()
                 };
             }
 
             foreach (PowerPointShape shape in shapes) {
-                shape.Left = (long)Math.Round(current);
-                shape.Top = ResolveTop(bounds, shape, alignment);
-                current += shape.Width + spacingEmus;
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                shape.Top= OfficeIMO.OfficeLength.Emus(ResolveTop(bounds, shape, alignment));
+                current += shape.Width.ToEmus() + spacingEmus;
             }
         }
 
@@ -369,33 +369,33 @@ namespace OfficeIMO.PowerPoint {
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
             long totalHeight = 0;
             for (int i = 0; i < shapes.Count; i++) {
-                totalHeight += shapes[i].Height;
+                totalHeight += shapes[i].Height.ToEmus();
             }
             long totalSpacing = spacingEmus * Math.Max(0, shapes.Count - 1);
             double blockHeight = totalHeight + totalSpacing;
-            double current = bounds.Top;
+            double current = bounds.Top.ToEmus();
 
-            if (blockHeight <= bounds.Height) {
+            if (blockHeight <= bounds.Height.ToEmus()) {
                 current = justify switch {
-                    PowerPointShapeStackJustify.Start => bounds.Top,
-                    PowerPointShapeStackJustify.Center => bounds.Top + (bounds.Height - blockHeight) / 2d,
-                    PowerPointShapeStackJustify.End => bounds.Bottom - blockHeight,
-                    _ => bounds.Top
+                    PowerPointShapeStackJustify.Start => bounds.Top.ToEmus(),
+                    PowerPointShapeStackJustify.Center => bounds.Top.ToEmus() + (bounds.Height.ToEmus() - blockHeight) / 2d,
+                    PowerPointShapeStackJustify.End => bounds.Bottom.ToEmus() - blockHeight,
+                    _ => bounds.Top.ToEmus()
                 };
             }
 
             foreach (PowerPointShape shape in shapes) {
-                shape.Top = (long)Math.Round(current);
-                shape.Left = ResolveLeft(bounds, shape, alignment);
-                current += shape.Height + spacingEmus;
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                shape.Left= OfficeIMO.OfficeLength.Emus(ResolveLeft(bounds, shape, alignment));
+                current += shape.Height.ToEmus() + spacingEmus;
             }
         }
 
         private static long ResolveTop(PowerPointLayoutBox bounds, PowerPointShape shape, PowerPointShapeAlignment alignment) {
             return alignment switch {
-                PowerPointShapeAlignment.Top => bounds.Top,
-                PowerPointShapeAlignment.Middle => bounds.Top + (long)Math.Round((bounds.Height - shape.Height) / 2d),
-                PowerPointShapeAlignment.Bottom => bounds.Bottom - shape.Height,
+                PowerPointShapeAlignment.Top => bounds.Top.ToEmus(),
+                PowerPointShapeAlignment.Middle => bounds.Top.ToEmus() + (long)Math.Round((bounds.Height.ToEmus() - shape.Height.ToEmus()) / 2d),
+                PowerPointShapeAlignment.Bottom => bounds.Bottom.ToEmus() - shape.Height.ToEmus(),
                 _ => throw new ArgumentOutOfRangeException(nameof(alignment),
                     "Horizontal stacking supports Top, Middle, or Bottom alignment.")
             };
@@ -403,9 +403,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static long ResolveLeft(PowerPointLayoutBox bounds, PowerPointShape shape, PowerPointShapeAlignment alignment) {
             return alignment switch {
-                PowerPointShapeAlignment.Left => bounds.Left,
-                PowerPointShapeAlignment.Center => bounds.Left + (long)Math.Round((bounds.Width - shape.Width) / 2d),
-                PowerPointShapeAlignment.Right => bounds.Right - shape.Width,
+                PowerPointShapeAlignment.Left => bounds.Left.ToEmus(),
+                PowerPointShapeAlignment.Center => bounds.Left.ToEmus() + (long)Math.Round((bounds.Width.ToEmus() - shape.Width.ToEmus()) / 2d),
+                PowerPointShapeAlignment.Right => bounds.Right.ToEmus() - shape.Width.ToEmus(),
                 _ => throw new ArgumentOutOfRangeException(nameof(alignment),
                     "Vertical stacking supports Left, Center, or Right alignment.")
             };
@@ -420,14 +420,14 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < shapes.Count; i++) {
                 PowerPointShape shape = shapes[i];
                 if (horizontal) {
-                    shape.Width = (long)Math.Round(shape.Width * scale);
+                    shape.Width= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Width.ToEmus() * scale));
                     if (preserveAspect) {
-                        shape.Height = (long)Math.Round(shape.Height * scale);
+                        shape.Height= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Height.ToEmus() * scale));
                     }
                 } else {
-                    shape.Height = (long)Math.Round(shape.Height * scale);
+                    shape.Height= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Height.ToEmus() * scale));
                     if (preserveAspect) {
-                        shape.Width = (long)Math.Round(shape.Width * scale);
+                        shape.Width= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Width.ToEmus() * scale));
                     }
                 }
             }

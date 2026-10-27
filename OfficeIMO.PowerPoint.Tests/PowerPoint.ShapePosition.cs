@@ -22,14 +22,14 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = slide.AddImage(imagePath, left, top, width, height);
                 PowerPointTable table = slide.AddTable(2, 2, left, top, width, height);
 
-                Assert.Equal(left, textBox.Left);
-                Assert.Equal(top, textBox.Top);
-                Assert.Equal(width, textBox.Width);
-                Assert.Equal(height, textBox.Height);
+                Assert.Equal(left, textBox.Left.ToEmus());
+                Assert.Equal(top, textBox.Top.ToEmus());
+                Assert.Equal(width, textBox.Width.ToEmus());
+                Assert.Equal(height, textBox.Height.ToEmus());
 
-                textBox.Left += 1000;
-                picture.Top += 2000;
-                table.Width += 3000;
+                textBox.Left+= OfficeIMO.OfficeLength.Emus(1000);
+                picture.Top+= OfficeIMO.OfficeLength.Emus(2000);
+                table.Width+= OfficeIMO.OfficeLength.Emus(3000);
 
                 presentation.Save();
             }
@@ -40,12 +40,12 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = slide.Pictures.First();
                 PowerPointTable table = slide.Tables.First();
 
-                Assert.Equal(left + 1000, textBox.Left);
-                Assert.Equal(top, textBox.Top);
-                Assert.Equal(top + 2000, picture.Top);
-                Assert.Equal(left, picture.Left);
-                Assert.Equal(width + 3000, table.Width);
-                Assert.Equal(height, table.Height);
+                Assert.Equal(left + 1000, textBox.Left.ToEmus());
+                Assert.Equal(top, textBox.Top.ToEmus());
+                Assert.Equal(top + 2000, picture.Top.ToEmus());
+                Assert.Equal(left, picture.Left.ToEmus());
+                Assert.Equal(width + 3000, table.Width.ToEmus());
+                Assert.Equal(height, table.Height.ToEmus());
             }
 
             File.Delete(filePath);
@@ -59,13 +59,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Hello");
 
-                textBox.SetPositionCm(2.5, 3.5);
-                textBox.SetSizeCm(10, 4);
+                textBox.SetPosition(OfficeIMO.OfficeLength.Centimeters(2.5),OfficeIMO.OfficeLength.Centimeters(3.5));
+                textBox.SetSize(OfficeIMO.OfficeLength.Centimeters(10),OfficeIMO.OfficeLength.Centimeters(4));
 
-                Assert.Equal(PowerPointUnits.FromCentimeters(2.5), textBox.Left);
-                Assert.Equal(PowerPointUnits.FromCentimeters(3.5), textBox.Top);
-                Assert.Equal(PowerPointUnits.FromCentimeters(10), textBox.Width);
-                Assert.Equal(PowerPointUnits.FromCentimeters(4), textBox.Height);
+                Assert.Equal(PowerPointUnits.FromCentimeters(2.5), textBox.Left.ToEmus());
+                Assert.Equal(PowerPointUnits.FromCentimeters(3.5), textBox.Top.ToEmus());
+                Assert.Equal(PowerPointUnits.FromCentimeters(10), textBox.Width.ToEmus());
+                Assert.Equal(PowerPointUnits.FromCentimeters(4), textBox.Height.ToEmus());
 
                 presentation.Save();
             }
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
 
-                Assert.InRange(textBox.LeftCm, 2.49, 2.51);
-                Assert.InRange(textBox.TopCm, 3.49, 3.51);
-                Assert.InRange(textBox.WidthCm, 9.99, 10.01);
-                Assert.InRange(textBox.HeightCm, 3.99, 4.01);
+                Assert.InRange(textBox.Left.ToCentimeters(), 2.49, 2.51);
+                Assert.InRange(textBox.Top.ToCentimeters(), 3.49, 3.51);
+                Assert.InRange(textBox.Width.ToCentimeters(), 9.99, 10.01);
+                Assert.InRange(textBox.Height.ToCentimeters(), 3.99, 4.01);
             }
 
             File.Delete(filePath);

@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests {
                     }));
                 PowerPointTextBox title = Assert.Single(imported.Slides[0]
                     .TextBoxes, item => item.Text == "Compressed VBA");
-                title.Left += 15875L;
+                title.Left+= OfficeIMO.OfficeLength.Emus(15875L);
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.Contains(preflight.Findings, finding =>

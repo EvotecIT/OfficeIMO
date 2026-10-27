@@ -264,8 +264,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 PictureEffectsFixturePath);
             PowerPointPicture picture = presentation.Slides[0].Pictures
-                .OrderBy(item => item.Top)
-                .ThenBy(item => item.Left)
+                .OrderBy(item => item.Top.ToEmus())
+                .ThenBy(item => item.Left.ToEmus())
                 .First();
             picture.LuminanceBrightness = 10;
 
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
                 "Pictures"];
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 CroppedPictureFixturePath);
-            PowerPointPicture picture = presentation.Slides[0].Pictures.OrderBy(item => item.Left).First();
+            PowerPointPicture picture = presentation.Slides[0].Pictures.OrderBy(item => item.Left.ToEmus()).First();
 
             picture.Crop(10D, 20D, 5D, 10D);
 
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument
                 .Load(CroppedPictureFixturePath);
             PowerPointPicture picture = presentation.Slides[0].Pictures
-                .OrderBy(item => item.Left)
+                .OrderBy(item => item.Left.ToEmus())
                 .Last();
             picture.GrayScale = true;
 
@@ -379,8 +379,8 @@ namespace OfficeIMO.Tests {
 
             using PowerPointDocument presentation = PowerPointDocument.Load(PictureFixturePath);
             PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
-            picture.Left += 15875;
-            picture.Width += 3175;
+            picture.Left+= OfficeIMO.OfficeLength.Emus(15875);
+            picture.Width+= OfficeIMO.OfficeLength.Emus(3175);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptDocument saved = LegacyPptDocument.Load(
@@ -442,8 +442,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             PowerPointTextBox title = presentation.Slides[0].TextBoxes.Single(textBox =>
                 textBox.Text == "OfficeIMO PowerPoint Basics");
-            title.Left += 15875;
-            title.Width += 3175;
+            title.Left+= OfficeIMO.OfficeLength.Emus(15875);
+            title.Width+= OfficeIMO.OfficeLength.Emus(3175);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite);

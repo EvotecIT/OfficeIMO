@@ -84,15 +84,15 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointMetric(selected.PreferenceScore.ToString(), "preference score"),
                     new PowerPointMetric((selected.Design.Index + 1).ToString(), "selected option"),
                     new PowerPointMetric(selected.Reasons.Count.ToString(), "reasons")
-                }, columns[1].TakeTopCm(2.2));
+                }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(2.2)));
 
-                composer.AddVisualFrame(columns[1].InsetCm(0, 2.55, 0, 2.25).TakeTopCm(2.0),
+                composer.AddVisualFrame(columns[1].Inset(OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(2.55),OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(2.25)).TakeTop(OfficeIMO.OfficeLength.Centimeters(2.0)),
                     PowerPointVisualFrameVariant.ProofBoard);
 
                 composer.AddCalloutBand(
                     $"{selected.Design.Mood} mood, {selected.Design.VisualStyle} visuals, " +
                     $"{selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction.",
-                    columns[1].InsetCm(0, 4.85, 0, 0).TakeTopCm(1.45));
+                    columns[1].Inset(OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(4.85),OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(0)).TakeTop(OfficeIMO.OfficeLength.Centimeters(1.45)));
             }, "selected-direction", options => options.FooterRight = "Recommended");
 
             PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);

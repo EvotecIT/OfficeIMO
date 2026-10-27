@@ -65,10 +65,10 @@ namespace OfficeIMO.Tests {
                 PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm: 1.0, gutterCm: 1.0);
                 PowerPointLayoutBox[] rows = presentation.SlideSize.GetRowsCm(2, marginCm: 1.0, gutterCm: 1.0);
 
-                Assert.Equal(content.Left, columns[0].Left);
-                Assert.Equal(content.Right, columns[1].Right);
-                Assert.Equal(content.Top, rows[0].Top);
-                Assert.Equal(content.Bottom, rows[1].Bottom);
+                Assert.Equal(content.Left.ToEmus(), columns[0].Left.ToEmus());
+                Assert.Equal(content.Right.ToEmus(), columns[1].Right.ToEmus());
+                Assert.Equal(content.Top.ToEmus(), rows[0].Top.ToEmus());
+                Assert.Equal(content.Bottom.ToEmus(), rows[1].Bottom.ToEmus());
             }
 
             File.Delete(filePath);
@@ -76,14 +76,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LayoutBoxCanSplitRowsAndColumns() {
-            PowerPointLayoutBox box = PowerPointLayoutBox.FromCentimeters(1.0, 2.0, 20.0, 10.0);
-            PowerPointLayoutBox[] columns = box.SplitColumnsCm(2, gutterCm: 1.0);
-            PowerPointLayoutBox[] rows = box.SplitRowsCm(2, gutterCm: 1.0);
+            PowerPointLayoutBox box = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.0),OfficeIMO.OfficeLength.Centimeters(2.0),OfficeIMO.OfficeLength.Centimeters(20.0),OfficeIMO.OfficeLength.Centimeters(10.0));
+            PowerPointLayoutBox[] columns = box.SplitColumns(2,gutter: OfficeIMO.OfficeLength.Centimeters(1.0));
+            PowerPointLayoutBox[] rows = box.SplitRows(2,gutter: OfficeIMO.OfficeLength.Centimeters(1.0));
 
-            Assert.Equal(box.Left, columns[0].Left);
-            Assert.Equal(box.Right, columns[1].Right);
-            Assert.Equal(box.Top, rows[0].Top);
-            Assert.Equal(box.Bottom, rows[1].Bottom);
+            Assert.Equal(box.Left.ToEmus(), columns[0].Left.ToEmus());
+            Assert.Equal(box.Right.ToEmus(), columns[1].Right.ToEmus());
+            Assert.Equal(box.Top.ToEmus(), rows[0].Top.ToEmus());
+            Assert.Equal(box.Bottom.ToEmus(), rows[1].Bottom.ToEmus());
         }
 
         [Fact]

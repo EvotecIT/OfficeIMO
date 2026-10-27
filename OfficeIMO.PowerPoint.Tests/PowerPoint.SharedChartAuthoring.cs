@@ -36,10 +36,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SharedChartContract_AuthorsEveryKindAsValidNativeChart() {
+        public void SharedChartContract_AuthorsSupportedKindsAsValidNativeCharts() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             string summaryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
-            OfficeChartType[] kinds = Enum.GetValues(typeof(OfficeChartType)).Cast<OfficeChartType>().ToArray();
+            OfficeChartType[] kinds = PowerPointSharedChartCases.Kinds.ToArray();
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                Assert.Contains("Chart kind: ColumnClustered", File.ReadAllText(summaryPath));
+                Assert.Contains("Category\tActual\tTarget", File.ReadAllText(summaryPath));
                 using (PowerPointDocument reopened = PowerPointDocument.Load(output, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(kinds.Length, reopened.Slides.Count);
                     for (int index = 0; index < kinds.Length; index++) {

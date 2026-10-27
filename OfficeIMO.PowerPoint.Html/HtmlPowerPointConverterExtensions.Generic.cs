@@ -314,9 +314,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 continue;
             }
             PptCore.PowerPointLayoutBox? bounds = finding.Bounds;
-            bool whollyOutside = bounds.HasValue && (bounds.Value.Right <= 0L || bounds.Value.Bottom <= 0L
-                || bounds.Value.Left >= presentation.SlideSize.WidthEmus
-                || bounds.Value.Top >= presentation.SlideSize.HeightEmus);
+            bool whollyOutside = bounds.HasValue && (bounds.Value.Right.ToEmus() <= 0L || bounds.Value.Bottom.ToEmus() <= 0L
+                || bounds.Value.Left.ToEmus() >= presentation.SlideSize.WidthEmus
+                || bounds.Value.Top.ToEmus() >= presentation.SlideSize.HeightEmus);
             AddImportDiagnostic(result,
                 whollyOutside ? HtmlConversionDiagnosticCodes.ContentOmitted : HtmlConversionDiagnosticCodes.ContentApproximated,
                 whollyOutside
@@ -373,11 +373,11 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
             }
             var occupied = slide.TextBoxes
-                .Select(box => new EditableLayoutSlideBounds(box.LeftPoints, box.TopPoints, box.WidthPoints, box.HeightPoints))
+                .Select(box => new EditableLayoutSlideBounds(box.Left.ToPoints(), box.Top.ToPoints(), box.Width.ToPoints(), box.Height.ToPoints()))
                 .Concat(slide.Pictures.Select(picture => new EditableLayoutSlideBounds(
-                    picture.LeftPoints, picture.TopPoints, picture.WidthPoints, picture.HeightPoints)))
+                    picture.Left.ToPoints(), picture.Top.ToPoints(), picture.Width.ToPoints(), picture.Height.ToPoints())))
                 .Concat(slide.Tables.Select(table => new EditableLayoutSlideBounds(
-                    table.LeftPoints, table.TopPoints, table.WidthPoints, table.HeightPoints)))
+                    table.Left.ToPoints(), table.Top.ToPoints(), table.Width.ToPoints(), table.Height.ToPoints())))
                 .Concat(sectionGroup.Where(region =>
                         region.RegionKind == HtmlRenderLayoutRegionKind.Positioned
                         && shapeReservations.ContainsKey(region))

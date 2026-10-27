@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
             Assert.Null(reason);
             Assert.Equal(originalMaster.Shapes.Count, projectedShapes.Count);
             PowerPointShape projectedShape = projectedShapes[0];
-            long expectedLeft = projectedShape.Left + 15875L;
-            projectedShape.Left = expectedLeft;
+            long expectedLeft = projectedShape.Left.ToEmus() + 15875L;
+            projectedShape.Left= OfficeIMO.OfficeLength.Emus(expectedLeft);
             masterPart.SlideMaster!.CommonSlideData!.Background =
                 CreateSolidBackground("0F1E2D");
 
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 .PresentationPart!.SlideMasterParts.ElementAt(masterIndex);
             PowerPointShape reopenedShape = LegacyPptWriter
                 .ReadMasterShapesForWrite(reopenedMaster, out _)[0];
-            Assert.Equal(expectedLeft, reopenedShape.Left);
+            Assert.Equal(expectedLeft, reopenedShape.Left.ToEmus());
             Assert.Equal("0F1E2D", reopenedMaster.SlideMaster!
                 .CommonSlideData!.Background!.BackgroundProperties!
                 .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
@@ -262,8 +262,8 @@ namespace OfficeIMO.Tests {
                 .NotesMasterPart!;
             PowerPointShape shape = LegacyPptWriter.ReadMasterShapesForWrite(
                 notesPart, out _)[0];
-            long expectedLeft = shape.Left + 15875L;
-            shape.Left = expectedLeft;
+            long expectedLeft = shape.Left.ToEmus() + 15875L;
+            shape.Left= OfficeIMO.OfficeLength.Emus(expectedLeft);
             A.Accent6Color accent6 = notesPart.ThemePart!.Theme!
                 .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent6Color>()!;
             accent6.RemoveAllChildren();
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
             PowerPointShape reopenedShape = LegacyPptWriter
                 .ReadMasterShapesForWrite(reopened.OpenXmlDocument
                     .PresentationPart!.NotesMasterPart!, out _)[0];
-            Assert.Equal(expectedLeft, reopenedShape.Left);
+            Assert.Equal(expectedLeft, reopenedShape.Left.ToEmus());
             Assert.Equal("2468AC", reopened.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!.ThemePart!.Theme!.ThemeElements!
                 .ColorScheme!.GetFirstChild<A.Accent6Color>()!
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
                 HandoutMasterPart handoutPart = CreateHandoutMaster(created);
                 handoutPart.HandoutMaster!.CommonSlideData!.ShapeTree!.Append(
                     CreateNotesMasterShape(2U, "Handout marker",
-                        new PowerPointLayoutBox(300000, 400000, 500000, 500000),
+                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(300000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(500000)),
                         placeholder: null, text: null,
                         shapeType: A.ShapeTypeValues.Ellipse));
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
                 .PresentationPart!.HandoutMasterPart!;
             PowerPointShape shape = Assert.Single(LegacyPptWriter
                 .ReadMasterShapesForWrite(handoutMasterPart, out _));
-            shape.Left += 15875L;
+            shape.Left+= OfficeIMO.OfficeLength.Emus(15875L);
             A.Accent5Color accent5 = handoutMasterPart.ThemePart!.Theme!
                 .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!;
             accent5.RemoveAllChildren();
@@ -353,8 +353,8 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(reopenedInput);
             HandoutMasterPart reopenedPart = reopened.OpenXmlDocument
                 .PresentationPart!.HandoutMasterPart!;
-            Assert.Equal(shape.Left, Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopenedPart, out _)).Left);
+            Assert.Equal(shape.Left.ToEmus(), Assert.Single(LegacyPptWriter
+                .ReadMasterShapesForWrite(reopenedPart, out _)).Left.ToEmus());
             Assert.Equal("13579B", reopenedPart.ThemePart!.Theme!
                 .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
@@ -395,8 +395,8 @@ namespace OfficeIMO.Tests {
             PowerPointShape shape = Assert.Single(LegacyPptWriter
                 .ReadMasterShapesForWrite(titlePart, out string? shapeReason));
             Assert.Null(shapeReason);
-            long expectedLeft = shape.Left + 15875L;
-            shape.Left = expectedLeft;
+            long expectedLeft = shape.Left.ToEmus() + 15875L;
+            shape.Left= OfficeIMO.OfficeLength.Emus(expectedLeft);
             A.ThemeOverride theme = Assert.IsType<A.ThemeOverride>(
                 titlePart.ThemeOverridePart?.ThemeOverride);
             A.Accent5Color accent5 = Assert.IsType<A.Accent5Color>(
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
             Assert.True(reopenedTitlePart.SlideLayout!.ShowMasterShapes?.Value
                 != false);
             Assert.Equal(expectedLeft, Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopenedTitlePart, out _)).Left);
+                .ReadMasterShapesForWrite(reopenedTitlePart, out _)).Left.ToEmus());
             Assert.Equal("5A6B7C", reopenedTitlePart.ThemeOverridePart!
                 .ThemeOverride!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);

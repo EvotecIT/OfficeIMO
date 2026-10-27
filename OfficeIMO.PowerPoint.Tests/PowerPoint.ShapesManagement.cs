@@ -138,8 +138,8 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal(2, slide.Shapes.Count);
                     Assert.NotEqual(original.Id, duplicate.Id);
-                    Assert.Equal(original.Left + 500, duplicate.Left);
-                    Assert.Equal(original.Top + 600, duplicate.Top);
+                    Assert.Equal(original.Left.ToEmus() + 500, duplicate.Left.ToEmus());
+                    Assert.Equal(original.Top.ToEmus() + 600, duplicate.Top.ToEmus());
                     Assert.Same(duplicate, slide.GetShapeByName("Duplicated Shape"));
 
                     original.Remove();

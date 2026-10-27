@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitleCm("Defaults & Theme",
-                content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
@@ -24,12 +24,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             string summary = $"Theme: {presentation.ThemeName}\n" +
                              $"Slide size: {presentation.SlideSize.WidthCm:0.0} cm × {presentation.SlideSize.HeightCm:0.0} cm";
             PowerPointTextBox body = slide.AddTextBoxCm(summary,
-                content.LeftCm, content.TopCm + 1.9, content.WidthCm, 1.6);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.6);
             body.ApplyTextStyle(PowerPointTextStyle.Body);
             body.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
 
             PowerPointTextBox notes = slide.AddTextBoxCm(string.Empty,
-                content.LeftCm, content.TopCm + 3.6, content.WidthCm, content.HeightCm - 3.6);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.6, content.Width.ToCentimeters(), content.Height.ToCentimeters() - 3.6);
             notes.SetTextMarginsCm(0.25, 0.2, 0.25, 0.2);
             notes.AddBullets(new[] {
                 "Default theme and table styles are embedded",

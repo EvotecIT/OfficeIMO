@@ -808,16 +808,16 @@ Describe 'PowerPoint cmdlets' {
             $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -ShapeType Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
 
             @($shape1, $shape2, $shape3) | Set-OfficePowerPointShapeLayout -Slide $slide -Align Top
-            $shape1.TopPoints | Should -Be $shape2.TopPoints
-            $shape1.TopPoints | Should -Be $shape3.TopPoints
+            $shape1.Top.ToPoints() | Should -Be $shape2.Top.ToPoints()
+            $shape1.Top.ToPoints() | Should -Be $shape3.Top.ToPoints()
 
             Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
                 Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterXPoints 12 -NoResize | Out-Null
 
             $arranged = @(Get-OfficePowerPointShape -Slide $slide -Kind AutoShape | Sort-Object LeftPoints)
             $arranged | Should -HaveCount 3
-            $arranged[0].LeftPoints | Should -BeLessThan $arranged[1].LeftPoints
-            $arranged[1].LeftPoints | Should -BeLessThan $arranged[2].LeftPoints
+            $arranged[0].Left.ToPoints() | Should -BeLessThan $arranged[1].Left.ToPoints()
+            $arranged[1].Left.ToPoints() | Should -BeLessThan $arranged[2].Left.ToPoints()
         } finally {
             Close-OfficePowerPoint -Presentation $presentation
         }
@@ -886,10 +886,10 @@ Describe 'PowerPoint cmdlets' {
         if ($layoutPlaceholder) {
             $layoutPlaceholderType = $layoutPlaceholder.PlaceholderType.ToString()
             $boundsBox = Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 48 -Top 36 -Width 620 -Height 180 -PassThru
-            $boundsBox.LeftPoints | Should -Be 48
-            $boundsBox.TopPoints | Should -Be 36
-            $boundsBox.WidthPoints | Should -Be 620
-            $boundsBox.HeightPoints | Should -Be 180
+            $boundsBox.Left.ToPoints() | Should -Be 48
+            $boundsBox.Top.ToPoints() | Should -Be 36
+            $boundsBox.Width.ToPoints() | Should -Be 620
+            $boundsBox.Height.ToPoints() | Should -Be 180
 
             $marginsBox = Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 12 -Top 8 -Right 12 -Bottom 8 -PassThru
             $marginsBox.TextMarginLeftPoints | Should -Be 12
@@ -914,10 +914,10 @@ Describe 'PowerPoint cmdlets' {
                 $reloadedLayoutPlaceholder = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
                 $reloadedLayoutPlaceholder | Should -Not -BeNullOrEmpty
                 $reloadedLayoutPlaceholder.Bounds | Should -Not -BeNullOrEmpty
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.LeftPoints - 48) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.TopPoints - 36) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.WidthPoints - 620) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.HeightPoints - 180) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Left.ToPoints() - 48) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Top.ToPoints() - 36) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Width.ToPoints() - 620) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Height.ToPoints() - 180) | Should -BeLessThan 0.1
             }
         } finally {
             if ($reloaded) {
@@ -1286,23 +1286,23 @@ Describe 'PowerPoint cmdlets' {
             $colorSlide.BackgroundColor | Should -Be 'f4f7fb'
 
             $contentBox = Get-OfficePowerPointLayoutBox -Presentation $presentation -MarginCm 1.5
-            [math]::Round($contentBox.LeftCm, 2) | Should -Be 1.5
-            [math]::Round($contentBox.TopCm, 2) | Should -Be 1.5
-            [math]::Round($contentBox.WidthCm, 2) | Should -Be 27
-            [math]::Round($contentBox.HeightCm, 2) | Should -Be 17
+            [math]::Round($contentBox.Left.ToCentimeters(), 2) | Should -Be 1.5
+            [math]::Round($contentBox.Top.ToCentimeters(), 2) | Should -Be 1.5
+            [math]::Round($contentBox.Width.ToCentimeters(), 2) | Should -Be 27
+            [math]::Round($contentBox.Height.ToCentimeters(), 2) | Should -Be 17
 
             $columns = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -ColumnCount 2 -MarginCm 1.5 -GutterCm 1.0)
             $columns.Count | Should -Be 2
-            [math]::Round($columns[0].WidthCm, 2) | Should -Be 13
-            [math]::Round($columns[1].LeftCm, 2) | Should -Be 15.5
+            [math]::Round($columns[0].Width.ToCentimeters(), 2) | Should -Be 13
+            [math]::Round($columns[1].Left.ToCentimeters(), 2) | Should -Be 15.5
 
             $rows = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -RowCount 2 -MarginCm 1.5 -GutterCm 0.5)
             $rows.Count | Should -Be 2
-            [math]::Round($rows[0].HeightCm, 2) | Should -Be 8.25
-            [math]::Round($rows[1].TopCm, 2) | Should -Be 10.25
+            [math]::Round($rows[0].Height.ToCentimeters(), 2) | Should -Be 8.25
+            [math]::Round($rows[1].Top.ToCentimeters(), 2) | Should -Be 10.25
 
-            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Left column' -X $columns[0].LeftPoints -Y $columns[0].TopPoints -Width $columns[0].WidthPoints -Height 40 | Out-Null
-            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Right column' -X $columns[1].LeftPoints -Y $columns[1].TopPoints -Width $columns[1].WidthPoints -Height 40 | Out-Null
+            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Left column' -X $columns[0].Left.ToPoints() -Y $columns[0].Top.ToPoints() -Width $columns[0].Width.ToPoints() -Height 40 | Out-Null
+            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Right column' -X $columns[1].Left.ToPoints() -Y $columns[1].Top.ToPoints() -Width $columns[1].Width.ToPoints() -Height 40 | Out-Null
 
             $imageSlide = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
             Set-OfficePowerPointSlideTitle -Slide $imageSlide -Title 'Image Background' | Out-Null

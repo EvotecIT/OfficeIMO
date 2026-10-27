@@ -212,10 +212,8 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_MaterializesLayoutPlaceholderGeometry() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
-            var titleBounds = new PowerPointLayoutBox(500000, 250000,
-                7200000, 900000);
-            var bodyBounds = new PowerPointLayoutBox(850000, 1450000,
-                6500000, 4100000);
+            var titleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(250000),                OfficeIMO.OfficeLength.Emus(7200000),OfficeIMO.OfficeLength.Emus(900000));
+            var bodyBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(850000),OfficeIMO.OfficeLength.Emus(1450000),                OfficeIMO.OfficeLength.Emus(6500000),OfficeIMO.OfficeLength.Emus(4100000));
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
                 PowerPointPlaceholderType.Title, titleBounds, index: 0);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
@@ -231,14 +229,14 @@ namespace OfficeIMO.Tests {
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title);
             LegacyPptShape body = binary.Shapes.Single(shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Body);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Left), title.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Top), title.Bounds.Top);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Width), title.Bounds.Width);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Height), title.Bounds.Height);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Left), body.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Top), body.Bounds.Top);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Width), body.Bounds.Width);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Height), body.Bounds.Height);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Left.ToEmus()), title.Bounds.Left);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Top.ToEmus()), title.Bounds.Top);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Width.ToEmus()), title.Bounds.Width);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Height.ToEmus()), title.Bounds.Height);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Left.ToEmus()), body.Bounds.Left);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Top.ToEmus()), body.Bounds.Top);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Width.ToEmus()), body.Bounds.Width);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Height.ToEmus()), body.Bounds.Height);
 
             using var stream = new MemoryStream(bytes);
             using PowerPointDocument reopened = PowerPointDocument.Load(stream);
@@ -250,10 +248,10 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox projectedBody = Assert.IsType<PowerPointTextBox>(
                 projected.Shapes.Single(shape =>
                     shape.ShapePlaceholderType == PowerPointPlaceholderType.Body));
-            Assert.Equal(LayoutToEmus(title.Bounds.Left), projectedTitle.Left);
-            Assert.Equal(LayoutToEmus(title.Bounds.Top), projectedTitle.Top);
-            Assert.Equal(LayoutToEmus(body.Bounds.Left), projectedBody.Left);
-            Assert.Equal(LayoutToEmus(body.Bounds.Top), projectedBody.Top);
+            Assert.Equal(LayoutToEmus(title.Bounds.Left), projectedTitle.Left.ToEmus());
+            Assert.Equal(LayoutToEmus(title.Bounds.Top), projectedTitle.Top.ToEmus());
+            Assert.Equal(LayoutToEmus(body.Bounds.Left), projectedBody.Left.ToEmus());
+            Assert.Equal(LayoutToEmus(body.Bounds.Top), projectedBody.Top.ToEmus());
             Assert.Empty(reopened.ValidateDocument());
         }
 
@@ -261,16 +259,14 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_PrefersSlidePlaceholderOverLayoutPlaceholder() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
-            var layoutTitleBounds = new PowerPointLayoutBox(500000, 250000,
-                7200000, 900000);
-            var slideTitleBounds = new PowerPointLayoutBox(900000, 450000,
-                6400000, 700000);
+            var layoutTitleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(250000),                OfficeIMO.OfficeLength.Emus(7200000),OfficeIMO.OfficeLength.Emus(900000));
+            var slideTitleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(900000),OfficeIMO.OfficeLength.Emus(450000),                OfficeIMO.OfficeLength.Emus(6400000),OfficeIMO.OfficeLength.Emus(700000));
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
                 PowerPointPlaceholderType.Title, layoutTitleBounds, index: 0);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
             PowerPointTextBox title = slide.AddTitle("Slide override",
-                slideTitleBounds.Left, slideTitleBounds.Top,
-                slideTitleBounds.Width, slideTitleBounds.Height);
+                slideTitleBounds.Left.ToEmus(), slideTitleBounds.Top.ToEmus(),
+                slideTitleBounds.Width.ToEmus(), slideTitleBounds.Height.ToEmus());
             title.PlaceholderIndex = 0;
 
             LegacyPptSlide binary = Assert.Single(LegacyPptDocument.Load(
@@ -280,11 +276,11 @@ namespace OfficeIMO.Tests {
             LegacyPptShape binaryTitle = Assert.Single(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title);
             Assert.Equal("Slide override", binaryTitle.Text);
-            Assert.Equal(LayoutToMasterUnits(slideTitleBounds.Left),
+            Assert.Equal(LayoutToMasterUnits(slideTitleBounds.Left.ToEmus()),
                 binaryTitle.Bounds.Left);
             Assert.DoesNotContain(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title
-                && shape.Bounds.Left == LayoutToMasterUnits(layoutTitleBounds.Left));
+                && shape.Bounds.Left == LayoutToMasterUnits(layoutTitleBounds.Left.ToEmus()));
             Assert.Single(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Body);
         }
@@ -294,8 +290,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
-            var decorationBounds = new PowerPointLayoutBox(200000, 300000,
-                1400000, 240000);
+            var decorationBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(200000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(1400000),OfficeIMO.OfficeLength.Emus(240000));
             P.ShapeTree tree = slide.SlidePart.SlideLayoutPart!.SlideLayout!
                 .CommonSlideData!.ShapeTree!;
             tree.Append(new P.Shape(
@@ -309,12 +304,12 @@ namespace OfficeIMO.Tests {
                 new P.ShapeProperties(
                     new A.Transform2D(
                         new A.Offset {
-                            X = decorationBounds.Left,
-                            Y = decorationBounds.Top
+                            X = decorationBounds.Left.ToEmus(),
+                            Y = decorationBounds.Top.ToEmus()
                         },
                         new A.Extents {
-                            Cx = decorationBounds.Width,
-                            Cy = decorationBounds.Height
+                            Cx = decorationBounds.Width.ToEmus(),
+                            Cy = decorationBounds.Height.ToEmus()
                         }),
                     new A.PresetGeometry(new A.AdjustValueList()) {
                         Preset = A.ShapeTypeValues.Rectangle
@@ -324,9 +319,9 @@ namespace OfficeIMO.Tests {
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides);
             LegacyPptShape decoration = Assert.Single(visible.Shapes,
                 shape => shape.Placeholder == null);
-            Assert.Equal(LayoutToMasterUnits(decorationBounds.Left),
+            Assert.Equal(LayoutToMasterUnits(decorationBounds.Left.ToEmus()),
                 decoration.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(decorationBounds.Top),
+            Assert.Equal(LayoutToMasterUnits(decorationBounds.Top.ToEmus()),
                 decoration.Bounds.Top);
 
             slide.SlidePart.Slide!.ShowMasterShapes = false;

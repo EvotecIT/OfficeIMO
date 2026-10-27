@@ -183,8 +183,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount, marginEmus, gutterEmus);
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox column in columns) {
-                positions.Add(column.Left);
-                positions.Add(column.Right);
+                positions.Add(column.Left.ToEmus());
+                positions.Add(column.Right.ToEmus());
             }
 
             if (!includeOuterEdges && positions.Count >= 2) {
@@ -222,8 +222,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount, marginEmus, gutterEmus);
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox row in rows) {
-                positions.Add(row.Top);
-                positions.Add(row.Bottom);
+                positions.Add(row.Top.ToEmus());
+                positions.Add(row.Bottom.ToEmus());
             }
 
             if (!includeOuterEdges && positions.Count >= 2) {

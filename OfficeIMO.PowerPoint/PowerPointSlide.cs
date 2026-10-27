@@ -81,19 +81,19 @@ namespace OfficeIMO.PowerPoint {
             if (includePartial) {
                 return ShapeList
                     .Where(shape =>
-                        shape.Right >= bounds.Left &&
-                        shape.Left <= bounds.Right &&
-                        shape.Bottom >= bounds.Top &&
-                        shape.Top <= bounds.Bottom)
+                        shape.Right.ToEmus() >= bounds.Left.ToEmus() &&
+                        shape.Left.ToEmus() <= bounds.Right.ToEmus() &&
+                        shape.Bottom.ToEmus() >= bounds.Top.ToEmus() &&
+                        shape.Top.ToEmus() <= bounds.Bottom.ToEmus())
                     .ToList();
             }
 
             return ShapeList
                 .Where(shape =>
-                    shape.Left >= bounds.Left &&
-                    shape.Top >= bounds.Top &&
-                    shape.Right <= bounds.Right &&
-                    shape.Bottom <= bounds.Bottom)
+                    shape.Left.ToEmus() >= bounds.Left.ToEmus() &&
+                    shape.Top.ToEmus() >= bounds.Top.ToEmus() &&
+                    shape.Right.ToEmus() <= bounds.Right.ToEmus() &&
+                    shape.Bottom.ToEmus() <= bounds.Bottom.ToEmus())
                 .ToList();
         }
 
@@ -101,21 +101,21 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves shapes using bounds defined in centimeters.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromCentimeters(leftCm, topCm, widthCm, heightCm), includePartial);
+            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(leftCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(widthCm),OfficeIMO.OfficeLength.Centimeters(heightCm)), includePartial);
         }
 
         /// <summary>
         ///     Retrieves shapes using bounds defined in inches.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromInches(leftInches, topInches, widthInches, heightInches), includePartial);
+            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Inches(leftInches),OfficeIMO.OfficeLength.Inches(topInches),OfficeIMO.OfficeLength.Inches(widthInches),OfficeIMO.OfficeLength.Inches(heightInches)), includePartial);
         }
 
         /// <summary>
         ///     Retrieves shapes using bounds defined in points.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromPoints(leftPoints, topPoints, widthPoints, heightPoints), includePartial);
+            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(leftPoints),OfficeIMO.OfficeLength.Points(topPoints),OfficeIMO.OfficeLength.Points(widthPoints),OfficeIMO.OfficeLength.Points(heightPoints)), includePartial);
         }
 
         /// <summary>

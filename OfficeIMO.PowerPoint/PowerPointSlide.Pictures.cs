@@ -138,14 +138,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds an image using a layout box.
         /// </summary>
         public PowerPointPicture AddImage(string imagePath, PowerPointLayoutBox layout) {
-            return AddImage(imagePath, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddImage(imagePath, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>
         ///     Adds an image from a stream using a layout box.
         /// </summary>
         public PowerPointPicture AddImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
-            return AddImage(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddImage(image, imageType, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>

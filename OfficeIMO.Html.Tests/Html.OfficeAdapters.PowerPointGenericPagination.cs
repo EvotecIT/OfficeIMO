@@ -98,9 +98,9 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         }).Findings, finding => finding.Code == "text-clipped" || finding.Code == "layout-shape-off-slide");
 
         foreach (PowerPointSlide slide in presentation.Slides) {
-            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
+            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.Top.ToPoints()).ToArray();
             for (int index = 1; index < boxes.Length; index++) {
-                Assert.True(boxes[index - 1].TopPoints + boxes[index - 1].HeightPoints <= boxes[index].TopPoints);
+                Assert.True(boxes[index - 1].Top.ToPoints() + boxes[index - 1].Height.ToPoints() <= boxes[index].Top.ToPoints());
             }
         }
 
@@ -144,9 +144,9 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             IncludeVisualSnapshotDiagnostics = false
         }).Findings, finding => finding.Code == "text-clipped" || finding.Code == "layout-shape-off-slide");
         foreach (PowerPointSlide slide in presentation.Slides) {
-            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.TopPoints).ToArray();
+            PowerPointTextBox[] boxes = slide.TextBoxes.OrderBy(box => box.Top.ToPoints()).ToArray();
             for (int index = 1; index < boxes.Length; index++) {
-                Assert.True(boxes[index - 1].TopPoints + boxes[index - 1].HeightPoints <= boxes[index].TopPoints);
+                Assert.True(boxes[index - 1].Top.ToPoints() + boxes[index - 1].Height.ToPoints() <= boxes[index].Top.ToPoints());
             }
         }
     }

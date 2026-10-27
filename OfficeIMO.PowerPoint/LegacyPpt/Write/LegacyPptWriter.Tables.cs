@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (pictureBullets == null) throw new ArgumentNullException(
                 nameof(pictureBullets));
             if (table.Rows <= 0 || table.Columns <= 0
-                || table.Width <= 0L || table.Height <= 0L) {
+                || table.Width.ToEmus() <= 0L || table.Height.ToEmus() <= 0L) {
                 reason = "A native binary table requires positive bounds, rows, and columns.";
                 return false;
             }

@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         PowerPointTable table = Assert.Single(result.Value.Slides[0].Tables);
-        Assert.True(table.Height > 0);
+        Assert.True(table.Height.ToEmus() > 0);
         Assert.True(table.GetRowHeight(0) > 0);
     }
 
@@ -84,8 +84,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         PowerPointPicture picture = Assert.Single(result.Value.Slides[0].Pictures);
-        Assert.True(picture.Width > 0);
-        Assert.True(picture.Height > 0);
+        Assert.True(picture.Width.ToEmus() > 0);
+        Assert.True(picture.Height.ToEmus() > 0);
     }
 
     [Fact]

@@ -71,10 +71,10 @@ namespace OfficeIMO.Tests {
             PowerPointMedia projectedMedia = Assert.IsType<PowerPointMedia>(
                 Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal(wave, projectedMedia.GetData());
-            Assert.Equal(15875L, projectedMedia.Left);
-            Assert.Equal(31750L, projectedMedia.Top);
-            Assert.Equal(158750L, projectedMedia.Width);
-            Assert.Equal(79375L, projectedMedia.Height);
+            Assert.Equal(15875L, projectedMedia.Left.ToEmus());
+            Assert.Equal(31750L, projectedMedia.Top.ToEmus());
+            Assert.Equal(158750L, projectedMedia.Width.ToEmus());
+            Assert.Equal(79375L, projectedMedia.Height.ToEmus());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(binary,
                 projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
                 PowerPointMedia media = Assert.Single(
                     imported.Slides[0].Media);
                 text.Text = "Edited companion";
-                media.Left += 15875L;
+                media.Left+= OfficeIMO.OfficeLength.Emus(15875L);
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
             PowerPointMedia reopenedMedia = Assert.Single(
                 reopened.Slides[0].Media);
             Assert.Equal(wave, reopenedMedia.GetData());
-            Assert.Equal(31750L, reopenedMedia.Left);
+            Assert.Equal(31750L, reopenedMedia.Left.ToEmus());
             Assert.Equal("Edited companion", Assert.Single(
                 reopened.Slides[0].TextBoxes).Text);
             Assert.Empty(reopened.ValidateDocument());

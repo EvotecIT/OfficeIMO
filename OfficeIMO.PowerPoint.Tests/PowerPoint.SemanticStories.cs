@@ -181,15 +181,15 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
                 PowerPointAutoShape marker = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
                     shape => shape.Name == "Screenshot Annotation 1");
-                double expectedX = picture.LeftCm +
+                double expectedX = picture.Left.ToCentimeters() +
                     (annotationX - picture.CropLeftRatio) /
-                    (1D - picture.CropLeftRatio - picture.CropRightRatio) * picture.WidthCm;
-                double expectedY = picture.TopCm +
+                    (1D - picture.CropLeftRatio - picture.CropRightRatio) * picture.Width.ToCentimeters();
+                double expectedY = picture.Top.ToCentimeters() +
                     (annotationY - picture.CropTopRatio) /
-                    (1D - picture.CropTopRatio - picture.CropBottomRatio) * picture.HeightCm;
+                    (1D - picture.CropTopRatio - picture.CropBottomRatio) * picture.Height.ToCentimeters();
 
-                Assert.InRange(Math.Abs(marker.CenterXCm - expectedX), 0D, 0.01D);
-                Assert.InRange(Math.Abs(marker.CenterYCm - expectedY), 0D, 0.01D);
+                Assert.InRange(Math.Abs(marker.CenterX.ToCentimeters() - expectedX), 0D, 0.01D);
+                Assert.InRange(Math.Abs(marker.CenterY.ToCentimeters() - expectedY), 0D, 0.01D);
             } finally {
                 if (File.Exists(imagePath)) File.Delete(imagePath);
             }

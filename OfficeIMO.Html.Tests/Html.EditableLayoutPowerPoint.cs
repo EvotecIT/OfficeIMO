@@ -151,8 +151,8 @@ public sealed class HtmlEditableLayoutPowerPointTests {
 
         Assert.Equal(2, presentation.Slides.Count);
         PowerPointTextBox region = Assert.Single(presentation.Slides[1].TextBoxes, box => box.Text == "Local region");
-        Assert.InRange(region.LeftPoints, 0D, 150D);
-        Assert.InRange(region.TopPoints, 0D, 150D);
+        Assert.InRange(region.Left.ToPoints(), 0D, 150D);
+        Assert.InRange(region.Top.ToPoints(), 0D, 150D);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid");
         PowerPointTextBox baselineGrid = Assert.Single(
             Assert.Single(baselinePresentation.Slides).TextBoxes, box => box.Text == "Grid");
-        Assert.Equal(baselineGrid.TopPoints, grid.TopPoints, precision: 3);
+        Assert.Equal(baselineGrid.Top.ToPoints(), grid.Top.ToPoints(), precision: 3);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Message.Contains("moved", StringComparison.OrdinalIgnoreCase));
@@ -249,7 +249,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid");
         PowerPointTextBox baselineGrid = Assert.Single(
             Assert.Single(baselinePresentation.Slides).TextBoxes, box => box.Text == "Grid");
-        Assert.Equal(baselineGrid.TopPoints, grid.TopPoints, precision: 3);
+        Assert.Equal(baselineGrid.Top.ToPoints(), grid.Top.ToPoints(), precision: 3);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
@@ -277,9 +277,9 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         PowerPointTextBox positioned = Assert.Single(slide.TextBoxes, box => box.Text == "Editable positioned");
         PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid A Grid B");
 
-        Assert.InRange(positioned.LeftPoints, 59.9D, 60.1D);
-        Assert.InRange(positioned.TopPoints, 53.9D, 54.1D);
-        Assert.InRange(positioned.WidthPoints, 179.9D, 180.1D);
+        Assert.InRange(positioned.Left.ToPoints(), 59.9D, 60.1D);
+        Assert.InRange(positioned.Top.ToPoints(), 53.9D, 54.1D);
+        Assert.InRange(positioned.Width.ToPoints(), 179.9D, 180.1D);
         Assert.Equal(100, positioned.FillTransparency);
         Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.FillColor == "DBEAFE");
         Assert.Equal("FEF3C7", grid.FillColor);
@@ -320,7 +320,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         PowerPointTextBox flow = Assert.Single(slide.TextBoxes, box => box.Text == "Ordinary flow");
         PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid content");
 
-        Assert.True(grid.TopPoints >= flow.TopPoints + flow.HeightPoints);
+        Assert.True(grid.Top.ToPoints() >= flow.Top.ToPoints() + flow.Height.ToPoints());
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
@@ -361,8 +361,8 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     }
 
     private static bool Overlaps(PowerPointShape first, PowerPointShape second) =>
-        first.LeftPoints < second.LeftPoints + second.WidthPoints
-        && first.LeftPoints + first.WidthPoints > second.LeftPoints
-        && first.TopPoints < second.TopPoints + second.HeightPoints
-        && first.TopPoints + first.HeightPoints > second.TopPoints;
+        first.Left.ToPoints() < second.Left.ToPoints() + second.Width.ToPoints()
+        && first.Left.ToPoints() + first.Width.ToPoints() > second.Left.ToPoints()
+        && first.Top.ToPoints() < second.Top.ToPoints() + second.Height.ToPoints()
+        && first.Top.ToPoints() + first.Height.ToPoints() > second.Top.ToPoints();
 }

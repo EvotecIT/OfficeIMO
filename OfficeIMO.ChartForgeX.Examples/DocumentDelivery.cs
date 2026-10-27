@@ -73,7 +73,7 @@ internal static class DocumentDelivery {
             slide.BackgroundColor = colors.Background.ToHex().TrimStart('#');
             Text(slide, Heading(specimen), 36D, 16D, slideWidth - 72D, 30D, Style.HeadingSizePoints, colors.Foreground.ToHex());
             slide.AddVisualArtifact(specimen.Artifact,
-                PowerPointLayoutBox.FromPoints(36D, 60D, slideWidth - 72D, slideHeight - 130D));
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(36D),OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(slideWidth - 72D),OfficeIMO.OfficeLength.Points(slideHeight - 130D)));
             Text(slide, specimen.Caption, 36D, slideHeight - 52D,
                 slideWidth - 72D, 36D, Style.CaptionSizePoints, colors.Foreground.ToHex());
         }

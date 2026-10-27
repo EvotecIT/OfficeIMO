@@ -24,10 +24,10 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         Assert.Contains("data-officeimo-left=\"0\" data-officeimo-top=\"0\"", html, StringComparison.Ordinal);
         PowerPointTextBox importedText = Assert.Single(importedSlide.TextBoxes);
         PowerPointTable importedTable = Assert.Single(importedSlide.Tables);
-        Assert.Equal(0D, importedText.LeftPoints, 3);
-        Assert.Equal(0D, importedText.TopPoints, 3);
-        Assert.Equal(0D, importedTable.LeftPoints, 3);
-        Assert.Equal(0D, importedTable.TopPoints, 3);
+        Assert.Equal(0D, importedText.Left.ToPoints(), 3);
+        Assert.Equal(0D, importedText.Top.ToPoints(), 3);
+        Assert.Equal(0D, importedTable.Left.ToPoints(), 3);
+        Assert.Equal(0D, importedTable.Top.ToPoints(), 3);
         Assert.Empty(result.Report.Diagnostics);
     }
 
@@ -61,11 +61,11 @@ public class HtmlOfficeAdaptersPowerPointOrder {
             shape => Assert.IsType<PowerPointPicture>(shape),
             shape => Assert.Same(lastText.GetType(), shape.GetType()));
         PowerPointTable importedTable = Assert.IsType<PowerPointTable>(orderedShapes[0]);
-        Assert.Equal(90D, importedTable.LeftPoints, 3);
-        Assert.Equal(150D, importedTable.TopPoints, 3);
+        Assert.Equal(90D, importedTable.Left.ToPoints(), 3);
+        Assert.Equal(150D, importedTable.Top.ToPoints(), 3);
         PowerPointTextBox importedLastText = Assert.IsType<PowerPointTextBox>(orderedShapes[3]);
-        Assert.Equal(120D, importedLastText.LeftPoints, 3);
-        Assert.Equal(230D, importedLastText.TopPoints, 3);
+        Assert.Equal(120D, importedLastText.Left.ToPoints(), 3);
+        Assert.Equal(230D, importedLastText.Top.ToPoints(), 3);
         Assert.Empty(result.Report.Diagnostics);
     }
 

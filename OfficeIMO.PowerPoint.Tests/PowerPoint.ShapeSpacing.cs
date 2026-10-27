@@ -16,11 +16,11 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 1000);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 6000, 2000), spacingEmus: 500);
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000)), spacingEmus: 500);
 
-                Assert.Equal(0, a.Left);
-                Assert.Equal(1500, b.Left);
-                Assert.Equal(3000, c.Left);
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(1500, b.Left.ToEmus());
+                Assert.Equal(3000, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 1000);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 6000, 2000), spacingEmus: 500, center: true);
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000)), spacingEmus: 500, center: true);
 
-                Assert.Equal(1000, a.Left);
-                Assert.Equal(2500, b.Left);
-                Assert.Equal(4000, c.Left);
+                Assert.Equal(1000, a.Left.ToEmus());
+                Assert.Equal(2500, b.Left.ToEmus());
+                Assert.Equal(4000, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -62,11 +62,11 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 1000);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 6000, 2000), spacingEmus: 500, PowerPointShapeAlignment.Right);
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000)), spacingEmus: 500, PowerPointShapeAlignment.Right);
 
-                Assert.Equal(2000, a.Left);
-                Assert.Equal(3500, b.Left);
-                Assert.Equal(5000, c.Left);
+                Assert.Equal(2000, a.Left.ToEmus());
+                Assert.Equal(3500, b.Left.ToEmus());
+                Assert.Equal(5000, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -85,11 +85,11 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 1000);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Vertical,
-                    new PowerPointLayoutBox(0, 0, 2000, 6000), spacingEmus: 500, PowerPointShapeAlignment.Bottom);
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(2000),OfficeIMO.OfficeLength.Emus(6000)), spacingEmus: 500, PowerPointShapeAlignment.Bottom);
 
-                Assert.Equal(2000, a.Top);
-                Assert.Equal(3500, b.Top);
-                Assert.Equal(5000, c.Top);
+                Assert.Equal(2000, a.Top.ToEmus());
+                Assert.Equal(3500, b.Top.ToEmus());
+                Assert.Equal(5000, c.Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -108,17 +108,17 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 600);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 6000, 2000), spacingEmus: 500,
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000)), spacingEmus: 500,
                     PowerPointShapeAlignment.Right, PowerPointShapeAlignment.Bottom);
 
-                Assert.Equal(2000, a.Left);
-                Assert.Equal(3500, b.Left);
-                Assert.Equal(5000, c.Left);
+                Assert.Equal(2000, a.Left.ToEmus());
+                Assert.Equal(3500, b.Left.ToEmus());
+                Assert.Equal(5000, c.Left.ToEmus());
 
-                var bounds = new PowerPointLayoutBox(0, 0, 6000, 2000);
-                Assert.Equal(bounds.Bottom - a.Height, a.Top);
-                Assert.Equal(bounds.Bottom - b.Height, b.Top);
-                Assert.Equal(bounds.Bottom - c.Height, c.Top);
+                var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000));
+                Assert.Equal(bounds.Bottom.ToEmus() - a.Height.ToEmus(), a.Top.ToEmus());
+                Assert.Equal(bounds.Bottom.ToEmus() - b.Height.ToEmus(), b.Top.ToEmus());
+                Assert.Equal(bounds.Bottom.ToEmus() - c.Height.ToEmus(), c.Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -142,16 +142,16 @@ namespace OfficeIMO.Tests {
                     spacingEmus: spacing, marginEmus: margin);
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
-                double current = content.Left;
+                double current = content.Left.ToEmus();
                 long expectedA = (long)Math.Round(current);
-                current += a.Width + spacing;
+                current += a.Width.ToEmus() + spacing;
                 long expectedB = (long)Math.Round(current);
-                current += b.Width + spacing;
+                current += b.Width.ToEmus() + spacing;
                 long expectedC = (long)Math.Round(current);
 
-                Assert.Equal(expectedA, a.Left);
-                Assert.Equal(expectedB, b.Left);
-                Assert.Equal(expectedC, c.Left);
+                Assert.Equal(expectedA, a.Left.ToEmus());
+                Assert.Equal(expectedB, b.Left.ToEmus());
+                Assert.Equal(expectedC, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -170,15 +170,15 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(0, 0, 2500, 500);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 8000, 2000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(8000),OfficeIMO.OfficeLength.Emus(2000)),
                     new PowerPointShapeSpacingOptions {
                         SpacingEmus = 1000,
                         ClampSpacingToBounds = true
                     });
 
-                Assert.Equal(0, a.Left);
-                Assert.Equal(2750, b.Left);
-                Assert.Equal(5500, c.Left);
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(2750, b.Left.ToEmus());
+                Assert.Equal(5500, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -196,16 +196,16 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape b = slide.AddRectangle(0, 0, 3000, 500);
 
                 slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
-                    new PowerPointLayoutBox(0, 0, 5000, 2000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(5000),OfficeIMO.OfficeLength.Emus(2000)),
                     new PowerPointShapeSpacingOptions {
                         SpacingEmus = 1000,
                         ScaleToFitBounds = true
                     });
 
-                Assert.Equal(2000, a.Width);
-                Assert.Equal(2000, b.Width);
-                Assert.Equal(0, a.Left);
-                Assert.Equal(3000, b.Left);
+                Assert.Equal(2000, a.Width.ToEmus());
+                Assert.Equal(2000, b.Width.ToEmus());
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(3000, b.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

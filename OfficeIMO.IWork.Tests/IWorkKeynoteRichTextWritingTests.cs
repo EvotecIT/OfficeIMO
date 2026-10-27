@@ -30,10 +30,10 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             Assert.Equal(oracle.Select(r => r.FontSizePoints), actual.Select(r => r.FontSizePoints));
             // Apple's explicit typeface aliases and theme-backed Arial are separately
             // recorded in the independent range manifest and native font evidence.
-            Assert.Equal(expectedBox.Left, actualBox.Left);
-            Assert.Equal(expectedBox.Top, actualBox.Top);
-            Assert.Equal(expectedBox.Width, actualBox.Width);
-            Assert.Equal(expectedBox.Height, actualBox.Height);
+            Assert.Equal(expectedBox.Left.ToEmus(), actualBox.Left.ToEmus());
+            Assert.Equal(expectedBox.Top.ToEmus(), actualBox.Top.ToEmus());
+            Assert.Equal(expectedBox.Width.ToEmus(), actualBox.Width.ToEmus());
+            Assert.Equal(expectedBox.Height.ToEmus(), actualBox.Height.ToEmus());
         }
     }
 

@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string id = ObjectId("element", slideIndex, elementIndex++);
                     switch (shape) {
                         case PowerPointTextBox textBox:
-                            var text = PreserveTransform(new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, BuildTextContent(textBox)), shape);
+                            var text = PreserveTransform(new GoogleSlidesTextBox(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(), BuildTextContent(textBox)), shape);
                             if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
                             PreserveShapeStyle(text.Style, shape);
                             PopulateTextRuns(text, textBox);
@@ -100,11 +100,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 .Select((row, rowIndex) => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
                                     .Select((cell, columnIndex) => BuildTableCell(table, cell, rowIndex, columnIndex))
                                     .ToArray()).ToArray();
-                            target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
+                            target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(), cells), shape));
                             plan.NativeTableCount++;
                             break;
                         case PowerPointPicture picture when IsSupportedSlidesImage(picture):
-                            target.Add(PreserveTransform(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
+                            target.Add(PreserveTransform(new GoogleSlidesImage(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(),
                                 picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"), shape));
                             plan.NativeImageCount++;
                             break;
@@ -129,7 +129,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 action: TranslationAction.Skip);
                             break;
                         case PowerPointAutoShape autoShape when TryMapShape(autoShape, out string slidesShapeType):
-                            GoogleSlidesShape slidesShape = PreserveTransform(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType), shape);
+                            GoogleSlidesShape slidesShape = PreserveTransform(new GoogleSlidesShape(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(), slidesShapeType), shape);
                             PreserveShapeStyle(slidesShape.Style, shape);
                             target.Add(slidesShape);
                             plan.NativeShapeCount++;

@@ -78,10 +78,10 @@ internal static class PowerPointRichMapping {
                             SourceName = snapshot.Name,
                             Width = snapshot.WidthPoints,
                             Height = snapshot.HeightPoints,
-                            X = shape.LeftPoints,
-                            Y = shape.TopPoints,
-                            PlacedWidth = shape.WidthPoints,
-                            PlacedHeight = shape.HeightPoints,
+                            X = shape.Left.ToPoints(),
+                            Y = shape.Top.ToPoints(),
+                            PlacedWidth = shape.Width.ToPoints(),
+                            PlacedHeight = shape.Height.ToPoints(),
                             PlacementCount = 1,
                             HasGeometry = true,
                             IsAxisAligned = true,
@@ -335,7 +335,7 @@ internal static class PowerPointRichMapping {
     }
 
     private static OfficeDocumentRegion BuildPowerPointRegion(PowerPointShape shape) {
-        return new OfficeDocumentRegion { X = shape.LeftPoints, Y = shape.TopPoints, Width = shape.WidthPoints, Height = shape.HeightPoints };
+        return new OfficeDocumentRegion { X = shape.Left.ToPoints(), Y = shape.Top.ToPoints(), Width = shape.Width.ToPoints(), Height = shape.Height.ToPoints() };
     }
 
     private static ReaderLocation BuildPowerPointLocation(string? path, int slide, int? sourceBlockIndex, string kind, string anchor) {

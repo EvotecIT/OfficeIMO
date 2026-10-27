@@ -569,7 +569,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             PowerPointTextBox textBox = Assert.Single(presentation.Slides[0].TextBoxes);
 
-            textBox.Left += 15875;
+            textBox.Left+= OfficeIMO.OfficeLength.Emus(15875);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptDocument saved = LegacyPptDocument.Load(

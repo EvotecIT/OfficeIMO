@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             PowerPointPicture[] projectedPictures = projected.Slides[0].Pictures
-                .OrderBy(picture => picture.Left)
+                .OrderBy(picture => picture.Left.ToEmus())
                 .ToArray();
             Assert.Equal(2, projectedPictures.Length);
             Assert.All(projectedPictures, picture => Assert.Equal(image,
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
                 .Load(input);
             PowerPointPicture[] projectedPictureModels = projected.Slides[0]
                 .Pictures
-                .OrderBy(picture => picture.Left)
+                .OrderBy(picture => picture.Left.ToEmus())
                 .ToArray();
             P.Picture[] projectedPictures = projectedPictureModels
                 .Select(picture => (P.Picture)picture.Element)

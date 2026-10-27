@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox GetGroupChildBoundsCm(PowerPointGroupShape groupShape) {
             PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm);
+            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters()));
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox GetGroupChildBoundsInches(PowerPointGroupShape groupShape) {
             PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromInches(bounds.LeftInches, bounds.TopInches, bounds.WidthInches, bounds.HeightInches);
+            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Inches(bounds.Left.ToInches()),OfficeIMO.OfficeLength.Inches(bounds.Top.ToInches()),OfficeIMO.OfficeLength.Inches(bounds.Width.ToInches()),OfficeIMO.OfficeLength.Inches(bounds.Height.ToInches()));
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox GetGroupChildBoundsPoints(PowerPointGroupShape groupShape) {
             PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromPoints(bounds.LeftPoints, bounds.TopPoints, bounds.WidthPoints, bounds.HeightPoints);
+            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(bounds.Left.ToPoints()),OfficeIMO.OfficeLength.Points(bounds.Top.ToPoints()),OfficeIMO.OfficeLength.Points(bounds.Width.ToPoints()),OfficeIMO.OfficeLength.Points(bounds.Height.ToPoints()));
         }
 
         /// <summary>
@@ -330,11 +330,11 @@ namespace OfficeIMO.PowerPoint {
             long? cy = transform?.ChildExtents?.Cy?.Value;
 
             if (x.HasValue && y.HasValue && cx.HasValue && cy.HasValue) {
-                return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
             }
 
             if (children.Count == 0) {
-                return new PowerPointLayoutBox(0, 0, 0, 0);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0));
             }
 
             return GetSelectionBounds(children);

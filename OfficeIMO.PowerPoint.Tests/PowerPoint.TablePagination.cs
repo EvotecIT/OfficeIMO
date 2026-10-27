@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                     presentation.SlideSize.SetSizePoints(400, 225);
                     PowerPointPaginatedTableResult result = presentation.AddTableSlides(source, columns,
                         new PowerPointTablePaginationOptions {
-                            TableBounds = PowerPointLayoutBox.FromPoints(20, 40, 360, 100),
+                            TableBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(40),OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(100)),
                             MinimumRowHeightPoints = 20,
                             ConfigureSlide = (slide, context) => {
                                 configuredPages.Add(context.PageIndex);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 presentation.AddTableSlides(rows, columns, new PowerPointTablePaginationOptions {
-                    TableBounds = PowerPointLayoutBox.FromPoints(10, 10, 200, 20),
+                    TableBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(10),OfficeIMO.OfficeLength.Points(10),OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(20)),
                     MinimumRowHeightPoints = 20
                 }));
 

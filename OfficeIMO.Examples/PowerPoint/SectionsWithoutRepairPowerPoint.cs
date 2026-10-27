@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 content,
                 "Introduction",
                 "The first section contains the overview and agenda slides.");
-            PowerPointTextBox bullets = agenda.AddTextBoxCm(string.Empty, content.LeftCm, content.TopCm + 3.0, content.WidthCm, 3.5);
+            PowerPointTextBox bullets = agenda.AddTextBoxCm(string.Empty, content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.0, content.Width.ToCentimeters(), 3.5);
             bullets.AddBullets(new[] {
                 "Introduction section",
                 "Results section",
@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "This slide belongs to a different section and uses a morph transition.");
             results.Transition = PowerPointSlideTransition.Morph;
             results.AddTextBoxCm("If PowerPoint opens this deck directly, both sections and transitions are serialized correctly.",
-                content.LeftCm, content.TopCm + 3.0, content.WidthCm, 1.4);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.0, content.Width.ToCentimeters(), 1.4);
 
             PowerPointSlide closing = presentation.AddSlide();
             AddTitleAndBody(
@@ -75,12 +75,12 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void AddTitleAndBody(PowerPointSlide slide, PowerPointLayoutBox content, string title, string body) {
-            PowerPointTextBox titleBox = slide.AddTitleCm(title, content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+            PowerPointTextBox titleBox = slide.AddTitleCm(title, content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
             if (titleBox.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(titleBox.Paragraphs[0]);
             }
 
-            PowerPointTextBox bodyBox = slide.AddTextBoxCm(body, content.LeftCm, content.TopCm + 1.9, content.WidthCm, 1.2);
+            PowerPointTextBox bodyBox = slide.AddTextBoxCm(body, content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.2);
             bodyBox.ApplyTextStyle(PowerPointTextStyle.Body);
             bodyBox.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
         }

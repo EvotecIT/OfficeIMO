@@ -128,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a table using a layout box.
         /// </summary>
         public PowerPointTable AddTable(int rows, int columns, PowerPointLayoutBox layout) {
-            return AddTable(rows, columns, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddTable(rows, columns, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>
@@ -434,7 +434,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
             PowerPointLayoutBox layout, bool includeHeaders = true) {
-            return AddTable(data, columns, includeHeaders, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddTable(data, columns, includeHeaders, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>
@@ -505,7 +505,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            long totalWidth = tableWidthEmus > 0 ? tableWidthEmus : table.Width;
+            long totalWidth = tableWidthEmus > 0 ? tableWidthEmus : table.Width.ToEmus();
             if (totalWidth <= 0) {
                 table.SetColumnWidthsEvenly();
                 return;

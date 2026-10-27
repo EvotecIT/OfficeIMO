@@ -27,8 +27,8 @@ internal static partial class FixtureCorpus {
             if (variant.Nested) group = slide.GroupShapes(new PowerPointShape[] {
                 group, slide.AddRectanglePoints(60, 160, 200, 10)
             });
-            group.WidthPoints *= variant.ScaleX;
-            group.HeightPoints *= variant.ScaleY;
+            group.Width*= OfficeIMO.OfficeLength.Points(variant.ScaleX);
+            group.Height*= OfficeIMO.OfficeLength.Points(variant.ScaleY);
             group.Rotation = variant.Rotation;
             group.HorizontalFlip = variant.FlipX;
             group.VerticalFlip = variant.FlipY;

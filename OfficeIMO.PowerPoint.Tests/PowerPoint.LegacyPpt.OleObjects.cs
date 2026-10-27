@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
                 ole.ShowAsIcon = true;
                 ole.FollowColorScheme =
                     PowerPointOleFollowColorScheme.Full;
-                ole.Left += 15875L;
+                ole.Left+= OfficeIMO.OfficeLength.Emus(15875L);
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
@@ -632,7 +632,7 @@ namespace OfficeIMO.Tests {
                     }));
                 PowerPointOleObject ole = Assert.Single(
                     imported.Slides[0].OleObjects);
-                ole.Left += 15875L;
+                ole.Left+= OfficeIMO.OfficeLength.Emus(15875L);
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
@@ -713,7 +713,7 @@ namespace OfficeIMO.Tests {
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
 
-            ole.LeftPoints = 700;
+            ole.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }

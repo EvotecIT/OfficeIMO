@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
                        writable: false))
             using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
-                Assert.Single(imported.Slides[0].TextBoxes).Left += 15875;
+                Assert.Single(imported.Slides[0].TextBoxes).Left += OfficeIMO.OfficeLength.Emus(15875);
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,

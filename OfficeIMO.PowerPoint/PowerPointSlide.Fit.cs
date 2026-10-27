@@ -19,12 +19,12 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointLayoutBox source = GetSelectionBounds(list);
-            if (source.Width == 0 || source.Height == 0) {
+            if (source.Width.ToEmus() == 0 || source.Height.ToEmus() == 0) {
                 return;
             }
 
-            double scaleX = bounds.Width / (double)source.Width;
-            double scaleY = bounds.Height / (double)source.Height;
+            double scaleX = bounds.Width.ToEmus() / (double)source.Width.ToEmus();
+            double scaleY = bounds.Height.ToEmus() / (double)source.Height.ToEmus();
 
             if (preserveAspect) {
                 double scale = Math.Min(scaleX, scaleY);
@@ -32,27 +32,27 @@ namespace OfficeIMO.PowerPoint {
                 scaleY = scale;
             }
 
-            double scaledWidth = source.Width * scaleX;
-            double scaledHeight = source.Height * scaleY;
+            double scaledWidth = source.Width.ToEmus() * scaleX;
+            double scaledHeight = source.Height.ToEmus() * scaleY;
 
-            double baseLeft = bounds.Left;
-            double baseTop = bounds.Top;
+            double baseLeft = bounds.Left.ToEmus();
+            double baseTop = bounds.Top.ToEmus();
 
             if (center) {
-                baseLeft += (bounds.Width - scaledWidth) / 2d;
-                baseTop += (bounds.Height - scaledHeight) / 2d;
+                baseLeft += (bounds.Width.ToEmus() - scaledWidth) / 2d;
+                baseTop += (bounds.Height.ToEmus() - scaledHeight) / 2d;
             }
 
             foreach (PowerPointShape shape in list) {
-                double relativeLeft = shape.Left - source.Left;
-                double relativeTop = shape.Top - source.Top;
+                double relativeLeft = shape.Left.ToEmus() - source.Left.ToEmus();
+                double relativeTop = shape.Top.ToEmus() - source.Top.ToEmus();
                 double newLeft = baseLeft + (relativeLeft * scaleX);
                 double newTop = baseTop + (relativeTop * scaleY);
 
-                shape.Left = (long)Math.Round(newLeft);
-                shape.Top = (long)Math.Round(newTop);
-                shape.Width = (long)Math.Round(shape.Width * scaleX);
-                shape.Height = (long)Math.Round(shape.Height * scaleY);
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(newLeft));
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(newTop));
+                shape.Width= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Width.ToEmus() * scaleX));
+                shape.Height= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Height.ToEmus() * scaleY));
             }
         }
 

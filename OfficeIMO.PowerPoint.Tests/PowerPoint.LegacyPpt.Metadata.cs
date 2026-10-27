@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox summary = presentation.Slides[0].TextBoxes.Single(shape =>
                 shape.Text == "Summary");
 
-            summary.Left += 15875;
+            summary.Left+= OfficeIMO.OfficeLength.Emus(15875);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             LegacyPptDocument saved = LegacyPptDocument.Load(

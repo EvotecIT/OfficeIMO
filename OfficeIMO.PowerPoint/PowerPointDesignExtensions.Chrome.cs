@@ -127,8 +127,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             for (int i = 0; i < boxes.Count - 1; i++) {
-                double start = boxes[i].LeftCm + nodeSize + 0.16;
-                double end = boxes[i + 1].LeftCm - 0.16;
+                double start = boxes[i].Left.ToCentimeters() + nodeSize + 0.16;
+                double end = boxes[i + 1].Left.ToCentimeters() - 0.16;
                 if (end <= start) {
                     continue;
                 }

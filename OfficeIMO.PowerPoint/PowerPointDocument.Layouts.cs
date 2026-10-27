@@ -373,8 +373,8 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type.ToOpenXml(), Index = index })),
                 new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = bounds.Left, Y = bounds.Top },
-                        new A.Extents { Cx = bounds.Width, Cy = bounds.Height }),
+                    new A.Transform2D(new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
+                        new A.Extents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() }),
                     new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
                 ),
                 new TextBody(
@@ -386,12 +386,12 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PowerPointPlaceholderType placeholderType) {
             if (placeholderType == PowerPointPlaceholderType.Title || placeholderType == PowerPointPlaceholderType.CenteredTitle) {
-                return new PowerPointLayoutBox(838200L, 365125L, 7772400L, 1470025L);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(838200L),OfficeIMO.OfficeLength.Emus(365125L),OfficeIMO.OfficeLength.Emus(7772400L),OfficeIMO.OfficeLength.Emus(1470025L));
             }
             if (placeholderType == PowerPointPlaceholderType.SubTitle) {
-                return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(838200L),OfficeIMO.OfficeLength.Emus(2174875L),OfficeIMO.OfficeLength.Emus(7772400L),OfficeIMO.OfficeLength.Emus(1470025L));
             }
-            return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L);
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(838200L),OfficeIMO.OfficeLength.Emus(2174875L),OfficeIMO.OfficeLength.Emus(7772400L),OfficeIMO.OfficeLength.Emus(3962400L));
         }
 
         private PowerPointTextBox EnsureLayoutHeaderFooterPlaceholderTextBox(int masterIndex, int layoutIndex,
@@ -420,14 +420,14 @@ namespace OfficeIMO.PowerPoint {
             long centerWidth = Math.Max(PowerPointUnits.FromCentimeters(4.0), slideWidth / 3);
 
             if (placeholderType == PowerPointPlaceholderType.DateAndTime) {
-                return new PowerPointLayoutBox(margin, footerTop, sideWidth, footerHeight);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(margin),OfficeIMO.OfficeLength.Emus(footerTop),OfficeIMO.OfficeLength.Emus(sideWidth),OfficeIMO.OfficeLength.Emus(footerHeight));
             }
 
             if (placeholderType == PowerPointPlaceholderType.SlideNumber) {
-                return new PowerPointLayoutBox(slideWidth - margin - sideWidth, footerTop, sideWidth, footerHeight);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(slideWidth - margin - sideWidth),OfficeIMO.OfficeLength.Emus(footerTop),OfficeIMO.OfficeLength.Emus(sideWidth),OfficeIMO.OfficeLength.Emus(footerHeight));
             }
 
-            return new PowerPointLayoutBox((slideWidth - centerWidth) / 2, footerTop, centerWidth, footerHeight);
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus((slideWidth - centerWidth) / 2),OfficeIMO.OfficeLength.Emus(footerTop),OfficeIMO.OfficeLength.Emus(centerWidth),OfficeIMO.OfficeLength.Emus(footerHeight));
         }
 
         private static void SetHeaderFooterFlag(SlideLayoutPart layoutPart, PowerPointPlaceholderType placeholderType, bool visible) {

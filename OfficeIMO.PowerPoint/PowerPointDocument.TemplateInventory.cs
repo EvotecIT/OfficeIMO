@@ -31,8 +31,7 @@ namespace OfficeIMO.PowerPoint {
             var assets = new List<PowerPointTemplateAssetInfo>();
             var footerContents = new List<string>();
             SlideMasterPart[] masterParts = _presentationPart.SlideMasterParts.ToArray();
-            PowerPointLayoutBox slideBounds = new PowerPointLayoutBox(0L, 0L, SlideSize.WidthEmus,
-                SlideSize.HeightEmus);
+            PowerPointLayoutBox slideBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(SlideSize.WidthEmus),                OfficeIMO.OfficeLength.Emus(SlideSize.HeightEmus));
             PowerPointLayoutBox fallbackSafeArea = SlideSize.GetContentBoxCm(1D);
 
             for (int masterIndex = 0; masterIndex < masterParts.Length; masterIndex++) {
@@ -131,12 +130,12 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
             if (contentBounds.Count == 0) return fallback;
 
-            long left = Math.Max(slideBounds.Left, contentBounds.Min(bounds => bounds.Left));
-            long top = Math.Max(slideBounds.Top, contentBounds.Min(bounds => bounds.Top));
-            long right = Math.Min(slideBounds.Right, contentBounds.Max(bounds => bounds.Right));
-            long bottom = Math.Min(slideBounds.Bottom, contentBounds.Max(bounds => bounds.Bottom));
+            long left = Math.Max(slideBounds.Left.ToEmus(), contentBounds.Min(bounds => bounds.Left.ToEmus()));
+            long top = Math.Max(slideBounds.Top.ToEmus(), contentBounds.Min(bounds => bounds.Top.ToEmus()));
+            long right = Math.Min(slideBounds.Right.ToEmus(), contentBounds.Max(bounds => bounds.Right.ToEmus()));
+            long bottom = Math.Min(slideBounds.Bottom.ToEmus(), contentBounds.Max(bounds => bounds.Bottom.ToEmus()));
             return right > left && bottom > top
-                ? new PowerPointLayoutBox(left, top, right - left, bottom - top)
+                ? new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(left),OfficeIMO.OfficeLength.Emus(top),OfficeIMO.OfficeLength.Emus(right - left),OfficeIMO.OfficeLength.Emus(bottom - top))
                 : fallback;
         }
 
@@ -249,7 +248,7 @@ namespace OfficeIMO.PowerPoint {
             long? width = transform?.Extents?.Cx?.Value;
             long? height = transform?.Extents?.Cy?.Value;
             return x.HasValue && y.HasValue && width.HasValue && height.HasValue
-                ? new PowerPointLayoutBox(x.Value, y.Value, width.Value, height.Value)
+                ? new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(width.Value),OfficeIMO.OfficeLength.Emus(height.Value))
                 : null;
         }
 
@@ -259,7 +258,7 @@ namespace OfficeIMO.PowerPoint {
             long? width = transform?.Extents?.Cx?.Value;
             long? height = transform?.Extents?.Cy?.Value;
             return x.HasValue && y.HasValue && width.HasValue && height.HasValue
-                ? new PowerPointLayoutBox(x.Value, y.Value, width.Value, height.Value)
+                ? new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(width.Value),OfficeIMO.OfficeLength.Emus(height.Value))
                 : null;
         }
 
@@ -281,15 +280,15 @@ namespace OfficeIMO.PowerPoint {
             internal static TemplateBoundsMapping Identity => new(0D, 0D, 1D, 1D);
 
             internal bool TryMap(PowerPointLayoutBox bounds, out PowerPointLayoutBox mapped) {
-                double left = _offsetX + (bounds.Left * _scaleX);
-                double top = _offsetY + (bounds.Top * _scaleY);
-                double width = bounds.Width * _scaleX;
-                double height = bounds.Height * _scaleY;
+                double left = _offsetX + (bounds.Left.ToEmus() * _scaleX);
+                double top = _offsetY + (bounds.Top.ToEmus() * _scaleY);
+                double width = bounds.Width.ToEmus() * _scaleX;
+                double height = bounds.Height.ToEmus() * _scaleY;
                 if (!_isValid || !CanRound(left) || !CanRound(top) || !CanRound(width) || !CanRound(height)) {
                     mapped = default;
                     return false;
                 }
-                mapped = new PowerPointLayoutBox(Round(left), Round(top), Round(width), Round(height));
+                mapped = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(Round(left)),OfficeIMO.OfficeLength.Emus(Round(top)),OfficeIMO.OfficeLength.Emus(Round(width)),OfficeIMO.OfficeLength.Emus(Round(height)));
                 return true;
             }
 

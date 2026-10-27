@@ -122,25 +122,24 @@ namespace OfficeIMO.PowerPoint {
             double top = 1.75;
             double gutter = 0.85;
             double width = slideWidthCm - 2.9;
-            PowerPointLayoutBox[] columns = PowerPointLayoutBox
-                .FromCentimeters(left, top, width, 6.15)
-                .SplitColumnsCm(sections.Count, gutter);
+            PowerPointLayoutBox[] columns = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(left),OfficeIMO.OfficeLength.Centimeters(top),OfficeIMO.OfficeLength.Centimeters(width),OfficeIMO.OfficeLength.Centimeters(6.15))
+                .SplitColumns(sections.Count,OfficeIMO.OfficeLength.Centimeters(gutter));
 
             for (int i = 0; i < sections.Count; i++) {
                 PowerPointLayoutBox box = columns[i];
                 PowerPointCaseStudySection section = sections[i];
-                AddText(slide, section.Heading, box.LeftCm, box.TopCm, box.WidthCm, i == 0 ? 0.85 : 0.55, i == 0 ? 19 : 11,
+                AddText(slide, section.Heading, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), i == 0 ? 0.85 : 0.55, i == 0 ? 19 : 11,
                     theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
                 if (i == 0) {
-                    PowerPointAutoShape rule = slide.AddRectangleCm(box.LeftCm, box.TopCm + 0.97, box.WidthCm, 0.025,
+                    PowerPointAutoShape rule = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters() + 0.97, box.Width.ToCentimeters(), 0.025,
                         "Case Study Client Rule");
                     rule.FillColor = theme.PanelBorderColor;
                     rule.OutlineColor = theme.PanelBorderColor;
                 }
 
                 string body = i == 0 ? clientTitle + Environment.NewLine + section.Body : section.Body;
-                PowerPointTextBox bodyBox = AddText(slide, body, box.LeftCm, box.TopCm + (i == 0 ? 1.2 : 1.05), box.WidthCm, 4.5,
+                PowerPointTextBox bodyBox = AddText(slide, body, box.Left.ToCentimeters(), box.Top.ToCentimeters() + (i == 0 ? 1.2 : 1.05), box.Width.ToCentimeters(), 4.5,
                     i == 0 ? 13 : 10, i == 0 ? theme.PrimaryTextColor : theme.SecondaryTextColor,
                     theme.BodyFontName, bold: i == 0);
                 bodyBox.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -160,9 +159,8 @@ namespace OfficeIMO.PowerPoint {
             titleRule.OutlineColor = theme.AccentColor;
 
             int textCount = Math.Min(sections.Count, 4);
-            PowerPointLayoutBox[,] boxes = PowerPointLayoutBox
-                .FromCentimeters(1.45, 3.75, slideWidthCm * 0.54, 5.05)
-                .SplitGridCm(textCount > 2 ? 2 : 1, textCount > 1 ? 2 : 1, 0.55, 0.55);
+            PowerPointLayoutBox[,] boxes = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.45),OfficeIMO.OfficeLength.Centimeters(3.75),OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.54),OfficeIMO.OfficeLength.Centimeters(5.05))
+                .SplitGrid(textCount > 2 ? 2 : 1,textCount > 1 ? 2 : 1,OfficeIMO.OfficeLength.Centimeters(0.55),OfficeIMO.OfficeLength.Centimeters(0.55));
 
             for (int i = 0; i < textCount; i++) {
                 int row = i / (textCount > 1 ? 2 : 1);
@@ -170,22 +168,22 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointLayoutBox box = boxes[row, column];
                 PowerPointCaseStudySection section = sections[i];
 
-                PowerPointAutoShape panel = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+                PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                     "Case Study Editorial Section " + (i + 1));
                 panel.FillColor = theme.PanelColor;
                 panel.OutlineColor = theme.PanelBorderColor;
                 panel.OutlineWidthPoints = 0.45;
                 panel.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-                PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm, box.TopCm, 0.12, box.HeightCm,
+                PowerPointAutoShape accent = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), 0.12, box.Height.ToCentimeters(),
                     "Case Study Editorial Accent " + (i + 1));
                 accent.FillColor = GetAccent(theme, i);
                 accent.OutlineColor = GetAccent(theme, i);
 
-                AddText(slide, section.Heading, box.LeftCm + 0.45, box.TopCm + 0.38, box.WidthCm - 0.75, 0.45, 11,
+                AddText(slide, section.Heading, box.Left.ToCentimeters() + 0.45, box.Top.ToCentimeters() + 0.38, box.Width.ToCentimeters() - 0.75, 0.45, 11,
                     theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
-                PowerPointTextBox body = AddText(slide, section.Body, box.LeftCm + 0.45, box.TopCm + 1.0,
-                    box.WidthCm - 0.75, box.HeightCm - 1.25, 9, theme.SecondaryTextColor, theme.BodyFontName);
+                PowerPointTextBox body = AddText(slide, section.Body, box.Left.ToCentimeters() + 0.45, box.Top.ToCentimeters() + 1.0,
+                    box.Width.ToCentimeters() - 0.75, box.Height.ToCentimeters() - 1.25, 9, theme.SecondaryTextColor, theme.BodyFontName);
                 body.TextAutoFitOptions = new PowerPointTextAutoFitOptions(fontScalePercent: 82, lineSpaceReductionPercent: 18);
             }
 

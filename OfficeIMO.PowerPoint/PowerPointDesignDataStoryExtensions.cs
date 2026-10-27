@@ -99,8 +99,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddChartHero(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointChartStoryContent content, double width, double height) {
-            PowerPointLayoutBox chartBounds = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3,
-                height - 5.7);
+            PowerPointLayoutBox chartBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),                OfficeIMO.OfficeLength.Centimeters(height - 5.7));
             PowerPointChart chart = AddStoryChart(slide, content, chartBounds);
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
             AddStoryCaption(slide, theme, content.Caption, content.Provenance, 1.55, height - 1.95, width - 3.1);
@@ -108,25 +107,24 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddChartInsightRail(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointChartStoryContent content, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.25);
-            PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, 0.7);
-            PowerPointLayoutBox chartBounds = new PowerPointLayoutBox(columns[0].Left, columns[0].Top,
-                (long)(body.Width * 0.66), columns[0].Height);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25));
+            PowerPointLayoutBox[] columns = body.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.7));
+            PowerPointLayoutBox chartBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(columns[0].Top.ToEmus()),                OfficeIMO.OfficeLength.Emus((long)(body.Width.ToEmus() * 0.66)),OfficeIMO.OfficeLength.Emus(columns[0].Height.ToEmus()));
             PowerPointChart chart = AddStoryChart(slide, content, chartBounds);
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
-            double railLeft = chartBounds.RightCm + 0.7;
-            double railWidth = body.RightCm - railLeft;
-            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.TopCm, railWidth, body.HeightCm,
+            double railLeft = chartBounds.Right.ToCentimeters() + 0.7;
+            double railWidth = body.Right.ToCentimeters() - railLeft;
+            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.Top.ToCentimeters(), railWidth, body.Height.ToCentimeters(),
                 "Chart Insight Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
-            double rowHeight = Math.Max(1.25, (body.HeightCm - 1.2) / Math.Max(1, content.Insights.Count));
+            double rowHeight = Math.Max(1.25, (body.Height.ToCentimeters() - 1.2) / Math.Max(1, content.Insights.Count));
             for (int index = 0; index < content.Insights.Count; index++) {
                 string accent = GetAccent(theme, index);
-                slide.AddRectangleCm(railLeft + 0.35, body.TopCm + 0.45 + index * rowHeight, 0.12,
+                slide.AddRectangleCm(railLeft + 0.35, body.Top.ToCentimeters() + 0.45 + index * rowHeight, 0.12,
                     rowHeight - 0.35, "Insight Accent " + (index + 1)).FillColor = accent;
                 AddText(slide, content.Insights[index], railLeft + 0.65,
-                    body.TopCm + 0.45 + index * rowHeight, railWidth - 1.0, rowHeight - 0.25, 11,
+                    body.Top.ToCentimeters() + 0.45 + index * rowHeight, railWidth - 1.0, rowHeight - 0.25, 11,
                     theme.PrimaryTextColor, theme.BodyFontName, bold: index == 0);
             }
             AddStoryCaption(slide, theme, content.Caption, content.Provenance, 1.55, height - 1.62, width - 3.1);
@@ -134,8 +132,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointChart AddStoryChart(PowerPointSlide slide, PowerPointChartStoryContent content,
             PowerPointLayoutBox bounds) {
-            return slide.AddChart(content.ChartKind, content.SharedData, bounds.Left, bounds.Top,
-                bounds.Width, bounds.Height, new PowerPointChartAccessibilityOptions {
+            return slide.AddChart(content.ChartKind, content.SharedData, bounds.Left.ToEmus(), bounds.Top.ToEmus(),
+                bounds.Width.ToEmus(), bounds.Height.ToEmus(), new PowerPointChartAccessibilityOptions {
                     Name = "Chart Story",
                     AlternativeText = content.AlternativeText ?? "Editable chart story",
                     DataSummary = content.DataSummary,
@@ -146,7 +144,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddComparisonColumns(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointComparisonItem> items, double width, double height,
             PowerPointComparisonSlideOptions options) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.65, width - 3, height - 5.25);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.65),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25));
             List<PowerPointCardContent> cards = items.Select(item => new PowerPointCardContent(item.Title,
                 BuildComparisonBullets(item))).ToList();
             var cardOptions = new PowerPointCardGridSlideOptions { MaxColumns = items.Count,
@@ -170,33 +168,32 @@ namespace OfficeIMO.PowerPoint {
                 new[] { "Tradeoffs" }.Concat(items.Select(item => string.Join("; ", item.Tradeoffs))).ToArray()
             };
             var data = new PowerPointTableData(headers, rows);
-            AddNativeTable(slide, data, PowerPointLayoutBox.FromCentimeters(1.5, 3.75, width - 3, height - 5.45),
+            AddNativeTable(slide, data, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.75),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.45)),
                 theme);
         }
 
         private static void AddAppendixFullWidth(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointTableData data, double width, double height) {
-            AddNativeTable(slide, data, PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.25),
+            AddNativeTable(slide, data, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25)),
                 theme);
             AddStoryCaption(slide, theme, data.Caption, data.Provenance, 1.55, height - 1.62, width - 3.1);
         }
 
         private static void AddAppendixNotesRail(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointTableData data, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.25);
-            PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, 0.7);
-            PowerPointLayoutBox table = new PowerPointLayoutBox(columns[0].Left, columns[0].Top,
-                (long)(body.Width * 0.72), columns[0].Height);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25));
+            PowerPointLayoutBox[] columns = body.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.7));
+            PowerPointLayoutBox table = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(columns[0].Top.ToEmus()),                OfficeIMO.OfficeLength.Emus((long)(body.Width.ToEmus() * 0.72)),OfficeIMO.OfficeLength.Emus(columns[0].Height.ToEmus()));
             AddNativeTable(slide, data, table, theme);
-            double notesLeft = table.RightCm + 0.7;
-            PowerPointAutoShape rail = slide.AddRectangleCm(notesLeft, body.TopCm, body.RightCm - notesLeft,
-                body.HeightCm, "Appendix Notes Rail");
+            double notesLeft = table.Right.ToCentimeters() + 0.7;
+            PowerPointAutoShape rail = slide.AddRectangleCm(notesLeft, body.Top.ToCentimeters(), body.Right.ToCentimeters() - notesLeft,
+                body.Height.ToCentimeters(), "Appendix Notes Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
-            AddText(slide, "Notes", notesLeft + 0.45, body.TopCm + 0.4, body.RightCm - notesLeft - 0.9,
+            AddText(slide, "Notes", notesLeft + 0.45, body.Top.ToCentimeters() + 0.4, body.Right.ToCentimeters() - notesLeft - 0.9,
                 0.55, 14, theme.AccentDarkColor, theme.HeadingFontName, bold: true);
             AddText(slide, string.Join("\n", data.Notes.Select(note => "• " + note)), notesLeft + 0.45,
-                body.TopCm + 1.15, body.RightCm - notesLeft - 0.9, body.HeightCm - 1.55, 10,
+                body.Top.ToCentimeters() + 1.15, body.Right.ToCentimeters() - notesLeft - 0.9, body.Height.ToCentimeters() - 1.55, 10,
                 theme.SecondaryTextColor, theme.BodyFontName);
             AddStoryCaption(slide, theme, data.Caption, data.Provenance, 1.55, height - 1.62, width - 3.1);
         }
@@ -204,8 +201,8 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointTable AddNativeTable(PowerPointSlide slide, PowerPointTableData data,
             PowerPointLayoutBox bounds, PowerPointDesignTheme theme) {
             int rowCount = data.Rows.Count + 1;
-            PowerPointTable table = slide.AddTable(rowCount, data.Headers.Count, bounds.Left, bounds.Top,
-                bounds.Width, bounds.Height);
+            PowerPointTable table = slide.AddTable(rowCount, data.Headers.Count, bounds.Left.ToEmus(), bounds.Top.ToEmus(),
+                bounds.Width.ToEmus(), bounds.Height.ToEmus());
             table.Name = "Semantic Appendix Table";
             table.HeaderRow = true;
             table.BandedRows = true;
@@ -227,7 +224,7 @@ namespace OfficeIMO.PowerPoint {
                     if (row % 2 == 1) cell.FillColor = theme.SurfaceColor;
                 }
             }
-            double rowHeight = bounds.HeightPoints / Math.Max(1, rowCount);
+            double rowHeight = bounds.Height.ToPoints() / Math.Max(1, rowCount);
             foreach (PowerPointTableRow row in table.RowItems) row.HeightPoints = rowHeight;
             return table;
         }

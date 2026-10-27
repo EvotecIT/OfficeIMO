@@ -17,7 +17,7 @@ public static partial class OfficeVisualPlacementExtensions {
     public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
         PowerPointLayoutBox box, out OfficeVisualConversionResult conversion, OfficeVisualConversionOptions? options = null) {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
-        conversion = artifact.ToOfficeVisual(options).WithSize(box.WidthPoints, box.HeightPoints, options?.Fit ?? OfficeImageFit.Contain);
+        conversion = artifact.ToOfficeVisual(options).WithSize(box.Width.ToPoints(), box.Height.ToPoints(), options?.Fit ?? OfficeImageFit.Contain);
         return PlaceInSlideBox(slide, conversion, box);
     }
 
@@ -26,7 +26,7 @@ public static partial class OfficeVisualPlacementExtensions {
         PowerPointLayoutBox box, OfficeImageFit fit = OfficeImageFit.Contain) {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        var fitted = conversion.WithSize(box.WidthPoints, box.HeightPoints, fit);
+        var fitted = conversion.WithSize(box.Width.ToPoints(), box.Height.ToPoints(), fit);
         return PlaceInSlideBox(slide, fitted, box);
     }
 
@@ -58,8 +58,8 @@ public static partial class OfficeVisualPlacementExtensions {
     }
 
     private static PowerPointPicture PlaceInSlideBox(PowerPointSlide slide, OfficeVisualConversionResult fitted, PowerPointLayoutBox box) =>
-        slide.AddVisualArtifact(fitted, box.LeftPoints + (box.WidthPoints - fitted.WidthPoints) / 2D,
-            box.TopPoints + (box.HeightPoints - fitted.HeightPoints) / 2D);
+        slide.AddVisualArtifact(fitted, box.Left.ToPoints() + (box.Width.ToPoints() - fitted.WidthPoints) / 2D,
+            box.Top.ToPoints() + (box.Height.ToPoints() - fitted.HeightPoints) / 2D);
 
     private static ExcelImage PlaceInRange(ExcelSheet sheet, int row, int column, int widthPixels, int heightPixels,
         OfficeVisualConversionResult fitted) {

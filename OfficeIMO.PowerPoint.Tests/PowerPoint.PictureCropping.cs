@@ -48,10 +48,10 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointPicture picture = presentation.Slides.Single().Pictures.First();
-                Assert.Equal(0, picture.Left);
-                Assert.Equal(500000, picture.Top);
-                Assert.Equal(2000000, picture.Width);
-                Assert.Equal(1000000, picture.Height);
+                Assert.Equal(0, picture.Left.ToEmus());
+                Assert.Equal(500000, picture.Top.ToEmus());
+                Assert.Equal(2000000, picture.Width.ToEmus());
+                Assert.Equal(1000000, picture.Height.ToEmus());
             }
 
             using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {

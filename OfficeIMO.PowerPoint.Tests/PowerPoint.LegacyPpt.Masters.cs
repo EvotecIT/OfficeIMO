@@ -277,8 +277,7 @@ namespace OfficeIMO.Tests {
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!.ShapeTree!;
-            var titleBounds = new PowerPointLayoutBox(650000, 400000,
-                7600000, 900000);
+            var titleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(650000),OfficeIMO.OfficeLength.Emus(400000),                OfficeIMO.OfficeLength.Emus(7600000),OfficeIMO.OfficeLength.Emus(900000));
             tree.Append(
                 new P.Shape(
                     new P.NonVisualShapeProperties(
@@ -295,12 +294,12 @@ namespace OfficeIMO.Tests {
                     new P.ShapeProperties(
                         new A.Transform2D(
                             new A.Offset {
-                                X = titleBounds.Left,
-                                Y = titleBounds.Top
+                                X = titleBounds.Left.ToEmus(),
+                                Y = titleBounds.Top.ToEmus()
                             },
                             new A.Extents {
-                                Cx = titleBounds.Width,
-                                Cy = titleBounds.Height
+                                Cx = titleBounds.Width.ToEmus(),
+                                Cy = titleBounds.Height.ToEmus()
                             }),
                         new A.PresetGeometry(new A.AdjustValueList()) {
                             Preset = A.ShapeTypeValues.Rectangle
@@ -341,9 +340,9 @@ namespace OfficeIMO.Tests {
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.MasterTitle);
             Assert.Equal("Master title", title.Text);
             Assert.Equal(LegacyPptTextType.Title, title.TextBody.TextType);
-            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Left.ToEmus())),
                 ToEmus(title.Bounds.Left));
-            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Top)),
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Top.ToEmus())),
                 ToEmus(title.Bounds.Top));
             LegacyPptShape decoration = Assert.Single(master.Shapes,
                 shape => shape.Placeholder == null);

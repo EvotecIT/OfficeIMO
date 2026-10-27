@@ -102,12 +102,11 @@ namespace OfficeIMO.PowerPoint {
                     theme.AccentDarkColor, theme.HeadingFontName, bold: true);
                 top += 1.05;
             }
-            PowerPointLayoutBox metrics = PowerPointLayoutBox.FromCentimeters(1.5, top, width - 3, 2.15);
-            AddMetrics(slide, theme, content.Metrics.ToList(), metrics.LeftCm, metrics.TopCm,
-                metrics.WidthCm, metrics.HeightCm, theme.PrimaryTextColor);
+            PowerPointLayoutBox metrics = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(top),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(2.15));
+            AddMetrics(slide, theme, content.Metrics.ToList(), metrics.Left.ToCentimeters(), metrics.Top.ToCentimeters(),
+                metrics.Width.ToCentimeters(), metrics.Height.ToCentimeters(), theme.PrimaryTextColor);
             double cardTop = content.Metrics.Count == 0 ? top : top + 2.6;
-            PowerPointLayoutBox cards = PowerPointLayoutBox.FromCentimeters(1.5, cardTop, width - 3,
-                Math.Max(2.4, height - top - 4.1));
+            PowerPointLayoutBox cards = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(cardTop),OfficeIMO.OfficeLength.Centimeters(width - 3),                OfficeIMO.OfficeLength.Centimeters(Math.Max(2.4, height - top - 4.1)));
             var cardOptions = new PowerPointCardGridSlideOptions { MaxColumns = 4,
                 Variant = PowerPointCardGridLayoutVariant.SoftTiles, DesignIntent = options.DesignIntent };
             if (content.Points.Count > 0) {
@@ -119,19 +118,19 @@ namespace OfficeIMO.PowerPoint {
         private static void AddExecutiveDecisionBrief(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointExecutiveSummaryContent content, double width, double height,
             PowerPointExecutiveSummarySlideOptions options) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.65, width - 3, height - 5.3);
-            PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, 0.75);
-            PowerPointAutoShape leadPanel = slide.AddRectangleCm(columns[0].LeftCm, columns[0].TopCm,
-                columns[0].WidthCm, columns[0].HeightCm, "Executive Decision Panel");
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.65),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.3));
+            PowerPointLayoutBox[] columns = body.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.75));
+            PowerPointAutoShape leadPanel = slide.AddRectangleCm(columns[0].Left.ToCentimeters(), columns[0].Top.ToCentimeters(),
+                columns[0].Width.ToCentimeters(), columns[0].Height.ToCentimeters(), "Executive Decision Panel");
             leadPanel.FillColor = theme.AccentDarkColor;
             leadPanel.OutlineColor = theme.AccentDarkColor;
             string lead = string.IsNullOrWhiteSpace(content.Lead)
                 ? content.Points.FirstOrDefault()?.Title ?? "Decision required"
                 : content.Lead!;
-            AddText(slide, lead, columns[0].LeftCm + 0.65, columns[0].TopCm + 0.65,
-                columns[0].WidthCm - 1.3, 2.0, 22, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
-            AddMetrics(slide, theme, content.Metrics.ToList(), columns[0].LeftCm + 0.45,
-                columns[0].BottomCm - 2.25, columns[0].WidthCm - 0.9, 1.7);
+            AddText(slide, lead, columns[0].Left.ToCentimeters() + 0.65, columns[0].Top.ToCentimeters() + 0.65,
+                columns[0].Width.ToCentimeters() - 1.3, 2.0, 22, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
+            AddMetrics(slide, theme, content.Metrics.ToList(), columns[0].Left.ToCentimeters() + 0.45,
+                columns[0].Bottom.ToCentimeters() - 2.25, columns[0].Width.ToCentimeters() - 0.9, 1.7);
             var cardOptions = new PowerPointCardGridSlideOptions { MaxColumns = 1,
                 Variant = PowerPointCardGridLayoutVariant.AccentTop, DesignIntent = options.DesignIntent };
             if (content.Points.Count > 0) {
@@ -158,23 +157,23 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddClosingActionPanel(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointClosingContent content, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.75, width - 3, height - 5.4);
-            PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, 0.85);
-            AddText(slide, content.Statement, columns[0].LeftCm, columns[0].TopCm + 0.65,
-                columns[0].WidthCm, columns[0].HeightCm - 1.3, 28,
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.75),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.4));
+            PowerPointLayoutBox[] columns = body.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.85));
+            AddText(slide, content.Statement, columns[0].Left.ToCentimeters(), columns[0].Top.ToCentimeters() + 0.65,
+                columns[0].Width.ToCentimeters(), columns[0].Height.ToCentimeters() - 1.3, 28,
                 theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
-            PowerPointAutoShape panel = slide.AddRectangleCm(columns[1].LeftCm, columns[1].TopCm,
-                columns[1].WidthCm, columns[1].HeightCm, "Closing Action Panel");
+            PowerPointAutoShape panel = slide.AddRectangleCm(columns[1].Left.ToCentimeters(), columns[1].Top.ToCentimeters(),
+                columns[1].Width.ToCentimeters(), columns[1].Height.ToCentimeters(), "Closing Action Panel");
             panel.FillColor = theme.AccentColor;
             panel.OutlineColor = theme.AccentColor;
             string action = content.CallToAction ?? "Continue the conversation";
             int actionFontSize = action.Length > 42 ? 17 : action.Length > 28 ? 19 : 21;
-            AddText(slide, action, columns[1].LeftCm + 0.7,
-                columns[1].TopCm + 0.8, columns[1].WidthCm - 1.4, 2.65, actionFontSize,
+            AddText(slide, action, columns[1].Left.ToCentimeters() + 0.7,
+                columns[1].Top.ToCentimeters() + 0.8, columns[1].Width.ToCentimeters() - 1.4, 2.65, actionFontSize,
                 theme.AccentContrastColor, theme.HeadingFontName, bold: true);
             if (!string.IsNullOrWhiteSpace(content.Contact)) {
-                AddText(slide, content.Contact!, columns[1].LeftCm + 0.7, columns[1].BottomCm - 1.55,
-                    columns[1].WidthCm - 1.4, 0.7, 12, theme.AccentContrastColor, theme.BodyFontName);
+                AddText(slide, content.Contact!, columns[1].Left.ToCentimeters() + 0.7, columns[1].Bottom.ToCentimeters() - 1.55,
+                    columns[1].Width.ToCentimeters() - 1.4, 0.7, 12, theme.AccentContrastColor, theme.BodyFontName);
             }
         }
     }

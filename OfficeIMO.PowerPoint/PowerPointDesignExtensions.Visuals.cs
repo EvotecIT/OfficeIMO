@@ -14,9 +14,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int count = Math.Min(metrics.Count, 3);
-            PowerPointLayoutBox[] boxes = PowerPointLayoutBox
-                .FromCentimeters(leftCm, topCm, widthCm, heightCm)
-                .SplitColumnsCm(count, 0.45);
+            PowerPointLayoutBox[] boxes = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(leftCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(widthCm),OfficeIMO.OfficeLength.Centimeters(heightCm))
+                .SplitColumns(count,OfficeIMO.OfficeLength.Centimeters(0.45));
             double valueHeight = Math.Min(0.88, heightCm * 0.52);
             double labelTopOffset = valueHeight + Math.Min(0.14, heightCm * 0.08);
             double labelHeight = Math.Max(0.32, heightCm - labelTopOffset);
@@ -26,17 +25,17 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < count; i++) {
                 PowerPointMetric metric = metrics[i];
                 PowerPointLayoutBox box = boxes[i];
-                int resolvedValueFontSize = ResolveMetricValueFontSize(metric.Value, box.WidthCm, valueFontSize);
+                int resolvedValueFontSize = ResolveMetricValueFontSize(metric.Value, box.Width.ToCentimeters(), valueFontSize);
                 // A short value can fit the column width and still exceed the compact
                 // metric band's height. Leave room for the font's line box as well.
                 resolvedValueFontSize = FitSingleLineFontToHeight(resolvedValueFontSize, valueHeight);
-                PowerPointTextBox value = AddText(slide, metric.Value, box.LeftCm, box.TopCm, box.WidthCm, valueHeight,
+                PowerPointTextBox value = AddText(slide, metric.Value, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), valueHeight,
                     resolvedValueFontSize,
                     resolvedTextColor, theme.HeadingFontName, bold: true);
                 CenterText(value);
-                int resolvedLabelFontSize = ResolveMetricLabelFontSize(metric.Label, box.WidthCm, labelFontSize);
-                PowerPointTextBox label = AddText(slide, metric.Label, box.LeftCm, box.TopCm + labelTopOffset,
-                    box.WidthCm, labelHeight, resolvedLabelFontSize,
+                int resolvedLabelFontSize = ResolveMetricLabelFontSize(metric.Label, box.Width.ToCentimeters(), labelFontSize);
+                PowerPointTextBox label = AddText(slide, metric.Label, box.Left.ToCentimeters(), box.Top.ToCentimeters() + labelTopOffset,
+                    box.Width.ToCentimeters(), labelHeight, resolvedLabelFontSize,
                     resolvedTextColor, theme.BodyFontName, bold: true);
                 CenterText(label);
             }
@@ -399,20 +398,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int count = Math.Min(tags.Count, 7);
-            PowerPointLayoutBox[] boxes = PowerPointLayoutBox
-                .FromCentimeters(leftCm, topCm, widthCm, heightCm)
-                .SplitColumnsCm(count, 0.28);
+            PowerPointLayoutBox[] boxes = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(leftCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(widthCm),OfficeIMO.OfficeLength.Centimeters(heightCm))
+                .SplitColumns(count,OfficeIMO.OfficeLength.Centimeters(0.28));
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
-                PowerPointAutoShape pill = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+                PowerPointAutoShape pill = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                     "Case Study Tag " + (i + 1));
                 pill.FillColor = i == count - 1 ? theme.Accent2Color : theme.AccentColor;
                 pill.FillTransparency = i == count - 1 ? 0 : 40;
                 pill.OutlineColor = theme.AccentLightColor;
                 pill.OutlineWidthPoints = 0.6;
 
-                PowerPointTextBox label = AddText(slide, tags[i], box.LeftCm + 0.08, box.TopCm + 0.16,
-                    box.WidthCm - 0.16, box.HeightCm - 0.25, 8, theme.AccentContrastColor, theme.BodyFontName,
+                PowerPointTextBox label = AddText(slide, tags[i], box.Left.ToCentimeters() + 0.08, box.Top.ToCentimeters() + 0.16,
+                    box.Width.ToCentimeters() - 0.16, box.Height.ToCentimeters() - 0.25, 8, theme.AccentContrastColor, theme.BodyFontName,
                     bold: i == count - 1);
                 CenterText(label);
             }

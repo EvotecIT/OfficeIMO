@@ -236,8 +236,8 @@ namespace OfficeIMO.Tests {
             PowerPointConnectionShape connector = slide.Shapes.OfType<PowerPointConnectionShape>()
                 .Single(shape => shape.ShapeType == OfficePresetShapeType.StraightConnector1);
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
-            connector.Left += 15875;
-            group.Top += 15875;
+            connector.Left+= OfficeIMO.OfficeLength.Emus(15875);
+            group.Top+= OfficeIMO.OfficeLength.Emus(15875);
             P.GroupShape groupElement = Assert.IsType<P.GroupShape>(
                 group.Element);
             A.TransformGroup groupTransform = groupElement
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             PowerPointShape child = slide.GetGroupChildren(group)[0];
 
-            child.Left += 15875;
+            child.Left+= OfficeIMO.OfficeLength.Emus(15875);
             child.Rotation = 18D;
             child.VerticalFlip = true;
 

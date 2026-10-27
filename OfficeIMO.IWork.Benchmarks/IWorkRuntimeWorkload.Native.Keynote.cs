@@ -62,7 +62,7 @@ public sealed partial class IWorkRuntimeWorkload {
                 throw new InvalidDataException("Native PPTX text, notes, order or background differs.");
             for (int box = 0; box < boxes.Length; box++) {
                 var geometry = boxes[box];
-                ValidateNativeKeynoteGeometry(box, geometry.LeftPoints, geometry.TopPoints, geometry.WidthPoints, geometry.HeightPoints);
+                ValidateNativeKeynoteGeometry(box, geometry.Left.ToPoints(), geometry.Top.ToPoints(), geometry.Width.ToPoints(), geometry.Height.ToPoints());
                 if (geometry.Rotation.GetValueOrDefault() != 0 || geometry.HorizontalFlip.GetValueOrDefault()
                     || geometry.VerticalFlip.GetValueOrDefault())
                     throw new InvalidDataException("Native PPTX frame rotation or flip differs.");

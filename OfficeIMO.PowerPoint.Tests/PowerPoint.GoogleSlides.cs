@@ -1104,8 +1104,8 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = Assert.Single(imported.Document.Slides);
                 PowerPointAutoShape rotatedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name == "shape-rotated");
                 Assert.Equal(90d, rotatedShape.Rotation ?? 0, 6);
-                Assert.Equal(40d, rotatedShape.LeftPoints, 6);
-                Assert.Equal(70d, rotatedShape.TopPoints, 6);
+                Assert.Equal(40d, rotatedShape.Left.ToPoints(), 6);
+                Assert.Equal(70d, rotatedShape.Top.ToPoints(), 6);
                 Assert.Equal(90d, Assert.Single(slide.Tables).Rotation ?? 0, 6);
                 Assert.Equal(90d, Assert.Single(slide.Pictures).Rotation ?? 0, 6);
                 Assert.Contains(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.TRANSFORM_PARTIAL"

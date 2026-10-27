@@ -99,7 +99,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
             string slidesPath = Path.Combine(folder, "fit.pptx");
             using (var presentation = PowerPointDocument.Create(slidesPath)) {
-                presentation.AddSlide().AddVisualArtifact(artifact, PowerPointLayoutBox.FromPoints(36D, 60D, 300D, 100D));
+                presentation.AddSlide().AddVisualArtifact(artifact, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(36D),OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(100D)));
                 presentation.Save();
             }
             using (var presentation = PowerPointDocument.Load(slidesPath)) {

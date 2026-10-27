@@ -23,18 +23,18 @@ namespace OfficeIMO.PowerPoint {
             switch (dimension) {
                 case PowerPointShapeSizeDimension.Width:
                     foreach (PowerPointShape shape in list) {
-                        shape.Width = width;
+                        shape.Width= OfficeIMO.OfficeLength.Emus(width);
                     }
                     break;
                 case PowerPointShapeSizeDimension.Height:
                     foreach (PowerPointShape shape in list) {
-                        shape.Height = height;
+                        shape.Height= OfficeIMO.OfficeLength.Emus(height);
                     }
                     break;
                 case PowerPointShapeSizeDimension.Both:
                     foreach (PowerPointShape shape in list) {
-                        shape.Width = width;
-                        shape.Height = height;
+                        shape.Width= OfficeIMO.OfficeLength.Emus(width);
+                        shape.Height= OfficeIMO.OfficeLength.Emus(height);
                     }
                     break;
                 default:
@@ -57,10 +57,10 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (PowerPointShape shape in list) {
                 if (width != null) {
-                    shape.Width = width.Value;
+                    shape.Width= OfficeIMO.OfficeLength.Emus(width.Value);
                 }
                 if (height != null) {
-                    shape.Height = height.Value;
+                    shape.Height= OfficeIMO.OfficeLength.Emus(height.Value);
                 }
             }
         }
@@ -97,14 +97,14 @@ namespace OfficeIMO.PowerPoint {
             switch (reference) {
                 case PowerPointShapeSizeReference.First:
                     PowerPointShape first = shapes[0];
-                    return (first.Width, first.Height);
+                    return (first.Width.ToEmus(), first.Height.ToEmus());
                 case PowerPointShapeSizeReference.Smallest:
-                    return (shapes.Min(s => s.Width), shapes.Min(s => s.Height));
+                    return (shapes.Min(s => s.Width.ToEmus()), shapes.Min(s => s.Height.ToEmus()));
                 case PowerPointShapeSizeReference.Largest:
-                    return (shapes.Max(s => s.Width), shapes.Max(s => s.Height));
+                    return (shapes.Max(s => s.Width.ToEmus()), shapes.Max(s => s.Height.ToEmus()));
                 case PowerPointShapeSizeReference.Average:
-                    long width = (long)Math.Round(shapes.Average(s => (double)s.Width));
-                    long height = (long)Math.Round(shapes.Average(s => (double)s.Height));
+                    long width = (long)Math.Round(shapes.Average(s => (double)s.Width.ToEmus()));
+                    long height = (long)Math.Round(shapes.Average(s => (double)s.Height.ToEmus()));
                     return (width, height);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(reference));

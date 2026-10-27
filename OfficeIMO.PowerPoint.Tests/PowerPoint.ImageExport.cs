@@ -608,10 +608,7 @@ namespace OfficeIMO.Tests {
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
             var bounds = new PowerPointLayoutBox(
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(180),
-                PowerPointUnits.FromPoints(32));
+                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(32)));
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";
@@ -640,10 +637,7 @@ namespace OfficeIMO.Tests {
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
             var bounds = new PowerPointLayoutBox(
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(180),
-                PowerPointUnits.FromPoints(32));
+                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(32)));
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";

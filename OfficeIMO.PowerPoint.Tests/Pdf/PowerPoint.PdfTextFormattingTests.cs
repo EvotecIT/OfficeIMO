@@ -24,7 +24,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
         Assert.Equal(2, pdf.LinkAnnotations.Count);
         Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
-        Assert.Contains(pdf.LinkAnnotations, link => link.X2 - link.X1 < PowerPointUnits.ToPoints(box.Width));
+        Assert.Contains(pdf.LinkAnnotations, link => link.X2 - link.X1 < PowerPointUnits.ToPoints(box.Width.ToEmus()));
         Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 

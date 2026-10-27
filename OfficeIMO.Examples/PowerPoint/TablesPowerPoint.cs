@@ -26,8 +26,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
             long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
             PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
-            PowerPointLayoutBox leftColumn = new(columns[0].Left, bodyTop, columns[0].Width, bodyHeight);
-            PowerPointLayoutBox rightColumn = new(columns[1].Left, bodyTop, columns[1].Width, bodyHeight);
+            PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
+            PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
 
             List<SalesRecord> data = new() {
                 new SalesRecord { Product = "Alpha", Q1 = 12, Q2 = 15, Q3 = 18, Q4 = 20 },
@@ -41,14 +41,14 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 1: title
             PowerPointSlide titleSlide = presentation.AddSlide();
-            PowerPointTextBox title = titleSlide.AddTitleCm("Quarterly Sales Overview", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            PowerPointTextBox title = titleSlide.AddTitleCm("Quarterly Sales Overview", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             title.FontSize = 32;
             title.Color = "1F4E79";
-            titleSlide.AddTextBoxCm("Tables created from data objects with built-in styles.", marginCm, 3.2, content.WidthCm, 1.1);
+            titleSlide.AddTextBoxCm("Tables created from data objects with built-in styles.", marginCm, 3.2, content.Width.ToCentimeters(), 1.1);
 
             // Slide 2: table from objects
             PowerPointSlide tableSlide = presentation.AddSlide();
-            tableSlide.AddTitleCm("Sales by Product", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            tableSlide.AddTitleCm("Sales by Product", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             PowerPointTable table = tableSlide.AddTableCm(
                 data,
                 o => {
@@ -58,7 +58,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 includeHeaders: true,
                 leftCm: marginCm,
                 topCm: bodyTopCm,
-                widthCm: content.WidthCm,
+                widthCm: content.Width.ToCentimeters(),
                 heightCm: bodyHeightCm);
             table.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             table.SetColumnWidthsPoints(200, 90, 90, 90, 90);
@@ -94,13 +94,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
                         // Slide 3: merged cells
             PowerPointSlide mergeSlide = presentation.AddSlide();
-            mergeSlide.AddTitleCm("Merged Cells", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            mergeSlide.AddTitleCm("Merged Cells", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             PowerPointTable mergeTable = mergeSlide.AddTableCm(
                 rows: 4,
                 columns: 4,
                 leftCm: marginCm,
                 topCm: bodyTopCm,
-                widthCm: content.WidthCm,
+                widthCm: content.Width.ToCentimeters(),
                 heightCm: bodyHeightCm);
             mergeTable.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             mergeTable.SetColumnWidthsEvenly();
@@ -137,13 +137,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
             // Slide 4: built-in styles showcase
             PowerPointSlide stylesSlide = presentation.AddSlide();
-            stylesSlide.AddTitleCm("Built-in Table Styles", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            stylesSlide.AddTitleCm("Built-in Table Styles", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             const double styleLabelHeightCm = 0.6;
             const double styleLabelGapCm = 0.2;
             double styleTableTopCm = bodyTopCm + styleLabelHeightCm + styleLabelGapCm;
             double styleTableHeightCm = bodyHeightCm - styleLabelHeightCm - styleLabelGapCm;
-            stylesSlide.AddTextBoxCm($"Style: {accentStyle?.Name ?? "Default"}", leftColumn.LeftCm, bodyTopCm,
-                leftColumn.WidthCm, styleLabelHeightCm);
+            stylesSlide.AddTextBoxCm($"Style: {accentStyle?.Name ?? "Default"}", leftColumn.Left.ToCentimeters(), bodyTopCm,
+                leftColumn.Width.ToCentimeters(), styleLabelHeightCm);
             PowerPointTable leftStyleTable = stylesSlide.AddTableCm(
                 data,
                 o => {
@@ -151,15 +151,15 @@ namespace OfficeIMO.Examples.PowerPoint {
                     o.PinFirst("Product");
                 },
                 includeHeaders: true,
-                leftCm: leftColumn.LeftCm,
+                leftCm: leftColumn.Left.ToCentimeters(),
                 topCm: styleTableTopCm,
-                widthCm: leftColumn.WidthCm,
+                widthCm: leftColumn.Width.ToCentimeters(),
                 heightCm: styleTableHeightCm);
             leftStyleTable.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             leftStyleTable.SetColumnWidthsEvenly();
 
-            stylesSlide.AddTextBoxCm($"Style: {darkStyle?.Name ?? "Banded Columns"}", rightColumn.LeftCm, bodyTopCm,
-                rightColumn.WidthCm, styleLabelHeightCm);
+            stylesSlide.AddTextBoxCm($"Style: {darkStyle?.Name ?? "Banded Columns"}", rightColumn.Left.ToCentimeters(), bodyTopCm,
+                rightColumn.Width.ToCentimeters(), styleLabelHeightCm);
             PowerPointTable rightStyleTable = stylesSlide.AddTableCm(
                 data,
                 o => {
@@ -167,16 +167,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                     o.PinFirst("Product");
                 },
                 includeHeaders: true,
-                leftCm: rightColumn.LeftCm,
+                leftCm: rightColumn.Left.ToCentimeters(),
                 topCm: styleTableTopCm,
-                widthCm: rightColumn.WidthCm,
+                widthCm: rightColumn.Width.ToCentimeters(),
                 heightCm: styleTableHeightCm);
             rightStyleTable.ApplyStyle(new PowerPointTableStylePreset(styleId: darkStyle?.StyleId, firstRow: true, bandedColumns: true));
             rightStyleTable.SetColumnWidthsEvenly();
 
             // Slide 5: chart from the same dataset
             PowerPointSlide chartSlide = presentation.AddSlide();
-            chartSlide.AddTitleCm("Quarterly Performance", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            chartSlide.AddTitleCm("Quarterly Performance", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             OfficeChartData chartData = new(
                 data.Select(d => d.Product),
                 new[] {
@@ -186,12 +186,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Q4", data.Select(d => (double)d.Q4))
                 });
             chartSlide.AddChartCm(OfficeChartType.ColumnClustered, chartData, marginCm, bodyTopCm,
-                content.WidthCm, bodyHeightCm);
+                content.Width.ToCentimeters(), bodyHeightCm);
             chartSlide.Notes.Text = "Chart and table share the same source data.";
 
             // Slide 6: table + chart side by side
             PowerPointSlide comboSlide = presentation.AddSlide();
-            comboSlide.AddTitleCm("Table and Chart (Compact)", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            comboSlide.AddTitleCm("Table and Chart (Compact)", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             PowerPointTable compactTable = comboSlide.AddTableCm(
                 data,
                 o => {
@@ -199,12 +199,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                     o.PinFirst("Product");
                 },
                 includeHeaders: true,
-                leftCm: leftColumn.LeftCm,
-                topCm: leftColumn.TopCm,
-                widthCm: leftColumn.WidthCm,
-                heightCm: leftColumn.HeightCm);
+                leftCm: leftColumn.Left.ToCentimeters(),
+                topCm: leftColumn.Top.ToCentimeters(),
+                widthCm: leftColumn.Width.ToCentimeters(),
+                heightCm: leftColumn.Height.ToCentimeters());
             compactTable.ApplyStyle(new PowerPointTableStylePreset(styleId: lightStyle?.StyleId, firstRow: true, bandedRows: true));
-            double compactWidthPoints = leftColumn.WidthPoints;
+            double compactWidthPoints = leftColumn.Width.ToPoints();
             double productWidthPoints = compactWidthPoints * 0.38;
             double quarterWidthPoints = (compactWidthPoints - productWidthPoints) / 4;
             compactTable.SetColumnWidthsPoints(productWidthPoints, quarterWidthPoints, quarterWidthPoints,
@@ -224,12 +224,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
             }
 
-            comboSlide.AddChartCm(OfficeChartType.ColumnClustered, chartData, rightColumn.LeftCm,
-                rightColumn.TopCm, rightColumn.WidthCm, rightColumn.HeightCm);
+            comboSlide.AddChartCm(OfficeChartType.ColumnClustered, chartData, rightColumn.Left.ToCentimeters(),
+                rightColumn.Top.ToCentimeters(), rightColumn.Width.ToCentimeters(), rightColumn.Height.ToCentimeters());
 
             // Slide 7: totals by quarter
             PowerPointSlide totalsSlide = presentation.AddSlide();
-            totalsSlide.AddTitleCm("Totals by Quarter", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            totalsSlide.AddTitleCm("Totals by Quarter", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             var quarterLabels = new[] { "Q1", "Q2", "Q3", "Q4" };
             var totals = new[] {
                 data.Sum(d => d.Q1),
@@ -241,21 +241,21 @@ namespace OfficeIMO.Examples.PowerPoint {
                 quarterLabels,
                 new[] { new OfficeSeries("Total", totals.Select(t => (double)t)) });
             totalsSlide.AddChartCm(OfficeChartType.ColumnClustered, totalsData, marginCm, bodyTopCm,
-                content.WidthCm, bodyHeightCm);
+                content.Width.ToCentimeters(), bodyHeightCm);
 
             // Slide 8: picture with caption
             PowerPointSlide imageSlide = presentation.AddSlide();
-            imageSlide.AddTitleCm("Brand Assets", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            imageSlide.AddTitleCm("Brand Assets", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                imageSlide.AddImageCm(imagePath, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
+                imageSlide.AddImageCm(imagePath, marginCm, bodyTopCm, content.Width.ToCentimeters(), bodyHeightCm);
             } else {
-                imageSlide.AddTextBoxCm("(image placeholder)", marginCm, bodyTopCm, content.WidthCm, 2.5);
+                imageSlide.AddTextBoxCm("(image placeholder)", marginCm, bodyTopCm, content.Width.ToCentimeters(), 2.5);
             }
 
             // Slide 9: summary table
             PowerPointSlide summarySlide = presentation.AddSlide();
-            summarySlide.AddTitleCm("Summary", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            summarySlide.AddTitleCm("Summary", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
             var summaryRows = new[] {
                 new SummaryRow { Metric = "Total Q1", Value = totals[0] },
                 new SummaryRow { Metric = "Total Q2", Value = totals[1] },
@@ -268,7 +268,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 includeHeaders: true,
                 leftCm: marginCm,
                 topCm: bodyTopCm,
-                widthCm: content.WidthCm,
+                widthCm: content.Width.ToCentimeters(),
                 heightCm: bodyHeightCm);
             summary.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
 

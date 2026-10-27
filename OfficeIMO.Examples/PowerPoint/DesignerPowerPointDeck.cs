@@ -149,13 +149,13 @@ namespace OfficeIMO.Examples.PowerPoint {
                     Variant = PowerPointCardGridLayoutVariant.AccentTop
                 });
 
-                PowerPointLayoutBox[] lowerColumns = rows[1].SplitColumnsCm(2, 0.65);
+                PowerPointLayoutBox[] lowerColumns = rows[1].SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.65));
                 composer.AddCalloutBand("Composer regions keep the slide flexible without requiring manual coordinates.",
-                    lowerColumns[0].TakeTopCm(1.45));
+                    lowerColumns[0].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.45)));
                 composer.AddMetricStrip(new[] {
                     new PowerPointMetric("3", "primitives"),
                     new PowerPointMetric("1", "shared grid")
-                }, lowerColumns[1].TakeTopCm(1.45));
+                }, lowerColumns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.45)));
             }, "composed", options => options.FooterRight = "Composable");
 
             presentation.Compose(plan, PowerPointCompositionOptions.FromDesign(design));

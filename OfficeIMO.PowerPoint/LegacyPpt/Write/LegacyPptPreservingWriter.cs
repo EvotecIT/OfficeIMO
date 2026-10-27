@@ -378,10 +378,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static LegacyPptBounds GetBounds(PowerPointShape shape) {
-            int left = ToMasterUnits(shape.Left);
-            int top = ToMasterUnits(shape.Top);
-            int width = Math.Max(0, ToMasterUnits(shape.Width));
-            int height = Math.Max(0, ToMasterUnits(shape.Height));
+            int left = ToMasterUnits(shape.Left.ToEmus());
+            int top = ToMasterUnits(shape.Top.ToEmus());
+            int width = Math.Max(0, ToMasterUnits(shape.Width.ToEmus()));
+            int height = Math.Max(0, ToMasterUnits(shape.Height.ToEmus()));
             return new LegacyPptBounds(left, top, width, height);
         }
 

@@ -21,11 +21,11 @@ namespace OfficeIMO.Tests {
                 PowerPointLayoutPlaceholderInfo? title = slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title);
                 Assert.NotNull(title);
                 Assert.True(title.Value.Bounds.HasValue);
-                Assert.True(title.Value.Bounds.Value.Width > 0);
+                Assert.True(title.Value.Bounds.Value.Width.ToEmus() > 0);
 
                 PowerPointLayoutBox? bodyBounds = slide.GetLayoutPlaceholderBounds(PowerPointPlaceholderType.Body);
                 Assert.NotNull(bodyBounds);
-                Assert.True(bodyBounds!.Value.Height > 0);
+                Assert.True(bodyBounds!.Value.Height.ToEmus() > 0);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

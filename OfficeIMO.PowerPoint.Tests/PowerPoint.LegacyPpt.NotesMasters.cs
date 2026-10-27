@@ -21,17 +21,15 @@ namespace OfficeIMO.Tests {
                              and not P.GroupShapeProperties).ToArray()) {
                 child.Remove();
             }
-            var slideBounds = new PowerPointLayoutBox(400000, 300000,
-                4200000, 2500000);
-            var bodyBounds = new PowerPointLayoutBox(500000, 3300000,
-                8100000, 2800000);
+            var slideBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(4200000),OfficeIMO.OfficeLength.Emus(2500000));
+            var bodyBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(3300000),                OfficeIMO.OfficeLength.Emus(8100000),OfficeIMO.OfficeLength.Emus(2800000));
             tree.Append(
                 CreateNotesMasterShape(2U, "Notes slide image", slideBounds,
                     P.PlaceholderValues.SlideImage),
                 CreateNotesMasterShape(3U, "Notes body", bodyBounds,
                     P.PlaceholderValues.Body, "Notes body default"),
                 CreateNotesMasterShape(4U, "Notes decoration",
-                    new PowerPointLayoutBox(8200000, 400000, 400000, 400000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8200000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000)),
                     placeholder: null, text: null,
                     shapeType: A.ShapeTypeValues.Ellipse));
             presentation.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -51,7 +49,7 @@ namespace OfficeIMO.Tests {
                 shape => shape.Placeholder?.Kind
                     == LegacyPptPlaceholderKind.MasterNotesSlideImage);
             Assert.Equal(LegacyPptShapeKind.Rectangle, slideImage.Kind);
-            Assert.Equal(ToEmus(ToMasterUnits(slideBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(slideBounds.Left.ToEmus())),
                 ToEmus(slideImage.Bounds.Left));
             LegacyPptShape body = Assert.Single(notesMaster.Shapes,
                 shape => shape.Placeholder?.Kind
@@ -102,23 +100,21 @@ namespace OfficeIMO.Tests {
             P.CommonSlideData commonSlideData = handoutMasterPart.HandoutMaster!
                 .CommonSlideData!;
             P.ShapeTree tree = commonSlideData.ShapeTree!;
-            var dateBounds = new PowerPointLayoutBox(350000, 300000,
-                2600000, 450000);
-            var headerBounds = new PowerPointLayoutBox(3200000, 300000,
-                5700000, 450000);
+            var dateBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(350000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(2600000),OfficeIMO.OfficeLength.Emus(450000));
+            var headerBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(3200000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(5700000),OfficeIMO.OfficeLength.Emus(450000));
             tree.Append(
                 CreateNotesMasterShape(2U, "Handout date", dateBounds,
                     P.PlaceholderValues.DateAndTime, "July 2026"),
                 CreateNotesMasterShape(3U, "Handout header", headerBounds,
                     P.PlaceholderValues.Header, "Quarterly review"),
                 CreateNotesMasterShape(4U, "Handout footer",
-                    new PowerPointLayoutBox(350000, 6200000, 6000000, 450000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(350000),OfficeIMO.OfficeLength.Emus(6200000),OfficeIMO.OfficeLength.Emus(6000000),OfficeIMO.OfficeLength.Emus(450000)),
                     P.PlaceholderValues.Footer, "Confidential"),
                 CreateNotesMasterShape(5U, "Handout slide number",
-                    new PowerPointLayoutBox(8300000, 6200000, 600000, 450000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8300000),OfficeIMO.OfficeLength.Emus(6200000),OfficeIMO.OfficeLength.Emus(600000),OfficeIMO.OfficeLength.Emus(450000)),
                     P.PlaceholderValues.SlideNumber, "1"),
                 CreateNotesMasterShape(6U, "Handout decoration",
-                    new PowerPointLayoutBox(8450000, 950000, 400000, 400000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8450000),OfficeIMO.OfficeLength.Emus(950000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000)),
                     placeholder: null, text: null,
                     shapeType: A.ShapeTypeValues.Ellipse));
             commonSlideData.Background = new P.Background(
@@ -150,7 +146,7 @@ namespace OfficeIMO.Tests {
                 shape => shape.Placeholder?.Kind
                     == LegacyPptPlaceholderKind.MasterDate);
             Assert.Equal("July 2026", date.Text);
-            Assert.Equal(ToEmus(ToMasterUnits(dateBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(dateBounds.Left.ToEmus())),
                 ToEmus(date.Bounds.Left));
             Assert.Equal("Quarterly review", Assert.Single(
                 handoutMaster.Shapes, shape => shape.Placeholder?.Kind
@@ -435,10 +431,10 @@ namespace OfficeIMO.Tests {
                     applicationProperties),
                 new P.ShapeProperties(
                     new A.Transform2D(
-                        new A.Offset { X = bounds.Left, Y = bounds.Top },
+                        new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
                         new A.Extents {
-                            Cx = bounds.Width,
-                            Cy = bounds.Height
+                            Cx = bounds.Width.ToEmus(),
+                            Cy = bounds.Height.ToEmus()
                         }),
                     new A.PresetGeometry(new A.AdjustValueList()) {
                         Preset = shapeType ?? A.ShapeTypeValues.Rectangle

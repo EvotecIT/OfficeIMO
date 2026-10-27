@@ -34,8 +34,7 @@ namespace OfficeIMO.Tests {
             OfficeColor.FromRgb(18, 52, 86), null, OfficeColor.FromRgb(254, 220, 186)
         };
 
-        public static IEnumerable<object[]> CategoryKinds() => Enum.GetValues(typeof(OfficeChartType))
-            .Cast<OfficeChartType>().Where(kind => kind != OfficeChartType.Bubble)
+        public static IEnumerable<object[]> CategoryKinds() => PowerPointSharedChartCases.Kinds.Where(kind => kind != OfficeChartType.Bubble)
             .Select(kind => new object[] { kind });
 
         [Theory]

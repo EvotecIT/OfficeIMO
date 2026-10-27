@@ -80,16 +80,15 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointCoverageLayoutVariant variant = ResolveCoverageVariant(resolvedOptions, locationList);
             if (variant == PowerPointCoverageLayoutVariant.ListMap) {
-                PowerPointLayoutBox[] columns = PowerPointLayoutBox
-                    .FromCentimeters(1.5, 4.05, width - 3.0, height - 5.9)
-                    .SplitColumnsCm(2, 0.85);
+                PowerPointLayoutBox[] columns = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(4.05),OfficeIMO.OfficeLength.Centimeters(width - 3.0),OfficeIMO.OfficeLength.Centimeters(height - 5.9))
+                    .SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.85));
                 AddCoverageList(slide, resolvedTheme, locationList, columns[0], resolvedOptions.SupportingText);
                 AddCoverageMap(slide, resolvedTheme, locationList, columns[1], resolvedOptions);
             } else {
                 AddCoverageMap(slide, resolvedTheme, locationList,
-                    PowerPointLayoutBox.FromCentimeters(2.0, 4.0, width - 4.0, height - 7.1), resolvedOptions);
+                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.0),OfficeIMO.OfficeLength.Centimeters(4.0),OfficeIMO.OfficeLength.Centimeters(width - 4.0),OfficeIMO.OfficeLength.Centimeters(height - 7.1)), resolvedOptions);
                 AddCoverageStrip(slide, resolvedTheme, locationList,
-                    PowerPointLayoutBox.FromCentimeters(2.0, height - 2.55, width - 4.0, 1.05));
+                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.0),OfficeIMO.OfficeLength.Centimeters(height - 2.55),OfficeIMO.OfficeLength.Centimeters(width - 4.0),OfficeIMO.OfficeLength.Centimeters(1.05)));
             }
 
             return FinalizeDesignerAccessibility(slide, title);
@@ -141,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointLogoItem> logos, PowerPointLogoWallSlideOptions options,
             PowerPointLogoWallLayoutVariant variant, PowerPointLayoutBox bounds) {
             if (variant == PowerPointLogoWallLayoutVariant.CertificateFeature) {
-                PowerPointLayoutBox[] columns = bounds.SplitColumnsCm(2, 0.7);
+                PowerPointLayoutBox[] columns = bounds.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.7));
                 AddLogoGrid(slide, theme, logos, columns[0], options);
                 AddCertificatePanel(slide, theme, columns[1], options);
                 return;
@@ -153,39 +152,39 @@ namespace OfficeIMO.PowerPoint {
         internal static void AddCoverageMap(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds,
             PowerPointCoverageSlideOptions options) {
-            PowerPointAutoShape panel = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, "Coverage Map Panel");
+            PowerPointAutoShape panel = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), "Coverage Map Panel");
             panel.FillColor = theme.AccentDarkColor;
             panel.FillTransparency = 0;
             panel.OutlineColor = theme.AccentDarkColor;
             panel.OutlineWidthPoints = 0;
             panel.SetShadow("000000", blurPoints: 5, distancePoints: 1.2, angleDegrees: 90, transparencyPercent: 86);
 
-            PowerPointAutoShape wash = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, bounds.LeftCm + bounds.WidthCm * 0.16,
-                bounds.TopCm, bounds.WidthCm * 0.28, bounds.HeightCm, "Coverage Map Wash");
+            PowerPointAutoShape wash = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.16,
+                bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters() * 0.28, bounds.Height.ToCentimeters(), "Coverage Map Wash");
             wash.FillColor = theme.AccentLightColor;
             wash.FillTransparency = 72;
             wash.OutlineColor = theme.AccentLightColor;
             wash.OutlineWidthPoints = 0;
 
-            PowerPointAutoShape gridLine1 = slide.AddLineCm(bounds.LeftCm + bounds.WidthCm * 0.16,
-                bounds.TopCm + bounds.HeightCm * 0.33, bounds.LeftCm + bounds.WidthCm * 0.88,
-                bounds.TopCm + bounds.HeightCm * 0.33, "Coverage Map Latitude 1");
+            PowerPointAutoShape gridLine1 = slide.AddLineCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.16,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.33, bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.88,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.33, "Coverage Map Latitude 1");
             gridLine1.OutlineColor = theme.AccentLightColor;
             gridLine1.OutlineWidthPoints = 0.35;
-            PowerPointAutoShape gridLine2 = slide.AddLineCm(bounds.LeftCm + bounds.WidthCm * 0.18,
-                bounds.TopCm + bounds.HeightCm * 0.66, bounds.LeftCm + bounds.WidthCm * 0.84,
-                bounds.TopCm + bounds.HeightCm * 0.66, "Coverage Map Latitude 2");
+            PowerPointAutoShape gridLine2 = slide.AddLineCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.18,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.66, bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.84,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.66, "Coverage Map Latitude 2");
             gridLine2.OutlineColor = theme.AccentLightColor;
             gridLine2.OutlineWidthPoints = 0.35;
-            PowerPointAutoShape gridLine3 = slide.AddLineCm(bounds.LeftCm + bounds.WidthCm * 0.38,
-                bounds.TopCm + bounds.HeightCm * 0.08, bounds.LeftCm + bounds.WidthCm * 0.34,
-                bounds.TopCm + bounds.HeightCm * 0.92, "Coverage Map Longitude 1");
+            PowerPointAutoShape gridLine3 = slide.AddLineCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.38,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.08, bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.34,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.92, "Coverage Map Longitude 1");
             gridLine3.OutlineColor = theme.AccentLightColor;
             gridLine3.OutlineWidthPoints = 0.35;
-            PowerPointAutoShape gridLine4 = slide.AddLineCm(bounds.LeftCm + bounds.WidthCm * 0.64,
-                bounds.TopCm + bounds.HeightCm * 0.12, bounds.LeftCm + bounds.WidthCm * 0.58,
-                bounds.TopCm + bounds.HeightCm * 0.88, "Coverage Map Longitude 2");
+            PowerPointAutoShape gridLine4 = slide.AddLineCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.64,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.12, bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.58,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.88, "Coverage Map Longitude 2");
             gridLine4.OutlineColor = theme.AccentLightColor;
             gridLine4.OutlineWidthPoints = 0.35;
 
@@ -205,41 +204,36 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!string.IsNullOrWhiteSpace(options.MapLabel)) {
-                AddText(slide, options.MapLabel!, bounds.LeftCm + 0.55, bounds.TopCm + bounds.HeightCm - 0.85,
-                    bounds.WidthCm - 1.1, 0.45, 10, theme.AccentContrastColor, theme.BodyFontName, bold: true);
+                AddText(slide, options.MapLabel!, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() - 0.85,
+                    bounds.Width.ToCentimeters() - 1.1, 0.45, 10, theme.AccentContrastColor, theme.BodyFontName, bold: true);
             }
         }
 
         private static void AddCapabilitySplit(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointCapabilitySection> sections, PowerPointCapabilitySlideOptions options,
             double slideWidthCm, double slideHeightCm, bool visualFirst) {
-            PowerPointLayoutBox[] columns = PowerPointLayoutBox
-                .FromCentimeters(1.5, 4.0, slideWidthCm - 3.0, slideHeightCm - 5.7)
-                .SplitColumnsCm(2, 0.85);
+            PowerPointLayoutBox[] columns = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(4.0),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 5.7))
+                .SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.85));
             PowerPointLayoutBox visual = visualFirst ? columns[0] : columns[1];
             PowerPointLayoutBox narrative = visualFirst ? columns[1] : columns[0];
 
             double metricReserve = options.Metrics.Count > 0 ? 1.45 : 0;
             PowerPointLayoutBox sectionBounds = metricReserve > 0
-                ? PowerPointLayoutBox.FromCentimeters(narrative.LeftCm, narrative.TopCm,
-                    narrative.WidthCm, narrative.HeightCm - metricReserve)
+                ? new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(narrative.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(narrative.Top.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(narrative.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(narrative.Height.ToCentimeters() - metricReserve))
                 : narrative;
 
             AddCapabilitySections(slide, theme, sections, sectionBounds);
             AddCapabilityVisual(slide, theme, options, visual);
 
             if (options.Metrics.Count > 0) {
-                PowerPointLayoutBox metricBox = PowerPointLayoutBox.FromCentimeters(
-                    narrative.LeftCm,
-                    narrative.BottomCm - 1.05,
-                    narrative.WidthCm,
-                    1.05);
-                PowerPointAutoShape band = slide.AddRectangleCm(metricBox.LeftCm, metricBox.TopCm,
-                    metricBox.WidthCm, metricBox.HeightCm, "Capability Metric Band");
+                PowerPointLayoutBox metricBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(narrative.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(narrative.Bottom.ToCentimeters() - 1.05),                    OfficeIMO.OfficeLength.Centimeters(narrative.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(1.05));
+                PowerPointAutoShape band = slide.AddRectangleCm(metricBox.Left.ToCentimeters(), metricBox.Top.ToCentimeters(),
+                    metricBox.Width.ToCentimeters(), metricBox.Height.ToCentimeters(), "Capability Metric Band");
                 band.FillColor = theme.AccentColor;
                 band.OutlineColor = theme.AccentColor;
-                AddMetrics(slide, theme, options.Metrics.ToList(), metricBox.LeftCm + 0.25, metricBox.TopCm + 0.12,
-                    metricBox.WidthCm - 0.5, metricBox.HeightCm - 0.18);
+                AddMetrics(slide, theme, options.Metrics.ToList(), metricBox.Left.ToCentimeters() + 0.25, metricBox.Top.ToCentimeters() + 0.12,
+                    metricBox.Width.ToCentimeters() - 0.5, metricBox.Height.ToCentimeters() - 0.18);
             }
         }
 
@@ -247,19 +241,19 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointCapabilitySection> sections, PowerPointCapabilitySlideOptions options,
             double slideWidthCm, double slideHeightCm) {
             double metricReserve = options.Metrics.Count > 0 ? 1.45 : 0;
-            PowerPointLayoutBox bounds = PowerPointLayoutBox.FromCentimeters(
-                1.5, 4.0, slideWidthCm - 3.0, slideHeightCm - 5.55 - metricReserve);
+            PowerPointLayoutBox bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(4.0),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 5.55 - metricReserve));
             AddCapabilitySections(slide, theme, sections, bounds, maxColumns: Math.Min(3, sections.Count));
 
             if (options.Metrics.Count > 0) {
-                PowerPointLayoutBox metricBox = PowerPointLayoutBox.FromCentimeters(
-                    1.5, slideHeightCm - 2.55, slideWidthCm - 3.0, 1.15);
-                PowerPointAutoShape band = slide.AddRectangleCm(metricBox.LeftCm, metricBox.TopCm,
-                    metricBox.WidthCm, metricBox.HeightCm, "Capability Metric Band");
+                PowerPointLayoutBox metricBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 2.55),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(1.15));
+                PowerPointAutoShape band = slide.AddRectangleCm(metricBox.Left.ToCentimeters(), metricBox.Top.ToCentimeters(),
+                    metricBox.Width.ToCentimeters(), metricBox.Height.ToCentimeters(), "Capability Metric Band");
                 band.FillColor = theme.AccentColor;
                 band.OutlineColor = theme.AccentColor;
-                AddMetrics(slide, theme, options.Metrics.ToList(), metricBox.LeftCm + 0.35, metricBox.TopCm + 0.13,
-                    metricBox.WidthCm - 0.7, metricBox.HeightCm - 0.2);
+                AddMetrics(slide, theme, options.Metrics.ToList(), metricBox.Left.ToCentimeters() + 0.35, metricBox.Top.ToCentimeters() + 0.13,
+                    metricBox.Width.ToCentimeters() - 0.7, metricBox.Height.ToCentimeters() - 0.2);
             }
         }
 
@@ -268,14 +262,14 @@ namespace OfficeIMO.PowerPoint {
             if (maxColumns > 1) {
                 int columns = Math.Min(maxColumns, sections.Count);
                 int rows = (int)Math.Ceiling(sections.Count / (double)columns);
-                PowerPointLayoutBox[,] grid = bounds.SplitGridCm(rows, columns, 0.35, 0.45);
+                PowerPointLayoutBox[,] grid = bounds.SplitGrid(rows,columns,OfficeIMO.OfficeLength.Centimeters(0.35),OfficeIMO.OfficeLength.Centimeters(0.45));
                 for (int i = 0; i < sections.Count; i++) {
                     AddCapabilityPanel(slide, theme, sections[i], grid[i / columns, i % columns], i);
                 }
                 return;
             }
 
-            PowerPointLayoutBox[] rowsBox = bounds.SplitRowsCm(sections.Count, 0.30);
+            PowerPointLayoutBox[] rowsBox = bounds.SplitRows(sections.Count,OfficeIMO.OfficeLength.Centimeters(0.30));
             for (int i = 0; i < sections.Count; i++) {
                 AddCapabilityPanel(slide, theme, sections[i], rowsBox[i], i);
             }
@@ -283,7 +277,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddCapabilityPanel(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointCapabilitySection section, PowerPointLayoutBox box, int index) {
-            PowerPointAutoShape panel = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+            PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                 "Capability Section " + (index + 1));
             panel.FillColor = theme.PanelColor;
             panel.OutlineColor = theme.PanelBorderColor;
@@ -291,27 +285,27 @@ namespace OfficeIMO.PowerPoint {
             panel.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.6, angleDegrees: 90, transparencyPercent: 92);
 
             string accent = section.AccentColor ?? GetAccent(theme, index);
-            PowerPointAutoShape accentRule = slide.AddRectangleCm(box.LeftCm, box.TopCm, 0.12, box.HeightCm,
+            PowerPointAutoShape accentRule = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), 0.12, box.Height.ToCentimeters(),
                 "Capability Section Accent " + (index + 1));
             accentRule.FillColor = accent;
             accentRule.OutlineColor = accent;
 
-            AddText(slide, section.Heading, box.LeftCm + 0.45, box.TopCm + 0.32, box.WidthCm - 0.75,
+            AddText(slide, section.Heading, box.Left.ToCentimeters() + 0.45, box.Top.ToCentimeters() + 0.32, box.Width.ToCentimeters() - 0.75,
                 0.45, 12, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
-            double currentTop = box.TopCm + 0.88;
+            double currentTop = box.Top.ToCentimeters() + 0.88;
             if (!string.IsNullOrWhiteSpace(section.Body)) {
-                PowerPointTextBox body = AddText(slide, section.Body!, box.LeftCm + 0.45, currentTop,
-                    box.WidthCm - 0.75, Math.Min(0.75, box.HeightCm - 1.1), 9,
+                PowerPointTextBox body = AddText(slide, section.Body!, box.Left.ToCentimeters() + 0.45, currentTop,
+                    box.Width.ToCentimeters() - 0.75, Math.Min(0.75, box.Height.ToCentimeters() - 1.1), 9,
                     theme.SecondaryTextColor, theme.BodyFontName);
                 body.TextAutoFitOptions = new PowerPointTextAutoFitOptions(fontScalePercent: 82,
                     lineSpaceReductionPercent: 18);
                 currentTop += 0.78;
             }
 
-            if (section.Items.Count > 0 && currentTop < box.BottomCm - 0.3) {
-                PowerPointTextBox bullets = slide.AddTextBox("", PowerPointLayoutBox.FromCentimeters(
-                    box.LeftCm + 0.52, currentTop, box.WidthCm - 0.85, box.BottomCm - currentTop - 0.25));
+            if (section.Items.Count > 0 && currentTop < box.Bottom.ToCentimeters() - 0.3) {
+                PowerPointTextBox bullets = slide.AddTextBox("", new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + 0.52),OfficeIMO.OfficeLength.Centimeters(currentTop),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 0.85),OfficeIMO.OfficeLength.Centimeters(box.Bottom.ToCentimeters() - currentTop - 0.25)));
                 bullets.SetTextMarginsCm(0, 0, 0, 0);
                 bullets.TextAutoFit = PowerPointTextAutoFit.Normal;
                 bullets.TextAutoFitOptions = new PowerPointTextAutoFitOptions(fontScalePercent: 78,
@@ -347,11 +341,11 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            AddVisualFrame(slide, theme, options.VisualImagePath, bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, options.VisualFrameVariant, options.DesignIntent);
+            AddVisualFrame(slide, theme, options.VisualImagePath, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), options.VisualFrameVariant, options.DesignIntent);
             if (!string.IsNullOrWhiteSpace(options.VisualLabel)) {
-                AddText(slide, options.VisualLabel!, bounds.LeftCm + 0.35, bounds.BottomCm - 0.55,
-                    bounds.WidthCm - 0.7, 0.35, 9, theme.AccentContrastColor, theme.BodyFontName, bold: true);
+                AddText(slide, options.VisualLabel!, bounds.Left.ToCentimeters() + 0.35, bounds.Bottom.ToCentimeters() - 0.55,
+                    bounds.Width.ToCentimeters() - 0.7, 0.35, 9, theme.AccentContrastColor, theme.BodyFontName, bold: true);
             }
         }
 
@@ -373,45 +367,41 @@ namespace OfficeIMO.PowerPoint {
             AddVisualFrame(slide, theme, options.VisualImagePath, visualLeft, visualTop, visualWidth, visualHeight,
                 options.VisualFrameVariant, options.DesignIntent);
 
-            PowerPointLayoutBox right = PowerPointLayoutBox.FromCentimeters(
-                visualLeft + visualWidth + 0.85,
-                visualTop,
-                slideWidthCm - visualLeft - visualWidth - 2.3,
-                visualHeight);
+            PowerPointLayoutBox right = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(visualLeft + visualWidth + 0.85),                OfficeIMO.OfficeLength.Centimeters(visualTop),                OfficeIMO.OfficeLength.Centimeters(slideWidthCm - visualLeft - visualWidth - 2.3),                OfficeIMO.OfficeLength.Centimeters(visualHeight));
 
             double metricsHeight = metrics.Count > 0 ? 1.55 : 0;
-            double sectionHeight = right.HeightCm - metricsHeight - (metrics.Count > 0 ? 0.55 : 0);
+            double sectionHeight = right.Height.ToCentimeters() - metricsHeight - (metrics.Count > 0 ? 0.55 : 0);
             int sectionCount = Math.Min(sections.Count, 4);
-            PowerPointLayoutBox[] rows = PowerPointLayoutBox
-                .FromCentimeters(right.LeftCm, right.TopCm, right.WidthCm, sectionHeight)
-                .SplitRowsCm(sectionCount, 0.25);
+            PowerPointLayoutBox[] rows = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(right.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(right.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(right.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(sectionHeight))
+                .SplitRows(sectionCount,OfficeIMO.OfficeLength.Centimeters(0.25));
 
             for (int i = 0; i < sectionCount; i++) {
                 PowerPointLayoutBox row = rows[i];
                 PowerPointCaseStudySection section = sections[i];
-                PowerPointAutoShape accent = slide.AddRectangleCm(row.LeftCm, row.TopCm + 0.05,
-                    0.12, row.HeightCm - 0.1, "Case Study Visual Hero Accent " + (i + 1));
+                PowerPointAutoShape accent = slide.AddRectangleCm(row.Left.ToCentimeters(), row.Top.ToCentimeters() + 0.05,
+                    0.12, row.Height.ToCentimeters() - 0.1, "Case Study Visual Hero Accent " + (i + 1));
                 accent.FillColor = GetAccent(theme, i);
                 accent.OutlineColor = GetAccent(theme, i);
 
-                AddText(slide, section.Heading, row.LeftCm + 0.45, row.TopCm + 0.08,
-                    row.WidthCm - 0.45, 0.42, 11, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
-                PowerPointTextBox body = AddText(slide, section.Body, row.LeftCm + 0.45,
-                    row.TopCm + 0.62, row.WidthCm - 0.45, row.HeightCm - 0.7, 9,
+                AddText(slide, section.Heading, row.Left.ToCentimeters() + 0.45, row.Top.ToCentimeters() + 0.08,
+                    row.Width.ToCentimeters() - 0.45, 0.42, 11, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
+                PowerPointTextBox body = AddText(slide, section.Body, row.Left.ToCentimeters() + 0.45,
+                    row.Top.ToCentimeters() + 0.62, row.Width.ToCentimeters() - 0.45, row.Height.ToCentimeters() - 0.7, 9,
                     theme.SecondaryTextColor, theme.BodyFontName);
                 body.TextAutoFitOptions = new PowerPointTextAutoFitOptions(fontScalePercent: 82,
                     lineSpaceReductionPercent: 18);
             }
 
             if (metrics.Count > 0) {
-                PowerPointLayoutBox metricBox = right.TakeBottomCm(metricsHeight);
-                PowerPointAutoShape metricBand = slide.AddRectangleCm(metricBox.LeftCm, metricBox.TopCm,
-                    metricBox.WidthCm, metricBox.HeightCm, "Case Study Visual Hero Metric Band");
+                PowerPointLayoutBox metricBox = right.TakeBottom(OfficeIMO.OfficeLength.Centimeters(metricsHeight));
+                PowerPointAutoShape metricBand = slide.AddRectangleCm(metricBox.Left.ToCentimeters(), metricBox.Top.ToCentimeters(),
+                    metricBox.Width.ToCentimeters(), metricBox.Height.ToCentimeters(), "Case Study Visual Hero Metric Band");
                 metricBand.FillColor = theme.AccentColor;
                 metricBand.OutlineColor = theme.AccentColor;
                 metricBand.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
-                AddMetrics(slide, theme, metrics, metricBox.LeftCm + 0.35, metricBox.TopCm + 0.2,
-                    metricBox.WidthCm - 0.7, metricBox.HeightCm - 0.3);
+                AddMetrics(slide, theme, metrics, metricBox.Left.ToCentimeters() + 0.35, metricBox.Top.ToCentimeters() + 0.2,
+                    metricBox.Width.ToCentimeters() - 0.7, metricBox.Height.ToCentimeters() - 0.3);
             }
 
             AddTags(slide, theme, options.Tags, 1.45, slideHeightCm - 1.85, visualWidth, 0.55);
@@ -421,8 +411,7 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointLogoItem> logos, PowerPointLogoWallSlideOptions options,
             double slideWidthCm, double slideHeightCm) {
             double bottomReserve = string.IsNullOrWhiteSpace(options.SupportingText) ? 1.65 : 3.05;
-            PowerPointLayoutBox bounds = PowerPointLayoutBox
-                .FromCentimeters(1.5, 4.0, slideWidthCm - 3.0, slideHeightCm - 4.0 - bottomReserve);
+            PowerPointLayoutBox bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(4.0),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 4.0 - bottomReserve));
             AddLogoGrid(slide, theme, logos, bounds, options);
 
             if (!string.IsNullOrWhiteSpace(options.SupportingText)) {
@@ -442,9 +431,8 @@ namespace OfficeIMO.PowerPoint {
             double height = string.IsNullOrWhiteSpace(options.SupportingText)
                 ? slideHeightCm - 5.25
                 : slideHeightCm - 7.6;
-            PowerPointLayoutBox[] columns = PowerPointLayoutBox
-                .FromCentimeters(1.5, 4.0, slideWidthCm - 3.0, height)
-                .SplitColumnsCm(2, 0.9);
+            PowerPointLayoutBox[] columns = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(4.0),OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.0),OfficeIMO.OfficeLength.Centimeters(height))
+                .SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.9));
             AddLogoGrid(slide, theme, logos, columns[0], options);
             AddCertificatePanel(slide, theme, columns[1], options);
 
@@ -457,12 +445,12 @@ namespace OfficeIMO.PowerPoint {
         private static void AddLogoGrid(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointLogoItem> logos, PowerPointLayoutBox bounds, PowerPointLogoWallSlideOptions options) {
             int maxColumns = Math.Max(1, options.MaxColumns);
-            if (bounds.WidthCm < 12) {
+            if (bounds.Width.ToCentimeters() < 12) {
                 maxColumns = Math.Min(maxColumns, 4);
             }
             int columns = Math.Min(maxColumns, logos.Count);
             int rows = (int)Math.Ceiling(logos.Count / (double)columns);
-            PowerPointLayoutBox[,] grid = bounds.SplitGridCm(rows, columns, 0.36, 0.36);
+            PowerPointLayoutBox[,] grid = bounds.SplitGrid(rows,columns,OfficeIMO.OfficeLength.Centimeters(0.36),OfficeIMO.OfficeLength.Centimeters(0.36));
 
             for (int i = 0; i < logos.Count; i++) {
                 int row = i / columns;
@@ -474,33 +462,33 @@ namespace OfficeIMO.PowerPoint {
         private static void AddLogoTile(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointLogoItem logo, PowerPointLayoutBox box, int index) {
             string accent = logo.AccentColor ?? GetAccent(theme, index);
-            PowerPointAutoShape tile = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+            PowerPointAutoShape tile = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                 "Logo Wall Tile " + (index + 1));
             tile.FillColor = theme.PanelColor;
             tile.OutlineColor = theme.PanelBorderColor;
             tile.OutlineWidthPoints = 0.45;
             tile.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.6, angleDegrees: 90, transparencyPercent: 91);
 
-            PowerPointAutoShape accentRule = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, 0.08,
+            PowerPointAutoShape accentRule = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), 0.08,
                 "Logo Wall Accent " + (index + 1));
             accentRule.FillColor = accent;
             accentRule.OutlineColor = accent;
 
             if (!string.IsNullOrWhiteSpace(logo.ImagePath) && File.Exists(logo.ImagePath!)) {
-                AddPictureIfExists(slide, logo.ImagePath!, box.LeftCm + 0.35, box.TopCm + 0.35,
-                    box.WidthCm - 0.7, box.HeightCm - 0.85, crop: false);
+                AddPictureIfExists(slide, logo.ImagePath!, box.Left.ToCentimeters() + 0.35, box.Top.ToCentimeters() + 0.35,
+                    box.Width.ToCentimeters() - 0.7, box.Height.ToCentimeters() - 0.85, crop: false);
             } else {
-                int fontSize = box.WidthCm < 2.25 ? 12 : box.WidthCm < 2.7 ? 14 : 16;
-                PowerPointTextBox name = AddText(slide, logo.Name, box.LeftCm + 0.25, box.TopCm + 0.45,
-                    box.WidthCm - 0.5, box.HeightCm * 0.45, fontSize, theme.PrimaryTextColor,
+                int fontSize = box.Width.ToCentimeters() < 2.25 ? 12 : box.Width.ToCentimeters() < 2.7 ? 14 : 16;
+                PowerPointTextBox name = AddText(slide, logo.Name, box.Left.ToCentimeters() + 0.25, box.Top.ToCentimeters() + 0.45,
+                    box.Width.ToCentimeters() - 0.5, box.Height.ToCentimeters() * 0.45, fontSize, theme.PrimaryTextColor,
                     theme.HeadingFontName, bold: true);
                 name.TextAutoFitOptions = new PowerPointTextAutoFitOptions(fontScalePercent: 78, lineSpaceReductionPercent: 20);
                 CenterText(name);
             }
 
             if (!string.IsNullOrWhiteSpace(logo.Subtitle)) {
-                PowerPointTextBox subtitle = AddText(slide, logo.Subtitle!, box.LeftCm + 0.35,
-                    box.TopCm + box.HeightCm - 0.55, box.WidthCm - 0.7, 0.3, 8,
+                PowerPointTextBox subtitle = AddText(slide, logo.Subtitle!, box.Left.ToCentimeters() + 0.35,
+                    box.Top.ToCentimeters() + box.Height.ToCentimeters() - 0.55, box.Width.ToCentimeters() - 0.7, 0.3, 8,
                     theme.MutedTextColor, theme.BodyFontName);
                 CenterText(subtitle);
             }
@@ -508,61 +496,61 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddCertificatePanel(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointLayoutBox bounds, PowerPointLogoWallSlideOptions options) {
-            PowerPointAutoShape frame = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, "Logo Wall Certificate Frame");
+            PowerPointAutoShape frame = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), "Logo Wall Certificate Frame");
             frame.FillColor = theme.PanelColor;
             frame.OutlineColor = theme.PanelBorderColor;
             frame.OutlineWidthPoints = 0.45;
             frame.SetShadow("000000", blurPoints: 4, distancePoints: 1.0, angleDegrees: 90, transparencyPercent: 88);
 
             if (!string.IsNullOrWhiteSpace(options.FeaturedImagePath) && File.Exists(options.FeaturedImagePath!)) {
-                AddPictureIfExists(slide, options.FeaturedImagePath!, bounds.LeftCm + 0.35, bounds.TopCm + 0.35,
-                    bounds.WidthCm - 0.7, bounds.HeightCm - 0.95, crop: false);
+                AddPictureIfExists(slide, options.FeaturedImagePath!, bounds.Left.ToCentimeters() + 0.35, bounds.Top.ToCentimeters() + 0.35,
+                    bounds.Width.ToCentimeters() - 0.7, bounds.Height.ToCentimeters() - 0.95, crop: false);
             } else {
-                PowerPointAutoShape rail = slide.AddRectangleCm(bounds.LeftCm + 0.46, bounds.TopCm + 0.46,
-                    0.10, bounds.HeightCm - 0.92, "Logo Wall Certificate Rail");
+                PowerPointAutoShape rail = slide.AddRectangleCm(bounds.Left.ToCentimeters() + 0.46, bounds.Top.ToCentimeters() + 0.46,
+                    0.10, bounds.Height.ToCentimeters() - 0.92, "Logo Wall Certificate Rail");
                 rail.FillColor = theme.AccentColor;
                 rail.OutlineColor = theme.AccentColor;
 
                 PowerPointAutoShape watermark = slide.AddShapeCm(OfficePresetShapeType.Parallelogram,
-                    bounds.LeftCm + bounds.WidthCm * 0.60, bounds.TopCm + 0.08,
-                    bounds.WidthCm * 0.23, bounds.HeightCm - 0.16, "Logo Wall Certificate Watermark");
+                    bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.60, bounds.Top.ToCentimeters() + 0.08,
+                    bounds.Width.ToCentimeters() * 0.23, bounds.Height.ToCentimeters() - 0.16, "Logo Wall Certificate Watermark");
                 watermark.FillColor = theme.AccentLightColor;
                 watermark.FillTransparency = 66;
                 watermark.OutlineColor = theme.AccentLightColor;
                 watermark.OutlineWidthPoints = 0;
 
-                PowerPointAutoShape document = slide.AddRectangleCm(bounds.LeftCm + bounds.WidthCm * 0.24,
-                    bounds.TopCm + 0.55, bounds.WidthCm * 0.52, bounds.HeightCm - 1.45,
+                PowerPointAutoShape document = slide.AddRectangleCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.24,
+                    bounds.Top.ToCentimeters() + 0.55, bounds.Width.ToCentimeters() * 0.52, bounds.Height.ToCentimeters() - 1.45,
                     "Logo Wall Certificate Document");
                 document.FillColor = theme.BackgroundColor;
                 document.OutlineColor = theme.PanelBorderColor;
                 document.OutlineWidthPoints = 0.55;
                 document.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.5, angleDegrees: 90, transparencyPercent: 92);
 
-                PowerPointAutoShape documentHeader = slide.AddRectangleCm(bounds.LeftCm + bounds.WidthCm * 0.29,
-                    bounds.TopCm + 0.92, bounds.WidthCm * 0.42, 0.08, "Logo Wall Certificate Header");
+                PowerPointAutoShape documentHeader = slide.AddRectangleCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.29,
+                    bounds.Top.ToCentimeters() + 0.92, bounds.Width.ToCentimeters() * 0.42, 0.08, "Logo Wall Certificate Header");
                 documentHeader.FillColor = theme.AccentColor;
                 documentHeader.OutlineColor = theme.AccentColor;
 
-                PowerPointAutoShape seal = slide.AddEllipseCm(bounds.LeftCm + bounds.WidthCm * 0.42,
-                    bounds.TopCm + bounds.HeightCm * 0.43, bounds.WidthCm * 0.16, bounds.WidthCm * 0.16,
+                PowerPointAutoShape seal = slide.AddEllipseCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.42,
+                    bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.43, bounds.Width.ToCentimeters() * 0.16, bounds.Width.ToCentimeters() * 0.16,
                     "Logo Wall Certificate Seal");
                 seal.FillColor = theme.AccentColor;
                 seal.FillTransparency = 15;
                 seal.OutlineColor = theme.AccentColor;
                 seal.OutlineWidthPoints = 0.8;
 
-                PowerPointAutoShape sealCenter = slide.AddEllipseCm(bounds.LeftCm + bounds.WidthCm * 0.455,
-                    bounds.TopCm + bounds.HeightCm * 0.43 + bounds.WidthCm * 0.035,
-                    bounds.WidthCm * 0.09, bounds.WidthCm * 0.09, "Logo Wall Certificate Seal Center");
+                PowerPointAutoShape sealCenter = slide.AddEllipseCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.455,
+                    bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.43 + bounds.Width.ToCentimeters() * 0.035,
+                    bounds.Width.ToCentimeters() * 0.09, bounds.Width.ToCentimeters() * 0.09, "Logo Wall Certificate Seal Center");
                 sealCenter.FillColor = theme.AccentContrastColor;
                 sealCenter.FillTransparency = 42;
                 sealCenter.OutlineColor = theme.AccentContrastColor;
 
                 for (int i = 0; i < 5; i++) {
-                    PowerPointAutoShape line = slide.AddRectangleCm(bounds.LeftCm + bounds.WidthCm * 0.32,
-                        bounds.TopCm + 1.25 + i * 0.38, bounds.WidthCm * (i == 0 ? 0.34 : 0.25), 0.032,
+                    PowerPointAutoShape line = slide.AddRectangleCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.32,
+                        bounds.Top.ToCentimeters() + 1.25 + i * 0.38, bounds.Width.ToCentimeters() * (i == 0 ? 0.34 : 0.25), 0.032,
                         "Logo Wall Certificate Line " + (i + 1));
                     line.FillColor = i == 0 ? theme.AccentColor : theme.AccentLightColor;
                     line.FillTransparency = i == 0 ? 0 : 18;
@@ -570,8 +558,8 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 for (int i = 0; i < 3; i++) {
-                    PowerPointAutoShape signatureLine = slide.AddRectangleCm(bounds.LeftCm + bounds.WidthCm * (0.32 + i * 0.12),
-                        bounds.TopCm + bounds.HeightCm - 1.18, bounds.WidthCm * 0.08, 0.025,
+                    PowerPointAutoShape signatureLine = slide.AddRectangleCm(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * (0.32 + i * 0.12),
+                        bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() - 1.18, bounds.Width.ToCentimeters() * 0.08, 0.025,
                         "Logo Wall Certificate Signature " + (i + 1));
                     signatureLine.FillColor = theme.PanelBorderColor;
                     signatureLine.OutlineColor = theme.PanelBorderColor;
@@ -579,30 +567,29 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!string.IsNullOrWhiteSpace(options.FeatureTitle)) {
-                AddText(slide, options.FeatureTitle!, bounds.LeftCm + 0.45, bounds.TopCm + bounds.HeightCm - 0.55,
-                    bounds.WidthCm - 0.9, 0.35, 9, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
+                AddText(slide, options.FeatureTitle!, bounds.Left.ToCentimeters() + 0.45, bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() - 0.55,
+                    bounds.Width.ToCentimeters() - 0.9, 0.35, 9, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
             }
         }
 
         private static void AddCoverageList(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds, string? supportingText) {
             if (!string.IsNullOrWhiteSpace(supportingText)) {
-                PowerPointAutoShape band = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm,
-                    bounds.WidthCm, 1.1, "Coverage Supporting Band");
+                PowerPointAutoShape band = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                    bounds.Width.ToCentimeters(), 1.1, "Coverage Supporting Band");
                 band.FillColor = theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
-                AddText(slide, supportingText!, bounds.LeftCm + 0.35, bounds.TopCm + 0.35,
-                    bounds.WidthCm - 0.7, 0.4, 11, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
-                bounds = PowerPointLayoutBox.FromCentimeters(bounds.LeftCm, bounds.TopCm + 1.35,
-                    bounds.WidthCm, bounds.HeightCm - 1.35);
+                AddText(slide, supportingText!, bounds.Left.ToCentimeters() + 0.35, bounds.Top.ToCentimeters() + 0.35,
+                    bounds.Width.ToCentimeters() - 0.7, 0.4, 11, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
+                bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + 1.35),                    OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters() - 1.35));
             }
 
             int count = Math.Min(locations.Count, 8);
-            PowerPointLayoutBox[] rows = bounds.SplitRowsCm(count, 0.16);
+            PowerPointLayoutBox[] rows = bounds.SplitRows(count,OfficeIMO.OfficeLength.Centimeters(0.16));
             for (int i = 0; i < count; i++) {
                 PowerPointCoverageLocation location = locations[i];
                 PowerPointLayoutBox row = rows[i];
-                PowerPointAutoShape marker = slide.AddEllipseCm(row.LeftCm, row.TopCm + 0.08,
+                PowerPointAutoShape marker = slide.AddEllipseCm(row.Left.ToCentimeters(), row.Top.ToCentimeters() + 0.08,
                     0.32, 0.32, "Coverage List Marker " + (i + 1));
                 marker.FillColor = GetAccent(theme, i);
                 marker.OutlineColor = GetAccent(theme, i);
@@ -610,21 +597,21 @@ namespace OfficeIMO.PowerPoint {
                 string text = string.IsNullOrWhiteSpace(location.Detail)
                     ? location.Name
                     : location.Name + " - " + location.Detail;
-                AddText(slide, text, row.LeftCm + 0.55, row.TopCm, row.WidthCm - 0.55,
-                    row.HeightCm, 10, theme.SecondaryTextColor, theme.BodyFontName, bold: i < 3);
+                AddText(slide, text, row.Left.ToCentimeters() + 0.55, row.Top.ToCentimeters(), row.Width.ToCentimeters() - 0.55,
+                    row.Height.ToCentimeters(), 10, theme.SecondaryTextColor, theme.BodyFontName, bold: i < 3);
             }
         }
 
         private static void AddCoverageStrip(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds) {
-            PowerPointAutoShape band = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, "Coverage Location Strip");
+            PowerPointAutoShape band = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), "Coverage Location Strip");
             band.FillColor = theme.PanelColor;
             band.OutlineColor = theme.PanelBorderColor;
             band.SetShadow("000000", blurPoints: 3, distancePoints: 0.7, angleDegrees: 90, transparencyPercent: 91);
 
             string text = string.Join(", ", locations.Take(12).Select(location => location.Name));
-            AddText(slide, text, bounds.LeftCm + 0.55, bounds.TopCm + 0.32, bounds.WidthCm - 1.1,
+            AddText(slide, text, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + 0.32, bounds.Width.ToCentimeters() - 1.1,
                 0.38, 10, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
         }
 
@@ -632,10 +619,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox bounds, double x, double y, double width, double height, string name,
             string fillColor, int fillTransparency) {
             PowerPointAutoShape region = slide.AddShapeCm(OfficePresetShapeType.Parallelogram,
-                bounds.LeftCm + bounds.WidthCm * x,
-                bounds.TopCm + bounds.HeightCm * y,
-                bounds.WidthCm * width,
-                bounds.HeightCm * height,
+                bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * x,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * y,
+                bounds.Width.ToCentimeters() * width,
+                bounds.Height.ToCentimeters() * height,
                 name);
             region.FillColor = fillColor;
             region.FillTransparency = fillTransparency;
@@ -646,10 +633,10 @@ namespace OfficeIMO.PowerPoint {
         private static void AddCoverageRoute(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointLayoutBox bounds, PowerPointCoverageLocation start, PowerPointCoverageLocation end, int index) {
             PowerPointAutoShape route = slide.AddLineCm(
-                bounds.LeftCm + bounds.WidthCm * start.X,
-                bounds.TopCm + bounds.HeightCm * start.Y,
-                bounds.LeftCm + bounds.WidthCm * end.X,
-                bounds.TopCm + bounds.HeightCm * end.Y,
+                bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * start.X,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * start.Y,
+                bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * end.X,
+                bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * end.Y,
                 "Coverage Route " + (index + 1));
             route.OutlineColor = theme.AccentLightColor;
             route.OutlineWidthPoints = 0.45;
@@ -657,8 +644,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddCoveragePin(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointLayoutBox bounds, PowerPointCoverageLocation location, int index) {
-            double x = bounds.LeftCm + bounds.WidthCm * location.X;
-            double y = bounds.TopCm + bounds.HeightCm * location.Y;
+            double x = bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * location.X;
+            double y = bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * location.Y;
             string accent = GetAccent(theme, index);
 
             PowerPointAutoShape halo = slide.AddEllipseCm(x - 0.22, y - 0.22, 0.44, 0.44,

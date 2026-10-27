@@ -18,10 +18,10 @@ namespace OfficeIMO.Tests {
                 PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { a, b });
 
                 Assert.Single(slide.Shapes);
-                Assert.Equal(100, group.Left);
-                Assert.Equal(200, group.Top);
-                Assert.Equal(900, group.Width);
-                Assert.Equal(1000, group.Height);
+                Assert.Equal(100, group.Left.ToEmus());
+                Assert.Equal(200, group.Top.ToEmus());
+                Assert.Equal(900, group.Width.ToEmus());
+                Assert.Equal(1000, group.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -47,15 +47,15 @@ namespace OfficeIMO.Tests {
                 PowerPointShape childA = children[0];
                 PowerPointShape childB = children[1];
 
-                Assert.Equal(0, childA.Left);
-                Assert.Equal(0, childA.Top);
-                Assert.Equal(100, childA.Width);
-                Assert.Equal(100, childA.Height);
+                Assert.Equal(0, childA.Left.ToEmus());
+                Assert.Equal(0, childA.Top.ToEmus());
+                Assert.Equal(100, childA.Width.ToEmus());
+                Assert.Equal(100, childA.Height.ToEmus());
 
-                Assert.Equal(200, childB.Left);
-                Assert.Equal(300, childB.Top);
-                Assert.Equal(150, childB.Width);
-                Assert.Equal(120, childB.Height);
+                Assert.Equal(200, childB.Left.ToEmus());
+                Assert.Equal(300, childB.Top.ToEmus());
+                Assert.Equal(150, childB.Width.ToEmus());
+                Assert.Equal(120, childB.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -100,11 +100,11 @@ namespace OfficeIMO.Tests {
                 slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal, spacingEmus: 500);
 
                 PowerPointLayoutBox bounds = slide.GetGroupChildBounds(group);
-                var children = slide.GetGroupChildren(group).OrderBy(s => s.Left).ToList();
+                var children = slide.GetGroupChildren(group).OrderBy(s => s.Left.ToEmus()).ToList();
 
-                Assert.Equal(bounds.Left, children[0].Left);
-                Assert.Equal(bounds.Left + 1500, children[1].Left);
-                Assert.Equal(bounds.Left + 3000, children[2].Left);
+                Assert.Equal(bounds.Left.ToEmus(), children[0].Left.ToEmus());
+                Assert.Equal(bounds.Left.ToEmus() + 1500, children[1].Left.ToEmus());
+                Assert.Equal(bounds.Left.ToEmus() + 3000, children[2].Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -127,21 +127,21 @@ namespace OfficeIMO.Tests {
                 slide.ArrangeGroupChildrenInGrid(group, columns: 2, rows: 2);
 
                 PowerPointLayoutBox bounds = slide.GetGroupChildBounds(group);
-                long cellWidth = bounds.Width / 2;
-                long cellHeight = bounds.Height / 2;
+                long cellWidth = bounds.Width.ToEmus() / 2;
+                long cellHeight = bounds.Height.ToEmus() / 2;
                 var children = slide.GetGroupChildren(group).ToList();
 
-                Assert.Equal(bounds.Left, children[0].Left);
-                Assert.Equal(bounds.Top, children[0].Top);
+                Assert.Equal(bounds.Left.ToEmus(), children[0].Left.ToEmus());
+                Assert.Equal(bounds.Top.ToEmus(), children[0].Top.ToEmus());
 
-                Assert.Equal(bounds.Left + cellWidth, children[1].Left);
-                Assert.Equal(bounds.Top, children[1].Top);
+                Assert.Equal(bounds.Left.ToEmus() + cellWidth, children[1].Left.ToEmus());
+                Assert.Equal(bounds.Top.ToEmus(), children[1].Top.ToEmus());
 
-                Assert.Equal(bounds.Left, children[2].Left);
-                Assert.Equal(bounds.Top + cellHeight, children[2].Top);
+                Assert.Equal(bounds.Left.ToEmus(), children[2].Left.ToEmus());
+                Assert.Equal(bounds.Top.ToEmus() + cellHeight, children[2].Top.ToEmus());
 
-                Assert.Equal(bounds.Left + cellWidth, children[3].Left);
-                Assert.Equal(bounds.Top + cellHeight, children[3].Top);
+                Assert.Equal(bounds.Left.ToEmus() + cellWidth, children[3].Left.ToEmus());
+                Assert.Equal(bounds.Top.ToEmus() + cellHeight, children[3].Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
 
-            smartArt.LeftPoints = 700;
+            smartArt.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }
@@ -490,8 +490,8 @@ namespace OfficeIMO.Tests {
                 PowerPointUnits.FromPoints(320),
                 PowerPointUnits.FromPoints(180));
 
-            smartArt.Width = PowerPointUnits.FromPoints(240);
-            smartArt.Height = PowerPointUnits.FromPoints(240);
+            smartArt.Width= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
+            smartArt.Height= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
 
             Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot snapshot));
@@ -1011,7 +1011,7 @@ namespace OfficeIMO.Tests {
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
 
-            chart.LeftPoints = 700;
+            chart.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }

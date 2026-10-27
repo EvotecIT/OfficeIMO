@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a title textbox using a layout box.
         /// </summary>
         public PowerPointTextBox AddTitle(string text, PowerPointLayoutBox layout) {
-            return AddTitle(text, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddTitle(text, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>
@@ -118,14 +118,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a textbox using a layout box.
         /// </summary>
         public PowerPointTextBox AddTextBox(string text, PowerPointLayoutBox layout) {
-            return AddTextBox(text, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddTextBox(text, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>
         ///     Adds an empty textbox using a layout box.
         /// </summary>
         public PowerPointTextBox AddTextBox(PowerPointLayoutBox layout) {
-            return AddTextBox(string.Empty, layout.Left, layout.Top, layout.Width, layout.Height);
+            return AddTextBox(string.Empty, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
         }
 
         /// <summary>

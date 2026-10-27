@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
                 slide.AlignShapes(slide.Shapes, PowerPointShapeAlignment.Left);
 
-                Assert.All(new[] { a, b, c }, shape => Assert.Equal(1000, shape.Left));
+                Assert.All(new[] { a, b, c }, shape => Assert.Equal(OfficeIMO.OfficeLength.Emus(1000), shape.Left));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
 
                 slide.AlignShapesToSlide(new[] { shape }, PowerPointShapeAlignment.Center);
 
-                long expected = (presentation.SlideSize.WidthEmus - shape.Width) / 2;
-                Assert.Equal(expected, shape.Left);
+                long expected = (presentation.SlideSize.WidthEmus - shape.Width.ToEmus()) / 2;
+                Assert.Equal(expected, shape.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
                 slide.AlignShapesToSlideContent(new[] { shape }, PowerPointShapeAlignment.Center, margin);
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
-                long expected = content.Left + (content.Width - shape.Width) / 2;
-                Assert.Equal(expected, shape.Left);
+                long expected = content.Left.ToEmus() + (content.Width.ToEmus() - shape.Width.ToEmus()) / 2;
+                Assert.Equal(expected, shape.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -78,9 +78,9 @@ namespace OfficeIMO.Tests {
 
                 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);
 
-                Assert.Equal(0, a.Left);
-                Assert.Equal(4500, b.Left);
-                Assert.Equal(9000, c.Left);
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(4500, b.Left.ToEmus());
+                Assert.Equal(9000, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -97,12 +97,12 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1111, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(3000, 0, 2222, 1000);
                 PowerPointAutoShape c = slide.AddRectangle(7000, 0, 3333, 1000);
-                var bounds = new PowerPointLayoutBox(100, 0, 10000, 1000);
+                var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(100),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(10000),OfficeIMO.OfficeLength.Emus(1000));
 
                 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds);
 
-                Assert.Equal(bounds.Left, a.Left);
-                Assert.Equal(bounds.Right, c.Left + c.Width);
+                Assert.Equal(bounds.Left.ToEmus(), a.Left.ToEmus());
+                Assert.Equal(bounds.Right.ToEmus(), c.Left.ToEmus() + c.Width.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -119,18 +119,18 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 200, 1000, 700);
                 PowerPointAutoShape c = slide.AddRectangle(4000, 400, 1000, 900);
-                var bounds = new PowerPointLayoutBox(0, 0, 6000, 2000);
+                var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000));
 
                 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds,
                     PowerPointShapeAlignment.Bottom);
 
-                Assert.Equal(0, a.Left);
-                Assert.Equal(2500, b.Left);
-                Assert.Equal(5000, c.Left);
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(2500, b.Left.ToEmus());
+                Assert.Equal(5000, c.Left.ToEmus());
 
-                Assert.Equal(bounds.Bottom - a.Height, a.Top);
-                Assert.Equal(bounds.Bottom - b.Height, b.Top);
-                Assert.Equal(bounds.Bottom - c.Height, c.Top);
+                Assert.Equal(bounds.Bottom.ToEmus() - a.Height.ToEmus(), a.Top.ToEmus());
+                Assert.Equal(bounds.Bottom.ToEmus() - b.Height.ToEmus(), b.Top.ToEmus());
+                Assert.Equal(bounds.Bottom.ToEmus() - c.Height.ToEmus(), c.Top.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -152,18 +152,18 @@ namespace OfficeIMO.Tests {
                 slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal, margin);
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
-                long totalWidth = a.Width + b.Width + c.Width;
-                double gap = (content.Width - totalWidth) / 2d;
-                double current = content.Left;
+                long totalWidth = a.Width.ToEmus() + b.Width.ToEmus() + c.Width.ToEmus();
+                double gap = (content.Width.ToEmus() - totalWidth) / 2d;
+                double current = content.Left.ToEmus();
                 long expectedA = (long)Math.Round(current);
-                current += a.Width + gap;
+                current += a.Width.ToEmus() + gap;
                 long expectedB = (long)Math.Round(current);
-                current += b.Width + gap;
+                current += b.Width.ToEmus() + gap;
                 long expectedC = (long)Math.Round(current);
 
-                Assert.Equal(expectedA, a.Left);
-                Assert.Equal(expectedB, b.Left);
-                Assert.Equal(expectedC, c.Left);
+                Assert.Equal(expectedA, a.Left.ToEmus());
+                Assert.Equal(expectedB, b.Left.ToEmus());
+                Assert.Equal(expectedC, c.Left.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -179,13 +179,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
-                var bounds = new PowerPointLayoutBox(0, 0, 1500, 1000);
+                var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(1500),OfficeIMO.OfficeLength.Emus(1000));
 
                 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds);
 
-                Assert.Equal(0, a.Left);
-                Assert.Equal(500, b.Left);
-                Assert.Equal(bounds.Right, b.Left + b.Width);
+                Assert.Equal(0, a.Left.ToEmus());
+                Assert.Equal(500, b.Left.ToEmus());
+                Assert.Equal(bounds.Right.ToEmus(), b.Left.ToEmus() + b.Width.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -201,13 +201,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
                 PowerPointAutoShape b = slide.AddRectangle(0, 2000, 1000, 1000);
-                var bounds = new PowerPointLayoutBox(0, 0, 1000, 1500);
+                var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(1000),OfficeIMO.OfficeLength.Emus(1500));
 
                 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Vertical, bounds);
 
-                Assert.Equal(0, a.Top);
-                Assert.Equal(500, b.Top);
-                Assert.Equal(bounds.Bottom, b.Top + b.Height);
+                Assert.Equal(0, a.Top.ToEmus());
+                Assert.Equal(500, b.Top.ToEmus());
+                Assert.Equal(bounds.Bottom.ToEmus(), b.Top.ToEmus() + b.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

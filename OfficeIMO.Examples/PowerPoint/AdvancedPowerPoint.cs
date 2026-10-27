@@ -22,14 +22,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             const double titleHeightCm = 1.4;
             const double bodyGapCm = 0.8;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-            PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm,
-                content.TopCm + titleHeightCm + bodyGapCm,
-                content.WidthCm,
-                content.HeightCm - titleHeightCm - bodyGapCm);
-            PowerPointLayoutBox[] columns = bodyBox.SplitColumnsCm(2, gutterCm);
+            PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+            PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
+            PowerPointLayoutBox[] columns = bodyBox.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = columns[0];
             PowerPointLayoutBox rightColumn = columns[1];
 
@@ -44,8 +41,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox title = slide1.AddTitle("Advanced PowerPoint Example", titleBox);
             title.FontSize = 30;
             title.Color = "1F4E79";
-            PowerPointLayoutBox introBox = PowerPointLayoutBox.FromCentimeters(
-                bodyBox.LeftCm, bodyBox.TopCm, bodyBox.WidthCm, 1.1);
+            PowerPointLayoutBox introBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox intro = slide1.AddTextBox(
                 "Shows layout, charts, tables, images, notes, and transitions.",
                 introBox);
@@ -69,14 +66,11 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             const double captionHeightCm = 1.0;
             const double captionGapCm = 0.4;
-            double mediaHeightCm = rightColumn.HeightCm - captionHeightCm - captionGapCm;
-            PowerPointLayoutBox mediaBox = PowerPointLayoutBox.FromCentimeters(
-                rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm, mediaHeightCm);
-            PowerPointLayoutBox captionBox = PowerPointLayoutBox.FromCentimeters(
-                rightColumn.LeftCm,
-                rightColumn.TopCm + mediaHeightCm + captionGapCm,
-                rightColumn.WidthCm,
-                captionHeightCm);
+            double mediaHeightCm = rightColumn.Height.ToCentimeters() - captionHeightCm - captionGapCm;
+            PowerPointLayoutBox mediaBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(mediaHeightCm));
+            PowerPointLayoutBox captionBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters() + mediaHeightCm + captionGapCm),                OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(captionHeightCm));
 
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
@@ -103,10 +97,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                     o.PinFirst("Metric");
                 },
                 includeHeaders: true,
-                leftCm: bodyBox.LeftCm,
-                topCm: bodyBox.TopCm,
-                widthCm: bodyBox.WidthCm,
-                heightCm: bodyBox.HeightCm);
+                leftCm: bodyBox.Left.ToCentimeters(),
+                topCm: bodyBox.Top.ToCentimeters(),
+                widthCm: bodyBox.Width.ToCentimeters(),
+                heightCm: bodyBox.Height.ToCentimeters());
             kpiTable.ApplyStyle(PowerPointTableStylePreset.Default);
             kpiTable.SetColumnWidthsPoints(220, 120, 120);
             kpiTable.SetRowHeightPoints(0, 28);
@@ -129,10 +123,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                 });
             PowerPointChart chart = slide4.AddChartCm(
                 OfficeChartType.ColumnClustered, chartData,
-                bodyBox.LeftCm,
-                bodyBox.TopCm,
-                bodyBox.WidthCm,
-                bodyBox.HeightCm);
+                bodyBox.Left.ToCentimeters(),
+                bodyBox.Top.ToCentimeters(),
+                bodyBox.Width.ToCentimeters(),
+                bodyBox.Height.ToCentimeters());
             chart.SetTitle("Current vs Target")
                 .SetLegend(OfficeChartLegendPosition.Right)
                 .SetDataLabels(showValue: true)

@@ -77,9 +77,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddScreenshotHero(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointImageAsset image, double width, double height) {
-            PowerPointLayoutBox bounds = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.5);
-            PowerPointAutoShape frame = slide.AddRectangleCm(bounds.LeftCm - 0.08, bounds.TopCm - 0.08,
-                bounds.WidthCm + 0.16, bounds.HeightCm + 0.16, "Screenshot Hero Frame");
+            PowerPointLayoutBox bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.5));
+            PowerPointAutoShape frame = slide.AddRectangleCm(bounds.Left.ToCentimeters() - 0.08, bounds.Top.ToCentimeters() - 0.08,
+                bounds.Width.ToCentimeters() + 0.16, bounds.Height.ToCentimeters() + 0.16, "Screenshot Hero Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
@@ -90,26 +90,25 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddScreenshotSplitNarrative(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointImageAsset image, IReadOnlyList<string> narrative, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.25);
-            double imageWidth = body.WidthCm * 0.69;
-            PowerPointLayoutBox imageBounds = PowerPointLayoutBox.FromCentimeters(body.LeftCm, body.TopCm,
-                imageWidth, body.HeightCm);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25));
+            double imageWidth = body.Width.ToCentimeters() * 0.69;
+            PowerPointLayoutBox imageBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(body.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(body.Top.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(imageWidth),OfficeIMO.OfficeLength.Centimeters(body.Height.ToCentimeters()));
             PowerPointPicture picture = slide.AddImage(image, imageBounds);
             AddImageAnnotations(slide, theme, image, picture, compact: false);
 
-            double railLeft = imageBounds.RightCm + 0.7;
-            double railWidth = body.RightCm - railLeft;
-            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.TopCm, railWidth, body.HeightCm,
+            double railLeft = imageBounds.Right.ToCentimeters() + 0.7;
+            double railWidth = body.Right.ToCentimeters() - railLeft;
+            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.Top.ToCentimeters(), railWidth, body.Height.ToCentimeters(),
                 "Screenshot Narrative Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
-            AddText(slide, "What matters", railLeft + 0.45, body.TopCm + 0.45, railWidth - 0.9,
+            AddText(slide, "What matters", railLeft + 0.45, body.Top.ToCentimeters() + 0.45, railWidth - 0.9,
                 0.55, 14, theme.AccentDarkColor, theme.HeadingFontName, bold: true);
             IReadOnlyList<string> resolved = narrative.Count > 0
                 ? narrative
                 : image.Annotations.Select(annotation => annotation.Detail ?? annotation.Label).ToList();
             AddText(slide, string.Join("\n", resolved.Select(point => "• " + point)), railLeft + 0.45,
-                body.TopCm + 1.25, railWidth - 0.9, body.HeightCm - 1.65, 10,
+                body.Top.ToCentimeters() + 1.25, railWidth - 0.9, body.Height.ToCentimeters() - 1.65, 10,
                 theme.SecondaryTextColor, theme.BodyFontName);
             AddStoryCaption(slide, theme, image.Caption, image.Provenance, 1.55, height - 1.62, width - 3.1);
         }
@@ -127,12 +126,12 @@ namespace OfficeIMO.PowerPoint {
                 marker.OutlineColor = theme.AccentContrastColor;
                 marker.OutlineWidthPoints = 1.2;
                 if (!compact) continue;
-                double labelWidth = Math.Min(5.0, picture.WidthCm * 0.26);
-                double labelLeft = x + labelWidth + 0.4 <= picture.RightCm
+                double labelWidth = Math.Min(5.0, picture.Width.ToCentimeters() * 0.26);
+                double labelLeft = x + labelWidth + 0.4 <= picture.Right.ToCentimeters()
                     ? x + 0.38
                     : x - labelWidth - 0.38;
-                double labelTop = Math.Max(picture.TopCm + 0.15,
-                    Math.Min(picture.BottomCm - 0.95, y - 0.4));
+                double labelTop = Math.Max(picture.Top.ToCentimeters() + 0.15,
+                    Math.Min(picture.Bottom.ToCentimeters() - 0.95, y - 0.4));
                 PowerPointAutoShape label = slide.AddRectangleCm(labelLeft, labelTop, labelWidth, 0.82,
                     "Screenshot Annotation Label " + (index + 1));
                 label.FillColor = theme.AccentDarkColor;
@@ -156,33 +155,31 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            x = picture.LeftCm + (annotation.X - left) / (right - left) * picture.WidthCm;
-            y = picture.TopCm + (annotation.Y - top) / (bottom - top) * picture.HeightCm;
+            x = picture.Left.ToCentimeters() + (annotation.X - left) / (right - left) * picture.Width.ToCentimeters();
+            y = picture.Top.ToCentimeters() + (annotation.Y - top) / (bottom - top) * picture.Height.ToCentimeters();
             return true;
         }
 
         private static void AddArchitectureLayers(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointArchitectureContent content, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.15);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.15));
             List<IGrouping<string, PowerPointArchitectureNode>> groups = content.Nodes
                 .GroupBy(node => string.IsNullOrWhiteSpace(node.Group) ? "System" : node.Group!)
                 .ToList();
-            PowerPointLayoutBox[] rows = body.SplitRowsCm(groups.Count, 0.35);
+            PowerPointLayoutBox[] rows = body.SplitRows(groups.Count,OfficeIMO.OfficeLength.Centimeters(0.35));
             var bounds = new Dictionary<string, PowerPointLayoutBox>(StringComparer.OrdinalIgnoreCase);
             for (int row = 0; row < groups.Count; row++) {
                 List<PowerPointArchitectureNode> nodes = groups[row].ToList();
                 PowerPointLayoutBox groupBounds = rows[row];
-                PowerPointAutoShape band = slide.AddRectangleCm(groupBounds.LeftCm, groupBounds.TopCm,
-                    groupBounds.WidthCm, groupBounds.HeightCm, "Architecture Layer " + groups[row].Key);
+                PowerPointAutoShape band = slide.AddRectangleCm(groupBounds.Left.ToCentimeters(), groupBounds.Top.ToCentimeters(),
+                    groupBounds.Width.ToCentimeters(), groupBounds.Height.ToCentimeters(), "Architecture Layer " + groups[row].Key);
                 band.FillColor = row % 2 == 0 ? theme.SurfaceColor : theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
-                AddText(slide, groups[row].Key.ToUpperInvariant(), groupBounds.LeftCm + 0.25,
-                    groupBounds.TopCm + 0.18, 2.25, 0.4, 8, theme.MutedTextColor, theme.BodyFontName, bold: true);
-                double nodeHeight = Math.Min(2.05, Math.Max(1.2, groupBounds.HeightCm - 0.9));
-                PowerPointLayoutBox nodeArea = PowerPointLayoutBox.FromCentimeters(groupBounds.LeftCm + 2.5,
-                    groupBounds.TopCm + (groupBounds.HeightCm - nodeHeight) / 2D,
-                    groupBounds.WidthCm - 2.75, nodeHeight);
-                PowerPointLayoutBox[] columns = nodeArea.SplitColumnsCm(nodes.Count, 0.35);
+                AddText(slide, groups[row].Key.ToUpperInvariant(), groupBounds.Left.ToCentimeters() + 0.25,
+                    groupBounds.Top.ToCentimeters() + 0.18, 2.25, 0.4, 8, theme.MutedTextColor, theme.BodyFontName, bold: true);
+                double nodeHeight = Math.Min(2.05, Math.Max(1.2, groupBounds.Height.ToCentimeters() - 0.9));
+                PowerPointLayoutBox nodeArea = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(groupBounds.Left.ToCentimeters() + 2.5),                    OfficeIMO.OfficeLength.Centimeters(groupBounds.Top.ToCentimeters() + (groupBounds.Height.ToCentimeters() - nodeHeight) / 2D),                    OfficeIMO.OfficeLength.Centimeters(groupBounds.Width.ToCentimeters() - 2.75),OfficeIMO.OfficeLength.Centimeters(nodeHeight));
+                PowerPointLayoutBox[] columns = nodeArea.SplitColumns(nodes.Count,OfficeIMO.OfficeLength.Centimeters(0.35));
                 for (int column = 0; column < nodes.Count; column++) bounds[nodes[column].Id] = columns[column];
             }
             AddArchitectureEdges(slide, theme, content.Edges, bounds);
@@ -191,20 +188,18 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddArchitectureHubSpoke(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointArchitectureContent content, double width, double height) {
-            PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(1.5, 3.55, width - 3, height - 5.15);
+            PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.15));
             var bounds = new Dictionary<string, PowerPointLayoutBox>(StringComparer.OrdinalIgnoreCase);
             PowerPointArchitectureNode hub = ResolveHub(content);
-            bounds[hub.Id] = PowerPointLayoutBox.FromCentimeters(CenterX(body) - 2.35, CenterY(body) - 0.8,
-                4.7, 1.6);
+            bounds[hub.Id] = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(CenterX(body) - 2.35),OfficeIMO.OfficeLength.Centimeters(CenterY(body) - 0.8),                OfficeIMO.OfficeLength.Centimeters(4.7),OfficeIMO.OfficeLength.Centimeters(1.6));
             List<PowerPointArchitectureNode> spokes = content.Nodes.Where(node => node != hub).ToList();
-            double radiusX = Math.Max(3.1, body.WidthCm * 0.39);
-            double radiusY = Math.Max(2.0, body.HeightCm * 0.36);
+            double radiusX = Math.Max(3.1, body.Width.ToCentimeters() * 0.39);
+            double radiusY = Math.Max(2.0, body.Height.ToCentimeters() * 0.36);
             for (int index = 0; index < spokes.Count; index++) {
                 double angle = -Math.PI / 2D + 2D * Math.PI * index / Math.Max(1, spokes.Count);
                 double centerX = CenterX(body) + Math.Cos(angle) * radiusX;
                 double centerY = CenterY(body) + Math.Sin(angle) * radiusY;
-                bounds[spokes[index].Id] = PowerPointLayoutBox.FromCentimeters(centerX - 1.85,
-                    centerY - 0.68, 3.7, 1.36);
+                bounds[spokes[index].Id] = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(centerX - 1.85),                    OfficeIMO.OfficeLength.Centimeters(centerY - 0.68),OfficeIMO.OfficeLength.Centimeters(3.7),OfficeIMO.OfficeLength.Centimeters(1.36));
             }
             AddArchitectureEdges(slide, theme, content.Edges, bounds);
             foreach (PowerPointArchitectureNode node in content.Nodes) AddArchitectureNode(slide, theme, node, bounds[node.Id]);
@@ -242,24 +237,24 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddArchitectureNode(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointArchitectureNode node, PowerPointLayoutBox bounds) {
-            PowerPointAutoShape panel = slide.AddShapeCm(OfficePresetShapeType.RoundRectangle, bounds.LeftCm,
-                bounds.TopCm, bounds.WidthCm, bounds.HeightCm, "Architecture Node " + node.Id);
+            PowerPointAutoShape panel = slide.AddShapeCm(OfficePresetShapeType.RoundRectangle, bounds.Left.ToCentimeters(),
+                bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(), "Architecture Node " + node.Id);
             panel.FillColor = theme.BackgroundColor;
             panel.OutlineColor = theme.AccentColor;
             panel.OutlineWidthPoints = 1.4;
             panel.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
-            AddText(slide, node.Title, bounds.LeftCm + 0.25, bounds.TopCm + 0.2,
-                bounds.WidthCm - 0.5, string.IsNullOrWhiteSpace(node.Body) ? bounds.HeightCm - 0.4 : 0.42,
+            AddText(slide, node.Title, bounds.Left.ToCentimeters() + 0.25, bounds.Top.ToCentimeters() + 0.2,
+                bounds.Width.ToCentimeters() - 0.5, string.IsNullOrWhiteSpace(node.Body) ? bounds.Height.ToCentimeters() - 0.4 : 0.42,
                 10, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
             if (!string.IsNullOrWhiteSpace(node.Body)) {
-                AddText(slide, node.Body!, bounds.LeftCm + 0.25, bounds.TopCm + 0.7,
-                    bounds.WidthCm - 0.5, Math.Max(0.35, bounds.HeightCm - 0.9), 8,
+                AddText(slide, node.Body!, bounds.Left.ToCentimeters() + 0.25, bounds.Top.ToCentimeters() + 0.7,
+                    bounds.Width.ToCentimeters() - 0.5, Math.Max(0.35, bounds.Height.ToCentimeters() - 0.9), 8,
                     theme.SecondaryTextColor, theme.BodyFontName);
             }
         }
 
-        private static double CenterX(PowerPointLayoutBox bounds) => bounds.LeftCm + bounds.WidthCm / 2D;
+        private static double CenterX(PowerPointLayoutBox bounds) => bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() / 2D;
 
-        private static double CenterY(PowerPointLayoutBox bounds) => bounds.TopCm + bounds.HeightCm / 2D;
+        private static double CenterY(PowerPointLayoutBox bounds) => bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() / 2D;
     }
 }

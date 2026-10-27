@@ -324,23 +324,23 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             RenderMermaidDiagrams = false
         };
 
-        var panel = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm,
+        var panel = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(),
             "OfficeIMO Markup Semantic Column Panel");
         panel.FillColor = theme.PanelColor;
         panel.OutlineColor = theme.PanelBorderColor;
         panel.OutlineWidthPoints = 0.85;
 
-        var accent = slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, 0.14,
+        var accent = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), 0.14,
             "OfficeIMO Markup Semantic Column Accent");
         accent.FillColor = columnIndex % 2 == 0 ? theme.AccentColor : theme.Accent2Color;
         accent.OutlineColor = accent.FillColor;
         accent.OutlineWidthPoints = 0;
 
         var cursor = new LayoutCursor(
-            bounds.LeftInches + 0.18,
-            bounds.TopInches + 0.28,
-            Math.Max(0.6, bounds.WidthInches - 0.36),
-            Math.Max(0.8, bounds.HeightInches - 0.42));
+            bounds.Left.ToInches() + 0.18,
+            bounds.Top.ToInches() + 0.28,
+            Math.Max(0.6, bounds.Width.ToInches() - 0.36),
+            Math.Max(0.8, bounds.Height.ToInches() - 0.42));
 
         var startIndex = 0;
         if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading) {

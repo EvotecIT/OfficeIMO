@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Width, PowerPointShapeSizeReference.Largest);
 
-                Assert.Equal(2000, a.Width);
-                Assert.Equal(2000, b.Width);
-                Assert.Equal(2000, c.Width);
-                Assert.Equal(2000, a.Height);
-                Assert.Equal(3000, b.Height);
-                Assert.Equal(4000, c.Height);
+                Assert.Equal(2000, a.Width.ToEmus());
+                Assert.Equal(2000, b.Width.ToEmus());
+                Assert.Equal(2000, c.Width.ToEmus());
+                Assert.Equal(2000, a.Height.ToEmus());
+                Assert.Equal(3000, b.Height.ToEmus());
+                Assert.Equal(4000, c.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -41,10 +41,10 @@ namespace OfficeIMO.Tests {
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Both, PowerPointShapeSizeReference.Average);
 
-                Assert.Equal(2000, a.Width);
-                Assert.Equal(2000, b.Width);
-                Assert.Equal(3000, a.Height);
-                Assert.Equal(3000, b.Height);
+                Assert.Equal(2000, a.Width.ToEmus());
+                Assert.Equal(2000, b.Width.ToEmus());
+                Assert.Equal(3000, a.Height.ToEmus());
+                Assert.Equal(3000, b.Height.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -63,10 +63,10 @@ namespace OfficeIMO.Tests {
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Height, PowerPointShapeSizeReference.First);
 
-                Assert.Equal(500, a.Height);
-                Assert.Equal(500, b.Height);
-                Assert.Equal(1000, a.Width);
-                Assert.Equal(1000, b.Width);
+                Assert.Equal(500, a.Height.ToEmus());
+                Assert.Equal(500, b.Height.ToEmus());
+                Assert.Equal(1000, a.Width.ToEmus());
+                Assert.Equal(1000, b.Width.ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

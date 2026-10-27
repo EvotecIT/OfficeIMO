@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointShape linked = Assert.Single(imported.Slides[0].Shapes,
                     shape => shape.Hyperlink == target);
-                linked.Left += 250000;
+                linked.Left+= OfficeIMO.OfficeLength.Emus(250000);
 
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.Contains(report.Findings, finding =>

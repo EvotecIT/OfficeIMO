@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide duplicate = presentation.DuplicateSlide(0);
             PowerPointTextBox duplicateBadge = duplicate.AddTextBoxCm(
                 "Duplicate of Slide 1",
-                content.LeftCm, content.TopCm + 3.2, content.WidthCm, 0.8);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.2, content.Width.ToCentimeters(), 0.8);
             duplicateBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
             duplicateBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 ConfigureSlide(sourceSlide, sourceContent, "Imported Slide", "This slide is imported from another presentation.");
                 PowerPointTextBox sourceBadge = sourceSlide.AddTextBoxCm(
                     "Source deck",
-                    sourceContent.LeftCm, sourceContent.TopCm + 3.2, sourceContent.WidthCm, 0.8);
+                    sourceContent.Left.ToCentimeters(), sourceContent.Top.ToCentimeters() + 3.2, sourceContent.Width.ToCentimeters(), 0.8);
                 sourceBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
                 sourceBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
                 sourcePresentation.Save();
@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointSlide imported = presentation.ImportSlide(sourcePresentation, 0, insertAt: 1);
                 PowerPointTextBox importBadge = imported.AddTextBoxCm(
                     "Imported from Slides Management - Source.pptx",
-                    content.LeftCm, content.TopCm + 3.2, content.WidthCm, 0.8);
+                    content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.2, content.Width.ToCentimeters(), 0.8);
                 importBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
                 importBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
             }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 string hiddenLabel = slide.Hidden ? " (hidden)" : string.Empty;
                 PowerPointTextBox badge = slide.AddTextBoxCm(
                     $"Final position: {i + 1}{hiddenLabel}",
-                    content.LeftCm, content.TopCm + 4.2, content.WidthCm, 0.8);
+                    content.Left.ToCentimeters(), content.Top.ToCentimeters() + 4.2, content.Width.ToCentimeters(), 0.8);
                 badge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("666666"));
                 badge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
             }
@@ -69,13 +69,13 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void ConfigureSlide(PowerPointSlide slide, PowerPointLayoutBox content, string title, string body) {
-            PowerPointTextBox titleBox = slide.AddTitleCm(title, content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+            PowerPointTextBox titleBox = slide.AddTitleCm(title, content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
             if (titleBox.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(titleBox.Paragraphs[0]);
             }
 
             PowerPointTextBox description = slide.AddTextBoxCm(body,
-                content.LeftCm, content.TopCm + 1.9, content.WidthCm, 1.2);
+                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.2);
             description.ApplyTextStyle(PowerPointTextStyle.Body);
             description.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
         }

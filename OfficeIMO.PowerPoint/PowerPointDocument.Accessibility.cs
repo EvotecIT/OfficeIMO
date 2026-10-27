@@ -63,8 +63,8 @@ namespace OfficeIMO.PowerPoint {
                 box.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle);
             title ??= textBoxes.FirstOrDefault(box =>
                 string.Equals(box.Title, "Slide title", StringComparison.OrdinalIgnoreCase));
-            title ??= textBoxes.Where(box => box.TopPoints <= slideHeightPoints * 0.32D)
-                .OrderByDescending(box => box.FontSize ?? 0).ThenBy(box => box.TopPoints).FirstOrDefault();
+            title ??= textBoxes.Where(box => box.Top.ToPoints() <= slideHeightPoints * 0.32D)
+                .OrderByDescending(box => box.FontSize ?? 0).ThenBy(box => box.Top.ToPoints()).FirstOrDefault();
             return string.IsNullOrWhiteSpace(title?.Text) ? null : NormalizeVisibleText(title!.Text);
         }
 
@@ -254,9 +254,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool Contains(PowerPointShape outer, PowerPointShape inner) =>
-            inner.LeftPoints >= outer.LeftPoints - 0.5D && inner.TopPoints >= outer.TopPoints - 0.5D &&
-            inner.LeftPoints + inner.WidthPoints <= outer.LeftPoints + outer.WidthPoints + 0.5D &&
-            inner.TopPoints + inner.HeightPoints <= outer.TopPoints + outer.HeightPoints + 0.5D;
+            inner.Left.ToPoints() >= outer.Left.ToPoints() - 0.5D && inner.Top.ToPoints() >= outer.Top.ToPoints() - 0.5D &&
+            inner.Left.ToPoints() + inner.Width.ToPoints() <= outer.Left.ToPoints() + outer.Width.ToPoints() + 0.5D &&
+            inner.Top.ToPoints() + inner.Height.ToPoints() <= outer.Top.ToPoints() + outer.Height.ToPoints() + 0.5D;
 
         private static OfficeColor? ParseColor(string? value) {
             if (string.IsNullOrWhiteSpace(value)) return null;

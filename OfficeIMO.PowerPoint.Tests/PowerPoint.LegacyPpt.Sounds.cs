@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
-                imported.Slides[0].Shapes[0].Left += 1588;
+                imported.Slides[0].Shapes[0].Left+= OfficeIMO.OfficeLength.Emus(1588);
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.Contains(preflight.Findings, finding =>

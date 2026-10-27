@@ -1188,36 +1188,36 @@
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromInches(double leftInches, double topInches, double widthInches, double heightInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox.From(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointLayoutBox.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.FromInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction.",
       "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointLayoutBox.From(... OfficeLength ...)"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox.From(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointLayoutBox.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.FromPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction.",
       "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointLayoutBox.From(... OfficeLength ...)"
     },
     {
@@ -1231,11 +1231,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.InsetCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.InsetCm(double insetCm)",
@@ -1248,11 +1248,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.InsetCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.InsetCm(double leftCm, double topCm, double rightCm, double bottomCm)",
@@ -1265,11 +1265,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.InsetCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsCm(int columnCount, double gutterCm)",
@@ -1282,11 +1282,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsInches(int columnCount, double gutterInches)",
@@ -1299,11 +1299,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsPoints(int columnCount, double gutterPoints)",
@@ -1316,11 +1316,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitColumnsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridCm(int rowCount, int columnCount, double rowGutterCm, double columnGutterCm)",
@@ -1333,11 +1333,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridInches(int rowCount, int columnCount, double rowGutterInches, double columnGutterInches)",
@@ -1350,11 +1350,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridPoints(int rowCount, int columnCount, double rowGutterPoints, double columnGutterPoints)",
@@ -1367,11 +1367,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGridPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsCm(int rowCount, double gutterCm)",
@@ -1384,11 +1384,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsInches(int rowCount, double gutterInches)",
@@ -1401,11 +1401,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsPoints(int rowCount, double gutterPoints)",
@@ -1418,11 +1418,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRowsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.TakeBottomCm(double heightCm)",
@@ -1435,11 +1435,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.TakeBottomCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.TakeTopCm(double heightCm)",
@@ -1452,11 +1452,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointLayoutBox.TakeTopCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSizePoints(int sizePoints)",
@@ -2041,11 +2041,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.MoveByCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.MoveByInches(double offsetXInches, double offsetYInches)",
@@ -2058,11 +2058,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.MoveByInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.MoveByPoints(double offsetXPoints, double offsetYPoints)",
@@ -2075,11 +2075,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.MoveByPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.ResizeCm(double widthCm, double heightCm, PowerPointShapeAnchor anchor = TopLeft)",
@@ -2092,11 +2092,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.ResizeCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.ResizeInches(double widthInches, double heightInches, PowerPointShapeAnchor anchor = TopLeft)",
@@ -2109,11 +2109,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.ResizeInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.ResizePoints(double widthPoints, double heightPoints, PowerPointShapeAnchor anchor = TopLeft)",
@@ -2126,11 +2126,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.ResizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetPositionCm(double leftCm, double topCm)",
@@ -2143,11 +2143,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetPositionCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetPositionInches(double leftInches, double topInches)",
@@ -2160,11 +2160,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetPositionInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetPositionPoints(double leftPoints, double topPoints)",
@@ -2177,11 +2177,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetPositionPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetSizeCm(double widthCm, double heightCm)",
@@ -2194,11 +2194,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetSizeCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetSizeInches(double widthInches, double heightInches)",
@@ -2211,11 +2211,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetSizeInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetSizePoints(double widthPoints, double heightPoints)",
@@ -2228,11 +2228,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.SetSizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChartCm(OfficeChartKind chartKind, OfficeChartData data, double leftCm, double topCm, double widthCm, double heightCm, PowerPointChartAccessibilityOptions accessibility = null)",
@@ -4406,11 +4406,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.Resize(long width, long height, PowerPointShapeAnchor anchor = TopLeft)",
@@ -4423,11 +4423,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(Stream audio, string contentType, string extension, long left = 0, long top = 0, long width = 914400, long height = 914400)",
@@ -5589,18 +5589,18 @@
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromCentimeters(double leftCm, double topCm, double widthCm, double heightCm)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromCentimeters(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointLayoutBox.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: heightCm, leftCm, topCm, widthCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction.",
       "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromCentimeters(... OfficeLength ...)"
     },
     {
@@ -5614,11 +5614,11 @@
       "notes": "Numeric parameters with unit-suffixed names: gutterEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitGrid(int rowCount, int columnCount, long rowGutterEmus, long columnGutterEmus)",
@@ -5631,11 +5631,11 @@
       "notes": "Numeric parameters with unit-suffixed names: columnGutterEmus, rowGutterEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.SplitRows(int rowCount, long gutterEmus)",
@@ -5648,11 +5648,11 @@
       "notes": "Numeric parameters with unit-suffixed names: gutterEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetGridSpacing(long xEmus, long yEmus)",
@@ -7081,11 +7081,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.BottomInches",
@@ -7097,11 +7097,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.BottomPoints",
@@ -7113,11 +7113,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.HeightCm",
@@ -7129,11 +7129,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.HeightInches",
@@ -7145,11 +7145,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.HeightPoints",
@@ -7161,11 +7161,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.LeftCm",
@@ -7177,11 +7177,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.LeftInches",
@@ -7193,11 +7193,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.LeftPoints",
@@ -7209,11 +7209,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.RightCm",
@@ -7225,11 +7225,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.RightInches",
@@ -7241,11 +7241,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.RightPoints",
@@ -7257,11 +7257,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.TopCm",
@@ -7273,11 +7273,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.TopInches",
@@ -7289,11 +7289,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.TopPoints",
@@ -7305,11 +7305,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.WidthCm",
@@ -7321,11 +7321,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.WidthInches",
@@ -7337,11 +7337,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.WidthPoints",
@@ -7353,11 +7353,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePoints",
@@ -7595,11 +7595,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.BottomInches",
@@ -7611,11 +7611,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.BottomPoints",
@@ -7627,11 +7627,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterXCm",
@@ -7643,11 +7643,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterXInches",
@@ -7659,11 +7659,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterXPoints",
@@ -7675,11 +7675,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterYCm",
@@ -7691,11 +7691,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterYInches",
@@ -7707,11 +7707,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.CenterYPoints",
@@ -7723,11 +7723,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.HeightCm",
@@ -7739,11 +7739,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.HeightInches",
@@ -7755,11 +7755,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.HeightPoints",
@@ -7771,11 +7771,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.LeftCm",
@@ -7787,11 +7787,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.LeftInches",
@@ -7803,11 +7803,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.LeftPoints",
@@ -7819,11 +7819,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.OutlineWidthPoints",
@@ -7851,11 +7851,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.RightInches",
@@ -7867,11 +7867,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.RightPoints",
@@ -7883,11 +7883,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.TopCm",
@@ -7899,11 +7899,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.TopInches",
@@ -7915,11 +7915,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.TopPoints",
@@ -7931,11 +7931,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.WidthCm",
@@ -7947,11 +7947,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.WidthInches",
@@ -7963,11 +7963,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.WidthPoints",
@@ -7979,11 +7979,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions.SpacingEmus",
@@ -8748,11 +8748,11 @@
       "notes": "Consider replacing PowerPointLayoutBox with a Core OfficeRect if Word and PDF positioning need the same box.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shape bounds and rectangular layout use OfficeLength. Unit-specific properties, factories and positioning/splitting methods are consolidated; every compiled consumer uses explicit unit construction or extraction."
     },
     {
       "old": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions",
@@ -9549,6 +9549,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Mechanical PowerShell save calls assign Password=null explicitly for unencrypted output. This preserves plain-copy and subsequent-save behavior after loading an encrypted document; omitted native save passwords continue to inherit source encryption as documented. Excel save-option snapshots retain preflight and formula settings. Existing encrypted-source overwrite guards still require an explicit -Password."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Raw long shape Left, Top, Width, Height, Right, Bottom, CenterX and CenterY are OfficeLength properties, alongside Bounds. PowerPointLayoutBox has only its typed constructor and typed properties. SetPosition, SetSize, Resize, MoveBy, Inset, TakeTop, TakeBottom, SplitColumns, SplitRows and SplitGrid accept explicit lengths. Native Open XML storage, drawing export and legacy codecs extract EMUs or points at their existing boundaries; dimensionless scales remain doubles. Layout arithmetic preserves whole-EMU insets and split remainders."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PowerPoint chart fixture data lists the 17 shared-composition families that the engine supports instead of enumerating the cross-format OfficeChartType union and its duplicate enum aliases. Native chart, point-color, data-update and saved summary contracts remain tested. Remaining Google Slides live-test consumers use the renamed Document result property; the typed-table sizing fixture supplies its existing explicit projection configuration."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

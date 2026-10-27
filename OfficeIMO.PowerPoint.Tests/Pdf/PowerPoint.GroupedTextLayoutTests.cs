@@ -50,8 +50,8 @@ public sealed class PowerPointGroupedTextLayoutTests {
         box.FontName = family;
         var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(1000, 1060, 160, 10) });
         if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(1000, 1080, 160, 10) });
-        group.LeftPoints = 40;
-        group.TopPoints = 40;
+        group.Left= OfficeIMO.OfficeLength.Points(40);
+        group.Top= OfficeIMO.OfficeLength.Points(40);
         var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         });

@@ -993,10 +993,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         double scale = presentation.SlideSize.WidthPoints / 160D;
         Assert.Equal(pageRotation, picture.Rotation);
-        Assert.Equal(80D * scale, picture.WidthPoints, 4);
-        Assert.Equal(40D * scale, picture.HeightPoints, 4);
-        Assert.Equal((visual.Left + visual.Width / 2D) * scale, picture.LeftPoints + picture.WidthPoints / 2D, 4);
-        Assert.Equal((visual.Top + visual.Height / 2D) * scale, picture.TopPoints + picture.HeightPoints / 2D, 4);
+        Assert.Equal(80D * scale, picture.Width.ToPoints(), 4);
+        Assert.Equal(40D * scale, picture.Height.ToPoints(), 4);
+        Assert.Equal((visual.Left + visual.Width / 2D) * scale, picture.Left.ToPoints() + picture.Width.ToPoints() / 2D, 4);
+        Assert.Equal((visual.Top + visual.Height / 2D) * scale, picture.Top.ToPoints() + picture.Height.ToPoints() / 2D, 4);
     }
 
     [Fact]

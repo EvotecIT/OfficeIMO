@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(topCm), "Content area does not fit on the slide.");
             }
 
-            return PowerPointLayoutBox.FromCentimeters(horizontalMarginCm, topCm, width, height);
+            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(horizontalMarginCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(width),OfficeIMO.OfficeLength.Centimeters(height));
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox[] ContentColumns(int columnCount, double gutterCm = 0.65,
             double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
-            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitColumnsCm(columnCount, gutterCm);
+            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitColumns(columnCount,OfficeIMO.OfficeLength.Centimeters(gutterCm));
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox[] ContentRows(int rowCount, double gutterCm = 0.55,
             double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
-            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitRowsCm(rowCount, gutterCm);
+            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitRows(rowCount,OfficeIMO.OfficeLength.Centimeters(gutterCm));
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
             double columnGutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65,
             double horizontalMarginCm = 1.5) {
             return ContentArea(topCm, bottomMarginCm, horizontalMarginCm)
-                .SplitGridCm(rowCount, columnCount, rowGutterCm, columnGutterCm);
+                .SplitGrid(rowCount,columnCount,OfficeIMO.OfficeLength.Centimeters(rowGutterCm),OfficeIMO.OfficeLength.Centimeters(columnGutterCm));
         }
 
         /// <summary>
@@ -130,8 +130,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string resolvedColor = color ?? (_dark ? _theme.AccentLightColor : _theme.SecondaryTextColor);
-            return PowerPointDesignExtensions.AddText(_slide, text, bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, fontSize, resolvedColor, _theme.BodyFontName, bold);
+            return PowerPointDesignExtensions.AddText(_slide, text, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), fontSize, resolvedColor, _theme.BodyFontName, bold);
         }
 
         /// <summary>
@@ -215,16 +215,16 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, "Composer Metric Band");
+            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), "Composer Metric Band");
             band.FillColor = _dark ? _theme.AccentColor : _theme.AccentColor;
             band.FillTransparency = _dark ? 55 : 0;
             band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
             band.OutlineWidthPoints = 0.45;
             band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.LeftCm, bounds.TopCm,
-                bounds.WidthCm, bounds.HeightCm);
+            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters());
         }
 
         /// <summary>
@@ -245,8 +245,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a polished image or editable placeholder surface inside explicit bounds using a selected visual variant.
         /// </summary>
         public void AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath, PowerPointVisualFrameVariant variant) {
-            PowerPointDesignExtensions.AddVisualFrame(_slide, _theme, imagePath, bounds.LeftCm, bounds.TopCm,
-                bounds.WidthCm, bounds.HeightCm, variant, _options.DesignIntent);
+            PowerPointDesignExtensions.AddVisualFrame(_slide, _theme, imagePath, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(), variant, _options.DesignIntent);
         }
 
         /// <summary>
@@ -258,21 +258,21 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string accent = accentColor ?? _theme.AccentColor;
-            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, "Composer Callout Band");
+            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                bounds.Height.ToCentimeters(), "Composer Callout Band");
             band.FillColor = _dark ? _theme.AccentColor : _theme.PanelColor;
             band.FillTransparency = _dark ? 60 : 0;
             band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
             band.OutlineWidthPoints = 0.45;
             band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-            PowerPointAutoShape rule = _slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, 0.13, bounds.HeightCm,
+            PowerPointAutoShape rule = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), 0.13, bounds.Height.ToCentimeters(),
                 "Composer Callout Accent");
             rule.FillColor = accent;
             rule.OutlineColor = accent;
 
-            PowerPointDesignExtensions.AddText(_slide, text, bounds.LeftCm + 0.55, bounds.TopCm + 0.28,
-                bounds.WidthCm - 0.85, bounds.HeightCm - 0.45, 13,
+            PowerPointDesignExtensions.AddText(_slide, text, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + 0.28,
+                bounds.Width.ToCentimeters() - 0.85, bounds.Height.ToCentimeters() - 0.45, 13,
                 _dark ? _theme.AccentContrastColor : _theme.SecondaryTextColor, _theme.BodyFontName, bold: true);
         }
 
@@ -392,11 +392,11 @@ namespace OfficeIMO.PowerPoint {
 
         private void AddMetricTiles(IReadOnlyList<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
             int count = Math.Min(metrics.Count, 3);
-            PowerPointLayoutBox[] boxes = bounds.SplitColumnsCm(count, 0.34);
+            PowerPointLayoutBox[] boxes = bounds.SplitColumns(count,OfficeIMO.OfficeLength.Centimeters(0.34));
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
                 string accent = GetComposerAccent(i);
-                PowerPointAutoShape tile = _slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+                PowerPointAutoShape tile = _slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
                     "Composer Metric Tile " + (i + 1));
                 tile.FillColor = accent;
                 tile.FillTransparency = _dark ? 55 : 8;
@@ -405,39 +405,39 @@ namespace OfficeIMO.PowerPoint {
                 tile.SetShadow("000000", blurPoints: 2.8, distancePoints: 0.7, angleDegrees: 90, transparencyPercent: 90);
             }
 
-            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metrics, bounds.LeftCm, bounds.TopCm,
-                bounds.WidthCm, bounds.HeightCm);
+            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metrics, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters());
         }
 
         private void AddUnderlinedMetrics(IReadOnlyList<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
             int count = Math.Min(metrics.Count, 3);
-            PowerPointLayoutBox[] boxes = bounds.SplitColumnsCm(count, 0.45);
+            PowerPointLayoutBox[] boxes = bounds.SplitColumns(count,OfficeIMO.OfficeLength.Centimeters(0.45));
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
                 PowerPointMetric metric = metrics[i];
                 string valueColor = _dark ? _theme.AccentContrastColor : _theme.AccentDarkColor;
                 string labelColor = _dark ? _theme.AccentLightColor : _theme.SecondaryTextColor;
-                int valueFontSize = ResolveComposerMetricFontSize(metric.Value, box.WidthCm, box.HeightCm < 1.4 ? 21 : 25);
-                double valueHeight = Math.Max(0.46, box.HeightCm * 0.42);
+                int valueFontSize = ResolveComposerMetricFontSize(metric.Value, box.Width.ToCentimeters(), box.Height.ToCentimeters() < 1.4 ? 21 : 25);
+                double valueHeight = Math.Max(0.46, box.Height.ToCentimeters() * 0.42);
                 valueFontSize = PowerPointDesignExtensions.FitSingleLineFontToHeight(valueFontSize, valueHeight);
-                int labelFontSize = ResolveComposerMetricFontSize(metric.Label, box.WidthCm, 9);
+                int labelFontSize = ResolveComposerMetricFontSize(metric.Label, box.Width.ToCentimeters(), 9);
 
                 PowerPointTextBox value = PowerPointDesignExtensions.AddText(_slide, metric.Value,
-                    box.LeftCm, box.TopCm + Math.Max(0.05, box.HeightCm * 0.08), box.WidthCm,
+                    box.Left.ToCentimeters(), box.Top.ToCentimeters() + Math.Max(0.05, box.Height.ToCentimeters() * 0.08), box.Width.ToCentimeters(),
                     valueHeight, valueFontSize, valueColor, _theme.HeadingFontName, bold: true);
                 CenterComposerText(value);
 
-                double underlineWidth = Math.Min(box.WidthCm * 0.46, 1.4);
+                double underlineWidth = Math.Min(box.Width.ToCentimeters() * 0.46, 1.4);
                 PowerPointAutoShape underline = _slide.AddRectangleCm(
-                    box.LeftCm + (box.WidthCm - underlineWidth) / 2,
-                    box.TopCm + box.HeightCm * 0.54, underlineWidth, 0.05,
+                    box.Left.ToCentimeters() + (box.Width.ToCentimeters() - underlineWidth) / 2,
+                    box.Top.ToCentimeters() + box.Height.ToCentimeters() * 0.54, underlineWidth, 0.05,
                     "Composer Metric Underline " + (i + 1));
                 underline.FillColor = GetComposerAccent(i);
                 underline.OutlineColor = underline.FillColor;
 
                 PowerPointTextBox label = PowerPointDesignExtensions.AddText(_slide, metric.Label,
-                    box.LeftCm + 0.08, box.TopCm + box.HeightCm * 0.62, box.WidthCm - 0.16,
-                    Math.Max(0.35, box.HeightCm * 0.28), labelFontSize, labelColor, _theme.BodyFontName, bold: true);
+                    box.Left.ToCentimeters() + 0.08, box.Top.ToCentimeters() + box.Height.ToCentimeters() * 0.62, box.Width.ToCentimeters() - 0.16,
+                    Math.Max(0.35, box.Height.ToCentimeters() * 0.28), labelFontSize, labelColor, _theme.BodyFontName, bold: true);
                 CenterComposerText(label);
             }
         }

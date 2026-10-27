@@ -1383,13 +1383,13 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
         PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
         Assert.Equal("Reusable renderer badge", importedPicture.AltText);
-        Assert.Equal(72D, importedPicture.LeftPoints, 3);
-        Assert.Equal(180D, importedPicture.TopPoints, 3);
+        Assert.Equal(72D, importedPicture.Left.ToPoints(), 3);
+        Assert.Equal(180D, importedPicture.Top.ToPoints(), 3);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
-        Assert.Equal(180D, importedChart.LeftPoints, 3);
-        Assert.Equal(130D, importedChart.TopPoints, 3);
-        Assert.Equal(260D, importedChart.WidthPoints, 3);
-        Assert.Equal(150D, importedChart.HeightPoints, 3);
+        Assert.Equal(180D, importedChart.Left.ToPoints(), 3);
+        Assert.Equal(130D, importedChart.Top.ToPoints(), 3);
+        Assert.Equal(260D, importedChart.Width.ToPoints(), 3);
+        Assert.Equal(150D, importedChart.Height.ToPoints(), 3);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
         OfficeSeries importedSeries = Assert.Single(snapshot.Data.Series);
@@ -1430,8 +1430,8 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument imported = result.Value;
 
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
-        Assert.Equal(-18D, picture.LeftPoints, 3);
-        Assert.Equal(-12D, picture.TopPoints, 3);
+        Assert.Equal(-18D, picture.Left.ToPoints(), 3);
+        Assert.Equal(-12D, picture.Top.ToPoints(), 3);
     }
 
     [Fact]
@@ -1461,10 +1461,10 @@ public partial class HtmlOfficeAdapters {
 
         PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
         Assert.Equal("Transformed alt", importedPicture.AltText);
-        Assert.Equal(80D, importedPicture.LeftPoints, 3);
-        Assert.Equal(90D, importedPicture.TopPoints, 3);
-        Assert.Equal(120D, importedPicture.WidthPoints, 3);
-        Assert.Equal(72D, importedPicture.HeightPoints, 3);
+        Assert.Equal(80D, importedPicture.Left.ToPoints(), 3);
+        Assert.Equal(90D, importedPicture.Top.ToPoints(), 3);
+        Assert.Equal(120D, importedPicture.Width.ToPoints(), 3);
+        Assert.Equal(72D, importedPicture.Height.ToPoints(), 3);
         Assert.Equal(23.5D, importedPicture.Rotation!.Value, 3);
         Assert.True(importedPicture.HorizontalFlip);
         Assert.True(importedPicture.VerticalFlip);

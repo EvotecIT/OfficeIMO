@@ -222,7 +222,7 @@ namespace OfficeIMO.PowerPoint {
 
             long width = WidthEmus - (2 * marginEmus);
             long height = HeightEmus - (2 * marginEmus);
-            return new PowerPointLayoutBox(marginEmus, marginEmus, width, height);
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(width),OfficeIMO.OfficeLength.Emus(height));
         }
 
         /// <summary>
@@ -265,19 +265,19 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLayoutBox content = GetContentBox(marginEmus);
             long totalGutter = gutterEmus * (columnCount - 1);
-            if (totalGutter > content.Width) {
+            if (totalGutter > content.Width.ToEmus()) {
                 throw new ArgumentOutOfRangeException(nameof(gutterEmus), "Gutter exceeds available width.");
             }
 
-            long columnWidth = (content.Width - totalGutter) / columnCount;
+            long columnWidth = (content.Width.ToEmus() - totalGutter) / columnCount;
             if (columnWidth <= 0) {
                 throw new InvalidOperationException("Column width is not positive.");
             }
 
             var columns = new PowerPointLayoutBox[columnCount];
-            long left = content.Left;
+            long left = content.Left.ToEmus();
             for (int i = 0; i < columnCount; i++) {
-                columns[i] = new PowerPointLayoutBox(left, content.Top, columnWidth, content.Height);
+                columns[i] = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(left),OfficeIMO.OfficeLength.Emus(content.Top.ToEmus()),OfficeIMO.OfficeLength.Emus(columnWidth),OfficeIMO.OfficeLength.Emus(content.Height.ToEmus()));
                 left += columnWidth + gutterEmus;
             }
 
@@ -336,19 +336,19 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLayoutBox content = GetContentBox(marginEmus);
             long totalGutter = gutterEmus * (rowCount - 1);
-            if (totalGutter > content.Height) {
+            if (totalGutter > content.Height.ToEmus()) {
                 throw new ArgumentOutOfRangeException(nameof(gutterEmus), "Gutter exceeds available height.");
             }
 
-            long rowHeight = (content.Height - totalGutter) / rowCount;
+            long rowHeight = (content.Height.ToEmus() - totalGutter) / rowCount;
             if (rowHeight <= 0) {
                 throw new InvalidOperationException("Row height is not positive.");
             }
 
             var rows = new PowerPointLayoutBox[rowCount];
-            long top = content.Top;
+            long top = content.Top.ToEmus();
             for (int i = 0; i < rowCount; i++) {
-                rows[i] = new PowerPointLayoutBox(content.Left, top, content.Width, rowHeight);
+                rows[i] = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(content.Left.ToEmus()),OfficeIMO.OfficeLength.Emus(top),OfficeIMO.OfficeLength.Emus(content.Width.ToEmus()),OfficeIMO.OfficeLength.Emus(rowHeight));
                 top += rowHeight + gutterEmus;
             }
 

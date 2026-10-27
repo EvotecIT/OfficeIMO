@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings,
             ref int inspectedShapeCount) {
             InspectShapeTree(slide, slide.Shapes, slideIndex,
-                new PowerPointLayoutBox(0L, 0L, slideWidth, slideHeight), options, findings, null,
+                new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(slideWidth),OfficeIMO.OfficeLength.Emus(slideHeight)), options, findings, null,
                 0, ref inspectedShapeCount);
 
             if (options.IncludeVisualSnapshotDiagnostics) {
@@ -100,21 +100,21 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
             IList<PowerPointDeckPreflightFinding> findings) {
             PowerPointLayoutBox bounds = shape.Bounds;
-            if (bounds.Width <= 0L || bounds.Height <= 0L) {
+            if (bounds.Width.ToEmus() <= 0L || bounds.Height.ToEmus() <= 0L) {
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "layout-invalid-bounds",
                     "Shape has a non-positive width or height.", slideIndex, shapeIndex, shape, bounds));
                 return;
             }
 
-            if (bounds.Left < canvas.Left || bounds.Top < canvas.Top ||
-                bounds.Right > canvas.Right || bounds.Bottom > canvas.Bottom) {
+            if (bounds.Left.ToEmus() < canvas.Left.ToEmus() || bounds.Top.ToEmus() < canvas.Top.ToEmus() ||
+                bounds.Right.ToEmus() > canvas.Right.ToEmus() || bounds.Bottom.ToEmus() > canvas.Bottom.ToEmus()) {
                 long bleed = PowerPointUnits.FromPoints(options.MaximumDecorativeBleedPoints);
                 bool allowedDecorativeBleed = options.AllowDecorativeShapeBleed &&
                     shape is PowerPointAutoShape &&
-                    bounds.Left >= canvas.Left - bleed && bounds.Top >= canvas.Top - bleed &&
-                    bounds.Right <= canvas.Right + bleed && bounds.Bottom <= canvas.Bottom + bleed &&
-                    bounds.Right > canvas.Left && bounds.Bottom > canvas.Top &&
-                    bounds.Left < canvas.Right && bounds.Top < canvas.Bottom;
+                    bounds.Left.ToEmus() >= canvas.Left.ToEmus() - bleed && bounds.Top.ToEmus() >= canvas.Top.ToEmus() - bleed &&
+                    bounds.Right.ToEmus() <= canvas.Right.ToEmus() + bleed && bounds.Bottom.ToEmus() <= canvas.Bottom.ToEmus() + bleed &&
+                    bounds.Right.ToEmus() > canvas.Left.ToEmus() && bounds.Bottom.ToEmus() > canvas.Top.ToEmus() &&
+                    bounds.Left.ToEmus() < canvas.Right.ToEmus() && bounds.Top.ToEmus() < canvas.Bottom.ToEmus();
                 if (allowedDecorativeBleed) {
                     return;
                 }
@@ -142,9 +142,9 @@ namespace OfficeIMO.PowerPoint {
                 return measurer.MeasureWidth(value, style) * 72D / OfficeTextMeasurer.DefaultDpi;
             };
 
-            double contentWidth = Math.Max(1D, textBox.WidthPoints -
+            double contentWidth = Math.Max(1D, textBox.Width.ToPoints() -
                 (textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints) - (textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints));
-            double contentHeight = Math.Max(1D, textBox.HeightPoints -
+            double contentHeight = Math.Max(1D, textBox.Height.ToPoints() -
                 (textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints) - (textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints));
             double resolvedFontSize = authoredFontSize;
 
@@ -239,17 +239,17 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    long intersectionWidth = Math.Min(leftBounds.Right, rightBounds.Right) -
-                                             Math.Max(leftBounds.Left, rightBounds.Left);
-                    long intersectionHeight = Math.Min(leftBounds.Bottom, rightBounds.Bottom) -
-                                              Math.Max(leftBounds.Top, rightBounds.Top);
+                    long intersectionWidth = Math.Min(leftBounds.Right.ToEmus(), rightBounds.Right.ToEmus()) -
+                                             Math.Max(leftBounds.Left.ToEmus(), rightBounds.Left.ToEmus());
+                    long intersectionHeight = Math.Min(leftBounds.Bottom.ToEmus(), rightBounds.Bottom.ToEmus()) -
+                                              Math.Max(leftBounds.Top.ToEmus(), rightBounds.Top.ToEmus());
                     if (intersectionWidth <= tolerance || intersectionHeight <= tolerance) {
                         continue;
                     }
 
                     double intersectionArea = intersectionWidth * (double)intersectionHeight;
-                    double smallerArea = Math.Min(leftBounds.Width * (double)leftBounds.Height,
-                        rightBounds.Width * (double)rightBounds.Height);
+                    double smallerArea = Math.Min(leftBounds.Width.ToEmus() * (double)leftBounds.Height.ToEmus(),
+                        rightBounds.Width.ToEmus() * (double)rightBounds.Height.ToEmus());
                     if (smallerArea <= 0D || intersectionArea / smallerArea < options.MinimumCollisionOverlapRatio) {
                         continue;
                     }
@@ -270,8 +270,8 @@ namespace OfficeIMO.PowerPoint {
             shape.ShapeContentType == PowerPointShapeContentType.Group;
 
         private static bool Contains(PowerPointLayoutBox outer, PowerPointLayoutBox inner, double tolerance) =>
-            inner.Left >= outer.Left - tolerance && inner.Top >= outer.Top - tolerance &&
-            inner.Right <= outer.Right + tolerance && inner.Bottom <= outer.Bottom + tolerance;
+            inner.Left.ToEmus() >= outer.Left.ToEmus() - tolerance && inner.Top.ToEmus() >= outer.Top.ToEmus() - tolerance &&
+            inner.Right.ToEmus() <= outer.Right.ToEmus() + tolerance && inner.Bottom.ToEmus() <= outer.Bottom.ToEmus() + tolerance;
 
         private static void InspectVisualSnapshot(PowerPointSlide slide, int slideIndex,
             IList<PowerPointDeckPreflightFinding> findings) {

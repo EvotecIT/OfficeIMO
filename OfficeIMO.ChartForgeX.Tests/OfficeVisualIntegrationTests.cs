@@ -381,8 +381,8 @@ public sealed partial class OfficeVisualIntegrationTests {
             using PowerPointDocument loaded = PowerPointDocument.Load(path);
             PowerPointPicture[] pictures = loaded.Slides[0].Pictures.ToArray();
             Assert.Equal(2, pictures.Length);
-            Assert.Equal(-24D, pictures[0].LeftPoints, 6);
-            Assert.Equal(-12D, pictures[0].TopPoints, 6);
+            Assert.Equal(-24D, pictures[0].Left.ToPoints(), 6);
+            Assert.Equal(-12D, pictures[0].Top.ToPoints(), 6);
             Assert.False(string.IsNullOrWhiteSpace(pictures[0].Name));
             Assert.False(string.IsNullOrWhiteSpace(pictures[1].Name));
             Assert.NotEqual(pictures[0].Name, pictures[1].Name);

@@ -36,6 +36,7 @@ dotnet add package OfficeIMO.PowerPoint
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
@@ -46,8 +47,8 @@ var slide = presentation.AddSlide();
 slide.AddTitle("OfficeIMO.PowerPoint");
 
 var body = slide.AddTextBox("Generated without PowerPoint automation.");
-body.SetPositionCm(2, 2);
-body.SetSizeCm(18, 2);
+body.SetPosition(OfficeLength.Centimeters(2), OfficeLength.Centimeters(2));
+body.SetSize(OfficeLength.Centimeters(18), OfficeLength.Centimeters(2));
 
 slide.Transition = PowerPointSlideTransition.Fade;
 presentation.Save();

@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
                 return picture;
             }
 
-            ApplyFocalCrop(picture, info.Width, info.Height, bounds.Width, bounds.Height,
+            ApplyFocalCrop(picture, info.Width, info.Height, bounds.Width.ToEmus(), bounds.Height.ToEmus(),
                 asset.FocalX, asset.FocalY);
             return picture;
         }

@@ -77,10 +77,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.Equal(720d, result.Value.SlideSize.WidthPoints, 3);
         Assert.Equal(360d, result.Value.SlideSize.HeightPoints, 3);
-        Assert.Equal(5d, preview.WidthInches, 3);
-        Assert.Equal(5d, preview.HeightInches, 3);
-        Assert.Equal(2.5d, preview.LeftInches, 3);
-        Assert.Equal(0d, preview.TopInches, 3);
+        Assert.Equal(5d, preview.Width.ToInches(), 3);
+        Assert.Equal(5d, preview.Height.ToInches(), 3);
+        Assert.Equal(2.5d, preview.Left.ToInches(), 3);
+        Assert.Equal(0d, preview.Top.ToInches(), 3);
     }
 
     private static MemoryStream CreatePagesPackageWithRestackedImageAndTextBox(bool imageFirst) {

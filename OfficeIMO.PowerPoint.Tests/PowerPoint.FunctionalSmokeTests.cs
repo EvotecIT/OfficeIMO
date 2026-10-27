@@ -123,8 +123,7 @@ namespace OfficeIMO.Tests {
                     cover.BackgroundColor = "F8F5EF";
                     cover.Transition = PowerPointSlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",
-                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(1.4), PowerPointUnits.FromCentimeters(1.0),
-                            PowerPointUnits.FromCentimeters(18.0), PowerPointUnits.FromCentimeters(1.2)));
+                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.4)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.0)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(18.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.2))));
                     title.FontSize = 32;
                     title.Color = "161411";
 
@@ -135,8 +134,7 @@ namespace OfficeIMO.Tests {
                     hero.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 70);
 
                     PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",
-                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(2.0), PowerPointUnits.FromCentimeters(3.6),
-                            PowerPointUnits.FromCentimeters(14.8), PowerPointUnits.FromCentimeters(1.3)));
+                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.6)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(14.8)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.3))));
                     insight.FontSize = 18;
                     insight.Color = "FFFFFF";
 
@@ -191,8 +189,7 @@ namespace OfficeIMO.Tests {
                     callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20, endOpacityPercent: 0);
 
                     PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",
-                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(17.3), PowerPointUnits.FromCentimeters(6.5),
-                            PowerPointUnits.FromCentimeters(6.0), PowerPointUnits.FromCentimeters(2.2)));
+                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(17.3)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.5)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.2))));
                     calloutText.FontSize = 16;
                     calloutText.Color = "161411";
 

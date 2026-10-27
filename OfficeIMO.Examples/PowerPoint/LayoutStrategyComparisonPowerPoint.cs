@@ -65,12 +65,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                         new PowerPointMetric(preview.Count.ToString(), "slides"),
                         new PowerPointMetric(distinctVariants.ToString(), "variants"),
                         new PowerPointMetric(((int)example.Strategy + 1).ToString(), "strategy")
-                    }, columns[1].TakeTopCm(2.2));
+                    }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(2.2)));
 
                     string reasons = "Palette " + ToDisplayName(example.PaletteStyle.ToString()) + ". Mode " +
                         ToDisplayName(example.Strategy.ToString()) + ". Preview variants before rendering.";
                     composer.AddCalloutBand(reasons,
-                        columns[1].InsetCm(0, 2.75, 0, 0).TakeTopCm(2.25));
+                        columns[1].Inset(OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(2.75),OfficeIMO.OfficeLength.Centimeters(0),OfficeIMO.OfficeLength.Centimeters(0)).TakeTop(OfficeIMO.OfficeLength.Centimeters(2.25)));
                 }, "layout-preview-" + example.Strategy,
                     options => options.FooterRight = ToDisplayName(example.Strategy.ToString()));
 

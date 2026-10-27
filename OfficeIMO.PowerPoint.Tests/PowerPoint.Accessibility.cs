@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox inheritedTitle = presentation.EnsureLayoutPlaceholderTextBox(0, slide.LayoutIndex,
-                PowerPointPlaceholderType.Title, bounds: PowerPointLayoutBox.FromCentimeters(1D, 1D, 20D, 2D));
+                PowerPointPlaceholderType.Title, bounds: new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1D),OfficeIMO.OfficeLength.Centimeters(1D),OfficeIMO.OfficeLength.Centimeters(20D),OfficeIMO.OfficeLength.Centimeters(2D)));
             inheritedTitle.Text = "Click to add title";
 
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();

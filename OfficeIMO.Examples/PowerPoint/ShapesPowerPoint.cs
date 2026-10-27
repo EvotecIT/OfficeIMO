@@ -19,14 +19,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             const double titleHeightCm = 1.4;
             const double bodyGapCm = 0.8;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-            PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm,
-                content.TopCm + titleHeightCm + bodyGapCm,
-                content.WidthCm,
-                content.HeightCm - titleHeightCm - bodyGapCm);
-            PowerPointLayoutBox[] columns = bodyBox.SplitColumnsCm(2, gutterCm);
+            PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+            PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
+            PowerPointLayoutBox[] columns = bodyBox.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = columns[0];
             PowerPointLayoutBox rightColumn = columns[1];
 
@@ -40,17 +37,14 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             const double captionGapCm = 0.6;
             const double captionHeightCm = 1.2;
-            double canvasHeightCm = leftColumn.HeightCm - captionGapCm - captionHeightCm;
-            PowerPointLayoutBox canvasBox = PowerPointLayoutBox.FromCentimeters(
-                leftColumn.LeftCm, leftColumn.TopCm, leftColumn.WidthCm, canvasHeightCm);
-            PowerPointLayoutBox captionBox = PowerPointLayoutBox.FromCentimeters(
-                leftColumn.LeftCm,
-                leftColumn.TopCm + canvasHeightCm + captionGapCm,
-                leftColumn.WidthCm,
-                captionHeightCm);
+            double canvasHeightCm = leftColumn.Height.ToCentimeters() - captionGapCm - captionHeightCm;
+            PowerPointLayoutBox canvasBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(canvasHeightCm));
+            PowerPointLayoutBox captionBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters() + canvasHeightCm + captionGapCm),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(captionHeightCm));
 
             PowerPointAutoShape card = slide.AddRectangleCm(
-                    canvasBox.LeftCm, canvasBox.TopCm, canvasBox.WidthCm, canvasBox.HeightCm * 0.6,
+                    canvasBox.Left.ToCentimeters(), canvasBox.Top.ToCentimeters(), canvasBox.Width.ToCentimeters(), canvasBox.Height.ToCentimeters() * 0.6,
                     "Hero Card")
                 .Fill("E7F7FF")
                 .Stroke("007ACC", 2);
@@ -58,10 +52,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             card.Rotation = -1.5;
 
             PowerPointAutoShape accent = slide.AddRectangleCm(
-                    canvasBox.LeftCm + 0.7,
-                    canvasBox.TopCm + 0.7,
-                    canvasBox.WidthCm * 0.55,
-                    canvasBox.HeightCm * 0.35,
+                    canvasBox.Left.ToCentimeters() + 0.7,
+                    canvasBox.Top.ToCentimeters() + 0.7,
+                    canvasBox.Width.ToCentimeters() * 0.55,
+                    canvasBox.Height.ToCentimeters() * 0.35,
                     "Accent Panel")
                 .Fill("FFF4E5")
                 .Stroke("C48A00", 1.5);
@@ -70,8 +64,8 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             const double badgeSizeCm = 2.1;
             slide.AddEllipseCm(
-                    canvasBox.LeftCm + canvasBox.WidthCm - badgeSizeCm - 0.4,
-                    canvasBox.TopCm + 0.4,
+                    canvasBox.Left.ToCentimeters() + canvasBox.Width.ToCentimeters() - badgeSizeCm - 0.4,
+                    canvasBox.Top.ToCentimeters() + 0.4,
                     badgeSizeCm,
                     badgeSizeCm,
                     "Badge")
@@ -80,10 +74,10 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointAutoShape arrow = slide.AddShapeCm(
                     OfficePresetShapeType.RightArrow,
-                    canvasBox.LeftCm + 0.4,
-                    canvasBox.TopCm + canvasBox.HeightCm * 0.68,
-                    canvasBox.WidthCm * 0.6,
-                    canvasBox.HeightCm * 0.25,
+                    canvasBox.Left.ToCentimeters() + 0.4,
+                    canvasBox.Top.ToCentimeters() + canvasBox.Height.ToCentimeters() * 0.68,
+                    canvasBox.Width.ToCentimeters() * 0.6,
+                    canvasBox.Height.ToCentimeters() * 0.25,
                     "Flow Arrow")
                 .Fill("D9EAD3")
                 .Stroke("6AA84F", 1.5);

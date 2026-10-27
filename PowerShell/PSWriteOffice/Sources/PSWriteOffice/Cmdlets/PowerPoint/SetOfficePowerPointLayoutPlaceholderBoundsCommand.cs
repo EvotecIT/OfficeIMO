@@ -81,7 +81,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderBoundsCommand : PSCmdlet
         PowerPointDocument? presentation = null;
         try
         {
-            var bounds = PowerPointLayoutBox.FromPoints(Left, Top, Width, Height);
+            var bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(Left),OfficeIMO.OfficeLength.Points(Top),OfficeIMO.OfficeLength.Points(Width),OfficeIMO.OfficeLength.Points(Height));
             presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             presentation.SetLayoutPlaceholderBounds(Master, Layout, PlaceholderType, bounds, Index, CreateIfMissing.IsPresent);
 

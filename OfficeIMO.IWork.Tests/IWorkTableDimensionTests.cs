@@ -117,8 +117,8 @@ public sealed partial class IWorkBoundaryTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(121d, table.WidthPoints, 5);
-        Assert.Equal(120.5d, table.HeightPoints, 5);
+        Assert.Equal(121d, table.Width.ToPoints(), 5);
+        Assert.Equal(120.5d, table.Height.ToPoints(), 5);
         Assert.Equal(81d, table.GetColumnWidthPoints(0), 5);
         Assert.Equal(40.5d, table.GetRowHeightPoints(0), 5);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TABLE_SIZING_SCALED"

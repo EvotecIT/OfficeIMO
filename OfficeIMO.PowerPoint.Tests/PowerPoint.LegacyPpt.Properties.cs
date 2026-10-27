@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument imported =
                    PowerPointDocument.Load(input)) {
                 imported.Slides[0].TextBoxes.Single(textBox =>
-                    textBox.Text == "Property guard").Left += 15875L;
+                    textBox.Text == "Property guard").Left+= OfficeIMO.OfficeLength.Emus(15875L);
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,

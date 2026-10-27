@@ -154,8 +154,8 @@ public static partial class PowerPointPdfConverterExtensions {
         style.RepeatHeaderRowCount = style.HeaderRowCount == 0 ? 0 : style.HeaderRowCount;
         style.FooterRowCount = table.LastRow ? 1 : 0;
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
-        style.ColumnWidthPoints = CreateColumnWidths(table, table.WidthPoints);
-        style.RowMinHeights = CreateRowHeights(table, table.HeightPoints);
+        style.ColumnWidthPoints = CreateColumnWidths(table, table.Width.ToPoints());
+        style.RowMinHeights = CreateRowHeights(table, table.Height.ToPoints());
         Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
         if (cellFills != null) {
             style.CellFills = MergeTableCellMap(style.CellFills, cellFills);

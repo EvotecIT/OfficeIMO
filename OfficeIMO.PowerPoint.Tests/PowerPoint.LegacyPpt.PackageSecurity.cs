@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             using PowerPointDocument imported =
                 PowerPointDocument.Load(input);
-            Assert.Single(imported.Slides[0].Shapes).Left += 1000;
+            Assert.Single(imported.Slides[0].Shapes).Left += OfficeIMO.OfficeLength.Emus(1000);
 
             LegacyPptWritePreflightReport report = imported
                 .AnalyzeLegacyPptWrite();

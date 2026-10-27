@@ -23,13 +23,13 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox title = slide.TextBoxes.Single(box => box.Text == "Workplace support plan");
                 PowerPointTextBox subtitle = slide.TextBoxes.Single(box => box.Text == "Demand review and service pilot");
                 PowerPointShape underline = slide.GetShape("Section Title Accent Underline")!;
-                Assert.True(underline.Top >= title.Bottom, "The accent crosses the title's text box.");
-                Assert.True(underline.Bottom <= subtitle.Top, "The accent crosses the subtitle's text box.");
+                Assert.True(underline.Top.ToEmus() >= title.Bottom.ToEmus(), "The accent crosses the title's text box.");
+                Assert.True(underline.Bottom.ToEmus() <= subtitle.Top.ToEmus(), "The accent crosses the subtitle's text box.");
                 foreach (PowerPointTextBox footer in slide.TextBoxes.Where(box =>
                     box.Text == "30 Sep 2026" || box.Text == "Synthetic data")) {
-                    Assert.True(footer.HeightCm * 72 / 2.54 >= footer.FontSize * 1.2,
+                    Assert.True(footer.Height.ToCentimeters() * 72 / 2.54 >= footer.FontSize * 1.2,
                         "The footer box does not contain a complete line at its declared font size.");
-                    Assert.True(footer.Bottom <= presentation.SlideSize.HeightEmus);
+                    Assert.True(footer.Bottom.ToEmus() <= presentation.SlideSize.HeightEmus);
                 }
             });
         }
@@ -50,17 +50,17 @@ namespace OfficeIMO.Tests {
                     .Where(box => new[] { "600", "4", "1,080" }.Contains(box.Text)).ToArray();
                 Assert.Equal(3, values.Length);
                 foreach (PowerPointTextBox value in values) {
-                    Assert.True(value.HeightCm * 72 / 2.54 >= value.FontSize * 1.2,
+                    Assert.True(value.Height.ToCentimeters() * 72 / 2.54 >= value.FontSize * 1.2,
                         "The metric's font exceeds its available vertical space.");
                 }
                 if (variant == PowerPointCaseStudyLayoutVariant.VisualBand) {
                     PowerPointSlide slide = presentation.Slides[0];
                     foreach (string text in new[] { "Observation", "OfficeIMO", "Project portfolio" }) {
                         PowerPointTextBox label = slide.TextBoxes.Single(box => box.Text == text);
-                        Assert.True(label.HeightCm * 72 / 2.54 >= label.FontSize * 1.2);
+                        Assert.True(label.Height.ToCentimeters() * 72 / 2.54 >= label.FontSize * 1.2);
                     }
                     PowerPointTextBox heading = slide.TextBoxes.Single(box => box.Text == "Observation");
-                    Assert.True(slide.GetShape("Case Study Client Rule")!.Top >= heading.Bottom);
+                    Assert.True(slide.GetShape("Case Study Client Rule")!.Top.ToEmus() >= heading.Bottom.ToEmus());
                 }
             });
         }
@@ -73,12 +73,12 @@ namespace OfficeIMO.Tests {
             WithSavedDeck(presentation => {
                 presentation.ComposeDesignerSlide(composer => composer.AddMetricStrip(
                     new[] { new PowerPointMetric("600", "people"), new PowerPointMetric("4", "locations") },
-                    PowerPointLayoutBox.FromCentimeters(2, 5, 18, 1.25), variant));
+                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2),OfficeIMO.OfficeLength.Centimeters(5),OfficeIMO.OfficeLength.Centimeters(18),OfficeIMO.OfficeLength.Centimeters(1.25)), variant));
             }, presentation => {
                 PowerPointTextBox[] values = presentation.Slides[0].TextBoxes
                     .Where(box => box.Text == "600" || box.Text == "4").ToArray();
                 Assert.Equal(2, values.Length);
-                Assert.All(values, value => Assert.True(value.HeightCm * 72 / 2.54 >= value.FontSize * 1.2));
+                Assert.All(values, value => Assert.True(value.Height.ToPoints() >= value.FontSize * 1.2));
             });
         }
 

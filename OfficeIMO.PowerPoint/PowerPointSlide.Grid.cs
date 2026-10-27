@@ -52,8 +52,8 @@ namespace OfficeIMO.PowerPoint {
                 if (resizeToCell) {
                     cell.ApplyTo(shape);
                 } else {
-                    shape.Left = cell.Left;
-                    shape.Top = cell.Top;
+                    shape.Left= OfficeIMO.OfficeLength.Emus(cell.Left.ToEmus());
+                    shape.Top= OfficeIMO.OfficeLength.Emus(cell.Top.ToEmus());
                 }
             }
         }
@@ -253,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointLayoutBox[,] BuildGrid(PowerPointLayoutBox bounds, int columns, int rows,
             long gutterX, long gutterY) {
-            return bounds.SplitGrid(rows, columns, gutterY, gutterX);
+            return bounds.SplitGrid(rows,columns,OfficeIMO.OfficeLength.Emus(gutterY),OfficeIMO.OfficeLength.Emus(gutterX));
         }
 
         private static int GetAutoGridColumns(int count, PowerPointLayoutBox bounds, long gutterX, long gutterY,
@@ -269,7 +269,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(minColumns), "MinColumns cannot be greater than MaxColumns.");
             }
 
-            double targetGridRatio = bounds.Height == 0 ? count : bounds.Width / (double)bounds.Height;
+            double targetGridRatio = bounds.Height.ToEmus() == 0 ? count : bounds.Width.ToEmus() / (double)bounds.Height.ToEmus();
             int bestColumns = min;
             double bestScore = double.MaxValue;
             int bestEmpty = int.MaxValue;
@@ -277,8 +277,8 @@ namespace OfficeIMO.PowerPoint {
 
             for (int columns = min; columns <= max; columns++) {
                 int rows = (int)Math.Ceiling(count / (double)columns);
-                double availableWidth = bounds.Width - (double)gutterX * (columns - 1);
-                double availableHeight = bounds.Height - (double)gutterY * (rows - 1);
+                double availableWidth = bounds.Width.ToEmus() - (double)gutterX * (columns - 1);
+                double availableHeight = bounds.Height.ToEmus() - (double)gutterY * (rows - 1);
                 if (availableWidth <= 0 || availableHeight <= 0) {
                     continue;
                 }

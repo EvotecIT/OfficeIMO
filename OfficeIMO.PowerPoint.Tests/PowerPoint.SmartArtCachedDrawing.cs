@@ -30,8 +30,8 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         Assert.Equal(3, shapes.Count(shape => shape is PowerPointAutoShape { ShapeType: OfficePresetShapeType.RightArrow }));
         Assert.Equal(new[] { "Discover", "Represent", "Round-trip", "Validate" },
             shapes.OfType<PowerPointTextBox>().Select(text => text.Text.Trim()).Where(text => text.Length > 0).ToArray());
-        Assert.Equal(smartArt.LeftPoints, group.LeftPoints, 3);
-        Assert.Equal(smartArt.WidthPoints, group.WidthPoints, 3);
+        Assert.Equal(smartArt.Left.ToPoints(), group.Left.ToPoints(), 3);
+        Assert.Equal(smartArt.Width.ToPoints(), group.Width.ToPoints(), 3);
 
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-smartart");
@@ -62,7 +62,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         PowerPointSmartArt smartArt = originalSlide.Shapes.OfType<PowerPointSmartArt>().Single();
         Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape originalGroup, out string? current), current);
         var originalLabels = originalSlide.GetGroupChildren(originalGroup).OfType<PowerPointTextBox>()
-            .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.LeftPoints).ToArray();
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.Left.ToPoints()).ToArray();
         string[] modelIds = ReadSmartArtModelIds(originalSlide.SlidePart);
         string[] expected = { swap ? "Represent" : "Dis cover", swap ? "Discover" : "Represent", "Round-trip", "Validate" };
         smartArt.SetNodeText(0, expected[0]);
@@ -77,12 +77,12 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         Assert.Equal(expected, edited.GetNodeTexts());
         Assert.True(edited.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
         var labels = slide.GetGroupChildren(group).OfType<PowerPointTextBox>()
-            .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.LeftPoints).ToArray();
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.Left.ToPoints()).ToArray();
         Assert.Equal(expected, labels.Select(item => item.Text));
-        Assert.Equal((originalGroup.LeftPoints, originalGroup.TopPoints, originalGroup.WidthPoints, originalGroup.HeightPoints),
-            (group.LeftPoints, group.TopPoints, group.WidthPoints, group.HeightPoints));
-        Assert.Equal(originalLabels.Select(item => (item.LeftPoints, item.TopPoints, item.WidthPoints, item.HeightPoints)),
-            labels.Select(item => (item.LeftPoints, item.TopPoints, item.WidthPoints, item.HeightPoints)));
+        Assert.Equal((originalGroup.Left.ToPoints(), originalGroup.Top.ToPoints(), originalGroup.Width.ToPoints(), originalGroup.Height.ToPoints()),
+            (group.Left.ToPoints(), group.Top.ToPoints(), group.Width.ToPoints(), group.Height.ToPoints()));
+        Assert.Equal(originalLabels.Select(item => (item.Left.ToPoints(), item.Top.ToPoints(), item.Width.ToPoints(), item.Height.ToPoints())),
+            labels.Select(item => (item.Left.ToPoints(), item.Top.ToPoints(), item.Width.ToPoints(), item.Height.ToPoints())));
 
         // Resolve fonts explicitly: neither case depends on fonts installed on the test host.
         var pdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
@@ -97,15 +97,15 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         var page = pdf.GetPage(reopened.Slides.ToList().IndexOf(slide) + 1);
         for (int index = 0; index < labels.Length; index++) {
             PowerPointTextBox label = labels[index];
-            double left = group.LeftPoints + label.LeftPoints;
-            double top = (double)page.Height - group.TopPoints - label.TopPoints;
+            double left = group.Left.ToPoints() + label.Left.ToPoints();
+            double top = (double)page.Height - group.Top.ToPoints() - label.Top.ToPoints();
             // The cached group has unscaled child coordinates. Read each label's glyphs in
             // content order: font metrics may wrap a word across lines, and page-wide text
             // extraction interleaves adjacent nodes. Preserve actual spaces without normalization.
             var letters = page.Letters.Where(letter => letter.StartBaseLine.X >= left
-                && letter.StartBaseLine.X <= left + label.WidthPoints
+                && letter.StartBaseLine.X <= left + label.Width.ToPoints()
                 && letter.StartBaseLine.Y <= top
-                && letter.StartBaseLine.Y >= top - label.HeightPoints).ToArray();
+                && letter.StartBaseLine.Y >= top - label.Height.ToPoints()).ToArray();
             Assert.Equal(expected[index], string.Concat(letters.Select(letter => letter.Value)));
             Assert.All(letters, letter => Assert.Contains(embeddedFont ? "SmartArtFixture" : "Helvetica", letter.FontName,
                 StringComparison.Ordinal));

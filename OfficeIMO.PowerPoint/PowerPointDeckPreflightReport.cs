@@ -233,10 +233,10 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLayoutBox value = bounds.Value;
             json.Append('{');
-            AppendDouble(json, "left", value.LeftPoints, true);
-            AppendDouble(json, "top", value.TopPoints, true);
-            AppendDouble(json, "width", value.WidthPoints, true);
-            AppendDouble(json, "height", value.HeightPoints, false);
+            AppendDouble(json, "left", value.Left.ToPoints(), true);
+            AppendDouble(json, "top", value.Top.ToPoints(), true);
+            AppendDouble(json, "width", value.Width.ToPoints(), true);
+            AppendDouble(json, "height", value.Height.ToPoints(), false);
             json.Append('}');
         }
 

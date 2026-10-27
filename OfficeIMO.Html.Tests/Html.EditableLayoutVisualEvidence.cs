@@ -138,10 +138,10 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
     }
 
     private static bool Overlaps(PowerPointTextBox first, PowerPointTextBox second) =>
-        first.LeftPoints < second.LeftPoints + second.WidthPoints
-        && first.LeftPoints + first.WidthPoints > second.LeftPoints
-        && first.TopPoints < second.TopPoints + second.HeightPoints
-        && first.TopPoints + first.HeightPoints > second.TopPoints;
+        first.Left.ToPoints() < second.Left.ToPoints() + second.Width.ToPoints()
+        && first.Left.ToPoints() + first.Width.ToPoints() > second.Left.ToPoints()
+        && first.Top.ToPoints() < second.Top.ToPoints() + second.Height.ToPoints()
+        && first.Top.ToPoints() + first.Height.ToPoints() > second.Top.ToPoints();
 
     private static void WriteEvidenceWhenRequested(string fileName, byte[] bytes) {
         string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR");

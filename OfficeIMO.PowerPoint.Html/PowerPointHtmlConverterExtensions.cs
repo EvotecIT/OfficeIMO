@@ -185,10 +185,10 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendPositionedShape(StringBuilder body, PptCore.PowerPointShape shape, PowerPointHtmlSaveOptions options) {
-        double left = shape.LeftPoints;
-        double top = shape.TopPoints;
-        double width = Math.Max(1D, shape.WidthPoints);
-        double height = Math.Max(1D, shape.HeightPoints);
+        double left = shape.Left.ToPoints();
+        double top = shape.Top.ToPoints();
+        double width = Math.Max(1D, shape.Width.ToPoints());
+        double height = Math.Max(1D, shape.Height.ToPoints());
         string contentClass = shape switch {
             PptCore.PowerPointTable => " officeimo-shape-table",
             PptCore.PowerPointMedia => " officeimo-shape-media",
@@ -283,10 +283,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
                 .Append(picture.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-left", picture.Left.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", picture.Top.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", picture.Width.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", picture.Height.ToPoints(), omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", picture.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", picture.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", picture.VerticalFlip == true);
@@ -298,13 +298,13 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Size: ")
-                .Append(FormatNumber(picture.WidthPoints))
+                .Append(FormatNumber(picture.Width.ToPoints()))
                 .Append("pt x ")
-                .Append(FormatNumber(picture.HeightPoints))
+                .Append(FormatNumber(picture.Height.ToPoints()))
                 .Append("pt; Position: ")
-                .Append(FormatNumber(picture.LeftPoints))
+                .Append(FormatNumber(picture.Left.ToPoints()))
                 .Append("pt, ")
-                .Append(FormatNumber(picture.TopPoints))
+                .Append(FormatNumber(picture.Top.ToPoints()))
                 .Append("pt; Type: ")
                 .Append(OfficeHtmlText.Escape(picture.ContentType ?? string.Empty))
                 .Append("</div>");
@@ -366,21 +366,21 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints, omitWhenZero: false);
-            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-left", chart.Left.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", chart.Top.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", chart.Width.ToPoints(), omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", chart.Height.ToPoints(), omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", chart.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", chart.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", chart.VerticalFlip == true);
             body.Append("><div class=\"officeimo-feature-meta\">Size: ")
-                .Append(FormatNumber(chart.WidthPoints))
+                .Append(FormatNumber(chart.Width.ToPoints()))
                 .Append("pt x ")
-                .Append(FormatNumber(chart.HeightPoints))
+                .Append(FormatNumber(chart.Height.ToPoints()))
                 .Append("pt; Position: ")
-                .Append(FormatNumber(chart.LeftPoints))
+                .Append(FormatNumber(chart.Left.ToPoints()))
                 .Append("pt, ")
-                .Append(FormatNumber(chart.TopPoints))
+                .Append(FormatNumber(chart.Top.ToPoints()))
                 .Append("pt</div>");
             AppendChartSummary(body, chart);
             body.Append("</li>");
