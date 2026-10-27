@@ -119,7 +119,11 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_TableMixedRunPreservesMultiplePicturesAndTheirLimit() {
         using WordDocument document = WordDocument.Create();
-        WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        WordTable table = document.AddTable(1, 1);
+        // A narrow authored column makes the cell wrap at the second picture.
+        table.GridColumnWidth = new List<int> { 2400 };
+        table.Rows[0].Cells[0].Width = 2400;
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = 12;
