@@ -146,6 +146,10 @@ public class PdfPanelStyle {
             _paddingX = value;
         }
     }
+    /// <summary>Space before the panel's left edge, relative to its containing frame. Negative values extend the frame outward.</summary>
+    public OfficeLength LeftInset { get; set; }
+    /// <summary>Space after the panel's right edge, relative to its containing frame. Negative values extend the frame outward.</summary>
+    public OfficeLength RightInset { get; set; }
     /// <summary>Optional maximum width for the panel box (points). When set, the box can be centered or right-aligned.</summary>
     public double? MaxWidth {
         get => _maxWidth;
@@ -206,6 +210,8 @@ public class PdfPanelStyle {
             RepeatFragmentDecoration = RepeatFragmentDecoration,
             FragmentBottomInset = FragmentBottomInset,
             PaddingX = PaddingX,
+            LeftInset = LeftInset,
+            RightInset = RightInset,
             MaxWidth = MaxWidth,
             Align = Align,
             SpacingBefore = SpacingBefore,

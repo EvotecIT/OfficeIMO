@@ -30,6 +30,8 @@ namespace OfficeIMO.Word.Pdf {
                 BorderWidth = border?.Width ?? 0D,
                 PaddingX = 0D,
                 PaddingY = 0D,
+                LeftInset = OfficeLength.Points(paragraphStyle.LeftIndent + Math.Min(paragraphStyle.FirstLineIndent, 0D)),
+                RightInset = OfficeLength.Points(paragraphStyle.RightIndent),
                 PaddingTopOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Top),
                 PaddingBottomOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Bottom),
                 RepeatFragmentDecoration = !hasParagraphBorder,

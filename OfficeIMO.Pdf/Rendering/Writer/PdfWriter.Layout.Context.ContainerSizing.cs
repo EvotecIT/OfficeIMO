@@ -42,6 +42,10 @@ internal static partial class PdfWriter {
         }
 
         private static double ResolveContainerOuterWidth(PdfPanelStyle style, double parentWidth) =>
-            style.MaxWidth.HasValue ? Math.Min(parentWidth, style.MaxWidth.Value) : parentWidth;
+            style.MaxWidth.HasValue ? Math.Min(ResolveContainerAvailableWidth(style, parentWidth), style.MaxWidth.Value) :
+                ResolveContainerAvailableWidth(style, parentWidth);
+
+        private static double ResolveContainerAvailableWidth(PdfPanelStyle style, double parentWidth) =>
+            parentWidth - style.LeftInset.ToPoints() - style.RightInset.ToPoints();
     }
 }

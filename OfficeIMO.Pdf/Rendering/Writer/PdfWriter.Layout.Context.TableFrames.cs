@@ -30,6 +30,8 @@ internal static partial class PdfWriter {
             ContainerBlock? container, PdfPanelStyle style, double parentLeft, double parentWidth, double? fontSize = null) {
             if (container?.FrameTable is not { } table)
                 return ResolveContainerFrame(style, parentLeft, parentWidth);
+            parentLeft += style.LeftInset.ToPoints();
+            parentWidth = ResolveContainerAvailableWidth(style, parentWidth);
             PdfTableStyle tableStyle = PreparePairedTableBorders(table, table.Style!);
             double available = parentWidth - container.FrameTableIndent - 2D * style.PaddingX;
             int columns = GetTableColumnCount(table);

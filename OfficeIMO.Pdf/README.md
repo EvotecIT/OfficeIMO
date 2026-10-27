@@ -569,6 +569,10 @@ Columns can contain the normal flow primitives, including rich text, lists,
 tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
 Balanced automatic columns measure nested panels at their child widths and retain
 unfinished semantic and static flow groups with their following siblings.
+`PdfPanelStyle.LeftInset` and `RightInset` place the whole panel inside its
+containing frame, using `OfficeLength` values. The remaining width controls
+wrapping, maximum width and alignment on every page or column fragment.
+Negative insets extend the frame outward. Padding remains inside that frame.
 `PdfPanelStyle.RepeatFragmentDecoration` defaults to `true`: each page or column
 fragment repeats its vertical padding and top/bottom borders. Set it to `false`
 for a continuous panel whose top belongs to its first fragment and whose bottom

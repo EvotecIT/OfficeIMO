@@ -266,9 +266,15 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
                 paragraphStyle = JoinNativeAdjacentParagraphShading(nextParagraph, paragraphStyle, panelStyle, nativeDefaults);
+                double? markerColumnWidth = inlineListMarker
+                    ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap)
+                    : null;
+                paragraphStyle = paragraphStyle.Clone();
+                paragraphStyle.LeftIndent -= panelStyle.LeftInset.ToPoints();
+                paragraphStyle.RightIndent -= panelStyle.RightInset.ToPoints();
                 pdf.PanelParagraph(builder => {
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns || inlineImages.Count > 0, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
-                        inlineMarkerColumnWidth: inlineListMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap) : null, inlineImages: inlineImages);
+                        inlineMarkerColumnWidth: markerColumnWidth, inlineImages: inlineImages);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);

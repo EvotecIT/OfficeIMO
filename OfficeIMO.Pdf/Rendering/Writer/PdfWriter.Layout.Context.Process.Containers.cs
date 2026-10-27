@@ -200,6 +200,8 @@ internal static partial class PdfWriter {
         private static (double X, double Width, double ContentWidth) ResolveContainerFrame(PdfPanelStyle style, double parentLeft, double parentWidth) {
             double outerWidth = ResolveContainerOuterWidth(style, parentWidth);
             ValidatePanelStyle(style, outerWidth);
+            parentLeft += style.LeftInset.ToPoints();
+            parentWidth = ResolveContainerAvailableWidth(style, parentWidth);
             double outerX = style.Align switch {
                 PdfAlign.Center => parentLeft + (parentWidth - outerWidth) / 2D,
                 PdfAlign.Right => parentLeft + parentWidth - outerWidth,
