@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = word.AddParagraph("Before");
             using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
             WordImage image = paragraph.AddText("").AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
-            image.CropLeft = -5000;
+            image.CropLeftRatio = ((double?)(-5000)) / 100000D;
             paragraph.AddText("After");
 
             var result = word.ConvertToPdfWithEvidence();

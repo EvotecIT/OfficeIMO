@@ -318,11 +318,11 @@ namespace OfficeIMO.Word.Html {
                                     srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
                                 SetOutputAttribute(htmlDoc, imgSvg, "src", srcSvg, "Image:src");
-                                if (imgObj.Width.HasValue) {
-                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                                if (imgObj.Width is { } displayWidth) {
+                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                                 }
-                                if (imgObj.Height.HasValue) {
-                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                                if (imgObj.Height is { } displayHeight) {
+                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
                                     SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
@@ -352,11 +352,11 @@ namespace OfficeIMO.Word.Html {
                             } else {
                                 SetOutputAttributeAfterValueReservation(htmlDoc, img, "src", src, "Image:src");
                             }
-                            if (imgObj.Width.HasValue) {
-                                SetOutputAttribute(img, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                            if (imgObj.Width is { } displayWidth) {
+                                SetOutputAttribute(img, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                             }
-                            if (imgObj.Height.HasValue) {
-                                SetOutputAttribute(img, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                            if (imgObj.Height is { } displayHeight) {
+                                SetOutputAttribute(img, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Description)) {
                                 SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");

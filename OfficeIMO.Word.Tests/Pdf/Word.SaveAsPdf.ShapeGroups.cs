@@ -155,8 +155,8 @@ public sealed class PdfShapeGroupTests {
         var image = paragraph.AddText(string.Empty).AddImage(imageStream, "fixed.png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 40 * 12700;
-        image.VerticalPositionOffset = 10 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));

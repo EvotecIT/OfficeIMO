@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Word
                     table4.WidthType = WordTableWidthUnit.Pct;
                     table4.Width = 100 * 50;
                     var image9 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
-                    image9.Width = 100;
+                    image9.Width = OfficeIMO.OfficeLength.Pixels(100);
                     image9.Title = "Chart";
                     image9.Description = "Quarterly chart";
                     document.Save();

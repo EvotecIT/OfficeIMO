@@ -529,7 +529,7 @@ namespace OfficeIMO.Tests {
                 paragraph.IndentationBeforePoints = 12.75D;
                 using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
                 paragraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
-                Assert.Single(document.Images).Width = 15.5D;
+                Assert.Single(document.Images).Width = OfficeIMO.OfficeLength.Pixels(15.5D);
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {
                     CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -583,7 +583,7 @@ namespace OfficeIMO.Tests {
                 GoogleDocsSyncCheckpoint layoutChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[bodyPath], layoutChanged.ContentHashes[bodyPath]);
 
-                image.Width = 20;
+                image.Width = OfficeIMO.OfficeLength.Pixels(20);
                 GoogleDocsSyncCheckpoint imageChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(layoutChanged.ContentHashes[imagePath], imageChanged.ContentHashes[imagePath]);
 

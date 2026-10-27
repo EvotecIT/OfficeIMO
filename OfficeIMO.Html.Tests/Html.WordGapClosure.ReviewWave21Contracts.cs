@@ -44,8 +44,8 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordImage image = Assert.Single(document.Images);
 
-        Assert.Equal(100D, Math.Round(image.Width!.Value));
-        Assert.Equal(100D, Math.Round(image.Height!.Value));
+        Assert.Equal(100D, Math.Round((image.Width?.ToPixels())!.Value));
+        Assert.Equal(100D, Math.Round((image.Height?.ToPixels())!.Value));
     }
 
     [Fact]

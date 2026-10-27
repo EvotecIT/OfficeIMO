@@ -155,9 +155,9 @@ public sealed class WordPdfImportedHeadingColorTests {
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
         WordImage image = paragraph.AddText(string.Empty).AddImage(png, "heading.png", OfficeIMO.OfficeLength.Pixels(160D), OfficeIMO.OfficeLength.Pixels(128D / 3D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.TopAndBottom });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
-        image.HorizontalPositionOffset = 0L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = 0L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         DW.Anchor anchor = image._Image.Anchor!;
         anchor.DistanceFromLeft = anchor.DistanceFromTop = anchor.DistanceFromRight = anchor.DistanceFromBottom = 101600U;
         anchor.BehindDoc = false;

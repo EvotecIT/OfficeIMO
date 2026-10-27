@@ -26,8 +26,8 @@ public sealed class WordImageAuthoringTests {
         Assert.Single(link.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
         Assert.Equal(new[] { "Before", "After" }, main.Document!.Descendants<Text>().Select(text => text.Text));
         Assert.Equal(new Uri("https://example.com/image"), Assert.Single(main.HyperlinkRelationships).Uri);
-        Assert.Equal(16d, image.Width);
-        Assert.Equal(32d, image.Height);
+        Assert.Equal(16d, (image.Width?.ToPixels()));
+        Assert.Equal(32d, (image.Height?.ToPixels()));
         Assert.True(source.CanRead);
     }
 
@@ -42,7 +42,7 @@ public sealed class WordImageAuthoringTests {
         Assert.Equal("Sample", image.Title);
         Assert.Equal("An embedded sample", image.Description);
         Assert.Equal(WordParagraphAlignment.Center, image.Paragraph.ParagraphAlignment);
-        Assert.Equal(24d, image.Width);
+        Assert.Equal(24d, (image.Width?.ToPixels()));
         Assert.Equal(Gif, Assert.Single(document.GetImageBytes()));
         foreach (var embedded in document.OpenImageStreams()) {
             using (embedded) Assert.Equal(Gif.Length, embedded.Length);

@@ -203,7 +203,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (image.Width is double unscaledWidth && image.Height is double unscaledHeight) {
+            if ((image.Width?.ToPixels()) is double unscaledWidth && (image.Height?.ToPixels()) is double unscaledHeight) {
                 _unscaledImageSizes[image] = (unscaledWidth, unscaledHeight);
                 ApplyImageSize(image, (unscaledWidth, unscaledHeight), width, height);
             }

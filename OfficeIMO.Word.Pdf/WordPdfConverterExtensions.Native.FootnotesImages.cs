@@ -259,8 +259,8 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
-            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            double width = image.Width?.ToPoints() ?? 144D;
+            double height = image.Height?.ToPoints() ?? 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
                     anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection)) return false;
             if (image._Image?.Anchor != null && options != null &&

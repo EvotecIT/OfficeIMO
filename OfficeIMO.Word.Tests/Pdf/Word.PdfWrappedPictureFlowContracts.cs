@@ -207,9 +207,9 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         using var stream = new MemoryStream(png);
         var image = paragraph.AddText(string.Empty).AddImage(stream, "picture.png", OfficeIMO.OfficeLength.Pixels(ImageWidth / .75D), OfficeIMO.OfficeLength.Pixels(ImageHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30L * 12700L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30L * 12700L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = (long)(verticalOffset * 12700D);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus((long)(verticalOffset * 12700D));
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         var anchor = main.Document!.Descendants<DW.Anchor>()
             .Concat(main.HeaderParts.SelectMany(part => part.Header!.Descendants<DW.Anchor>())).Single();

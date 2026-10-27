@@ -387,8 +387,8 @@ namespace OfficeIMO.Word {
             Bytes = !includeImageBytes || image.IsExternal ? null : image.ToBytes(),
             Description = image.Description,
             Title = image.Title,
-            Width = image.Width,
-            Height = image.Height,
+            Width = (image.Width?.ToPixels()),
+            Height = (image.Height?.ToPixels()),
             IsInline = image.WrapText == WordImageTextWrapping.InLineWithText,
             WrapText = image.WrapText?.ToString(),
         };

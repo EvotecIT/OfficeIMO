@@ -9,8 +9,8 @@ namespace OfficeIMO.Word.Pdf {
             run = null;
             if (!TryPrepareNativeBodyImage(image, reportPreparationWarnings ? options : null, "table cell image", out byte[] prepared,
                     cancellationToken: options?.CancellationToken ?? cancellationToken)) return false;
-            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
-            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            double width = image.Width?.ToPoints() ?? 144D;
+            double height = image.Height?.ToPoints() ?? 144D;
             run = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, width, height,
                 CreateNativeImageStyle(image, options, "inline image"), baselineOffset: 0D) {
                 ClipToParagraphFragment = clipToParagraphFragment

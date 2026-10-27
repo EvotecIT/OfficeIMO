@@ -47,12 +47,12 @@ namespace OfficeIMO.Examples.Word {
             // Edit the horizontal relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-            image.HorizontalPositionOffset = offsetEmus;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(offsetEmus);
 
             // Edit the vertical relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.VerticalPositionOffset = offsetEmus;
+            image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(offsetEmus);
 
             Console.WriteLine("POST position edit.");
             // After editing, lets reassess the properties.
@@ -66,8 +66,8 @@ namespace OfficeIMO.Examples.Word {
             static void checkImageProps(WordImage imageToInspect) {
                 var hRelativeFrom = imageToInspect.HorizontalPositionRelativeFrom;
                 var vRelativeFrom = imageToInspect.VerticalPositionRelativeFrom;
-                var hOffset = imageToInspect.HorizontalPositionOffset;
-                var vOffset = imageToInspect.VerticalPositionOffset;
+                var hOffset = (imageToInspect.HorizontalPositionOffset?.ToEmus());
+                var vOffset = (imageToInspect.VerticalPositionOffset?.ToEmus());
                 Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom}");
                 Console.WriteLine($"Horizontal PositionOffset value: {hOffset}");
                 Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom}");

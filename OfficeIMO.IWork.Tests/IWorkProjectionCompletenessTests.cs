@@ -219,8 +219,8 @@ public sealed partial class IWorkBoundaryTests {
             - section.Margins.Top.GetValueOrDefault() - section.Margins.Bottom.GetValueOrDefault()) / 20d;
         WordImage image = Assert.Single(result.Value.Images);
 
-        Assert.InRange(image.Width.GetValueOrDefault(), 1d, contentWidth);
-        Assert.InRange(image.Height.GetValueOrDefault(), 1d, contentHeight);
+        Assert.InRange((image.Width?.ToPixels()).GetValueOrDefault(), 1d, contentWidth);
+        Assert.InRange((image.Height?.ToPixels()).GetValueOrDefault(), 1d, contentHeight);
     }
 
     [Fact]

@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions()).ToWord(options);
 
             Assert.Single(document.Images);
-            Assert.InRange(document.Images[0].Width ?? 0, 1, 625);
+            Assert.InRange((document.Images[0].Width?.ToPixels()) ?? 0, 1, 625);
 
             var bodyText = string.Join("\n", document.Paragraphs.Select(p => p.Text));
             Assert.DoesNotContain("\\:", bodyText, StringComparison.Ordinal);

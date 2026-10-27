@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word
             paragraph1Image.FixedOpacity = 80;
             paragraph1Image.AlphaInversionColor = Color.Red;
             paragraph1Image.BlackWhiteThreshold = 60;
-            paragraph1Image.BlurRadius = 5000;
+            paragraph1Image.BlurRadius = OfficeIMO.OfficeLength.Emus(5000);
             paragraph1Image.BlurGrow = true;
             paragraph1Image.ColorChangeFrom = Color.Parse("#97E4FE");
             paragraph1Image.ColorChangeTo = Color.Parse("#FF3399");

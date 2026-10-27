@@ -11166,20 +11166,20 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(4, reloaded.Images.Count);
                     Assert.Equal("image/jpeg", reloaded.Images[0].ContentType);
                     Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[0].ToBytes());
-                    Assert.InRange(reloaded.Images[0].Width!.Value, 49.99, 50.01);
-                    Assert.InRange(reloaded.Images[0].Height!.Value, 39.99, 40.01);
+                    Assert.InRange((reloaded.Images[0].Width?.ToPixels())!.Value, 49.99, 50.01);
+                    Assert.InRange((reloaded.Images[0].Height?.ToPixels())!.Value, 39.99, 40.01);
                     Assert.Equal("image/png", reloaded.Images[1].ContentType);
                     Assert.Equal(File.ReadAllBytes(pngPath), reloaded.Images[1].ToBytes());
-                    Assert.InRange(reloaded.Images[1].Width!.Value, 31.99, 32.01);
-                    Assert.InRange(reloaded.Images[1].Height!.Value, 23.99, 24.01);
+                    Assert.InRange((reloaded.Images[1].Width?.ToPixels())!.Value, 31.99, 32.01);
+                    Assert.InRange((reloaded.Images[1].Height?.ToPixels())!.Value, 23.99, 24.01);
                     Assert.Equal("image/jpeg", reloaded.Images[2].ContentType);
                     Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[2].ToBytes());
-                    Assert.InRange(reloaded.Images[2].Width!.Value, 21.99, 22.01);
-                    Assert.InRange(reloaded.Images[2].Height!.Value, 16.99, 17.01);
+                    Assert.InRange((reloaded.Images[2].Width?.ToPixels())!.Value, 21.99, 22.01);
+                    Assert.InRange((reloaded.Images[2].Height?.ToPixels())!.Value, 16.99, 17.01);
                     Assert.Equal("image/jpeg", reloaded.Images[3].ContentType);
                     Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[3].ToBytes());
-                    Assert.InRange(reloaded.Images[3].Width!.Value, 19.99, 20.01);
-                    Assert.InRange(reloaded.Images[3].Height!.Value, 17.99, 18.01);
+                    Assert.InRange((reloaded.Images[3].Width?.ToPixels())!.Value, 19.99, 20.01);
+                    Assert.InRange((reloaded.Images[3].Height?.ToPixels())!.Value, 17.99, 18.01);
                     Assert.Contains(
                         "Before JPEG  after JPEG",
                         string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text)),
@@ -11250,12 +11250,12 @@ namespace OfficeIMO.Tests {
                     WordImage footerImage = Assert.Single(footer.Images);
                     Assert.Equal("image/jpeg", headerImage.ContentType);
                     Assert.Equal(File.ReadAllBytes(jpegPath), headerImage.ToBytes());
-                    Assert.InRange(headerImage.Width!.Value, 49.99, 50.01);
-                    Assert.InRange(headerImage.Height!.Value, 39.99, 40.01);
+                    Assert.InRange((headerImage.Width?.ToPixels())!.Value, 49.99, 50.01);
+                    Assert.InRange((headerImage.Height?.ToPixels())!.Value, 39.99, 40.01);
                     Assert.Equal("image/png", footerImage.ContentType);
                     Assert.Equal(File.ReadAllBytes(pngPath), footerImage.ToBytes());
-                    Assert.InRange(footerImage.Width!.Value, 31.99, 32.01);
-                    Assert.InRange(footerImage.Height!.Value, 23.99, 24.01);
+                    Assert.InRange((footerImage.Width?.ToPixels())!.Value, 31.99, 32.01);
+                    Assert.InRange((footerImage.Height?.ToPixels())!.Value, 23.99, 24.01);
                     Assert.Empty(reloaded.LegacyDocPreservedFeatures);
                     Assert.Empty(reloaded.LegacyDocCompoundFeatures);
 
@@ -11306,14 +11306,14 @@ namespace OfficeIMO.Tests {
                         Assert.Single(reloaded.Comments).Paragraphs,
                         paragraph => paragraph.IsImage).Image!;
                     Assert.Equal(File.ReadAllBytes(jpegPath), footnoteImage.ToBytes());
-                    Assert.InRange(footnoteImage.Width!.Value, 19.99, 20.01);
-                    Assert.InRange(footnoteImage.Height!.Value, 17.99, 18.01);
+                    Assert.InRange((footnoteImage.Width?.ToPixels())!.Value, 19.99, 20.01);
+                    Assert.InRange((footnoteImage.Height?.ToPixels())!.Value, 17.99, 18.01);
                     Assert.Equal(File.ReadAllBytes(pngPath), endnoteImage.ToBytes());
-                    Assert.InRange(endnoteImage.Width!.Value, 23.99, 24.01);
-                    Assert.InRange(endnoteImage.Height!.Value, 15.99, 16.01);
+                    Assert.InRange((endnoteImage.Width?.ToPixels())!.Value, 23.99, 24.01);
+                    Assert.InRange((endnoteImage.Height?.ToPixels())!.Value, 15.99, 16.01);
                     Assert.Equal(File.ReadAllBytes(jpegPath), commentImage.ToBytes());
-                    Assert.InRange(commentImage.Width!.Value, 17.99, 18.01);
-                    Assert.InRange(commentImage.Height!.Value, 13.99, 14.01);
+                    Assert.InRange((commentImage.Width?.ToPixels())!.Value, 17.99, 18.01);
+                    Assert.InRange((commentImage.Height?.ToPixels())!.Value, 13.99, 14.01);
                     Assert.Empty(reloaded.LegacyDocPreservedFeatures);
                     Assert.Empty(reloaded.LegacyDocCompoundFeatures);
 

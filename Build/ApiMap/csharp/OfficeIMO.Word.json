@@ -2,24 +2,24 @@
   "package": "OfficeIMO.Word",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 329,
+    "changes": 341,
     "byAction": {
-      "change": 139,
-      "internalize": 28,
+      "change": 142,
+      "internalize": 32,
       "merge": 125,
       "move": 1,
       "remove": 26,
-      "rename": 10
+      "rename": 15
     },
     "byCategory": {
       "authoring": 80,
       "conversion": 42,
       "lifecycle": 29,
-      "naming": 6,
+      "naming": 11,
       "options": 4,
       "package": 1,
-      "units": 139,
-      "visibility": 28
+      "units": 142,
+      "visibility": 32
     },
     "packageMoves": 3
   },
@@ -232,8 +232,12 @@
     },
     {
       "fluent": "ImageBuilder.Crop/Rotate/MaxWidth/BehindText/Wrap/Link/Alt/Align",
-      "objectModel": "WordImage properties (CropTop..., Rotation, WrapText, Description) exist; MaxWidth and Link need WordImage members or AddImage options",
-      "file": "OfficeIMO.Word/Fluent/ImageBuilder.cs"
+      "objectModel": "WordImage.SetCrop(OfficeLength? left, top, right, bottom), Crop* OfficeLength properties, Crop*Ratio, Rotation, WrapText, Hyperlink, Description, SetMaximumWidth and Paragraph alignment.",
+      "file": "OfficeIMO.Word/Fluent/ImageBuilder.cs",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "fluent": "H1..H6, P, Ul, Ol, Paragraph, Section, PageSetup, Header/Footer builders, Info builder, ForEach*",
@@ -274,6 +278,22 @@
     {
       "type": "OfficeIMO.Word.LegacyDoc.* / OfficeIMO.Word.Legacy.* model types",
       "why": "33 public legacy model types without the Word prefix."
+    },
+    {
+      "type": "OfficeIMO.Word.WordImage attachment constructors",
+      "file": [
+        "OfficeIMO.Word/WordImage.Construction.cs"
+      ],
+      "why": "Undocumented constructors require a WordDocument owner; AddImage is the documented authoring entry point.",
+      "analysis": "Build/ApiMap/SurfaceAnalysis",
+      "symbols": [
+        "M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordParagraph,System.IO.Stream,System.String,System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Word.WordImageTextWrapping,System.String,System.Nullable{OfficeIMO.Drawing.OfficePresetShapeType},System.Nullable{OfficeIMO.Word.WordImageCompressionQuality})",
+        "M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordParagraph,System.String,System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Word.WordImageTextWrapping,System.String,System.Nullable{OfficeIMO.Drawing.OfficePresetShapeType},System.Nullable{OfficeIMO.Word.WordImageCompressionQuality})",
+        "M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordParagraph,System.String,System.String,System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Word.WordImageTextWrapping,System.String,System.Nullable{OfficeIMO.Drawing.OfficePresetShapeType},System.Nullable{OfficeIMO.Word.WordImageCompressionQuality})",
+        "M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordParagraph,System.Uri,System.Double,System.Double,OfficeIMO.Word.WordImageTextWrapping,System.String,System.Nullable{OfficeIMO.Drawing.OfficePresetShapeType},System.Nullable{OfficeIMO.Word.WordImageCompressionQuality})"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "colors": {
@@ -2540,11 +2560,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropLeftCentimeters",
@@ -2556,11 +2576,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropRightCentimeters",
@@ -2572,11 +2592,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropTopCentimeters",
@@ -2588,11 +2608,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImageExportOptions.LogicalUnitsPerInch",
@@ -3896,69 +3916,69 @@
       "old": "OfficeIMO.Word.WordImage.CropTop",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordImage.CropTop : OfficeLength?",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordImage.CropTopRatio : double?",
+      "reason": "DrawingML source-window percentages become dimensionless ratios. Physical crop distances use OfficeLength on the unsuffixed Crop properties.",
       "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
       "category": "units",
-      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
+      "notes": "The old value is a DrawingML source-window percentage: divide by 100000 to obtain the normalized ratio. It is dimensionless, not twips or a distance. Use the OfficeLength CropTop property for a physical crop that also adjusts the frame and anchor.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropBottom",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordImage.CropBottom : OfficeLength?",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordImage.CropBottomRatio : double?",
+      "reason": "DrawingML source-window percentages become dimensionless ratios. Physical crop distances use OfficeLength on the unsuffixed Crop properties.",
       "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
       "category": "units",
-      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
+      "notes": "The old value is a DrawingML source-window percentage: divide by 100000 to obtain the normalized ratio. It is dimensionless, not twips or a distance. Use the OfficeLength CropBottom property for a physical crop that also adjusts the frame and anchor.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropLeft",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordImage.CropLeft : OfficeLength?",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordImage.CropLeftRatio : double?",
+      "reason": "DrawingML source-window percentages become dimensionless ratios. Physical crop distances use OfficeLength on the unsuffixed Crop properties.",
       "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
       "category": "units",
-      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
+      "notes": "The old value is a DrawingML source-window percentage: divide by 100000 to obtain the normalized ratio. It is dimensionless, not twips or a distance. Use the OfficeLength CropLeft property for a physical crop that also adjusts the frame and anchor.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropRight",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordImage.CropRight : OfficeLength?",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordImage.CropRightRatio : double?",
+      "reason": "DrawingML source-window percentages become dimensionless ratios. Physical crop distances use OfficeLength on the unsuffixed Crop properties.",
       "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
       "category": "units",
-      "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
+      "notes": "The old value is a DrawingML source-window percentage: divide by 100000 to obtain the normalized ratio. It is dimensionless, not twips or a distance. Use the OfficeLength CropRight property for a physical crop that also adjusts the frame and anchor.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.EmuWidth",
@@ -3971,11 +3991,11 @@
       "notes": "Raw EMU double?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.EmuHeight",
@@ -3988,11 +4008,11 @@
       "notes": "Raw EMU double?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.HorizontalPositionOffset",
@@ -4005,11 +4025,11 @@
       "notes": "Raw EMU long?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordImage.VerticalPositionOffset",
@@ -4022,11 +4042,11 @@
       "notes": "Raw EMU long?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength, including exact frame EMUs and signed offsets. Source-window ratios keep the original fixed-frame behavior; physical crops reuse the existing intrinsic-DPI, rotation, mirror and anchor engine."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset",
@@ -5541,6 +5561,124 @@
         "phase": "B",
         "status": "implemented-qualified"
       }
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.Width",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.Width : OfficeLength?",
+      "reason": "Displayed image dimensions use explicit lengths rather than numeric pixels.",
+      "file": "OfficeIMO.Word/WordImage.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied",
+        "file": "OfficeIMO.Word/WordImage.Geometry.cs"
+      },
+      "notes": "Use ToPixels() for a numeric 96-DPI value. Reading and writing DrawingML frame and picture extents keeps whole EMUs exactly; VML uses its existing style codec."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.Height : OfficeLength?",
+      "reason": "Displayed image dimensions use explicit lengths rather than numeric pixels.",
+      "file": "OfficeIMO.Word/WordImage.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied",
+        "file": "OfficeIMO.Word/WordImage.Geometry.cs"
+      },
+      "notes": "Use ToPixels() for a numeric 96-DPI value. Reading and writing DrawingML frame and picture extents keeps whole EMUs exactly; VML uses its existing style codec."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = \"\", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)",
+      "kind": "constructor",
+      "action": "internalize",
+      "new": null,
+      "replacement": "WordParagraph.AddImage(path, stream or URI, OfficeLength dimensions, WordImageOptions options)",
+      "reason": "Image attachment is owned by AddImage; native package construction is cross-assembly plumbing.",
+      "file": "OfficeIMO.Word/WordImage.Construction.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "notes": "Generated by SurfaceAnalysis and reviewed against documentation, native callers and existing InternalsVisibleTo declarations."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = \"\", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)",
+      "kind": "constructor",
+      "action": "internalize",
+      "new": null,
+      "replacement": "WordParagraph.AddImage(path, stream or URI, OfficeLength dimensions, WordImageOptions options)",
+      "reason": "Image attachment is owned by AddImage; native package construction is cross-assembly plumbing.",
+      "file": "OfficeIMO.Word/WordImage.Construction.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "notes": "Generated by SurfaceAnalysis and reviewed against documentation, native callers and existing InternalsVisibleTo declarations."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = \"\", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)",
+      "kind": "constructor",
+      "action": "internalize",
+      "new": null,
+      "replacement": "WordParagraph.AddImage(path, stream or URI, OfficeLength dimensions, WordImageOptions options)",
+      "reason": "Image attachment is owned by AddImage; native package construction is cross-assembly plumbing.",
+      "file": "OfficeIMO.Word/WordImage.Construction.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "notes": "Generated by SurfaceAnalysis and reviewed against documentation, native callers and existing InternalsVisibleTo declarations."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = \"\", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)",
+      "kind": "constructor",
+      "action": "internalize",
+      "new": null,
+      "replacement": "WordParagraph.AddImage(path, stream or URI, OfficeLength dimensions, WordImageOptions options)",
+      "reason": "Image attachment is owned by AddImage; native package construction is cross-assembly plumbing.",
+      "file": "OfficeIMO.Word/WordImage.Construction.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "notes": "Generated by SurfaceAnalysis and reviewed against documentation, native callers and existing InternalsVisibleTo declarations."
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.BlurRadius",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordImage.BlurRadius : OfficeLength?",
+      "reason": "An image blur radius is physical geometry, stored as native EMUs.",
+      "file": "OfficeIMO.Word/WordImage.Effects.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "notes": "Construct the radius with OfficeLength and extract ToEmus() when needed. Writing retains the existing Int32 storage boundary of this effect; image frames and offsets use their native Int64 coordinates."
     }
   ],
   "packageMoves": [
@@ -5720,6 +5858,26 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The PowerShell markup emitter discards the header/footer pair returned by AddHeadersAndFooters, keeping generated scripts from adding authoring handles to the pipeline."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "WordImage.Width/Height become OfficeLength? and raw EmuWidth/EmuHeight twins are removed. The source percentage crop fields become dimensionless CropTopRatio/CropBottomRatio/CropLeftRatio/CropRightRatio, preserving fixed-frame behavior, negative margins, null clearing and DrawingML percentage precision. The *Centimeters physical crops merge into OfficeLength CropTop/CropBottom/CropLeft/CropRight and retain the original intrinsic-DPI, scaling, rotation, mirror and anchor engine. Four analyzed native attachment constructors become internal; existing adapter friendships retain codec access. PowerShell image parameters keep their units through mechanical conversions."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "WordImage.SetCrop applies four nullable OfficeLength crop edges atomically on the existing physical crop engine; null clears an edge. This keeps the old image-builder whole-rectangle capability public without exposing its former internal centimeter helper. The cropped/rotated object-model example no longer describes itself as fluent authoring."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "BlurRadius was omitted by the original unit map. It now uses OfficeLength? with the existing Int32 effect storage boundary. The image geometry witness also exposed effect setters appending after the required trailing blip extension list; all setters now use one insertion helper that preserves effect order and keeps that extension list last."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The Word image guide uses the existing percentage inputs for LuminanceBrightness and LuminanceContrast (20 and 10), replacing out-of-range raw DrawingML values. This is an example correction; the effect API semantics are unchanged."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

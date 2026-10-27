@@ -95,8 +95,8 @@ public partial class Word {
         WordTable restoredTable = Assert.Single(restoredStory.Tables);
         WordTable restoredTarget = nested ? Assert.Single(restoredTable.Rows[0].Cells[0].NestedTables) : restoredTable;
         WordParagraph run = Assert.Single(restoredTarget.Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()), paragraph => paragraph.IsImage);
-        Assert.Equal(18, run.Image!.Width!.Value, 3);
-        Assert.Equal(12, run.Image.Height!.Value, 3);
+        Assert.Equal(18, (run.Image!.Width?.ToPixels())!.Value, 3);
+        Assert.Equal(12, (run.Image.Height?.ToPixels())!.Value, 3);
     }
 
     [Theory]

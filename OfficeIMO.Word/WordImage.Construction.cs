@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a file path.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a stream.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
             shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a base64 string.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
             shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes an image linked to an external URI.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
+        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
             : this(document, paragraph, externalUri, width, height, wrapImage, description, shape, compressionQuality, allowFileUri: false) {
         }
 

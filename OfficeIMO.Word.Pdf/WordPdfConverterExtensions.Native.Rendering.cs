@@ -606,8 +606,8 @@ namespace OfficeIMO.Word.Pdf {
             if (image._Image != null && HasNativeImageTextWrap(image._Image))
                 RecordNativeImageWrapApproximation(options, image._Image, "table cell image",
                     "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
-            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
-            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            double width = image.Width?.ToPoints() ?? 144D;
+            double height = image.Height?.ToPoints() ?? 144D;
             images.Add(new PdfCore.PdfTableCellImage(preparedBytes, width, height, CreateNativeImageStyle()));
         }
 

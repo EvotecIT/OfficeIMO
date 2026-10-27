@@ -664,8 +664,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
             Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InFrontOfText, image.WrapText);
-            Assert.Equal(8D, image.Width);
-            Assert.Equal(4D, image.Height);
+            Assert.Equal(8D, (image.Width?.ToPixels()));
+            Assert.Equal(4D, (image.Height?.ToPixels()));
             OfficeIMO.Word.WordParagraph anchor = Assert.Single(word.Value.Paragraphs);
             Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Exact, anchor.LineSpacingRule);
             Assert.Equal(1, anchor.LineSpacing);
@@ -681,8 +681,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
-            Assert.Equal(80D * 2D * 96D / 72D, image.Width!.Value, 6);
-            Assert.Equal(40D * 2D * 96D / 72D, image.Height!.Value, 6);
+            Assert.Equal(80D * 2D * 96D / 72D, (image.Width?.ToPixels())!.Value, 6);
+            Assert.Equal(40D * 2D * 96D / 72D, (image.Height?.ToPixels())!.Value, 6);
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
@@ -957,8 +957,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
             Assert.Equal(pageRotation, image.Rotation);
-            Assert.Equal(80D * 96D / 72D, image.Width!.Value, 6);
-            Assert.Equal(40D * 96D / 72D, image.Height!.Value, 6);
+            Assert.Equal(80D * 96D / 72D, (image.Width?.ToPixels())!.Value, 6);
+            Assert.Equal(40D * 96D / 72D, (image.Height?.ToPixels())!.Value, 6);
 
             using var stream = new MemoryStream(word.Value.ToBytes());
             using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =

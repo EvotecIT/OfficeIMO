@@ -21,7 +21,7 @@ public sealed class PdfVisualPageImportTests {
         var image = word.AddParagraph().AddImage(stream, "foreground.png", OfficeIMO.OfficeLength.Pixels(320), OfficeIMO.OfficeLength.Pixels(426.6666666667), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 0; image.VerticalPositionOffset = 0;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(0); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0);
         if (contentKind == 1) word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Covered content";
         else if (contentKind == 2) {
             byte[] colored = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(new OfficeIMO.Drawing.OfficeRasterImage(20,20,OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
@@ -143,8 +143,8 @@ public sealed class PdfVisualPageImportTests {
         var image = word.AddParagraph().AddImage(source, "page.png", OfficeIMO.OfficeLength.Pixels(60), OfficeIMO.OfficeLength.Pixels(80), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30 * 12700;
-        image.VerticalPositionOffset = 40 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30 * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
         word.AddParagraph("Flow text stays present");
         var result = word.ConvertToPdfWithEvidence();
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
@@ -156,7 +156,7 @@ public sealed class PdfVisualPageImportTests {
         Assert.Contains("Flow text stays present", pdf.Reader.Text().Replace("\r", string.Empty).Replace("\n", " "));
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");
 
-        image.HorizontalPositionOffset = -20 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(-20 * 12700);
         var fallback = word.ConvertToPdfWithEvidence();
         Assert.NotEmpty(fallback.ToBytes());
         Assert.Contains(fallback.Warnings, warning => warning.Code == "native-anchored-image-clipped");

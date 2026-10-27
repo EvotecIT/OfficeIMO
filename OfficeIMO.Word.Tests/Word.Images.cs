@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
 
-            Assert.Equal(22d, paragraphImage.Height ?? default, 15);
-            Assert.Equal(22d, paragraphImage.Width ?? default, 15);
+            Assert.Equal(22d, (paragraphImage.Height?.ToPixels()) ?? default, 15);
+            Assert.Equal(22d, (paragraphImage.Width?.ToPixels()) ?? default, 15);
 
             document.AddParagraph("This adds another picture with 500x500");
 
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             paragraph2Image!.Rotation = 180;
             paragraph2Image.Shape = OfficePresetShapeType.ActionButtonMovie;
 
-            Assert.Equal(500d, paragraph2Image.Height ?? default, 15);
-            Assert.Equal(500d, paragraph2Image.Width ?? default, 15);
+            Assert.Equal(500d, (paragraph2Image.Height?.ToPixels()) ?? default, 15);
+            Assert.Equal(500d, (paragraph2Image.Width?.ToPixels()) ?? default, 15);
 
             document.AddParagraph("This adds another picture with 100x100");
 
@@ -138,23 +138,23 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(paragraph4Image);
 
             // we can also overwrite height later on
-            paragraph4Image!.Height = 50;
-            paragraph4Image.Width = 50;
+            paragraph4Image!.Height = OfficeIMO.OfficeLength.Pixels(50);
+            paragraph4Image.Width = OfficeIMO.OfficeLength.Pixels(50);
             // this doesn't work
             paragraph4Image.HorizontalFlip = true;
 
 
-            Assert.Equal(50d, paragraph4Image.Height ?? default, 15);
-            Assert.Equal(50d, paragraph4Image.Width ?? default, 15);
+            Assert.Equal(50d, (paragraph4Image.Height?.ToPixels()) ?? default, 15);
+            Assert.Equal(50d, (paragraph4Image.Width?.ToPixels()) ?? default, 15);
 
             // or we can get any image and overwrite it's size
             var firstImage = document.Images[0];
             Assert.NotNull(firstImage);
-            firstImage!.Height = 200;
-            firstImage.Width = 200;
+            firstImage!.Height = OfficeIMO.OfficeLength.Pixels(200);
+            firstImage.Width = OfficeIMO.OfficeLength.Pixels(200);
 
-            Assert.Equal(200d, firstImage.Height ?? default, 15);
-            Assert.Equal(200d, firstImage.Width ?? default, 15);
+            Assert.Equal(200d, (firstImage.Height?.ToPixels()) ?? default, 15);
+            Assert.Equal(200d, (firstImage.Width?.ToPixels()) ?? default, 15);
 
             var fileToSave = Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
             firstImage.Save(fileToSave);
@@ -182,8 +182,8 @@ namespace OfficeIMO.Tests {
                 paragraph.AddImage(stream,"Kulek.jpg",null,null);
 
                 Assert.Single(document.Images);
-                Assert.True(document.Images[0].Width > 0);
-                Assert.True(document.Images[0].Height > 0);
+                Assert.True((document.Images[0].Width?.ToPixels()) > 0);
+                Assert.True((document.Images[0].Height?.ToPixels()) > 0);
                 document.Save();
             }
 
@@ -259,8 +259,8 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Images[0].FileName == fileNameImage);
             Assert.True(document.Images[0].Rotation == null);
-            Assert.True(document.Images[0].Width == 300);
-            Assert.True(document.Images[0].Height == 300);
+            Assert.True((document.Images[0].Width?.ToPixels()) == 300);
+            Assert.True((document.Images[0].Height?.ToPixels()) == 300);
 
             const string fileNameImageEvotec = "EvotecLogo.png";
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
@@ -618,26 +618,26 @@ namespace OfficeIMO.Tests {
                 var image = paragraph.Image;
                 Assert.NotNull(image);
 
-                image!.CropTopCentimeters = .635;
-                image.CropBottomCentimeters = 1.27;
-                image.CropLeftCentimeters = .9525;
-                image.CropRightCentimeters = 1.905;
+                image!.CropTop = OfficeIMO.OfficeLength.Centimeters(.635);
+                image.CropBottom = OfficeIMO.OfficeLength.Centimeters(1.27);
+                image.CropLeft = OfficeIMO.OfficeLength.Centimeters(.9525);
+                image.CropRight = OfficeIMO.OfficeLength.Centimeters(1.905);
 
                 document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
                 var image = Assert.Single(document.Images);
-                Assert.Equal(.635, image.CropTopCentimeters!.Value, 5);
-                Assert.Equal(1.27, image.CropBottomCentimeters!.Value, 5);
-                Assert.Equal(.9525, image.CropLeftCentimeters!.Value, 5);
-                Assert.Equal(1.905, image.CropRightCentimeters!.Value, 5);
-                Assert.Equal(10000, image.CropLeft);
-                Assert.Equal(20000, image.CropRight);
-                Assert.Equal(10000, image.CropTop);
-                Assert.Equal(20000, image.CropBottom);
-                Assert.Equal(504D, image.Width!.Value, 3);
-                Assert.Equal(336D, image.Height!.Value, 3);
+                Assert.Equal(.635, image.CropTop!.Value.ToCentimeters(), 5);
+                Assert.Equal(1.27, image.CropBottom!.Value.ToCentimeters(), 5);
+                Assert.Equal(.9525, image.CropLeft!.Value.ToCentimeters(), 5);
+                Assert.Equal(1.905, image.CropRight!.Value.ToCentimeters(), 5);
+                Assert.Equal(.1, image.CropLeftRatio);
+                Assert.Equal(.2, image.CropRightRatio);
+                Assert.Equal(.1, image.CropTopRatio);
+                Assert.Equal(.2, image.CropBottomRatio);
+                Assert.Equal(504D, image.Width!.Value.ToPixels(), 3);
+                Assert.Equal(336D, image.Height!.Value.ToPixels(), 3);
             }
         }
 
@@ -821,7 +821,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(img);
                 img!.AlphaInversionColor = OfficeIMO.OfficeColor.Red;
                 img.BlackWhiteThreshold = 60;
-                img.BlurRadius = 2000;
+                img.BlurRadius = OfficeIMO.OfficeLength.Emus(2000);
                 img.BlurGrow = true;
                 img.ColorChangeFrom = OfficeIMO.OfficeColor.Parse("#97E4FE");
                 img.ColorChangeTo = OfficeIMO.OfficeColor.Parse("#FF3399");
@@ -840,7 +840,7 @@ namespace OfficeIMO.Tests {
                 var img = reloaded.Images[0];
                 Assert.Equal("FF0000", img.AlphaInversionColorHex);
                 Assert.Equal(60, img.BlackWhiteThreshold);
-                Assert.Equal(2000, img.BlurRadius);
+                Assert.Equal(2000, (img.BlurRadius?.ToEmus()));
                 Assert.True(img.BlurGrow == true);
                 Assert.Equal("97E4FE", img.ColorChangeFromHex);
                 Assert.Equal("FF3399", img.ColorChangeToHex);

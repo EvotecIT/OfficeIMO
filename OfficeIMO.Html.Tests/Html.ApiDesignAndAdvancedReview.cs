@@ -256,8 +256,8 @@ public partial class Html {
         WordImage image = Assert.IsType<WordImage>(paragraph.Image);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 914400;
-        image.VerticalPositionOffset = 457200;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(914400);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(457200);
         image.Rotation = 15;
         image.LuminanceBrightness = 20;
 

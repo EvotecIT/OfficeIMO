@@ -25,7 +25,7 @@ public sealed class PdfForegroundImageOrderTests {
             image.WrapText = WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 28 * 12700; image.VerticalPositionOffset = 28 * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(28 * 12700); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(28 * 12700);
             image.ZOrder = 10;
             if (controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
             var pdf = PdfCore.PdfDocument.Load(word.ToPdf().ToBytes());
@@ -82,8 +82,8 @@ public sealed class PdfForegroundImageOrderTests {
         var image = paragraph.AddImage(stream, "layer.png", OfficeIMO.OfficeLength.Pixels(72), OfficeIMO.OfficeLength.Pixels(72), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = position * 12700;
-        image.VerticalPositionOffset = position * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(position * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(position * 12700);
         image.ZOrder = order;
     }
 }

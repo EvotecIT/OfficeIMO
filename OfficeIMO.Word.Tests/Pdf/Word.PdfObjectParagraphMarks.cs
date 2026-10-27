@@ -226,16 +226,16 @@ public partial class Word {
                 if (kind == "anchored-image") {
                     inserted.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     inserted.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    inserted.HorizontalPositionOffset = 140 * 12700;
-                    inserted.VerticalPositionOffset = 160 * 12700;
+                    inserted.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(140 * 12700);
+                    inserted.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
                 }
                 if (mixedAnchor) {
                     image.Position = 0;
                     WordImage anchored = p.AddImage(image, "anchor.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
                     anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    anchored.HorizontalPositionOffset = 140 * 12700;
-                    anchored.VerticalPositionOffset = 160 * 12700;
+                    anchored.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(140 * 12700);
+                    anchored.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
                 }
             }
             if (followingBlank) AddBlank();

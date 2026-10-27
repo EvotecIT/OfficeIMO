@@ -31,7 +31,7 @@ public sealed class PdfAnchoredImagePaginationTests {
             image.WrapText = WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 10 * 12700; image.VerticalPositionOffset = 10 * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
             if (decoration == "top") {
                 anchor.Borders.TopStyle = WordBorderStyle.Single;
                 anchor.Borders.TopColorHex = "FF0000";
@@ -96,15 +96,15 @@ public sealed class PdfAnchoredImagePaginationTests {
         var image = anchor.AddImage(stream, "anchored.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 10 * 12700;
-        image.VerticalPositionOffset = 10 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         if (kind == "multiple") {
             using var secondStream = new MemoryStream(bytes);
             var second = anchor.AddText(string.Empty).AddImage(secondStream, "second.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
             second.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             second.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            second.HorizontalPositionOffset = 40 * 12700;
-            second.VerticalPositionOffset = 10 * 12700;
+            second.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
+            second.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         }
         anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = 12;
         word.AddParagraph("Following paragraph");

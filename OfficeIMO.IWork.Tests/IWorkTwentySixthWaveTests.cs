@@ -81,8 +81,8 @@ public sealed partial class IWorkBoundaryTests {
         WordImage image = Assert.Single(result.Value.Images);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(800d, image.Width);
-        Assert.Equal(1200d, image.Height);
+        Assert.Equal(800d, (image.Width?.ToPixels()));
+        Assert.Equal(1200d, (image.Height?.ToPixels()));
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;

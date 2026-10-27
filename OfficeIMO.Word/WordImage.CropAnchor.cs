@@ -11,12 +11,12 @@ public partial class WordImage {
         long width, long height) {
         DW.Anchor? anchor = _Image.Anchor;
         if (anchor == null) return null;
-        double oldWidth = EmuWidth!.Value, oldHeight = EmuHeight!.Value;
-        double sourceWidth = oldWidth / VisibleCropFraction(CropLeft, CropRight);
-        double sourceHeight = oldHeight / VisibleCropFraction(CropTop, CropBottom);
-        double dx = ((left ?? 0D) - (CropLeft ?? 0D) - (right ?? 0D) + (CropRight ?? 0D))
+        double oldWidth = ((double?)Width?.ToEmus())!.Value, oldHeight = ((double?)Height?.ToEmus())!.Value;
+        double sourceWidth = oldWidth / VisibleCropFraction(CropLeftPercentage, CropRightPercentage);
+        double sourceHeight = oldHeight / VisibleCropFraction(CropTopPercentage, CropBottomPercentage);
+        double dx = ((left ?? 0D) - (CropLeftPercentage ?? 0D) - (right ?? 0D) + (CropRightPercentage ?? 0D))
             / CropPercentageUnits * sourceWidth / 2D;
-        double dy = ((top ?? 0D) - (CropTop ?? 0D) - (bottom ?? 0D) + (CropBottom ?? 0D))
+        double dy = ((top ?? 0D) - (CropTopPercentage ?? 0D) - (bottom ?? 0D) + (CropBottomPercentage ?? 0D))
             / CropPercentageUnits * sourceHeight / 2D;
         if (HorizontalFlip == true) dx = -dx;
         if (VerticalFlip == true) dy = -dy;
@@ -45,7 +45,7 @@ public partial class WordImage {
             : position.GetFirstChild<DW.VerticalAlignment>();
         if (offset != null) {
             if (alignment != null || !ReadPositionOffset(offset).HasValue) throw InvalidPhysicalCropAnchor();
-            return ReadPositionOffset(offset)!.Value;
+            return ReadPositionOffset(offset)!.Value.ToEmus();
         }
         if (alignment == null) throw InvalidPhysicalCropAnchor();
         string reference = position.GetAttribute("relativeFrom", string.Empty).Value ?? throw InvalidPhysicalCropAnchor();

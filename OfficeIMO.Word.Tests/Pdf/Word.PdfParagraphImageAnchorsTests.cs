@@ -15,9 +15,9 @@ public sealed class PdfParagraphImageAnchorsTests {
             new OfficeRasterImage(16, 16, OfficeColor.Red), OfficeImageExportFormat.Png));
         var image = paragraph.AddImage(source, "line-anchor.png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30 * 12700);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Line;
-        image.VerticalPositionOffset = 0;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0);
         var conversion = word.ConvertToPdfWithEvidence();
         Assert.Contains(conversion.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());
@@ -42,7 +42,7 @@ public sealed class PdfParagraphImageAnchorsTests {
         image._Image.Anchor!.HorizontalPosition!.HorizontalAlignment =
             new DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment { Text = "right" };
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = -5 * 12700;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(-5 * 12700);
         var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             Margins = PdfCore.PdfPageMargins.Uniform(30),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()

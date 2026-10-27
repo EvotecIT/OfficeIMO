@@ -117,8 +117,8 @@ public partial class Word {
             WordImage anchored = paragraph.AddImage(image, "heading-anchor.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
             anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            anchored.HorizontalPositionOffset = 240 * 12700;
-            anchored.VerticalPositionOffset = 160 * 12700;
+            anchored.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(240 * 12700);
+            anchored.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
         }
         if (content == "date-control") {
             WordDatePicker date = paragraph.AddDatePicker(new DateTime(2026, 10, 20), tag: "HeadingPictureDate");

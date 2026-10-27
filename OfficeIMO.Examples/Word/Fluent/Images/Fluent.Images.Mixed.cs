@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Description = "" });
                     paragraph1 = paragraph1.AddText(" logo");
                     var image3 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
-                    image3.Width = 500;
+                    image3.Width = OfficeIMO.OfficeLength.Pixels(500);
                     image3.WrapText = WordImageTextWrapping.Square;
                     image3.Paragraph.SetAlignment(WordParagraphAlignment.Center);
                 }

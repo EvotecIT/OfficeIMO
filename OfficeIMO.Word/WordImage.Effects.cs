@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
                 }
                 if (ar == null) {
                     ar = new AlphaReplace();
-                    blip.Append(ar);
+                    AppendBlipEffect(blip, ar);
                 }
                 ar.Alpha = value.Value * 1000;
             }
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
                 }
                 if (ai == null) {
                     ai = new AlphaInverse();
-                    blip.Append(ai);
+                    AppendBlipEffect(blip, ai);
                 }
                 var clr = ai.GetFirstChild<RgbColorModelHex>();
                 if (clr == null) {
@@ -116,25 +116,25 @@ namespace OfficeIMO.Word {
                 }
                 if (bi == null) {
                     bi = new BiLevel();
-                    blip.Append(bi);
+                    AppendBlipEffect(blip, bi);
                 }
                 bi.Threshold = value.Value * 1000;
             }
         }
 
         /// <summary>
-        /// Gets or sets the blur radius in EMUs.
+        /// Gets or sets the image blur radius.
         /// </summary>
-        public int? BlurRadius {
+        public OfficeLength? BlurRadius {
             get {
                 var blip = GetBlip();
                 var blur = blip?.GetFirstChild<Blur>();
                 var radius = blur?.Radius?.Value;
                 _blurRadius = radius != null ? (int?)radius : null;
-                return _blurRadius;
+                return radius.HasValue ? OfficeLength.Emus(radius.Value) : null;
             }
             set {
-                _blurRadius = value;
+                _blurRadius = value.HasValue ? checked((int)value.Value.ToEmus()) : null;
                 var blip = GetBlip();
                 if (blip == null) return;
                 var blur = blip.GetFirstChild<Blur>();
@@ -144,9 +144,9 @@ namespace OfficeIMO.Word {
                 }
                 if (blur == null) {
                     blur = new Blur();
-                    blip.Append(blur);
+                    AppendBlipEffect(blip, blur);
                 }
-                blur.Radius = value != null ? new Int64Value((long)value.Value) : null;
+                blur.Radius = value != null ? new Int64Value(value.Value.ToEmus()) : null;
                 blur.Grow = _blurGrow ?? false;
             }
         }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Word {
                 }
                 if (blur == null) {
                     blur = new Blur();
-                    blip.Append(blur);
+                    AppendBlipEffect(blip, blur);
                 }
                 blur.Radius = _blurRadius != null ? new Int64Value((long)_blurRadius.Value) : null;
                 blur.Grow = value ?? false;
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
             }
             if (cc == null) {
                 cc = new ColorChange();
-                blip.Append(cc);
+                AppendBlipEffect(blip, cc);
             }
             if (_colorChangeFromHex != null) {
                 var from = cc.ColorFrom ?? new ColorFrom();
@@ -280,7 +280,7 @@ namespace OfficeIMO.Word {
                 }
                 if (cr == null) {
                     cr = new ColorReplacement();
-                    blip.Append(cr);
+                    AppendBlipEffect(blip, cr);
                 }
                 var clr = cr.GetFirstChild<RgbColorModelHex>();
                 if (clr == null) {
@@ -364,7 +364,7 @@ namespace OfficeIMO.Word {
             }
             if (duo == null) {
                 duo = new Duotone();
-                blip.Append(duo);
+                AppendBlipEffect(blip, duo);
             }
             duo.RemoveAllChildren();
             if (_duotoneColor1Hex != null)
@@ -389,7 +389,7 @@ namespace OfficeIMO.Word {
                 if (blip == null) return;
                 var gs = blip.GetFirstChild<Grayscale>();
                 if (value == true && gs == null) {
-                    blip.Append(new Grayscale());
+                    AppendBlipEffect(blip, new Grayscale());
                 } else if (value != true) {
                     gs?.Remove();
                 }
@@ -441,7 +441,7 @@ namespace OfficeIMO.Word {
             }
             if (lum == null) {
                 lum = new LuminanceEffect();
-                blip.Append(lum);
+                AppendBlipEffect(blip, lum);
             }
             lum.Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null;
             lum.Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null;
@@ -489,10 +489,17 @@ namespace OfficeIMO.Word {
             }
             if (tint == null) {
                 tint = new TintEffect();
-                blip.Append(tint);
+                AppendBlipEffect(blip, tint);
             }
             tint.Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null;
             tint.Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null;
+        }
+
+        /// <summary>Appends an effect before the required trailing extension list, preserving the order of existing effects.</summary>
+        private static void AppendBlipEffect(Blip blip, OpenXmlElement effect) {
+            var extensions = blip.GetFirstChild<BlipExtensionList>();
+            if (extensions != null) blip.InsertBefore(effect, extensions);
+            else blip.Append(effect);
         }
 
     }

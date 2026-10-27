@@ -52,8 +52,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(11900U, section.PageSettings.Height.GetValueOrDefault());
         Assert.Equal(1080U, section.Margins.Left);
         Assert.Equal(1080U, section.Margins.Right);
-        Assert.InRange(preview.Width.GetValueOrDefault(), 1d, 734d);
-        Assert.InRange(preview.Height.GetValueOrDefault(), 1d, 523d);
+        Assert.InRange((preview.Width?.ToPixels()).GetValueOrDefault(), 1d, 734d);
+        Assert.InRange((preview.Height?.ToPixels()).GetValueOrDefault(), 1d, 523d);
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -62,8 +62,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(16840U, Assert.Single(reopened.Sections).PageSettings.Width.GetValueOrDefault());
         // The one-pixel preview uses a one-point minimum frame, expressed as pixels by WordImage.
         WordImage savedPreview = Assert.Single(reopened.Images);
-        Assert.Equal(96d / 72d, savedPreview.Width!.Value, precision: 8);
-        Assert.Equal(96d / 72d, savedPreview.Height!.Value, precision: 8);
+        Assert.Equal(96d / 72d, (savedPreview.Width?.ToPixels())!.Value, precision: 8);
+        Assert.Equal(96d / 72d, (savedPreview.Height?.ToPixels())!.Value, precision: 8);
     }
 
     [Fact]

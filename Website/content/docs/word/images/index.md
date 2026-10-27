@@ -96,7 +96,7 @@ paragraph.AddImage("chart.png", 400, 300,
 
 // Access the image through the paragraph
 var image = document.Images.Last();
-image.horizontalPosition.Offset = 914400;  // 1 inch from anchor in EMUs
+image.HorizontalPositionOffset = OfficeLength.Inches(1);
 ```
 
 ## VML Images
@@ -105,10 +105,13 @@ For legacy compatibility, OfficeIMO supports VML (Vector Markup Language) images
 
 ```csharp
 // Add VML image to the document body
-document.AddImageVml("watermark.png", width: OfficeLength.Pixels(200), height: OfficeLength.Pixels(100));
+document.AddImage("watermark.png", width: OfficeLength.Pixels(200), height: OfficeLength.Pixels(100),
+    options: new WordImageOptions { Vml = true });
 
 // Add VML image to a header
-document.Sections[0].Header.Default.AddImageVml("header-logo.png", 150, 40);
+var (header, _) = document.AddHeadersAndFooters();
+header.AddParagraph().AddImage("header-logo.png", OfficeLength.Points(150), OfficeLength.Points(40),
+    options: new WordImageOptions { Vml = true });
 ```
 
 ## Image Properties
@@ -118,14 +121,14 @@ The `WordImage` class exposes properties for advanced image control:
 ```csharp
 var image = document.Images[0];
 
-// Cropping (values in percentage * 1000)
-image.CropTop = 10000;      // crop 10% from top
-image.CropBottom = 5000;    // crop 5% from bottom
+// Select fractions of the source image while keeping the displayed frame.
+image.CropTopRatio = 0.1;
+image.CropBottomRatio = 0.05;
 
 // Effects
 image.GrayScale = true;
-image.LuminanceBrightness = 20000;    // brightness adjustment
-image.LuminanceContrast = 10000;      // contrast adjustment
+image.LuminanceBrightness = 20;       // increase brightness by 20%
+image.LuminanceContrast = 10;         // increase contrast by 10%
 
 // Lock aspect ratio
 image.NoChangeAspect = true;

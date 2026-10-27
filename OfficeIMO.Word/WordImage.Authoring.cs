@@ -72,9 +72,8 @@ public partial class WordImage {
 
     /// <summary>Clamps the displayed width while retaining the image's other authoring properties.</summary>
     public WordImage SetMaximumWidth(OfficeLength width) {
-        double pixels = width.ToPixels();
-        if (pixels <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (!Width.HasValue || Width.Value > pixels) Width = pixels;
+        if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+        if (Width is not OfficeLength current || current > width) Width = width;
         return this;
     }
 }

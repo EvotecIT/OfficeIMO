@@ -44,6 +44,7 @@ dotnet add package OfficeIMO.Security
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("report.docx");
@@ -387,21 +388,21 @@ document.FooterDefaultOrCreate.AddParagraph()
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImage("logo.png", width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(64));
+var image = paragraph.AddImage("logo.png", width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(64));
 ```
 
 Crop an embedded picture using lengths measured on the original image:
 
 ```csharp
-paragraph.Image.CropLeftCentimeters = 0.5;
-paragraph.Image.CropRightCentimeters = 0.25;
+image.CropLeft = OfficeLength.Centimeters(0.5);
+image.CropRight = OfficeLength.Centimeters(0.25);
 ```
 
-The centimeter properties use the source image's pixel dimensions and horizontal or vertical resolution. They keep the displayed image scale and resize its frame, so the same crop selects the same source area after resizing. Floating pictures also adjust their anchor to keep the original picture in place, including rotation and mirrors. Assign `null` to restore an edge. `SetCropCentimeters(left, top, right, bottom)` applies all four values together.
+The physical crop properties use the source image's pixel dimensions and horizontal or vertical resolution. They keep the displayed image scale and resize its frame, so the same crop selects the same source area after resizing. Floating pictures also adjust their anchor to keep the original picture in place, including rotation and mirrors. Assign `null` to restore an edge. `SetCrop(left, top, right, bottom)` applies four `OfficeLength?` values together, validating both axes before changing either.
 
-The raw `CropLeft`, `CropTop`, `CropRight` and `CropBottom` properties use DrawingML percentages: `10000` means 10% of the original dimension. They leave the displayed frame unchanged. Negative centimeter crops expand the DOCX frame with empty margins; Word-to-PDF currently reports `NativeImageCropApproximated` for these source outsets. Physical cropping requires a readable embedded source and a floating position that can be resolved without pagination; use raw percentages when only the source selection should change.
+The `CropLeftRatio`, `CropTopRatio`, `CropRightRatio` and `CropBottomRatio` properties select fractions of the original image: `0.1` means 10% of the original dimension. They leave the displayed frame unchanged. Negative physical crops expand the DOCX frame with empty margins; Word-to-PDF currently reports `NativeImageCropApproximated` for these source outsets. Physical cropping requires a readable embedded source and a floating position that can be resolved without pagination; use the ratio properties when only the source selection should change.
 
-Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
+Use `image.Clone(destinationParagraph)` to copy an image to another paragraph,
 header, footer, or document. The destination owns its image relationships and fresh DrawingML
 identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps
 embedded SVG extension resources along with the primary image.

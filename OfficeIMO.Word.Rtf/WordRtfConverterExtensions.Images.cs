@@ -82,20 +82,20 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
-        double visibleRatioX = 1d - (source.CropLeft ?? 0) / 100000d - (source.CropRight ?? 0) / 100000d;
-        double visibleRatioY = 1d - (source.CropTop ?? 0) / 100000d - (source.CropBottom ?? 0) / 100000d;
-        int? goalWidth = ToTwips(source.Width.HasValue && visibleRatioX > 0 ? source.Width / visibleRatioX : source.Width);
-        int? goalHeight = ToTwips(source.Height.HasValue && visibleRatioY > 0 ? source.Height / visibleRatioY : source.Height);
+        double visibleRatioX = 1d - ((source.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000d - ((source.CropRightRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000d;
+        double visibleRatioY = 1d - ((source.CropTopRatio is double cropRatio6 ? (int?)System.Math.Round(cropRatio6 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000d - ((source.CropBottomRatio is double cropRatio8 ? (int?)System.Math.Round(cropRatio8 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000d;
+        int? goalWidth = ToTwips((source.Width?.ToPixels()).HasValue && visibleRatioX > 0 ? (source.Width?.ToPixels()) / visibleRatioX : (source.Width?.ToPixels()));
+        int? goalHeight = ToTwips((source.Height?.ToPixels()).HasValue && visibleRatioY > 0 ? (source.Height?.ToPixels()) / visibleRatioY : (source.Height?.ToPixels()));
         OfficeImageReader.TryValidateContent(payload, null, out OfficeImageInfo? info);
         var image = new RtfImage(format, payload) {
             SourceWidth = info?.Width > 0 ? info.Width : null,
             SourceHeight = info?.Height > 0 ? info.Height : null,
             DesiredWidthTwips = goalWidth,
             DesiredHeightTwips = goalHeight,
-            CropLeftTwips = ToCropTwips(source.CropLeft, goalWidth),
-            CropRightTwips = ToCropTwips(source.CropRight, goalWidth),
-            CropTopTwips = ToCropTwips(source.CropTop, goalHeight),
-            CropBottomTwips = ToCropTwips(source.CropBottom, goalHeight),
+            CropLeftTwips = ToCropTwips((source.CropLeftRatio is double cropRatio16 ? (int?)System.Math.Round(cropRatio16 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalWidth),
+            CropRightTwips = ToCropTwips((source.CropRightRatio is double cropRatio18 ? (int?)System.Math.Round(cropRatio18 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalWidth),
+            CropTopTwips = ToCropTwips((source.CropTopRatio is double cropRatio20 ? (int?)System.Math.Round(cropRatio20 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalHeight),
+            CropBottomTwips = ToCropTwips((source.CropBottomRatio is double cropRatio22 ? (int?)System.Math.Round(cropRatio22 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalHeight),
             Description = source.Description
         };
         return image;
@@ -143,10 +143,10 @@ public static partial class WordRtfConverterExtensions {
         }
         WordImage output = paragraph.AddImage(stream, fileName, width, height,
             new WordImageOptions { Description = image.Description ?? string.Empty });
-        output.CropLeft = ToWordCrop(image.CropLeftTwips, layout.WidthTwips);
-        output.CropRight = ToWordCrop(image.CropRightTwips, layout.WidthTwips);
-        output.CropTop = ToWordCrop(image.CropTopTwips, layout.HeightTwips);
-        output.CropBottom = ToWordCrop(image.CropBottomTwips, layout.HeightTwips);
+        output.CropLeftRatio = ((double?)(ToWordCrop(image.CropLeftTwips, layout.WidthTwips))) / 100000D;
+        output.CropRightRatio = ((double?)(ToWordCrop(image.CropRightTwips, layout.WidthTwips))) / 100000D;
+        output.CropTopRatio = ((double?)(ToWordCrop(image.CropTopTwips, layout.HeightTwips))) / 100000D;
+        output.CropBottomRatio = ((double?)(ToWordCrop(image.CropBottomTwips, layout.HeightTwips))) / 100000D;
     }
 
     /// <summary>Retains the native RTF inline-picture carrier only in the qualified ordinary running-story profile.</summary>

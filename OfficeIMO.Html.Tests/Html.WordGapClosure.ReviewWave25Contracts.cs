@@ -72,7 +72,7 @@ public partial class HtmlWordGapClosure {
             $"""<img style="width:100%" src="data:image/png;base64,{ValidPng}" alt="Cell image">"""));
 
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal(expectedContentWidth / 15D, image.Width!.Value, precision: 3);
+        Assert.Equal(expectedContentWidth / 15D, (image.Width?.ToPixels())!.Value, precision: 3);
     }
 
     [Fact]

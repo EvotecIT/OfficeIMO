@@ -121,12 +121,12 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         WordImage clean = Assert.Single(images, imageItem => imageItem.Description == "Clean");
 
         Assert.Equal(60, affected.Transparency);
-        Assert.True(affected.CropLeft.HasValue || affected.CropRight.HasValue
-            || affected.CropTop.HasValue || affected.CropBottom.HasValue);
+        Assert.True((affected.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropRightRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue
+            || (affected.CropTopRatio is double cropRatio6 ? (int?)System.Math.Round(cropRatio6 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropBottomRatio is double cropRatio8 ? (int?)System.Math.Round(cropRatio8 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue);
         Assert.Null(clean.Transparency);
-        Assert.Null(clean.CropLeft);
-        Assert.Null(clean.CropTop);
-        Assert.Null(clean.CropRight);
-        Assert.Null(clean.CropBottom);
+        Assert.Null((clean.CropLeftRatio is double cropRatio10 ? (int?)System.Math.Round(cropRatio10 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropTopRatio is double cropRatio12 ? (int?)System.Math.Round(cropRatio12 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropRightRatio is double cropRatio14 ? (int?)System.Math.Round(cropRatio14 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Null((clean.CropBottomRatio is double cropRatio16 ? (int?)System.Math.Round(cropRatio16 * 100000D, System.MidpointRounding.AwayFromZero) : null));
     }
 }

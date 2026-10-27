@@ -62,18 +62,18 @@ namespace OfficeIMO.Examples.Word {
                     var paragraph4Image = Guard.NotNull(paragraph4.Image, "Paragraph should contain the default-sized image.");
 
                     // we can get the height of the image from paragraph
-                    Console.WriteLine("This document has image, which has height of: " + paragraph4Image.Height + " pixels (I think) ;-)");
+                    Console.WriteLine("This document has image, which has height of: " + (paragraph4Image.Height?.ToPixels()) + " pixels (I think) ;-)");
 
                     // we can also overwrite height later on
-                    paragraph4Image.Height = 50;
-                    paragraph4Image.Width = 50;
+                    paragraph4Image.Height = OfficeIMO.OfficeLength.Pixels(50);
+                    paragraph4Image.Width = OfficeIMO.OfficeLength.Pixels(50);
                     // this doesn't work
                     paragraph4Image.HorizontalFlip = true;
 
                     // or we can get any image and overwrite it's size
                     var firstImage = Guard.GetRequiredItem(document.Images, 0, "Document should contain at least one image.");
-                    firstImage.Height = 200;
-                    firstImage.Width = 200;
+                    firstImage.Height = OfficeIMO.OfficeLength.Pixels(200);
+                    firstImage.Width = OfficeIMO.OfficeLength.Pixels(200);
                 }
 
                 document.Save();

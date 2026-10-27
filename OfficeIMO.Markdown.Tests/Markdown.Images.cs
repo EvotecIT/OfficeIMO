@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(doc.Images);
             Assert.Equal("Local", doc.Images[0].Description);
-            Assert.Equal(image.Width, doc.Images[0].Width);
-            Assert.Equal(image.Height, doc.Images[0].Height);
+            Assert.Equal(image.Width, (doc.Images[0].Width?.ToPixels()));
+            Assert.Equal(image.Height, (doc.Images[0].Height?.ToPixels()));
 
         }
 
@@ -151,8 +151,8 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Single(doc.Images);
-            Assert.InRange(doc.Images[0].Width ?? 0, 623, 625);
-            Assert.InRange(doc.Images[0].Height ?? 0, 155, 157);
+            Assert.InRange((doc.Images[0].Width?.ToPixels()) ?? 0, 623, 625);
+            Assert.InRange((doc.Images[0].Height?.ToPixels()) ?? 0, 155, 157);
         }
 
         [Fact]
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Single(doc.Images);
-            Assert.InRange(doc.Images[0].Width ?? 0, 488, 490);
+            Assert.InRange((doc.Images[0].Width?.ToPixels()) ?? 0, 488, 490);
         }
 
         [Fact]
@@ -182,8 +182,8 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Single(doc.Images);
-            Assert.InRange(doc.Images[0].Width ?? 0, 479.5, 480.5);
-            Assert.InRange(doc.Images[0].Height ?? 0, 119.5, 120.5);
+            Assert.InRange((doc.Images[0].Width?.ToPixels()) ?? 0, 479.5, 480.5);
+            Assert.InRange((doc.Images[0].Height?.ToPixels()) ?? 0, 119.5, 120.5);
         }
 
         [Fact]
@@ -200,8 +200,8 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Single(doc.Images);
-            Assert.InRange(doc.Images[0].Width ?? 0, 311, 313);
-            Assert.InRange(doc.Images[0].Height ?? 0, 77, 79);
+            Assert.InRange((doc.Images[0].Width?.ToPixels()) ?? 0, 311, 313);
+            Assert.InRange((doc.Images[0].Height?.ToPixels()) ?? 0, 77, 79);
         }
 
         [Fact]
@@ -214,8 +214,8 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Single(doc.Images);
-            Assert.InRange(doc.Images[0].Height ?? 0, 99.5, 100.5);
-            Assert.InRange(doc.Images[0].Width ?? 0, 399.5, 400.5);
+            Assert.InRange((doc.Images[0].Height?.ToPixels()) ?? 0, 99.5, 100.5);
+            Assert.InRange((doc.Images[0].Width?.ToPixels()) ?? 0, 399.5, 400.5);
         }
 
         [Fact]

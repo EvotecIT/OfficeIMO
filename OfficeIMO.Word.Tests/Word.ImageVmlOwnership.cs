@@ -20,16 +20,16 @@ public sealed class WordImageVmlOwnershipTests {
         var paragraph = document.AddParagraph("Image");
         paragraph._run!.Append(new W.Picture(shape));
         WordImage image = paragraph.Image!;
-        image.Width = 48;
-        image.Height = 32;
-        Assert.Equal(48, image.Width);
-        Assert.Equal(32, image.Height);
+        image.Width = OfficeIMO.OfficeLength.Pixels(48);
+        image.Height = OfficeIMO.OfficeLength.Pixels(32);
+        Assert.Equal(48, (image.Width?.ToPixels()));
+        Assert.Equal(32, (image.Height?.ToPixels()));
         Assert.Contains("rotation:30", shape.Style!.Value);
         using var bytes = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(bytes);
         WordImage persisted = reopened.Paragraphs.Single(item => item.IsImage).Image!;
-        Assert.Equal(48, persisted.Width);
-        Assert.Equal(32, persisted.Height);
+        Assert.Equal(48, (persisted.Width?.ToPixels()));
+        Assert.Equal(32, (persisted.Height?.ToPixels()));
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed class WordImageVmlOwnershipTests {
         var targetDocument = otherDocument ? destination : document;
         var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
         var clone = paragraph.Image!.Clone(target);
-        Assert.Equal(20, clone.Width);
+        Assert.Equal(20, (clone.Width?.ToPixels()));
         Assert.Single(target._paragraph.Descendants<V.Shape>());
         Assert.Empty(target._paragraph.Descendants<W.Drawing>());
         if (external) Assert.Equal("https://example.test/shared.gif", clone.ExternalUri!.AbsoluteUri);
@@ -130,7 +130,7 @@ public sealed class WordImageVmlOwnershipTests {
         run.Append(new W.Picture(new V.Shape(new V.ImageData { RelationshipId = id }) { Id = "First", Style = "width:15pt;height:15pt" }),
             new W.Picture(new V.Shape(new V.ImageData { RelationshipId = id }) { Id = "Second", Style = "width:15pt;height:15pt" }));
         var first = paragraph.Image!;
-        Assert.Equal(20, first.Width);
+        Assert.Equal(20, (first.Width?.ToPixels()));
         first.Remove();
         Assert.Single(run.Descendants<V.Shape>());
         var second = paragraph.Image!;

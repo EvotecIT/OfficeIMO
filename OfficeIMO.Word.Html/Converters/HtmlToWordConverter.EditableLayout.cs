@@ -125,22 +125,22 @@ internal partial class HtmlToWordConverter {
         nativeImage._Image.Remove();
         nativeImage = editableImage;
         nativeImage.Transparency = null;
-        nativeImage.CropLeft = null;
-        nativeImage.CropTop = null;
-        nativeImage.CropRight = null;
-        nativeImage.CropBottom = null;
+        nativeImage.CropLeftRatio = null;
+        nativeImage.CropTopRatio = null;
+        nativeImage.CropRightRatio = null;
+        nativeImage.CropBottomRatio = null;
         if (!visual.HasValue) return;
         HtmlEditableLayoutPicture renderedPicture = visual.Value;
-        nativeImage.Width = renderedPicture.Width;
-        nativeImage.Height = renderedPicture.Height;
+        nativeImage.Width = OfficeIMO.OfficeLength.Pixels(renderedPicture.Width);
+        nativeImage.Height = OfficeIMO.OfficeLength.Pixels(renderedPicture.Height);
         if (renderedPicture.Opacity < 0.999D) {
             nativeImage.Transparency = (int)Math.Round((1D - renderedPicture.Opacity) * 100D);
         }
         if (renderedPicture.SourceCrop.HasCrop) {
-            nativeImage.CropLeft = ToCropPercentage(renderedPicture.SourceCrop.Left);
-            nativeImage.CropTop = ToCropPercentage(renderedPicture.SourceCrop.Top);
-            nativeImage.CropRight = ToCropPercentage(renderedPicture.SourceCrop.Right);
-            nativeImage.CropBottom = ToCropPercentage(renderedPicture.SourceCrop.Bottom);
+            nativeImage.CropLeftRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Left))) / 100000D;
+            nativeImage.CropTopRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Top))) / 100000D;
+            nativeImage.CropRightRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Right))) / 100000D;
+            nativeImage.CropBottomRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Bottom))) / 100000D;
         }
     }
 

@@ -83,9 +83,9 @@ public class RtfPictureLayoutRegressionTests {
         using WordDocument word = document.ToWordDocument();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         WordImage output = Assert.Single(word.Images);
-        Assert.Equal(visibleWidth / 15d, output.Width);
-        Assert.Equal(padding ? -10000 : 10000, output.CropLeft);
-        Assert.Equal(20000, output.CropRight);
+        Assert.Equal(visibleWidth / 15d, (output.Width?.ToPixels()));
+        Assert.Equal(padding ? -10000 : 10000, (output.CropLeftRatio is double cropRatio3 ? (int?)System.Math.Round(cropRatio3 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(20000, (output.CropRightRatio is double cropRatio5 ? (int?)System.Math.Round(cropRatio5 * 100000D, System.MidpointRounding.AwayFromZero) : null));
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;

@@ -16,10 +16,10 @@ namespace OfficeIMO.Examples.Word
             var paragraph = document.AddParagraph("Advanced crop with shape:");
             var image = paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
             image.Shape = OfficePresetShapeType.Cube;
-            image.CropTopCentimeters = 2;
-            image.CropBottomCentimeters = 1.5;
-            image.CropLeftCentimeters = 0.5;
-            image.CropRightCentimeters = 0.5;
+            image.CropTop = OfficeIMO.OfficeLength.Centimeters(2);
+            image.CropBottom = OfficeIMO.OfficeLength.Centimeters(1.5);
+            image.CropLeft = OfficeIMO.OfficeLength.Centimeters(0.5);
+            image.CropRight = OfficeIMO.OfficeLength.Centimeters(0.5);
             document.Save();
             if (openWord)
                 document.OpenInApplication();

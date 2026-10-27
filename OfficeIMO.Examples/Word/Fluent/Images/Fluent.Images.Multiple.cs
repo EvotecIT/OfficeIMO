@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word
             {
                 {
                     var image2 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "PrzemyslawKlysAndKulkozaurr.jpg"));
-                    image2.Width = 200;
+                    image2.Width = OfficeIMO.OfficeLength.Pixels(200);
                     image2.Paragraph.SetAlignment(WordParagraphAlignment.Left);
                     var image3 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
                     image3.SetMaximumWidth(OfficeLength.Pixels(300));

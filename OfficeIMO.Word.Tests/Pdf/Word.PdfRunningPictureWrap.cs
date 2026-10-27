@@ -205,9 +205,9 @@ public sealed class WordPdfRunningPictureWrapTests {
         // The supported page-relative rectangle crosses the physical edge;
         // this remains an omission, independently of its supported wrap mode.
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 580L * 12700L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(580L * 12700L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.VerticalPositionOffset = 24L * 12700L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(24L * 12700L);
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
@@ -234,10 +234,10 @@ public sealed class WordPdfRunningPictureWrapTests {
     [Fact]
     public void SaveAsPdf_WrappedRunningPictureRetainsCropMirrorsAndOneImagePaint() {
         using WordDocument document = CreateDocument(false, WordImageTextWrapping.Square, out WordImage image);
-        image.CropLeft = 25000;
-        image.CropRight = 12500;
-        image.CropTop = 12500;
-        image.CropBottom = 25000;
+        image.CropLeftRatio = ((double?)(25000)) / 100000D;
+        image.CropRightRatio = ((double?)(12500)) / 100000D;
+        image.CropTopRatio = ((double?)(12500)) / 100000D;
+        image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.HorizontalFlip = true;
         image.VerticalFlip = true;
         Assert.Empty(document.ValidateDocument());
@@ -282,9 +282,9 @@ public sealed class WordPdfRunningPictureWrapTests {
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
         image = paragraph.AddText(string.Empty).AddImage(png, "wrapped.png", OfficeIMO.OfficeLength.Pixels(PictureWidth / .75D), OfficeIMO.OfficeLength.Pixels(PictureHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
-        image.HorizontalPositionOffset = (long)((PictureLeft - 72D) * 12700D);
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus((long)((PictureLeft - 72D) * 12700D));
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = 0L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         DW.Anchor anchor = image._Image.Anchor!;
         anchor.DistanceFromLeft = (uint)(DistanceLeft * 12700D);
         anchor.DistanceFromRight = (uint)(DistanceRight * 12700D);
