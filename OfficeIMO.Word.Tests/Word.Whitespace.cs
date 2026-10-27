@@ -91,8 +91,12 @@ public partial class Word {
     public void RepeatingSection_UnknownXmlTextHonorsWhitespaceAndPreservedReplacement() {
         using WordDocument document = WordDocument.Create();
         WordRepeatingSection section = document.AddParagraph().AddRepeatingSection("Seed", "Whitespace");
-        OpenXmlElement item = section._sdtRun.SdtContentRun!.FirstChild!;
-        item.RemoveAllChildren();
+        // Earlier versions wrote items as w15:repeatingSectionItem wrappers whose
+        // children reload as unknown elements; reading them must keep working.
+        OpenXmlElement seed = section._sdtRun.SdtContentRun!.FirstChild!;
+        var item = new OpenXmlUnknownElement("w15", "repeatingSectionItem", "http://schemas.microsoft.com/office/word/2012/wordml");
+        seed.InsertBeforeSelf(item);
+        seed.Remove();
         item.InnerXml = "<w:sdt xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:sdtContent><w:r><w:t> First </w:t><w:t> Second </w:t></w:r></w:sdtContent></w:sdt>";
         Assert.Empty(item.Descendants<W.Text>());
         string xml = section._sdtRun.OuterXml;

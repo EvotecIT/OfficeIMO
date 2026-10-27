@@ -30,7 +30,6 @@ internal static class RealWorldWorkflowShowcase {
         string sourcePath = Path.Combine(output, "customer-delivery-summary.docx");
         #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.BuiltinDocumentProperties.Title = "Customer delivery summary";
         document.AddHeadersAndFooters();

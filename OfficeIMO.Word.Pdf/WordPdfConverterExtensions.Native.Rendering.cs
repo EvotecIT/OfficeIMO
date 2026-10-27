@@ -225,7 +225,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph");
-            PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
+            PdfCore.PdfAlign align = ResolveNativeDisplayMathAlign(paragraph) ?? ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
             string headingText = !needsAnchorLine && headingLevel > 0 && marker == null
@@ -401,6 +401,24 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        /// <summary>
+        /// Word lays out a paragraph that holds only display math (m:oMathPara) by the
+        /// equation's own justification, centred unless m:oMathParaPr says otherwise.
+        /// </summary>
+        private static PdfCore.PdfAlign? ResolveNativeDisplayMathAlign(WordParagraph paragraph) {
+            W.Paragraph? source = paragraph._paragraph;
+            DocumentFormat.OpenXml.Math.Paragraph? mathParagraph = source?.Elements<DocumentFormat.OpenXml.Math.Paragraph>().FirstOrDefault();
+            if (source == null || mathParagraph == null) return null;
+            bool hasOtherText = source.Elements<W.Run>().Any(run => run.Elements<W.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text)));
+            if (hasOtherText) return null;
+            string? justification = mathParagraph.ParagraphProperties?.Justification?.Val?.InnerText;
+            return justification switch {
+                "left" => PdfCore.PdfAlign.Left,
+                "right" => PdfCore.PdfAlign.Right,
+                _ => PdfCore.PdfAlign.Center
+            };
+        }
+
         private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, PdfCore.PdfAlign align, PdfCore.PdfColor? color) {
             foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
@@ -414,17 +432,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<string> GetNativeRepeatingSectionItems(W.SdtRun repeatingSection) {
-            var items = new List<string>();
-            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> itemElements = repeatingSection.SdtContentRun?.ChildElements
-                .Where(element => element.LocalName == "repeatingSectionItem") ??
-                Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>();
-
-            foreach (DocumentFormat.OpenXml.OpenXmlElement item in itemElements) {
-                string text = string.Concat(item.Descendants<W.Text>().Select(WordParagraph.ReadVisibleText));
-                if (!string.IsNullOrWhiteSpace(text)) {
-                    items.Add(text);
-                }
-            }
+            var items = WordRepeatingSection.ReadItemTexts(repeatingSection)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
 
             if (items.Count == 0) {
                 string text = GetNativeSdtText(repeatingSection) ?? string.Empty;

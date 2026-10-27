@@ -736,7 +736,14 @@ namespace OfficeIMO.Word {
         /// <param name="omml">OMML markup for the equation.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddEquation(string omml) {
-            return this.AddParagraph().AddEquation(omml);
+            WordParagraph paragraph = this.AddParagraph();
+            try {
+                return paragraph.AddEquation(omml);
+            } catch {
+                // Invalid OMML must not leave an empty paragraph behind.
+                paragraph._paragraph.Remove();
+                throw;
+            }
         }
 
         /// <summary>

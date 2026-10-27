@@ -63,15 +63,17 @@ namespace OfficeIMO.Word {
             int columnCount = firstRow.Elements<TableCell>().Count();
             if (columnCount == 0) return false;
             TableGrid? grid = table.GetFirstChild<TableGrid>();
-            if (grid == null || grid.Elements<GridColumn>().Count() != columnCount ||
-                grid.Elements<GridColumn>().Any(column => column.Width?.Value != "2400")) return false;
+            // A freshly generated table has one uniform column width on its grid and cells.
+            string? uniformWidth = grid?.Elements<GridColumn>().FirstOrDefault()?.Width?.Value;
+            if (grid == null || uniformWidth == null || grid.Elements<GridColumn>().Count() != columnCount ||
+                grid.Elements<GridColumn>().Any(column => column.Width?.Value != uniformWidth)) return false;
 
             foreach (TableRow row in table.Elements<TableRow>()) {
                 int cellCount = 0;
                 foreach (TableCell cell in row.Elements<TableCell>()) {
                     cellCount++;
                     TableCellWidth? width = cell.TableCellProperties?.TableCellWidth;
-                    if (width?.Type?.Value != TableWidthUnitValues.Dxa || width.Width?.Value != "2400") return false;
+                    if (width?.Type?.Value != TableWidthUnitValues.Dxa || width.Width?.Value != uniformWidth) return false;
                 }
                 if (cellCount != columnCount) return false;
             }

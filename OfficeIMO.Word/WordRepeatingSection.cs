@@ -56,10 +56,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<string> TextItems {
             get {
-                return GetItems()
-                    .Select(GetItemText)
-                    .ToList();
+                return ReadItemTexts(_sdtRun);
             }
+        }
+
+        /// <summary>
+        /// Reads the item texts of a repeating section, accepting Word's item content
+        /// controls and the legacy item wrapper elements earlier versions wrote.
+        /// </summary>
+        internal static IReadOnlyList<string> ReadItemTexts(SdtRun repeatingSection) {
+            return GetItems(repeatingSection)
+                .Select(GetItemText)
+                .ToList();
         }
 
         /// <summary>
@@ -82,7 +90,8 @@ namespace OfficeIMO.Word {
             }
 
             foreach (string value in textValues) {
-                OpenXmlElement item = template?.CloneNode(true) ?? CreateItem(string.Empty);
+                // Legacy wrapper items are rewritten in Word's item content-control shape.
+                OpenXmlElement item = template is SdtRun ? template.CloneNode(true) : CreateItem(string.Empty);
                 SetItemText(item, value);
                 content.Append(item);
             }
@@ -109,20 +118,29 @@ namespace OfficeIMO.Word {
             return _sdtRun.SdtProperties;
         }
 
-        private IEnumerable<OpenXmlElement> GetItems() {
-            return _sdtRun.SdtContentRun?.ChildElements.Where(IsRepeatingSectionItem) ?? Enumerable.Empty<OpenXmlElement>();
+        private IEnumerable<OpenXmlElement> GetItems() => GetItems(_sdtRun);
+
+        private static IEnumerable<OpenXmlElement> GetItems(SdtRun repeatingSection) {
+            return repeatingSection.SdtContentRun?.ChildElements.Where(IsRepeatingSectionItem) ?? Enumerable.Empty<OpenXmlElement>();
         }
 
-        private static OpenXmlElement CreateItem(string value) {
-            var item = new OpenXmlUnknownElement("w15", "repeatingSectionItem", "http://schemas.microsoft.com/office/word/2012/wordml");
-            item.Append(new SdtRun(
+        /// <summary>
+        /// Creates an item the way Word writes it: a content control whose properties
+        /// carry <c>w15:repeatingSectionItem</c>.
+        /// </summary>
+        internal static SdtRun CreateItem(string value) {
+            return new SdtRun(
+                new SdtProperties(new DocumentFormat.OpenXml.Office2013.Word.SdtRepeatedSectionItem()),
                 new SdtContentRun(
                     new Run(
-                        new Text(value) { Space = SpaceProcessingModeValues.Preserve }))));
-            return item;
+                        new Text(value) { Space = SpaceProcessingModeValues.Preserve })));
         }
 
         private static bool IsRepeatingSectionItem(OpenXmlElement element) {
+            if (element is SdtRun item) {
+                return item.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2013.Word.SdtRepeatedSectionItem>().Any() == true;
+            }
+
             return element.LocalName == "repeatingSectionItem";
         }
 
@@ -153,6 +171,11 @@ namespace OfficeIMO.Word {
         private static void SetItemText(OpenXmlElement item, string value) {
             Text? text = item.Descendants<Text>().FirstOrDefault();
             if (text == null) {
+                if (item is SdtRun itemControl) {
+                    itemControl.SdtContentRun = new SdtContentRun(new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve }));
+                    return;
+                }
+
                 item.RemoveAllChildren();
                 item.Append(new SdtRun(new SdtContentRun(new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve }))));
                 return;

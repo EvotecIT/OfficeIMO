@@ -7,7 +7,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ProjectCharter {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.BuiltinDocumentProperties.Title = "Project charter";
         document.AddParagraph("Project charter").Style = WordParagraphStyles.Heading1;
@@ -39,7 +38,6 @@ internal static class ProjectCharter {
         document.AddParagraph("Success measure").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("At least 90% of pilot requests reach the right team without manual reassignment.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
             paragraph.LineSpacingAfterPoints = 7;
             if (paragraph.Style == WordParagraphStyles.Heading1) {
@@ -61,13 +59,13 @@ internal static class ProjectCharter {
                     cell.MarginTopCentimeters = 0.10;
                     cell.MarginBottomCentimeters = 0.10;
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
                         paragraph.LineSpacingAfterPoints = 3;
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Project charter");
         document.Save();
     }
 }

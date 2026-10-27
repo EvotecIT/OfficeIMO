@@ -399,7 +399,7 @@ namespace OfficeIMO.Word {
                 markerFontSize: ResolveListMarkerFontSize(markerProperties),
                 markerCharacterScale: markerProperties?.GetFirstChild<CharacterScale>()?.Val?.Value,
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
-                levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
+                levelJustification: WordListLevel.ReadLevelJustification(effectiveLevel.LevelJustification),
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
                 restartLevel: restartLevel,

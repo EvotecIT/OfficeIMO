@@ -359,7 +359,43 @@ namespace OfficeIMO.Word {
         }
 
 
-        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+        // Word's default text width (Letter, 1 inch margins) when no section is known.
+        private const int DefaultTableTextWidthTwips = 9360;
+        // Word's default left and right cell margins (0.08 inch each).
+        private const int DefaultCellHorizontalMarginsTwips = 216;
+        private const int MinimumDefaultColumnWidthTwips = 360;
+
+        /// <summary>
+        /// Returns the text width of the section new body content is added to, so a
+        /// table created without explicit widths fills the text area instead of a
+        /// fixed width per column.
+        /// </summary>
+        private static int GetSectionTextWidthTwips(WordDocument document) {
+            WordSection? section = document.Sections.Count > 0 ? document.Sections[document.Sections.Count - 1] : null;
+            uint? pageWidth = section?.PageSettings?.Width;
+            if (section == null || !pageWidth.HasValue) return DefaultTableTextWidthTwips;
+            long width = pageWidth.Value - (long)section.Margins.Left - section.Margins.Right - section.Margins.Gutter;
+            return width > MinimumDefaultColumnWidthTwips ? (int)Math.Min(width, int.MaxValue) : DefaultTableTextWidthTwips;
+        }
+
+        private static int GetCellTextWidthTwips(WordDocument document, TableCell cell) {
+            TableCellWidth? width = cell.TableCellProperties?.TableCellWidth;
+            if (width?.Type?.Value == TableWidthUnitValues.Dxa &&
+                int.TryParse(width.Width?.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips) &&
+                twips - DefaultCellHorizontalMarginsTwips > MinimumDefaultColumnWidthTwips) {
+                return twips - DefaultCellHorizontalMarginsTwips;
+            }
+            return GetSectionTextWidthTwips(document);
+        }
+
+        private static int GetDefaultColumnWidthTwips(int textWidthTwips, int columns) =>
+            Math.Max(MinimumDefaultColumnWidthTwips, textWidthTwips / Math.Max(1, columns));
+
+        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) =>
+            GenerateTable(document, rows, columns, tableStyle, GetSectionTextWidthTwips(document));
+
+        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, int textWidthTwips) {
+            string columnWidth = GetDefaultColumnWidthTwips(textWidthTwips, columns).ToString(System.Globalization.CultureInfo.InvariantCulture);
             document.MarkTableNormalizationRequired();
             document.EnsureStyleDefinitionsInitialized();
             Table table = new Table();
@@ -378,7 +414,7 @@ namespace OfficeIMO.Word {
 
             TableGrid tableGrid1 = new TableGrid();
             for (int i = 0; i < columns; i++) {
-                GridColumn gridColumn1 = new GridColumn { Width = "2400" };
+                GridColumn gridColumn1 = new GridColumn { Width = columnWidth };
                 tableGrid1.Append(gridColumn1);
             }
             table.Append(tableGrid1);
@@ -391,7 +427,7 @@ namespace OfficeIMO.Word {
                 for (int j = 0; j < columns; j++) {
                     row.Append(new TableCell(
                         new TableCellProperties(
-                            new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+                            new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = columnWidth }),
                         new Paragraph(new ParagraphProperties(), new Run())));
                 }
             }
@@ -487,7 +523,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
 
-            _table = GenerateTable(document, rows, columns, tableStyle);
+            _table = GenerateTable(document, rows, columns, tableStyle, GetCellTextWidthTwips(document, wordTableCell));
 
             // Establish Position property
             Position = new WordTablePosition(this);

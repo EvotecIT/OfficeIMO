@@ -14,6 +14,8 @@ namespace OfficeIMO.Word.Pdf {
             // authored run, paragraph and named table styles retain precedence.
             public bool UseConfiguredTypography { get; init; }
             public NativeParagraphPaginationDefaults ParagraphPagination { get; init; }
+            // Word's band 2 shades the second, fourth... body row.
+            public PdfCore.PdfColor? Band2HorizontalFill { get; init; }
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
@@ -257,7 +259,22 @@ namespace OfficeIMO.Word.Pdf {
                 lastColumnStyle,
                 band1HorizontalStyle,
                 band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing,
-                    ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders, RightToLeft = rightToLeft };
+                    ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders, RightToLeft = rightToLeft,
+                    Band2HorizontalFill = GetNativeTableBand2HorizontalFill(styleChain) };
+        }
+
+        private static PdfCore.PdfColor? GetNativeTableBand2HorizontalFill(IReadOnlyList<W.Style> styleChain) {
+            PdfCore.PdfColor? fill = null;
+            foreach (W.Style style in styleChain) {
+                foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>()
+                             .Where(properties => properties.Type?.Value == W.TableStyleOverrideValues.Band2Horizontal)) {
+                    string? hex = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>()?
+                        .GetFirstChild<W.Shading>()?.Fill?.Value;
+                    if (hex != null && !string.Equals(hex, "auto", StringComparison.OrdinalIgnoreCase) && ParseNativeColor(hex) is { } color)
+                        fill = color;
+                }
+            }
+            return fill;
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(

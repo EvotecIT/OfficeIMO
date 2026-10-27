@@ -52,7 +52,7 @@ namespace OfficeIMO.Word.Pdf {
 
             ValidateNativeHeaderFooterTextBoxNesting(headerFooter);
             var parts = new NativeHeaderFooterText();
-            List<WordElement> elements = CollapseNativeParagraphElements(headerFooter.Elements).ToList();
+            List<WordElement> elements = CollapseNativeParagraphElements(ExpandNativeHeaderFooterStructuredBlocks(headerFooter)).ToList();
             for (int index = 0; index < elements.Count; index++) {
                 WordElement element = elements[index];
                 switch (element) {
@@ -70,6 +70,24 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return parts.HasContent ? parts : null;
+        }
+
+        // Page-number galleries and other paragraph-only block content controls
+        // contribute their paragraphs to the flat header/footer projection.
+        private static List<WordElement> ExpandNativeHeaderFooterStructuredBlocks(WordHeaderFooter headerFooter) {
+            var expanded = new List<WordElement>();
+            foreach (WordElement element in headerFooter.Elements) {
+                if (element is WordStructuredDocumentTag tag && tag.SdtBlock is { } block &&
+                    IsNativeParagraphOnlyRunningBlock(block)) {
+                    expanded.AddRange(GetNativeStructuredBlockElements(headerFooter.Document, block)
+                        .SelectMany(child => child is WordStructuredDocumentTag nested && nested.SdtBlock != null
+                            ? GetNativeStructuredBlockElements(headerFooter.Document, nested.SdtBlock)
+                            : new[] { child }));
+                } else {
+                    expanded.Add(element);
+                }
+            }
+            return expanded;
         }
 
         private static void AddNativeHeaderFooterTableText(NativeHeaderFooterText parts, WordTable table, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap? nativeFontMap, WordPdfExportOptions? options) {

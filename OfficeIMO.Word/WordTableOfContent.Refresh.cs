@@ -347,6 +347,35 @@ namespace OfficeIMO.Word {
                    string.Equals(styleId, "TableofFigures", StringComparison.OrdinalIgnoreCase);
         }
 
+        // Set when this instance wrote heading entries during a save, so later saves keep them current.
+        private bool _entriesWrittenOnSave;
+
+        /// <summary>
+        /// Writes heading entries on save for a table of contents this library created, while it
+        /// still holds only its placeholder or entries an earlier save wrote. Caption lists, indexes
+        /// and entries the caller refreshed or edited are left alone.
+        /// </summary>
+        internal void RefreshEntriesOnSave() {
+            if (_sdtBlock.SdtContentBlock == null) return;
+            // Only a heading table of contents: caption lists (\c, \f) and indexes keep their own refresh.
+            var instructions = _sdtBlock.Descendants<SimpleField>().Select(field => field.Instruction?.Value ?? string.Empty)
+                .Concat(_sdtBlock.Descendants<FieldCode>().Select(code => code.Text ?? string.Empty))
+                .Select(text => text.Trim())
+                .Where(text => text.Length > 0 &&
+                    !text.StartsWith("PAGEREF", StringComparison.OrdinalIgnoreCase) &&
+                    !text.StartsWith("HYPERLINK", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (instructions.Count == 0 ||
+                instructions.Any(text => !text.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(text, @"\\[cfl]\b", RegexOptions.IgnoreCase))) return;
+            bool hasEntries = _sdtBlock.SdtContentBlock.Descendants<ParagraphStyleId>()
+                .Any(style => style.Val?.Value is string id && id.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) &&
+                              id.Length > 3 && char.IsDigit(id[3]));
+            if (hasEntries && !_entriesWrittenOnSave) return;
+            RefreshEntries();
+            _entriesWrittenOnSave = true;
+        }
+
         private string GetTocInstruction() {
             foreach (SimpleField simpleField in _sdtBlock.Descendants<SimpleField>()) {
                 string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;

@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
                 var section2DefaultHeader = RequireHeader(section2Headers.Default, "Section 2 default header");
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                paragraghInHeaderSection1.Text = "Section 1 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Word {
                 var section3DefaultHeader = RequireHeader(section3Headers.Default, "Section 3 default header");
 
                 var paragraghInHeaderSection3 = section3DefaultHeader.AddParagraph();
-                paragraghInHeaderSection3.Text = "Weird shit? 2";
+                paragraghInHeaderSection3.Text = "Section 2 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;

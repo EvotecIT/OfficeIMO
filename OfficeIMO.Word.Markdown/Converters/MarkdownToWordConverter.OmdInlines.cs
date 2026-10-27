@@ -50,6 +50,20 @@ namespace OfficeIMO.Word.Markdown {
             return run;
         }
 
+        // Monospace faces have a larger x-height than proportional body fonts, so code at
+        // the body size reads a size bigger. Body paragraphs set code one tenth smaller;
+        // headings keep their style size.
+        private const double InlineCodeSizeRatio = 0.9D;
+        private const int DefaultBodyFontSize = 11;
+
+        private static void ApplyInlineCodeSize(WordParagraph run, WordParagraph paragraph, WordDocument document) {
+            if (run.FontSize.HasValue) return;
+            WordParagraphStyles? style = paragraph.Style;
+            if (style.HasValue && style.Value != WordParagraphStyles.Normal && style.Value != WordParagraphStyles.ListParagraph) return;
+            int bodySize = document.Settings.FontSize ?? DefaultBodyFontSize;
+            run.FontSize = Math.Max(1, (int)Math.Round(bodySize * InlineCodeSizeRatio, MidpointRounding.AwayFromZero));
+        }
+
         private static WordParagraph CreateDetachedRun(WordDocument document, string? text, InlineFormatState fmt, string? defaultFont, bool forceMonospace = false) {
             var paragraph = new Paragraph();
             var run = new Run(new Text(text ?? string.Empty) {
@@ -378,6 +392,7 @@ namespace OfficeIMO.Word.Markdown {
                 var run = AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
                 var mono = WordFontResolver.Resolve("monospace") ?? "Consolas";
                 run.SetFontFamily(mono);
+                ApplyInlineCodeSize(run, _paragraph, _document);
             }
 
             protected override void VisitLinkInline(Omd.LinkInline inline) {

@@ -126,8 +126,9 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         File.WriteAllBytes(Path.Combine(directory, label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
     }
 
+    // Direct regular weight keeps heading and body glyphs identical whatever the heading style's weight.
     private static W.Run Run(string text) => new(new W.RunProperties(
-        new W.RunFonts { Ascii = "Helvetica", HighAnsi = "Helvetica" }, new W.FontSize { Val = "24" }),
+        new W.RunFonts { Ascii = "Helvetica", HighAnsi = "Helvetica" }, new W.Bold { Val = false }, new W.FontSize { Val = "24" }),
         new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
     private static double Span(IReadOnlyList<Letter> line) => line[line.Count - 1].EndBaseLine.X - line[0].StartBaseLine.X;
 }

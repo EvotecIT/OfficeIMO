@@ -7,7 +7,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class PolicyBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.BuiltinDocumentProperties.Title = "Shared workspace guide";
         document.BuiltinDocumentProperties.Subject = "Working agreements";
@@ -53,7 +52,6 @@ internal static class PolicyBrief {
         Section("Exceptions", "Contact the Workplace team for accessible equipment, recurring project space, or a visitor group.");
         Section("Questions and review", "The Workplace team records feedback and reviews the agreement every six months.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
             paragraph.LineSpacingAfterPoints = 7;
             if (paragraph.Style == WordParagraphStyles.Heading1) {
@@ -67,6 +65,7 @@ internal static class PolicyBrief {
                 paragraph.LineSpacingAfterPoints = 6;
             }
         }
+        WorkflowFooter.Add(document, "Shared workspace guide");
         document.Save();
 
         void Section(string heading, string body) {

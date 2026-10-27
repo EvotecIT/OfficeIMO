@@ -7,11 +7,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class MeetingMinutes {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.AddHeadersAndFooters();
         document.Header!.Default!.AddParagraph("NORTHWIND / DELIVERY REVIEW");
-        document.Footer!.Default!.AddParagraph("Sample meeting record | Internal working copy");
         document.AddParagraph("Delivery review minutes").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("14 September 2026 | Facilitator: Jordan Lee | Duration: 30 minutes");
         document.AddParagraph("Attendees: Product, Engineering, Operations and Support.");
@@ -38,7 +36,6 @@ internal static class MeetingMinutes {
         document.AddParagraph("Next meeting").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("28 September: review pilot feedback and decide whether to expand access.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
             paragraph.LineSpacingAfterPoints = 7;
             if (paragraph.Style == WordParagraphStyles.Heading1) {
@@ -60,13 +57,13 @@ internal static class MeetingMinutes {
                     cell.MarginTopCentimeters = 0.10;
                     cell.MarginBottomCentimeters = 0.10;
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
                         paragraph.LineSpacingAfterPoints = 3;
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Delivery review minutes");
         document.Save();
     }
 }

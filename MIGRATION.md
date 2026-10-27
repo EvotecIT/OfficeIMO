@@ -1,5 +1,29 @@
 # Upgrading OfficeIMO
 
+## Word new-document defaults
+
+New documents take their heading styles from the default `OfficeTheme`: Heading 1
+to 6 use the theme type scale, text colour and bold weight, with space after each
+heading, and `Title` and `Subtitle` styles are defined. `AddTable` sizes default
+columns to the section's text width instead of 2400 twips each. Loaded documents
+keep their own styles. To keep the previous look in a new document, set the
+heading style definitions and column widths explicitly.
+
+A table of contents created with `AddTableOfContent` now stores its heading
+entries when the document is saved, so viewers that do not update fields show
+it; Word still refreshes the field on open. Paragraph counts after loading
+include the `_Toc` bookmarks those entries add to each listed heading.
+
+`AddEquation(string)` rejects OMML that contains elements outside Office Math,
+such as `<m:int>`, with an `ArgumentException`. Write integrals and other n-ary
+operators as `<m:nary>` with an `<m:chr>` character.
+
+`WordPdfExportOptions.TrackedChanges` selects how tracked changes appear in PDF
+output. The default, `WordPdfTrackedChangeView.Final`, shows insertions as
+current text and omits deletions; the conversion report carries
+`tracked-revisions-projected` when a document has tracked changes. Use
+`WordPdfTrackedChangeView.Markup` to show both.
+
 ## PDF adapter package direction
 
 `OfficeIMO.Word.Pdf` now exports Word to PDF, and `OfficeIMO.PowerPoint.Pdf`

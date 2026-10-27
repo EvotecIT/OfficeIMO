@@ -165,15 +165,33 @@ namespace OfficeIMO.Word {
 
             if (x.Name.LocalName == "oMath") {
                 var officeMath = new OfficeMath(omml);
+                EnsureKnownOfficeMathElements(officeMath, nameof(omml));
                 _paragraph.Append(officeMath);
                 paragraphWithEquation = new WordParagraph(this._document, this._paragraph, officeMath);
             } else {
                 var mathPara = new MathParagraph(omml);
+                EnsureKnownOfficeMathElements(mathPara, nameof(omml));
                 _paragraph.Append(mathPara);
                 paragraphWithEquation = new WordParagraph(this._document, this._paragraph, mathPara);
             }
 
             return paragraphWithEquation;
+        }
+
+        // Word refuses to open (or repairs away) math elements outside the OMML schema,
+        // so an unknown math element such as <m:int> is an input error, not content.
+        private static void EnsureKnownOfficeMathElements(DocumentFormat.OpenXml.OpenXmlElement math, string parameterName) {
+            const string mathNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+            string[] unknown = math.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>()
+                .Where(element => element.NamespaceUri == mathNamespace)
+                .Select(element => "<m:" + element.LocalName + ">")
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (unknown.Length > 0) {
+                throw new ArgumentException(
+                    "The OMML fragment contains elements that are not part of Office Math: " + string.Join(", ", unknown) +
+                    ". Integrals and other n-ary operators use <m:nary> with an <m:chr> character.", parameterName);
+            }
         }
 
         /// <summary>

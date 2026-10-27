@@ -85,11 +85,15 @@ public partial class Word {
         WordDocument document = WordDocument.Create();
         SetObjectMarkNormalStyle(document);
         if (!atDocumentStart) document.AddParagraph("BEFORE");
-        if (style == "Title")
-            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+        if (style == "Title") {
+            // Replace the theme's Title with a plain one based on Normal.
+            W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            foreach (W.Style existing in styles.Elements<W.Style>().Where(item => item.StyleId?.Value == "Title").ToList()) existing.Remove();
+            styles.Append(
                 new W.Style(new W.StyleName { Val = "Title" }, new W.BasedOn { Val = "Normal" }) {
                     StyleId = "Title", Type = W.StyleValues.Paragraph
                 });
+        }
         WordParagraph paragraph = document.AddParagraph().SetStyleId(style);
         W.ParagraphStyleId styleId = (W.ParagraphStyleId)paragraph._paragraph.ParagraphProperties!.ParagraphStyleId!.CloneNode(true);
         paragraph._paragraph.ParagraphProperties = new W.ParagraphProperties(styleId,

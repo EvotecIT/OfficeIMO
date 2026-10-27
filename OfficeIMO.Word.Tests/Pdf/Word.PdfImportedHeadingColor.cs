@@ -90,13 +90,14 @@ public sealed class WordPdfImportedHeadingColorTests {
         heading.FontSize = 12;
         W.Style sourceStyle = Assert.Single(document.OpenXmlDocument.MainDocumentPart!
             .StyleDefinitionsPart!.Styles!.Elements<W.Style>(), style => style.StyleId?.Value == "Heading1");
-        Assert.Equal("2F5496", sourceStyle.StyleRunProperties!.GetFirstChild<W.Color>()!.Val!.Value);
+        OfficeColor themeText = OfficeTheme.Default.Palette.Text;
+        Assert.Equal(themeText.ToRgbHex(), sourceStyle.StyleRunProperties!.GetFirstChild<W.Color>()!.Val!.Value);
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
-        AssertRgbWord(page.GetWords(), "AUTHORED", 47, 84, 150);
+        AssertRgbWord(page.GetWords(), "AUTHORED", themeText.R, themeText.G, themeText.B);
         Assert.Equal(sourceXml, SourceXml(document));
     }
 

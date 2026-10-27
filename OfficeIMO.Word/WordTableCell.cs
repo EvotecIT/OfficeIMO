@@ -543,7 +543,11 @@ namespace OfficeIMO.Word {
         /// <param name="wordTableRow"></param>
         public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
             TableCell tableCell = new TableCell();
-            TableCellProperties tableCellProperties = new TableCellProperties(new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" });
+            // A new cell takes the width of the grid column it lands in.
+            int columnIndex = wordTableRow._tableRow.Elements<TableCell>().Count();
+            string? gridWidth = wordTable._table.GetFirstChild<TableGrid>()?.Elements<GridColumn>()
+                .ElementAtOrDefault(columnIndex)?.Width?.Value;
+            TableCellProperties tableCellProperties = new TableCellProperties(new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = string.IsNullOrEmpty(gridWidth) ? "2400" : gridWidth });
 
             // Specify the width property of the table cell.
             tableCell.Append(tableCellProperties);
