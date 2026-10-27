@@ -38,6 +38,11 @@
       "phase": "B",
       "status": "applied",
       "note": "OfficeTableOptions supports format-specific options through inheritance; ExcelTableOptions retains nested projection and native table presentation settings."
+    },
+    {
+      "phase": "B",
+      "applied": "analysis-generated-review-pending",
+      "note": "The public surface inventory now reads compiled metadata, documentation and examples across the seven Tier 1 packages. It follows cross-package model signatures and preserves interfaces, overrides, operators and model data, with separate constructor evidence. Accessibility decisions and shipped analyzer baselines remain pending review. The baseline generator uses compiler SARIF RS0016 declarations and tracks nullable signatures; its five-declaration compiler fixture rebuilds without warnings."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -198,7 +198,7 @@ Rules can also be composed inside footnote separator callbacks. For example, `ne
 
 ## Literal text to PDF
 
-`PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:
+`OfficeConverter` converts literal TXT content to PDF without interpreting Markdown or HTML:
 
 ```csharp
 using OfficeIMO.Pdf;
