@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Pdf {
                 DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
-                HeaderFormat = "Northwind Support - Q3 operations review (sample data)",
+                HeaderFormat = "Northwind Support \u2013 Q3 operations review (sample data)",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -102,47 +102,40 @@ namespace OfficeIMO.Examples.Pdf {
             return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4, LineHeight = 1.1 };
         }
 
+        // The chart fills the 58 % column so its right edge lines up with the table below:
+        // (842 pt landscape A4 - 84 pt margins - 18 pt gap) x 58 %.
+        private const double TrendChartWidth = (842D - 84D - 18D) * 0.58D;
+
         private static OfficeDrawing CreateTrendDrawing() {
-            var drawing = new OfficeDrawing(390, 168);
-            var label = new OfficeFontInfo("Helvetica", 8);
-            var muted = OfficeColor.FromRgb(100, 116, 139);
-
-            var frame = OfficeShape.RoundedRectangle(390, 168, 8);
-            frame.FillColor = OfficeColor.FromRgb(255, 255, 255);
-            frame.StrokeColor = OfficeColor.FromRgb(203, 213, 225);
-            frame.StrokeWidth = 0.8;
-            drawing.AddShape(frame, 0, 0);
-
-            // Baseline at y = 140; 1 px of bar height is 8 tickets.
-            for (int i = 0; i < 4; i++) {
-                var grid = OfficeShape.Line(0, 0, 340, 0);
-                grid.StrokeColor = OfficeColor.FromRgb(226, 232, 240);
-                grid.StrokeWidth = 0.5;
-                drawing.AddShape(grid, 28, 32 + i * 36);
-            }
-
-            string[] months = { "July", "August", "September" };
-            int[] resolved = { 812, 871, 934 };
-            for (int i = 0; i < resolved.Length; i++) {
-                double height = resolved[i] / 8.0;
-                double x = 66 + i * 104;
-                var bar = OfficeShape.RoundedRectangle(64, height, 4);
-                bar.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.FromRgb(14, 165, 233), OfficeColor.FromRgb(37, 99, 235));
-                bar.StrokeWidth = 0;
-                drawing.AddShape(bar, x, 140 - height);
-                drawing.AddText(resolved[i].ToString("N0"), x, 140 - height + 16, 64, 12, new OfficeFontInfo("Helvetica", 9, OfficeFontStyle.Bold), OfficeColor.FromRgb(255, 255, 255), OfficeTextAlignment.Center);
-                drawing.AddText(months[i], x, 146, 64, 12, label, muted, OfficeTextAlignment.Center);
-            }
-
-            // Target line: 850 tickets a month.
-            var target = OfficeShape.Line(0, 0, 340, 0);
-            target.StrokeColor = OfficeColor.FromRgb(15, 23, 42);
-            target.StrokeWidth = 1.2;
-            target.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
-            drawing.AddShape(target, 28, 140 - 850 / 8.0);
-            drawing.AddText("Target 850", 318, 140 - 850 / 8.0 - 12, 60, 11, label, OfficeColor.FromRgb(15, 23, 42), OfficeTextAlignment.Right);
-
-            return drawing;
+            // The shared chart renderer gives round axis steps, readable labels and no decoration.
+            var data = new OfficeChartData(
+                new[] { "July", "August", "September" },
+                new[] {
+                    new OfficeChartSeries("Resolved", new[] { 812D, 871D, 934D }, null, OfficeColor.FromRgb(37, 99, 235)),
+                    new OfficeChartSeries("Target", new[] { 850D, 850D, 850D }, null, OfficeColor.FromRgb(15, 23, 42), null,
+                        showMarkers: false, strokeWidth: 1.2D, strokeDashStyle: OfficeStrokeDashStyle.Dash,
+                        renderKind: OfficeChartKind.Line)
+                });
+            var style = new OfficeChartStyle(
+                fontFamily: "Helvetica",
+                backgroundColor: OfficeColor.White,
+                showBorder: false,
+                gridLineColor: OfficeColor.FromRgb(226, 232, 240),
+                gridLineWidth: 0.5D,
+                textColor: OfficeColor.FromRgb(30, 41, 59),
+                mutedTextColor: OfficeColor.FromRgb(100, 116, 139),
+                valueAxisColor: OfficeColor.Transparent,
+                categoryAxisColor: OfficeColor.FromRgb(203, 213, 225));
+            var layout = new OfficeChartLayout(
+                legendPosition: OfficeChartLegendPosition.Top,
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelSeriesIndexes: new[] { 0 },
+                dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
+                verticalAxisNumberFormat: "#,##0");
+            var chart = new OfficeChartSnapshot("Tickets resolved per month", null, OfficeChartKind.ColumnClustered, data,
+                widthPoints: TrendChartWidth, heightPoints: 180D, style: style, layout: layout);
+            return OfficeChartDrawingRenderer.Render(chart, useMinimumCanvas: false);
         }
 
         private static string[][] CreateServiceRows() {
