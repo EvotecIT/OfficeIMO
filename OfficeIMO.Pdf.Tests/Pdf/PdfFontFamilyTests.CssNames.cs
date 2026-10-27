@@ -25,4 +25,42 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(control)).GetPixels(),
             OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes)).GetPixels());
     }
+
+    [Theory]
+    [InlineData("comma-registered")]
+    [InlineData("comma-unregistered")]
+    [InlineData("semicolon-registered")]
+    [InlineData("semicolon-unregistered")]
+    public void NamedFontLiteralRequestsDoNotBorrowComponentSubstitutions(string scenario) {
+        (string literal, bool registered) = scenario switch {
+            "comma-registered" => ("Scoped, Literal", true),
+            "comma-unregistered" => ("Scoped, Literal", false),
+            "semicolon-registered" => ("Scoped; Literal", true),
+            "semicolon-unregistered" => ("Scoped; Literal", false),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+        };
+        const string decoy = "Component Decoy";
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12 }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(decoy,
+                ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, 'B')))
+            .RegisterFontFamilySubstitution("Literal", decoy);
+        if (registered) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(literal,
+            ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, 'B')));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.FontFamily(OfficeFontFamilyParser.Quote(literal)).Text("BB"))
+            .ToBytes();
+
+        var page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
+        var spans = page.GetTextSpans().Where(span => !string.IsNullOrEmpty(span.Text)).ToArray();
+        Assert.Equal("BB", string.Concat(spans.Select(span => span.Text)));
+        var glyphs = ReadCallerCollisionGlyphs(bytes);
+        Assert.Equal(2, glyphs.Count);
+        Assert.All(glyphs, glyph => Assert.Equal(registered ? 3.6D : 7.2D, glyph.PaintedAdvance, 3));
+        Assert.All(spans, span => {
+            Assert.Equal(12D, span.FontSize, 3);
+            if (registered) Assert.EndsWith("ScopedLiteral-Regular", span.BaseFont, StringComparison.OrdinalIgnoreCase);
+            else Assert.Equal("Courier", span.BaseFont);
+        });
+    }
 }

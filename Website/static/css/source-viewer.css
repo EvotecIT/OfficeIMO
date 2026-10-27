@@ -6,7 +6,7 @@
 .imo-source-viewer__header p { margin:6px 0 0; color:var(--imo-text-secondary); overflow-wrap:anywhere; font-size:13px; }
 .imo-source-viewer__header > div { min-width:0; }
 .imo-source-viewer__toolbar { display:flex; flex-shrink:0; flex-wrap:wrap; align-items:center; gap:12px; padding:0 24px 16px; border-bottom:1px solid var(--imo-border); }
-.imo-source-viewer :is(button,a[data-source-download]) { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 14px; border:1px solid var(--imo-border); border-radius:6px; background:var(--imo-bg-alt); color:var(--imo-text); font:inherit; font-size:14px; cursor:pointer; text-decoration:none; }
+.imo-source-viewer button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 14px; border:1px solid var(--imo-border); border-radius:6px; background:var(--imo-bg-alt); color:var(--imo-text); font:inherit; font-size:14px; cursor:pointer; text-decoration:none; }
 .imo-source-viewer button:disabled { opacity:.5; cursor:default; }
 .imo-source-viewer [data-source-status] { font-size:13px; color:var(--imo-text-secondary); }
 .imo-source-viewer pre[class],.imo-source-viewer pre { min-height:120px; min-width:0; margin:0; padding:20px 24px; overflow:auto; border-radius:0; font-size:13px; line-height:1.6; tab-size:4; }

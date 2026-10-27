@@ -292,5 +292,28 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(PdfStandardFont.TimesBold, PdfStandardFontMapper.GetStyledFont(PdfStandardFont.TimesItalic, bold: true, italic: false));
     }
 
+    [Theory]
+    [InlineData("quoted-comma", false)]
+    [InlineData("quoted-semicolon", false)]
+    [InlineData("escaped-comma", false)]
+    [InlineData("quoted-standard", true)]
+    [InlineData("unquoted-fallback", true)]
+    [InlineData("quoted-then-fallback", true)]
+    public void StandardFontMapperHonorsLiteralFamilyCandidates(string scenario, bool expectedMatch) {
+        string families = scenario switch {
+            "quoted-comma" => "\"Unmapped, Courier\"",
+            "quoted-semicolon" => "'Unmapped; Courier'",
+            "escaped-comma" => @"Unmapped\,Courier",
+            "quoted-standard" => "'Courier'",
+            "unquoted-fallback" => "Unmapped, Courier",
+            "quoted-then-fallback" => "\"Unmapped, Times\",Courier",
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario))
+        };
+
+        Assert.Equal(expectedMatch, PdfStandardFontMapper.TryMapFontFamily(families, out PdfStandardFont family));
+        Assert.Equal(expectedMatch ? PdfStandardFont.Courier : PdfStandardFont.Helvetica, family);
+        Assert.Equal(expectedMatch, PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(families, PdfStandardFont.Courier));
+    }
+
 
 }

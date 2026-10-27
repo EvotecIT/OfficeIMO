@@ -198,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
             cancellationToken.ThrowIfCancellationRequested();
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
-            var nativeFontMap = new NativeFontMap(options?.Report);
+            var nativeFontMap = new NativeFontMap(options?.Report, document);
             Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
                 WordDocumentTraversal.BuildResolvedListMarkers(document, cancellationToken);
             using IDisposable listInfoScope = WordDocumentTraversal.UseResolvedListMarkers(document, resolvedMarkers);
@@ -234,6 +234,9 @@ namespace OfficeIMO.Word.Pdf {
             };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             nativeDefaults = nativeDefaults with { NoteNumbering = footnoteNumbersById };
+            nativeDefaults = nativeDefaults with {
+                BookmarkTargets = CreateNativeBookmarkTargets(document, options, nativeDefaults, nativeFontMap, footnoteNumbersById)
+            };
             IReadOnlyList<WordSection> sections = document.Sections;
             bool canContinueRunningStories = SupportsNativeContinuousRunningStoryDocument(document, sections);
             string? pageFootnoteBodyProfileGap = null;

@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            family = family.Trim().Trim('"', '\'');
+            family = family.Trim();
             return PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, out PdfCore.PdfStandardFont font)
                 ? font
                 : null;
@@ -228,7 +228,7 @@ namespace OfficeIMO.Word.Pdf {
                 fonts.EastAsia?.Value,
                 fonts.ComplexScript?.Value
             }) {
-                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, out PdfCore.PdfStandardFont font)) {
+                if (TryResolveNativeMappedFont(family, nativeFontMap: null, out PdfCore.PdfStandardFont font)) {
                     return font;
                 }
             }

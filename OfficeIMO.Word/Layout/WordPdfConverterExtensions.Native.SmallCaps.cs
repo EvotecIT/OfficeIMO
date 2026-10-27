@@ -38,7 +38,7 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static void AddNativeCasedText(PdfCore.PdfParagraphBuilder builder, string text, NativeResolvedTextStyle style,
-        IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null) {
+        IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null, NativeBookmarkTargets? bookmarks = null) {
         text = WordPaperText.NormalizeIdentifierBreaksForLayout(text);
         // Body runs explicitly restore the inherited full size after a reduced
         // segment. Cell runs keep their nullable size for configured typography.
@@ -47,7 +47,7 @@ public static partial class WordPdfConverterExtensions {
         foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(text, style)) {
             ApplyNativeTextStyle(builder, segment.Style);
             if (hyperlink != null)
-                AddNativeHyperLinkRun(builder, segment.Text, hyperlink, tabStops, ref tabIndex, segment.Style);
+                AddNativeHyperLinkRun(builder, segment.Text, hyperlink, tabStops, ref tabIndex, segment.Style, bookmarks);
             else
                 AddNativeRunText(builder, segment.Text, tabStops, ref tabIndex);
         }

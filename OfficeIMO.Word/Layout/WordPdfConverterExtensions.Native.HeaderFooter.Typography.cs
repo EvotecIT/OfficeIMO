@@ -102,14 +102,16 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
-            foreach (string? familyName in EnumerateNativeFontFamilies(options?.FontFamily, default)
-                .Concat(EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies)).Concat(new[] {
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options?.FontFamily, out PdfCore.PdfStandardFont optionFont)) {
+                return PdfCore.PdfStandardFontMapper.GetFontFamily(optionFont);
+            }
+            foreach (string? familyName in EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies).Concat(new[] {
                 document.Settings.FontFamily,
                 document.Settings.FontFamilyHighAnsi,
                 document.Settings.FontFamilyEastAsia,
                 document.Settings.FontFamilyComplexScript
             })) {
-                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                if (TryResolveNativeMappedFont(familyName, nativeFontMap: null, out PdfCore.PdfStandardFont mappedFont)) {
                     return PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
                 }
             }
