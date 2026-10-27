@@ -139,6 +139,9 @@ namespace OfficeIMO.Pdf.Word {
                                 formRowY = widget.Y2;
                             }
                             break;
+                        case ImportItemKind.Figure:
+                            itemEmitted = AddVectorFigure(target, page, item.Figure!, options);
+                            break;
                         case ImportItemKind.Link:
                             emittedParagraph = AddStandaloneLink(target, item.Link!, item.LinkText, options, navigation);
                             break;
@@ -183,10 +186,26 @@ namespace OfficeIMO.Pdf.Word {
             IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
                 BuildReadingOrder(projection, options.UseSharedPageReadingOrder);
             int sequence = 0;
+            // Labels drawn as part of a chart travel with the picture of the chart.
+            var figureLabels = new HashSet<PdfCore.PdfLogicalTextBlock>(options.ImportImages
+                ? page.VectorFigures.SelectMany(static figure => figure.Labels)
+                : Enumerable.Empty<PdfCore.PdfLogicalTextBlock>());
+            var figureOrder = new Dictionary<PdfCore.PdfLogicalVectorFigure, int>();
+            void NoteFigureLabel(PdfCore.PdfLogicalTextBlock line, int? order) {
+                if (!order.HasValue) return;
+                foreach (PdfCore.PdfLogicalVectorFigure figure in page.VectorFigures) {
+                    if (!figure.Labels.Contains(line)) continue;
+                    figureOrder[figure] = figureOrder.TryGetValue(figure, out int existing) ? Math.Min(existing, order.Value) : order.Value;
+                }
+            }
 
             if (options.ImportHeadings) {
                 for (int i = 0; i < page.Headings.Count; i++) {
                     PdfCore.PdfLogicalHeading heading = page.Headings[i];
+                    if (figureLabels.Contains(heading.Line)) {
+                        NoteFigureLabel(heading.Line, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i));
+                        continue;
+                    }
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, heading.Line, options, navigation, consumedLinks);
                     items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i), link, link == null ? null : heading.Text));
                 }
@@ -196,6 +215,10 @@ namespace OfficeIMO.Pdf.Word {
                 for (int i = 0; i < page.Paragraphs.Count; i++) {
                     PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
                     if (paragraph.Lines.Count > 0 && paragraph.Lines.All(listOwnedLines.Contains)) continue;
+                    if (paragraph.Lines.Count > 0 && paragraph.Lines.All(figureLabels.Contains)) {
+                        NoteFigureLabel(paragraph.Lines[0], GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i));
+                        continue;
+                    }
                     if (options.ImportTables && !projectedParagraphs.Contains(i) &&
                         paragraph.Lines.Count > 0 && paragraph.Lines.All(static line => line.IsTableContent)) continue;
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
@@ -204,6 +227,10 @@ namespace OfficeIMO.Pdf.Word {
 
                 for (int i = 0; i < page.TextBlocks.Count; i++) {
                     PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
+                    if (figureLabels.Contains(block)) {
+                        NoteFigureLabel(block, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i));
+                        continue;
+                    }
                     if (!projectedTextBlocks.Contains(i) && block.Kind is not (PdfCore.PdfLogicalElementKind.Header or
                         PdfCore.PdfLogicalElementKind.Footer or
                         PdfCore.PdfLogicalElementKind.Caption or
@@ -238,6 +265,14 @@ namespace OfficeIMO.Pdf.Word {
                     // become tabbed leader lines. A second, table copy of the same lines would duplicate them.
                     if (options.ImportParagraphs && IsLeaderTableProjectedAsText(page, table)) continue;
                     items.Add(ImportItem.ForTable(table, table.Table.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Table, i)));
+                }
+            }
+
+            if (options.ImportImages) {
+                (double _, double pageHeight) = page.GetVisualPageSize();
+                foreach (PdfCore.PdfLogicalVectorFigure figure in page.VectorFigures) {
+                    int? order = figureOrder.TryGetValue(figure, out int labelOrder) ? labelOrder : null;
+                    items.Add(ImportItem.ForFigure(figure, pageHeight - figure.Top, sequence++, order));
                 }
             }
 

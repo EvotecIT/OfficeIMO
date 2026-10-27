@@ -300,6 +300,9 @@ public sealed partial class PdfLogicalPage {
     /// <summary>Visible artifact-marked text spans (running headers, footers, page numbers) left out of this page.</summary>
     internal int OmittedArtifactTextSpanCount { get; set; }
 
+    /// <summary>Bounded vector drawings (charts) that editable converters place as pictures.</summary>
+    internal IReadOnlyList<PdfLogicalVectorFigure> VectorFigures { get; set; } = Array.Empty<PdfLogicalVectorFigure>();
+
     private static List<PdfUnderstandingLine> GetRetainedProjectionLines(PdfUnderstandingPageResult analysis) {
         return new List<PdfUnderstandingLine>(analysis.LogicalProjectionLines);
     }

@@ -182,6 +182,9 @@ public sealed partial class PdfLogicalPage {
             pageAnalysis, hasVisualPrimitiveCounts: includeImages,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
         logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken);
+        if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
+            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
+        }
         return logicalPage;
     }
 

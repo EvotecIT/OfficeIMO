@@ -54,6 +54,11 @@ namespace OfficeIMO.Pdf.Word {
             public static ImportItem ForFormWidget(PdfCore.PdfLogicalFormWidget widget, double y, int sequence, int? readingOrderIndex) =>
                 new ImportItem(ImportItemKind.FormWidget, y, sequence, readingOrderIndex) { FormWidget = widget };
 
+            public PdfCore.PdfLogicalVectorFigure? Figure { get; private set; }
+
+            public static ImportItem ForFigure(PdfCore.PdfLogicalVectorFigure figure, double y, int sequence, int? readingOrderIndex) =>
+                new ImportItem(ImportItemKind.Figure, y, sequence, readingOrderIndex) { Figure = figure };
+
             public static ImportItem ForLink(PdfCore.PdfLogicalLinkAnnotation link, double y, int sequence, int? readingOrderIndex, string? linkText) =>
                 new ImportItem(ImportItemKind.Link, y, sequence, readingOrderIndex) { Link = link, LinkText = linkText };
         }
@@ -66,7 +71,8 @@ namespace OfficeIMO.Pdf.Word {
             Table,
             Image,
             FormWidget,
-            Link
+            Link,
+            Figure
         }
     }
 }
