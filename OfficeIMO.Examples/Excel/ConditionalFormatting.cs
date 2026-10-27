@@ -13,7 +13,8 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(2, 1, 20d);
                 sheet.CellValue(3, 1, 30d);
-                sheet.AddConditionalColorScale("A1:A3", Color.Red, Color.Green);
+                // Light status tints keep the values readable: a pure red-to-green scale passes through brown.
+                sheet.AddConditionalColorScale("A1:A3", Color.ParseHex("F8D7DA"), Color.ParseHex("C9ECD3"));
                 document.Save();
                 if (openExcel) document.OpenInApplication();
             }

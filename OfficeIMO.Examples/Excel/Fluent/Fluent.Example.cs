@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples.Excel {
                         // Note: Table includes AutoFilter by default. Use .WithAutoFilter(false) to disable it.
                         // If you want worksheet-level AutoFilter instead of table AutoFilter, call .AutoFilter() and use .WithAutoFilter(false) on the table
                         //.AutoFilter("A1:E11")
-                        .ConditionalColorScale("B2:B11", Color.Red, Color.Green)
-                        .ConditionalDataBar("B2:B11", Color.Blue)
+                        .ConditionalColorScale("B2:B11", Color.ParseHex("F8D7DA"), Color.ParseHex("C9ECD3"))
+                        .ConditionalDataBar("B2:B11", Color.ParseHex("3F64D7"))
                         .AutoFit(columns: true, rows: true)
                         .Columns(c => c
                             .Col(1, col => col.Width(15))

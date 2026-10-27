@@ -243,6 +243,9 @@ namespace OfficeIMO.Examples.Excel {
             }
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
+            // Each domain report is a one-page brief: fit it to the page instead of letting
+            // a few lines spill onto a second sheet of paper.
+            s.PrintDefaults(showGridlines: false, fitToWidth: 1, fitToHeight: 1);
             s.Finish(autoFitColumns: false);
         }
 

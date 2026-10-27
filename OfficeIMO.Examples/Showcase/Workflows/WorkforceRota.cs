@@ -40,7 +40,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
                 for (int column = 1; column <= 7; column++) {
-                    sheet.CellFontName(row, column, "Carlito");
                     if (row > 1) sheet.CellFontSize(row, column, 11);
                 }
             }
